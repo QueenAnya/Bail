@@ -79,6 +79,26 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 	return proto.ClientPayload.fromObject(payload)
 }
 
+const findPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
+	platform = platform.toLowerCase()
+	switch (platform) {
+	case 'chrome':
+		return proto.DeviceProps.PlatformType.CHROME
+	case 'firefox':
+		return proto.DeviceProps.PlatformType.FIREFOX
+	case 'internet explorer':
+		return proto.DeviceProps.PlatformType.IE
+	case 'edge':
+		return proto.DeviceProps.PlatformType.EDGE
+	case 'opera':
+		return proto.DeviceProps.PlatformType.OPERA
+	case 'safari':
+		return proto.DeviceProps.PlatformType.SAFARI
+	default:
+		return proto.DeviceProps.PlatformType.DESKTOP
+	}
+}
+
 export const generateRegistrationNode = (
 	{ registrationId, signedPreKey, signedIdentityKey }: SignalCreds,
 	config: SocketConfig
@@ -91,7 +111,7 @@ export const generateRegistrationNode = (
 
 	const companion: proto.IDeviceProps = {
 		os: config.browser[0],
-		platformType: proto.DeviceProps.PlatformType.DESKTOP,
+		platformType: findPlatformType(config.browser[1]),
 		requireFullSync: config.syncFullHistory,
 	}
 
