@@ -16,9 +16,9 @@ const PLATFORM_MAP = {
 }
 
 export const Browsers = {
-	ubuntu: browser => (['Firefox (linux)', browser, '119.0']) as ([string, string, string]),
-	macOS: browser => (['Firefox (linux)', browser, '119.0']) as ([string, string, string]),
-	baileys: browser => (['Firefox (linux)', browser, '119.0']) as ([string, string, string]),
+	ubuntu: browser => ['Firefox (linux)', browser, '119.0'] as [string, string, string],
+	macOS: browser => ['Firefox (linux)', browser, '119.0'] as [string, string, string],
+	baileys: browser => ['Firefox (linux)', browser, '119.0'] as [string, string, string],
 	/** The appropriate browser based on your OS & release */
 	appropriate: browser => [ PLATFORM_MAP[platform()] || 'Firefox (linux)', browser, release() ] as [string, string, string]
 }
