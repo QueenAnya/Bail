@@ -82,6 +82,20 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 const findPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	platform = platform.toLowerCase()
 	switch (platform) {
+	case 'Chrome':
+		return proto.DeviceProps.PlatformType.CHROME
+	case 'Firefox':
+		return proto.DeviceProps.PlatformType.FIREFOX
+	case 'Internet Explorer':
+		return proto.DeviceProps.PlatformType.IE
+	case 'Edge':
+		return proto.DeviceProps.PlatformType.EDGE
+	case 'Opera':
+		return proto.DeviceProps.PlatformType.OPERA
+	case 'Safari':
+		return proto.DeviceProps.PlatformType.SAFARI
+	default:
+		return proto.DeviceProps.PlatformType.DESKTOP
 	case 'chrome':
 		return proto.DeviceProps.PlatformType.CHROME
 	case 'firefox':
