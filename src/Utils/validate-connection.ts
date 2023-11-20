@@ -94,7 +94,7 @@ const findPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 		return proto.DeviceProps.PlatformType.OPERA
 	case 'Safari':
 		return proto.DeviceProps.PlatformType.SAFARI
-	default:
+		case 'Desktop':
 		return proto.DeviceProps.PlatformType.DESKTOP
 	case 'chrome':
 		return proto.DeviceProps.PlatformType.CHROME
@@ -108,6 +108,8 @@ const findPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 		return proto.DeviceProps.PlatformType.OPERA
 	case 'safari':
 		return proto.DeviceProps.PlatformType.SAFARI
+		case 'desktop':
+		return proto.DeviceProps.PlatformType.DESKTOP
 	default:
 		return proto.DeviceProps.PlatformType.DESKTOP
 	}
