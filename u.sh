@@ -28,7 +28,7 @@ git init
 git add .
 git config --global user.email "khushijain2901@mail.com"
 git config --global user.name "Its-me-001"
-git commit -m "ForstaLabs Libsignal"
+git commit -m "Adiwajshing Libsignal"
 git branch -M master
 git remote add origin https://github.com/ITS-ME-001/Libsignal.git
 git push -u origin master
