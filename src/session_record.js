@@ -2,7 +2,7 @@
 
 const BaseKeyType = require('./base_key_type');
 
-const CLOSED_SESSIONS_MAX = 40;
+const CLOSED_SESSIONS_MAX = 20;
 const SESSION_RECORD_VERSION = 'v1';
 
 function assertBuffer(value) {
@@ -267,10 +267,9 @@ class SessionRecord {
 
     closeSession(session) {
         if (this.isClosed(session)) {
-            console.warn("Session already closed", session);
+            console.warn("Session already closed");
             return;
         }
-        console.info("Closing session:", session);
         session.indexInfo.closed = Date.now();
     }
 
@@ -278,7 +277,7 @@ class SessionRecord {
         if (!this.isClosed(session)) {
             console.warn("Session already open");
         }
-        console.info("Opening session:", session);
+        console.info("Opening session:");
         session.indexInfo.closed = -1;
     }
 
@@ -298,7 +297,7 @@ class SessionRecord {
                 }
             }
             if (oldestKey) {
-                console.info("Removing old closed session:", oldestSession);
+                console.info("Removing old closed session");
                 delete this.sessions[oldestKey];
             } else {
                 throw new Error('Corrupt sessions object');
