@@ -113,6 +113,7 @@ const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	default:
 		return proto.DeviceProps.PlatformType.DESKTOP
 	}
+}
 
 export const generateRegistrationNode = (
 	{ registrationId, signedPreKey, signedIdentityKey }: SignalCreds,
