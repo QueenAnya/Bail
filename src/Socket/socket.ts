@@ -524,8 +524,9 @@ export const makeSocket = (config: SocketConfig) => {
 						},
 						{
 							tag: 'companion_platform_display',
-							attrs: {},
-							content: `${browser[1]} (${browser[0]})`
+                            attrs: {},
+                            content: `${browser[0]}`
+                            // content1: config.browser[0]
 						},
 						{
 							tag: 'link_code_pairing_nonce',
