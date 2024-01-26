@@ -61,7 +61,7 @@ jobs:
         run: npm pack
 
       - name: Rename Pack
-        run: mv *.tgz baileys.tgz
+        run: mv *.tgz libsignal.tgz
 
       - name: Create Release
         uses: meeDamian/github-release@2.0
@@ -76,6 +76,6 @@ jobs:
           draft: false
           prerelease: false
           files: >
-            baileys.tgz
+            libsignal.tgz
           gzip: folders
           allow_override: true
