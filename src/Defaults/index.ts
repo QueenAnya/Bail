@@ -20,7 +20,7 @@ export const PHONE_CONNECTION_CB = 'CB:Pong'
 
 export const WA_DEFAULT_EPHEMERAL = 7 * 24 * 60 * 60
 
-const WA_VERSION = '2.23.14.82'
+const WA_VERSION = '2.24.3.23'
 
 const WA_VERSION_HASH = createHash('md5').update(WA_VERSION).digest('hex')
 export const MOBILE_TOKEN = Buffer.from('0a1mLfGUIBVrMKF1RdvLI5lkRBvof6vn0fD2QRSM' + WA_VERSION_HASH)
@@ -55,12 +55,12 @@ export const PROCESSABLE_HISTORY_TYPES = [
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.baileys('Firefox'),
+	browser: Browsers.baileys('Chrome'),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,
 	logger: logger.child({ class: 'baileys' }),
-	printQRInTerminal: true,
+	printQRInTerminal: false,
 	emitOwnEvents: true,
 	defaultQueryTimeoutMs: 60_000,
 	customUploadHosts: [],
