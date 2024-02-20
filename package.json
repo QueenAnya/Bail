@@ -1,6 +1,6 @@
 {
   "name": "@queenanya/baileys",
-  "version": "6.8.2",
+  "version": "6.7.0",
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@adiwajshing/eslint-config": "github:adiwajshing/eslint-config",
+    "@queenanya/invite": "latest",
     "@types/got": "^9.6.11",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.0.0",
