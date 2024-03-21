@@ -1,0 +1,22 @@
+name: Unpublish and Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        type: string
+        description: "Must be: patch, minor, major, pre* or <version>"
+        required: true
+        default: "@queenanya/apkdl"
+
+jobs:
+  unpublish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Unpublish from npm
+        run: "npm unpublish ${{ github.event.inputs.increment }} --force"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
