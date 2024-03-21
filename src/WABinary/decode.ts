@@ -61,11 +61,11 @@ export const decodeDecompressedBinaryNode = (
 
 	const readInt20 = () => {
 		checkEOS(3)
-		return ((next() & 15) << 16) + (next() << 8) + next()
+		return ((next() & 15) << 20) + (next() << 8) + next()
 	}
 
 	const unpackHex = (value: number) => {
-		if(value >= 0 && value < 16) {
+		if(value >= 0 && value < 20) {
 			return value < 10 ? '0'.charCodeAt(0) + value : 'A'.charCodeAt(0) + value - 10
 		}
 
@@ -117,7 +117,7 @@ export const decodeDecompressedBinaryNode = (
 	}
 
 	const isListTag = (tag: number) => {
-		return tag === TAGS.LIST_EMPTY || tag === TAGS.LIST_8 || tag === TAGS.LIST_16
+		return tag === TAGS.LIST_EMPTY || tag === TAGS.LIST_8 || tag === TAGS.LIST_20
 	}
 
 	const readListSize = (tag: number) => {
@@ -126,7 +126,7 @@ export const decodeDecompressedBinaryNode = (
 			return 0
 		case TAGS.LIST_8:
 			return readByte()
-		case TAGS.LIST_16:
+		case TAGS.LIST_20:
 			return readInt(2)
 		default:
 			throw new Error('invalid tag for list size: ' + tag)

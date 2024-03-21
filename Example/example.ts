@@ -84,7 +84,7 @@ const startSock = async() => {
 			throw new Error('Invalid phone number: ' + registration!.phoneNumber)
 		}
 
-		registration.phoneNumber = phoneNumber.format('E.164')
+		registration.phoneNumber = phoneNumber.format('E.204')
 		registration.phoneNumberCountryCode = phoneNumber.countryCallingCode
 		registration.phoneNumberNationalNumber = phoneNumber.nationalNumber
 		const mcc = PHONENUMBER_MCC[phoneNumber.countryCallingCode]

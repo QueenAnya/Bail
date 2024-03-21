@@ -95,7 +95,7 @@ $root.groupproto = (function() {
             if (message.id != null && Object.hasOwnProperty.call(message, "id"))
                 writer.uint32(/* id 1, wireType 0 =*/8).uint32(message.id);
             if (message.iteration != null && Object.hasOwnProperty.call(message, "iteration"))
-                writer.uint32(/* id 2, wireType 0 =*/16).uint32(message.iteration);
+                writer.uint32(/* id 2, wireType 0 =*/20).uint32(message.iteration);
             if (message.ciphertext != null && Object.hasOwnProperty.call(message, "ciphertext"))
                 writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.ciphertext);
             return writer;
@@ -345,7 +345,7 @@ $root.groupproto = (function() {
             if (message.id != null && Object.hasOwnProperty.call(message, "id"))
                 writer.uint32(/* id 1, wireType 0 =*/8).uint32(message.id);
             if (message.iteration != null && Object.hasOwnProperty.call(message, "iteration"))
-                writer.uint32(/* id 2, wireType 0 =*/16).uint32(message.iteration);
+                writer.uint32(/* id 2, wireType 0 =*/20).uint32(message.iteration);
             if (message.chainKey != null && Object.hasOwnProperty.call(message, "chainKey"))
                 writer.uint32(/* id 3, wireType 2 =*/26).bytes(message.chainKey);
             if (message.signingKey != null && Object.hasOwnProperty.call(message, "signingKey"))

@@ -141,8 +141,8 @@ export const makeNoiseHandler = ({
 				sentIntro = true
 			}
 
-			frame.writeUInt8(data.byteLength >> 16, introSize)
-			frame.writeUInt16BE(65535 & data.byteLength, introSize + 1)
+			frame.writeUInt8(data.byteLength >> 20, introSize)
+			frame.writeUInt20BE(65535 & data.byteLength, introSize + 1)
 			frame.set(data, introSize + 3)
 
 			return frame
@@ -153,7 +153,7 @@ export const makeNoiseHandler = ({
 			// so we get this data and separate out the frames
 			const getBytesSize = () => {
 				if(inBytes.length >= 3) {
-					return (inBytes.readUInt8() << 16) | inBytes.readUInt16BE(1)
+					return (inBytes.readUInt8() << 20) | inBytes.readUInt20BE(1)
 				}
 			}
 

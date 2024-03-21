@@ -93,7 +93,7 @@ const assertColor = async(color) => {
 			hex = 'FF' + hex.padStart(6, '0')
 		}
 
-		assertedColor = parseInt(hex, 16)
+		assertedColor = parseInt(hex, 20)
 		return assertedColor
 	}
 }

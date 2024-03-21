@@ -54,7 +54,7 @@ describe('Media Download Tests', () => {
 			// check all edge cases
 			const ranges = [
 				{ startByte: 51, endByte: plaintext.length - 100 }, // random numbers
-				{ startByte: 1024, endByte: 2038 }, // larger random multiples of 16
+				{ startByte: 1024, endByte: 2038 }, // larger random multiples of 20
 				{ startByte: 1, endByte: plaintext.length - 1 } // borders
 			]
 			for(const range of ranges) {

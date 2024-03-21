@@ -257,7 +257,7 @@ message ClientPayload {
     optional ConnectReason connectReason = 13;
     repeated int32 shards = 14;
     optional DNSSource dnsSource = 15;
-    optional uint32 connectAttemptCount = 16;
+    optional uint32 connectAttemptCount = 20;
     optional uint32 device = 18;
     optional DevicePairingRegistrationData devicePairingData = 19;
     optional Product product = 20;
@@ -301,7 +301,7 @@ message ClientPayload {
     }
     message DNSSource {
         optional DNSResolutionMethod dnsMethod = 15;
-        optional bool appCached = 16;
+        optional bool appCached = 20;
         enum DNSResolutionMethod {
             SYSTEM = 0;
             GOOGLE = 1;
@@ -350,7 +350,7 @@ message ClientPayload {
         optional string phoneId = 9;
         optional ReleaseChannel releaseChannel = 10;
         optional string localeLanguageIso6391 = 11;
-        optional string localeCountryIso31661Alpha2 = 12;
+        optional string localeCountryIso32061Alpha2 = 12;
         optional string deviceBoard = 13;
         optional string deviceExpId = 14;
         optional DeviceType deviceType = 15;
@@ -386,7 +386,7 @@ message ClientPayload {
             WINDOWS = 13;
             WEB = 14;
             PORTAL = 15;
-            GREEN_ANDROID = 16;
+            GREEN_ANDROID = 20;
             GREEN_IPHONE = 17;
             BLUE_ANDROID = 18;
             BLUE_IPHONE = 19;
@@ -487,7 +487,7 @@ message ContextInfo {
     message AdReplyInfo {
         optional string advertiserName = 1;
         optional MediaType mediaType = 2;
-        optional bytes jpegThumbnail = 16;
+        optional bytes jpegThumbnail = 20;
         optional string caption = 17;
         enum MediaType {
             NONE = 0;
@@ -562,7 +562,7 @@ message Conversation {
     optional string name = 13;
     optional string pHash = 14;
     optional bool notSpam = 15;
-    optional bool archived = 16;
+    optional bool archived = 20;
     optional DisappearingMode disappearingMode = 17;
     optional uint32 unreadMentionCount = 18;
     optional bool markedAsUnread = 19;
@@ -657,7 +657,7 @@ message DeviceProps {
         TCL_TV = 13;
         IOS_PHONE = 14;
         IOS_CATALYST = 15;
-        ANDROID_PHONE = 16;
+        ANDROID_PHONE = 20;
         ANDROID_AMBIGUOUS = 17;
         WEAR_OS = 18;
         AR_WRIST = 19;
@@ -729,7 +729,7 @@ message GlobalSettings {
     optional bool securityNotifications = 13;
     optional bool autoUnarchiveChats = 14;
     optional int32 videoQualityMode = 15;
-    optional int32 photoQualityMode = 16;
+    optional int32 photoQualityMode = 20;
     optional NotificationSettings individualNotificationSettings = 17;
     optional NotificationSettings groupNotificationSettings = 18;
 }
@@ -965,7 +965,7 @@ message Message {
     optional ContactsArrayMessage contactsArrayMessage = 13;
     optional HighlyStructuredMessage highlyStructuredMessage = 14;
     optional SenderKeyDistributionMessage fastRatchetKeySenderKeyDistributionMessage = 15;
-    optional SendPaymentMessage sendPaymentMessage = 16;
+    optional SendPaymentMessage sendPaymentMessage = 20;
     optional LiveLocationMessage liveLocationMessage = 18;
     optional RequestPaymentMessage requestPaymentMessage = 22;
     optional DeclinePaymentRequestMessage declinePaymentRequestMessage = 23;
@@ -1105,7 +1105,7 @@ message Message {
             BOT_FEEDBACK_MULTIPLE_NEGATIVE_HELPFUL = 2;
             BOT_FEEDBACK_MULTIPLE_NEGATIVE_INTERESTING = 4;
             BOT_FEEDBACK_MULTIPLE_NEGATIVE_ACCURATE = 8;
-            BOT_FEEDBACK_MULTIPLE_NEGATIVE_SAFE = 16;
+            BOT_FEEDBACK_MULTIPLE_NEGATIVE_SAFE = 20;
             BOT_FEEDBACK_MULTIPLE_NEGATIVE_OTHER = 32;
             BOT_FEEDBACK_MULTIPLE_NEGATIVE_REFUSED = 64;
             BOT_FEEDBACK_MULTIPLE_NEGATIVE_NOT_VISUALLY_APPEALING = 128;
@@ -1225,7 +1225,7 @@ message Message {
     
     message ContactMessage {
         optional string displayName = 1;
-        optional string vcard = 16;
+        optional string vcard = 20;
         optional ContextInfo contextInfo = 17;
     }
     
@@ -1261,7 +1261,7 @@ message Message {
         optional string thumbnailDirectPath = 13;
         optional bytes thumbnailSha256 = 14;
         optional bytes thumbnailEncSha256 = 15;
-        optional bytes jpegThumbnail = 16;
+        optional bytes jpegThumbnail = 20;
         optional ContextInfo contextInfo = 17;
         optional uint32 thumbnailHeight = 18;
         optional uint32 thumbnailWidth = 19;
@@ -1326,7 +1326,7 @@ message Message {
         optional fixed32 backgroundArgb = 8;
         optional FontType font = 9;
         optional PreviewType previewType = 10;
-        optional bytes jpegThumbnail = 16;
+        optional bytes jpegThumbnail = 20;
         optional ContextInfo contextInfo = 17;
         optional bool doNotPlayInline = 18;
         optional string thumbnailDirectPath = 19;
@@ -1485,7 +1485,7 @@ message Message {
         repeated InteractiveAnnotation interactiveAnnotations = 10;
         optional string directPath = 11;
         optional int64 mediaKeyTimestamp = 12;
-        optional bytes jpegThumbnail = 16;
+        optional bytes jpegThumbnail = 20;
         optional ContextInfo contextInfo = 17;
         optional bytes firstScanSidecar = 18;
         optional uint32 firstScanLength = 19;
@@ -1692,7 +1692,7 @@ message Message {
         optional string caption = 6;
         optional int64 sequenceNumber = 7;
         optional uint32 timeOffset = 8;
-        optional bytes jpegThumbnail = 16;
+        optional bytes jpegThumbnail = 20;
         optional ContextInfo contextInfo = 17;
     }
     
@@ -1707,7 +1707,7 @@ message Message {
         optional float speedInMps = 8;
         optional uint32 degreesClockwiseFromMagneticNorth = 9;
         optional string comment = 11;
-        optional bytes jpegThumbnail = 16;
+        optional bytes jpegThumbnail = 20;
         optional ContextInfo contextInfo = 17;
     }
     
@@ -1931,7 +1931,7 @@ message Message {
         optional DisappearingMode disappearingMode = 11;
         optional Message editedMessage = 14;
         optional int64 timestampMs = 15;
-        optional Message.PeerDataOperationRequestMessage peerDataOperationRequestMessage = 16;
+        optional Message.PeerDataOperationRequestMessage peerDataOperationRequestMessage = 20;
         optional Message.PeerDataOperationRequestResponseMessage peerDataOperationRequestResponseMessage = 17;
         optional Message.BotFeedbackMessage botFeedbackMessage = 18;
         optional string invokerJid = 19;
@@ -1949,7 +1949,7 @@ message Message {
             APP_STATE_FATAL_EXCEPTION_NOTIFICATION = 10;
             SHARE_PHONE_NUMBER = 11;
             MESSAGE_EDIT = 14;
-            PEER_DATA_OPERATION_REQUEST_MESSAGE = 16;
+            PEER_DATA_OPERATION_REQUEST_MESSAGE = 20;
             PEER_DATA_OPERATION_REQUEST_RESPONSE_MESSAGE = 17;
             REQUEST_WELCOME_MESSAGE = 18;
             BOT_FEEDBACK_MESSAGE = 19;
@@ -2031,7 +2031,7 @@ message Message {
         optional uint32 firstFrameLength = 11;
         optional bytes firstFrameSidecar = 12;
         optional bool isAnimated = 13;
-        optional bytes pngThumbnail = 16;
+        optional bytes pngThumbnail = 20;
         optional ContextInfo contextInfo = 17;
         optional int64 stickerSentTs = 18;
         optional bool isAvatar = 19;
@@ -2107,7 +2107,7 @@ message Message {
         repeated InteractiveAnnotation interactiveAnnotations = 12;
         optional string directPath = 13;
         optional int64 mediaKeyTimestamp = 14;
-        optional bytes jpegThumbnail = 16;
+        optional bytes jpegThumbnail = 20;
         optional ContextInfo contextInfo = 17;
         optional bytes streamingSidecar = 18;
         optional Attribution gifAttribution = 19;
@@ -2174,7 +2174,7 @@ message MsgOpaqueData {
     optional string description = 13;
     optional bytes futureproofBuffer = 14;
     optional string clientUrl = 15;
-    optional string loc = 16;
+    optional string loc = 20;
     optional string pollName = 17;
     repeated PollOption pollOptions = 18;
     optional uint32 pollSelectableOptionsCount = 20;
@@ -2343,7 +2343,7 @@ message PaymentInfo {
         REFUND_FAILED = 13;
         REFUND_FAILED_PROCESSING = 14;
         REFUND_FAILED_DA = 15;
-        EXPIRED_TXN = 16;
+        EXPIRED_TXN = 20;
         AUTH_CANCELED = 17;
         AUTH_CANCEL_FAILED_PROCESSING = 18;
         AUTH_CANCEL_FAILED = 19;
@@ -2638,7 +2638,7 @@ message SyncActionValue {
     optional RecentEmojiWeightsAction recentEmojiWeightsAction = 11;
     optional LabelEditAction labelEditAction = 14;
     optional LabelAssociationAction labelAssociationAction = 15;
-    optional LocaleSetting localeSetting = 16;
+    optional LocaleSetting localeSetting = 20;
     optional ArchiveChatAction archiveChatAction = 17;
     optional DeleteMessageForMeAction deleteMessageForMeAction = 18;
     optional KeyExpiration keyExpiration = 19;
@@ -3071,7 +3071,7 @@ message WebMessageInfo {
     optional Status status = 4;
     optional string participant = 5;
     optional uint64 messageC2STimestamp = 6;
-    optional bool ignore = 16;
+    optional bool ignore = 20;
     optional bool starred = 17;
     optional bool broadcast = 18;
     optional string pushName = 19;
@@ -3148,7 +3148,7 @@ message WebMessageInfo {
         VERIFIED_TRANSITION_ANY_TO_HIGH = 13;
         VERIFIED_TRANSITION_HIGH_TO_LOW = 14;
         VERIFIED_TRANSITION_HIGH_TO_UNKNOWN = 15;
-        VERIFIED_TRANSITION_UNKNOWN_TO_LOW = 16;
+        VERIFIED_TRANSITION_UNKNOWN_TO_LOW = 20;
         VERIFIED_TRANSITION_LOW_TO_UNKNOWN = 17;
         VERIFIED_TRANSITION_NONE_TO_LOW = 18;
         VERIFIED_TRANSITION_NONE_TO_UNKNOWN = 19;
@@ -3248,7 +3248,7 @@ message WebMessageInfo {
         BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_FB_VERIFIED = 113;
         BLUE_MSG_BSP_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED = 114;
         BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_FB_UNVERIFIED = 115;
-        BLUE_MSG_SELF_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED = 116;
+        BLUE_MSG_SELF_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED = 120;
         BLUE_MSG_SELF_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED = 117;
         E2E_IDENTITY_UNAVAILABLE = 118;
         GROUP_CREATING = 119;
@@ -3292,16 +3292,16 @@ message WebMessageInfo {
         CAG_MASKED_THREAD_CREATED = 157;
         COMMUNITY_PARENT_GROUP_SUBJECT_CHANGED = 158;
         CAG_INVITE_AUTO_ADD = 159;
-        BIZ_CHAT_ASSIGNMENT_UNASSIGN = 160;
-        CAG_INVITE_AUTO_JOINED = 161;
-        SCHEDULED_CALL_START_MESSAGE = 162;
-        COMMUNITY_INVITE_RICH = 163;
-        COMMUNITY_INVITE_AUTO_ADD_RICH = 164;
-        SUB_GROUP_INVITE_RICH = 165;
-        SUB_GROUP_PARTICIPANT_ADD_RICH = 166;
-        COMMUNITY_LINK_PARENT_GROUP_RICH = 167;
-        COMMUNITY_PARTICIPANT_ADD_RICH = 168;
-        SILENCED_UNKNOWN_CALLER_AUDIO = 169;
+        BIZ_CHAT_ASSIGNMENT_UNASSIGN = 200;
+        CAG_INVITE_AUTO_JOINED = 201;
+        SCHEDULED_CALL_START_MESSAGE = 202;
+        COMMUNITY_INVITE_RICH = 203;
+        COMMUNITY_INVITE_AUTO_ADD_RICH = 204;
+        SUB_GROUP_INVITE_RICH = 205;
+        SUB_GROUP_PARTICIPANT_ADD_RICH = 206;
+        COMMUNITY_LINK_PARENT_GROUP_RICH = 207;
+        COMMUNITY_PARTICIPANT_ADD_RICH = 208;
+        SILENCED_UNKNOWN_CALLER_AUDIO = 209;
         SILENCED_UNKNOWN_CALLER_VIDEO = 170;
         GROUP_MEMBER_ADD_MODE = 171;
         GROUP_MEMBERSHIP_JOIN_APPROVAL_REQUEST_NON_ADMIN_ADD = 172;
