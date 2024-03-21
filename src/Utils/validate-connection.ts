@@ -31,7 +31,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 		device,
 		osBuildNumber: osVersion,
 		localeLanguageIso6391: 'en',
-		localeCountryIso32061Alpha2: 'US',
+		localeCountryIso31661Alpha2: 'US',
 		...phoneId
 	}
 }

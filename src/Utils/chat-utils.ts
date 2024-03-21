@@ -15,13 +15,13 @@ type FetchAppStateSyncKey = (keyId: string) => Promise<proto.Message.IAppStateSy
 export type ChatMutationMap = { [index: string]: ChatMutation }
 
 const mutationKeys = (keydata: Uint8Array) => {
-	const expanded = hkdf(keydata, 200, { info: 'WhatsApp Mutation Keys' })
+	const expanded = hkdf(keydata, 160, { info: 'WhatsApp Mutation Keys' })
 	return {
 		indexKey: expanded.slice(0, 32),
 		valueEncryptionKey: expanded.slice(32, 64),
 		valueMacKey: expanded.slice(64, 96),
 		snapshotMacKey: expanded.slice(96, 128),
-		patchMacKey: expanded.slice(128, 200)
+		patchMacKey: expanded.slice(128, 160)
 	}
 }
 

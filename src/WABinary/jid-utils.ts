@@ -1,5 +1,5 @@
 export const S_WHATSAPP_NET = '@s.whatsapp.net'
-export const OFFICIAL_BIZ_JID = '20505361212@c.us'
+export const OFFICIAL_BIZ_JID = '16505361212@c.us'
 export const SERVER_JID = 'server@c.us'
 export const PSA_WID = '0@c.us'
 export const STORIES_JID = 'status@broadcast'

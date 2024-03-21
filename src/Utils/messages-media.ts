@@ -67,8 +67,8 @@ export function getMediaKeys(buffer: Uint8Array | string | null | undefined, med
 	// expand using HKDF to 112 bytes, also pass in the relevant app info
 	const expandedMediaKey = hkdf(buffer, 112, { info: hkdfInfoKey(mediaType) })
 	return {
-		iv: expandedMediaKey.slice(0, 20),
-		cipherKey: expandedMediaKey.slice(20, 48),
+		iv: expandedMediaKey.slice(0, 16),
+		cipherKey: expandedMediaKey.slice(16, 48),
 		macKey: expandedMediaKey.slice(48, 80),
 	}
 }
@@ -447,7 +447,7 @@ export const encryptedStream = async(
 }
 
 const DEF_HOST = 'mmg.whatsapp.net'
-const AES_CHUNK_SIZE = 20
+const AES_CHUNK_SIZE = 16
 
 const toSmallestChunkSize = (num: number) => {
 	return Math.floor(num / AES_CHUNK_SIZE) * AES_CHUNK_SIZE

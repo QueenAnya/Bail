@@ -49,7 +49,7 @@ export const getKeyAuthor = (
 	(key?.fromMe ? meId : key?.participant || key?.remoteJid) || ''
 )
 
-export const writeRandomPadMax20 = (msg: Uint8Array) => {
+export const writeRandomPadMax16 = (msg: Uint8Array) => {
 	const pad = randomBytes(1)
 	pad[0] &= 0xf
 	if(!pad[0]) {
@@ -59,7 +59,7 @@ export const writeRandomPadMax20 = (msg: Uint8Array) => {
 	return Buffer.concat([msg, Buffer.alloc(pad[0], pad[0])])
 }
 
-export const unpadRandomMax20 = (e: Uint8Array | Buffer) => {
+export const unpadRandomMax16 = (e: Uint8Array | Buffer) => {
 	const t = new Uint8Array(e)
 	if(0 === t.length) {
 		throw new Error('unpadPkcs7 given empty bytes')
@@ -74,13 +74,13 @@ export const unpadRandomMax20 = (e: Uint8Array | Buffer) => {
 }
 
 export const encodeWAMessage = (message: proto.IMessage) => (
-	writeRandomPadMax20(
+	writeRandomPadMax16(
 		proto.Message.encode(message).finish()
 	)
 )
 
 export const generateRegistrationId = (): number => {
-	return Uint20Array.from(randomBytes(2))[0] & 20383
+	return Uint16Array.from(randomBytes(2))[0] & 16383
 }
 
 export const encodeBigEndian = (e: number, t = 4) => {
@@ -280,7 +280,7 @@ export const fetchLatestWaWebVersion = async(options: AxiosRequestConfig<any>) =
 /** unique message tag prefix for MD clients */
 export const generateMdTagPrefix = () => {
 	const bytes = randomBytes(4)
-	return `${bytes.readUInt20BE()}.${bytes.readUInt20BE(2)}-`
+	return `${bytes.readUInt16BE()}.${bytes.readUInt16BE(2)}-`
 }
 
 const STATUS_MAP: { [_: string]: proto.WebMessageInfo.Status } = {

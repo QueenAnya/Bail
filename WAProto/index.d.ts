@@ -3461,8 +3461,8 @@ export namespace proto {
             /** UserAgent localeLanguageIso6391 */
             localeLanguageIso6391?: (string|null);
 
-            /** UserAgent localeCountryIso32061Alpha2 */
-            localeCountryIso32061Alpha2?: (string|null);
+            /** UserAgent localeCountryIso31661Alpha2 */
+            localeCountryIso31661Alpha2?: (string|null);
 
             /** UserAgent deviceBoard */
             deviceBoard?: (string|null);
@@ -3516,8 +3516,8 @@ export namespace proto {
             /** UserAgent localeLanguageIso6391. */
             public localeLanguageIso6391: string;
 
-            /** UserAgent localeCountryIso32061Alpha2. */
-            public localeCountryIso32061Alpha2: string;
+            /** UserAgent localeCountryIso31661Alpha2. */
+            public localeCountryIso31661Alpha2: string;
 
             /** UserAgent deviceBoard. */
             public deviceBoard: string;
@@ -3742,7 +3742,7 @@ export namespace proto {
                 WINDOWS = 13,
                 WEB = 14,
                 PORTAL = 15,
-                GREEN_ANDROID = 20,
+                GREEN_ANDROID = 16,
                 GREEN_IPHONE = 17,
                 BLUE_ANDROID = 18,
                 BLUE_IPHONE = 19,
@@ -6093,7 +6093,7 @@ export namespace proto {
             TCL_TV = 13,
             IOS_PHONE = 14,
             IOS_CATALYST = 15,
-            ANDROID_PHONE = 20,
+            ANDROID_PHONE = 16,
             ANDROID_AMBIGUOUS = 17,
             WEAR_OS = 18,
             AR_WRIST = 19,
@@ -11193,7 +11193,7 @@ export namespace proto {
                 BOT_FEEDBACK_MULTIPLE_NEGATIVE_HELPFUL = 2,
                 BOT_FEEDBACK_MULTIPLE_NEGATIVE_INTERESTING = 4,
                 BOT_FEEDBACK_MULTIPLE_NEGATIVE_ACCURATE = 8,
-                BOT_FEEDBACK_MULTIPLE_NEGATIVE_SAFE = 20,
+                BOT_FEEDBACK_MULTIPLE_NEGATIVE_SAFE = 16,
                 BOT_FEEDBACK_MULTIPLE_NEGATIVE_OTHER = 32,
                 BOT_FEEDBACK_MULTIPLE_NEGATIVE_REFUSED = 64,
                 BOT_FEEDBACK_MULTIPLE_NEGATIVE_NOT_VISUALLY_APPEALING = 128,
@@ -21286,7 +21286,7 @@ export namespace proto {
                 APP_STATE_FATAL_EXCEPTION_NOTIFICATION = 10,
                 SHARE_PHONE_NUMBER = 11,
                 MESSAGE_EDIT = 14,
-                PEER_DATA_OPERATION_REQUEST_MESSAGE = 20,
+                PEER_DATA_OPERATION_REQUEST_MESSAGE = 16,
                 PEER_DATA_OPERATION_REQUEST_RESPONSE_MESSAGE = 17,
                 REQUEST_WELCOME_MESSAGE = 18,
                 BOT_FEEDBACK_MESSAGE = 19,
@@ -25463,7 +25463,7 @@ export namespace proto {
             REFUND_FAILED = 13,
             REFUND_FAILED_PROCESSING = 14,
             REFUND_FAILED_DA = 15,
-            EXPIRED_TXN = 20,
+            EXPIRED_TXN = 16,
             AUTH_CANCELED = 17,
             AUTH_CANCEL_FAILED_PROCESSING = 18,
             AUTH_CANCEL_FAILED = 19,
@@ -36718,7 +36718,7 @@ export namespace proto {
             VERIFIED_TRANSITION_ANY_TO_HIGH = 13,
             VERIFIED_TRANSITION_HIGH_TO_LOW = 14,
             VERIFIED_TRANSITION_HIGH_TO_UNKNOWN = 15,
-            VERIFIED_TRANSITION_UNKNOWN_TO_LOW = 20,
+            VERIFIED_TRANSITION_UNKNOWN_TO_LOW = 16,
             VERIFIED_TRANSITION_LOW_TO_UNKNOWN = 17,
             VERIFIED_TRANSITION_NONE_TO_LOW = 18,
             VERIFIED_TRANSITION_NONE_TO_UNKNOWN = 19,
@@ -36818,7 +36818,7 @@ export namespace proto {
             BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_FB_VERIFIED = 113,
             BLUE_MSG_BSP_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED = 114,
             BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_FB_UNVERIFIED = 115,
-            BLUE_MSG_SELF_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED = 120,
+            BLUE_MSG_SELF_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED = 116,
             BLUE_MSG_SELF_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED = 117,
             E2E_IDENTITY_UNAVAILABLE = 118,
             GROUP_CREATING = 119,
@@ -36862,16 +36862,16 @@ export namespace proto {
             CAG_MASKED_THREAD_CREATED = 157,
             COMMUNITY_PARENT_GROUP_SUBJECT_CHANGED = 158,
             CAG_INVITE_AUTO_ADD = 159,
-            BIZ_CHAT_ASSIGNMENT_UNASSIGN = 200,
-            CAG_INVITE_AUTO_JOINED = 201,
-            SCHEDULED_CALL_START_MESSAGE = 202,
-            COMMUNITY_INVITE_RICH = 203,
-            COMMUNITY_INVITE_AUTO_ADD_RICH = 204,
-            SUB_GROUP_INVITE_RICH = 205,
-            SUB_GROUP_PARTICIPANT_ADD_RICH = 206,
-            COMMUNITY_LINK_PARENT_GROUP_RICH = 207,
-            COMMUNITY_PARTICIPANT_ADD_RICH = 208,
-            SILENCED_UNKNOWN_CALLER_AUDIO = 209,
+            BIZ_CHAT_ASSIGNMENT_UNASSIGN = 160,
+            CAG_INVITE_AUTO_JOINED = 161,
+            SCHEDULED_CALL_START_MESSAGE = 162,
+            COMMUNITY_INVITE_RICH = 163,
+            COMMUNITY_INVITE_AUTO_ADD_RICH = 164,
+            SUB_GROUP_INVITE_RICH = 165,
+            SUB_GROUP_PARTICIPANT_ADD_RICH = 166,
+            COMMUNITY_LINK_PARENT_GROUP_RICH = 167,
+            COMMUNITY_PARTICIPANT_ADD_RICH = 168,
+            SILENCED_UNKNOWN_CALLER_AUDIO = 169,
             SILENCED_UNKNOWN_CALLER_VIDEO = 170,
             GROUP_MEMBER_ADD_MODE = 171,
             GROUP_MEMBERSHIP_JOIN_APPROVAL_REQUEST_NON_ADMIN_ADD = 172,

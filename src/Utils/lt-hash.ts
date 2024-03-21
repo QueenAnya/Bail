@@ -52,7 +52,7 @@ class d {
 		  , a = new ArrayBuffer(n.byteLength)
 		  , s = new DataView(a)
 		for(let e = 0; e < n.byteLength; e += 2) {
-			s.setUint20(e, r(n.getUint20(e, !0), i.getUint20(e, !0)), !0)
+			s.setUint16(e, r(n.getUint16(e, !0), i.getUint16(e, !0)), !0)
 		}
 
 		return a

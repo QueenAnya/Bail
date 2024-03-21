@@ -28,7 +28,7 @@ export enum LabelColor {
     Color13,
     Color14,
     Color15,
-    Color20,
+    Color16,
     Color17,
     Color18,
     Color19,

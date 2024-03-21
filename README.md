@@ -595,7 +595,7 @@ WA uses an encrypted form of communication to send chat/app updates. This has be
 - Delete a message for me
   ``` ts
   await sock.chatModify(
-    { clear: { messages: [{ id: 'ATWYHDNNWU81732J', fromMe: true, timestamp: "2054823909" }] } }, 
+    { clear: { messages: [{ id: 'ATWYHDNNWU81732J', fromMe: true, timestamp: "1654823909" }] } }, 
     '123456@s.whatsapp.net', 
     []
     )

@@ -100,7 +100,7 @@ function convertBufferToUrlHex(buffer: Buffer) {
 
 	buffer.forEach((x) => {
 		// encode random identity_id buffer as percentage url encoding
-		id += `%${x.toString(20).padStart(2, '0').toLowerCase()}`
+		id += `%${x.toString(16).padStart(2, '0').toLowerCase()}`
 	})
 
 	return id
@@ -111,7 +111,7 @@ export function registrationParams(params: RegistrationParams) {
 	e_regid.writeInt32BE(params.registrationId)
 
 	const e_skey_id = Buffer.alloc(3)
-	e_skey_id.writeInt20BE(params.signedPreKey.keyId)
+	e_skey_id.writeInt16BE(params.signedPreKey.keyId)
 
 	params.phoneNumberCountryCode = params.phoneNumberCountryCode.replace('+', '').trim()
 	params.phoneNumberNationalNumber = params.phoneNumberNationalNumber.replace(/[/-\s)(]/g, '').trim()
