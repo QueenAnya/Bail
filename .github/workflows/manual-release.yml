@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_TOKEN }}
 
@@ -23,7 +23,7 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Setup Node
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
@@ -31,7 +31,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
