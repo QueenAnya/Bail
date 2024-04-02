@@ -45,7 +45,7 @@
     "@adiwajshing/keyed-db": "^0.2.4",
     "@hapi/boom": "^9.1.3",
     "@queenanya/invite": "latest",
-    "@queenanya/apk-dl": "latest",
+    "@queenanya/apkdl": "latest",
     "audio-decode": "^2.1.3",
     "axios": "^1.3.3",
     "cache-manager": "4.0.1",
