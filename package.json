@@ -44,8 +44,7 @@
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
     "@hapi/boom": "^9.1.3",
-    "@queenanya/invite": "latest",
-    "@queenanya/apkdl": "latest",
+    "@queenanya/pkg": "latest",
     "audio-decode": "^2.1.3",
     "axios": "^1.3.3",
     "cache-manager": "4.0.1",
@@ -61,7 +60,6 @@
   },
   "devDependencies": {
     "@adiwajshing/eslint-config": "github:adiwajshing/eslint-config",
-    "@queenanya/invite": "latest",
     "@types/got": "^9.6.11",
     "@types/jest": "^27.5.1",
     "@types/node": "^16.0.0",
