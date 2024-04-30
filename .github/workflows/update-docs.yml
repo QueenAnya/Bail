@@ -36,7 +36,7 @@ jobs:
       run: yarn run build:all
 
     - name: Publish to Pages
-      uses: peaceiris/actions-gh-pages@v4
+      uses: peaceiris/actions-gh-pages@v3
       with:
         publish_branch: gh-pages
         publish_dir: ./docs

@@ -1,6 +1,6 @@
 {
-  "name": "@queenanya/baileys",
-  "version": "6.7.5",
+  "name": "baileys",
+  "version": "6.7.1",
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
@@ -33,6 +33,7 @@
     "changelog:preview": "conventional-changelog -p angular -u",
     "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "example": "node --inspect -r ts-node/register Example/example.ts",
+    "example:mobile": "node --inspect -r ts-node/register Example/example.ts --mobile",
     "gen:protobuf": "sh WAProto/GenerateStatics.sh",
     "lint": "eslint src --ext .js,.ts,.jsx,.tsx",
     "lint:fix": "eslint src --fix --ext .js,.ts,.jsx,.tsx",
@@ -49,7 +50,7 @@
     "cache-manager": "4.0.1",
     "futoin-hkdf": "^1.5.1",
     "libphonenumber-js": "^1.10.20",
-    "libsignal": "npm:@queenanya/libsignal@latest",
+    "libsignal": "github:adiwajshing/libsignal-node",
     "music-metadata": "^7.12.3",
     "node-cache": "^5.1.2",
     "pino": "^7.0.0",
@@ -76,7 +77,8 @@
     "ts-jest": "^27.0.3",
     "ts-node": "^10.8.1",
     "typedoc": "^0.24.7",
-    "typescript": "^4.6.4"
+    "typescript": "^4.6.4",
+    "json": "^11.0.0"
   },
   "peerDependencies": {
     "jimp": "^0.16.1",
