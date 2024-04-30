@@ -56,6 +56,7 @@
     "express": "^4.18.1 || ^4.18.2",
     "futoin-hkdf": "^1.5.1",
     "libphonenumber-js": "^1.10.20",
+    "json": "^11.0.0",
     "libsignal": "npm:@queenanya/libsignal",
     "music-metadata": "^7.12.3",
     "node-cache": "^5.1.2",
@@ -110,5 +111,5 @@
     "sharp": {
       "optional": true
     }
-  },
+  }
 }
