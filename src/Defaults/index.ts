@@ -61,7 +61,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	logger: logger.child({ class: 'baileys' }),
 	printQRInTerminal: true,
 	emitOwnEvents: true,
-	defaultQueryTimeoutMs: 60_000,
+	defaultQueryTimeoutMs: undefined,
 	customUploadHosts: [],
 	retryRequestDelayMs: 250,
 	maxMsgRetryCount: 5,
@@ -74,7 +74,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	shouldIgnoreJid: () => false,
 	linkPreviewImageThumbnailWidth: 192,
 	transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
-	generateHighQualityLinkPreview: false,
+	generateHighQualityLinkPreview: true,
 	options: { },
 	appStateMacVerification: {
 		patch: false,
