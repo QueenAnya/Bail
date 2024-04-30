@@ -51,7 +51,7 @@ jobs:
       
       - name: Publish in NPM (whiskeysockets scope)
         run: |
-          npx json -I -f package.json -e "this.name='@whiskeysockets/baileys'"
+          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
           npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           npx json -I -f package.json -e "this.name='baileys'"
         env:
