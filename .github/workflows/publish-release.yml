@@ -49,11 +49,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
-      - name: Publish in NPM (queenanya scope)
+      - name: Publish in NPM (teamolduser scope)
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
           npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
-          npx json -I -f package.json -e "this.name='@queenanya/bauleys'"
+          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
