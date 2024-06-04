@@ -74,7 +74,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	shouldIgnoreJid: () => false,
 	linkPreviewImageThumbnailWidth: 192,
 	transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
-	generateHighQualityLinkPreview: false,
+	generateHighQualityLinkPreview: true,
 	options: { },
 	appStateMacVerification: {
 		patch: false,
