@@ -53,6 +53,7 @@
     "json": "^11.0.0",
     "libphonenumber-js": "^1.10.20",
     "libsignal": "npm:@queenanya/libsignal@latest",
+    "lodash": "^4.17.21",
     "music-metadata": "^7.12.3",
     "node-cache": "^5.1.2",
     "pino": "^7.0.0",
