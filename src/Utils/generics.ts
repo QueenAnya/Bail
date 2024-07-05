@@ -18,6 +18,16 @@ const PLATFORM_MAP = {
 	'sunos': 'Solaris'
 }
 
+/**
+const COMPANION_PLATFORM_MAP = {
+	'Chrome': '49',
+	'Edge': '50',
+	'Firefox': '51',
+	'Opera': '53',
+	'Safari': '54'
+}
+*/
+
 export const Browsers: BrowsersMap = {
 	ubuntu: (browser) => ['Ubuntu', browser, '22.04.4'],
 	macOS: (browser) => ['Mac OS', browser, '14.4.1'],
@@ -29,7 +39,7 @@ export const Browsers: BrowsersMap = {
 
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()]
-	return platformType ? platformType.toString().charCodeAt(0).toString() : '49' //chrome
+	return platformType ? platformType.toString().charCodeAt(0).toString() : '51' // Firefox
 }
 
 export const BufferJSON = {
