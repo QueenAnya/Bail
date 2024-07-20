@@ -29,6 +29,6 @@ git add .
 git config --global user.email "khushijain2901@mail.com"
 git config --global user.name "Its-me-001"
 git commit -m "@Its-me-001 #UPDATES"
-git branch -M master
+git branch -M Channel
 git remote add origin https://github.com/ITS-ME-001/Queen-Anya_Baileys.git
 git push -u origin master
