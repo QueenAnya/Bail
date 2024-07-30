@@ -1,6 +1,5 @@
 export * from './Auth'
 export * from './GroupMetadata'
-export * from './Newsletter'
 export * from './Chat'
 export * from './Contact'
 export * from './State'
