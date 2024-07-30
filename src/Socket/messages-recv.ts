@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto'
 import NodeCache from 'node-cache'
 import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, KEY_BUNDLE_TYPE, MIN_PREKEY_COUNT } from '../Defaults'
-import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, MexOperations, NewsletterSettingsUpdate, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName, XWAPaths } from '../Types'
+import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName } from '../Types'
 import {
 	aesDecryptCTR,
 	aesEncryptGCM,
@@ -341,59 +341,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
-	const handleNewsletterNotification = (id: string, node: BinaryNode) => {
-        const messages = getBinaryNodeChild(node, 'messages')
-        const message = getBinaryNodeChild(messages, 'message')!
-
-        const server_id = message.attrs.server_id
-
-        const reactionsList = getBinaryNodeChild(message, 'reactions')
-		const viewsList = getBinaryNodeChildren(message, 'views_count')
-
-        if(reactionsList){
-			const reactions = getBinaryNodeChildren(reactionsList, 'reaction')
-			if(reactions.length === 0){
-				ev.emit('newsletter.reaction', {id, server_id, reaction: { removed: true }})
-			}
-			reactions.forEach(item => {
-				ev.emit('newsletter.reaction', {id, server_id, reaction: { code: item.attrs?.code, count: +item.attrs?.count }})
-			})
-        }
-
-        if(viewsList.length){
-			viewsList.forEach(item => {
-            	ev.emit('newsletter.view', {id, server_id, count: +item.attrs.count})
-			})
-        }
-	}
-
-	const handleMexNewsletterNotification = (id: string, node: BinaryNode) => {
-		const operation = node?.attrs.op_name
-		const content = JSON.parse(node?.content?.toString()!)
-
-		let contentPath
-
-		if(operation === MexOperations.PROMOTE || operation === MexOperations.DEMOTE){
-			let action
-			if(operation === MexOperations.PROMOTE){
-				action = 'promote'
-				contentPath = content.data[XWAPaths.PROMOTE]
-			}
-	
-			if(operation === MexOperations.DEMOTE){
-				action = 'demote'
-				contentPath = content.data[XWAPaths.DEMOTE]
-			}
-
-			ev.emit('newsletter-participants.update', {id, author: contentPath.actor.pn, user: contentPath.user.pn, new_role: contentPath.user_new_role, action})
-		}
-
-		if(operation === MexOperations.UPDATE){
-			contentPath = content.data[XWAPaths.METADATA_UPDATE]
-			ev.emit('newsletter-settings.update', {id, update: contentPath.thread_metadata.settings as NewsletterSettingsUpdate})
-		}
-	}
-
 	const processNotification = async(node: BinaryNode) => {
 		const result: Partial<proto.IWebMessageInfo> = { }
 		const [child] = getAllBinaryNodeChildren(node)
@@ -415,12 +362,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				logger.debug({ jid }, 'got privacy token update')
 			}
 
-			break
-		case 'newsletter':
-			handleNewsletterNotification(node.attrs.from, child)
-		break
-		case 'mex':
-			handleMexNewsletterNotification(node.attrs.from, child)
 			break
 		case 'w:gp2':
 			handleGroupNotification(node.attrs.participant, child, result)
@@ -453,7 +394,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			const delPicture = getBinaryNodeChild(node, 'delete')
 
 			ev.emit('contacts.update', [{
-				id: jidNormalizedUser(node?.attrs?.jid) || from || ((setPicture || delPicture)?.attrs?.hash) || '',
+				id: jidNormalizedUser(node?.attrs?.jid) || ((setPicture || delPicture)?.attrs?.hash) || '',
 				imgUrl: setPicture ? 'changed' : 'removed'
 			}])
 
@@ -873,7 +814,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleBadAck = async({ attrs }: BinaryNode) => {
-		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id, server_id: attrs?.server_id }
+		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id }
 		// current hypothesis is that if pash is sent in the ack
 		// it means -- the message hasn't reached all devices yet
 		// we'll retry sending the message here
