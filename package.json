@@ -1,6 +1,6 @@
 {
   "name": "@queenanya/baileys",
-  "version": "7.0.3",
+  "version": "7.1.5",
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
@@ -47,14 +47,14 @@
     "async-lock": "^1.4.1",
     "audio-decode": "^2.2.0",
     "axios": "^1.7.2",
-    "cache-manager": "5.7.2",
+    "cache-manager": "4.0.1",
     "futoin-hkdf": "^1.5.3",
     "json": "^11.0.0",
     "libphonenumber-js": "^1.11.4",
     "libsignal": "npm:@queenanya/libsignal@latest",
     "lodash": "^4.17.21",
     "megajs": "1.1.7",
-    "music-metadata": "^9.0.1",
+    "music-metadata": "^7.12.3",
     "node-cache": "^5.1.2",
     "pino": "^9.3.0",
     "protobufjs": "^7.3.2",
@@ -83,7 +83,7 @@
     "ts-jest": "^29.2.2",
     "ts-node": "^10.9.2",
     "typedoc": "^0.26.4",
-    "typescript": "^5.5.3"
+    "typescript": "^4.6.4"
   },
   "peerDependencies": {
     "jimp": "^0.16.1",
