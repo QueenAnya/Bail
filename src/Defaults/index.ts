@@ -54,14 +54,14 @@ export const PROCESSABLE_HISTORY_TYPES = [
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.ubuntu('Chrome'),
+	browser: Browsers.ubuntu('Firefox'),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,
 	logger: logger.child({ class: 'baileys' }),
-	printQRInTerminal: false,
+	printQRInTerminal: true,
 	emitOwnEvents: true,
-	defaultQueryTimeoutMs: 60_000,
+	defaultQueryTimeoutMs: undefined,
 	customUploadHosts: [],
 	retryRequestDelayMs: 250,
 	maxMsgRetryCount: 5,
@@ -74,7 +74,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	shouldIgnoreJid: () => false,
 	linkPreviewImageThumbnailWidth: 192,
 	transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
-	generateHighQualityLinkPreview: false,
+	generateHighQualityLinkPreview: true,
 	options: { },
 	appStateMacVerification: {
 		patch: false,
