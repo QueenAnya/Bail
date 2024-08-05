@@ -1,9 +1,9 @@
 import { Boom } from '@hapi/boom'
-import axios, { AxiosRequestConfig } from 'axios'
+import { AxiosRequestConfig } from 'axios'
 import { exec } from 'child_process'
 import * as Crypto from 'crypto'
 import { once } from 'events'
-import { createReadStream, createWriteStream, promises as fs, WriteStream } from 'fs'
+import { createReadStream, createWriteStream, promises as fs, writeFileSync, WriteStream } from 'fs'
 import type { IAudioMetadata } from 'music-metadata'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -324,6 +324,7 @@ export async function generateThumbnail(
 }
 
 export const getHttpStream = async(url: string | URL, options: AxiosRequestConfig & { isStream?: true } = {}) => {
+    const { default: axios } = await import('axios')
 	const fetched = await axios.get(url.toString(), { ...options, responseType: 'stream' })
 	return fetched.data as Readable
 }
@@ -333,6 +334,59 @@ type EncryptedStreamOptions = {
 	logger?: Logger
 	opts?: AxiosRequestConfig
 }
+
+export const prepareStream = async(
+	media: WAMediaUpload,
+	mediaType: MediaType,
+	{ logger, saveOriginalFileIfRequired, opts }: EncryptedStreamOptions = {}
+) => {
+	const { stream, type } = await getStream(media, opts)
+
+	logger?.debug('fetched media stream')
+
+	let bodyPath: string | undefined
+	let didSaveToTmpPath = false
+	try {
+		const buffer = await toBuffer(stream)
+		if(type === 'file') {
+			bodyPath = (media as any).url
+		} else if(saveOriginalFileIfRequired) {
+			bodyPath = join(getTmpFilesDirectory(), mediaType + generateMessageID())
+			writeFileSync(bodyPath, buffer)
+			didSaveToTmpPath = true
+		}
+
+		const fileLength = buffer.length
+		const fileSha256 = Crypto.createHash('sha256').update(buffer).digest()
+
+		stream?.destroy()
+		logger?.debug('prepare stream data successfully')
+
+		return {
+			mediaKey: undefined,
+			encWriteStream: buffer,
+			fileLength,
+			fileSha256,
+			fileEncSha256: undefined,
+			bodyPath,
+			didSaveToTmpPath
+		}
+		} catch (error) {
+		// destroy all streams with error
+		stream.destroy()
+
+		if(didSaveToTmpPath) {
+			try {
+				await fs.unlink(bodyPath!)
+			} catch(err) {
+				logger?.error({ err }, 'failed to save to tmp path')
+			}
+		}
+
+		throw error
+	}
+}
+
 
 export const encryptedStream = async(
 	media: WAMediaUpload,
@@ -600,20 +654,26 @@ export const getWAUploadToServer = (
 	{ customUploadHosts, fetchAgent, logger, options }: SocketConfig,
 	refreshMediaConn: (force: boolean) => Promise<MediaConnInfo>,
 ): WAMediaUploadFunction => {
-	return async(stream, { mediaType, fileEncSha256B64, timeoutMs }) => {
+	return async(stream, { mediaType, fileEncSha256B64, newsletter, timeoutMs }) => {
+		const { default: axios } = await import('axios')
 		// send a query JSON to obtain the url & auth token to upload our media
 		let uploadInfo = await refreshMediaConn(false)
 
-		let urls: { mediaUrl: string, directPath: string } | undefined
+		let urls: { mediaUrl: string, directPath: string, handle?: string } | undefined
 		const hosts = [ ...customUploadHosts, ...uploadInfo.hosts ]
 		
 		fileEncSha256B64 = encodeBase64EncodedStringForUpload(fileEncSha256B64)
+		
+		let media = MEDIA_PATH_MAP[mediaType]
+		if (newsletter) {
+			media = media?.replace('/mms/', '/newsletter/newsletter-')
+		}
 
 		for(const { hostname } of hosts) {
 			logger.debug(`uploading to "${hostname}"`)
 
 			const auth = encodeURIComponent(uploadInfo.auth) // the auth token
-			const url = `https://${hostname}${MEDIA_PATH_MAP[mediaType]}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
+			const url = `https://${hostname}${media}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
 			let result: any
 			try {
 
@@ -639,7 +699,8 @@ export const getWAUploadToServer = (
 				if(result?.url || result?.directPath) {
 					urls = {
 						mediaUrl: result.url,
-						directPath: result.direct_path
+						directPath: result.direct_path,
+						handle: result.handle
 					}
 					break
 				} else {

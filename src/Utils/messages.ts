@@ -27,7 +27,7 @@ import {
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
 import { generateMessageID, getKeyAuthor, unixTimestampSeconds } from './generics'
-import { downloadContentFromMessage, encryptedStream, generateThumbnail, getAudioDuration, getAudioWaveform, MediaDownloadOptions } from './messages-media'
+import { downloadContentFromMessage, encryptedStream, generateThumbnail, getAudioDuration, getAudioWaveform, MediaDownloadOptions, prepareStream } from './messages-media'
 
 type MediaUploadData = {
 	media: WAMediaUpload
@@ -165,8 +165,8 @@ export const prepareWAMessageMedia = async(
 		fileEncSha256,
 		fileSha256,
 		fileLength,
-		didSaveToTmpPath
-	} = await encryptedStream(
+		didSaveToTmpPath,
+	} = await (options.newsletter ? prepareStream : encryptedStream)(
 		uploadData.media,
 		options.mediaTypeOverride || mediaType,
 		{
@@ -176,8 +176,8 @@ export const prepareWAMessageMedia = async(
 		}
 	)
 	 // url safe Base64 encode the SHA256 hash of the body
-	const fileEncSha256B64 = fileEncSha256.toString('base64')
-	const [{ mediaUrl, directPath }] = await Promise.all([
+	const fileEncSha256B64 = (options.newsletter ? fileSha256 : fileEncSha256 ?? fileSha256).toString('base64')
+	const [{ mediaUrl, directPath, handle }] = await Promise.all([
 		(async() => {
 			const result = await options.upload(
 				encWriteStream,
@@ -229,7 +229,9 @@ export const prepareWAMessageMedia = async(
 	])
 		.finally(
 			async() => {
-				encWriteStream.destroy()
+				if (!Buffer.isBuffer(encWriteStream)) {
+					encWriteStream.destroy()
+				}
 				// remove tmp files
 				if(didSaveToTmpPath && bodyPath) {
 					await fs.unlink(bodyPath)
@@ -241,13 +243,13 @@ export const prepareWAMessageMedia = async(
 	const obj = WAProto.Message.fromObject({
 		[`${mediaType}Message`]: MessageTypeProto[mediaType].fromObject(
 			{
-				url: mediaUrl,
+				url: handle ? undefined : mediaUrl,
 				directPath,
-				mediaKey,
-				fileEncSha256,
+				mediaKey: mediaKey,
+				fileEncSha256: fileEncSha256,
 				fileSha256,
 				fileLength,
-				mediaKeyTimestamp: unixTimestampSeconds(),
+				mediaKeyTimestamp: handle ? undefined : unixTimestampSeconds(),
 				...uploadData,
 				media: undefined
 			}
@@ -396,7 +398,25 @@ export const generateWAMessageContent = async(
 			(message.disappearingMessagesInChat ? WA_DEFAULT_EPHEMERAL : 0) :
 			message.disappearingMessagesInChat
 		m = prepareDisappearingMessageSettingContent(exp)
-	} else if('buttonReply' in message) {
+	} else if('pin' in message){
+		m.pinInChatMessage = {}
+		m.messageContextInfo = {}
+
+		m.pinInChatMessage.key = message.pin
+		m.pinInChatMessage.type = 1
+		m.pinInChatMessage.senderTimestampMs = Date.now()
+
+		m.messageContextInfo.messageAddOnDurationInSecs = message.time || 86400
+	} else if('unpin' in message){
+		m.pinInChatMessage = {}
+		m.messageContextInfo = {}
+
+		m.pinInChatMessage.key = message.unpin
+		m.pinInChatMessage.type = 2
+		m.pinInChatMessage.senderTimestampMs = Date.now()
+
+		m.messageContextInfo.messageAddOnDurationInSecs = 0
+	}  else if('buttonReply' in message) {
 		switch (message.type) {
 		case 'template':
 			m.templateButtonReplyMessage = {
@@ -656,7 +676,7 @@ export const generateWAMessage = async(
 		jid,
 		await generateWAMessageContent(
 			content,
-			options
+			{ newsletter: isJidNewsletter(jid!), ...options }
 		),
 		options
 	)
