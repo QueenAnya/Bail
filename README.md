@@ -1,8 +1,8 @@
 # Note:
-**QueenAnya/Baileys is another version of Baileys that was originally created by Adhiraj Singh. ShizoWeb is Maintained and Up-to-dated with all lestest feature [Thanks for Visiting Here]**
+**@queenanya/baileys is another version of Baileys that was originally created by Adhiraj Singh. @queenanya/baileys is Maintained and Up-to-dated with all lestest feature [Thanks for Visiting Here If You Any Questions/Query Please Open A Issue In GitHub Repository]**
 
-## Maintainer Of QueenAnya/Baileys
- ** • Team PikaBotz. **
+## Maintainer Of @queenanya/baileys
+ ** •Team PikaBotz. **
 
 # QueenAnya/Baileys - Typescript/Javascript WhatsApp Web API
 
