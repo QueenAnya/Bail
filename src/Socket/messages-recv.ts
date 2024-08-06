@@ -46,6 +46,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		logger,
 		retryRequestDelayMs,
 		maxMsgRetryCount,
+		ignoreMsgLoading,
 		getMessage,
 		shouldIgnoreJid
 	} = config
@@ -298,6 +299,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		case 'subject':
 			msg.messageStubType = WAMessageStubType.GROUP_CHANGE_SUBJECT
 			msg.messageStubParameters = [ child.attrs.subject ]
+			break
+			case 'description':
+			const description = getBinaryNodeChild(child, 'body')?.content?.toString()
+			msg.messageStubType = WAMessageStubType.GROUP_CHANGE_DESCRIPTION
+			msg.messageStubParameters = description ? [ description ] : undefined
 			break
 		case 'announcement':
 		case 'not_announcement':
@@ -761,6 +767,13 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleMessage = async(node: BinaryNode) => {
+	
+	if(ignoreMsgLoading && node.attrs.offline) {
+			logger.debug({ key: node.attrs.key }, 'ignored offline message')
+			await sendMessageAck(node)
+			return
+		}
+		
 		if(shouldIgnoreJid(node.attrs.from!) && node.attrs.from! !== '@s.whatsapp.net') {
 			logger.debug({ key: node.attrs.key }, 'ignored message')
 			await sendMessageAck(node)

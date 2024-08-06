@@ -143,6 +143,14 @@ export type ButtonReplyInfo = {
     index: number
 }
 
+export type GroupInviteInfo = {
+    inviteCode: string
+    inviteExpiration: number
+    text: string
+    jid: string
+    subject: string
+}
+
 export type WASendableProduct = Omit<proto.Message.ProductMessage.IProductSnapshot, 'productImage'> & {
     productImage: WAMediaUpload
 }
@@ -170,6 +178,9 @@ export type AnyRegularMessageContent = (
     | {
         buttonReply: ButtonReplyInfo
         type: 'template' | 'plain'
+    }
+    | {
+        groupInvite: GroupInviteInfo
     }
     | {
         listReply: Omit<proto.Message.IListResponseMessage, 'contextInfo'>
@@ -237,6 +248,7 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
     /** if it is broadcast */
     broadcast?: boolean
 }
+
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
 }
@@ -263,9 +275,12 @@ export type MediaGenerationOptions = {
 
     font?: number
 }
+
 export type MessageContentGenerationOptions = MediaGenerationOptions & {
 	getUrlInfo?: (text: string) => Promise<WAUrlInfo | undefined>
+	getProfilePicUrl?: (jid: string, type: 'image' | 'preview') => Promise<string | undefined>
 }
+
 export type MessageGenerationOptions = MessageContentGenerationOptions & MessageGenerationOptionsFromContent
 
 /**
