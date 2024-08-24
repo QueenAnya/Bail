@@ -5,7 +5,7 @@ import { SignalRepository, WAMessageKey } from '../Types'
 import { areJidsSameUser, BinaryNode, getBinaryNodeChild, isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isJidUser, isLidUser } from '../WABinary'
 import { BufferJSON, unpadRandomMax16 } from './generics'
 
-const NO_MESSAGE_FOUND_ERROR_TEXT = 'Message absent from node'
+export const NO_MESSAGE_FOUND_ERROR_TEXT = 'Message absent from node'
 
 type MessageType = 'chat' | 'peer_broadcast' | 'other_broadcast' | 'group' | 'direct_peer_status' | 'other_status' | 'newsletter'
 
@@ -178,7 +178,7 @@ export const decryptMessageNode = (
 					let msgBuffer: Uint8Array
 
 					try {
-						const e2eType = attrs.type
+						const e2eType = tag === 'plaintext' ? 'plaintext' : attrs.type
 						switch (e2eType) {
 						case 'skmsg':
 							msgBuffer = await repository.decryptGroupMessage({
@@ -196,7 +196,7 @@ export const decryptMessageNode = (
 								ciphertext: content
 							})
 							break
-						case undefined:
+						case 'plaintext':
 							msgBuffer = content
 							break
 						default:
@@ -227,7 +227,7 @@ export const decryptMessageNode = (
 			// if nothing was found to decrypt
 			if(!decryptables) {
 				fullMessage.messageStubType = proto.WebMessageInfo.StubType.CIPHERTEXT
-				fullMessage.messageStubParameters = [NO_MESSAGE_FOUND_ERROR_TEXT, JSON.stringify(stanza, BufferJSON.replacer)]
+				fullMessage.messageStubParameters = [NO_MESSAGE_FOUND_ERROR_TEXT]
 			}
 		}
 	}

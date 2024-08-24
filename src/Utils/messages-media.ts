@@ -659,7 +659,7 @@ export const getWAUploadToServer = (
 
 		let urls: { mediaUrl: string, directPath: string, handle?: string } | undefined
 		const hosts = [ ...customUploadHosts, ...uploadInfo.hosts ]
-		
+
 		fileEncSha256B64 = encodeBase64EncodedStringForUpload(fileEncSha256B64)
 		
 		let media = MEDIA_PATH_MAP[mediaType]
