@@ -282,10 +282,39 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: Logg
 }
 
 /**
+ * utility that fetches latest baileys version from the main branch.
+ * Use to ensure your WA connection is always on the latest version
+ */
+ export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
+	try {
+		const result = await axios.get<{ version: WAVersion }>(
+			URL,
+			{
+				...options,
+				responseType: 'json'
+			}
+		)
+		const version = result.data.currentVersion.split('.')
+		const version2 = version[2].replace('-alpha', '');
+		return {
+			version: [+version[0], +version[1], +version2],
+			isLatest: true
+		}
+	} catch(error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+/**
  * utility that fetches latest baileys version from the master branch.
  * Use to ensure your WA connection is always on the latest version
  */
-export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+export const fetchLatestBaileysVersion2 = async(options: AxiosRequestConfig<any> = { }) => {
 	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json'
 	try {
 		const result = await axios.get<{ version: WAVersion }>(
