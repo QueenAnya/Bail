@@ -1,6 +1,6 @@
 {
   "name": "@queenanya/baileys",
-  "version": "7.2.0",
+  "version": "7.1.6",
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
@@ -44,6 +44,7 @@
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
     "@hapi/boom": "^10.0.1",
+    "@queenanya/invite": "latest",
     "async-lock": "^1.4.1",
     "audio-decode": "^2.2.0",
     "axios": "^1.7.2",
