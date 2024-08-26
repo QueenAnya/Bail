@@ -286,10 +286,9 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: Logg
  * Use to ensure your WA connection is always on the latest version
  */
  export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
-	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
 	try {
-		const result = await axios.get<{ version: WAVersion }>(
-			URL,
+		const result = await axios.get(
+			'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json',
 			{
 				...options,
 				responseType: 'json'
