@@ -12,9 +12,9 @@
     "automation",
     "multi-device"
   ],
-  "homepage": "https://github.com/WhiskeySockets/Baileys",
+  "homepage": "https://github.com/QueenAnya/Baileys",
   "repository": {
-    "url": "git@github.com:WhiskeySockets/Baileys.git"
+    "url": "git@github.com:QueenAnya/Baileys.git"
   },
   "license": "MIT",
   "author": "Adhiraj Singh",
@@ -33,6 +33,7 @@
     "changelog:preview": "conventional-changelog -p angular -u",
     "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "example": "node --inspect -r ts-node/register Example/example.ts",
+    "example:mobile": "node --inspect -r ts-node/register Example/example.ts --mobile",
     "gen:protobuf": "sh WAProto/GenerateStatics.sh",
     "lint": "eslint src --ext .js,.ts,.jsx,.tsx",
     "lint:fix": "eslint src --fix --ext .js,.ts,.jsx,.tsx",
@@ -53,7 +54,6 @@
     "libphonenumber-js": "^1.11.4",
     "libsignal": "npm:@queenanya/libsignal@latest",
     "lodash": "^4.17.21",
-    "megajs": "1.1.7",
     "music-metadata": "^7.12.3",
     "node-cache": "^5.1.2",
     "pino": "^9.3.0",
@@ -75,7 +75,6 @@
     "jimp": "^0.22.12",
     "json": "^11.0.0",
     "link-preview-js": "^3.0.5",
-    "megajs": "1.1.7",
     "open": "^10.1.0",
     "qrcode-terminal": "^0.12.0",
     "release-it": "^17.6.0",
@@ -86,7 +85,7 @@
     "typescript": "^4.6.4"
   },
   "peerDependencies": {
-    "jimp": "^0.16.1",
+    "jimp": "^0.22.12",
     "link-preview-js": "^3.0.0",
     "qrcode-terminal": "^0.12.0",
     "sharp": "^0.32.6"
