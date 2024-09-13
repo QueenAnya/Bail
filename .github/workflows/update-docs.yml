@@ -40,5 +40,5 @@ jobs:
       with:
         publish_branch: gh-pages
         publish_dir: ./docs
-        cname: baileys.whiskeysockets.io
+        cname: baileys.pikabotz.us.kg
         github_token: ${{ secrets.GITHUB_TOKEN }}
