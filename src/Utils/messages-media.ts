@@ -256,9 +256,9 @@ export const generateProfilePictureFP = async(mediaUpload: WAMediaUpload) => {
 }
 
 export const generatePP = async(buffer) => {
-const lib = await getImageProcessingLibrary()
-const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp
-    const jimp = await read(buffer);
+const Jimp = require('jimp')
+const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
+    const jimp = await Jimp.read(buffer);
     const min = jimp.getWidth();
     const max = jimp.getHeight();
     const cropped = jimp.crop(0, 0, min, max);
@@ -269,8 +269,8 @@ const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp
   }
   
   export const changeprofileFull = async(img) => {
-    const lib = await getImageProcessingLibrary()
-	const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp
+    const Jimp = require('jimp')
+const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
 	const jimp = await read(img)
 	const min = Math.min(jimp.getWidth(), jimp.getHeight())
 	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
