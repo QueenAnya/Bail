@@ -91,9 +91,9 @@ export type ChatModification =
         lastMessages: LastMessageList
     }
     | { delete: true, lastMessages: LastMessageList }
-    // Label assosiation
     // Label 🏷️
     | { addLabel: LabelActionBody }
+   // Label assosiation
     | { addChatLabel: ChatLabelAssociationActionBody }
     | { removeChatLabel: ChatLabelAssociationActionBody }
     | { addMessageLabel: MessageLabelAssociationActionBody }

@@ -634,7 +634,7 @@ export const chatModificationToAppPatch = (
 			type: 'regular',
 			apiVersion: 3,
 			operation: OP.SET,
-					}
+		}
 	} else if('addChatLabel' in mod) {
 		patch = {
 			syncAction: {
