@@ -255,7 +255,7 @@ export const generateProfilePictureFP = async(mediaUpload: WAMediaUpload) => {
 	}
 }
 
-export const generatePP = async(buffer) {
+export const generatePP = async(buffer) => {
     const jimp = await Jimp.read(buffer);
     const min = jimp.getWidth();
     const max = jimp.getHeight();
@@ -266,7 +266,7 @@ export const generatePP = async(buffer) {
     };
   }
   
-  export const changeprofileFull = async(img) {
+  export const changeprofileFull = async(img) => {
 	const {
 		read,
 		MIME_JPEG
