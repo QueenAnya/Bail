@@ -212,7 +212,6 @@ const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
       img: await cropped.scaleToFit(1280, 1280).getBufferAsync(Jimp.MIME_JPEG),
       preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
     };
-  }
 }
 
 export const generatePP = async(buffer) => {
