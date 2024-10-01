@@ -1,10 +1,6 @@
 {
   "name": "@queenanya/baileys",
-<<<<<<< HEAD
-  "version": "7.2.7",
-=======
   "version": "7.3.1",
->>>>>>> refs/remotes/origin/master
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
