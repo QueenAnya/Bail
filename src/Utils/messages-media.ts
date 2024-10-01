@@ -214,41 +214,6 @@ const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
     };
 }
 
-export const generateProfilePictureFull2 = async(img) => {
-	const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-	const jimp = await read(img)
-	const min = Math.min(jimp.getWidth(), jimp.getHeight())
-	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
-	let width = jimp.getWidth(),
-		hight = jimp.getHeight(),
-		ratio;
-	if (width > hight) {
-		ratio = jimp.getWidth() / 1280
-	} else {
-		ratio = jimp.getWidth() / 574
-	};
-	width = width / ratio;
-	hight = hight / ratio;
-	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
-	return {
-		img: await img
-	}
-}
-
-export const generateProfilePictureFP2 = async(buffer) => {
-	const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-    const jimp = await Jimp.read(buffer);
-    const min = jimp.getWidth();
-    const max = jimp.getHeight();
-    const cropped = jimp.crop(0, 0, min, max);
-    return {
-      img: await cropped.scaleToFit(1280, 1280).getBufferAsync(Jimp.MIME_JPEG),
-      preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
-    };
-}
-
 export const generatePP = async(buffer) => {
 const Jimp = require('jimp')
 const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
