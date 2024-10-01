@@ -319,7 +319,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				{
 					tag: 'picture',
 					attrs: { type: 'image' },
-					content: img
+					content: preview
 				}
 			]
 		})
