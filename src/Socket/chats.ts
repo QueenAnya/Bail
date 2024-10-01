@@ -267,7 +267,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 	
 	/** update the profile picture for yourself or a group as Full */
-	const updateProfilePictureFull = async(jid: string, content: WAMediaUpload) => {
+	const updateProfilePictureFull = async(jid, content) => {
 		let targetJid;
 		if(!jid) {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
@@ -296,7 +296,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		})
 	}
 	
-	const updateProfilePictureFull2 = async(jid: string, content: WAMediaUpload) => {
+	const updateProfilePictureFull2 = async(jid, content) => {
 		let targetJid;
 		if(!jid) {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
