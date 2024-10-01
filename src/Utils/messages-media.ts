@@ -189,9 +189,9 @@ const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
 		hight = jimp.getHeight(),
 		ratio;
 	if (width > hight) {
-		ratio = jimp.getWidth() / 1280
+		ratio = jimp.getWidth() / 720
 	} else {
-		ratio = jimp.getWidth() / 1280
+		ratio = jimp.getWidth() / 324
 	};
 	width = width / ratio;
 	hight = hight / ratio;
@@ -209,8 +209,9 @@ const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
     const max = jimp.getHeight();
     const cropped = jimp.crop(0, 0, min, max);
     return {
-      img: await cropped.scaleToFit(1280, 1280).getBufferAsync(Jimp.MIME_JPEG),
+      img: await cropped.scaleToFit(720, 720).getBufferAsync(Jimp.MIME_JPEG),
       preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
+    };
     };
 }
 
