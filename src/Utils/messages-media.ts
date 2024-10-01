@@ -197,7 +197,7 @@ const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
 	hight = hight / ratio;
 	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
 	return {
-		img: await img
+		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
 	}
 }
 
@@ -245,7 +245,7 @@ const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
 	hight = hight / ratio;
 	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
 	return {
-		img: await img
+		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
 	}
 }
 
