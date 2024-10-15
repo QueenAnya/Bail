@@ -1,11 +1,11 @@
 echo 'ENTER YOUR PHONE STORAGE FOLDER NAME'
-read strgenme
+# read strgenme
 
 git config --global --add safe.directory $PWD
 
-git config --global --add safe.directory $pwd
+# git config --global --add safe.directory $pwd
 
-git config --global --add safe.directory /storage/emulated/0/$strgenme
+# git config --global --add safe.directory /storage/emulated/0/$strgenme
 
 echo "PLEASE ENTER YOU MAIL ID"
 #read mail
