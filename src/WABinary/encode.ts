@@ -19,9 +19,12 @@ export const encodeBinaryNode = (
 		}
 	}
 
-	const pushBytes = (bytes: Uint8Array | Buffer | number[]) => (
-		bytes.forEach (b => buffer.push(b))
-	)
+	const pushBytes = (bytes: Uint8Array | Buffer | number[]) => {
+		for(const b of bytes) {
+			buffer.push(b)
+		}
+	}
+
 	const pushInt16 = (value: number) => {
 		pushBytes([(value >> 8) & 0xff, value & 0xff])
 	}
@@ -142,8 +145,7 @@ export const encodeBinaryNode = (
 			return false
 		}
 
-		for(let i = 0;i < str.length;i++) {
-			const char = str[i]
+		for(const char of str) {
 			const isInNibbleRange = char >= '0' && char <= '9'
 			if(!isInNibbleRange && char !== '-' && char !== '.') {
 				return false
@@ -158,8 +160,7 @@ export const encodeBinaryNode = (
 			return false
 		}
 
-		for(let i = 0;i < str.length;i++) {
-			const char = str[i]
+		for(const char of str) {
 			const isInNibbleRange = char >= '0' && char <= '9'
 			if(!isInNibbleRange && !(char >= 'A' && char <= 'F') && !(char >= 'a' && char <= 'f')) {
 				return false

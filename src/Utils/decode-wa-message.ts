@@ -203,10 +203,19 @@ export const decryptMessageNode = (
 							throw new Error(`Unknown e2e type: ${e2eType}`)
 						}
 
-						let msg: proto.IMessage = proto.Message.decode(tag === 'plaintext' ? msgBuffer : unpadRandomMax16(msgBuffer))
-						msg = msg?.deviceSentMessage?.message || msg
-
-						await processSenderKeyDistribution(msg)
+						let msg: proto.IMessage = proto.Message.decode(e2eType !== 'plaintext' ? unpadRandomMax16(msgBuffer) : msgBuffer)
+						msg = msg.deviceSentMessage?.message || msg
+						if(msg.senderKeyDistributionMessage) {
+							//eslint-disable-next-line max-depth
+						    try {
+								await repository.processSenderKeyDistributionMessage({
+									authorJid: author,
+									item: msg.senderKeyDistributionMessage
+								})
+							} catch(err) {
+								logger.error({ key: fullMessage.key, err }, 'failed to decrypt message')
+						        }
+						}
 
 						if(fullMessage.message) {
 							Object.assign(fullMessage.message, msg)

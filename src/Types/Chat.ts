@@ -3,7 +3,7 @@ import type { AccountSettings } from './Auth'
 import type { BufferedEventData } from './Events'
 import type { ChatLabelAssociationActionBody } from './LabelAssociation'
 import type { MessageLabelAssociationActionBody } from './LabelAssociation'
-import type { MinimalMessage } from './Message'
+import type { MinimalMessage, WAMessageKey } from './Message'
 import type { LabelActionBody } from './Label'
 
 /** privacy settings in WhatsApp Web */
@@ -78,7 +78,9 @@ export type ChatModification =
         mute: number | null
     }
     | {
-        clear: 'all' | { messages: { id: string, fromMe?: boolean, timestamp: number }[] }
+        clear: boolean
+    } | {
+        deleteForMe: { deleteMedia: boolean, key: WAMessageKey, timestamp: number }
     }
     | {
         star: {
