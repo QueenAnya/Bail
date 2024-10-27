@@ -21,6 +21,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
 
       - name: Setup Node
         uses: actions/setup-node@v3.6.0
@@ -40,7 +45,9 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: yarn
+        run: |
+          yarn
+          pnpm install --ignore-scripts --frozen-lockfile
 
       - name: Release
         run: "npx release-it --increment ${{ github.event.inputs.increment }}"
