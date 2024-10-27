@@ -47,7 +47,7 @@ jobs:
       - name: Install Dependencies
         run: |
           yarn
-          pnpm install --ignore-scripts --frozen-lockfile
+          pnpm install
 
       - name: Release
         run: "npx release-it --increment ${{ github.event.inputs.increment }}"
