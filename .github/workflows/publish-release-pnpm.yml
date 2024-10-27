@@ -45,8 +45,9 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: yarn
-        run: pnpm install --ignore-scripts --frozen-lockfile
+        run: |
+        yarn
+        pnpm install --ignore-scripts --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
