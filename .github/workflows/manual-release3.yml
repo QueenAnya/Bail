@@ -57,7 +57,7 @@ jobs:
 
       - name: Commit and Push pnpm-lock and yarn.lock
         run: |
-          git add pnpm-lock.yml yarn.lock
+          git add pnpm-lock.yaml yarn.lock
           git commit -m "Update lock files"
           git push origin ${{ github.ref }}
         env:
