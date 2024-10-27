@@ -1,4 +1,4 @@
-name: Publish Release Pnpm
+name: Publish Release
 
 on:
   push:
@@ -7,18 +7,19 @@ on:
 
 permissions: write-all
 
-jobs:
+jobs: 
   publish-release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          
+
       - name: Fetching tags
         run: git fetch --tags -f || true
-        
+
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -37,7 +38,7 @@ jobs:
         run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
       - uses: actions/cache@v4
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -46,24 +47,24 @@ jobs:
 
       - name: Install Dependencies
         run: |
-        yarn
-        pnpm install --ignore-scripts --frozen-lockfile
+          yarn
+          pnpm install --ignore-scripts --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (as `@queenanya/baileys`)
-      run: |
+        run: |
           pnpm publish --access public --no-git-checks
           pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is deprecated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
-      
+
       - name: Publish in NPM (teamolduser scope)
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
           pnpm publish --access public --no-git-checks
-          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is deprecated, please upgrade to the latest version." --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is deprecated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -95,7 +96,6 @@ jobs:
           body: ${{ steps.generate_changelog.outputs.changelog }}
           draft: false
           prerelease: false
-          files: >
-            baileys.tgz
+          files: baileys.tgz
           gzip: folders
           allow_override: true
