@@ -1,4 +1,4 @@
-name: Publish Release
+name: Publish Release Pnpm
 
 on:
   push:
@@ -55,7 +55,7 @@ jobs:
       - name: Publish in NPM (as `@queenanya/baileys`)
         run: |
           pnpm publish --access public --no-git-checks
-          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is deprecated, please upgrade to the latest version."
+          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
@@ -63,8 +63,8 @@ jobs:
       - name: Publish in NPM (teamolduser scope)
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          pnpm publish --access public --no-git-checks
-          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is deprecated, please upgrade to the latest version."
+          pnpm publish --access public --no-git-checks --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm deprecate @tramolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
