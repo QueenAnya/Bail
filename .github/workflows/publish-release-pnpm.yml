@@ -3,7 +3,7 @@ name: Publish Release
 on:
   push:
     tags:
-      - "y*"
+      - "v*"
 
 permissions: write-all
 
@@ -18,9 +18,14 @@ jobs:
 
       - name: Fetching tags
         run: git fetch --tags -f || true
+        
+        - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
 
       - name: Setup Node
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v4
         with:
           node-version: 20.x
           registry-url: "https://registry.npmjs.org"
@@ -31,7 +36,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -41,21 +46,27 @@ jobs:
 
       - name: Install Dependencies
         run: yarn
+        run: pnpm install --ignore-scripts --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (as `@queenanya/baileys`)
-        run: npm publish --access public
+      run: |
+          pnpm publish --access public --no-git-checks
+          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is deprecated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
       
       - name: Publish in NPM (teamolduser scope)
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm publish --access public --no-git-checks
+          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is deprecated, please upgrade to the latest version." --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
 
       - name: Generate Changelog
         id: generate_changelog
