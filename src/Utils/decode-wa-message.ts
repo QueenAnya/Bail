@@ -3,9 +3,9 @@ import { Logger } from 'pino'
 import { proto } from '../../WAProto'
 import { SignalRepository, WAMessageKey } from '../Types'
 import { areJidsSameUser, BinaryNode, isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isJidUser, isLidUser } from '../WABinary'
-import { unpadRandomMax16 } from './generics'
+import { BufferJSON, unpadRandomMax16 } from './generics'
 
-export const NO_MESSAGE_FOUND_ERROR_TEXT = 'Message absent from node'
+const NO_MESSAGE_FOUND_ERROR_TEXT = 'Message absent from node'
 
 type MessageType = 'chat' | 'peer_broadcast' | 'other_broadcast' | 'group' | 'direct_peer_status' | 'other_status' | 'newsletter'
 
@@ -64,6 +64,10 @@ export function decodeMessageNode(
 		msgType = 'group'
 		author = participant
 		chatId = from
+	} else if(isJidNewsletter(from)) {
+		msgType = 'newsletter'
+		author = from
+		chatId = from
 	} else if(isJidBroadcast(from)) {
 		if(!participant) {
 			throw new Boom('No participant in group message')
@@ -94,7 +98,7 @@ export function decodeMessageNode(
 		fromMe,
 		id: msgId,
 		participant,
-		server_id: stanza.attrs?.server_id
+		'server_id': stanza.attrs?.server_id
 	}
 
 	const fullMessage: proto.IWebMessageInfo = {
@@ -171,16 +175,12 @@ export const decryptMessageNode = (
 						case 'plaintext':
 							msgBuffer = content
 							break
-						case undefined:
-							msgBuffer = content
-							break
 						default:
 							throw new Error(`Unknown e2e type: ${e2eType}`)
 						}
 
-						let msg: proto.IMessage = proto.Message.decode(tag === 'plaintext' ? msgBuffer : unpadRandomMax16(msgBuffer))
-						msg = msg?.deviceSentMessage?.message || msg
-
+						let msg: proto.IMessage = proto.Message.decode(e2eType !== 'plaintext' ? unpadRandomMax16(msgBuffer) : msgBuffer)
+						msg = msg.deviceSentMessage?.message || msg
 						if(msg.senderKeyDistributionMessage) {
 							try {
 								await repository.processSenderKeyDistributionMessage({
@@ -189,15 +189,13 @@ export const decryptMessageNode = (
 								})
 							} catch(err) {
 								logger.error({ key: fullMessage.key, err }, 'failed to decrypt message')
-										}
-								}
 							}
+						}
 
-							if(fullMessage.message) {
+						if(fullMessage.message) {
 							Object.assign(fullMessage.message, msg)
 						} else {
 							fullMessage.message = msg
-							}
 						}
 					} catch(err) {
 						logger.error(
@@ -213,7 +211,7 @@ export const decryptMessageNode = (
 			// if nothing was found to decrypt
 			if(!decryptables) {
 				fullMessage.messageStubType = proto.WebMessageInfo.StubType.CIPHERTEXT
-				fullMessage.messageStubParameters = [NO_MESSAGE_FOUND_ERROR_TEXT]
+				fullMessage.messageStubParameters = [NO_MESSAGE_FOUND_ERROR_TEXT, JSON.stringify(stanza, BufferJSON.replacer)]
 			}
 		}
 	}
