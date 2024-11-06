@@ -1,10 +1,10 @@
 export * from './Auth'
 export * from './GroupMetadata'
+export * from './Newsletter'
 export * from './Chat'
 export * from './Contact'
 export * from './State'
 export * from './Message'
-export * from './Newsletter'
 export * from './Socket'
 export * from './Events'
 export * from './Product'
@@ -16,7 +16,6 @@ import { SocketConfig } from './Socket'
 
 export type UserFacingSocketConfig = Partial<SocketConfig> & { auth: AuthenticationState }
 
-/** Other Browser Support for Paircode */
 export type BrowsersMap = {
     ubuntu(browser: string): [string, string, string]
     macOS(browser: string): [string, string, string]

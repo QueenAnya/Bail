@@ -1,6 +1,6 @@
 import { proto } from '../../WAProto'
 import { GroupMetadata, GroupParticipant, ParticipantAction, SocketConfig, WAMessageKey, WAMessageStubType } from '../Types'
-import { generateMessageID, generateMessageIDV2, generateMessageIDV3, unixTimestampSeconds } from '../Utils'
+import { generateMessageID, generateMessageIDV2, unixTimestampSeconds } from '../Utils'
 import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, getBinaryNodeChildString, jidEncode, jidNormalizedUser } from '../WABinary'
 import { makeChatsSocket } from './chats'
 
@@ -232,7 +232,7 @@ export const makeGroupsSocket = (config: SocketConfig) => {
 			const result = getBinaryNodeChild(results, 'group')
 			return result?.attrs.jid
 		},
-		
+
 		/**
 		 * revoke a v4 invite for someone
 		 * @param groupJid group jid
@@ -243,7 +243,7 @@ export const makeGroupsSocket = (config: SocketConfig) => {
 			const result = await groupQuery(groupJid, 'set', [{ tag: 'revoke', attrs: {}, content: [{ tag: 'participant', attrs: { jid: invitedJid } }] }])
 			return !!result
 		},
-		
+
 		/**
 		 * accept a GroupInviteMessage
 		 * @param key the key of the invite message, or optionally only provide the jid of the person who sent the invite
@@ -284,7 +284,7 @@ export const makeGroupsSocket = (config: SocketConfig) => {
 				{
 					key: {
 						remoteJid: inviteMessage.groupJid,
-						id: generateMessageIDV3(sock.user?.id),
+						id: generateMessageIDV2(sock.user?.id),
 						fromMe: false,
 						participant: key.remoteJid,
 					},

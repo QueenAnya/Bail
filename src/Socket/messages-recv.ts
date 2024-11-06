@@ -48,8 +48,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		logger,
 		retryRequestDelayMs,
 		maxMsgRetryCount,
-		ignoreMsgLoading,
 		getMessage,
+		ignoreMsgLoading,
 		shouldIgnoreJid
 	} = config
 	const sock = makeMessagesSocket(config)
@@ -362,10 +362,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 	
-		const handleNewsletterNotification = (id: string, node: BinaryNode) => {
+	const handleNewsletterNotification = (id: string, node: BinaryNode) => {
         const messages = getBinaryNodeChild(node, 'messages')
         const message = getBinaryNodeChild(messages, 'message')!
-
+        
         const server_id = message.attrs.server_id
 
         const reactionsList = getBinaryNodeChild(message, 'reactions')
@@ -375,7 +375,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			const reactions = getBinaryNodeChildren(reactionsList, 'reaction')
 			if(reactions.length === 0){
 				ev.emit('newsletter.reaction', {id, server_id, reaction: { removed: true }})
-			}
 			reactions.forEach(item => {
 				ev.emit('newsletter.reaction', {id, server_id, reaction: { code: item.attrs?.code, count: +item.attrs?.count }})
 			})
@@ -387,14 +386,44 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			})
         }
 	}
-
+	
 	const handleMexNewsletterNotification = (id: string, node: BinaryNode) => {
 		const operation = node?.attrs.op_name
 		const content = JSON.parse(node?.content?.toString()!)
 
 		let contentPath
+		if(operation === MexOperations.PROMOTE || operation === MexOperations.DEMOTE){
+
+		
+Original file line number	Diff line number	Diff line change
+@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto'
+import NodeCache from 'node-cache'
+import { proto } from '../../WAProto'
+import { DEFAULT_CACHE_TTLS, KEY_BUNDLE_TYPE, MIN_PREKEY_COUNT } from '../Defaults'
+import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, MexOperations, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName, XWAPaths } from '../Types'
+import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, MexOperations, NewsletterSettingsUpdate, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName, XWAPaths } from '../Types'
+import {
+	aesDecryptCTR,
+	aesEncryptGCM,
+@@ -337,7 +337,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
+        if(reactionsList){
+			let reactions = getBinaryNodeChildren(reactionsList, 'reaction')
+			reactions.forEach(item => {
+				let removed = !!item.attrs?.code && !!item.attrs?.count
+				let removed = !(!!item.attrs?.code && !!item.attrs?.count)
+				ev.emit('newsletter.reaction', {id, server_id, reaction: {code: item.attrs?.code, count: +item.attrs?.count, removed }})
+			})
+        }
+@@ -349,24 +349,31 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
+        }
+	}
+
+	const handleMexNewsletterNotification = (id: string, node: BinaryNode) => {
+		let operation = node?.attrs.op_name
+		let content = JSON.parse(node?.content?.toString()!)
 
 		if(operation === MexOperations.PROMOTE || operation === MexOperations.DEMOTE){
+
 			let action
 			if(operation === MexOperations.PROMOTE){
 				action = 'promote'
@@ -407,9 +436,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			}
 
 			ev.emit('newsletter-participants.update', {id, author: contentPath.actor.pn, user: contentPath.user.pn, new_role: contentPath.user_new_role, action})
-		}
-
-		if(operation === MexOperations.UPDATE){
+			}
+			
+			if(operation === MexOperations.UPDATE){
 			contentPath = content.data[XWAPaths.METADATA_UPDATE]
 			ev.emit('newsletter-settings.update', {id, update: contentPath.thread_metadata.settings as NewsletterSettingsUpdate})
 		}
@@ -437,13 +466,13 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			}
 
 			break
-			case 'newsletter':
+		case 'newsletter':
 			handleNewsletterNotification(node.attrs.from, child)
-	     	break
-	    	case 'mex':
+	    	break
+		case 'mex':
 			handleMexNewsletterNotification(node.attrs.from, child)
 			break
-	    	case 'w:gp2':
+		case 'w:gp2':
 			handleGroupNotification(node.attrs.participant, child, result)
 			break
 		case 'mediaretry':
@@ -452,9 +481,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			break
 		case 'encrypt':
 			await handleEncryptNotification(node)
-			break
-			case 'newsletter':
-			// TO DO
 			break
 		case 'devices':
 			const devices = getBinaryNodeChildren(child, 'device')
@@ -988,7 +1014,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleBadAck = async({ attrs }: BinaryNode) => {
-		// const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id }
 		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id, server_id: attrs?.server_id }
 		// current hypothesis is that if pash is sent in the ack
 		// it means -- the message hasn't reached all devices yet

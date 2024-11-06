@@ -218,7 +218,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			}
 		}
 	}
-	
+
 	/** Fetching The Disappearing Duration of a specific chats by their jids*/
 	const fetchDisappearingDuration = async(...jids: string[]) => {
 		const list = jids.map((jid) => ({ tag: 'user', attrs: { jid } }))
@@ -853,6 +853,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				authState.creds.lastPropHash = propsNode?.attrs?.hash
 				ev.emit('creds.update', authState.creds)
 			}
+
 			props = reduceBinaryNodeToDictionary(propsNode, 'prop')
 		}
 
@@ -882,7 +883,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			}
 		}, jid)
 	}
-	
+
 	/**
 	 * Adds label
 	 */
@@ -1095,8 +1096,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		profilePictureUrl,
 		onWhatsApp,
 		fetchBlocklist,
-		fetchDisappearingDuration,
 		fetchStatus,
+		fetchDisappearingDuration,
 		updateProfilePicture,
 		updateProfilePictureFull,
 		updateProfilePictureFull2,

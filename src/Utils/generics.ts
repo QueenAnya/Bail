@@ -39,7 +39,6 @@ export const Browsers: BrowsersMap = {
 	appropriate: (browser) => [ PLATFORM_MAP[platform()] || 'Ubuntu', browser, release() ]
 }
 
-/** Other Browser Support for Paircode */
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()]
 	return platformType ? platformType.toString().charCodeAt(0).toString() : '51' // Firefox
@@ -198,8 +197,8 @@ export async function promiseTimeout<T>(ms: number | undefined, promise: (resolv
 	return p as Promise<T>
 }
 
-//Useless but still keep this to avoid unexpected errors and bugs 
-
+// inspired from whatsmeow code
+// https://github.com/tulir/whatsmeow/blob/64bc969fbe78d31ae0dd443b8d4c80a5d026d07a/send.go#L42
 export const generateMessageIDV2 = (userId?: string): string => {
 	const data = Buffer.alloc(8 + 20 + 16)
 	data.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000)))
@@ -216,25 +215,11 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return 'ANYAWEB' + hash.toString('hex').toUpperCase().substring(0, 18)
+	return '3EB0' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
-
-
-//Message ID function for Anya_Baileyz
- 
-//This V3 is RollBack Update Of Old Message ID
-
-export const generateMessageIDV3 = (userId?: string): string => {
-   let swebfix = 'ANYAWEB';
-     let swebRandom = randomBytes(5).toString('hex').toUpperCase().substring(0, 10);
-        return swebfix + swebRandom;
-}
-
-
-
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => 'ANYAWEB' + randomBytes(10).toString('hex').toUpperCase()
+export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async(check: (u: BaileysEventMap[T]) => boolean | undefined, timeoutMs?: number) => {
@@ -287,40 +272,10 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: Logg
 }
 
 /**
- * utility that fetches latest baileys version from the main branch.
- * Use to ensure your WA connection is always on the latest version
- */
- export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
-	try {
-		const result = await axios.get(
-			'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json',
-			{
-				...options,
-				responseType: 'json'
-			}
-		)
-		const version = result.data.currentVersion.split('.')
-		const version2 = version[2].replace('-alpha', '');
-		return {
-			version: [+version[0], +version[1], +version2],
-			isLatest: true
-		}
-	} catch(error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
-	}
-}
-
-/**
  * utility that fetches latest baileys version from the master branch.
  * Use to ensure your WA connection is always on the latest version
  */
- 
-export const fetchLatestBaileysVersion2 = async(options: AxiosRequestConfig<any> = { }) => {
-  
+export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<{}> = { }) => {
 	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json'
 	try {
 		const result = await axios.get<{ version: WAVersion }>(

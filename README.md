@@ -320,7 +320,7 @@ const sock = makeWASocket({ })
 // the store can listen from a new socket once the current socket outlives its lifetime
 store.bind(sock.ev)
 
-sock.ev.on('chats.set', () => {
+sock.ev.on('chats.upsert', () => {
     // can use "store.chats" however you want, even after the socket dies out
     // "chats" => a KeyedDB instance
     console.log('got chats', store.chats.all())
@@ -867,7 +867,7 @@ const result = await sock.getSubscribedNewsletters()
     ```
 - To update the Groups Add privacy
     ``` ts
-    const value = 'all' // 'contacts' | 'contact_blacklist' | 'none'
+    const value = 'all' // 'contacts' | 'contact_blacklist'
     await sock.updateGroupsAddPrivacy(value)
     ```
 - To update the Default Disappearing Mode
