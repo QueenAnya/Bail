@@ -1098,3 +1098,4 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		fetchMessageHistory,
 		requestPlaceholderResend,
 	}
+	}
