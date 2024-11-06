@@ -391,37 +391,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const operation = node?.attrs.op_name
 		const content = JSON.parse(node?.content?.toString()!)
 
-		let contentPath
-		if(operation === MexOperations.PROMOTE || operation === MexOperations.DEMOTE){
-
-		
-Original file line number	Diff line number	Diff line change
-@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto'
-import NodeCache from 'node-cache'
-import { proto } from '../../WAProto'
-import { DEFAULT_CACHE_TTLS, KEY_BUNDLE_TYPE, MIN_PREKEY_COUNT } from '../Defaults'
-import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, MexOperations, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName, XWAPaths } from '../Types'
-import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, MexOperations, NewsletterSettingsUpdate, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName, XWAPaths } from '../Types'
-import {
-	aesDecryptCTR,
-	aesEncryptGCM,
-@@ -337,7 +337,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
-        if(reactionsList){
-			let reactions = getBinaryNodeChildren(reactionsList, 'reaction')
-			reactions.forEach(item => {
-				let removed = !!item.attrs?.code && !!item.attrs?.count
-				let removed = !(!!item.attrs?.code && !!item.attrs?.count)
-				ev.emit('newsletter.reaction', {id, server_id, reaction: {code: item.attrs?.code, count: +item.attrs?.count, removed }})
-			})
-        }
-@@ -349,24 +349,31 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
-        }
-	}
-
-	const handleMexNewsletterNotification = (id: string, node: BinaryNode) => {
-		let operation = node?.attrs.op_name
-		let content = JSON.parse(node?.content?.toString()!)
-
 		if(operation === MexOperations.PROMOTE || operation === MexOperations.DEMOTE){
 
 			let action
