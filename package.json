@@ -1,6 +1,6 @@
 {
   "name": "@queenanya/baileys",
-  "version": "7.4.0",
+  "version": "7.4.1",
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
@@ -47,7 +47,7 @@
     "@hapi/boom": "* || latest",
     "async-lock": "^1.4.1",
     "audio-decode": "^2.2.0",
-     "axios": "* || latest || next",
+    "axios": "* || latest || next",
     "cache-manager": "^5.7.6",
     "futoin-hkdf": "^1.5.3",
     "json": "^11.0.0",
