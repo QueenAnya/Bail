@@ -12,7 +12,7 @@ importers:
         specifier: ^0.2.4
         version: 0.2.4
       '@hapi/boom':
-        specifier: ^10.0.1
+        specifier: '* || latest'
         version: 10.0.1
       '@queenanya/eslint-config':
         specifier: github:whiskeysockets/eslint-config
@@ -24,7 +24,7 @@ importers:
         specifier: ^2.2.0
         version: 2.2.2
       axios:
-        specifier: ^1.7.2
+        specifier: '* || latest || next'
         version: 1.7.7
       cache-manager:
         specifier: ^5.7.6
