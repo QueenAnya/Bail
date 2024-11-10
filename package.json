@@ -12,9 +12,9 @@
     "automation",
     "multi-device"
   ],
-  "homepage": "https://github.com/QueenAnya/Baileys",
+  "homepage": "https://github.com/QueenAnya/bail",
   "repository": {
-    "url": "git@github.com:QueenAnya/Baileys.git"
+    "url": "git@github.com:QueenAnya/bail"
   },
   "license": "MIT",
   "author": "Adhiraj Singh",
