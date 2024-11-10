@@ -58,7 +58,7 @@ export type BaileysEventMap = {
     /** apply an action to participants in a group */
     'group-participants.update': { id: string, author: string, participants: string[], action: ParticipantAction }
     'group.join-request': { id: string, author: string, participant: string, action: RequestJoinAction, method: RequestJoinMethod }
-    
+
     'newsletter.reaction': { id: string, server_id: string, reaction: {code?: string, count?: number, removed?: boolean}}
     'newsletter.view': { id: string, server_id: string, count: number}
     /**don't handles subscribe/unsubscribe actions */

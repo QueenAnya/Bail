@@ -54,7 +54,7 @@ jobs:
 
       - name: Publish in NPM (as `@queenanya/baileys`)
         run: |
-          pnpm publish --access public --tag test --no-git-checks
+          pnpm publish --access public --no-git-checks
           pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -63,7 +63,7 @@ jobs:
       - name: Publish in NPM (teamolduser scope)
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          pnpm publish --access public --tag test --no-git-checks --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm publish --access public --no-git-checks --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           pnpm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:

@@ -4,18 +4,9 @@ import { FullJid, jidDecode } from './jid-utils'
 import type { BinaryNode, BinaryNodeCodingOptions } from './types'
 
 export const encodeBinaryNode = (
-	node: BinaryNode,
+	{ tag, attrs, content }: BinaryNode,
 	opts: Pick<BinaryNodeCodingOptions, 'TAGS' | 'TOKEN_MAP'> = constants,
 	buffer: number[] = [0]
-): Buffer => {
-	const encoded = encodeBinaryNodeInner(node, opts, buffer)
-	return Buffer.from(encoded)
-}
-
-const encodeBinaryNodeInner = (
-	{ tag, attrs, content }: BinaryNode,
-	opts: Pick<BinaryNodeCodingOptions, 'TAGS' | 'TOKEN_MAP'>,
-	buffer: number[]
 ): number[] => {
 	const { TAGS, TOKEN_MAP } = opts
 
@@ -234,7 +225,7 @@ const encodeBinaryNodeInner = (
 	} else if(Array.isArray(content)) {
 		writeListStart(content.length)
 		for(const item of content) {
-			encodeBinaryNodeInner(item, opts, buffer)
+			encodeBinaryNode(item, opts, buffer)
 		}
 	} else if(typeof content === 'undefined') {
 		// do nothing
