@@ -30,5 +30,5 @@ git config --global user.email "khushijain2901@mail.com"
 git config --global user.name "Its-me-001"
 git commit -m "$cmit"
 git branch -M master
-git remote add origin https://github.com/Queen_Anya/Baileys.git
+git remote add origin https://github.com/QueenAnya/bail.git
 git push -u origin master
