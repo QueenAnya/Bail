@@ -18,7 +18,7 @@
     "file-type": "16.5",
     "fs": "latest",
     "human-readable": "^0.2.1",
-    "jimp": "* || latest || 022.13"
+    "jimp": "^0.22.12"
   },
   "devDependencies": {
     "@hapi/boom": "* || latest",
