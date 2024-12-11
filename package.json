@@ -2,6 +2,9 @@
   "name": "@queenanya/invite",
   "version": "7.5.0",
   "description": "Invite Code For Add Command",
+    "repository": {
+    "url": "git@github.com:QueenAnya/bail.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
