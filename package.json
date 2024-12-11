@@ -1,0 +1,26 @@
+{
+  "name": "@queenanya/invite",
+  "version": "7.5.0",
+  "description": "Invite Code For Add Command",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@queenanya/apkdl": "*",
+    "@queenanya/baileys": "*",
+    "awesome-phonenumber": "^2.64.0",
+    "axios": "* || latest || next",
+    "form-data": "^4.0.0",
+    "file-type": "16.5",
+    "fs": "latest",
+    "human-readable": "^0.2.1",
+    "jimp": "* || latest || 022.13"
+  },
+  "devDependencies": {
+    "@hapi/boom": "* || latest",
+    "pino": "^8.1.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "license": "MIT"
+}
