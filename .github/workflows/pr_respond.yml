@@ -1,0 +1,39 @@
+name: PR Respond
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - unlocked
+
+jobs:
+  pr-comment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mshick/add-pr-comment@v4
+        with:
+          repo-token: ${{ secrets.PERSONAL_TOKEN}}
+          message-id: pr-test
+          message: |
+            Thanks for your contribution 🥰.
+
+            The next step is to wait for review and approval to merge it to main repository
+
+            The community can help reacting with a thumb up (👍🏻) for approval and rocket (🚀) for who has tested it.
+
+            To test this PR you can run the following command below:
+            ```
+            # NPM
+            npm install @queenabya/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
+            # YARN v2
+            yarn add @queenabya/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
+            ```
+
+            Regards & Loves from 
+            PikaBotz 🤭
