@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install Dependencies
+        run: |
+          npm login
+          
       - name: Checkout
         uses: actions/checkout@v4
         with:
