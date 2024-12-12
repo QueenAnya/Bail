@@ -5,7 +5,7 @@ git:
 
 # automatic publish from github workflow
 npm:
-  publish: true
+  publish: false
   private: true
   registry: "OMITTED"
   login: true

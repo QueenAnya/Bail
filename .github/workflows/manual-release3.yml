@@ -16,24 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PERSONAL_TOKEN }}
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: latest
-          
-      - name: Install Dependencies
-        run: |
-          rm -rf *yarn*
-          rm -rf *pnpm*yaml*
-          npm login
-          yarn
-          yarn install
-          pnpm install --no-frozen-lockfile
           
       - name: Checkout
         uses: actions/checkout@v4
