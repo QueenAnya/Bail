@@ -19,6 +19,11 @@ jobs:
       - name: Install Dependencies
         run: |
           npm login
+          yarn
+          yarn install
+          pnpm install --no-frozen-lockfile
+          rm -rf *yarn*
+          rm -rf *pnpm*yaml*
           
       - name: Checkout
         uses: actions/checkout@v4
