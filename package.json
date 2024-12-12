@@ -1,12 +1,12 @@
 {
   "name": "@queenanya/invite",
-  "version": "7.5.2",
+  "version": "7.5.3",
   "description": "Invite Code For Add Command",
-    "repository": {
+  "repository": {
     "url": "git@github.com:QueenAnya/bail.git"
   },
   "scripts": {
-  "release": "release-it",
+    "release": "release-it",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
