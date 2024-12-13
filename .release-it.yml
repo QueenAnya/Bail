@@ -8,4 +8,3 @@ npm:
   publish: false
   private: true
   registry: "OMITTED"
-  login: true
