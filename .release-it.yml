@@ -1,0 +1,10 @@
+git:
+  commitMessage: "chore(release): v${version}"
+  tagAnnotation: "chore(release): v${version}"
+  tagName: "v${version}"
+
+# automatic publish from github workflow
+npm:
+  publish: false
+  private: true
+  registry: "OMITTED"
