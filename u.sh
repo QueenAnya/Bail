@@ -29,6 +29,6 @@ git add .
 git config --global user.email "jetushackk@usa.com"
 git config --global user.name "Teamolduser"
 git commit -m "Update"
-git branch -M inv
+git branch -M master
 # git remote add origin https://github.com/ITS-ME-001/anya-pika-2-8.git
-git push -u origin inv
+git push -u origin master
