@@ -27,7 +27,7 @@ const pickRandom = (list) => {
   return list[Math.floor(list.length * Math.random())];
 };
 
-const sendsong = async (conn, pika, link, music) => {
+const sendsong = async (conn, pika, link) => {
     let url = "https://github.com/Teamolduser"
     let murl = "https://github.com/PikaBotz/Anya_v2-MD"
     let hash = "OLDUSER"
@@ -59,25 +59,7 @@ const sendsong = async (conn, pika, link, music) => {
           }}
       };
       
-      let msg = {
-        text : link,
-        contextInfo: {
-          mentionedJid: [pika.sender],
-          externalAdReply: {
-          body: hash,
-          thumbnailUrl: img,
-          sourceUrl: murl,
-          mediaType: 2,
-          mediaUrl: url,
-          renderLargerThumbnail: true,
-          showAdAttribution: true
-          }}
-      };
-      
-      if (music === true) {
       return await conn.sendMessage(pika.chat, docu, { quoted: pika });
-      } else if (music === false) {
-      return await conn.sendMessage(pika.chat, msg, { quoted: pika });
       };
       };
       
@@ -87,10 +69,9 @@ try {
 const resp = await axios.get("https://gist.githubusercontent.com/Teamolduser/38f9ff5370e76ee4c1a2d94661c16125/raw");
 let aud = await pickRandom (resp.data);
  rest = await axios.get(`https://olduser.us.kg/youtube/botserver?ytlink=${aud}&type=audio&quality=128k`);
-return await sendsong(conn, pika, rest.data.dl_link, true);
+return await sendsong(conn, pika, rest.data.dl_link);
 } catch(error) {
- await sendsong(conn, pika, error.message, false);
- return await sendsong(conn, pika, rest.data, false);
+ return await pika.reply(error.message || error || 'An internal error occurred.');
 }
 };
 
