@@ -24,10 +24,10 @@ import {
 	WAProto,
 	WATextMessage,
 } from '../Types'
-import { isJidGroup, isJidNewsLetter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
+import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
 import { generateMessageID, getKeyAuthor, unixTimestampSeconds } from './generics'
-import { downloadContentFromMessage, encryptedStream, generateThumbnail, getAudioDuration, getAudioWaveform, MediaDownloadOptions, prepareStream } from './messages-media'
+import { downloadContentFromMessage, encryptedStream, generateThumbnail, getAudioDuration, getAudioWaveform, MediaDownloadOptions } from './messages-media'
 
 type MediaUploadData = {
 	media: WAMediaUpload
@@ -165,8 +165,8 @@ export const prepareWAMessageMedia = async(
 		fileEncSha256,
 		fileSha256,
 		fileLength,
-		didSaveToTmpPath,
-	} = await (options.newsletter ? prepareStream : encryptedStream)(
+		didSaveToTmpPath
+	} = await encryptedStream(
 		uploadData.media,
 		options.mediaTypeOverride || mediaType,
 		{
@@ -176,8 +176,8 @@ export const prepareWAMessageMedia = async(
 		}
 	)
 	 // url safe Base64 encode the SHA256 hash of the body
-	const fileEncSha256B64 = (options.newsletter ? fileSha256 : fileEncSha256 ?? fileSha256).toString('base64')
-	const [{ mediaUrl, directPath, handle }] = await Promise.all([
+	const fileEncSha256B64 = fileEncSha256.toString('base64')
+	const [{ mediaUrl, directPath }] = await Promise.all([
 		(async() => {
 			const result = await options.upload(
 				encWriteStream,
@@ -229,10 +229,7 @@ export const prepareWAMessageMedia = async(
 	])
 		.finally(
 			async() => {
-				if (!Buffer.isBuffer(encWriteStream)) {
-					encWriteStream.destroy()
-				}
-
+				encWriteStream.destroy()
 				// remove tmp files
 				if(didSaveToTmpPath && bodyPath) {
 					await fs.unlink(bodyPath)
@@ -244,13 +241,13 @@ export const prepareWAMessageMedia = async(
 	const obj = WAProto.Message.fromObject({
 		[`${mediaType}Message`]: MessageTypeProto[mediaType].fromObject(
 			{
-				url:  handle ? undefined : mediaUrl,
+				url: mediaUrl,
 				directPath,
-				mediaKey: mediaKey,
-				fileEncSha256: fileEncSha256,
+				mediaKey,
+				fileEncSha256,
 				fileSha256,
 				fileLength,
-				mediaKeyTimestamp: handle ? undefined : unixTimestampSeconds(),
+				mediaKeyTimestamp: unixTimestampSeconds(),
 				...uploadData,
 				media: undefined
 			}
@@ -416,6 +413,12 @@ export const generateWAMessageContent = async(
 			}
 			break
 		}
+	} else if('ptv' in message && message.ptv) {
+		const { videoMessage } = await prepareWAMessageMedia(
+			{ video: message.video },
+			options
+		)
+		m.ptvMessage = videoMessage
 	} else if('product' in message) {
 		const { imageMessage } = await prepareWAMessageMedia(
 			{ image: message.product.productImage },
@@ -580,7 +583,8 @@ export const generateWAMessageFromContent = (
 	const timestamp = unixTimestampSeconds(options.timestamp)
 	const { quoted, userJid } = options
 
-	if(quoted && !isJidNewsLetter(jid)) {
+	// only set quoted if isn't a newsletter message
+	if(quoted && !isJidNewsletter(jid)) {
 		const participant = quoted.key.fromMe ? userJid : (quoted.participant || quoted.key.participant || quoted.key.remoteJid)
 
 		let quotedMsg = normalizeMessageContent(quoted.message)!
@@ -615,7 +619,7 @@ export const generateWAMessageFromContent = (
 		// already not converted to disappearing message
 		key !== 'ephemeralMessage' &&
 		// newsletter not accept disappearing messages
-		!isJidNewsLetter(jid)
+		!isJidNewsletter(jid)
 	) {
 		innerMessage[key].contextInfo = {
 			...(innerMessage[key].contextInfo || {}),
@@ -652,7 +656,7 @@ export const generateWAMessage = async(
 		jid,
 		await generateWAMessageContent(
 			content,
-			{ newsletter: isJidNewsLetter(jid!), ...options }
+			options
 		),
 		options
 	)

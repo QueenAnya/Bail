@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto'
 import NodeCache from 'node-cache'
 import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, KEY_BUNDLE_TYPE, MIN_PREKEY_COUNT } from '../Defaults'
-import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName } from '../Types'
+import { MessageReceiptType, MessageRelayOptions, MessageUserReceipt, MexOperations, NewsletterSettingsUpdate, SocketConfig, WACallEvent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAPatchName, XWAPaths } from '../Types'
 import {
 	aesDecryptCTR,
 	aesEncryptGCM,
@@ -15,7 +15,6 @@ import {
 	derivePairingCodeKey,
 	encodeBigEndian,
 	encodeSignedDeviceIdentity,
-	generateMessageIDV2,
 	getCallStatusFromNode,
 	getHistoryMsg,
 	getNextPreKeys,
@@ -33,10 +32,9 @@ import {
 	getBinaryNodeChild,
 	getBinaryNodeChildBuffer,
 	getBinaryNodeChildren,
-	isJidGroup,
+	isJidGroup, isJidStatusBroadcast,
 	isJidUser,
 	jidDecode,
-	jidEncode,
 	jidNormalizedUser,
 	S_WHATSAPP_NET
 } from '../WABinary'
@@ -67,8 +65,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		relayMessage,
 		sendReceipt,
 		uploadPreKeys,
-		getUSyncDevices,
-		createParticipantNodes
 	} = sock
 
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
@@ -116,69 +112,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendNode(stanza)
 	}
 
-const offerCall = async(toJid: string, isVideo = false) => {
-		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
-
-		const offerContent: BinaryNode[] = []
-		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '16000' }, content: undefined })
-		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '8000' }, content: undefined })
-
-		if(isVideo) {
-			offerContent.push({
-				tag: 'video',
-				attrs: { enc: 'vp8', dec: 'vp8', orientation: '0', 'screen_width': '1920', 'screen_height': '1080', 'device_orientation': '0' },
-				content: undefined
-			})
-		}
-
-		offerContent.push({ tag: 'net', attrs: { medium: '3' }, content: undefined })
-		offerContent.push({ tag: 'capability', attrs: { ver: '1' }, content: new Uint8Array([1, 4, 255, 131, 207, 4]) })
-		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
-
-		const encKey = randomBytes(32)
-
-		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(user, 's.whatsapp.net', device))
-
-		await assertSessions(devices, true)
-
-		const { nodes: destinations, shouldIncludeDeviceIdentity } = await createParticipantNodes(devices, {
-			call: {
-				callKey: new Uint8Array(encKey)
-			}
-		}, { count: '0' })
-
-		offerContent.push({ tag: 'destination', attrs: {}, content: destinations })
-
-		if(shouldIncludeDeviceIdentity) {
-			offerContent.push({
-				tag: 'device-identity',
-				attrs: {},
-				content: encodeSignedDeviceIdentity(authState.creds.account!, true)
-			})
-		}
-
-		const stanza: BinaryNode = ({
-			tag: 'call',
-			attrs: {
-				id: generateMessageIDV2(),
-				to: toJid,
-			},
-			content: [{
-				tag: 'offer',
-				attrs: {
-					'call-id': callId,
-					'call-creator': authState.creds.me!.id,
-				},
-				content: offerContent,
-			}],
-		})
-		await query(stanza)
-		return {
-			id: callId,
-			to: toJid
-		}
-	}
-    
 	const rejectCall = async(callId: string, callFrom: string) => {
 		const stanza: BinaryNode = ({
 			tag: 'call',
@@ -200,17 +133,18 @@ const offerCall = async(toJid: string, isVideo = false) => {
 	}
 
 	const sendRetryRequest = async(node: BinaryNode, forceIncludeKeys = false) => {
-		const msgId = node.attrs.id
+		const { id: msgId, participant } = node.attrs
 
-		let retryCount = msgRetryCache.get<number>(msgId) || 0
+		const key = `${msgId}:${participant}`
+		let retryCount = msgRetryCache.get<number>(key) || 0
 		if(retryCount >= maxMsgRetryCount) {
 			logger.debug({ retryCount, msgId }, 'reached retry limit, clearing')
-			msgRetryCache.del(msgId)
+			msgRetryCache.del(key)
 			return
 		}
 
 		retryCount += 1
-		msgRetryCache.set(msgId, retryCount)
+		msgRetryCache.set(key, retryCount)
 
 		const { account, signedPreKey, signedIdentityKey: identityKey } = authState.creds
 
@@ -307,6 +241,7 @@ const offerCall = async(toJid: string, isVideo = false) => {
 		child: BinaryNode,
 		msg: Partial<proto.IWebMessageInfo>
 	) => {
+		const participantJid = getBinaryNodeChild(child, 'participant')?.attrs?.jid || participant
 		switch (child?.tag) {
 		case 'create':
 			const metadata = extractGroupMetadata(child)
@@ -333,6 +268,11 @@ const offerCall = async(toJid: string, isVideo = false) => {
 					ephemeralExpiration: +(child.attrs.expiration || 0)
 				}
 			}
+			break
+		case 'modify':
+			const oldNumber = getBinaryNodeChildren(child, 'participant').map(p => p.attrs.jid)
+			msg.messageStubParameters = oldNumber || []
+			msg.messageStubType = WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER
 			break
 		case 'promote':
 		case 'demote':
@@ -389,6 +329,68 @@ const offerCall = async(toJid: string, isVideo = false) => {
 			}
 
 			break
+		case 'created_membership_requests':
+			msg.messageStubType = WAMessageStubType.GROUP_MEMBERSHIP_JOIN_APPROVAL_REQUEST_NON_ADMIN_ADD
+			msg.messageStubParameters = [ participantJid, 'created', child.attrs.request_method ]
+			break
+		case 'revoked_membership_requests':
+			const isDenied = areJidsSameUser(participantJid, participant)
+			msg.messageStubType = WAMessageStubType.GROUP_MEMBERSHIP_JOIN_APPROVAL_REQUEST_NON_ADMIN_ADD
+			msg.messageStubParameters = [ participantJid, isDenied ? 'revoked' : 'rejected' ]
+			break
+		}
+	}
+
+	const handleNewsletterNotification = (id: string, node: BinaryNode) => {
+        const messages = getBinaryNodeChild(node, 'messages')
+        const message = getBinaryNodeChild(messages, 'message')!
+
+        const server_id = message.attrs.server_id
+
+        const reactionsList = getBinaryNodeChild(message, 'reactions')
+		const viewsList = getBinaryNodeChildren(message, 'views_count')
+
+        if(reactionsList){
+			const reactions = getBinaryNodeChildren(reactionsList, 'reaction')
+			if(reactions.length === 0){
+				ev.emit('newsletter.reaction', {id, server_id, reaction: { removed: true }})
+			}
+			reactions.forEach(item => {
+				ev.emit('newsletter.reaction', {id, server_id, reaction: { code: item.attrs?.code, count: +item.attrs?.count }})
+			})
+        }
+
+        if(viewsList.length){
+			viewsList.forEach(item => {
+            	ev.emit('newsletter.view', {id, server_id, count: +item.attrs.count})
+			})
+        }
+	}
+
+	const handleMexNewsletterNotification = (id: string, node: BinaryNode) => {
+		const operation = node?.attrs.op_name
+		const content = JSON.parse(node?.content?.toString()!)
+
+		let contentPath
+
+		if(operation === MexOperations.PROMOTE || operation === MexOperations.DEMOTE){
+			let action
+			if(operation === MexOperations.PROMOTE){
+				action = 'promote'
+				contentPath = content.data[XWAPaths.PROMOTE]
+			}
+	
+			if(operation === MexOperations.DEMOTE){
+				action = 'demote'
+				contentPath = content.data[XWAPaths.DEMOTE]
+			}
+
+			ev.emit('newsletter-participants.update', {id, author: contentPath.actor.pn, user: contentPath.user.pn, new_role: contentPath.user_new_role, action})
+		}
+
+		if(operation === MexOperations.UPDATE){
+			contentPath = content.data[XWAPaths.METADATA_UPDATE]
+			ev.emit('newsletter-settings.update', {id, update: contentPath.thread_metadata.settings as NewsletterSettingsUpdate})
 		}
 	}
 
@@ -414,6 +416,12 @@ const offerCall = async(toJid: string, isVideo = false) => {
 			}
 
 			break
+		case 'newsletter':
+			handleNewsletterNotification(node.attrs.from, child)
+		break
+		case 'mex':
+			handleMexNewsletterNotification(node.attrs.from, child)
+			break
 		case 'w:gp2':
 			handleGroupNotification(node.attrs.participant, child, result)
 			break
@@ -423,9 +431,6 @@ const offerCall = async(toJid: string, isVideo = false) => {
 			break
 		case 'encrypt':
 			await handleEncryptNotification(node)
-			break
-		case 'newsletter':
-			// TO DO
 			break
 		case 'devices':
 			const devices = getBinaryNodeChildren(child, 'device')
@@ -500,7 +505,7 @@ const offerCall = async(toJid: string, isVideo = false) => {
 			const ref = toRequiredBuffer(getBinaryNodeChildBuffer(linkCodeCompanionReg, 'link_code_pairing_ref'))
 			const primaryIdentityPublicKey = toRequiredBuffer(getBinaryNodeChildBuffer(linkCodeCompanionReg, 'primary_identity_pub'))
 			const primaryEphemeralPublicKeyWrapped = toRequiredBuffer(getBinaryNodeChildBuffer(linkCodeCompanionReg, 'link_code_pairing_wrapped_primary_ephemeral_pub'))
-			const codePairingPublicKey = decipherLinkPublicKey(primaryEphemeralPublicKeyWrapped)
+			const codePairingPublicKey = await decipherLinkPublicKey(primaryEphemeralPublicKeyWrapped)
 			const companionSharedKey = Curve.sharedKey(authState.creds.pairingEphemeralKeyPair.private, codePairingPublicKey)
 			const random = randomBytes(32)
 			const linkCodeSalt = randomBytes(32)
@@ -559,10 +564,10 @@ const offerCall = async(toJid: string, isVideo = false) => {
 		}
 	}
 
-	function decipherLinkPublicKey(data: Uint8Array | Buffer) {
+	async function decipherLinkPublicKey(data: Uint8Array | Buffer) {
 		const buffer = toRequiredBuffer(data)
 		const salt = buffer.slice(0, 32)
-		const secretKey = derivePairingCodeKey(authState.creds.pairingCode!, salt)
+		const secretKey = await derivePairingCodeKey(authState.creds.pairingCode!, salt)
 		const iv = buffer.slice(32, 48)
 		const payload = buffer.slice(48, 80)
 		return aesDecryptCTR(payload, secretKey, iv)
@@ -669,7 +674,7 @@ const offerCall = async(toJid: string, isVideo = false) => {
 							!isNodeFromMe
 						)
 					) {
-						if(isJidGroup(remoteJid)) {
+						if(isJidGroup(remoteJid) || isJidStatusBroadcast(remoteJid)) {
 							if(attrs.participant) {
 								const updateKey: keyof MessageUserReceipt = status === proto.WebMessageInfo.Status.DELIVERY_ACK ? 'receiptTimestamp' : 'readTimestamp'
 								ev.emit(
@@ -868,7 +873,7 @@ const offerCall = async(toJid: string, isVideo = false) => {
 	}
 
 	const handleBadAck = async({ attrs }: BinaryNode) => {
-		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id }
+		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id, server_id: attrs?.server_id }
 		// current hypothesis is that if pash is sent in the ack
 		// it means -- the message hasn't reached all devices yet
 		// we'll retry sending the message here
@@ -979,7 +984,6 @@ const offerCall = async(toJid: string, isVideo = false) => {
 		...sock,
 		sendMessageAck,
 		sendRetryRequest,
-		offerCall,
 		rejectCall
 	}
 }
