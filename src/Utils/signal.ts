@@ -73,7 +73,7 @@ export const parseAndInjectE2ESessions = async(
 	const extractKey = (key: BinaryNode) => (
 		key ? ({
 			keyId: getBinaryNodeChildUInt(key, 'id', 3)!,
-			publicKey: generateSignalPubKey(getBinaryNodeChildBuffer(key, 'value')!),
+			publicKey: generateSignalPubKey(getBinaryNodeChildBuffer(key, 'value')!)!,
 			signature: getBinaryNodeChildBuffer(key, 'signature')!,
 		}) : undefined
 	)
@@ -82,6 +82,11 @@ export const parseAndInjectE2ESessions = async(
 		assertNodeErrorFree(node)
 	}
 
+	// Most of the work in repository.injectE2ESession is CPU intensive, not IO
+	// So Promise.all doesn't really help here,
+	// but blocks even loop if we're using it inside keys.transaction, and it makes it "sync" actually
+	// This way we chunk it in smaller parts and between those parts we can yield to the event loop
+	// It's rare case when you need to E2E sessions for so many users, but it's possible
 	const chunkSize = 100
 	const chunks = chunk(nodes, chunkSize)
 	for(const nodesChunk of chunks) {
@@ -120,10 +125,8 @@ export const extractDeviceJids = (result: BinaryNode, myJid: string, excludeZero
 				const devicesNode = getBinaryNodeChild(item, 'devices')
 				const deviceListNode = getBinaryNodeChild(devicesNode, 'device-list')
 				if(Array.isArray(deviceListNode?.content)) {
-					//eslint-disable-next-line max-depth
 					for(const { tag, attrs } of deviceListNode!.content) {
 						const device = +attrs.id
-						//eslint-disable-next-line max-depth
 						if(
 							tag === 'device' && // ensure the "device" tag
 							(!excludeZeroDevices || device !== 0) && // if zero devices are not-excluded, or device is non zero

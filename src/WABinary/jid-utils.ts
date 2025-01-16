@@ -12,7 +12,7 @@ export type JidWithDevice = {
 }
 
 export type FullJid = JidWithDevice & {
-	server: JidServer
+	server: JidServer | string
 	domainType?: number
 }
 
@@ -33,7 +33,7 @@ export const jidDecode = (jid: string | undefined): FullJid | undefined => {
 	const user = userAgent.split('_')[0]
 
 	return {
-		server: server as JidServer,
+		server,
 		user,
 		domainType: server === 'lid' ? 1 : 0,
 		device: device ? +device : undefined
@@ -52,10 +52,10 @@ export const isLidUser = (jid: string | undefined) => (jid?.endsWith('@lid'))
 export const isJidBroadcast = (jid: string | undefined) => (jid?.endsWith('@broadcast'))
 /** is the jid a group */
 export const isJidGroup = (jid: string | undefined) => (jid?.endsWith('@g.us'))
-/** is the jid the status broadcast */
-export const isJidStatusBroadcast = (jid: string) => jid === 'status@broadcast'
 /** is the jid a newsletter */
 export const isJidNewsletter = (jid: string | undefined) => (jid?.endsWith('@newsletter'))
+/** is the jid the status broadcast */
+export const isJidStatusBroadcast = (jid: string) => jid === 'status@broadcast'
 
 export const jidNormalizedUser = (jid: string | undefined) => {
 	const result = jidDecode(jid)

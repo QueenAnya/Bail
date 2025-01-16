@@ -26,9 +26,9 @@ echo 'PLEASE WAIT FOR FINISH AUTOMATIC PROCESS'
 # rm -rf .git
 git init
 git add .
-git config --global user.email "jetushackk@usa.com"
-git config --global user.name "Teamolduser"
-git commit -m "Update"
+git config --global user.email "khushijain2901@mail.com"
+git config --global user.name "Its-me-001"
+git commit -m "@Its-me-001 #UPDATES"
 git branch -M master
- git remote add origin https://github.com/QueenAnya/bail.git
+git remote add origin https://github.com/ITS-ME-001/Queen-Anya_Baileys.git
 git push -u origin master

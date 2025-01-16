@@ -1,15 +1,12 @@
 import { Boom } from '@hapi/boom'
-import NodeCache from 'node-cache'
 import { proto } from '../../WAProto'
-import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
-import { ALL_WA_PATCH_NAMES, ChatModification, ChatMutation, ContactAction, LTHashState, MessageUpsertType, PresenceData, SocketConfig, WABusinessHoursConfig, WABusinessProfile, WAMediaUpload, WAMessage, WAPatchCreate, WAPatchName, WAPresence, WAPrivacyCallValue, WAPrivacyGroupAddValue, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '../Types'
-import { LabelActionBody } from '../Types/Label'
-import { chatModificationToAppPatch, ChatMutationMap, decodePatches, decodeSyncdSnapshot, encodeSyncdPatch, extractSyncdPatches, generateProfilePicture, generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, getHistoryMsg, newLTHashState, processSyncAction } from '../Utils'
+import { PROCESSABLE_HISTORY_TYPES } from '../Defaults'
+import { ALL_WA_PATCH_NAMES, ChatModification, ChatMutation, LTHashState, MessageUpsertType, PresenceData, SocketConfig, WABusinessHoursConfig, WABusinessProfile, WAMediaUpload, WAMessage, WAPatchCreate, WAPatchName, WAPresence, WAPrivacyCallValue, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '../Types'
+import { chatModificationToAppPatch, ChatMutationMap, decodePatches, decodeSyncdSnapshot, encodeSyncdPatch, extractSyncdPatches, generateProfilePicture, getHistoryMsg, newLTHashState, processSyncAction } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, jidNormalizedUser, reduceBinaryNodeToDictionary, S_WHATSAPP_NET } from '../WABinary'
-import { USyncQuery, USyncUser } from '../WAUSync'
-import { makeUSyncSocket } from './usync'
+import { makeSocket } from './socket'
 
 const MAX_SYNC_ATTEMPTS = 2
 
@@ -22,7 +19,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		shouldIgnoreJid,
 		shouldSyncHistoryMessage,
 	} = config
-	const sock = makeUSyncSocket(config)
+	const sock = makeSocket(config)
 	const {
 		ev,
 		ws,
@@ -38,15 +35,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	let pendingAppStateSync = false
 	/** this mutex ensures that the notifications (receipts, messages etc.) are processed in order */
 	const processingMutex = makeMutex()
-
-	const placeholderResendCache = config.placeholderResendCache || new NodeCache({
-		stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
-		useClones: false
-	})
-
-	if(!config.placeholderResendCache) {
-		config.placeholderResendCache = placeholderResendCache
-	}
 
 	/** helper function to fetch the given app state sync key */
 	const getAppStateSyncKey = async(keyId: string) => {
@@ -119,7 +107,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		await privacyQuery('readreceipts', value)
 	}
 
-	const updateGroupsAddPrivacy = async(value: WAPrivacyGroupAddValue) => {
+	const updateGroupsAddPrivacy = async(value: WAPrivacyValue) => {
 		await privacyQuery('groupadd', value)
 	}
 
@@ -140,68 +128,93 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		})
 	}
 
+	/** helper function to run a generic IQ query */
+	const interactiveQuery = async(userNodes: BinaryNode[], queryNode: BinaryNode) => {
+		const result = await query({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'get',
+				xmlns: 'usync',
+			},
+			content: [
+				{
+					tag: 'usync',
+					attrs: {
+						sid: generateMessageTag(),
+						mode: 'query',
+						last: 'true',
+						index: '0',
+						context: 'interactive',
+					},
+					content: [
+						{
+							tag: 'query',
+							attrs: {},
+							content: [queryNode]
+						},
+						{
+							tag: 'list',
+							attrs: {},
+							content: userNodes
+						}
+					]
+				}
+			],
+		})
+
+		const usyncNode = getBinaryNodeChild(result, 'usync')
+		const listNode = getBinaryNodeChild(usyncNode, 'list')
+		const users = getBinaryNodeChildren(listNode, 'user')
+
+		return users
+	}
+
 	const onWhatsApp = async(...jids: string[]) => {
-		const usyncQuery = new USyncQuery()
-			.withContactProtocol()
+		const query = { tag: 'contact', attrs: {} }
+		const list = jids.map((jid) => {
+			// insures only 1 + is there
+			const content = `+${jid.replace('+', '')}`
 
-		for(const jid of jids) {
-			const phone = `+${jid.replace('+', '').split('@')[0].split(':')[0]}`
-			usyncQuery.withUser(new USyncUser().withPhone(phone))
-		}
+			return {
+				tag: 'user',
+				attrs: {},
+				content: [{
+					tag: 'contact',
+					attrs: {},
+					content,
+				}],
+			}
+		})
+		const results = await interactiveQuery(list, query)
 
-		const results = await sock.executeUSyncQuery(usyncQuery)
-
-		if(results) {
-			return results.list.filter((a) => !!a.contact).map(({ contact, id }) => ({ jid: id, exists: contact }))
-		}
+		return results.map(user => {
+			const contact = getBinaryNodeChild(user, 'contact')
+			return { exists: contact?.attrs.type === 'in', jid: user.attrs.jid }
+		}).filter(item => item.exists)
 	}
 
-	const fetchStatus = async(...jids: string[]) => {
-		const usyncQuery = new USyncQuery()
-			.withStatusProtocol()
-
-		for(const jid of jids) {
-			usyncQuery.withUser(new USyncUser().withId(jid))
-		}
-
-		const result = await sock.executeUSyncQuery(usyncQuery)
+	const fetchStatus = async(jid: string) => {
+		const [result] = await interactiveQuery(
+			[{ tag: 'user', attrs: { jid } }],
+			{ tag: 'status', attrs: {} }
+		)
 		if(result) {
-			return result.list
-		}
-	}
-	
-		/** Fetching The Disappearing Duration of a specific chats by their jids*/
-	const fetchDisappearingDuration = async(...jids: string[]) => {
-		const usyncQuery = new USyncQuery()
-			.withDisappearingModeProtocol()
-
-		for(const jid of jids) {
-			usyncQuery.withUser(new USyncUser().withId(jid))
-		}
-
-		const result = await sock.executeUSyncQuery(usyncQuery)
-		if(result) {
-			return result.list
+			const status = getBinaryNodeChild(result, 'status')
+			return {
+				status: status?.content!.toString(),
+				setAt: new Date(+(status?.attrs.t || 0) * 1000)
+			}
 		}
 	}
 
 	/** update the profile picture for yourself or a group */
 	const updateProfilePicture = async(jid: string, content: WAMediaUpload) => {
-		let targetJid
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
 		const { img } = await generateProfilePicture(content)
 		await query({
 			tag: 'iq',
 			attrs: {
-				target: targetJid,
-				to: S_WHATSAPP_NET,
+				to: jidNormalizedUser(jid),
 				type: 'set',
 				xmlns: 'w:profile:picture'
 			},
@@ -210,65 +223,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					tag: 'picture',
 					attrs: { type: 'image' },
 					content: img
-				}
-			]
-		})
-	}
-	
-	/** update the profile picture for yourself or a group as Full */
-	const updateProfilePictureFull = async(jid, content) => {
-		let targetJid;
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
-		const { img } = await generateProfilePictureFull(content)
-		await query({
-			tag: 'iq',
-			attrs: {
-				target: targetJid,
-				to: S_WHATSAPP_NET,
-				type: 'set',
-				xmlns: 'w:profile:picture'
-			},
-			content: [
-				{
-					tag: 'picture',
-					attrs: { type: 'image' },
-					content: img
-				}
-			]
-		})
-	}
-	
-	const updateProfilePictureFull2 = async(jid, content) => {
-		let targetJid;
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
-		const { preview } = await generateProfilePictureFP(content)
-		await query({
-			tag: 'iq',
-			attrs: {
-				target: targetJid,
-				to: S_WHATSAPP_NET,
-				type: 'set',
-				xmlns: 'w:profile:picture'
-			},
-			content: [
-				{
-					tag: 'picture',
-					attrs: { type: 'image' },
-					content: preview
 				}
 			]
 		})
@@ -276,20 +230,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	/** remove the profile picture for yourself or a group */
 	const removeProfilePicture = async(jid: string) => {
-		let targetJid
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
 		await query({
 			tag: 'iq',
 			attrs: {
-				target: targetJid,
-				to: S_WHATSAPP_NET,
+				to: jidNormalizedUser(jid),
 				type: 'set',
 				xmlns: 'w:profile:picture'
 			}
@@ -798,11 +742,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 		let props: { [_: string]: string } = {}
 		if(propsNode) {
-			if(propsNode.attrs?.hash) { // on some clients, the hash is returning as undefined
-				authState.creds.lastPropHash = propsNode?.attrs?.hash
-				ev.emit('creds.update', authState.creds)
-			}
-
+			authState.creds.lastPropHash = propsNode?.attrs?.hash
+			ev.emit('creds.update', authState.creds)
 			props = reduceBinaryNodeToDictionary(propsNode, 'prop')
 		}
 
@@ -829,35 +770,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			star: {
 				messages,
 				star
-			}
-		}, jid)
-	}
-	
-	/**
-	 * Add or Edit Contact
-	 */
-	const addOrEditContact = (jid: string, contact: ContactAction) => {
-		return chatModify({
-			contact
-		}, jid)
-	}
-
-	/**
-	 * Remove Contact
-	 */
-	const removeContact = (jid: string) => {
-		return chatModify({
-			contact: null
-		}, jid)
-	}
-
-	/**
-	 * Adds label
-	 */
-	const addLabel = (jid: string, labels: LabelActionBody) => {
-		return chatModify({
-			addLabel: {
-				...labels
 			}
 		}, jid)
 	}
@@ -964,7 +876,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				msg,
 				{
 					shouldProcessHistoryMsg,
-					placeholderResendCache,
 					ev,
 					creds: authState.creds,
 					keyStore: authState.keys,
@@ -1042,13 +953,14 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				)
 		}
 
-		if(receivedPendingNotifications && // if we don't have the app state key
+		if(receivedPendingNotifications) {
+			// if we don't have the app state key
 			// we keep buffering events until we finally have
 			// the key and can sync the messages
-			// todo scrutinize
-			!authState.creds?.myAppStateKeyId) {
-			ev.buffer()
-			needToFlushWithAppStateSync = true
+			if(!authState.creds?.myAppStateKeyId && !config.mobile) {
+				ev.buffer()
+				needToFlushWithAppStateSync = true
+			}
 		}
 	})
 
@@ -1064,10 +976,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		onWhatsApp,
 		fetchBlocklist,
 		fetchStatus,
-		fetchDisappearingDuration,
 		updateProfilePicture,
-		updateProfilePictureFull,
-		updateProfilePictureFull2,
 		removeProfilePicture,
 		updateProfileStatus,
 		updateProfileName,
@@ -1084,9 +993,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		resyncAppState,
 		chatModify,
 		cleanDirtyBits,
-		addOrEditContact,
-		removeContact,
-		addLabel,
 		addChatLabel,
 		removeChatLabel,
 		addMessageLabel,

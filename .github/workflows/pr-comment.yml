@@ -14,9 +14,9 @@ jobs:
     timeout-minutes: 10
     permissions: write-all
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - uses: mshick/add-pr-comment@v4
+      - uses: mshick/add-pr-comment@v2
         with:
           repo-token: ${{ secrets.PERSONAL_TOKEN}}
           message-id: pr-test
