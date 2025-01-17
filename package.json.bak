@@ -1,6 +1,6 @@
 {
-  "name": "baileys",
-  "version": "6.7.4",
+  "name": "@queenanya/baileys",
+  "version": "7.4.10",
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
