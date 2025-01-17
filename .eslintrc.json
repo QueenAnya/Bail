@@ -1,5 +1,5 @@
 {
-    "extends": "@queenanya",
+    "extends": "@adiwajshing",
     "parserOptions": {
         "sourceType": "module",
         "project": "./tsconfig.json"
