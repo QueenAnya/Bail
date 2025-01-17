@@ -51,6 +51,7 @@ jobs:
       - name: Install Dependencies
         run: |
           yarn
+          pnpm install
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
