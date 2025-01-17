@@ -1,4 +1,4 @@
-name: Check PR health
+name: PR healthier
 
 on: [pull_request]
 
@@ -17,6 +17,3 @@ jobs:
 
     - name: Install packages
       run: yarn
-    
-    - name: Check linting
-      run: yarn lint

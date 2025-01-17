@@ -1,15 +1,16 @@
-name: Publish Release
+name: Publish Release Pnpm
 
 on:
   push:
     tags:
-      - "y*"
+      - "v*"
 
 permissions: write-all
 
-jobs:
+jobs: 
   publish-release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,6 +19,11 @@ jobs:
 
       - name: Fetching tags
         run: git fetch --tags -f || true
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -32,7 +38,7 @@ jobs:
         run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
       - uses: actions/cache@v4
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -40,22 +46,29 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: yarn
+        run: |
+          yarn
+          pnpm install --ignore-scripts --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (as `@queenanya/baileys`)
-        run: npm publish --access public
+        run: |
+          pnpm publish --access public --no-git-checks
+          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+          NPM_CONFIG_PROVENANCE: true
+
       - name: Publish in NPM (teamolduser scope)
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm publish --access public --no-git-checks --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
 
       - name: Generate Changelog
         id: generate_changelog
@@ -83,7 +96,6 @@ jobs:
           body: ${{ steps.generate_changelog.outputs.changelog }}
           draft: false
           prerelease: false
-          files: >
-            baileys.tgz
+          files: baileys.tgz
           gzip: folders
           allow_override: true

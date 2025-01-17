@@ -154,7 +154,7 @@ export const generateProfilePicture = async(mediaUpload: WAMediaUpload) => {
 	const lib = await getImageProcessingLibrary()
 	let img: Promise<Buffer>
 	if('sharp' in lib && typeof lib.sharp?.default === 'function') {
-		img = lib.sharp!.default(bufferOrFilePath)
+		img = lib.sharp.default(bufferOrFilePath)
 			.resize(640, 640)
 			.jpeg({
 				quality: 50,
@@ -162,7 +162,7 @@ export const generateProfilePicture = async(mediaUpload: WAMediaUpload) => {
 			.toBuffer()
 	} else if('jimp' in lib && typeof lib.jimp?.read === 'function') {
 		const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp
-		const jimp = await read(bufferOrFilePath as any)
+		const jimp = await read(bufferOrFilePath as string)
 		const min = Math.min(jimp.getWidth(), jimp.getHeight())
 		const cropped = jimp.crop(0, 0, min, min)
 
@@ -176,6 +176,76 @@ export const generateProfilePicture = async(mediaUpload: WAMediaUpload) => {
 
 	return {
 		img: await img,
+	}
+}
+
+export const generateProfilePictureFull = async(img) => {
+	const Jimp = require('jimp')
+const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
+	const jimp = await read(img)
+	const min = Math.min(jimp.getWidth(), jimp.getHeight())
+	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
+	let width = jimp.getWidth(),
+		hight = jimp.getHeight(),
+		ratio;
+	if (width > hight) {
+		ratio = jimp.getWidth() / 720
+	} else {
+		ratio = jimp.getWidth() / 324
+	};
+	width = width / ratio;
+	hight = hight / ratio;
+	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
+	return {
+		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG),
+	}
+}
+
+export const generateProfilePictureFP = async(buffer) => {
+	const Jimp = require('jimp')
+const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
+    const jimp = await Jimp.read(buffer);
+    const min = jimp.getWidth();
+    const max = jimp.getHeight();
+    const cropped = jimp.crop(0, 0, min, max);
+    return {
+      img: await cropped.scaleToFit(720, 720).getBufferAsync(Jimp.MIME_JPEG),
+      preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
+    };
+}
+
+export const generatePP = async(buffer) => {
+const Jimp = require('jimp')
+const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
+    const jimp = await Jimp.read(buffer);
+    const min = jimp.getWidth();
+    const max = jimp.getHeight();
+    const cropped = jimp.crop(0, 0, min, max);
+    return {
+      img: await cropped.scaleToFit(720, 720).getBufferAsync(Jimp.MIME_JPEG),
+      preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
+    };
+  }
+  
+  export const changeprofileFull = async(img) => {
+    const Jimp = require('jimp')
+const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
+	const jimp = await read(img)
+	const min = Math.min(jimp.getWidth(), jimp.getHeight())
+	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
+	let width = jimp.getWidth(),
+		hight = jimp.getHeight(),
+		ratio;
+	if (width > hight) {
+		ratio = jimp.getWidth() / 720
+	} else {
+		ratio = jimp.getWidth() / 324
+	};
+	width = width / ratio;
+	hight = hight / ratio;
+	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
+	return {
+		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG),
 	}
 }
 
