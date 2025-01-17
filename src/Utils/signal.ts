@@ -1,3 +1,4 @@
+import { chunk } from 'lodash'
 import { KEY_BUNDLE_TYPE } from '../Defaults'
 import { SignalRepository } from '../Types'
 import { AuthenticationCreds, AuthenticationState, KeyPair, SignalIdentity, SignalKeyStore, SignedKeyPair } from '../Types/Auth'
@@ -72,7 +73,7 @@ export const parseAndInjectE2ESessions = async(
 	const extractKey = (key: BinaryNode) => (
 		key ? ({
 			keyId: getBinaryNodeChildUInt(key, 'id', 3)!,
-			publicKey: generateSignalPubKey(getBinaryNodeChildBuffer(key, 'value')!)!,
+			publicKey: generateSignalPubKey(getBinaryNodeChildBuffer(key, 'value')!),
 			signature: getBinaryNodeChildBuffer(key, 'signature')!,
 		}) : undefined
 	)
@@ -81,27 +82,31 @@ export const parseAndInjectE2ESessions = async(
 		assertNodeErrorFree(node)
 	}
 
-	await Promise.all(
-		nodes.map(
-			async node => {
-				const signedKey = getBinaryNodeChild(node, 'skey')!
-				const key = getBinaryNodeChild(node, 'key')!
-				const identity = getBinaryNodeChildBuffer(node, 'identity')!
-				const jid = node.attrs.jid
-				const registrationId = getBinaryNodeChildUInt(node, 'registration', 4)
+	const chunkSize = 100
+	const chunks = chunk(nodes, chunkSize)
+	for(const nodesChunk of chunks) {
+		await Promise.all(
+			nodesChunk.map(
+				async node => {
+					const signedKey = getBinaryNodeChild(node, 'skey')!
+					const key = getBinaryNodeChild(node, 'key')!
+					const identity = getBinaryNodeChildBuffer(node, 'identity')!
+					const jid = node.attrs.jid
+					const registrationId = getBinaryNodeChildUInt(node, 'registration', 4)
 
-				await repository.injectE2ESession({
-					jid,
-					session: {
-						registrationId: registrationId!,
-						identityKey: generateSignalPubKey(identity),
-						signedPreKey: extractKey(signedKey)!,
-						preKey: extractKey(key)!
-					}
-				})
-			}
+					await repository.injectE2ESession({
+						jid,
+						session: {
+							registrationId: registrationId!,
+							identityKey: generateSignalPubKey(identity),
+							signedPreKey: extractKey(signedKey)!,
+							preKey: extractKey(key)!
+						}
+					})
+				}
+			)
 		)
-	)
+	}
 }
 
 export const extractDeviceJids = (result: BinaryNode, myJid: string, excludeZeroDevices: boolean) => {
@@ -115,8 +120,10 @@ export const extractDeviceJids = (result: BinaryNode, myJid: string, excludeZero
 				const devicesNode = getBinaryNodeChild(item, 'devices')
 				const deviceListNode = getBinaryNodeChild(devicesNode, 'device-list')
 				if(Array.isArray(deviceListNode?.content)) {
+					//eslint-disable-next-line max-depth
 					for(const { tag, attrs } of deviceListNode!.content) {
 						const device = +attrs.id
+						//eslint-disable-next-line max-depth
 						if(
 							tag === 'device' && // ensure the "device" tag
 							(!excludeZeroDevices || device !== 0) && // if zero devices are not-excluded, or device is non zero
