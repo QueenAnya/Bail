@@ -51,13 +51,12 @@ jobs:
       - name: Install Dependencies
         run: |
           yarn
-          pnpm install
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit and Push pnpm-lock and yarn.lock
         run: |
-          git add pnpm-lock.yaml yarn.lock
+          git add .
           git commit -m "Update lock files"
           git push origin ${{ github.ref }}
         env:
