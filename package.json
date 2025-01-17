@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "name": "@queenanya/baileys",
   "version": "7.4.10",
+=======
+  "name": "baileys",
+  "version": "6.7.5",
+>>>>>>> refs/remotes/origin/button
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
