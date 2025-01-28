@@ -588,7 +588,7 @@ export const chatModificationToAppPatch = (
 			apiVersion: 5,
 			operation: OP.SET
 		}
-		} else if('contact' in mod) {
+	} else if('contact' in mod) {
 		patch = {
 			syncAction: {
 				contactAction: mod.contact || {}
@@ -635,7 +635,7 @@ export const chatModificationToAppPatch = (
 			apiVersion: 1,
 			operation: OP.SET,
 		}
-		} else if('addLabel' in mod) {
+	} else if('addLabel' in mod) {
 		patch = {
 			syncAction: {
 				labelEditAction: {
