@@ -31,10 +31,11 @@ const COMPANION_PLATFORM_MAP = {
 */
 
 export const Browsers: BrowsersMap = {
-	ubuntu: (browser) => ['Ubuntu', browser, '22.04.4'],
+	ubuntu: (browser) => ['Ubuntu', browser, '24.04.1'],
 	macOS: (browser) => ['Mac OS', browser, '14.4.1'],
-	baileys: (browser) => ['Baileys', browser, '6.5.0'],
+	baileys: (browser) => ['Baileys', browser, '6.7.9'],
 	windows: (browser) => ['Windows', browser, '10.0.22631'],
+	// iOS: (browser) => ['iOS', browser, '18.1'],
 	/** The appropriate browser based on your OS & release */
 	appropriate: (browser) => [ PLATFORM_MAP[platform()] || 'Ubuntu', browser, release() ]
 }
@@ -299,7 +300,8 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: Logg
 				responseType: 'json'
 			}
 		)
-		const version = result.data.currentVersion.split('.')
+		
+		const version = result.data.versions[versions.length - 1].version.split('.')
 		const version2 = version[2].replace('-alpha', '');
 		return {
 			version: [+version[0], +version[1], +version2],
