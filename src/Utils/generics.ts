@@ -301,7 +301,7 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: Logg
 			}
 		)
 		
-		const version = result.data.versions[versions.length - 1].version.split('.')
+		const version = result.data.versions[result.data.versions.length - 1].version.split('.')
 		const version2 = version[2].replace('-alpha', '');
 		return {
 			version: [+version[0], +version[1], +version2],
