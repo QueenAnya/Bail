@@ -27,17 +27,24 @@ const PLATFORM_MAP = {
 }
 
 export const Browsers: BrowsersMap = {
-	ubuntu: (browser) => ['Ubuntu', browser, '22.04.4'],
+	ubuntu: (browser) => ['Ubuntu', browser, '24.04.1'],
 	macOS: (browser) => ['Mac OS', browser, '14.4.1'],
-	baileys: (browser) => ['Baileys', browser, '6.5.0'],
+	baileys: (browser) => ['Baileys', browser, '6.7.9'],
 	windows: (browser) => ['Windows', browser, '10.0.22631'],
 	/** The appropriate browser based on your OS & release */
 	appropriate: (browser) => [ PLATFORM_MAP[platform()] || 'Ubuntu', browser, release() ]
 }
 
+/**
 export const getPlatformId = (browser: string) => {
     const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()];
-    return platformType ? platformType.toString().charCodeAt(0).toString() : '49'; // chrome
+    return platformType ? platformType.toString().charCodeAt(0).toString() : '51'; // chrome
+};
+*/
+
+export const getPlatformId = (browser: string) => {
+	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()]
+	return platformType ? platformType.toString() : '1' //chrome
 };
 
 export const BufferJSON = {
@@ -206,19 +213,19 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return '3L1T3' + hash.toString('hex').toUpperCase().substring(0, 16)
+	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 16)
 }
 
 //Message ID function for Baileys Elite
 //This V3 is RollBack Update to old Message ID
 export const generateMessageIDV3 = (userId?: string): string => {
-   let swebfix = '3L1T3';
+   let swebfix = '4NY4W3B';
      let swebRandom = randomBytes(5).toString('hex').toUpperCase().substring(0, 10);
         return swebfix + swebRandom;
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '3L1T3' + randomBytes(8).toString('hex').toUpperCase()
+export const generateMessageID = () => '4NY4W3B' + randomBytes(8).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async(check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -271,10 +278,68 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILog
 }
 
 /**
+ * utility that fetches latest baileys version from the main branch.
+ * Use to ensure your WA connection is always on the latest version
+ */
+ export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+	try {
+		const result = await axios.get(
+			'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json',
+			{
+				...options,
+				responseType: 'json'
+			}
+		)
+		
+		const version = result.data.versions[result.data.versions.length - 1].version.split('.')
+		const version2 = version[2].replace('-alpha', '');
+		return {
+			version: [+version[0], +version[1], +version2],
+			isLatest: true
+		}
+	} catch(error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+/**
  * utility that fetches latest baileys version from the master branch.
  * Use to ensure your WA connection is always on the latest version
  */
-export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+ 
+export const fetchLatestBaileysVersion3 = async(options: AxiosRequestConfig<any> = { }) => {
+  
+	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json'
+	try {
+		const result = await axios.get<{ version: WAVersion }>(
+			URL,
+			{
+				...options,
+				responseType: 'json'
+			}
+		)
+		return {
+			version: result.data.version,
+			isLatest: true
+		}
+	} catch(error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+/**
+ * utility that fetches latest baileys version from the master branch.
+ * Use to ensure your WA connection is always on the latest version
+ */
+export const fetchLatestBaileysVersion2 = async(options: AxiosRequestConfig<any> = { }) => {
 	const URL = 'https://raw.githubusercontent.com/shizo-devs/baileys/master/src/Defaults/baileys-version.json'
 	try {
 		const result = await axios.get<{ version: WAVersion }>(

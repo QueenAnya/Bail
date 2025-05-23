@@ -3,7 +3,7 @@ import NodeCache from '@cacheable/node-cache'
 import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import { ALL_WA_PATCH_NAMES, ChatModification, ChatMutation, LTHashState, MessageUpsertType, PresenceData, SocketConfig, WABusinessHoursConfig, WABusinessProfile, WAMediaUpload, WAMessage, WAPatchCreate, WAPatchName, WAPresence, WAPrivacyCallValue, WAPrivacyGroupAddValue, WAPrivacyMessagesValue, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '../Types'
-import { generateMessageID, chatModificationToAppPatch, ChatMutationMap, decodePatches, decodeSyncdSnapshot, encodeSyncdPatch, extractSyncdPatches, generateProfilePicture, getHistoryMsg, newLTHashState, processSyncAction } from '../Utils'
+import { generateMessageID, chatModificationToAppPatch, ChatMutationMap, decodePatches, decodeSyncdSnapshot, encodeSyncdPatch, extractSyncdPatches, generateProfilePicture, generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, getHistoryMsg, newLTHashState, processSyncAction } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import { BinaryNode, getBinaryNodeChildString, getBinaryNodeChild, getBinaryNodeChildren, jidNormalizedUser, reduceBinaryNodeToDictionary, S_WHATSAPP_NET } from '../WABinary'
@@ -211,6 +211,65 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					tag: 'picture',
 					attrs: { type: 'image' },
 					content: img
+				}
+			]
+		})
+	}
+	
+	/** update the profile picture for yourself or a group as Full */
+	const updateProfilePictureFull = async(jid, content) => {
+		let targetJid;
+		if(!jid) {
+			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
+		}
+
+		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
+		}
+
+		const { img } = await generateProfilePictureFull(content)
+		await query({
+			tag: 'iq',
+			attrs: {
+				target: targetJid,
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'w:profile:picture'
+			},
+			content: [
+				{
+					tag: 'picture',
+					attrs: { type: 'image' },
+					content: img
+				}
+			]
+		})
+	}
+	
+	const updateProfilePictureFull2 = async(jid, content) => {
+		let targetJid;
+		if(!jid) {
+			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
+		}
+
+		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
+		}
+
+		const { preview } = await generateProfilePictureFP(content)
+		await query({
+			tag: 'iq',
+			attrs: {
+				target: targetJid,
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'w:profile:picture'
+			},
+			content: [
+				{
+					tag: 'picture',
+					attrs: { type: 'image' },
+					content: preview
 				}
 			]
 		})
