@@ -1,0 +1,306 @@
+name: README to Website
+
+# Add permissions for GitHub Pages deployment
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install -g marked
+          npm install -g html-minifier
+
+      - name: Generate website from README
+        run: |
+          mkdir -p public
+          cp README.md public/readme.md
+          
+          # Create HTML template with awesome design
+          cat > template.html << 'EOL'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Baileys-elite</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/themes/prism-tomorrow.min.css">
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+              
+              body {
+                font-family: 'Inter', sans-serif;
+                scroll-behavior: smooth;
+              }
+              
+              .markdown-body {
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 2rem;
+              }
+              
+              .markdown-body h1 {
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 1.5rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 2px solid #4f46e5;
+                color: #111827;
+              }
+              
+              .markdown-body h2 {
+                font-size: 1.8rem;
+                font-weight: 600;
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+                color: #1f2937;
+              }
+              
+              .markdown-body h3 {
+                font-size: 1.4rem;
+                font-weight: 600;
+                margin-top: 1.5rem;
+                margin-bottom: 0.75rem;
+                color: #374151;
+              }
+              
+              .markdown-body p {
+                margin-bottom: 1rem;
+                line-height: 1.7;
+                color: #4b5563;
+              }
+              
+              .markdown-body code {
+                background-color: #f3f4f6;
+                padding: 0.2rem 0.4rem;
+                border-radius: 0.25rem;
+                font-size: 0.9em;
+                color: #6366f1;
+              }
+              
+              .markdown-body pre {
+                background-color: #1e293b;
+                border-radius: 0.5rem;
+                padding: 1rem;
+                overflow-x: auto;
+                margin: 1.5rem 0;
+              }
+              
+              .markdown-body pre code {
+                background-color: transparent;
+                color: #e2e8f0;
+                padding: 0;
+              }
+              
+              .markdown-body a {
+                color: #4f46e5;
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.2s;
+              }
+              
+              .markdown-body a:hover {
+                color: #6366f1;
+                text-decoration: underline;
+              }
+              
+              .markdown-body ul, .markdown-body ol {
+                padding-left: 2rem;
+                margin-bottom: 1rem;
+              }
+              
+              .markdown-body li {
+                margin-bottom: 0.5rem;
+                color: #4b5563;
+              }
+              
+              .markdown-body img {
+                max-width: 100%;
+                border-radius: 0.5rem;
+                margin: 1.5rem 0;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+              }
+              
+              .markdown-body blockquote {
+                border-left: 4px solid #4f46e5;
+                padding-left: 1rem;
+                margin-left: 0;
+                margin-right: 0;
+                font-style: italic;
+                color: #6b7280;
+              }
+              
+              .markdown-body table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 1.5rem 0;
+              }
+              
+              .markdown-body table th, .markdown-body table td {
+                padding: 0.75rem;
+                border: 1px solid #e5e7eb;
+              }
+              
+              .markdown-body table th {
+                background-color: #f9fafb;
+                font-weight: 600;
+              }
+              
+              .top-nav {
+                background: linear-gradient(90deg, #4f46e5 0%, #6366f1 100%);
+              }
+              
+              .scroll-to-top {
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                display: none;
+                background-color: #4f46e5;
+                color: white;
+                width: 3rem;
+                height: 3rem;
+                border-radius: 9999px;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                transition: all 0.2s;
+              }
+              
+              .scroll-to-top:hover {
+                background-color: #6366f1;
+                transform: translateY(-2px);
+              }
+            </style>
+          </head>
+          <body class="bg-gray-50">
+            <header class="top-nav text-white py-6">
+              <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between">
+                <div class="flex items-center mb-4 md:mb-0">
+                  <i class="fas fa-book-open text-2xl mr-3"></i>
+                  <h1 class="text-2xl font-bold">Baileys-elite</h1>
+                </div>
+                <nav>
+                  <ul class="flex space-x-6">
+                    <li><a href="#" class="hover:text-indigo-200 transition"><i class="fas fa-home mr-1"></i> Home</a></li>
+                    <li><a href="https://github.com/shizo-devs/baileys" class="hover:text-indigo-200 transition"><i class="fab fa-github mr-1"></i> GitHub</a></li>
+                  </ul>
+                </nav>
+              </div>
+            </header>
+            
+            <main class="container mx-auto py-8">
+              <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div class="markdown-body">
+                  <!-- README CONTENT WILL BE INSERTED HERE -->
+                </div>
+              </div>
+            </main>
+            
+            <footer class="bg-gray-800 text-white py-8 mt-12">
+              <div class="container mx-auto px-4">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                  <div class="mb-4 md:mb-0">
+                    <h3 class="text-lg font-semibold">Baileys-elite</h3>
+                    <p class="text-gray-400">Powered by Shizo and Baileys-elite Team</p>
+                  </div>
+                  <div class="flex space-x-4">
+                    <a href="https://github.com/shizothetechie" class="text-gray-400 hover:text-white transition"><i class="fab fa-github text-xl"></i></a>
+                    <a href="https://twitter.com/theshizo" class="text-gray-400 hover:text-white transition"><i class="fab fa-twitter text-xl"></i></a>
+                  </div>
+                </div>
+                <div class="mt-6 text-center text-gray-400 text-sm">
+                  &copy; <span id="current-year"></span> Baileys-elite. All rights reserved.
+                </div>
+              </div>
+            </footer>
+            
+            <div class="scroll-to-top" id="scrollToTop">
+              <i class="fas fa-arrow-up"></i>
+            </div>
+            
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/components/prism-core.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/plugins/autoloader/prism-autoloader.min.js"></script>
+            
+            <script>
+              document.getElementById('current-year').textContent = new Date().getFullYear();
+              
+              // Get repo info from URL
+              const repoUrl = window.location.href;
+              const urlParts = repoUrl.split('/');
+              const repoIndex = urlParts.indexOf('github.io');
+              if (repoIndex !== -1 && urlParts[repoIndex - 1]) {
+                const username = urlParts[repoIndex - 1];
+                const repoLinks = document.querySelectorAll('a[href="https://github.com/shizo-devs/baileys"]');
+                repoLinks.forEach(link => {
+                  link.href = `https://github.com/${username}/${urlParts[repoIndex + 1] || ''}`;
+                });
+              }
+              
+              // Scroll to top button
+              const scrollToTopBtn = document.getElementById('scrollToTop');
+              
+              window.addEventListener('scroll', () => {
+                if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                  scrollToTopBtn.style.display = 'flex';
+                } else {
+                  scrollToTopBtn.style.display = 'none';
+                }
+              });
+              
+              scrollToTopBtn.addEventListener('click', () => {
+                window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+                });
+              });
+              
+              // Add syntax highlighting to code blocks
+              document.addEventListener('DOMContentLoaded', () => {
+                Prism.highlightAll();
+              });
+            </script>
+          </body>
+          </html>
+          EOL
+          
+          # Convert README to HTML
+          content=$(marked public/readme.md)
+          
+          # Replace placeholder in template with content
+          # Save content to a file to avoid issues with special characters
+          echo "$content" > content.html
+          sed -e '/<!-- README CONTENT WILL BE INSERTED HERE -->/r content.html' -e '/<!-- README CONTENT WILL BE INSERTED HERE -->/d' template.html > public/index.html
+          
+          # Minify the HTML
+          html-minifier --collapse-whitespace --remove-comments --remove-optional-tags --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true public/index.html -o public/index.html
+          
+          # Create 404 page (copy of index page)
+          cp public/index.html public/404.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: public
+          branch: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
