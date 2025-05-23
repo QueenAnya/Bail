@@ -44,16 +44,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (as `baileys-elite`)
+      - name: Publish in NPM (as `baileys-anya`)
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
-      - name: Publish in NPM (Baileys-elite)
+      - name: Publish in NPM (baileys-anya)
         run: |
-          npx json -I -f package.json -e "this.name='baileys-elite'"
+          npx json -I -f package.json -e "this.name='baileys-anya'"
           npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
-          npx json -I -f package.json -e "this.name='baileys-elite'"
+          npx json -I -f package.json -e "this.name='baileys-anya'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -69,7 +69,7 @@ jobs:
         run: npm pack
 
       - name: Rename Pack
-        run: mv *.tgz baileys-elite.tgz
+        run: mv *.tgz baileys-anya.tgz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -80,4 +80,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            baileys-elite.tgz
+            baileys-anya.tgz

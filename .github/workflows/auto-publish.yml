@@ -3,7 +3,7 @@ name: Automatically Publish New Version
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'package.json'
 
@@ -96,10 +96,10 @@ jobs:
           # First publish with original package name
           npm publish --access public
           
-          # Change package name and publish as baileys-elite if different
-          if [ "$ORIGINAL_NAME" != "baileys-elite" ]; then
+          # Change package name and publish as baileys-anya if different
+          if [ "$ORIGINAL_NAME" != "baileys-anya" ]; then
             ORIGINAL_NAME_BACKUP=$ORIGINAL_NAME
-            npx json -I -f package.json -e "this.name='baileys-elite'"
+            npx json -I -f package.json -e "this.name='baileys-anya'"
             npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
             npx json -I -f package.json -e "this.name='$ORIGINAL_NAME_BACKUP'"
           fi
@@ -114,10 +114,10 @@ jobs:
           # First publish with original package name
           npm publish --access public --tag beta
           
-          # Change package name and publish as baileys-elite if different
-          if [ "$ORIGINAL_NAME" != "baileys-elite" ]; then
+          # Change package name and publish as baileys-anya if different
+          if [ "$ORIGINAL_NAME" != "baileys-anya" ]; then
             ORIGINAL_NAME_BACKUP=$ORIGINAL_NAME
-            npx json -I -f package.json -e "this.name='baileys-elite'"
+            npx json -I -f package.json -e "this.name='baileys-anya'"
             npm publish --access public --tag beta --//registry.npmjs.org/:_authToken=$NPM_TOKEN
             npx json -I -f package.json -e "this.name='$ORIGINAL_NAME_BACKUP'"
           fi
@@ -141,7 +141,7 @@ jobs:
 
       - name: Rename Pack
         if: steps.get_previous_version.outputs.version_increased == 'true'
-        run: mv *.tgz baileys-elite.tgz
+        run: mv *.tgz baileys-anya.tgz
 
       - name: Create GitHub Release (Regular)
         if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
@@ -154,7 +154,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            baileys-elite.tgz
+            baileys-anya.tgz
 
       - name: Create GitHub Release (Beta)
         if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
@@ -170,4 +170,4 @@ jobs:
           draft: false
           prerelease: true
           files: |
-            baileys-elite.tgz
+            baileys-anya.tgz
