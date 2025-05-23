@@ -1,6 +1,6 @@
 {
-  "name": "@queenanya/baileys",
-  "version": "7.5.3",
+  "name": "baileys-anya",
+  "version": "0.0.0",
   "description": "WhatsApp API",
   "keywords": [
     "whatsapp",
@@ -14,7 +14,7 @@
   ],
   "homepage": "https://github.com/",
   "repository": {
-    "url": "https://github.com/"
+    "url": "https://github.com/QueenAnya/Bail"
   },
   "license": "MIT",
   "author": "Adhiraj Singh",
@@ -101,5 +101,5 @@
     "sharp": {
       "optional": true
     }
-  },
+  }
 }
