@@ -35,14 +35,13 @@ export const Browsers: BrowsersMap = {
 	appropriate: (browser) => [ PLATFORM_MAP[platform()] || 'Ubuntu', browser, release() ]
 }
 
-/**
 export const getPlatformId = (browser: string) => {
     const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()];
     return platformType ? platformType.toString().charCodeAt(0).toString() : '51'; // chrome
 };
-*/
 
-export const getPlatformId = (browser: string) => {
+
+export const getPlatformLId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()]
 	return platformType ? platformType.toString() : '1' //chrome
 };
