@@ -1038,6 +1038,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		fetchDisappearingDuration,
 		fetchStatus,
 		updateProfilePicture,
+		updateProfilePictureFull,
+		updateProfilePictureFull2,
 		removeProfilePicture,
 		updateProfileStatus,
 		updateProfileName,
