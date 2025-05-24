@@ -57,11 +57,11 @@ jobs:
 
       - name: Commit and Push pnpm-lock and yarn.lock
         run: |
-          git add *
+          git add pnpm-lock.yaml yarn.lock
           git commit -m "Update lock files"
           git push origin ${{ github.ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Release
-        run: echo "test"
+        run: "npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"

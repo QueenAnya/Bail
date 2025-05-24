@@ -41,7 +41,7 @@ jobs:
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Baileys-elite</title>
+            <title>Baileys-Anya</title>
             <script src="https://cdn.tailwindcss.com"></script>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.27.0/themes/prism-tomorrow.min.css">
@@ -198,12 +198,12 @@ jobs:
               <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between">
                 <div class="flex items-center mb-4 md:mb-0">
                   <i class="fas fa-book-open text-2xl mr-3"></i>
-                  <h1 class="text-2xl font-bold">Baileys-elite</h1>
+                  <h1 class="text-2xl font-bold">Baileys-Anya</h1>
                 </div>
                 <nav>
                   <ul class="flex space-x-6">
                     <li><a href="#" class="hover:text-indigo-200 transition"><i class="fas fa-home mr-1"></i> Home</a></li>
-                    <li><a href="https://github.com/shizo-devs/baileys" class="hover:text-indigo-200 transition"><i class="fab fa-github mr-1"></i> GitHub</a></li>
+                    <li><a href="https://github.com/teamolduser/bail" class="hover:text-indigo-200 transition"><i class="fab fa-github mr-1"></i> GitHub</a></li>
                   </ul>
                 </nav>
               </div>
@@ -221,16 +221,16 @@ jobs:
               <div class="container mx-auto px-4">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                   <div class="mb-4 md:mb-0">
-                    <h3 class="text-lg font-semibold">Baileys-elite</h3>
-                    <p class="text-gray-400">Powered by Shizo and Baileys-elite Team</p>
+                    <h3 class="text-lg font-semibold">Baileys-Anya</h3>
+                    <p class="text-gray-400">Powered by PIKABOTZ and OLDUSER </p>
                   </div>
                   <div class="flex space-x-4">
-                    <a href="https://github.com/shizothetechie" class="text-gray-400 hover:text-white transition"><i class="fab fa-github text-xl"></i></a>
-                    <a href="https://twitter.com/theshizo" class="text-gray-400 hover:text-white transition"><i class="fab fa-twitter text-xl"></i></a>
+                    <a href="https://github.com/teamolduser" class="text-gray-400 hover:text-white transition"><i class="fab fa-github text-xl"></i></a>
+                    <a href="https://twitter.com/" class="text-gray-400 hover:text-white transition"><i class="fab fa-twitter text-xl"></i></a>
                   </div>
                 </div>
                 <div class="mt-6 text-center text-gray-400 text-sm">
-                  &copy; <span id="current-year"></span> Baileys-elite. All rights reserved.
+                  &copy; <span id="current-year"></span> Baileys-Anya. All rights reserved.
                 </div>
               </div>
             </footer>
@@ -251,7 +251,7 @@ jobs:
               const repoIndex = urlParts.indexOf('github.io');
               if (repoIndex !== -1 && urlParts[repoIndex - 1]) {
                 const username = urlParts[repoIndex - 1];
-                const repoLinks = document.querySelectorAll('a[href="https://github.com/shizo-devs/baileys"]');
+                const repoLinks = document.querySelectorAll('a[href="https://github.com/teamolduser/bail"]');
                 repoLinks.forEach(link => {
                   link.href = `https://github.com/${username}/${urlParts[repoIndex + 1] || ''}`;
                 });
