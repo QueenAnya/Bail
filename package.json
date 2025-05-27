@@ -1,7 +1,13 @@
 {
+<<<<<<< HEAD
   "name": "olduser-baileyz",
   "version": "6.7.17",
   "description": "A WebSockets library for interacting with WhatsApp Web",
+=======
+  "name": "@queenanya/baileys",
+  "version": "7.6.0",
+  "description": "WhatsApp API",
+>>>>>>> refs/remotes/origin/master
   "keywords": [
     "whatsapp",
     "automation"
