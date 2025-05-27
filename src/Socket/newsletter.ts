@@ -59,7 +59,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
         let child 
         
         if(type === 'messages') child = getBinaryNodeChild(node, 'messages')
-        else {
+        else{
             const parent = getBinaryNodeChild(node, 'message_updates')
             child = getBinaryNodeChild(parent, 'messages')
         }
@@ -70,10 +70,10 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
             const views = getBinaryNodeChild(messageNode, 'views_count')?.attrs?.count
             const reactionNode = getBinaryNodeChild(messageNode, 'reactions')
             const reactions = getBinaryNodeChildren(reactionNode, 'reaction')
-                .map(({ attrs }) => ({ count: +attrs.count, code: attrs.code } as NewsletterReaction))
+                .map(({ attrs }) => ({count: +attrs.count, code: attrs.code} as NewsletterReaction))
 
             let data: NewsletterFetchedUpdate
-            if(type === 'messages') {
+            if(type === 'messages'){
                 const { fullMessage: message, decrypt } = await decryptMessageNode(
                     messageNode,
                     authState.creds.me!.id,
@@ -92,7 +92,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
                 }
     
                 return data
-            } else {
+            }else{
                 data = {
                     server_id: messageNode.attrs.server_id,
                     views: views ? +views : undefined,
@@ -108,26 +108,26 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
     return {
         ...sock,
         subscribeNewsletterUpdates: async(jid: string) => {
-            const result = await newsletterQuery(jid, 'set', [{ tag: 'live_updates', attrs: {}, content: [] }])
+            const result = await newsletterQuery(jid, 'set', [{tag: 'live_updates', attrs: {}, content: []}])
 
-            return getBinaryNodeChild(result, 'live_updates')?.attrs as { duration: string }
+            return getBinaryNodeChild(result, 'live_updates')?.attrs as {duration: string}
         },
 
         newsletterReactionMode: async(jid: string, mode: NewsletterReactionMode) => {
             await newsletterWMexQuery(jid, QueryIds.JOB_MUTATION, {
-                updates: { settings: { reaction_codes: { value: mode }}}
+                updates: {settings: {reaction_codes: {value: mode}}}
             })
         },
 
         newsletterUpdateDescription: async(jid: string, description?: string) => {
             await newsletterWMexQuery(jid, QueryIds.JOB_MUTATION, {
-                updates: { description: description || '', settings: null }
+                updates: {description: description || '', settings: null}
             })
         },
 
         newsletterUpdateName: async(jid: string, name: string) => {
             await newsletterWMexQuery(jid, QueryIds.JOB_MUTATION, {
-                updates: { name, settings: null }
+                updates: {name, settings: null}
             })
         },
         
@@ -135,13 +135,13 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
             const { img } = await generateProfilePicture(content)
 
             await newsletterWMexQuery(jid, QueryIds.JOB_MUTATION, {
-                updates: { picture: img.toString('base64'), settings: null }
+                updates: {picture: img.toString('base64'), settings: null}
             })
         },
 
         newsletterRemovePicture: async(jid: string) => {
             await newsletterWMexQuery(jid, QueryIds.JOB_MUTATION, {
-                updates: { picture: '', settings: null }
+                updates: {picture: '', settings: null}
             })
         },
 
@@ -162,6 +162,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
         },
 
         newsletterCreate: async(name: string, description: string) => {
+            /**tos query */
             await query({
                 tag: 'iq',
                 attrs: {
@@ -182,7 +183,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
                 ]
             })
             const result = await newsletterWMexQuery(undefined, QueryIds.CREATE, {
-                input: { name, description }
+                input: {name, description}
             })
 
             return extractNewsletterMetadata(result, true)
@@ -233,7 +234,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
         newsletterReactMessage: async(jid: string, server_id: string, code?: string) => {
             await query({
                 tag: 'message',
-                attrs: { to: jid, ...(!code ? { edit: '7' } : {}), type: 'reaction', server_id, id: generateMessageID()},
+                attrs: {to: jid, ...(!code ? {edit: '7'} : {}), type: 'reaction', server_id, id: generateMessageID()},
                 content: [{
                     tag: 'reaction',
                     attrs: code ? {code} : {}
@@ -245,7 +246,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
             const result = await newsletterQuery(S_WHATSAPP_NET, 'get', [
                 {
                     tag: 'messages',
-                    attrs: { type, ...(type === 'invite' ? {key} : { jid: key }), count: count.toString(), after: after?.toString() || '100' }
+                    attrs: {type, ...(type === 'invite' ? {key} : {jid: key}), count: count.toString(), after: after?.toString() || '100'}
                 }
             ])
 
@@ -256,7 +257,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
             const result = await newsletterQuery(jid, 'get', [
                 {
                     tag: 'message_updates',
-                    attrs: { count: count.toString(), after: after?.toString() || '100', since: since?.toString() || '0' }
+                    attrs: {count: count.toString(), after: after?.toString() || '100', since: since?.toString() || '0'}
                 }
             ])
 
@@ -279,9 +280,9 @@ export const extractNewsletterMetadata = (node: BinaryNode, isCreate?: boolean) 
         descriptionTime: +metadataPath.thread_metadata.description.update_time,
         invite: metadataPath.thread_metadata.invite,
         handle: metadataPath.thread_metadata.handle,
-        picture: metadataPath.thread_metadata.picture?.direct_path || null,
-        preview: metadataPath.thread_metadata.preview?.direct_path || null,
-        reaction_codes: metadataPath.thread_metadata.settings.reaction_codes.value,
+        picture: metadataPath.thread_metadata.picture.direct_path || null,
+        preview: metadataPath.thread_metadata.preview.direct_path || null,
+        reaction_codes: metadataPath.thread_metadata?.settings?.reaction_codes?.value,
         subscribers: +metadataPath.thread_metadata.subscribers_count,
         verification: metadataPath.thread_metadata.verification,
         viewer_metadata: metadataPath.viewer_metadata

@@ -15,6 +15,12 @@ export interface Contact {
      * null => if the profile picture has not been set (default profile picture)
      * any other string => url of the profile picture
      */
-    imgUrl?: string | null | 'changed'
+    imgUrl?: string | null
     status?: string
+}
+
+export type ContactAction = {
+    fistName: string
+    fullName: string
+    saveOnPrimaryAddressbook: boolean
 }

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #2a2d3e;
+      --secondary-color: #1f2430;
+      --accent-color: #5294e2;
+      --text-color: #e6e6e6;
+      --code-bg: #282c34;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background: var(--secondary-color);
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    .sidebar {
+      width: 280px;
+      background-color: var(--primary-color);
+      padding: 2rem 1rem;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+    }
+    
+    .sidebar-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .sidebar-header h2 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .sidebar-header h2 i {
+      color: var(--accent-color);
+    }
+    
+    .toc {
+      list-style: none;
+    }
+    
+    .toc li {
+      margin-bottom: 0.75rem;
+    }
+    
+    .toc a {
+      color: var(--text-color);
+      text-decoration: none;
+      display: block;
+      padding: 0.5rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    
+    .toc a:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--accent-color);
+    }
+    
+    .menu-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 100;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+    
+    .content {
+      flex: 1;
+      margin-left: 280px;
+      padding: 2rem;
+      max-width: 1200px;
+    }
+    
+    .last-updated {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-top: 2rem;
+      font-style: italic;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        z-index: 99;
+      }
+      
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      
+      .content {
+        margin-left: 0;
+      }
+      
+      .menu-toggle {
+        display: block;
+      }
+    }
+    
+    /* Content styles */
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--accent-color);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      border-bottom: 2px solid var(--accent-color);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    h2 {
+      font-size: 2rem;
+    }
+    
+    p {
+      margin-bottom: 1.5rem;
+    }
+    
+    a {
+      color: var(--accent-color);
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+    
+    pre {
+      background-color: var(--code-bg);
+      border-radius: 5px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+    
+    code {
+      font-family: 'Consolas', 'Monaco', monospace;
+      background-color: rgba(0,0,0,0.15);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+    }
+    
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    blockquote {
+      border-left: 4px solid var(--accent-color);
+      padding-left: 1rem;
+      margin-left: 0;
+      font-style: italic;
+      color: #aaa;
+    }
+    
+    ul, ol {
+      margin-bottom: 1.5rem;
+      padding-left: 2rem;
+    }
+    
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 5px;
+      margin: 1.5rem 0;
+    }
+    
+    hr {
+      border: 0;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      margin: 2rem 0;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      overflow-x: auto;
+      display: block;
+    }
+    
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    th {
+      background-color: var(--primary-color);
+    }
+    
+    tr:hover {
+      background-color: rgba(255,255,255,0.05);
+    }
+  </style>
+</head>
+<body>
+  <button class="menu-toggle" id="menuToggle">
+    <i class="fas fa-bars"></i>
+  </button>
+  
+  <div class="container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2><i class="fas fa-book"></i> ${title}</h2>
+      </div>
+      <div id="toc" class="toc">
+        <!-- TOC will be generated here -->
+      </div>
+    </aside>
+    
+    <main class="content">
+      <div class="readme-content">
+        ${htmlContent}
+      </div>
+      <div class="last-updated">
+        Last updated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+      </div>
+    </main>
+  </div>
+  
+  <script>
+    // Generate Table of Contents
+    document.addEventListener('DOMContentLoaded', function() {
+      const headings = document.querySelectorAll('.readme-content h1, .readme-content h2, .readme-content h3');
+      const toc = document.getElementById('toc');
+      
+      if (headings.length > 0) {
+        const list = document.createElement('ul');
+        
+        headings.forEach((heading, index) => {
+          // Create an ID for the heading if it doesn't have one
+          if (!heading.id) {
+            heading.id = 'heading-' + index;
+          }
+          
+          const listItem = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = '#' + heading.id;
+          link.textContent = heading.textContent;
+          
+          // Add indentation based on heading level
+          if (heading.tagName === 'H2') {
+            link.style.paddingLeft = '1rem';
+          } else if (heading.tagName === 'H3') {
+            link.style.paddingLeft = '2rem';
+          }
+          
+          listItem.appendChild(link);
+          list.appendChild(listItem);
+        });
+        
+        toc.appendChild(list);
+      }
+      
+      // Add mobile menu toggle functionality
+      const menuToggle = document.getElementById('menuToggle');
+      const sidebar = document.getElementById('sidebar');
+      
+      menuToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('active');
+      });
+    });
+  </script>
+</body>
+</html>

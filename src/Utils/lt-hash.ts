@@ -18,11 +18,7 @@ class d {
 	add(e, t) {
 		var r = this
 		for(const item of t) {
-			try {
-				e = r._addSingle(e, item)
-			} catch(error) {
-				continue
-			}
+			e = r._addSingle(e, item)
 		}
 
 		return e
@@ -30,58 +26,36 @@ class d {
 	subtract(e, t) {
 		var r = this
 		for(const item of t) {
-			try {
-				e = r._subtractSingle(e, item)
-			} catch(error) {
-				continue
-			}
+			e = r._subtractSingle(e, item)
 		}
 
 		return e
 	}
 	subtractThenAdd(e, t, r) {
 		var n = this
-		try {
-			return n.add(n.subtract(e, r), t)
-		} catch(error) {
-			return e
-		}
+		return n.add(n.subtract(e, r), t)
 	}
 	async _addSingle(e, t) {
 		var r = this
-		try {
-			const n = new Uint8Array(await hkdf(Buffer.from(t), o, { info: r.salt })).buffer
-			return r.performPointwiseWithOverflow(await e, n, ((e, t) => e + t))
-		} catch(error) {
-			return e
-		}
+		const n = new Uint8Array(await hkdf(Buffer.from(t), o, { info: r.salt })).buffer
+		return r.performPointwiseWithOverflow(await e, n, ((e, t) => e + t))
 	}
 	async _subtractSingle(e, t) {
 		var r = this
-		try {
-			const n = new Uint8Array(await hkdf(Buffer.from(t), o, { info: r.salt })).buffer
-			return r.performPointwiseWithOverflow(e, n, ((e, t) => e - t))
-		} catch(error) {
-			return e
-		}
+
+		const n = new Uint8Array(await hkdf(Buffer.from(t), o, { info: r.salt })).buffer
+		return r.performPointwiseWithOverflow(await e, n, ((e, t) => e - t))
 	}
 	performPointwiseWithOverflow(e, t, r) {
-		try {
-			const n = new DataView(e)
-			  , i = new DataView(t)
-			  , a = new ArrayBuffer(n.byteLength)
-			  , s = new DataView(a)
-			for(let e = 0; e < n.byteLength; e += 2) {
-				try {
-					s.setUint16(e, r(n.getUint16(e, !0), i.getUint16(e, !0)), !0)
-				} catch(error) {
-				}
-			}
-
-			return a
-		} catch(error) {
-			return e
+		const n = new DataView(e)
+		  , i = new DataView(t)
+		  , a = new ArrayBuffer(n.byteLength)
+		  , s = new DataView(a)
+		for(let e = 0; e < n.byteLength; e += 2) {
+			s.setUint16(e, r(n.getUint16(e, !0), i.getUint16(e, !0)), !0)
 		}
+
+		return a
 	}
 }
 export const LT_HASH_ANTI_TAMPERING = new d('WhatsApp Patch Integrity')
