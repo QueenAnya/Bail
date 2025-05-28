@@ -149,14 +149,13 @@ export const decodeDecompressedBinaryNode = (
 	const readAdJid = () => {
 		const rawDomainType = readByte()
 		const domainType = Number(rawDomainType)
-
 		const device = readByte()
 		const user = readString(readByte())
 
 		return jidEncode(
-		  user,
-		  domainType === 0 || domainType === 128 ? 's.whatsapp.net' : 'lid',
-		  device
+			user,
+			domainType === 0 || domainType === 128 ? 's.whatsapp.net' : 'lid',
+			device
 		)
 	}
 

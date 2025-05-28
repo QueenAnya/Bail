@@ -28,12 +28,9 @@ const encodeBinaryNodeInner = (
 		}
 	}
 
-	const pushBytes = (bytes: Uint8Array | Buffer | number[]) => {
-		for(const b of bytes) {
-			buffer.push(b)
-		}
-	}
-
+	const pushBytes = (bytes: Uint8Array | Buffer | number[]) => (
+		bytes.forEach (b => buffer.push(b))
+	)
 	const pushInt16 = (value: number) => {
 		pushBytes([(value >> 8) & 0xff, value & 0xff])
 	}
@@ -149,12 +146,13 @@ const encodeBinaryNodeInner = (
 		}
 	}
 
-	const isNibble = (str?: string) => {
-		if(!str || str.length > TAGS.PACKED_MAX) {
+	const isNibble = (str: string) => {
+		if(str.length > TAGS.PACKED_MAX) {
 			return false
 		}
 
-		for(const char of str) {
+		for(let i = 0;i < str.length;i++) {
+			const char = str[i]
 			const isInNibbleRange = char >= '0' && char <= '9'
 			if(!isInNibbleRange && char !== '-' && char !== '.') {
 				return false
@@ -164,12 +162,13 @@ const encodeBinaryNodeInner = (
 		return true
 	}
 
-	const isHex = (str?: string) => {
-		if(!str || str.length > TAGS.PACKED_MAX) {
+	const isHex = (str: string) => {
+		if(str.length > TAGS.PACKED_MAX) {
 			return false
 		}
 
-		for(const char of str) {
+		for(let i = 0;i < str.length;i++) {
+			const char = str[i]
 			const isInNibbleRange = char >= '0' && char <= '9'
 			if(!isInNibbleRange && !(char >= 'A' && char <= 'F')) {
 				return false
@@ -179,12 +178,7 @@ const encodeBinaryNodeInner = (
 		return true
 	}
 
-	const writeString = (str?: string) => {
-		if(str === undefined || str === null) {
-			pushByte(TAGS.LIST_EMPTY)
-			return
-		}
-
+	const writeString = (str: string) => {
 		const tokenIndex = TOKEN_MAP[str]
 		if(tokenIndex) {
 			if(typeof tokenIndex.dict === 'number') {
@@ -194,8 +188,6 @@ const encodeBinaryNodeInner = (
 			pushByte(tokenIndex.index)
 		} else if(isNibble(str)) {
 			writePackedBytes(str, 'nibble')
-		} else if(isHex(str)) {
-			writePackedBytes(str, 'hex')
 		} else if(str) {
 			const decodedJid = jidDecode(str)
 			if(decodedJid) {
@@ -217,11 +209,7 @@ const encodeBinaryNodeInner = (
 		}
 	}
 
-	if(!tag) {
-		throw new Error('Invalid node: tag cannot be undefined')
-	}
-
-	const validAttributes = Object.keys(attrs || {}).filter(k => (
+	const validAttributes = Object.keys(attrs).filter(k => (
 		typeof attrs[k] !== 'undefined' && attrs[k] !== null
 	))
 
@@ -241,10 +229,8 @@ const encodeBinaryNodeInner = (
 		writeByteLength(content.length)
 		pushBytes(content)
 	} else if(Array.isArray(content)) {
-		const validContent = content.filter(item => item && (item.tag || Buffer.isBuffer(item) || item instanceof Uint8Array || typeof item === 'string')
-		)
-		writeListStart(validContent.length)
-		for(const item of validContent) {
+		writeListStart(content.length)
+		for(const item of content) {
 			encodeBinaryNodeInner(item, opts, buffer)
 		}
 	} else if(typeof content === 'undefined') {

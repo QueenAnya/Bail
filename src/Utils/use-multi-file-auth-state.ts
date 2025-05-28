@@ -1,27 +1,12 @@
-import { Mutex } from 'async-mutex'
 import { mkdir, readFile, stat, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { proto } from '../../WAProto'
 import { AuthenticationCreds, AuthenticationState, SignalDataTypeMap } from '../Types'
 import { initAuthCreds } from './auth-utils'
 import { BufferJSON } from './generics'
+import AsyncLock from 'async-lock'
 
-// We need to lock files due to the fact that we are using async functions to read and write files
-// https://github.com/WhiskeySockets/Baileys/issues/794
-// https://github.com/nodejs/node/issues/26338
-// Use a Map to store mutexes for each file path
-const fileLocks = new Map<string, Mutex>()
-
-// Get or create a mutex for a specific file path
-const getFileLock = (path: string): Mutex => {
-	let mutex = fileLocks.get(path)
-	if(!mutex) {
-		mutex = new Mutex()
-		fileLocks.set(path, mutex)
-	}
-
-	return mutex
-}
+const fileLock = new AsyncLock({ maxPending: Infinity })
 
 /**
  * stores the full authentication state in a single folder.
@@ -31,33 +16,23 @@ const getFileLock = (path: string): Mutex => {
  * Would recommend writing an auth state for use with a proper SQL or No-SQL DB
  * */
 export const useMultiFileAuthState = async(folder: string): Promise<{ state: AuthenticationState, saveCreds: () => Promise<void> }> => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const writeData = async(data: any, file: string) => {
-		const filePath = join(folder, fixFileName(file)!)
-		const mutex = getFileLock(filePath)
 
-		return mutex.acquire().then(async(release) => {
-			try {
-				await writeFile(filePath, JSON.stringify(data, BufferJSON.replacer))
-			} finally {
-				release()
-			}
-		})
+	const writeData = (data: any, file: string) => {
+		const filePath = join(folder, fixFileName(file)!)
+		return fileLock.acquire(
+			filePath,
+			() => writeFile(join(filePath), JSON.stringify(data, BufferJSON.replacer))
+		)
 	}
 
 	const readData = async(file: string) => {
 		try {
 			const filePath = join(folder, fixFileName(file)!)
-			const mutex = getFileLock(filePath)
-
-			return await mutex.acquire().then(async(release) => {
-				try {
-					const data = await readFile(filePath, { encoding: 'utf-8' })
-					return JSON.parse(data, BufferJSON.reviver)
-				} finally {
-					release()
-				}
-			})
+			const data = await fileLock.acquire(
+				filePath,
+				() => readFile(filePath, { encoding: 'utf-8' })
+			)
+			return JSON.parse(data, BufferJSON.reviver)
 		} catch(error) {
 			return null
 		}
@@ -66,17 +41,12 @@ export const useMultiFileAuthState = async(folder: string): Promise<{ state: Aut
 	const removeData = async(file: string) => {
 		try {
 			const filePath = join(folder, fixFileName(file)!)
-			const mutex = getFileLock(filePath)
+			await fileLock.acquire(
+				filePath,
+				() => unlink(filePath)
+			)
+		} catch {
 
-			return mutex.acquire().then(async(release) => {
-				try {
-					await unlink(filePath)
-				} catch{
-				} finally {
-					release()
-				}
-			})
-		} catch{
 		}
 	}
 
@@ -128,7 +98,7 @@ export const useMultiFileAuthState = async(folder: string): Promise<{ state: Aut
 				}
 			}
 		},
-		saveCreds: async() => {
+		saveCreds: () => {
 			return writeData(creds, 'creds.json')
 		}
 	}

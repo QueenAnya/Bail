@@ -7,6 +7,7 @@ import { createReadStream, createWriteStream, promises as fs, writeFileSync, Wri
 import type { IAudioMetadata } from 'music-metadata'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import Jimp from 'jimp'
 import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto'
@@ -14,7 +15,7 @@ import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP } from '../Defau
 import { BaileysEventMap, DownloadableMessage, MediaConnInfo, MediaDecryptionKeyInfo, MediaType, MessageType, SocketConfig, WAGenericMediaMessage, WAMediaUpload, WAMediaUploadFunction, WAMessageContent } from '../Types'
 import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary'
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto'
-import { generateMessageIDV2 } from './generics'
+import { generateMessageID } from './generics'
 import { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
@@ -79,7 +80,7 @@ const extractVideoThumb = async(
 	destPath: string,
 	time: string,
 	size: { width: number, height: number },
-) => new Promise<void>((resolve, reject) => {
+) => new Promise((resolve, reject) => {
     	const cmd = `ffmpeg -ss ${time} -i ${path} -y -vf scale=${size.width}:-1 -vframes 1 -f image2 ${destPath}`
     	exec(cmd, (err) => {
     		if(err) {
@@ -88,7 +89,7 @@ const extractVideoThumb = async(
 			resolve()
 		}
     	})
-})
+}) as Promise<void>
 
 export const extractImageThumb = async(bufferOrFilePath: Readable | Buffer | string, width = 32) => {
 	if(bufferOrFilePath instanceof Readable) {
@@ -97,7 +98,7 @@ export const extractImageThumb = async(bufferOrFilePath: Readable | Buffer | str
 
 	const lib = await getImageProcessingLibrary()
 	if('sharp' in lib && typeof lib.sharp?.default === 'function') {
-		const img = lib.sharp.default(bufferOrFilePath)
+		const img = lib.sharp!.default(bufferOrFilePath)
 		const dimensions = await img.metadata()
 
 		const buffer = await img
@@ -114,7 +115,7 @@ export const extractImageThumb = async(bufferOrFilePath: Readable | Buffer | str
 	} else if('jimp' in lib && typeof lib.jimp?.read === 'function') {
 		const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp
 
-		const jimp = await read(bufferOrFilePath as string)
+		const jimp = await read(bufferOrFilePath as any)
 		const dimensions = {
 			width: jimp.getWidth(),
 			height: jimp.getHeight()
@@ -143,6 +144,8 @@ export const encodeBase64EncodedStringForUpload = (b64: string) => (
 
 export const generateProfilePicture = async(mediaUpload: WAMediaUpload) => {
 	let bufferOrFilePath: Buffer | string
+	let img: Promise<Buffer>
+
 	if(Buffer.isBuffer(mediaUpload)) {
 		bufferOrFilePath = mediaUpload
 	} else if('url' in mediaUpload) {
@@ -151,101 +154,15 @@ export const generateProfilePicture = async(mediaUpload: WAMediaUpload) => {
 		bufferOrFilePath = await toBuffer(mediaUpload.stream)
 	}
 
-	const lib = await getImageProcessingLibrary()
-	let img: Promise<Buffer>
-	if('sharp' in lib && typeof lib.sharp?.default === 'function') {
-		img = lib.sharp.default(bufferOrFilePath)
-			.resize(640, 640)
-			.jpeg({
-				quality: 50,
-			})
-			.toBuffer()
-	} else if('jimp' in lib && typeof lib.jimp?.read === 'function') {
-		const { read, MIME_JPEG, RESIZE_BILINEAR } = lib.jimp
-		const jimp = await read(bufferOrFilePath as string)
-		const min = Math.min(jimp.getWidth(), jimp.getHeight())
-		const cropped = jimp.crop(0, 0, min, min)
+	const jimp = await Jimp.read(bufferOrFilePath as any)
+	const cropped = jimp.getWidth() > jimp.getHeight() ? jimp.resize(550, -1) : jimp.resize(-1, 650)
 
 		img = cropped
-			.quality(50)
-			.resize(640, 640, RESIZE_BILINEAR)
-			.getBufferAsync(MIME_JPEG)
-	} else {
-		throw new Boom('No image processing library available')
-	}
+			.quality(100)
+			.getBufferAsync(Jimp.MIME_JPEG)
 
 	return {
 		img: await img,
-	}
-}
-
-export const generateProfilePictureFull = async(img) => {
-	const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-	const jimp = await read(img)
-	const min = Math.min(jimp.getWidth(), jimp.getHeight())
-	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
-	let width = jimp.getWidth(),
-		hight = jimp.getHeight(),
-		ratio;
-	if (width > hight) {
-		ratio = jimp.getWidth() / 720
-	} else {
-		ratio = jimp.getWidth() / 324
-	};
-	width = width / ratio;
-	hight = hight / ratio;
-	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
-	return {
-		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG),
-	}
-}
-
-export const generateProfilePictureFP = async(buffer) => {
-	const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-    const jimp = await Jimp.read(buffer);
-    const min = jimp.getWidth();
-    const max = jimp.getHeight();
-    const cropped = jimp.crop(0, 0, min, max);
-    return {
-      img: await cropped.scaleToFit(720, 720).getBufferAsync(Jimp.MIME_JPEG),
-      preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
-    };
-}
-
-export const generatePP = async(buffer) => {
-const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-    const jimp = await Jimp.read(buffer);
-    const min = jimp.getWidth();
-    const max = jimp.getHeight();
-    const cropped = jimp.crop(0, 0, min, max);
-    return {
-      img: await cropped.scaleToFit(720, 720).getBufferAsync(Jimp.MIME_JPEG),
-      preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
-    };
-  }
-  
-  export const changeprofileFull = async(img) => {
-    const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-	const jimp = await read(img)
-	const min = Math.min(jimp.getWidth(), jimp.getHeight())
-	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
-	let width = jimp.getWidth(),
-		hight = jimp.getHeight(),
-		ratio;
-	if (width > hight) {
-		ratio = jimp.getWidth() / 720
-	} else {
-		ratio = jimp.getWidth() / 324
-	};
-	width = width / ratio;
-	hight = hight / ratio;
-	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
-	return {
-		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG),
 	}
 }
 
@@ -375,7 +292,7 @@ export async function generateThumbnail(
 			}
 		}
 	} else if(mediaType === 'video') {
-		const imgFilename = join(getTmpFilesDirectory(), generateMessageIDV2() + '.jpg')
+		const imgFilename = join(getTmpFilesDirectory(), generateMessageID() + '.jpg')
 		try {
 			await extractVideoThumb(file, imgFilename, '00:00:00', { width: 32, height: 32 })
 			const buff = await fs.readFile(imgFilename)
@@ -421,7 +338,7 @@ export const prepareStream = async(
 		if(type === 'file') {
 			bodyPath = (media as any).url
 		} else if(saveOriginalFileIfRequired) {
-			bodyPath = join(getTmpFilesDirectory(), mediaType + generateMessageIDV2())
+			bodyPath = join(getTmpFilesDirectory(), mediaType + generateMessageID())
 			writeFileSync(bodyPath, buffer)
 			didSaveToTmpPath = true
 		}
@@ -476,7 +393,7 @@ export const encryptedStream = async(
 	if(type === 'file') {
 		bodyPath = (media as any).url
 	} else if(saveOriginalFileIfRequired) {
-		bodyPath = join(getTmpFilesDirectory(), mediaType + generateMessageIDV2())
+		bodyPath = join(getTmpFilesDirectory(), mediaType + generateMessageID())
 		writeStream = createWriteStream(bodyPath)
 		didSaveToTmpPath = true
 	}
@@ -578,7 +495,7 @@ const toSmallestChunkSize = (num: number) => {
 export type MediaDownloadOptions = {
     startByte?: number
     endByte?: number
-	options?: AxiosRequestConfig<{}>
+	options?: AxiosRequestConfig<any>
 }
 
 export const getUrlFromDirectPath = (directPath: string) => `https://${DEF_HOST}${directPath}`
@@ -624,9 +541,9 @@ export const downloadEncryptedContent = async(
 		Origin: DEFAULT_ORIGIN,
 	}
 	if(startChunk || endChunk) {
-		headers.Range = `bytes=${startChunk}-`
+		headers!.Range = `bytes=${startChunk}-`
 		if(endChunk) {
-			headers.Range += endChunk
+			headers!.Range += endChunk
 		}
 	}
 
@@ -910,3 +827,8 @@ const MEDIA_RETRY_STATUS_MAP = {
 	[proto.MediaRetryNotification.ResultType.NOT_FOUND]: 404,
 	[proto.MediaRetryNotification.ResultType.GENERAL_ERROR]: 418,
 } as const
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function __importStar(arg0: any): any {
+	throw new Error('Function not implemented.')
+}

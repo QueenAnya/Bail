@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes }
 import * as libsignal from 'libsignal'
 import { KEY_BUNDLE_TYPE } from '../Defaults'
 import { KeyPair } from '../Types'
-
+ 
 // insure browser & node compatibility
 const { subtle } = globalThis.crypto
 
@@ -163,7 +163,6 @@ export async function hkdf(
 
 	return Buffer.from(derivedBits)
 }
-
 
 export async function derivePairingCodeKey(pairingCode: string, salt: Buffer): Promise<Buffer> {
 	// Convert inputs to formats Web Crypto API can work with

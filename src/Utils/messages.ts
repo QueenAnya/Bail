@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto'
+import { ILogger } from './logger'
 import { MEDIA_KEYS, URL_REGEX, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import {
 	AnyMediaMessageContent,
@@ -25,8 +26,7 @@ import {
 } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
-import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
-import { ILogger } from './logger'
+import { generateMessageID, getKeyAuthor, unixTimestampSeconds } from './generics'
 import { downloadContentFromMessage, encryptedStream, generateThumbnail, getAudioDuration, getAudioWaveform, MediaDownloadOptions, prepareStream } from './messages-media'
 
 type MediaUploadData = {
@@ -255,7 +255,7 @@ export const prepareWAMessageMedia = async(
 			}
 		)
 	})
-
+	
 	if(uploadData.ptv) {
 		obj.ptvMessage = obj.videoMessage
 		delete obj.videoMessage
@@ -862,7 +862,7 @@ export const generateWAMessageFromContent = (
 		key: {
 			remoteJid: jid,
 			fromMe: true,
-			id: options?.messageId || generateMessageIDV2(),
+			id: options?.messageId || generateMessageID(),
 		},
 		message: message,
 		messageTimestamp: timestamp,
@@ -930,6 +930,18 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 			 || message?.viewOnceMessageV2
 			 || message?.viewOnceMessageV2Extension
 			 || message?.editedMessage
+			 || message?.groupMentionedMessage
+			 || message?.botInvokeMessage
+			 || message?.lottieStickerMessage
+			 || message?.eventCoverImage
+			 || message?.statusMentionMessage
+			 || message?.pollCreationOptionImageMessage
+			 || message?.associatedChildMessage
+			 || message?.groupStatusMentionMessage
+			 || message?.pollCreationMessageV4
+			 || message?.pollCreationMessageV5
+			 || message?.statusAddYours
+			 || message?.groupStatusMessage
 		 )
 	 }
 }
@@ -1118,13 +1130,17 @@ export const downloadMediaMessage = async<Type extends 'buffer' | 'stream'>(
 ) => {
 	const result = await downloadMsg()
 		.catch(async(error) => {
-			if(ctx && axios.isAxiosError(error) && // check if the message requires a reupload
-					REUPLOAD_REQUIRED_STATUS.includes(error.response?.status!)) {
-				ctx.logger.info({ key: message.key }, 'sending reupload media request...')
-				// request reupload
-				message = await ctx.reuploadRequest(message)
-				const result = await downloadMsg()
-				return result
+			if(ctx) {
+				if(axios.isAxiosError(error)) {
+					// check if the message requires a reupload
+					if(REUPLOAD_REQUIRED_STATUS.includes(error.response?.status!)) {
+						ctx.logger.info({ key: message.key }, 'sending reupload media request...')
+						// request reupload
+						message = await ctx.reuploadRequest(message)
+						const result = await downloadMsg()
+						return result
+					}
+				}
 			}
 
 			throw error

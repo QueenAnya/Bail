@@ -42,7 +42,6 @@ type BaileysBufferableEventEmitter = BaileysEventEmitter & {
 	 * */
 	buffer(): void
 	/** buffers all events till the promise completes */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	createBufferedFunction<A extends any[], T>(work: (...args: A) => Promise<T>): ((...args: A) => Promise<T>)
 	/**
 	 * flushes all buffered events
@@ -133,7 +132,7 @@ export const makeEventBuffer = (logger: ILogger): BaileysBufferableEventEmitter 
 		},
 		emit<T extends BaileysEvent>(event: BaileysEvent, evData: BaileysEventMap[T]) {
 			if(buffersInProgress && BUFFERABLE_EVENT_SET.has(event)) {
-				append(data, historyCache, event as BufferableEvent, evData, logger)
+				append(data, historyCache, event as any, evData, logger)
 				return true
 			}
 
@@ -188,7 +187,6 @@ function append<E extends BufferableEvent>(
 	data: BufferedEventData,
 	historyCache: Set<string>,
 	event: E,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	eventData: any,
 	logger: ILogger
 ) {
@@ -333,7 +331,7 @@ function append<E extends BufferableEvent>(
 			}
 
 			if(data.contactUpdates[contact.id]) {
-				upsert = Object.assign(data.contactUpdates[contact.id], trimUndefined(contact)) as Contact
+				upsert = Object.assign(data.contactUpdates[contact.id], trimUndefined(contact))
 				delete data.contactUpdates[contact.id]
 			}
 		}
@@ -600,10 +598,12 @@ function consolidateEvents(data: BufferedEventData) {
 }
 
 function concatChats<C extends Partial<Chat>>(a: C, b: Partial<Chat>) {
-	if(b.unreadCount === null && // neutralize unread counter
-		a.unreadCount! < 0) {
-		a.unreadCount = undefined
-		b.unreadCount = undefined
+	if(b.unreadCount === null) {
+		// neutralize unread counter
+		if(a.unreadCount! < 0) {
+			a.unreadCount = undefined
+			b.unreadCount = undefined
+		}
 	}
 
 	if(typeof a.unreadCount === 'number' && typeof b.unreadCount === 'number') {
