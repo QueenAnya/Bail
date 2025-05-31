@@ -330,7 +330,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const { user, server } = jidDecode(jid)!
 		const statusJid = 'status@broadcast'
 		const isGroup = server === 'g.us'
-		const isNewsletter = server == 'newsletter'
+		const isNewsletter = server === 'newsletter'
 		const isStatus = jid === statusJid
 		const isLid = server === 'lid'
 
@@ -848,10 +848,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					(disappearingMessagesInChat ? WA_DEFAULT_EPHEMERAL : 0) :
 					disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
+			} else {
 				if (jid.endsWith('@bot')) {
 					jid = getBotJid(jid);
 				}
-			} else {
 				let mediaHandle
 				const fullMsg = await generateWAMessage(
 					jid,

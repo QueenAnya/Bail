@@ -127,7 +127,7 @@ export function md5(buffer: Buffer) {
 export async function hkdf(
 	buffer: Uint8Array | Buffer,
 	expandedLength: number,
-	info: { salt?: Buffer, info?: string }
+	info: { salt?: Buffer, info?: string | Buffer }
 ): Promise<Buffer> {
 	// Ensure we have a Uint8Array for the key material
 	const inputKeyMaterial = buffer instanceof Uint8Array
@@ -137,8 +137,10 @@ export async function hkdf(
 	// Set default values if not provided
 	const salt = info.salt ? new Uint8Array(info.salt) : new Uint8Array(0)
 	const infoBytes = info.info
-		? new TextEncoder().encode(info.info)
-		: new Uint8Array(0)
+		? (typeof info.info === 'string'
+			? new TextEncoder().encode(info.info)
+				: new Uint8Array(info.info))
+					: new Uint8Array(0);
 
 	// Import the input key material
 	const importedKey = await subtle.importKey(
