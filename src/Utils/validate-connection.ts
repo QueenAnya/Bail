@@ -9,6 +9,7 @@ import { encodeBigEndian } from './generics'
 import { createSignalIdentity } from './signal'
 
 const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
+
 	return {
 		appVersion: {
 			primary: config.version[0],
@@ -21,9 +22,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 		device: 'Desktop',
 		osBuildNumber: '0.1',
 		localeLanguageIso6391: 'en',
-		mnc: '000',
-		mcc: '000',
-		localeCountryIso31661Alpha2: config.countryCode,
+		localeCountryIso31661Alpha2: config.countryCode
 	}
 }
 
@@ -41,19 +40,17 @@ const getWebInfo = (config: SocketConfig): proto.ClientPayload.IWebInfo => {
 	return { webSubPlatform }
 }
 
-
 const getClientPayload = (config: SocketConfig) => {
 	const payload: proto.IClientPayload = {
 		connectType: proto.ClientPayload.ConnectType.WIFI_UNKNOWN,
 		connectReason: proto.ClientPayload.ConnectReason.USER_ACTIVATED,
 		userAgent: getUserAgent(config),
 	}
-
+	
 	payload.webInfo = getWebInfo(config)
 
 	return payload
 }
-
 
 export const generateLoginNode = (userJid: string, config: SocketConfig): proto.IClientPayload => {
 	const { user, device } = jidDecode(userJid)!
@@ -132,7 +129,7 @@ export const configureSuccessfulPairing = (
 	const { details, hmac } = proto.ADVSignedDeviceIdentityHMAC.decode(deviceIdentityNode.content as Buffer)
 	// check HMAC matches
 	const advSign = hmacSign(details!, Buffer.from(advSecretKey, 'base64'))
-	if(Buffer.compare(hmac!, advSign) !== 0) {
+ 	if(Buffer.compare(hmac!, advSign) !== 0) {
 		throw new Boom('Invalid account signature')
 	}
 
@@ -140,7 +137,7 @@ export const configureSuccessfulPairing = (
 	const { accountSignatureKey, accountSignature, details: deviceDetails } = account
 	// verify the device signature matches
 	const accountMsg = Buffer.concat([ Buffer.from([6, 0]), deviceDetails!, signedIdentityKey.public ])
-	if(!Curve.verify(accountSignatureKey!, accountMsg, accountSignature!)) {
+ 	if(!Curve.verify(accountSignatureKey!, accountMsg, accountSignature!)) {
 		throw new Boom('Failed to verify account signature')
 	}
 

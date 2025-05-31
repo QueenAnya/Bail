@@ -50,12 +50,12 @@ export type NewsletterMetadata = {
 
 export type SubscriberAction = 'promote' | 'demote'
 
-export type ReactionModeUpdate = {reaction_codes: {blocked_codes: null, enabled_ts_sec: null, value: NewsletterReactionMode}}
+export type ReactionModeUpdate = { reaction_codes: { blocked_codes: null, enabled_ts_sec: null, value: NewsletterReactionMode }}
 
 /**only exists reaction mode update */
 export type NewsletterSettingsUpdate = ReactionModeUpdate
 
-export type NewsletterReaction = {count: number, code: string}
+export type NewsletterReaction = { count: number, code: string }
 
 export type NewsletterFetchedUpdate = {
     /**id of message in newsletter, starts from 100 */
@@ -68,13 +68,13 @@ export type NewsletterFetchedUpdate = {
     message?: proto.IWebMessageInfo
 }
 
-export enum MexOperations{
+export enum MexOperations {
     PROMOTE = 'NotificationNewsletterAdminPromote',
     DEMOTE = 'NotificationNewsletterAdminDemote',
     UPDATE = 'NotificationNewsletterUpdate'
 }
 
-export enum XWAPaths{
+export enum XWAPaths {
     PROMOTE = 'xwa2_notify_newsletter_admin_promote',
     DEMOTE = 'xwa2_notify_newsletter_admin_demote',
     ADMIN_COUNT = 'xwa2_newsletter_admin',

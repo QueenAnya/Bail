@@ -98,7 +98,7 @@ export const useMultiFileAuthState = async(folder: string): Promise<{ state: Aut
 			creds,
 			keys: {
 				get: async(type, ids) => {
-					const data: { [_: string]: SignalDataTypeMap[typeof type] } = { }
+					const data: { [_: string]: SignalDataTypeMap[typeof type] } = {}
 					await Promise.all(
 						ids.map(
 							async id => {

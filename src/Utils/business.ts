@@ -1,11 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { createHash } from 'crypto'
-import { createWriteStream, promises as fs } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
 import { CatalogCollection, CatalogStatus, OrderDetails, OrderProduct, Product, ProductCreate, ProductUpdate, WAMediaUpload, WAMediaUploadFunction } from '../Types'
 import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, getBinaryNodeChildString } from '../WABinary'
-import { generateMessageIDV2 } from './generics'
 import { getStream, getUrlFromDirectPath, toReadable } from './messages-media'
 
 export const parseCatalogNode = (node: BinaryNode) => {
@@ -239,14 +235,9 @@ export const uploadingNecessaryImages = async(
 
 				const { stream } = await getStream(img)
 				const hasher = createHash('sha256')
-
-				const filePath = join(tmpdir(), 'img' + generateMessageIDV2())
-				const encFileWriteStream = createWriteStream(filePath)
 				const contentBlocks: Buffer[] = []
-
 				for await (const block of stream) {
 					hasher.update(block)
-					encFileWriteStream.write(block)
 					contentBlocks.push(block)
 				}
 
@@ -260,11 +251,6 @@ export const uploadingNecessaryImages = async(
 						timeoutMs
 					}
 				)
-
-				await fs
-					.unlink(filePath)
-					.catch(err => console.log('Error deleting temp file ', err))
-
 				return { url: getUrlFromDirectPath(directPath) }
 			}
 		)
