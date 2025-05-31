@@ -33,6 +33,7 @@ const encodeBinaryNodeInner = (
 			buffer.push(b)
 		}
 	}
+
 	const pushInt16 = (value: number) => {
 		pushBytes([(value >> 8) & 0xff, value & 0xff])
 	}
@@ -183,6 +184,7 @@ const encodeBinaryNodeInner = (
 			pushByte(TAGS.LIST_EMPTY)
 			return
 		}
+
 		const tokenIndex = TOKEN_MAP[str]
 		if(tokenIndex) {
 			if(typeof tokenIndex.dict === 'number') {
@@ -218,7 +220,7 @@ const encodeBinaryNodeInner = (
 	if(!tag) {
 		throw new Error('Invalid node: tag cannot be undefined')
 	}
- 
+
 	const validAttributes = Object.keys(attrs || {}).filter(k => (
 		typeof attrs[k] !== 'undefined' && attrs[k] !== null
 	))

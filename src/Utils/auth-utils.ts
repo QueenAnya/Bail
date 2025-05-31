@@ -1,5 +1,5 @@
-import { randomBytes } from 'crypto'
 import NodeCache from '@cacheable/node-cache'
+import { randomBytes } from 'crypto'
 import { DEFAULT_CACHE_TTLS } from '../Defaults'
 import type { AuthenticationCreds, CacheStore, SignalDataSet, SignalDataTypeMap, SignalKeyStore, SignalKeyStoreWithTransaction, TransactionCapabilityOptions } from '../Types'
 import { Curve, signedKeyPair } from './crypto'
@@ -160,6 +160,7 @@ export const addTransactionCapability = (
 						let tries = maxCommitRetries
 						while(tries) {
 							tries -= 1
+							//eslint-disable-next-line max-depth
 							try {
 								await state.set(mutations)
 								logger.trace({ dbQueriesInTransaction }, 'committed transaction')

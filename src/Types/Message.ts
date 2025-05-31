@@ -14,16 +14,16 @@ export type WAMessage = proto.IWebMessageInfo
 export type WAMessageContent = proto.IMessage
 export type WAContactMessage = proto.Message.IContactMessage
 export type WAContactsArrayMessage = proto.Message.IContactsArrayMessage
-export type WAMessageKey = proto.IMessageKey & { lid?: string, server_id?: string }
+export type WAMessageKey = proto.IMessageKey & {server_id?: string}
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo
 export type WALocationMessage = proto.Message.ILocationMessage
 export type WAGenericMediaMessage = proto.Message.IVideoMessage | proto.Message.IImageMessage | proto.Message.IAudioMessage | proto.Message.IDocumentMessage | proto.Message.IStickerMessage
-export const WAMessageStubType = proto.WebMessageInfo.StubType
-export const WAMessageStatus = proto.WebMessageInfo.Status
-export type WAMediaPayloadURL = { url: URL | string }
-export type WAMediaPayloadStream = { stream: Readable }
-export type WAMediaUpload = Buffer | WAMediaPayloadStream | WAMediaPayloadURL
+// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+export import WAMessageStubType = proto.WebMessageInfo.StubType
+// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+export import WAMessageStatus = proto.WebMessageInfo.Status
+export type WAMediaUpload = Buffer | { url: URL | string } | { stream: Readable }
 /** Set of message types that are supported by the library */
 export type MessageType = keyof proto.Message
 

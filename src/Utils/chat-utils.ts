@@ -302,7 +302,7 @@ export const extractSyncdPatches = async(
 					}
 
 					const blobRef = proto.ExternalBlobReference.decode(
-						snapshotNode.content! as Buffer
+						snapshotNode.content as Buffer
 					)
 					const data = await downloadExternalBlob(blobRef, options)
 					snapshot = proto.SyncdSnapshot.decode(data)
@@ -314,7 +314,7 @@ export const extractSyncdPatches = async(
 							content = Buffer.from(Object.values(content))
 						}
 
-						const syncd = proto.SyncdPatch.decode(content! as Uint8Array)
+						const syncd = proto.SyncdPatch.decode(content as Uint8Array)
 						if(!syncd.version) {
 							syncd.version = { version: +collectionNode.attrs.version + 1 }
 						}
@@ -359,10 +359,10 @@ export const decodeSyncdSnapshot = async(
 	snapshot: proto.ISyncdSnapshot,
 	getAppStateSyncKey: FetchAppStateSyncKey,
 	minimumVersionNumber: number | undefined,
-	validateMacs: boolean = true
+	validateMacs = true
 ) => {
 	const newState = newLTHashState()
-	newState.version = toNumber(snapshot.version!.version!)
+	newState.version = toNumber(snapshot.version!.version)
 
 	const mutationMap: ChatMutationMap = {}
 	const areMutationsRequired = typeof minimumVersionNumber === 'undefined'
@@ -429,7 +429,7 @@ export const decodePatches = async(
 			syncd.mutations?.push(...ref.mutations)
 		}
 
-		const patchVersion = toNumber(version!.version!)
+		const patchVersion = toNumber(version!.version)
 
 		newState.version = patchVersion
 		const shouldMutate = typeof minimumVersionNumber === 'undefined' || patchVersion > minimumVersionNumber
@@ -588,6 +588,16 @@ export const chatModificationToAppPatch = (
 			apiVersion: 5,
 			operation: OP.SET
 		}
+	} else if('contact' in mod) {
+		patch = {
+			syncAction: {
+				contactAction: mod.contact || {}
+			},
+			index: ['contact', jid],
+			type: 'critical_unblock_low',
+			apiVersion: 2,
+			operation: mod.contact ? OP.SET : OP.REMOVE
+		}
 	} else if('star' in mod) {
 		const key = mod.star.messages[0]
 		patch = {
@@ -623,6 +633,21 @@ export const chatModificationToAppPatch = (
 			index: ['setting_pushName'],
 			type: 'critical_block',
 			apiVersion: 1,
+			operation: OP.SET,
+		}
+	} else if('addLabel' in mod) {
+		patch = {
+			syncAction: {
+				labelEditAction: {
+					name: mod.addLabel.name,
+					color: mod.addLabel.color,
+					predefinedId : mod.addLabel.predefinedId,
+					deleted: mod.addLabel.deleted
+				}
+			},
+			index: ['label_edit', mod.addLabel.id],
+			type: 'regular',
+			apiVersion: 3,
 			operation: OP.SET,
 		}
 	} else if('addChatLabel' in mod) {
@@ -720,7 +745,7 @@ export const processSyncAction = (
 				{
 					id,
 					muteEndTime: action.muteAction?.muted
-						? toNumber(action.muteAction!.muteEndTimestamp!)
+						? toNumber(action.muteAction.muteEndTimestamp)
 						: null,
 					conditional: getChatUpdateConditional(id, undefined)
 				}
@@ -778,7 +803,7 @@ export const processSyncAction = (
 			]
 		})
 	} else if(action?.contactAction) {
-		ev.emit('contacts.upsert', [{ id, name: action.contactAction!.fullName! }])
+		ev.emit('contacts.upsert', [{ id, name: action.contactAction.fullName! }])
 	} else if(action?.pushNameSetting) {
 		const name = action?.pushNameSetting?.name
 		if(name && me?.name !== name) {
@@ -787,7 +812,7 @@ export const processSyncAction = (
 	} else if(action?.pinAction) {
 		ev.emit('chats.update', [{
 			id,
-			pinned: action.pinAction?.pinned ? toNumber(action.timestamp!) : null,
+			pinned: action.pinAction?.pinned ? toNumber(action.timestamp) : null,
 			conditional: getChatUpdateConditional(id, undefined)
 		}])
 	} else if(action?.unarchiveChatsSetting) {
@@ -815,7 +840,7 @@ export const processSyncAction = (
 			ev.emit('chats.delete', [id])
 		}
 	} else if(action?.labelEditAction) {
-		const { name, color, deleted, predefinedId } = action.labelEditAction!
+		const { name, color, deleted, predefinedId } = action.labelEditAction
 
 		ev.emit('labels.edit', {
 			id,
