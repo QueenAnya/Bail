@@ -1,6 +1,8 @@
 import type { proto } from '../../WAProto'
 import type { AccountSettings } from './Auth'
+import type { ContactAction } from './Contact'
 import type { BufferedEventData } from './Events'
+import type { LabelActionBody } from './Label'
 import type { ChatLabelAssociationActionBody } from './LabelAssociation'
 import type { MessageLabelAssociationActionBody } from './LabelAssociation'
 import type { MinimalMessage, WAMessageKey } from './Message'
@@ -8,15 +10,15 @@ import type { MinimalMessage, WAMessageKey } from './Message'
 /** privacy settings in WhatsApp Web */
 export type WAPrivacyValue = 'all' | 'contacts' | 'contact_blacklist' | 'none'
 
-export type WAPrivacyCallValue = 'all' | 'known'
-
-export type WAPrivacyMessagesValue = 'all' | 'contacts'
-
 export type WAPrivacyOnlineValue = 'all' | 'match_last_seen'
 
 export type WAPrivacyGroupAddValue = 'all' | 'contacts' | 'contact_blacklist'
 
 export type WAReadReceiptsValue = 'all' | 'none'
+
+export type WAPrivacyCallValue = 'all' | 'known'
+
+export type WAPrivacyMessagesValue = 'all' | 'contacts'
 
 /** set of statuses visible to other people; see updatePresence() in WhatsAppWeb.Send */
 export type WAPresence = 'unavailable' | 'available' | 'composing' | 'recording' | 'paused'
@@ -28,6 +30,11 @@ export type WAPatchName = typeof ALL_WA_PATCH_NAMES[number]
 export interface PresenceData {
     lastKnownPresence: WAPresence
     lastSeen?: number
+}
+
+export type BotListInfo = {
+  jid: string
+  personaId: string
 }
 
 export type ChatMutation = {
@@ -94,6 +101,9 @@ export type ChatModification =
         lastMessages: LastMessageList
     }
     | { delete: true, lastMessages: LastMessageList }
+    | { contact: ContactAction | null }
+    // Label
+    | { addLabel: LabelActionBody }
     // Label assosiation
     | { addChatLabel: ChatLabelAssociationActionBody }
     | { removeChatLabel: ChatLabelAssociationActionBody }

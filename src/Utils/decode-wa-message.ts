@@ -1,12 +1,11 @@
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto'
-import { ILogger } from './logger'
 import { SignalRepository, WAMessageKey } from '../Types'
-import { areJidsSameUser, BinaryNode, isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isJidUser, isLidUser } from '../WABinary'
+import { areJidsSameUser, BinaryNode, getBinaryNodeChild, isJidBroadcast, isJidGroup, isJidMetaIa, isJidNewsletter, isJidStatusBroadcast, isJidUser, isLidUser } from '../WABinary'
 import { unpadRandomMax16 } from './generics'
+import { ILogger } from './logger'
 
 export const NO_MESSAGE_FOUND_ERROR_TEXT = 'Message absent from node'
-
 export const MISSING_KEYS_ERROR_TEXT = 'Key used already or never filled'
 
 export const NACK_REASONS = {
@@ -48,22 +47,9 @@ export function decodeMessageNode(
 	const isMe = (jid: string) => areJidsSameUser(jid, meId)
 	const isMeLid = (jid: string) => areJidsSameUser(jid, meLid)
 
-	if(isJidUser(from)) {
-		if(recipient) {
-			if(!isMe(from)) {
-				throw new Boom('receipient present, but msg not from me', { data: stanza })
-			}
-
-			chatId = recipient
-		} else {
-			chatId = from
-		}
-
-		msgType = 'chat'
-		author = from
-	} else if(isLidUser(from)) {
-		if(recipient) {
-			if(!isMeLid(from)) {
+	if(isJidUser(from) || isLidUser(from)) {
+		if(recipient && !isJidMetaIa(recipient)) {
+			if(!isMe(from) && !isMeLid(from)) {
 				throw new Boom('receipient present, but msg not from me', { data: stanza })
 			}
 
@@ -82,7 +68,7 @@ export function decodeMessageNode(
 		msgType = 'group'
 		author = participant
 		chatId = from
-	} else if(isJidNewsletter(from)) {
+	} else if(isJidNewsletter(from)){
 		msgType = 'newsletter'
 		author = from
 		chatId = from
@@ -97,9 +83,12 @@ export function decodeMessageNode(
 		} else {
 			msgType = isParticipantMe ? 'peer_broadcast' : 'other_broadcast'
 		}
-
 		chatId = from
 		author = participant
+		} else if(isJidNewsletter(from)){
+		msgType = 'newsletter'
+		author = from
+		chatId = from
 	} else {
 		throw new Boom('Unknown message type', { data: stanza })
 	}
@@ -151,7 +140,28 @@ export const decryptMessageNode = (
 		author,
 		async decrypt() {
 			let decryptables = 0
-			if(Array.isArray(stanza.content)) {
+			async function processSenderKeyDistribution(msg: proto.IMessage) {
+				if(msg.senderKeyDistributionMessage) {
+					try {
+						await repository.processSenderKeyDistributionMessage({
+							authorJid: author,
+							item: msg.senderKeyDistributionMessage
+						})
+					} catch(err) {
+						logger.error({ key: fullMessage.key, err }, 'failed to process senderKeyDistribution')
+					}
+				}
+			}
+
+			if (isJidNewsletter(fullMessage.key.remoteJid!)) {
+				const node = getBinaryNodeChild(stanza, 'plaintext')
+				const msg = proto.Message.decode(node?.content as Uint8Array)
+
+				await processSenderKeyDistribution(msg)
+
+				fullMessage.message = msg
+				decryptables += 1
+			} else if(Array.isArray(stanza.content)) {
 				for(const { tag, attrs, content } of stanza.content) {
 					if(tag === 'verified_name' && content instanceof Uint8Array) {
 						const cert = proto.VerifiedNameCertificate.decode(content)
@@ -169,7 +179,7 @@ export const decryptMessageNode = (
 
 					decryptables += 1
 
-					let msgBuffer: Uint8Array					
+					let msgBuffer: Uint8Array
 
 					try {
 						const e2eType = tag === 'plaintext' ? 'plaintext' : attrs.type
@@ -193,25 +203,22 @@ export const decryptMessageNode = (
 						case 'plaintext':
 							msgBuffer = content
 							break
-						case undefined:
-							msgBuffer = content
-							break
 						default:
 							throw new Error(`Unknown e2e type: ${e2eType}`)
 						}
 
 						let msg: proto.IMessage = proto.Message.decode(e2eType !== 'plaintext' ? unpadRandomMax16(msgBuffer) : msgBuffer)
-						msg = msg?.deviceSentMessage?.message || msg
-
+						msg = msg.deviceSentMessage?.message || msg
 						if(msg.senderKeyDistributionMessage) {
-							try {
+							//eslint-disable-next-line max-depth
+						    try {
 								await repository.processSenderKeyDistributionMessage({
 									authorJid: author,
 									item: msg.senderKeyDistributionMessage
 								})
 							} catch(err) {
 								logger.error({ key: fullMessage.key, err }, 'failed to decrypt message')
-								}
+						        }
 						}
 
 						if(fullMessage.message) {

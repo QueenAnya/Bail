@@ -1,6 +1,5 @@
-import { proto } from '../WAProto'
 import makeWASocket from './Socket'
-
+import { proto } from '../WAProto'
 export * from '../WAProto'
 export * from './Utils'
 export * from './Types'
