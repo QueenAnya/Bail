@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto'
+import { ILogger } from './logger'
 import { MEDIA_KEYS, URL_REGEX, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import {
 	AnyMediaMessageContent,
@@ -26,7 +27,6 @@ import {
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
 import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
-import { ILogger } from './logger'
 import { downloadContentFromMessage, encryptedStream, generateThumbnail, getAudioDuration, getAudioWaveform, MediaDownloadOptions, prepareStream } from './messages-media'
 
 type MediaUploadData = {
@@ -255,7 +255,7 @@ export const prepareWAMessageMedia = async(
 			}
 		)
 	})
-
+	
 	if(uploadData.ptv) {
 		obj.ptvMessage = obj.videoMessage
 		delete obj.videoMessage
@@ -363,6 +363,10 @@ export const generateWAMessageContent = async(
 		}
 
 		m.extendedTextMessage = extContent
+
+		m.messageContextInfo = {
+			messageSecret: randomBytes(32)
+		}
 	} else if('contacts' in message) {
 		const contactLen = message.contacts.contacts.length
 		if(!contactLen) {
@@ -942,6 +946,9 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 			 || message?.pollCreationMessageV5
 			 || message?.statusAddYours
 			 || message?.groupStatusMessage
+			 || message?.limitSharingMessage
+			 || message?.botTaskMessage
+			 || message?.questionMessage
 		 )
 	 }
 }

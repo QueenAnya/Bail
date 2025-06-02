@@ -30,20 +30,6 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: latest
-      
-      - name: Remov pnpm-lock and yarn.lock
-        run: |
-          rm -rf pnpm-lock.yaml yarn.lock
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
-      
-      - name: Push Lock
-        run: |
-          git add .
-          git commit -m "delete lock files"
-          git push origin ${{ github.ref }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -72,7 +58,7 @@ jobs:
       - name: Commit and Push pnpm-lock and yarn.lock
         run: |
           git add pnpm-lock.yaml yarn.lock
-          git commit -m "added lock files"
+          git commit -m "Update lock files"
           git push origin ${{ github.ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}

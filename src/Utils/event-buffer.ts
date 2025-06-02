@@ -42,7 +42,6 @@ type BaileysBufferableEventEmitter = BaileysEventEmitter & {
 	 * */
 	buffer(): void
 	/** buffers all events till the promise completes */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	createBufferedFunction<A extends any[], T>(work: (...args: A) => Promise<T>): ((...args: A) => Promise<T>)
 	/**
 	 * flushes all buffered events
@@ -188,7 +187,6 @@ function append<E extends BufferableEvent>(
 	data: BufferedEventData,
 	historyCache: Set<string>,
 	event: E,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	eventData: any,
 	logger: ILogger
 ) {

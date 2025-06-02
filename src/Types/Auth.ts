@@ -59,7 +59,7 @@ export type AuthenticationCreds = SignalCreds & {
     /** number of times history & app state has been synced */
     accountSyncCounter: number
     accountSettings: AccountSettings
-    registered: boolean
+	registered: boolean
     pairingCode: string | undefined
     lastPropHash: string | undefined
     routingInfo: Buffer | undefined

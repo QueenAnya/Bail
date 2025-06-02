@@ -1,12 +1,12 @@
 import { AxiosRequestConfig } from 'axios'
 import { proto } from '../../WAProto'
-import { AuthenticationCreds, BaileysEventEmitter, CacheStore, Chat, GroupMetadata, ParticipantAction, RequestJoinAction, RequestJoinMethod, SignalKeyStoreWithTransaction, WAMessageStubType } from '../Types'
+import { AuthenticationCreds, BaileysEventEmitter, CacheStore, Chat, GroupMetadata, ParticipantAction, RequestJoinAction, RequestJoinMethod, SignalKeyStoreWithTransaction, SocketConfig, WAMessageStubType } from '../Types'
 import { getContentType, normalizeMessageContent } from '../Utils/messages'
 import { areJidsSameUser, isJidBroadcast, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { aesDecryptGCM, hmacSign } from './crypto'
-import { toNumber } from './generics'
-import { downloadAndProcessHistorySyncNotification } from './history'
+import { getKeyAuthor, toNumber } from './generics'
 import { ILogger } from './logger'
+import { downloadAndProcessHistorySyncNotification } from './history'
 
 type ProcessMessageContext = {
 	shouldProcessHistoryMsg: boolean
@@ -14,6 +14,7 @@ type ProcessMessageContext = {
 	creds: AuthenticationCreds
 	keyStore: SignalKeyStoreWithTransaction
 	ev: BaileysEventEmitter
+	getMessage: SocketConfig['getMessage']
 	logger?: ILogger
 	options: AxiosRequestConfig<{}>
 }
@@ -157,7 +158,8 @@ const processMessage = async(
 		creds,
 		keyStore,
 		logger,
-		options
+		options,
+		getMessage
 	}: ProcessMessageContext
 ) => {
 	const meId = creds.me!.id
@@ -282,7 +284,6 @@ const processMessage = async(
 				const { peerDataOperationResult } = response
 				for(const result of peerDataOperationResult!) {
 					const { placeholderMessageResendResponse: retryResponse } = result
-					//eslint-disable-next-line max-depth
 					if(retryResponse) {
 						const webMessageInfo = proto.WebMessageInfo.decode(retryResponse.webMessageInfoBytes!)
 						// wait till another upsert event is available, don't want it to be part of the PDO response message
@@ -297,12 +298,12 @@ const processMessage = async(
 				}
 			}
 
-		case proto.Message.ProtocolMessage.Type.MESSAGE_EDIT:
+			case proto.Message.ProtocolMessage.Type.MESSAGE_EDIT:
 			ev.emit(
 				'messages.update',
 				[
 					{
-					  // flip the sender / fromMe properties because they're in the perspective of the sender
+						// flip the sender / fromMe properties because they're in the perspective of the sender
 						key: { ...message.key, id: protocolMsg.key?.id },
 						update: {
 							message: {
@@ -416,11 +417,9 @@ const processMessage = async(
 			break
 		}
 
-	} /*  else if(content?.pollUpdateMessage) {
+	} else if(content?.pollUpdateMessage) {
 		const creationMsgKey = content.pollUpdateMessage.pollCreationMessageKey!
 		// we need to fetch the poll creation message to get the poll enc key
-		// TODO: make standalone, remove getMessage reference
-		// TODO: Remove entirely
 		const pollMsg = await getMessage(creationMsgKey)
 		if(pollMsg) {
 			const meIdNormalised = jidNormalizedUser(meId)
@@ -464,7 +463,7 @@ const processMessage = async(
 				'poll creation message not found, cannot decrypt update'
 			)
 		}
-		} */
+	}
 
 	if(Object.keys(chat).length > 1) {
 		ev.emit('chats.update', [chat])
