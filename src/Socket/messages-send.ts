@@ -122,16 +122,16 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		await sendNode(node)
 	}
 
-	/** Correctly bulk send receipts to multiple chats, participants */
-	const sendReceipts = async(keys: WAMessageKey[], type: MessageReceiptType) => {
+		/** Correctly bulk send receipts to multiple chats, participants */
+	const sendReceipts = async (keys: WAMessageKey[], type: MessageReceiptType) => {
 		const recps = aggregateMessageKeysNotFromMe(keys)
-		for(const { jid, participant, messageIds } of recps) {
+		for (const { jid, participant, messageIds } of recps) {
 			await sendReceipt(jid, participant, messageIds, type)
 		}
 	}
 
 	/** Bulk read messages. Keys can be from different chats & participants */
-	const readMessages = async(keys: WAMessageKey[]) => {
+	const readMessages = async (keys: WAMessageKey[]) => {
 		const privacySettings = await fetchPrivacySettings()
 		// based on privacy settings, we have to change the read type
 		const readType = privacySettings.readreceipts === 'all' ? 'read' : 'read-self'
@@ -139,22 +139,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	/** Fetch all the devices we've to send a message to */
-	const getUSyncDevices = async(jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => {
+	const getUSyncDevices = async (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => {
 		const deviceResults: JidWithDevice[] = []
 
-		if(!useCache) {
+		if (!useCache) {
 			logger.debug('not using cache for devices')
 		}
 
 		const toFetch: string[] = []
 		jids = Array.from(new Set(jids))
 
-		for(let jid of jids) {
+		for (let jid of jids) {
 			const user = jidDecode(jid)?.user
 			jid = jidNormalizedUser(jid)
-			if(useCache) {
+			if (useCache) {
 				const devices = userDevicesCache.get<JidWithDevice[]>(user!)
-				if(devices) {
+				if (devices) {
 					deviceResults.push(...devices)
 
 					logger.trace({ user }, 'using cache for devices')
@@ -166,32 +166,30 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 		}
 
-		if(!toFetch.length) {
+		if (!toFetch.length) {
 			return deviceResults
 		}
 
-		const query = new USyncQuery()
-			.withContext('message')
-			.withDeviceProtocol()
+		const query = new USyncQuery().withContext('message').withDeviceProtocol()
 
-		for(const jid of toFetch) {
+		for (const jid of toFetch) {
 			query.withUser(new USyncUser().withId(jid))
 		}
 
 		const result = await sock.executeUSyncQuery(query)
 
-		if(result) {
+		if (result) {
 			const extracted = extractDeviceJids(result?.list, authState.creds.me!.id, ignoreZeroDevices)
 			const deviceMap: { [_: string]: JidWithDevice[] } = {}
 
-			for(const item of extracted) {
+			for (const item of extracted) {
 				deviceMap[item.user] = deviceMap[item.user] || []
 				deviceMap[item.user].push(item)
 
 				deviceResults.push(item)
 			}
 
-			for(const key in deviceMap) {
+			for (const key in deviceMap) {
 				userDevicesCache.set(key, deviceMap[key])
 			}
 		}
