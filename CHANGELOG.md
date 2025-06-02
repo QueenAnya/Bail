@@ -1,8 +1,8 @@
-# [3.0.0](https://github.com/queenanya/bail/compare/v8.2.1...v3.0.0) (2025-06-02)
+## [3.5.6](https://github.com/queenanya/bail/compare/v3.0.0...v3.5.6) (2025-06-02)
 
 
 
-## 8.2.1 (2025-06-02)
+# 3.0.0 (2025-06-02)
 
 
 
