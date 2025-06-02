@@ -1,22 +1,15 @@
 {
-  "name": "olduser-baileyz",
-  "version": "3.5.9",
+  "name": "@queenanya/baileys",
+  "version": "8.2.0",
   "description": "Custom Baileys WhatsApp API",
   "keywords": [
-    "baileys",
-    "baileys-mod",
-    "wabot",
-    "whatsapp",
-    "js-whatsapp",
-    "whatsapp-api",
-    "whatsapp-web",
-    "whatsapp-bot",
-    "automation",
-    "multi-device"
+    "baileys", "baileys-mod", "wabot", "whatsapp",
+    "js-whatsapp", "whatsapp-api", "whatsapp-web", "whatsapp-bot",
+    "automation", "multi-device"
   ],
   "homepage": "https://github.com/nstar-y/bail",
   "repository": {
-    "url": "git+ssh://git@github.com/QueenAnya/bail.git"
+    "url": "git+ssh://git@github.com/QueenAnya/Bail.git"
   },
   "license": "MIT",
   "author": "Adhiraj Singh",
