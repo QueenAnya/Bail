@@ -138,6 +138,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const offerCall = async (toJid: string, isVideo: boolean = false) => {
+	    const ToJidm = `${toJid}`;
 		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
 
 		const offerContent: BinaryNode[] = []
@@ -163,8 +164,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
 
 		const encKey = randomBytes(32)
+		const usrr = ToJidm.split('@')[0]
+		const srvr = ToJidm.split('@')[1]
 
-		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, server, device }) => jidEncode(user, device))
+		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(usrr, srvr, device))
 
 		await assertSessions(devices, true)
 

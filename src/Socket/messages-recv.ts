@@ -164,10 +164,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
 
 		const encKey = randomBytes(32)
-		const usrr = ToJidm.split('@')[0]
-		const srvr = ToJidm.split('@')[1]
+		const usrr = toJid.split('@')[0]
+		const srvr = toJid.split('@')[1]
 
-		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(usrr, srvr, device))
+		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(user, srvr, device))
 
 		await assertSessions(devices, true)
 
