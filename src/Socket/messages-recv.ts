@@ -167,7 +167,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const usrr = toJid.split('@')[0]
 		const srvr = toJid.split('@')[1]
 
-		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(user, srvr, device))
+		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => toJid)
 
 		await assertSessions(devices, true)
 
