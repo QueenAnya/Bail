@@ -139,88 +139,63 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	/** Fetch all the devices we've to send a message to */
-	const getUSyncDevices = async (
-	jids: string[],
-	useCache: boolean,
-	ignoreZeroDevices: boolean
-): Promise<JidWithDevice[]> => {
-	const deviceResults: JidWithDevice[] = []
+	const getUSyncDevices = async (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => {
+		const deviceResults: JidWithDevice[] = []
 
-	if (!useCache) {
-		logger.debug('Not using cache for devices')
-	}
-
-	const toFetch: string[] = []
-	jids = Array.from(new Set(jids)) // remove duplicates
-
-	for (let jid of jids) {
-		const decoded = jidDecode(jid)
-
-		if (!decoded || !decoded.user) {
-			logger.warn(`Failed to decode or extract user from JID: ${jid}`)
-			continue // skip if invalid
+		if (!useCache) {
+			logger.debug('not using cache for devices')
 		}
 
-		const user = decoded.user
-		jid = jidNormalizedUser(jid)
+		const toFetch: string[] = []
+		jids = Array.from(new Set(jids))
 
-		if (useCache) {
-			try {
-				const devices = userDevicesCache.get<JidWithDevice[]>(user)
+		for (let jid of jids) {
+			const user = jidDecode(jid)?.user
+			jid = jidNormalizedUser(jid)
+			if (useCache) {
+				const devices = userDevicesCache.get<JidWithDevice[]>(user!)
 				if (devices) {
 					deviceResults.push(...devices)
-					logger.trace({ user }, 'Using cache for devices')
+
+					logger.trace({ user }, 'using cache for devices')
 				} else {
 					toFetch.push(jid)
 				}
-			} catch (err) {
-				logger.error({ err, user }, 'Error accessing device cache')
+			} else {
 				toFetch.push(jid)
 			}
-		} else {
-			toFetch.push(jid)
 		}
-	}
 
-	if (!toFetch.length) {
-		return deviceResults
-	}
+		if (!toFetch.length) {
+			return deviceResults
+		}
 
-	const query = new USyncQuery().withContext('message').withDeviceProtocol()
+		const query = new USyncQuery().withContext('message').withDeviceProtocol()
 
-	for (const jid of toFetch) {
-		query.withUser(new USyncUser().withId(jid))
-	}
+		for (const jid of toFetch) {
+			query.withUser(new USyncUser().withId(jid))
+		}
 
-	const result = await sock.executeUSyncQuery(query)
+		const result = await sock.executeUSyncQuery(query)
 
-	if (result) {
-		const extracted = extractDeviceJids(
-			result?.list,
-			authState.creds.me!.id,
-			ignoreZeroDevices
-		)
+		if (result) {
+			const extracted = extractDeviceJids(result?.list, authState.creds.me!.id, ignoreZeroDevices)
+			const deviceMap: { [_: string]: JidWithDevice[] } = {}
 
-		const deviceMap: { [_: string]: JidWithDevice[] } = {}
+			for (const item of extracted) {
+				deviceMap[item.user] = deviceMap[item.user] || []
+				deviceMap[item.user].push(item)
 
-		for (const item of extracted) {
-			if (!item.user || typeof item.user !== 'string') {
-				logger.warn('Invalid device entry with missing user:', item)
-				continue
+				deviceResults.push(item)
 			}
 
-			deviceMap[item.user] = deviceMap[item.user] || []
-			deviceMap[item.user].push(item)
-			deviceResults.push(item)
+			for (const key in deviceMap) {
+				userDevicesCache.set(key, deviceMap[key])
+			}
 		}
 
-		for (const key in deviceMap) {
-			userDevicesCache.set(key, deviceMap[key])
-		}
+		return deviceResults
 	}
-
-	return deviceResults
-}
 
 	const assertSessions = async(jids: string[], force: boolean) => {
 		let didFetchNewSession = false
