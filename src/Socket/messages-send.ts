@@ -150,13 +150,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		jids = Array.from(new Set(jids))
 
 		for (let jid of jids) {
-			const decoded = jidDecode(jid)
-		if (!decoded || !decoded.user) {
-			logger.warn(`Failed to decode or extract user from JID: ${jid}`)
-			continue // skip if invalid
-		}
-		const user = decoded.user
-		jid = jidNormalizedUser(jid)
+			const user = jidDecode(jid)?.user
+			jid = jidNormalizedUser(jid)
 			if (useCache) {
 				const devices = userDevicesCache.get<JidWithDevice[]>(user!)
 				if (devices) {
