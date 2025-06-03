@@ -193,8 +193,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				userDevicesCache.set(key, deviceMap[key])
 			}
 		}
-		
-		logger.debug(deviceResults);
+
 		return deviceResults
 	}
 

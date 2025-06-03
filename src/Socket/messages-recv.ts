@@ -164,7 +164,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 		const encKey = randomBytes(32)
 
-		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(user, 's.whatsapp.net', device))
+		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, server, device }) => jidEncode(user, server, device))
 
 		await assertSessions(devices, true)
 
