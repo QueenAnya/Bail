@@ -80,6 +80,7 @@ export const makeGroupsSocket = (config: SocketConfig) => {
 
 	return {
 		...sock,
+		groupQuery,
 		groupMetadata,
 		groupCreate: async(subject: string, participants: string[]) => {
 			const key = generateMessageIDV2()
@@ -328,12 +329,14 @@ export const extractGroupMetadata = (result: BinaryNode) => {
 	let desc: string | undefined
 	let descId: string | undefined
 	let descOwner: string | undefined
-	let descOwnerPn: string | undefined
+	let descOwnerLid: string | undefined
 	let descTime: number | undefined
 	if(descChild) {
 		desc = getBinaryNodeChildString(descChild, 'body')
-		descOwner = descChild.attrs.participant
-		descOwnerPn = descChild.attrs.participant_pn ? jidNormalizedUser(descChild.attrs.participant_pn) : undefined
+		descOwner = jidNormalizedUser(descChild.attrs.participant_pn || descChild.attrs.participant)
+		if(group.attrs.addressing_mode === 'lid') {
+			descOwnerLid = jidNormalizedUser(descChild.attrs.participant)
+		}
 		descId = descChild.attrs.id
 		descTime = descChild.attrs.t ? +descChild.attrs.t : undefined
 	}
@@ -346,17 +349,17 @@ export const extractGroupMetadata = (result: BinaryNode) => {
 		id: groupId,
 		addressingMode: group.attrs.addressing_mode as 'pn' | 'lid',
 		subject: group.attrs.subject,
-		subjectOwner: group.attrs.s_o,
-		subjectOwnerPn: group.attrs.s_o_pn ? jidNormalizedUser(group.attrs.s_o_pn) : undefined,
+		subjectOwner: jidNormalizedUser(group.attrs.s_o_pn || group.attrs.s_o),
+		...(group.attrs.addressing_mode === 'lid' ? { subjectOwnerLid: jidNormalizedUser(group.attrs.s_o) } : {}),
 		subjectTime: group.attrs.s_t ? +group.attrs.s_t : undefined,
 		size: groupSize || getBinaryNodeChildren(group, 'participant').length,
 		creation: group.attrs.creation ? +group.attrs.creation : undefined,
-		owner: group.attrs.creator ? jidNormalizedUser(group.attrs.creator) : undefined,
-		onwerPn: group.attrs.creator_pn ? jidNormalizedUser(group.attrs.creator_pn) : undefined,
+		owner: jidNormalizedUser(group.attrs.creator_pn || group.attrs.creator),
+		...(group.attrs.addressing_mode === 'lid' ? { ownerLid: jidNormalizedUser(group.attrs.creator) } : {}),
 		desc,
 		descId,
 		descOwner,
-		descOwnerPn,
+		descOwnerLid,
 		descTime,
 		linkedParent: getBinaryNodeChild(group, 'linked_parent')?.attrs.jid || undefined,
 		restrict: !!getBinaryNodeChild(group, 'locked'),

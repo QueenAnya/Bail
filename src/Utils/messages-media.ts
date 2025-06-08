@@ -12,7 +12,7 @@ import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto'
 import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP } from '../Defaults'
-import { BaileysEventMap, DownloadableMessage, MediaConnInfo, MediaDecryptionKeyInfo, MediaType, MessageType, SocketConfig, WAGenericMediaMessage, WAMediaPayloadURL, WAMediaUpload, WAMediaUploadFunction, WAMessageContent } from '../Types'
+import { BaileysEventMap, DownloadableMessage, MediaConnInfo, MediaDecryptionKeyInfo, MediaType, MessageType, SocketConfig, WAGenericMediaMessage, WAMediaUpload, WAMediaUploadFunction, WAMessageContent } from '../Types'
 import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary'
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto'
 import { generateMessageIDV2 } from './generics'
@@ -115,7 +115,7 @@ export const extractImageThumb = async(bufferOrFilePath: Readable | Buffer | str
 	} else if('jimp' in lib && typeof lib.jimp?.read === 'function') {
 		const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp
 
-		const jimp = await read(bufferOrFilePath as string)
+		const jimp = await read(bufferOrFilePath as any)
 		const dimensions = {
 			width: jimp.getWidth(),
 			height: jimp.getHeight()
@@ -163,76 +163,6 @@ export const generateProfilePicture = async(mediaUpload: WAMediaUpload) => {
 
 	return {
 		img: await img,
-	}
-}
-
-export const generateProfilePictureFull = async(img) => {
-	const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-	const jimp = await read(img)
-	const min = Math.min(jimp.getWidth(), jimp.getHeight())
-	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
-	let width = jimp.getWidth(),
-		hight = jimp.getHeight(),
-		ratio;
-	if (width > hight) {
-		ratio = jimp.getWidth() / 720
-	} else {
-		ratio = jimp.getWidth() / 324
-	};
-	width = width / ratio;
-	hight = hight / ratio;
-	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
-	return {
-		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG),
-	}
-}
-
-export const generateProfilePictureFP = async(buffer) => {
-	const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-    const jimp = await Jimp.read(buffer);
-    const min = jimp.getWidth();
-    const max = jimp.getHeight();
-    const cropped = jimp.crop(0, 0, min, max);
-    return {
-      img: await cropped.scaleToFit(720, 720).getBufferAsync(Jimp.MIME_JPEG),
-      preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
-    };
-}
-
-export const generatePP = async(buffer) => {
-const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-    const jimp = await Jimp.read(buffer);
-    const min = jimp.getWidth();
-    const max = jimp.getHeight();
-    const cropped = jimp.crop(0, 0, min, max);
-    return {
-      img: await cropped.scaleToFit(720, 720).getBufferAsync(Jimp.MIME_JPEG),
-      preview: await cropped.normalize().getBufferAsync(Jimp.MIME_JPEG),
-    };
-  }
-  
-  export const changeprofileFull = async(img) => {
-    const Jimp = require('jimp')
-const { read, MIME_JPEG, RESIZE_BILINEAR } = require('jimp')
-	const jimp = await read(img)
-	const min = Math.min(jimp.getWidth(), jimp.getHeight())
-	const cropped = jimp.crop(0, 0, jimp.getWidth(), jimp.getHeight())
-	let width = jimp.getWidth(),
-		hight = jimp.getHeight(),
-		ratio;
-	if (width > hight) {
-		ratio = jimp.getWidth() / 720
-	} else {
-		ratio = jimp.getWidth() / 324
-	};
-	width = width / ratio;
-	hight = hight / ratio;
-	img = cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG);
-	return {
-		img: await cropped.quality(100).resize(width, hight).getBufferAsync(MIME_JPEG),
 	}
 }
 
@@ -461,7 +391,7 @@ export const encryptedStream = async(
 	let writeStream: WriteStream | undefined
 	let didSaveToTmpPath = false
 	if(type === 'file') {
-		bodyPath = (media as WAMediaPayloadURL).url.toString()
+		bodyPath = (media as any).url
 	} else if(saveOriginalFileIfRequired) {
 		bodyPath = join(getTmpFilesDirectory(), mediaType + generateMessageIDV2())
 		writeStream = createWriteStream(bodyPath)
@@ -492,8 +422,10 @@ export const encryptedStream = async(
 			}
 
 			sha256Plain = sha256Plain.update(data)
-			if(writeStream && !writeStream.write(data)) {
-				await once(writeStream, 'drain')
+			if(writeStream) {
+				if(!writeStream.write(data)) {
+					await once(writeStream, 'drain')
+				}
 			}
 
 			onChunk(aes.update(data))

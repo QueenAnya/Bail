@@ -13,17 +13,17 @@ export interface GroupMetadata {
     /** group uses 'lid' or 'pn' to send messages */
     addressingMode: 'pn' | 'lid'
     owner: string | undefined
-    onwerPn?: string | undefined
+    ownerLid?: string | undefined
     subject: string
     /** group subject owner */
     subjectOwner?: string
-    subjectOwnerPn?: string
+    subjectOwnerLid?: string
     /** group subject modification date */
     subjectTime?: number
     creation?: number
     desc?: string
     descOwner?: string
-    descOwnerPn?: string
+    descOwnerLid?: string
     descId?: string
     descTime?: number
     /** if this group is part of a community, it returns the jid of the community to which it belongs */

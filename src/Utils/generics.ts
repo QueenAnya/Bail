@@ -5,7 +5,7 @@ import { platform, release } from 'os'
 import { ILogger } from './logger'
 import { proto } from '../../WAProto'
 import { version as baileysVersion } from '../Defaults/baileys-version.json'
-import { BaileysEventEmitter, BaileysEventMap, BrowsersMap, ConnectionState, DisconnectReason, WACallUpdateType, WAVersion } from '../Types'
+import { BaileysEventEmitter, BaileysEventMap, BrowsersMap, DisconnectReason, WACallUpdateType, WAVersion } from '../Types'
 import { BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 
 const COMPANION_PLATFORM_MAP = {
@@ -27,19 +27,17 @@ const PLATFORM_MAP = {
 }
 
 export const Browsers: BrowsersMap = {
-	ubuntu: (browser) => ['Ubuntu', browser, '24.04.1'],
+	ubuntu: (browser) => ['Ubuntu', browser, '22.04.4'],
 	macOS: (browser) => ['Mac OS', browser, '14.4.1'],
-	baileys: (browser) => ['Baileys', browser, '6.7.9'],
+	baileys: (browser) => ['Baileys', browser, '6.5.0'],
 	windows: (browser) => ['Windows', browser, '10.0.22631'],
-	// iOS: (browser) => ['iOS', browser, '18.1'],
 	/** The appropriate browser based on your OS & release */
 	appropriate: (browser) => [ PLATFORM_MAP[platform()] || 'Ubuntu', browser, release() ]
 }
 
-/** Other Browser Support for Paircode */
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()]
-	return platformType ? platformType.toString() : '51' // Firefox
+	return platformType ? platformType.toString() : '49' //chrome
 }
 
 export const BufferJSON = {
@@ -62,7 +60,7 @@ export const BufferJSON = {
 
 export const getKeyAuthor = (
 	key: proto.IMessageKey | undefined | null,
-	meId = 'me'
+	meId: string = 'me'
 ) => (
 	(key?.fromMe ? meId : key?.participant || key?.remoteJid) || ''
 )
@@ -116,14 +114,14 @@ export const encodeBigEndian = (e: number, t = 4) => {
 	return a
 }
 
-export const toNumber = (t: Long | number | null | undefined): number => ((typeof t === 'object' && t) ? ('toNumber' in t ? t.toNumber() : (t as Long).low) : t || 0)
+export const toNumber = (t: Long | number | null | undefined): number => ((typeof t === 'object' && t) ? ('toNumber' in t ? t.toNumber() : (t as any).low) : t || 0)
 
 /** unix timestamp of a date in seconds */
 export const unixTimestampSeconds = (date: Date = new Date()) => Math.floor(date.getTime() / 1000)
 
 export type DebouncedTimeout = ReturnType<typeof debouncedTimeout>
 
-export const debouncedTimeout = (intervalMs = 1000, task?: () => void) => {
+export const debouncedTimeout = (intervalMs: number = 1000, task?: () => void) => {
 	let timeout: NodeJS.Timeout | undefined
 	return {
 		start: (newIntervalMs?: number, newTask?: () => void) => {
@@ -208,16 +206,16 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 18)
+	return '3EB0' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase()
+export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async(check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
 		let listener: (item: BaileysEventMap[T]) => void
-		let closeListener: (state: Partial<ConnectionState>) => void
+		let closeListener: any
 		await (
 			promiseTimeout<void>(
 				timeoutMs,
@@ -292,64 +290,6 @@ export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> 
 }
 
 /**
- * utility that fetches latest baileys version from the main branch.
- * Use to ensure your WA connection is always on the latest version
- */
- export const fetchLatestBaileysVersion3 = async(options: AxiosRequestConfig<any> = { }) => {
-	try {
-		const result = await axios.get(
-			'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json',
-			{
-				...options,
-				responseType: 'json'
-			}
-		)
-		
-		const version = result.data.versions[result.data.versions.length - 1].version.split('.')
-		const version2 = version[2].replace('-alpha', '');
-		return {
-			version: [+version[0], +version[1], +version2],
-			isLatest: true
-		}
-	} catch(error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
-	}
-}
-
-/**
- * utility that fetches latest baileys version from the master branch.
- * Use to ensure your WA connection is always on the latest version
- */
- 
-export const fetchLatestBaileysVersion2 = async(options: AxiosRequestConfig<any> = { }) => {
-  
-	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json'
-	try {
-		const result = await axios.get<{ version: WAVersion }>(
-			URL,
-			{
-				...options,
-				responseType: 'json'
-			}
-		)
-		return {
-			version: result.data.version,
-			isLatest: true
-		}
-	} catch(error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
-	}
-}
-
-/**
  * A utility that fetches the latest web version of whatsapp.
  * Use to ensure your WA connection is always on the latest version
  */
@@ -364,7 +304,6 @@ export const fetchLatestWaWebVersion = async(options: AxiosRequestConfig<{}>) =>
 		)
 
 		const regex = /\\?"client_revision\\?":\s*(\d+)/
-		const regexx = /\\?"server_revision\\?":\s*(\d+)/
 		const match = data.match(regex)
 
 		if(!match?.[1]) {
@@ -497,7 +436,7 @@ export const isWABusinessPlatform = (platform: string) => {
 	return platform === 'smbi' || platform === 'smba'
 }
 
-export function trimUndefined(obj: {[_: string]: any}) {
+export function trimUndefined(obj: any) {
 	for(const key in obj) {
 		if(typeof obj[key] === 'undefined') {
 			delete obj[key]
@@ -514,8 +453,8 @@ export function bytesToCrockford(buffer: Buffer): string {
 	let bitCount = 0
 	const crockford: string[] = []
 
-	for(const element of buffer) {
-		value = (value << 8) | (element & 0xff)
+	for(let i = 0; i < buffer.length; i++) {
+		value = (value << 8) | (buffer[i] & 0xff)
 		bitCount += 8
 
 		while(bitCount >= 5) {

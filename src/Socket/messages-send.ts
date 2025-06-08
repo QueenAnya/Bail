@@ -4,13 +4,55 @@ import NodeCache from '@cacheable/node-cache'
 import { Readable } from 'stream'
 import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
-import { AnyMessageContent, MediaConnInfo, MessageReceiptType, MessageRelayOptions, MiscMessageGenerationOptions, SocketConfig, WAMediaUploadFunctionOpts, WAMessageKey } from '../Types'
-import { aggregateMessageKeysNotFromMe, assertMediaContent, bindWaitForEvent, decryptMediaRetryData, encodeNewsletterMessage, encodeSignedDeviceIdentity, encodeWAMessage, encryptMediaRetryRequest, extractDeviceJids, generateMessageID, generateMessageIDV2, generateWAMessage, getStatusCodeForMediaRetry, getUrlFromDirectPath, getWAUploadToServer, normalizeMessageContent, parseAndInjectE2ESessions, unixTimestampSeconds } from '../Utils'
+import {
+	AnyMessageContent,
+	MediaConnInfo,
+	MessageReceiptType,
+	MessageRelayOptions,
+	MiscMessageGenerationOptions,
+	SocketConfig,
+	WAMediaUploadFunctionOpts,
+	WAMessageKey
+} from '../Types'
+import { 
+	aggregateMessageKeysNotFromMe,
+	assertMediaContent,
+	bindWaitForEvent,
+	decryptMediaRetryData,
+	encodeNewsletterMessage,
+	encodeSignedDeviceIdentity,
+	encodeWAMessage,
+	encryptMediaRetryRequest,
+	extractDeviceJids,
+	generateMessageID,
+	generateMessageIDV2,
+	generateWAMessage,
+	getContentType,
+	getStatusCodeForMediaRetry,
+	getUrlFromDirectPath,
+	getWAUploadToServer,
+	normalizeMessageContent,
+	parseAndInjectE2ESessions,
+	unixTimestampSeconds
+} from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
-import { areJidsSameUser, BinaryNode, BinaryNodeAttributes, getBinaryNodeChild, getBinaryNodeChildren, getBotJid, isJidGroup, isJidNewsletter, isJidUser, jidDecode, jidEncode, jidNormalizedUser, JidWithDevice, S_WHATSAPP_NET } from '../WABinary'
+import {
+	areJidsSameUser,
+	BinaryNode,
+	BinaryNodeAttributes,
+	getBinaryNodeChild,
+	getBinaryNodeChildren,
+	isJidGroup,
+	isJidNewsletter,
+	isJidUser,
+	jidDecode,
+	jidEncode,
+	jidNormalizedUser,
+	JidWithDevice,
+	S_WHATSAPP_NET
+} from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
-import ListType = proto.Message.ListMessage.ListType;
 
 export const makeMessagesSocket = (config: SocketConfig) => {
 	const {
@@ -75,9 +117,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	/**
-     * generic send receipt function
-     * used for receipts of phone call, read, delivery etc.
-     * */
+	 * generic send receipt function
+	 * used for receipts of phone call, read, delivery etc.
+	 * */
 	const sendReceipt = async(jid: string, participant: string | undefined, messageIds: string[], type: MessageReceiptType) => {
 		const node: BinaryNode = {
 			tag: 'receipt',
@@ -122,16 +164,16 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		await sendNode(node)
 	}
 
-		/** Correctly bulk send receipts to multiple chats, participants */
-	const sendReceipts = async (keys: WAMessageKey[], type: MessageReceiptType) => {
+	/** Correctly bulk send receipts to multiple chats, participants */
+	const sendReceipts = async(keys: WAMessageKey[], type: MessageReceiptType) => {
 		const recps = aggregateMessageKeysNotFromMe(keys)
-		for (const { jid, participant, messageIds } of recps) {
+		for(const { jid, participant, messageIds } of recps) {
 			await sendReceipt(jid, participant, messageIds, type)
 		}
 	}
 
 	/** Bulk read messages. Keys can be from different chats & participants */
-	const readMessages = async (keys: WAMessageKey[]) => {
+	const readMessages = async(keys: WAMessageKey[]) => {
 		const privacySettings = await fetchPrivacySettings()
 		// based on privacy settings, we have to change the read type
 		const readType = privacySettings.readreceipts === 'all' ? 'read' : 'read-self'
@@ -139,22 +181,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	/** Fetch all the devices we've to send a message to */
-	const getUSyncDevices = async (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => {
+	const getUSyncDevices = async(jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => {
 		const deviceResults: JidWithDevice[] = []
 
-		if (!useCache) {
+		if(!useCache) {
 			logger.debug('not using cache for devices')
 		}
 
 		const toFetch: string[] = []
 		jids = Array.from(new Set(jids))
 
-		for (let jid of jids) {
+		for(let jid of jids) {
 			const user = jidDecode(jid)?.user
 			jid = jidNormalizedUser(jid)
-			if (useCache) {
+			if(useCache) {
 				const devices = userDevicesCache.get<JidWithDevice[]>(user!)
-				if (devices) {
+				if(devices) {
 					deviceResults.push(...devices)
 
 					logger.trace({ user }, 'using cache for devices')
@@ -166,35 +208,36 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 		}
 
-		if (!toFetch.length) {
+		if(!toFetch.length) {
 			return deviceResults
 		}
 
-		const query = new USyncQuery().withContext('message').withDeviceProtocol()
+		const query = new USyncQuery()
+			.withContext('message')
+			.withDeviceProtocol()
 
-		for (const jid of toFetch) {
+		for(const jid of toFetch) {
 			query.withUser(new USyncUser().withId(jid))
 		}
 
 		const result = await sock.executeUSyncQuery(query)
 
-		if (result) {
+		if(result) {
 			const extracted = extractDeviceJids(result?.list, authState.creds.me!.id, ignoreZeroDevices)
 			const deviceMap: { [_: string]: JidWithDevice[] } = {}
 
-			for (const item of extracted) {
+			for(const item of extracted) {
 				deviceMap[item.user] = deviceMap[item.user] || []
 				deviceMap[item.user].push(item)
 
 				deviceResults.push(item)
 			}
 
-			for (const key in deviceMap) {
+			for(const key in deviceMap) {
 				userDevicesCache.set(key, deviceMap[key])
 			}
 		}
-		
-		logger.debug(deviceResults);
+
 		return deviceResults
 	}
 
@@ -261,7 +304,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				type: proto.Message.ProtocolMessage.Type.PEER_DATA_OPERATION_REQUEST_MESSAGE
 			}
 		}
-		const meJid = jidNormalizedUser(authState.creds.me.id)
+		const meJid = jidNormalizedUser(authState.creds.me.id)!
 		const msgId = await relayMessage(meJid, protocolMessage, {
 			additionalAttributes: {
 				category: 'peer',
@@ -279,16 +322,16 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	) => {
 		let patched = await patchMessageBeforeSending(message, jids)
 		if(!Array.isArray(patched)) {
-		  patched = jids ? jids.map(jid => ({ recipientJid: jid, ...patched })) : [patched]
+			patched = jids ? jids.map(jid => ({ recipientJid: jid, ...patched })) : [patched]
 		}
 
 		let shouldIncludeDeviceIdentity = false
 		const nodes = await Promise.all(
 			patched.map(
 				async patchedMessageWithJid => {
-				  const { recipientJid: jid, ...patchedMessage } = patchedMessageWithJid
-				  if(!jid) {
-					  return {} as BinaryNode
+					const { recipientJid: jid, ...patchedMessage } = patchedMessageWithJid
+					if(!jid) {
+						return {} as BinaryNode
 					}
 					const bytes = encodeWAMessage(patchedMessage)
 					const { type, ciphertext } = await signalRepository
@@ -417,7 +460,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					const patched = await patchMessageBeforeSending(message)
 
 					if(Array.isArray(patched)) {
-					  throw new Boom('Per-jid patching is not supported in groups')
+						throw new Boom('Per-jid patching is not supported in groups')
 					}
 
 					const bytes = encodeWAMessage(patched)
@@ -469,14 +512,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 					await authState.keys.set({ 'sender-key-memory': { [jid]: senderKeyMap } })
 				} else if(isNewsletter) {
-				    // Message edit
-					if (message.protocolMessage?.editedMessage) {
+					// Message edit
+					if(message.protocolMessage?.editedMessage) {
 						msgId = message.protocolMessage.key?.id!
 						message = message.protocolMessage.editedMessage
 					}
 
 					// Message delete
-					if (message.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE) {
+					if(message.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE) {
 						msgId = message.protocolMessage.key?.id!
 						message = {}
 					}
@@ -484,7 +527,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					const patched = await patchMessageBeforeSending(message, [])
 
 					if(Array.isArray(patched)) {
-					  throw new Boom('Per-jid patching is not supported in channel')
+						throw new Boom('Per-jid patching is not supported in channel')
 					}
 
 					const bytes = encodeNewsletterMessage(patched)
@@ -495,15 +538,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						content: bytes
 					})
 				} else {
-					const { user: meUser } = jidDecode(meId)!
+					const { user: meUser, device: meDevice } = jidDecode(meId)!
 
 					if(!participant) {
 						devices.push({ user })
-						if(user !== meUser) {
-							devices.push({ user: meUser })
-						}
-
-						if(additionalAttributes?.['category'] !== 'peer') {
+						// do not send message to self if the device is 0 (mobile)
+						if(!(additionalAttributes?.['category'] === 'peer' && user === meUser)) {
+							if(meDevice !== undefined && meDevice !== 0) {
+								devices.push({ user: meUser })
+							}
 							const additionalDevices = await getUSyncDevices([ meId, jid ], !!useUserDevicesCache, true)
 							devices.push(...additionalDevices)
 						}
@@ -590,30 +633,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					logger.debug({ jid }, 'adding device identity')
 				}
 
-				const buttonType = getButtonType(message)
-				if(buttonType) {
-					(stanza.content as BinaryNode[]).push({
-						tag: 'biz',
-						attrs: { },
-						content: [
-							{
-								tag: buttonType,
-								attrs: getButtonArgs(message),
-							}
-						]
-					})
-
-					logger.debug({ jid }, 'adding business node')
+				if(additionalNodes && additionalNodes.length > 0) {
+					(stanza.content as BinaryNode[]).push(...additionalNodes);
 				}
 
-				if(additionalNodes && additionalNodes.length > 0) {
-                   (stanza.content as BinaryNode[]).push(...additionalNodes);
-				} else {
-				   if((isJidGroup(jid) || isJidUser(jid)) && (message?.viewOnceMessage?.message?.interactiveMessage || message?.viewOnceMessageV2?.message?.interactiveMessage || message?.viewOnceMessageV2Extension?.message?.interactiveMessage || message?.interactiveMessage) || (message?.viewOnceMessage?.message?.buttonsMessage || message?.viewOnceMessageV2?.message?.buttonsMessage || message?.viewOnceMessageV2Extension?.message?.buttonsMessage || message?.buttonsMessage)) {
-					(stanza.content as BinaryNode[]).push({
-						tag: 'biz',
-						attrs: {},
-						content: [{
+				const content = normalizeMessageContent(message)!
+				const contentType = getContentType(content)!
+
+				if((isJidGroup(jid) || isJidUser(jid)) && (
+					contentType === 'interactiveMessage' ||
+					contentType === 'buttonsMessage' ||
+					contentType === 'listMessage'
+				)) {
+					const bizNode: BinaryNode = { tag: 'biz', attrs: {} }
+
+					if((message?.viewOnceMessage?.message?.interactiveMessage || message?.viewOnceMessageV2?.message?.interactiveMessage || message?.viewOnceMessageV2Extension?.message?.interactiveMessage || message?.interactiveMessage) || (message?.viewOnceMessage?.message?.buttonsMessage || message?.viewOnceMessageV2?.message?.buttonsMessage || message?.viewOnceMessageV2Extension?.message?.buttonsMessage || message?.buttonsMessage)) {
+						bizNode.content = [{
 							tag: 'interactive',
 							attrs: {
 								type: 'native_flow',
@@ -621,11 +656,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							},
 							content: [{
 								tag: 'native_flow',
-								attrs: { name: 'quick_reply' }
+								attrs: { v: '9', name: 'mixed' }
 							}]
 						}]
-				    });
-				  }
+					} else if(message?.listMessage) {
+						// list message only support in private chat
+						bizNode.content = [{
+							tag: 'list',
+							attrs: {
+								type: 'product_list',
+								v: '2'
+							}
+						}]
+					}
+
+					(stanza.content as BinaryNode[]).push(bizNode);
 				}
 
 				logger.debug({ msgId }, `sending message to ${participants.length} devices`)
@@ -638,28 +683,30 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	const getMessageType = (message: proto.IMessage) => {
-		if(message.pollCreationMessage || message.pollCreationMessageV2 || message.pollCreationMessageV3 || message.pollUpdateMessage) {
+		if(message.viewOnceMessage) {
+			return getMessageType(message.viewOnceMessage.message!)
+		} else if(message.pollCreationMessage || message.pollCreationMessageV2 || message.pollCreationMessageV3 || message.pollUpdateMessage) {
 			return 'poll'
 		}
 		return 'text'
 	}
 
 	const getTypeMessage = (msg: proto.IMessage) => {
-		if (msg.viewOnceMessage) {
+		if(msg.viewOnceMessage) {
 			return getTypeMessage(msg.viewOnceMessage.message!)
-		} else if (msg.viewOnceMessageV2) {
+		} else if(msg.viewOnceMessageV2) {
 			return getTypeMessage(msg.viewOnceMessageV2.message!)
-		} else if (msg.viewOnceMessageV2Extension) {
+		} else if(msg.viewOnceMessageV2Extension) {
 			return getTypeMessage(msg.viewOnceMessageV2Extension.message!)
-		} else if (msg.ephemeralMessage) {
+		} else if(msg.ephemeralMessage) {
 			return getTypeMessage(msg.ephemeralMessage.message!)
-		} else if (msg.documentWithCaptionMessage) {
+		} else if(msg.documentWithCaptionMessage) {
 			return getTypeMessage(msg.documentWithCaptionMessage.message!)
-		} else if (msg.reactionMessage) {
+		} else if(msg.reactionMessage) {
 			return 'reaction'
-		} else if (msg.pollCreationMessage || msg.pollCreationMessageV2 || msg.pollCreationMessageV3 || msg.pollUpdateMessage) {
+		} else if(msg.pollCreationMessage || msg.pollCreationMessageV2 || msg.pollCreationMessageV3 || msg.pollUpdateMessage) {
 			return 'poll'
-		} else if (getMediaType(msg)) {
+		} else if(getMediaType(msg)) {
 			return 'media'
 		} else {
 			return 'text'
@@ -667,7 +714,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	const getMediaType = (message: proto.IMessage) => {
-		if(message.imageMessage) {
+		if(message.viewOnceMessage) {
+			return getMediaType(message.viewOnceMessage.message!)
+		} else if(message.imageMessage) {
 			return 'image'
 		} else if(message.videoMessage) {
 			return message.videoMessage.gifPlayback ? 'gif' : 'video'
@@ -697,36 +746,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return 'native_flow_response'
 		} else if(message.groupInviteMessage) {
 			return 'url'
-		}
-	}
-
-	const getButtonType = (message: proto.IMessage) => {
-		if(message.buttonsMessage) {
-			return 'buttons'
-		} else if(message.buttonsResponseMessage) {
-			return 'buttons_response'
-		} else if(message.interactiveResponseMessage) {
-			return 'interactive_response'
-		} else if(message.listMessage) {
-			return 'list'
-		} else if(message.listResponseMessage) {
-			return 'list_response'
-		}
-	}
-
-	const getButtonArgs = (message: proto.IMessage): BinaryNode['attrs'] => {
-		if(message.templateMessage) {
-			// TODO: Add attributes
-			return {}
-		} else if(message.listMessage) {
-			const type = message.listMessage.listType
-			if(!type) {
-				throw new Boom('Expected list type inside message')
-			}
-
-			return { v: '2', type: ListType[type].toLowerCase() }
-		} else {
-			return {}
 		}
 	}
 
@@ -771,10 +790,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		relayMessage,
 		sendReceipt,
 		sendReceipts,
-		getButtonArgs,
 		readMessages,
 		refreshMediaConn,
-	        waUploadToServer,
+		waUploadToServer,
 		fetchPrivacySettings,
 		getUSyncDevices,
 		createParticipantNodes,
@@ -848,9 +866,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
 			} else {
-				if (jid.endsWith('@bot')) {
-					jid = getBotJid(jid);
-				}
 				let mediaHandle
 				const fullMsg = await generateWAMessage(
 					jid,
@@ -927,7 +942,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				if (mediaHandle) {
+				if(mediaHandle) {
 					additionalAttributes['media_id'] = mediaHandle
 				}
 
