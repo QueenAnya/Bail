@@ -42,14 +42,17 @@ export function decodeMessageNode(
 
 	const msgId = stanza.attrs.id
 	const from = stanza.attrs.from
+	const senderPn: string | undefined = stanza?.attrs?.sender_pn
+	const senderLid: string | undefined = stanza?.attrs?.sender_lid
 	const participant: string | undefined = stanza.attrs.participant
+	const participantLid: string | undefined = stanza?.attrs?.participant_lid
 	const recipient: string | undefined = stanza.attrs.recipient
 
 	const isMe = (jid: string) => areJidsSameUser(jid, meId)
 	const isMeLid = (jid: string) => areJidsSameUser(jid, meLid)
 
 	if(isJidUser(from) || isLidUser(from)) {
-		if (recipient && !isJidMetaAi(recipient)) {
+		if(recipient && !isJidMetaAi(recipient)) {
 			if(!isMe(from) && !isMeLid(from)) {
 				throw new Boom('receipient present, but msg not from me', { data: stanza })
 			}
@@ -98,7 +101,10 @@ export function decodeMessageNode(
 		remoteJid: chatId,
 		fromMe,
 		id: msgId,
+		senderPn,
+		senderLid,
 		participant,
+		participantLid,
 		'server_id': stanza.attrs?.server_id
 	}
 
@@ -109,7 +115,7 @@ export function decodeMessageNode(
 		broadcast: isJidBroadcast(from)
 	}
 	
-	if (msgType === 'newsletter') {
+	if(msgType === 'newsletter') {
 		fullMessage.newsletterServerId = +stanza.attrs?.server_id
 	}
 

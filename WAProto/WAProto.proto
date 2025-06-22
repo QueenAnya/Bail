@@ -1,7 +1,7 @@
 syntax = "proto3";
 package proto;
 
-/// WhatsApp Version: 2.3000.1023443745
+/// WhatsApp Version: 2.3000.1023888953
 
 message ADVDeviceIdentity {
     optional uint32 rawId = 1;
@@ -52,6 +52,7 @@ message AIRichResponseMessage {
     optional AIRichResponseMessageType messageType = 1;
     repeated AIRichResponseSubMessage submessages = 2;
     optional AIRichResponseUnifiedResponse unifiedResponse = 3;
+    optional ContextInfo contextInfo = 4;
     message AIRichResponseCodeMetadata {
         optional string codeLanguage = 1;
         repeated AIRichResponseCodeBlock codeBlocks = 2;
@@ -192,6 +193,7 @@ message AIRichResponseMessage {
     }
     message AIRichResponseTableMetadata {
         repeated AIRichResponseTableRow rows = 1;
+        optional string title = 2;
         message AIRichResponseTableRow {
             repeated string items = 1;
             optional bool isHeading = 2;
@@ -325,6 +327,7 @@ message BotCapabilityMetadata {
         PROACTIVE_MESSAGE = 33;
         RICH_RESPONSE_UNIFIED_RESPONSE = 34;
         PROMOTION_MESSAGE = 35;
+        SIMPLIFIED_PROFILE_PAGE = 36;
     }
 }
 
@@ -408,6 +411,8 @@ message BotMetadata {
     optional BotQuotaMetadata botQuotaMetadata = 23;
     optional BotAgeCollectionMetadata botAgeCollectionMetadata = 24;
     optional string conversationStarterPromptId = 25;
+    optional string botResponseId = 26;
+    optional BotSignatureVerificationMetadata verificationMetadata = 27;
 }
 
 enum BotMetricsEntryPoint {
@@ -626,6 +631,20 @@ enum BotSessionSource {
     EMU_FLASH_FOLLOWUP = 5;
     VOICE = 6;
 }
+message BotSignatureVerificationMetadata {
+    repeated BotSignatureVerificationUseCaseProof proofs = 1;
+}
+
+message BotSignatureVerificationUseCaseProof {
+    optional int32 version = 1;
+    optional BotSignatureUseCase useCase = 2;
+    optional bytes signature = 3;
+    optional bytes certificateChain = 4;
+    enum BotSignatureUseCase {
+        WA_BOT_MSG = 0;
+    }
+}
+
 message BotSourcesMetadata {
     repeated BotSourceItem sources = 1;
     message BotSourceItem {
@@ -771,6 +790,7 @@ message Citation {
 message ClientPairingProps {
     optional bool isChatDbLidMigrated = 1;
     optional bool isSyncdPureLidSession = 2;
+    optional bool isSyncdSnapshotRecoveryEnabled = 3;
 }
 
 message ClientPayload {
@@ -2425,6 +2445,16 @@ message Message {
         optional Message.PaymentLinkMetadata paymentLinkMetadata = 1;
         optional Message.URLMetadata urlMetadata = 2;
         optional uint32 fbExperimentId = 3;
+        optional uint32 linkMediaDuration = 4;
+        optional SocialMediaPostType socialMediaPostType = 5;
+        enum SocialMediaPostType {
+            NONE = 0;
+            REEL = 1;
+            LIVE_VIDEO = 2;
+            LONG_VIDEO = 3;
+            SINGLE_IMAGE = 4;
+            CAROUSEL = 5;
+        }
     }
     
     message ListMessage {
@@ -2673,6 +2703,11 @@ message Message {
             optional FullHistorySyncOnDemandRequestResponse fullHistorySyncOnDemandRequestResponse = 6;
             optional CompanionMetaNonceFetchResponse companionMetaNonceFetchRequestResponse = 7;
             optional SyncDSnapshotFatalRecoveryResponse syncdSnapshotFatalRecoveryResponse = 8;
+            optional CompanionCanonicalUserNonceFetchResponse companionCanonicalUserNonceFetchRequestResponse = 9;
+            message CompanionCanonicalUserNonceFetchResponse {
+                optional string nonce = 1;
+            }
+            
             message CompanionMetaNonceFetchResponse {
                 optional string nonce = 1;
             }
@@ -2739,6 +2774,7 @@ message Message {
         FULL_HISTORY_SYNC_ON_DEMAND = 6;
         COMPANION_META_NONCE_FETCH = 7;
         COMPANION_SYNCD_SNAPSHOT_FATAL_RECOVERY = 8;
+        COMPANION_CANONICAL_USER_NONCE_FETCH = 9;
     }
     message PinInChatMessage {
         optional MessageKey key = 1;
@@ -3187,6 +3223,7 @@ message MessageAssociation {
         MOTION_PHOTO = 12;
         STATUS_LINK_ACTION = 13;
         VIEW_ALL_REPLIES = 14;
+        STATUS_ADD_YOURS_AI_IMAGINE = 15;
     }
 }
 
@@ -3723,6 +3760,7 @@ message StatusAttribution {
         StatusAttribution.StatusReshare statusReshare = 3;
         StatusAttribution.ExternalShare externalShare = 4;
         StatusAttribution.Music music = 5;
+        StatusAttribution.GroupStatus groupStatus = 6;
     }
     message ExternalShare {
         optional string actionUrl = 1;
@@ -3735,7 +3773,13 @@ message StatusAttribution {
             FACEBOOK = 2;
             MESSENGER = 3;
             SPOTIFY = 4;
+            YOUTUBE = 5;
+            PINTEREST = 6;
         }
+    }
+    
+    message GroupStatus {
+        optional string authorJid = 1;
     }
     
     message Music {
@@ -3769,6 +3813,8 @@ message StatusAttribution {
         RESHARE = 0;
         EXTERNAL_SHARE = 1;
         MUSIC = 2;
+        STATUS_MENTION = 3;
+        GROUP_STATUS = 4;
     }
 }
 
@@ -3862,6 +3908,7 @@ message SyncActionValue {
     optional CtwaPerCustomerDataSharingAction ctwaPerCustomerDataSharingAction = 62;
     optional PaymentTosAction paymentTosAction = 63;
     optional PrivacySettingChannelsPersonalisedRecommendationAction privacySettingChannelsPersonalisedRecommendationAction = 64;
+    optional BusinessBroadcastAssociationAction businessBroadcastAssociationAction = 65;
     message AgentAction {
         optional string name = 1;
         optional int32 deviceID = 2;
@@ -3879,6 +3926,10 @@ message SyncActionValue {
     
     message BotWelcomeRequestAction {
         optional bool isSent = 1;
+    }
+    
+    message BusinessBroadcastAssociationAction {
+        optional bool deleted = 1;
     }
     
     message CallLogAction {

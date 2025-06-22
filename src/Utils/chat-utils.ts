@@ -1,14 +1,34 @@
 import { Boom } from '@hapi/boom'
 import { AxiosRequestConfig } from 'axios'
 import { proto } from '../../WAProto'
-import { BaileysEventEmitter, Chat, ChatModification, ChatMutation, ChatUpdate, Contact, InitialAppStateSyncOptions, LastMessageList, LTHashState, WAPatchCreate, WAPatchName } from '../Types'
+import {
+	BaileysEventEmitter,
+	Chat,
+	ChatModification,
+	ChatMutation,
+	ChatUpdate,
+	Contact,
+	InitialAppStateSyncOptions,
+	LastMessageList,
+	LTHashState,
+	WAPatchCreate,
+	WAPatchName
+} from '../Types'
+import {
+	BinaryNode,
+	getBinaryNodeChild,
+	getBinaryNodeChildren,
+	isJidGroup,
+	isJidUser,
+	jidNormalizedUser
+} from '../WABinary'
+
 import { ChatLabelAssociation, LabelAssociationType, MessageLabelAssociation } from '../Types/LabelAssociation'
-import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, isJidGroup, jidNormalizedUser } from '../WABinary'
 import { aesDecrypt, aesEncrypt, hkdf, hmacSign } from './crypto'
 import { toNumber } from './generics'
 import { ILogger } from './logger'
 import { LT_HASH_ANTI_TAMPERING } from './lt-hash'
-import { downloadContentFromMessage, } from './messages-media'
+import { downloadContentFromMessage } from './messages-media'
 
 type FetchAppStateSyncKey = (keyId: string) => Promise<proto.Message.IAppStateSyncKeyData | null | undefined>
 
@@ -779,7 +799,7 @@ export const processSyncAction = (
 			]
 		})
 	} else if(action?.contactAction) {
-		ev.emit('contacts.upsert', [{ id, name: action.contactAction.fullName!, lid: action.contactAction.lidJid!, pn: action.contactAction.pnJid! }])
+		ev.emit('contacts.upsert', [{ id, name: action.contactAction.fullName!, lid: action.contactAction.lidJid || undefined, jid: isJidUser(id) ? id : action.contactAction.pnJid! }])
 	} else if(action?.pushNameSetting) {
 		const name = action?.pushNameSetting?.name
 		if(name && me?.name !== name) {

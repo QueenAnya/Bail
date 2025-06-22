@@ -31,7 +31,7 @@ export const REGISTRATION_PUBLIC_KEY = Buffer.from([
 	34, 251, 111, 18, 37, 18, 48, 45,
 ])
 export const NOISE_MODE = 'Noise_XX_25519_AESGCM_SHA256\0\0\0\0'
-export const DICT_VERSION = 2
+export const DICT_VERSION = 3
 export const KEY_BUNDLE_TYPE = Buffer.from([5])
 export const NOISE_WA_HEADER = Buffer.from(
 	[ 87, 65, 6, DICT_VERSION ]

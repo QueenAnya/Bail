@@ -601,7 +601,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					tag: 'message',
 					attrs: {
 						id: msgId!,
-						type: isNewsletter ? getTypeMessage(message) : getMessageType(message),
+						type: isNewsletter ? getTypeMessage(message) : 'text',
 						...(additionalAttributes || {})
 					},
 					content: binaryNodeContent
@@ -682,15 +682,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		return msgId
 	}
 
-	const getMessageType = (message: proto.IMessage) => {
-		if(message.viewOnceMessage) {
-			return getMessageType(message.viewOnceMessage.message!)
-		} else if(message.pollCreationMessage || message.pollCreationMessageV2 || message.pollCreationMessageV3 || message.pollUpdateMessage) {
-			return 'poll'
-		}
-		return 'text'
-	}
-
 	const getTypeMessage = (msg: proto.IMessage) => {
 		if(msg.viewOnceMessage) {
 			return getTypeMessage(msg.viewOnceMessage.message!)
@@ -714,9 +705,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	const getMediaType = (message: proto.IMessage) => {
-		if(message.viewOnceMessage) {
-			return getMediaType(message.viewOnceMessage.message!)
-		} else if(message.imageMessage) {
+		if(message.imageMessage) {
 			return 'image'
 		} else if(message.videoMessage) {
 			return message.videoMessage.gifPlayback ? 'gif' : 'video'
@@ -854,6 +843,19 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			options: MiscMessageGenerationOptions = { }
 		) => {
 			const userJid = authState.creds.me!.id
+			if(!options.ephemeralExpiration) {
+				if(isJidGroup(jid)) {
+					const groups = await sock.groupQuery(jid, 'get', [{
+						tag: 'query',
+						attrs: {
+							request: 'interactive'
+						}
+					}])
+					const metadata = getBinaryNodeChild(groups, 'group')
+					const expiration = getBinaryNodeChild(metadata, 'ephemeral')?.attrs?.expiration || 0
+					options.ephemeralExpiration = expiration
+				}
+			}
 			if(
 				typeof content === 'object' &&
 				'disappearingMessagesInChat' in content &&

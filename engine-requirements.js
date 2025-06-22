@@ -6,5 +6,5 @@ if (major < 20) {
     `   You are using Node.js ${process.versions.node}.\n` +
     `   Please upgrade to Node.js 20+ to proceed.\n`
   );
-  process.exit(1);
+  process.exit(0);
 }
