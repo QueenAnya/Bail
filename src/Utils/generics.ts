@@ -1,7 +1,6 @@
 import { Boom } from '@hapi/boom'
 import axios, { AxiosRequestConfig } from 'axios'
 import { createHash, randomBytes } from 'crypto'
-import os from 'os'
 import { platform, release } from 'os'
 import { ILogger } from './logger'
 import { proto } from '../../WAProto'
@@ -10,122 +9,35 @@ import { BaileysEventEmitter, BaileysEventMap, BrowsersMap, DisconnectReason, WA
 import { BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 
 const COMPANION_PLATFORM_MAP = {
-'Chrome': '49',
-'Edge': '50',
-'Firefox': '51',
-'Opera': '53',
-'Safari': '54',
-'Brave': '1.79.112',
-'Vivaldi': '6.2.3105.58',
-'Tor': '12.5.3',
-'Yandex': '23.7.1',
-'Falkon': '22.08.3',
-'Epiphany': '44.2'
+	'Chrome': '49',
+	'Edge': '50',
+	'Firefox': '51',
+	'Opera': '53',
+	'Safari': '54'
 }
+
 const PLATFORM_MAP = {
-'aix': 'AIX',
-'darwin': 'Mac OS',
-'win32': 'Windows',
-'android': 'Android',
-'freebsd': 'FreeBSD',
-'openbsd': 'OpenBSD',
-'sunos': 'Solaris',
-'linux': 'Linux',
-'ubuntu': 'Ubuntu',
-'ios': 'iOS',
-'baileys': 'Baileys', 
-'chromeos': 'Chrome OS',
-'tizen': 'Tizen',
-'watchos': 'watchOS',
-'wearos': 'Wear OS',
-'harmonyos': 'HarmonyOS',
-'kaios': 'KaiOS',
-'smarttv': 'Smart TV',
-'raspberrypi': 'Raspberry Pi OS',
-'symbian': 'Symbian',
-'blackberry': 'Blackberry OS',
-'windowsphone': 'Windows Phone'
-}
-const PLATFORM_VERSIONS = {
-'ubuntu': '22.04.4',
-'darwin': '14.4.1', 
-'win32': '10.0.22631', 
-'android': '14.0.0',
-'freebsd': '13.2',
-'openbsd': '7.3',
-'sunos': '11',
-'linux': '6.5',
-'ios': '18.2',
-'baileys': '6.5.0', 
-'chromeos': '117.0.5938.132',
-'tizen': '6.5',
-'watchos': '10.1',
-'wearos': '4.1',
-'harmonyos': '4.0.0',
-'kaios': '3.1',
-'smarttv': '23.3.1',
-'raspberrypi': '11 (Bullseye)',
-'symbian': '3',
-'blackberry': '10.3.3',
-'windowsphone': '8.1'
+	'aix': 'AIX',
+	'darwin': 'Mac OS',
+	'win32': 'Windows',
+	'android': 'Android',
+	'freebsd': 'FreeBSD',
+	'openbsd': 'OpenBSD',
+	'sunos': 'Solaris'
 }
 
 export const Browsers: BrowsersMap = {
-	ubuntu: (browser) => ['Ubuntu', browser, '24.04.1'],
+	ubuntu: (browser) => ['Ubuntu', browser, '22.04.4'],
 	macOS: (browser) => ['Mac OS', browser, '14.4.1'],
-	baileys: (browser) => ['Baileys', browser, '6.7.9'],
+	baileys: (browser) => ['Baileys', browser, '6.5.0'],
 	windows: (browser) => ['Windows', browser, '10.0.22631'],
-	// iOS: (browser) => ['iOS', browser, '18.1'],
 	/** The appropriate browser based on your OS & release */
 	appropriate: (browser) => [ PLATFORM_MAP[platform()] || 'Ubuntu', browser, release() ]
 }
 
-export const Browserrs = {
-ubuntu: (browser) => {
-return [PLATFORM_MAP['ubuntu'], browser, PLATFORM_VERSIONS['ubuntu']]
-},
-macOS: (browser) => {
-return [PLATFORM_MAP['darwin'], browser, PLATFORM_VERSIONS['darwin']]
-},
-windows: (browser) => {
-return [PLATFORM_MAP['win32'], browser, PLATFORM_VERSIONS['win32']]
-},
-linux: (browser) => {
-return [PLATFORM_MAP['linux'], browser, PLATFORM_VERSIONS['linux']]
-},
-solaris: (browser) => {
-return [PLATFORM_MAP['sunos'], browser, PLATFORM_VERSIONS['sunos']]
-},
-baileys: (browser) => {
-return [PLATFORM_MAP['baileys'], browser, PLATFORM_VERSIONS['baileys']]
-},
-android: (browser) => {
-return [PLATFORM_MAP['android'], browser, PLATFORM_VERSIONS['android']]
-},
-iOS: (browser) => {
-return [PLATFORM_MAP['ios'], browser, PLATFORM_VERSIONS['ios']]
-},
-kaiOS: (browser) => {
-return [PLATFORM_MAP['kaios'], browser, PLATFORM_VERSIONS['kaios']]
-},
-chromeOS: (browser) => {
-return [PLATFORM_MAP['chromeos'], browser, PLATFORM_VERSIONS['chromeos']]
-},
-appropriate: (browser) => {
-const platform = os.platform()
-const platformName = PLATFORM_MAP[platform] || 'Unknown OS'
-return [platformName, browser, PLATFORM_VERSIONS[platform] || 'latest']
-},
-custom: (platform, browser, version) => {
-const platformName = PLATFORM_MAP[platform.toLowerCase()] || platform
-return [platformName, browser, version || PLATFORM_VERSIONS[platform] || 'latest']
-}
-}
-
-/** Other Browser Support for Paircode */
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase()]
-	return platformType ? platformType.toString() : '51' // Firefox
+	return platformType ? platformType.toString() : '49' //chrome
 }
 
 export const BufferJSON = {
@@ -294,11 +206,11 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 18)
+	return '3EB0' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase()
+export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async(check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -378,64 +290,6 @@ export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> 
 }
 
 /**
- * utility that fetches latest baileys version from the main branch.
- * Use to ensure your WA connection is always on the latest version
- */
- export const fetchLatestBaileysVersion3 = async(options: AxiosRequestConfig<any> = { }) => {
-	try {
-		const result = await axios.get(
-			'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json',
-			{
-				...options,
-				responseType: 'json'
-			}
-		)
-		
-		const version = result.data.versions[result.data.versions.length - 1].version.split('.')
-		const version2 = version[2].replace('-alpha', '');
-		return {
-			version: [+version[0], +version[1], +version2],
-			isLatest: true
-		}
-	} catch(error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
-	}
-}
-
-/**
- * utility that fetches latest baileys version from the master branch.
- * Use to ensure your WA connection is always on the latest version
- */
- 
-export const fetchLatestBaileysVersion2 = async(options: AxiosRequestConfig<any> = { }) => {
-  
-	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json'
-	try {
-		const result = await axios.get<{ version: WAVersion }>(
-			URL,
-			{
-				...options,
-				responseType: 'json'
-			}
-		)
-		return {
-			version: result.data.version,
-			isLatest: true
-		}
-	} catch(error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
-	}
-}
-
-/**
  * A utility that fetches the latest web version of whatsapp.
  * Use to ensure your WA connection is always on the latest version
  */
@@ -450,7 +304,6 @@ export const fetchLatestWaWebVersion = async(options: AxiosRequestConfig<{}>) =>
 		)
 
 		const regex = /\\?"client_revision\\?":\s*(\d+)/
-		const regexx = /\\?"server_revision\\?":\s*(\d+)/
 		const match = data.match(regex)
 
 		if(!match?.[1]) {
