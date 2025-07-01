@@ -4,9 +4,14 @@ import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import { ALL_WA_PATCH_NAMES, BotListInfo, ChatModification, ChatMutation, LTHashState, MessageUpsertType, PresenceData, SocketConfig, WABusinessHoursConfig, WABusinessProfile, WAMediaUpload, WAMessage, WAPatchCreate, WAPatchName, WAPresence, WAPrivacyCallValue, WAPrivacyGroupAddValue, WAPrivacyMessagesValue, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '../Types'
 import { generateMessageID, chatModificationToAppPatch, ChatMutationMap, decodePatches, decodeSyncdSnapshot, encodeSyncdPatch, extractSyncdPatches, generateProfilePicture, getHistoryMsg, newLTHashState, processSyncAction } from '../Utils'
+import {
+  updateProfilePictureFull,
+  updateProfilePictureFull2
+} from './chat-set'
+
 import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
-import { BinaryNode, getBinaryNodeChildString, getBinaryNodeChild, getBinaryNodeChildren, jidNormalizedUser, reduceBinaryNodeToDictionary, S_WHATSAPP_NET } from '../WABinary'
+import { BinaryNode, getBinaryNodeChildString, getBinaryNodeChild, getBinaryNodeChildren, jidDecode, jidNormalizedUser, reduceBinaryNodeToDictionary, S_WHATSAPP_NET } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeUSyncSocket } from './usync'
 
@@ -587,15 +592,18 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			await sendNode({
 				tag: 'presence',
 				attrs: {
-					name: me.name,
+					name: me.name.replace(/@/g, ''),
 					type
 				}
 			})
 		} else {
+			const { server } = jidDecode(toJid)!
+			const isLid = server === 'lid'
+
 			await sendNode({
 				tag: 'chatstate',
 				attrs: {
-					from: me.id,
+					from: isLid ? me.lid! : me.id,
 					to: toJid!,
 				},
 				content: [
@@ -988,14 +996,12 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				)
 		}
 
-		if(receivedPendingNotifications) {
-			// if we don't have the app state key
+		if(receivedPendingNotifications && // if we don't have the app state key
 			// we keep buffering events until we finally have
 			// the key and can sync the messages
-			if(!authState.creds?.myAppStateKeyId && !config.mobile) {
-				ev.buffer()
-				needToFlushWithAppStateSync = true
-			}
+		!authState.creds?.myAppStateKeyId) {
+			ev.buffer()
+			needToFlushWithAppStateSync = true
 		}
 	})
 
@@ -1014,6 +1020,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		fetchDisappearingDuration,
 		fetchStatus,
 		updateProfilePicture,
+		updateProfilePictureFull,
+		updateProfilePictureFull2,
 		removeProfilePicture,
 		updateProfileStatus,
 		updateProfileName,

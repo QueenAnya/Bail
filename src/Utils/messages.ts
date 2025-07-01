@@ -22,12 +22,20 @@ import {
 	WAMessageContent,
 	WAMessageStatus,
 	WAProto,
-	WATextMessage,
+	WATextMessage
 } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
 import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
-import { downloadContentFromMessage, encryptedStream, generateThumbnail, getAudioDuration, getAudioWaveform, MediaDownloadOptions, prepareStream } from './messages-media'
+import {
+	downloadContentFromMessage,
+	encryptedStream,
+	generateThumbnail,
+	getAudioDuration,
+	getAudioWaveform,
+	MediaDownloadOptions,
+	prepareStream
+} from './messages-media'
 
 type MediaUploadData = {
 	media: WAMediaUpload
@@ -524,11 +532,11 @@ export const generateWAMessageContent = async(
 			// poll v2 is for community announcement groups (single select and multiple)
 			m.pollCreationMessageV2 = pollCreationMessage
 		} else {
-			if(message.poll.selectableCount > 0) {
+			if(message.poll.selectableCount === 1) {
 				// poll v3 is for single select polls
 				m.pollCreationMessageV3 = pollCreationMessage
 			} else {
-				// poll v3 for multiple choice polls
+				// poll for multiple choice polls
 				m.pollCreationMessage = pollCreationMessage
 			}
 		}
@@ -583,6 +591,14 @@ export const generateWAMessageContent = async(
 		}
 	} else if('requestPhoneNumber' in message) {
 		m.requestPhoneNumberMessage = {}
+	} else if('album' in message) {
+		const imageMessages = message.album.filter(item => 'image' in item)
+		const videoMessages = message.album.filter(item => 'video' in item)
+
+		m.albumMessage = proto.Message.AlbumMessage.fromObject({
+			expectedImageCount: imageMessages.length,
+			expectedVideoCount: videoMessages.length,
+		})
 	} else {
 		m = await prepareWAMessageMedia(
 			message,

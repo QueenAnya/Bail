@@ -15,8 +15,25 @@ import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto'
 import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP } from '../Defaults'
-import { BaileysEventMap, DownloadableMessage, MediaConnInfo, MediaDecryptionKeyInfo, MediaType, MessageType, SocketConfig, WAGenericMediaMessage, WAMediaUpload, WAMediaUploadFunction, WAMessageContent } from '../Types'
-import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary'
+import {
+	BaileysEventMap,
+	DownloadableMessage,
+	MediaConnInfo,
+	MediaDecryptionKeyInfo,
+	MediaType,
+	MessageType,
+	SocketConfig,
+	WAGenericMediaMessage,
+	WAMediaUpload,
+	WAMediaUploadFunction,
+	WAMessageContent
+} from '../Types'
+import {
+	BinaryNode,
+	getBinaryNodeChild,
+	getBinaryNodeChildBuffer,
+	jidNormalizedUser
+} from '../WABinary'
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto'
 import { generateMessageIDV2 } from './generics'
 import { ILogger } from './logger'
@@ -335,17 +352,15 @@ export const mediaMessageSHA256B64 = (message: WAMessageContent) => {
 export async function getAudioDuration(buffer: Buffer | string | Readable) {
 	const musicMetadata = await import('music-metadata')
 	let metadata: IAudioMetadata
+	const options = {
+		duration: true
+	}
 	if(Buffer.isBuffer(buffer)) {
-		metadata = await musicMetadata.parseBuffer(buffer, undefined, { duration: true })
+		metadata = await musicMetadata.parseBuffer(buffer, undefined, options)
 	} else if(typeof buffer === 'string') {
-		const rStream = createReadStream(buffer)
-		try {
-			metadata = await musicMetadata.parseStream(rStream, undefined, { duration: true })
-		} finally {
-			rStream.destroy()
-		}
+		metadata = await musicMetadata.parseFile(buffer, options)
 	} else {
-		metadata = await musicMetadata.parseStream(buffer, undefined, { duration: true })
+		metadata = await musicMetadata.parseStream(buffer, undefined, options)
 	}
 
 	return metadata.format.duration
@@ -671,7 +686,12 @@ export const downloadContentFromMessage = async(
 	type: MediaType,
 	opts: MediaDownloadOptions = { }
 ) => {
-	const downloadUrl = url || getUrlFromDirectPath(directPath!)
+	const isValidMediaUrl = url?.startsWith('https://mmg.whatsapp.net/')
+	const downloadUrl = isValidMediaUrl ? url : getUrlFromDirectPath(directPath!)
+	if(!downloadUrl) {
+		throw new Boom('No valid media URL or directPath present in message', { statusCode: 400 })
+	}
+
 	const keys = await getMediaKeys(mediaKey, type)
 
 	return downloadEncryptedContent(downloadUrl, keys, opts)

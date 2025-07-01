@@ -58,7 +58,7 @@ const generateMac = (operation: proto.SyncdMutation.SyncdOperation, data: Buffer
 		}
 
 		const buff = Buffer.from([r])
-		return Buffer.concat([buff, Buffer.from(keyId as any, 'base64')])
+		return Buffer.concat([buff, Buffer.from(keyId as string, 'base64')])
 	}
 
 	const keyData = getKeyData()
@@ -216,7 +216,7 @@ export const decodeSyncdMutations = async(
 	// indexKey used to HMAC sign record.index.blob
 	// valueEncryptionKey used to AES-256-CBC encrypt record.value.blob[0:-32]
 	// the remaining record.value.blob[0:-32] is the mac, it the HMAC sign of key.keyId + decoded proto data + length of bytes in keyId
-	for(const msgMutation of msgMutations!) {
+	for(const msgMutation of msgMutations) {
 		// if it's a syncdmutation, get the operation property
 		// otherwise, if it's only a record -- it'll be a SET mutation
 		const operation = 'operation' in msgMutation ? msgMutation.operation : proto.SyncdMutation.SyncdOperation.SET

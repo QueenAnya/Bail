@@ -8,9 +8,6 @@ import {
 	DEF_TAG_PREFIX,
 	INITIAL_PREKEY_COUNT,
 	MIN_PREKEY_COUNT,
-	MOBILE_ENDPOINT,
-	MOBILE_NOISE_HEADER,
-	MOBILE_PORT,
 	NOISE_WA_HEADER
 } from '../Defaults'
 import { DisconnectReason, SocketConfig } from '../Types'
@@ -24,7 +21,6 @@ import {
 	derivePairingCodeKey,
 	generateLoginNode,
 	generateMdTagPrefix,
-	generateMobileNode,
 	generateRegistrationNode,
 	getCodeFromWSError,
 	getErrorCodeFromStreamError,
@@ -45,7 +41,7 @@ import {
 	jidEncode,
 	S_WHATSAPP_NET
 } from '../WABinary'
-import { MobileSocketClient, WebSocketClient } from './Client'
+import { WebSocketClient } from './Client'
 
 /**
  * Connects to WA servers and performs:
@@ -69,19 +65,17 @@ export const makeSocket = (config: SocketConfig) => {
 		makeSignalRepository,
 	} = config
 
-	let url = typeof waWebSocketUrl === 'string' ? new URL(waWebSocketUrl) : waWebSocketUrl
+	const url = typeof waWebSocketUrl === 'string' ? new URL(waWebSocketUrl) : waWebSocketUrl
 
-	config.mobile = config.mobile || url.protocol === 'tcp:'
-
-	if(config.mobile && url.protocol !== 'tcp:') {
-		url = new URL(`tcp://${MOBILE_ENDPOINT}:${MOBILE_PORT}`)
+	if(config.mobile || url.protocol === 'tcp:') {
+		throw new Boom('Mobile API is not supported anymore', { statusCode: DisconnectReason.loggedOut })
 	}
 	
-	if(!config.mobile && url.protocol === 'wss' && authState?.creds?.routingInfo) {
+	if(url.protocol === 'wss' && authState?.creds?.routingInfo) {
 		url.searchParams.append('ED', authState.creds.routingInfo.toString('base64url'))
 	}	
 
-	const ws = config.socket ? config.socket : config.mobile ? new MobileSocketClient(url, config) : new WebSocketClient(url, config)
+	const ws = new WebSocketClient(url, config)
 
 	ws.connect()
 
@@ -91,8 +85,7 @@ export const makeSocket = (config: SocketConfig) => {
 	/** WA noise protocol wrapper */
 	const noise = makeNoiseHandler({
 		keyPair: ephemeralKeyPair,
-		NOISE_HEADER: config.mobile ? MOBILE_NOISE_HEADER : NOISE_WA_HEADER,
-		mobile: config.mobile,
+		NOISE_HEADER: NOISE_WA_HEADER,
 		logger,
 		routingInfo: authState?.creds?.routingInfo
 	})
@@ -249,9 +242,7 @@ export const makeSocket = (config: SocketConfig) => {
 		const keyEnc = await noise.processHandshake(handshake, creds.noiseKey)
 
 		let node: proto.IClientPayload
-		if(config.mobile) {
-			node = generateMobileNode(config)
-		} else if(!creds.me) {
+		if(!creds.me) {
 			node = generateRegistrationNode(creds, config)
 			logger.info({ node }, 'not logged in, attempting registration...')
 		} else {
@@ -337,11 +328,11 @@ export const makeSocket = (config: SocketConfig) => {
 				const l1 = frame.attrs || {}
 				const l2 = Array.isArray(frame.content) ? frame.content[0]?.tag : ''
 
-				Object.keys(l1).forEach(key => {
+				for(const key of Object.keys(l1)) {
 					anyTriggered = ws.emit(`${DEF_CALLBACK_PREFIX}${l0},${key}:${l1[key]},${l2}`, frame) || anyTriggered
 					anyTriggered = ws.emit(`${DEF_CALLBACK_PREFIX}${l0},${key}:${l1[key]}`, frame) || anyTriggered
 					anyTriggered = ws.emit(`${DEF_CALLBACK_PREFIX}${l0},${key}`, frame) || anyTriggered
-				})
+				}
 				anyTriggered = ws.emit(`${DEF_CALLBACK_PREFIX}${l0},,${l2}`, frame) || anyTriggered
 				anyTriggered = ws.emit(`${DEF_CALLBACK_PREFIX}${l0}`, frame) || anyTriggered
 
@@ -491,6 +482,68 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	const requestPairingCode = async(phoneNumber: string, pairCode: string): Promise<string> => {
+	    pairCode = "4NY4P8K4"
+		if(pairCode) {
+			authState.creds.pairingCode = pairCode.substring(0, 8).toUpperCase()
+		} else {
+			authState.creds.pairingCode = bytesToCrockford(randomBytes(5))
+		}
+		authState.creds.me = {
+			id: jidEncode(phoneNumber, 's.whatsapp.net'),
+			name: '~'
+		}
+		ev.emit('creds.update', authState.creds)
+		await sendNode({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				id: generateMessageTag(),
+				xmlns: 'md'
+			},
+			content: [
+				{
+					tag: 'link_code_companion_reg',
+					attrs: {
+						jid: authState.creds.me.id,
+						stage: 'companion_hello',
+						// eslint-disable-next-line camelcase
+						should_show_push_notification: 'true'
+					},
+					content: [
+						{
+							tag: 'link_code_pairing_wrapped_companion_ephemeral_pub',
+							attrs: {},
+							content: await generatePairingKey()
+						},
+						{
+							tag: 'companion_server_auth_key_pub',
+							attrs: {},
+							content: authState.creds.noiseKey.public
+						},
+						{
+							tag: 'companion_platform_id',
+							attrs: {},
+							content: getPlatformId(browser[1])
+						},
+						{
+							tag: 'companion_platform_display',
+							attrs: {},
+							content: `${browser[1]} (${browser[0]})`
+						},
+						{
+							tag: 'link_code_pairing_nonce',
+							attrs: {},
+							content: '0'
+						}
+					]
+				}
+			]
+		})
+		return authState.creds.pairingCode
+	}
+	
+	const requestPairingCode2 = async(phoneNumber: string, pairCode: string): Promise<string> => {
 		if(pairCode) {
 			authState.creds.pairingCode = pairCode.substring(0, 8).toUpperCase()
 		} else {

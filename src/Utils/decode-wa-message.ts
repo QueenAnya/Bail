@@ -2,7 +2,17 @@ import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto'
 import { ILogger } from './logger'
 import { SignalRepository, WAMessageKey } from '../Types'
-import { areJidsSameUser, BinaryNode, isJidBroadcast, isJidGroup, isJidMetaAi, isJidNewsletter, isJidStatusBroadcast, isJidUser, isLidUser } from '../WABinary'
+import {
+	areJidsSameUser,
+	BinaryNode,
+	isJidBroadcast,
+	isJidGroup,
+	isJidMetaAi,
+	isJidNewsletter,
+	isJidStatusBroadcast,
+	isJidUser,
+	isLidUser
+} from '../WABinary'
 import { unpadRandomMax16 } from './generics'
 
 export const NO_MESSAGE_FOUND_ERROR_TEXT = 'Message absent from node'

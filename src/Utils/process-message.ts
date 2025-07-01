@@ -1,6 +1,18 @@
 import { AxiosRequestConfig } from 'axios'
 import { proto } from '../../WAProto'
-import { AuthenticationCreds, BaileysEventEmitter, CacheStore, Chat, GroupMetadata, ParticipantAction, RequestJoinAction, RequestJoinMethod, SignalKeyStoreWithTransaction, SocketConfig, WAMessageStubType } from '../Types'
+import {
+	AuthenticationCreds,
+	BaileysEventEmitter,
+	CacheStore,
+	Chat,
+	GroupMetadata,
+	ParticipantAction,
+	RequestJoinAction,
+	RequestJoinMethod,
+	SignalKeyStoreWithTransaction,
+	SocketConfig,
+	WAMessageStubType
+} from '../Types'
 import { getContentType, normalizeMessageContent } from '../Utils/messages'
 import { areJidsSameUser, isJidBroadcast, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { aesDecryptGCM, hmacSign } from './crypto'

@@ -1,7 +1,22 @@
 import { Boom } from '@hapi/boom'
 import { createHash } from 'crypto'
-import { CatalogCollection, CatalogStatus, OrderDetails, OrderProduct, Product, ProductCreate, ProductUpdate, WAMediaUpload, WAMediaUploadFunction } from '../Types'
-import { BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, getBinaryNodeChildString } from '../WABinary'
+import {
+	CatalogCollection,
+	CatalogStatus,
+	OrderDetails,
+	OrderProduct,
+	Product,
+	ProductCreate,
+	ProductUpdate,
+	WAMediaUpload,
+	WAMediaUploadFunction
+} from '../Types'
+import {
+	BinaryNode,
+	getBinaryNodeChild,
+	getBinaryNodeChildren,
+	getBinaryNodeChildString
+} from '../WABinary'
 import { getStream, getUrlFromDirectPath, toReadable } from './messages-media'
 
 export const parseCatalogNode = (node: BinaryNode) => {
