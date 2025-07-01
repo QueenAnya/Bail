@@ -1,8 +1,11 @@
+import { Boom } from '@hapi/boom'
+import { jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull } from '../Utils'
 
 
 /** update the profile picture for yourself or a group as Full */
-	export const updateProfilePictureFull = async(jid, content) => {
+	export const updateProfilePictureFull = async(jid, content, sock) => {
+	const { authState, query } = sock
 		let targetJid;
 		if(!jid) {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
@@ -31,7 +34,8 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 		})
 	}
 	
-	export const updateProfilePictureFull2 = async(jid, content) => {
+	export const updateProfilePictureFull2 = async(jid, content, sock) => {
+	const { authState, query } = sock
 		let targetJid;
 		if(!jid) {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
