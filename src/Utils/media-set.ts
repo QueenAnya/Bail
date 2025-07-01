@@ -1,6 +1,6 @@
 import { Boom } from '@hapi/boom'
 import { jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
-import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull } from '../Utils'
+import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull } from './media-messages'
 
 
 /** update the profile picture for yourself or a group as Full */
