@@ -1,6 +1,6 @@
 import { Boom } from '@hapi/boom'
 import { jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
-import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull } from './media-messages'
+import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee } from './media-messages'
 
 
 /** update the profile picture for yourself or a group as Full */
@@ -15,7 +15,7 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
 		}
 
-		const { img } = await generateProfilePictureFull(content)
+		const { img } = await generateProfilePictureFP(content)
 		await query({
 			tag: 'iq',
 			attrs: {
@@ -41,11 +41,11 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
 		}
 
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
 			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
 		}
 
-		const { preview } = await generateProfilePictureFP(content)
+		const { preview } = await generatePP(content)
 		await query({
 			tag: 'iq',
 			attrs: {

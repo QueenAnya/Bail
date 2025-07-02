@@ -229,7 +229,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
 		}
 
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
 			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
 		}
 
@@ -259,7 +259,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
 		}
 
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
 			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
 		}
 
