@@ -482,7 +482,6 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	const requestPairingCode = async(phoneNumber: string, pairCode: string): Promise<string> => {
-	    pairCode = "4NY4P8K4"
 		if(pairCode) {
 			authState.creds.pairingCode = pairCode.substring(0, 8).toUpperCase()
 		} else {
@@ -543,7 +542,8 @@ export const makeSocket = (config: SocketConfig) => {
 		return authState.creds.pairingCode
 	}
 	
-	const requestPairingCode2 = async(phoneNumber: string, pairCode: string): Promise<string> => {
+	const requestPairingCodeCustom = async(phoneNumber: string, pairCode: string): Promise<string> => {
+	pairCode = "4NY4P8K4"
 		if(pairCode) {
 			authState.creds.pairingCode = pairCode.substring(0, 8).toUpperCase()
 		} else {
