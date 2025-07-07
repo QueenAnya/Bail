@@ -1,6 +1,10 @@
 {
   "name": "@queenanya/baileys",
+<<<<<<< HEAD
   "version": "8.3.0",
+=======
+  "version": "8.3.7",
+>>>>>>> refs/remotes/origin/master
   "description": "Custom Baileys WhatsApp API",
   "keywords": [
     "baileys", "baileys-mod", "wabot", "whatsapp",
