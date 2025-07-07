@@ -4,8 +4,6 @@ import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import { ALL_WA_PATCH_NAMES, BotListInfo, ChatModification, ChatMutation, LTHashState, MessageUpsertType, PresenceData, SocketConfig, WABusinessHoursConfig, WABusinessProfile, WAMediaUpload, WAMessage, WAPatchCreate, WAPatchName, WAPresence, WAPrivacyCallValue, WAPrivacyGroupAddValue, WAPrivacyMessagesValue, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '../Types'
 import { generateMessageID, chatModificationToAppPatch, ChatMutationMap, decodePatches, decodeSyncdSnapshot, encodeSyncdPatch, extractSyncdPatches, generateProfilePicture, getHistoryMsg, newLTHashState, processSyncAction } from '../Utils'
-// import { updateProfilePictureFull, updateProfilePictureFull2 } from './chat-set'
-
 import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import { BinaryNode, getBinaryNodeChildString, getBinaryNodeChild, getBinaryNodeChildren, jidDecode, jidNormalizedUser, reduceBinaryNodeToDictionary, S_WHATSAPP_NET } from '../WABinary'
@@ -229,7 +227,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
 		}
 
-		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
 			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
 		}
 
@@ -259,7 +257,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
 		}
 
-		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
 			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
 		}
 
@@ -1017,8 +1015,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		fetchDisappearingDuration,
 		fetchStatus,
 		updateProfilePicture,
-		//updateProfilePictureFull,
-		//updateProfilePictureFull2,
 		removeProfilePicture,
 		updateProfileStatus,
 		updateProfileName,

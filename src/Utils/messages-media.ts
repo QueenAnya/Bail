@@ -41,27 +41,11 @@ import { ILogger } from './logger'
 const getTmpFilesDirectory = () => tmpdir()
 
 const getImageProcessingLibrary = async() => {
-	const [_jimp, sharp] = await Promise.all([
-		(async() => {
-			const jimp = await (
-				import('jimp')
-					.catch(() => { })
-			)
-			return jimp
-		})(),
-		(async() => {
-			const sharp = await (
-				import('sharp')
-					.catch(() => { })
-			)
-			return sharp
-		})()
-	])
+	const [_jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
 	if(sharp) {
 		return { sharp }
 	}
-
 	const jimp = _jimp?.default || _jimp
 	if(jimp) {
 		return { jimp }
@@ -291,7 +275,6 @@ export const extractImageThumb = async(bufferOrFilePath: Readable | Buffer | str
 		}
 	} else if('jimp' in lib && typeof lib.jimp?.read === 'function') {
 		const { read, MIME_JPEG, RESIZE_BILINEAR, AUTO } = lib.jimp
-
 		const jimp = await read(bufferOrFilePath as any)
 		const dimensions = {
 			width: jimp.getWidth(),
@@ -440,7 +423,14 @@ export const getStream = async(item: WAMediaUpload, opts?: AxiosRequestConfig) =
 		return { stream: item.stream, type: 'readable' } as const
 	}
 
-	if(item.url.toString().startsWith('http://') || item.url.toString().startsWith('https://')) {
+	const urlStr = item.url.toString()
+
+	if (urlStr.startsWith('data:')) {
+		const buffer = Buffer.from(urlStr.split(',')[1], 'base64')
+		return { stream: toReadable(buffer), type: 'buffer' } as const
+	}
+
+	if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
 		return { stream: await getHttpStream(item.url, opts), type: 'remote' } as const
 	}
 

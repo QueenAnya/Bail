@@ -19,7 +19,9 @@ export interface GroupMetadata {
     /** group uses 'lid' or 'pn' to send messages */
     addressingMode: 'pn' | 'lid'
     owner: string | undefined
+	ownerJid?: string | undefined
     ownerLid?: string | undefined
+    owner_country_code: string
     subject: string
     /** group subject owner */
     subjectOwner?: string
