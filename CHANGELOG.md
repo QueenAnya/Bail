@@ -1,3 +1,7 @@
+## [8.3.11](https://github.com/QueenAnya/Bail/compare/v8.3.10...v8.3.11) (2025-07-22)
+
+
+
 ## [8.3.10](https://github.com/QueenAnya/Bail/compare/v8.3.9...v8.3.10) (2025-07-22)
 
 
