@@ -66,6 +66,15 @@ jobs:
         with:
           tag_name: nightly
           
+      - name: Create version tag
+        if: steps.get_previous_version.outputs.version_increased == 'true'
+        run: |
+          VERSION=v${{ steps.get_previous_version.outputs.current_version }}
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a $VERSION -m "Release $VERSION"
+          git push origin $VERSION
+          
       - name: Release
         run: "npx release-it --increment --no-git.requireCleanWorkingDir patch"
 
