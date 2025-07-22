@@ -4,9 +4,13 @@ permissions:
   contents: write
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
+    inputs:
+      increment:
+        type: string
+        description: "Must be: patch, minor, major, pre* or <version>"
+        required: true
+        default: "patch"
 
 jobs:
   update-nightly:
@@ -44,7 +48,7 @@ jobs:
         run: yarn version --prerelease --preid=alpha --no-git --no-git-tag-version
 
       - name: Build NPM package
-        run: yarn pack && mv q*baileys-*.tgz queenanya-queenanya-baileys-nightly.tgz
+        run: yarn pack && mv q*baileys-*.tgz queenanya-baileys-nightly.tgz
 
       - name: Generate Changelog
         id: generate_changelog
