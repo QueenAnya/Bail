@@ -24,11 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          
-      - name: Setup GIT
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
@@ -65,18 +60,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: nightly
-          
-      - name: Create version tag
-        if: steps.get_previous_version.outputs.version_increased == 'true'
-        run: |
-          VERSION=v${{ steps.get_previous_version.outputs.current_version }}
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git tag -a $VERSION -m "Release $VERSION"
-          git push origin $VERSION
-          
-      - name: Release
-        run: "npx release-it --increment --no-git.requireCleanWorkingDir patch"
 
       - name: Update Nightly Release
         uses: meeDamian/github-release@2.0

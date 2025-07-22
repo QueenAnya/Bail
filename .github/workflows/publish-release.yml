@@ -3,7 +3,7 @@ name: Publish Release
 on:
   push:
     tags:
-      - "bv*"
+      - "v*"
 
 permissions: write-all
 
