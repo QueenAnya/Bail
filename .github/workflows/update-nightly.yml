@@ -4,13 +4,9 @@ permissions:
   contents: write
 
 on:
-  workflow_dispatch:
-    inputs:
-      increment:
-        type: string
-        description: "Must be: patch, minor, major, pre* or <version>"
-        required: true
-        default: "patch"
+  push:
+    branches:
+      - master
 
 jobs:
   update-nightly:
@@ -64,6 +60,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: nightly
+          
+      - name: Release
+        run: "npx release-it --increment --no-git.requireCleanWorkingDir patch"
 
       - name: Update Nightly Release
         uses: meeDamian/github-release@2.0
