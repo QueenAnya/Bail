@@ -100,6 +100,7 @@ export type ChatModification =
         lastMessages: LastMessageList
     }
     | { delete: true, lastMessages: LastMessageList }
+    | { contact: proto.SyncActionValue.IContactAction | null }
     // Label assosiation
     | { addChatLabel: ChatLabelAssociationActionBody }
     | { removeChatLabel: ChatLabelAssociationActionBody }

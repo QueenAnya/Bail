@@ -354,7 +354,30 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILog
  * utility that fetches latest baileys version from the master branch.
  * Use to ensure your WA connection is always on the latest version
  */
-export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+ export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+	const URL = 'https://raw.githubusercontent.com/QueenAnya/Bail/master/src/Defaults/baileys-version.json'
+	try {
+		const result = await axios.get<{ version: WAVersion }>(
+			URL,
+			{
+				...options,
+				responseType: 'json'
+			}
+		)
+		return {
+			version: result.data.version,
+			isLatest: true
+		}
+	} catch(error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+export const fetchLatestBaileysVersion2 = async(options: AxiosRequestConfig<any> = { }) => {
 	const URL = 'https://raw.githubusercontent.com/nstar-y/bail/master/src/Defaults/baileys-version.json'
 	try {
 		const result = await axios.get<{ version: WAVersion }>(
@@ -411,7 +434,7 @@ export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> 
  * Use to ensure your WA connection is always on the latest version
  */
  
-export const fetchLatestBaileysVersion2 = async(options: AxiosRequestConfig<any> = { }) => {
+export const fetchLatestBaileysVersion4 = async(options: AxiosRequestConfig<any> = { }) => {
   
 	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json'
 	try {

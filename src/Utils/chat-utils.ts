@@ -611,7 +611,17 @@ export const chatModificationToAppPatch = (
 			apiVersion: 5,
 			operation: OP.SET
 		}
-	} else if('star' in mod) {
+	} else if ('contact' in mod) {
+		patch = {
+			syncAction: {
+				contactAction: mod.contact || {}
+			},
+			index: ['contact', jid],
+			type: 'critical_unblock_low',
+			apiVersion: 2,
+			operation: mod.contact ? OP.SET : OP.REMOVE
+		}
+	} else if ('star' in mod) {
 		const key = mod.star.messages[0]
 		patch = {
 			syncAction: {
