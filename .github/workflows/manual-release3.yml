@@ -1,13 +1,12 @@
 name: Manual Release 3
 
+permissions:
+  contents: write
+
 on:
-  workflow_dispatch:
-    inputs:
-      increment:
-        type: string
-        description: "Must be: patch, minor, major, pre* or <version>"
-        required: true
-        default: "patch"
+  push:
+    branches:
+      - master
 
 permissions: write-all
 
