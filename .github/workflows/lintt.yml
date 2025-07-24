@@ -1,9 +1,7 @@
-name: Lint
+name: Lint Fix
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   check-lint:
@@ -22,4 +20,4 @@ jobs:
       run: yarn
     
     - name: Check linting
-      run: yarn lint
+      run: yarn lint:fix

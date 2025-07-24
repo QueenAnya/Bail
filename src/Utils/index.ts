@@ -1,7 +1,5 @@
 export * from './generics'
 export * from './decode-wa-message'
-export * from './media-messages'
-export * from './media-set'
 export * from './messages'
 export * from './messages-media'
 export * from './validate-connection'
