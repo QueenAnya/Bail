@@ -1,5 +1,10 @@
 import { Boom } from '@hapi/boom'
-import { jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
+import { randomBytes } from 'crypto'
+import { jidNormalizedUser, S_WHATSAPP_NET, isJidUser, STORIES_JID } from '../WABinary'
+import { 
+	generateWAMessage,
+	generateWAMessageFromContent
+} from '../Utils'
 import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee } from './media-messages'
 
 
