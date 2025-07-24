@@ -847,7 +847,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
          const media = await generateWAMessage(STORIES_JID, content, {
             upload: await waUploadToServer,
             backgroundColor: "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0"),
-            font: content.text ? Math.floor(Math.random() * 9) : undefined
+            font: content.text ? Math.floor(Math.random() * 9) : undefined,
+            userJid: jid
          })
          const additionalNodes = [{
             tag: 'meta',
@@ -893,7 +894,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
                },
                content: undefined,
             }] : undefined
-         }, {})
+         })
 
          return media
       },
@@ -901,7 +902,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 const media = await generateWAMessage(STORIES_JID, content, {
 upload: await waUploadToServer,
 backgroundColor: "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0"), 
-font: content.text ? Math.floor(Math.random() * 9) : undefined
+font: content.text ? Math.floor(Math.random() * 9) : undefined,
+userJid: jid
 })
 const additionalNodes = [{
 tag: 'meta',
