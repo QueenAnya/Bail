@@ -843,6 +843,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
+		// some problem have this code
+		/**#
 		sendStatusMentions: async (jid, content) => {
          const media = await generateWAMessage(STORIES_JID, content, {
             upload: await waUploadToServer,
@@ -939,6 +941,7 @@ type: 25
 await relayMessage(jid, msg.message, {}) 
 return media
 },
+*/
 updateProfilePictureFull: async(jid, content) => {
 		let targetJid;
 		if(!jid) {
