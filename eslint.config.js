@@ -5,7 +5,19 @@ import queenanya from '@queenanya/eslint-config';
 
 export default [
   {
-    ignores: ['src/Tests/*'],
+    files: ['**/*.{js,ts}'],
+    ignores: [
+      'lib',
+      'coverage',
+      '*.lock',
+      '.eslintrc.json',
+      'src/WABinary/index.ts',
+      'WAProto',
+      'WASignalGroup',
+      'Example/Example',
+     // '*.ts', // Be cautious: this will ignore ALL .ts files
+      'docs',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.js'],
