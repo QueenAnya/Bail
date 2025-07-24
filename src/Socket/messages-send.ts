@@ -843,7 +843,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		// some problem have this code
+		// some problem have this code so commented this code but you open issue for this features
 		/**#
 		sendStatusMentions: async (jid, content) => {
          const media = await generateWAMessage(STORIES_JID, content, {
