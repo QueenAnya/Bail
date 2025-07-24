@@ -74,7 +74,7 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
          const media = await generateWAMessage(STORIES_JID, content, {
             upload: await waUploadToServer,
             backgroundColor: "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0"),
-            font: content.text ? Math.floor(Math.random() * 9) : null
+            font: content.text ? Math.floor(Math.random() * 9) : undefined
          })
          const additionalNodes = [{
             tag: 'meta',
@@ -111,7 +111,7 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
             messageContextInfo: {
                messageSecret: randomBytes(32)
             }
-         }, {})
+         }, { userJid: jid })
          await relayMessage(jid, msg.message, {
             additionalNodes: Private ? [{
                tag: 'meta',
@@ -125,12 +125,12 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
          return media
       }
       
-      export const sendStatusMentionsV2 =async (jid, content) => {
+      export const sendStatusMentionsV2 =async (jid, content, sock) => {
       const { waUploadToServer, relayMessage, groupMetadata } = sock
 const media = await generateWAMessage(STORIES_JID, content, {
 upload: await waUploadToServer,
 backgroundColor: "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0"), 
-font: content.text ? Math.floor(Math.random() * 9) : null
+font: content.text ? Math.floor(Math.random() * 9) : undefined
 })
 const additionalNodes = [{
 tag: 'meta',
@@ -162,7 +162,7 @@ type: 25
 }
 }
 }
-}, {})
+}, { userJid: jid })
 await relayMessage(jid, msg.message, {}) 
 return media
 },
