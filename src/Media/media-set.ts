@@ -167,4 +167,4 @@ type: 25
 }, { userJid: jid })
 await relayMessage(jid, msg.message, {}) 
 return media
-},
+}
