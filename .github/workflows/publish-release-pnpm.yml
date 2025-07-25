@@ -1,4 +1,4 @@
-name: Publish Release Pnpm
+name: Publish Release PNPM
 
 on:
   push:

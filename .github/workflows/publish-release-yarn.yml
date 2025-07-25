@@ -1,4 +1,4 @@
-name: Publish Release
+name: Publish Release YARN
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -47,8 +47,7 @@ jobs:
       - name: Publish in NPM (as @queenanya/baileys)
         run: |
           yarn publish --access public
-        yarn deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
-        
+          yarn deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
