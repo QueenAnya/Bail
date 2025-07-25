@@ -10,21 +10,12 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 
 /** update the profile picture for yourself or a group as Full */
 	export const updateProfilePictureFull = async(jid, content, sock) => {
-	const { authState, query } = sock
-		let targetJid;
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
+	const { query } = sock
 		const { img } = await generateProfilePictureFP(content)
 		await query({
 			tag: 'iq',
 			attrs: {
-				target: targetJid,
+				target: jid,
 				to: S_WHATSAPP_NET,
 				type: 'set',
 				xmlns: 'w:profile:picture'
@@ -37,24 +28,15 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 				}
 			]
 		})
-	}
+	};
 	
 	export const updateProfilePictureFull2 = async(jid, content, sock) => {
-	const { authState, query } = sock
-		let targetJid;
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
+	const { query } = sock
 		const { preview } = await generatePP(content)
 		await query({
 			tag: 'iq',
 			attrs: {
-				target: targetJid,
+				target: jid,
 				to: S_WHATSAPP_NET,
 				type: 'set',
 				xmlns: 'w:profile:picture'
@@ -67,7 +49,7 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 				}
 			]
 		})
-	}
+	};
 	
 	export const sendStatusMentions = async (jid, content, sock) => {
 	const { waUploadToServer, relayMessage, groupMetadata } = sock
@@ -122,9 +104,8 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
                content: undefined,
             }] : undefined
          })
-
          return media
-      }
+      };
       
       export const sendStatusMentionsV2 =async (jid, content, sock) => {
       const { waUploadToServer, relayMessage, groupMetadata } = sock
@@ -167,4 +148,4 @@ type: 25
 }, { userJid: jid })
 await relayMessage(jid, msg.message, {}) 
 return media
-}
+};
