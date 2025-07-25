@@ -1,4 +1,4 @@
-name: Manual Release
+name: Manual Release YARN
 
 on:
   workflow_dispatch:
@@ -8,9 +8,13 @@ on:
         description: "Must be: patch, minor, major, pre* or <version>"
         required: true
         default: "patch"
-jobs:
+
+permissions: write-all
+
+jobs: 
   manual-release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,7 +25,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -31,8 +35,8 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v3
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      - uses: actions/cache@v4
+        id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -40,8 +44,9 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: |
-          yarn
+        run: yarn
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Release
-        run: "npx release-it --increment ${{ github.event.inputs.increment }}"
+        run: "npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"

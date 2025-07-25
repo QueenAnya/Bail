@@ -54,7 +54,6 @@ import {
 	S_WHATSAPP_NET,
 	STORIES_JID
 } from '../WABinary'
-import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee } from '../WAMedia'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
 
@@ -842,7 +841,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		// some problem have this code so commented this code but you open issue for this features
+		// some problem have this code so it's need to fix and maybe in future it's will be fixed but for now commenting the code but you open issue for this features
 		/**#
 		sendStatusMentions: async (jid, content) => {
          const media = await generateWAMessage(STORIES_JID, content, {
@@ -941,62 +940,6 @@ await relayMessage(jid, msg.message, {})
 return media
 },
 */
-updateProfilePictureFull: async(jid, content) => {
-		let targetJid;
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
-		const { img } = await generateProfilePictureFP(content)
-		await query({
-			tag: 'iq',
-			attrs: {
-				target: targetJid,
-				to: S_WHATSAPP_NET,
-				type: 'set',
-				xmlns: 'w:profile:picture'
-			},
-			content: [
-				{
-					tag: 'picture',
-					attrs: { type: 'image' },
-					content: img
-				}
-			]
-		})
-	},
-	updateProfilePictureFullV2: async(jid, content) => {
-		let targetJid;
-		if(!jid) {
-			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
-		}
-
-		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
-		}
-
-		const { preview } = await generatePP(content)
-		await query({
-			tag: 'iq',
-			attrs: {
-				target: targetJid,
-				to: S_WHATSAPP_NET,
-				type: 'set',
-				xmlns: 'w:profile:picture'
-			},
-			content: [
-				{
-					tag: 'picture',
-					attrs: { type: 'image' },
-					content: preview
-				}
-			]
-		})
-	},
 		sendMessage: async(
 			jid: string,
 			content: AnyMessageContent,

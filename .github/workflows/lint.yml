@@ -1,9 +1,6 @@
-name: Lint
+name: Check PR health
 
-on:
-  push:
-    branches:
-      - master
+on: [pull_request]
 
 jobs:
   check-lint:

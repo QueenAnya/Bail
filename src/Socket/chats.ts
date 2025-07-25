@@ -7,6 +7,7 @@ import { generateMessageID, chatModificationToAppPatch, ChatMutationMap, decodeP
 import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import { BinaryNode, getBinaryNodeChildString, getBinaryNodeChild, getBinaryNodeChildren, jidDecode, jidNormalizedUser, reduceBinaryNodeToDictionary, S_WHATSAPP_NET } from '../WABinary'
+import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee } from '../WAMedia'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeUSyncSocket } from './usync'
 
@@ -245,6 +246,65 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					tag: 'picture',
 					attrs: { type: 'image' },
 					content: img
+				}
+			]
+		})
+	}
+	
+	/** update the full profile picture for yourself or a group */
+	const updateProfilePictureFull = async(jid, content) => {
+		let targetJid;
+		if(!jid) {
+			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
+		}
+
+		if(jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
+		}
+
+		const { img } = await generateProfilePictureFP(content)
+		await query({
+			tag: 'iq',
+			attrs: {
+				target: targetJid,
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'w:profile:picture'
+			},
+			content: [
+				{
+					tag: 'picture',
+					attrs: { type: 'image' },
+					content: img
+				}
+			]
+		})
+	}
+	
+	const updateProfilePictureFullV2 = async(jid, content) => {
+		let targetJid;
+		if(!jid) {
+			throw new Boom('Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update')
+		}
+
+		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+			targetJid = jidNormalizedUser(jid) // in case it is someone other than us
+		}
+
+		const { preview } = await generatePP(content)
+		await query({
+			tag: 'iq',
+			attrs: {
+				target: targetJid,
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'w:profile:picture'
+			},
+			content: [
+				{
+					tag: 'picture',
+					attrs: { type: 'image' },
+					content: preview
 				}
 			]
 		})
