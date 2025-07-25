@@ -47,7 +47,7 @@ jobs:
       - name: Publish in NPM (as @queenanya/baileys)
         run: |
           yarn publish --access public
-          yarn deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
@@ -55,7 +55,7 @@ jobs:
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
           yarn publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
-          yarn deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
