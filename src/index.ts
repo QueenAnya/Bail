@@ -8,6 +8,7 @@ export * from './Store'
 export * from './Defaults'
 export * from './WABinary'
 export * from './WAM'
+export * from './WAMedia'
 export * from './WAUSync'
 
 export type WASocket = ReturnType<typeof makeWASocket>
