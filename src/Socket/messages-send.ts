@@ -1,4 +1,3 @@
-
 import { Boom } from '@hapi/boom'
 import NodeCache from '@cacheable/node-cache'
 import { randomBytes } from 'crypto'
@@ -55,7 +54,7 @@ import {
 	S_WHATSAPP_NET,
 	STORIES_JID
 } from '../WABinary'
-import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee } from '../Media'
+import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee } from '../WAMedia'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
 
