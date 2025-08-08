@@ -1,4 +1,4 @@
-name: Manual Release
+name: Manual Release YARN
 
 on:
   workflow_dispatch:
@@ -26,11 +26,6 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: latest
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -49,10 +44,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: |
-          yarn
-          yarn install
-          pnpm install --no-frozen-lockfile
+        run: yarn
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
