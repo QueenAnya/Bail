@@ -1,6 +1,6 @@
 {
   "name": "@queenanya/baileys",
-  "version": "8.5.0-beta",
+  "version": "8.5.0",
   "description": "Custom Baileys WhatsApp API",
   "keywords": [
     "baileys",
