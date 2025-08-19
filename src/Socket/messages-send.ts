@@ -7,6 +7,7 @@ import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import {
 	AnyMessageContent,
 	AlbumMedia,
+	CacheStore,
 	MediaConnInfo,
 	MessageReceiptType,
 	MessageRelayOptions,
@@ -54,6 +55,7 @@ import {
 	S_WHATSAPP_NET,
 	STORIES_JID
 } from '../WABinary'
+import { sendStatusMentions as ssm, sendStatusMentionsV2 as ssm2 } from '../WAMedia'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
 
@@ -80,10 +82,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		groupToggleEphemeral,
 	} = sock
 
-	const userDevicesCache = config.userDevicesCache || new NodeCache({
+	const userDevicesCache: CacheStore = (config.userDevicesCache || new NodeCache({
 		stdTTL: DEFAULT_CACHE_TTLS.USER_DEVICES, // 5 minutes
 		useClones: false
-	})
+	})) as any
 
 	let mediaConn: Promise<MediaConnInfo>
 	const refreshMediaConn = async(forceGet = false) => {
@@ -243,7 +245,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		return deviceResults
 	}
-
+	
 	const assertSessions = async(jids: string[], force: boolean) => {
 		let didFetchNewSession = false
 		let jidsRequiringFetch: string[] = []
@@ -330,7 +332,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		let shouldIncludeDeviceIdentity = false
 		const nodes = await Promise.all(
-			patched.map(
+			(patched as any).map(
 				async patchedMessageWithJid => {
 					const { recipientJid: jid, ...patchedMessage } = patchedMessageWithJid
 					if(!jid) {
@@ -841,105 +843,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		// some problem have this code so it's need to fix and maybe in future it's will be fixed but for now commenting the code but you open issue for this features
-		/**#
 		sendStatusMentions: async (jid, content) => {
-         const media = await generateWAMessage(STORIES_JID, content, {
-            upload: await waUploadToServer,
-            backgroundColor: "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0"),
-            font: content.text ? Math.floor(Math.random() * 9) : undefined,
-            userJid: jid
-         })
-         const additionalNodes = [{
-            tag: 'meta',
-            attrs: {},
-            content: [{
-               tag: 'mentioned_users',
-               attrs: {},
-               content: [{
-                  tag: 'to',
-                  attrs: {
-                     jid
-                  },
-                  content: undefined,
-               }],
-            }],
-         }]
-         let Private = isJidUser(jid)
-         let statusJid = Private ? [jid] : (await groupMetadata(jid)).participants.map((num) => num.id)
-         await relayMessage(STORIES_JID, media.message, {
-            messageId: media.key.id,
-            statusJidList: statusJid,
-            additionalNodes,
-         })
-         let type = Private ? 'statusMentionMessage' : 'groupStatusMentionMessage'
-         let msg = await generateWAMessageFromContent(jid, {
-            [type]: {
-               message: {
-                  protocolMessage: {
-                     key: media.key,
-                     type: 25,
-                  }
-               }
-            },
-            messageContextInfo: {
-               messageSecret: randomBytes(32)
-            }
-         }, { userJid: jid })
-         await relayMessage(jid, msg.message, {
-            additionalNodes: Private ? [{
-               tag: 'meta',
-               attrs: {
-                  is_status_mention: 'true'
-               },
-               content: undefined,
-            }] : undefined
-         })
-
-         return media
+            return await ssm(jid, content, sock);
       },
-      sendStatusMentionsV2: async (jid, content) => {                            
-const media = await generateWAMessage(STORIES_JID, content, {
-upload: await waUploadToServer,
-backgroundColor: "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0"), 
-font: content.text ? Math.floor(Math.random() * 9) : undefined,
-userJid: jid
-})
-const additionalNodes = [{
-tag: 'meta',
-attrs: {},
-content: [{
-tag: 'mentioned_users',
-attrs: {},
-content: [{
-tag: 'to',
-attrs: { jid },
-content: undefined
-}]
-}]
-}]
-let Private = isJidUser(jid)
-let statusJid = Private ? [jid] : (await groupMetadata(jid)).participants.map((num) => num.id)
-await relayMessage(STORIES_JID, media.message, {
-messageId: media.key.id,
-statusJidList: statusJid, 
-additionalNodes 
-})
-let type = Private ? 'statusMentionMessage' : 'groupStatusMentionMessage'   
-let msg = await generateWAMessageFromContent(jid, {
-[type]: {
-message: {
-protocolMessage: {
-key: media.key,
-type: 25
-}
-}
-}
-}, { userJid: jid })
-await relayMessage(jid, msg.message, {}) 
-return media
-},
-*/
+      sendStatusMentionsV2: async (jid, content) => {
+            return await ssm2(jid, content, sock);
+      },
 		sendMessage: async(
 			jid: string,
 			content: AnyMessageContent,

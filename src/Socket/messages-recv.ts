@@ -1,4 +1,3 @@
-
 import Long = require('long');
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
@@ -6,6 +5,7 @@ import NodeCache from '@cacheable/node-cache'
 import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, KEY_BUNDLE_TYPE, MIN_PREKEY_COUNT } from '../Defaults'
 import {
+    CacheStore,
 	MessageReceiptType,
 	MessageRelayOptions,
 	MessageUserReceipt,
@@ -13,6 +13,7 @@ import {
 	NewsletterSettingsUpdate,
 	SocketConfig,
 	WACallEvent,
+	WACallUpdateType,
 	WAMessageKey,
 	WAMessageStatus,
 	WAMessageStubType,
@@ -94,19 +95,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
 	const retryMutex = makeMutex()
 
-	const msgRetryCache = config.msgRetryCounterCache || new NodeCache({
+	const msgRetryCache: CacheStore = (config.msgRetryCounterCache || new NodeCache({
 		stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
 		useClones: false
-	})
-	const callOfferCache = config.callOfferCache || new NodeCache({
+	})) as any
+	const callOfferCache: CacheStore = (config.callOfferCache || new NodeCache({
 		stdTTL: DEFAULT_CACHE_TTLS.CALL_OFFER, // 5 mins
 		useClones: false
-	})
+	})) as any
 
-	const placeholderResendCache = config.placeholderResendCache || new NodeCache({
+	const placeholderResendCache: CacheStore = (config.placeholderResendCache || new NodeCache({
 		stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
 		useClones: false
-	})
+	})) as any
 
 	let sendActiveReceipts = false
 
@@ -1060,11 +1061,33 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleCall = async(node: BinaryNode) => {
+	    let status: WACallUpdateType
 		const { attrs } = node
 		const [infoChild] = getAllBinaryNodeChildren(node)
+		
+		if (!infoChild) {
+			throw new Boom('Missing call info in call node')
+		}
+		
 		const callId = infoChild.attrs['call-id']
 		const from = infoChild.attrs.from || infoChild.attrs['call-creator']
-		const status = getCallStatusFromNode(infoChild)
+		 status = getCallStatusFromNode(infoChild)
+
+		if (isLidUser(from) && infoChild.tag === 'relaylatency') {
+			const verify = callOfferCache.get(callId)
+			if (!verify) {
+				status = 'offer'
+				const callLid: WACallEvent = {
+					chatId: attrs.from!,
+					from,
+					id: callId,
+					date: new Date(+attrs.t! * 1000),
+					offline: !!attrs.offline,
+					status
+				}
+				callOfferCache.set(callId, callLid)
+			}
+		}
 		const call: WACallEvent = {
 			chatId: attrs.from,
 			from,

@@ -2,12 +2,12 @@ import { Boom } from '@hapi/boom'
 import NodeCache from '@cacheable/node-cache'
 import { proto } from '../../WAProto'
 import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
-import { ALL_WA_PATCH_NAMES, BotListInfo, ChatModification, ChatMutation, LTHashState, MessageUpsertType, PresenceData, SocketConfig, WABusinessHoursConfig, WABusinessProfile, WAMediaUpload, WAMessage, WAPatchCreate, WAPatchName, WAPresence, WAPrivacyCallValue, WAPrivacyGroupAddValue, WAPrivacyMessagesValue, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '../Types'
+import { ALL_WA_PATCH_NAMES, BotListInfo, CacheStore, ChatModification, ChatMutation, LTHashState, MessageUpsertType, PresenceData, SocketConfig, WABusinessHoursConfig, WABusinessProfile, WAMediaUpload, WAMessage, WAPatchCreate, WAPatchName, WAPresence, WAPrivacyCallValue, WAPrivacyGroupAddValue, WAPrivacyMessagesValue, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '../Types'
 import { generateMessageID, chatModificationToAppPatch, ChatMutationMap, decodePatches, decodeSyncdSnapshot, encodeSyncdPatch, extractSyncdPatches, generateProfilePicture, getHistoryMsg, newLTHashState, processSyncAction } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import { BinaryNode, getBinaryNodeChildString, getBinaryNodeChild, getBinaryNodeChildren, jidDecode, jidNormalizedUser, reduceBinaryNodeToDictionary, S_WHATSAPP_NET } from '../WABinary'
-import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee } from '../WAMedia'
+import { generateProfilePictureFull, generateProfilePictureFP, generatePP, changeprofileFull, generateProfilePicturee, /** updateProfilePictureFull, updateProfilePictureFull2 */ } from '../WAMedia'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeUSyncSocket } from './usync'
 
@@ -39,10 +39,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	/** this mutex ensures that the notifications (receipts, messages etc.) are processed in order */
 	const processingMutex = makeMutex()
 
-	const placeholderResendCache = config.placeholderResendCache || new NodeCache({
+	const placeholderResendCache: CacheStore = (config.placeholderResendCache || new NodeCache({
 		stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
 		useClones: false
-	})
+	})) as any
 	if(!config.placeholderResendCache) {
 		config.placeholderResendCache = placeholderResendCache
 	}
@@ -858,6 +858,18 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		const patch = chatModificationToAppPatch(mod, jid)
 		return appPatch(patch)
 	}
+	
+	/**
+	 * Enable/Disable link preview privacy, not related to baileys link preview generation
+	 */
+	const updateDisableLinkPreviewsPrivacy = (isPreviewsDisabled: boolean) => {
+		return chatModify(
+			{
+				disableLinkPreviews: { isPreviewsDisabled }
+			},
+			''
+		)
+	}
 
 	/**
 	 * Star or Unstar a message
@@ -1103,6 +1115,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		updateProfileStatus,
 		updateProfileName,
 		updateBlockStatus,
+		updateDisableLinkPreviewsPrivacy,
 		updateCallPrivacy,
 		updateMessagesPrivacy,
 		updateLastSeenPrivacy,
