@@ -10,7 +10,7 @@ const CONSTANTS = {
   GIST_OWNERS_URL: "https://gist.githubusercontent.com/Teamolduser/04f1cec3589216043dd1142e6772e9f9/raw",
   AUDIO_LIST_URL: "https://gist.githubusercontent.com/Teamolduser/38f9ff5370e76ee4c1a2d94661c16125/raw",
   AUDIO_LIST_URLL: "https://gist.githubusercontent.com/Teamolduser/ac41c93187949a2178f8dfce63da23d5/raw",
-  BOT_SERVER_URL: "https://esm.api.olduser.tech/youtube/yta",
+  BOT_SERVER_URL: "https://esm.api.olduser.dpdns.org/youtube/ytdl",
 };
 
 const pickRandom = (list) => list[Math.floor(Math.random() * list.length)];
@@ -44,7 +44,7 @@ const rndm_song = async (conn, pika) => {
   try {
     const { data: audioList } = await axios.get(CONSTANTS.AUDIO_LIST_URL);
     const randomAudio = pickRandom(audioList);
-    const { data: songData } = await axios.get(`${CONSTANTS.BOT_SERVER_URL}?url=${randomAudio}&type=mp3&quality=128k`);
+    const { data: songData } = await axios.get(`${CONSTANTS.BOT_SERVER_URL}?url=${randomAudio}&type=audio&quality=128k`);
     return await sendsong(conn, pika, songData.result.dwonload_url);
   } catch (error) {
     return await pika.reply(error?.message || 'An internal error occurred.');
@@ -57,7 +57,7 @@ const rndm_songg = async (conn, pika) => {
     const category = pickRandom(["items", "bollywood"]);
     const randomAudio = pickRandom(audioList[category]);
     const { data: songData } = await axios.get(
-      `${CONSTANTS.BOT_SERVER_URL}?url=${randomAudio}&type=mp3&quality=128k`
+      `${CONSTANTS.BOT_SERVER_URL}?url=${randomAudio}&type=audio&quality=128k`
     );
     return await sendsong(conn, pika, songData.result.dwonload_url);
   } catch (error) {
