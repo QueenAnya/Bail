@@ -14,7 +14,6 @@ const CONSTANTS = {
   AUDIO_LIST_URL: "https://gist.githubusercontent.com/Teamolduser/38f9ff5370e76ee4c1a2d94661c16125/raw",
   AUDIO_LIST_URLL: "https://gist.githubusercontent.com/Teamolduser/ac41c93187949a2178f8dfce63da23d5/raw",
 };
-
 CONSTANTS.BOT_SERVER_URL = CONSTANTS.BASE_URL + "/youtube/ytdl";
 
 const pickRandom = (list) => list[Math.floor(Math.random() * list.length)];
