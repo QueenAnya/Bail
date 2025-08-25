@@ -1,6 +1,9 @@
 import axios from 'axios';
 
 const CONSTANTS = {
+  BASE_URL: "https://esm.apiis.dpdns.org",
+  BASE_URLL: "https://esm.apii.qzz.io",
+  BASE_URLLL: "https://esm.api.olduser.dpdns.org",
   GITHUB_URL: "https://github.com/Teamolduser",
   PROJECT_URL: "https://github.com/PikaBotz/Anya_v2-MD",
   HASH: "OLDUSER",
@@ -10,8 +13,8 @@ const CONSTANTS = {
   GIST_OWNERS_URL: "https://gist.githubusercontent.com/Teamolduser/04f1cec3589216043dd1142e6772e9f9/raw",
   AUDIO_LIST_URL: "https://gist.githubusercontent.com/Teamolduser/38f9ff5370e76ee4c1a2d94661c16125/raw",
   AUDIO_LIST_URLL: "https://gist.githubusercontent.com/Teamolduser/ac41c93187949a2178f8dfce63da23d5/raw",
-  BOT_SERVER_URL: "https://esm.api.olduser.dpdns.org/youtube/ytdl",
 };
+CONSTANTS.BOT_SERVER_URL = CONSTANTS.BASE_URL + "/youtube/ytdl";
 
 const pickRandom = (list) => list[Math.floor(Math.random() * list.length)];
 
