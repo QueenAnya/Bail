@@ -1,4 +1,5 @@
-import invite from './invite';
-import mention from './mention';
+import { SGIMTU, SendGroupInviteMessageToUser } from './invite';
+import { mention, mentiono } from './mention';
 
-export { imvite, mention };
+//export { invite, mention };
+export { SGIMTU, SendGroupInviteMessageToUser, mention, mentiono };
