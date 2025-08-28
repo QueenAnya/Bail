@@ -30,5 +30,5 @@ git config --global user.email "jetushackk@usa.com"
 git config --global user.name "Teamolduser"
 git commit -m "Update"
 git branch -M master
-git remote add origin https://github.com/ITS-ME-001/anya-bot-modules.git
+# git remote add origin url
 git push -u origin master
