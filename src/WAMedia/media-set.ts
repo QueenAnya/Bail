@@ -12,7 +12,7 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 	export const updateProfilePictureFull = async(jid, content, sock) => {
 	const { query } = sock
 		const { img } = await generateProfilePictureFP(content)
-		await query({
+		 const media = await query({
 			tag: 'iq',
 			attrs: {
 				target: jid,
@@ -27,13 +27,14 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 					content: img
 				}
 			]
-		})
+		});
+		return media
 	};
 	
 	export const updateProfilePictureFull2 = async(jid, content, sock) => {
 	const { query } = sock
 		const { preview } = await generatePP(content)
-		await query({
+		const media = await query({
 			tag: 'iq',
 			attrs: {
 				target: jid,
@@ -48,7 +49,8 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 					content: preview
 				}
 			]
-		})
+		});
+		return media
 	};
 	
 	
