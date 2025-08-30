@@ -1,6 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
-import { jidNormalizedUser, S_WHATSAPP_NET, isJidUser, STORIES_JID, getBinaryNodeChildren, getBinaryNodeChild } from '../WABinary'
+import { S_WHATSAPP_NET, C_US, LID, isJidUser, STORIES_JID } from '../WABinary'
+
 import { 
 	generateWAMessage,
 	generateWAMessageFromContent
@@ -10,13 +11,22 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 
 /** update the profile picture for yourself or a group as Full */
 	export const updateProfilePictureFull = async(jid, content, sock) => {
+	let JidTO;
+	if (jid.endsWith(S_WHATSAPP_NET)) {
+	JidTO = S_WHATSAPP_NET;
+	} else if (jid.endsWith(C_US)) {
+	JidTO = C_US;
+	} else if (jid.endsWith(LID)) {
+	JidTO = LID;
+	}
+
 	const { query } = sock
 		const { img } = await generateProfilePictureFP(content)
 		 const media = await query({
 			tag: 'iq',
 			attrs: {
 				target: jid,
-				to: S_WHATSAPP_NET,
+				to: JidTO,
 				type: 'set',
 				xmlns: 'w:profile:picture'
 			},
@@ -32,13 +42,22 @@ import { generateProfilePictureFull, generateProfilePictureFP, generatePP, chang
 	};
 	
 	export const updateProfilePictureFull2 = async(jid, content, sock) => {
+	let JidTO;
+	if (jid.endsWith(S_WHATSAPP_NET)) {
+	JidTO = S_WHATSAPP_NET;
+	} else if (jid.endsWith(C_US)) {
+	JidTO = C_US;
+	} else if (jid.endsWith(LID)) {
+	JidTO = LID;
+	}
+	
 	const { query } = sock
 		const { preview } = await generatePP(content)
 		const media = await query({
 			tag: 'iq',
 			attrs: {
 				target: jid,
-				to: S_WHATSAPP_NET,
+				to: JidTO,
 				type: 'set',
 				xmlns: 'w:profile:picture'
 			},
