@@ -1,6 +1,6 @@
 {
   "name": "@queenanya/modules",
-  "version": "1.0.2",
+  "version": "5.0.0",
   "description": "Invite Message Function For Add Command and Mention Function",
   "repository": {
     "url": "git@github.com:QueenAnya/bail.git"
@@ -14,11 +14,12 @@
     "test": "node index.js"
   },
   "dependencies": {
-    "@queenanya/baileys": "*",
-    "axios": "* || latest || next",
-    "conventional-changelog-cli": "*",
-    "path": "* || latest",
-    "release-it": "* || latest || 17.6.0"
+    "@queenanya/baileys": "npm:@queenanya/baileys",
+    "adm-zip": "npm:adm-zip",
+    "axios": "npm:axios",
+    "conventional-changelog-cli": "npm:conventional-changelog-cli",
+    "path": "npm:path",
+    "release-it": "npm:release-it"
   },
   "license": "MIT",
   "files": [
