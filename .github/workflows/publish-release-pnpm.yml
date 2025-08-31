@@ -3,7 +3,7 @@ name: Publish Release PNPM
 on:
   push:
     tags:
-      - "v*"
+      - "av*"
 
 permissions: write-all
 
@@ -42,6 +42,7 @@ jobs:
       - name: Publish in NPM (as `@queenanya/modules`)
         run: |
           pnpm publish --access public --no-git-checks
+          pnpm deprecate @queenanya/modules@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
@@ -49,7 +50,8 @@ jobs:
       - name: Publish in NPM ( as `@queenanya/invite` scope)
         run: |
           npx json -I -f package.json -e "this.name='@queenanya/invite'"
-          pnpm deprecate @queenanya/invite@"< ${{ github.ref_name }}" "This version is deprecated as of ${{ github.ref_name }}. Use '@queenanya/modules' instead."
+          #pnpm publish --access public --no-git-checks --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm deprecate @queenanya/invite@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/modules'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
