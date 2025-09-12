@@ -1,16 +1,16 @@
 import { proto } from '../../WAProto/index.js'
 import {
-	GroupMetadata,
-	GroupParticipant,
-	ParticipantAction,
-	SocketConfig,
-	WAMessageKey,
+	type GroupMetadata,
+	type GroupParticipant,
+	type ParticipantAction,
+	type SocketConfig,
+	type WAMessageKey,
 	WAMessageStubType
 } from '../Types'
 import { generateMessageID, generateMessageIDV2, unixTimestampSeconds } from '../Utils'
 import logger from '../Utils/logger'
 import {
-	BinaryNode,
+	type BinaryNode,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	getBinaryNodeChildString,
@@ -149,6 +149,26 @@ export const makeCommunitiesSocket = (config: SocketConfig) => {
 
 			return await parseGroupResult(result)
 		},
+		communityCreateGroup: async (subject: string, participants: string[], parentCommunityJid: string) => {
+			const key = generateMessageIDV2()
+			const result = await communityQuery('@g.us', 'set', [
+				{
+					tag: 'create',
+					attrs: {
+						subject,
+						key
+					},
+					content: [
+						...participants.map(jid => ({
+							tag: 'participant',
+							attrs: { jid }
+						})),
+						{ tag: 'linked_parent', attrs: { jid: parentCommunityJid } }
+					]
+				}
+			])
+			return await parseGroupResult(result)
+		},
 		communityLeave: async (id: string) => {
 			await communityQuery('@g.us', 'set', [
 				{
@@ -166,6 +186,68 @@ export const makeCommunitiesSocket = (config: SocketConfig) => {
 					content: Buffer.from(subject, 'utf-8')
 				}
 			])
+		},
+		communityLinkGroup: async (groupJid: string, parentCommunityJid: string) => {
+			await communityQuery(parentCommunityJid, 'set', [
+				{
+					tag: 'links',
+					attrs: {},
+					content: [
+						{
+							tag: 'link',
+							attrs: { link_type: 'sub_group' },
+							content: [{ tag: 'group', attrs: { jid: groupJid } }]
+						}
+					]
+				}
+			])
+		},
+		communityUnlinkGroup: async (groupJid: string, parentCommunityJid: string) => {
+			await communityQuery(parentCommunityJid, 'set', [
+				{
+					tag: 'unlink',
+					attrs: { unlink_type: 'sub_group' },
+					content: [{ tag: 'group', attrs: { jid: groupJid } }]
+				}
+			])
+		},
+		communityFetchLinkedGroups: async (jid: string) => {
+			let communityJid = jid
+			let isCommunity = false
+
+			// Try to determine if it is a subgroup or a community
+			const metadata = await sock.groupMetadata(jid)
+			if (metadata.linkedParent) {
+				// It is a subgroup, get the community jid
+				communityJid = metadata.linkedParent
+			} else {
+				// It is a community
+				isCommunity = true
+			}
+
+			// Fetch all subgroups of the community
+			const result = await communityQuery(communityJid, 'get', [{ tag: 'sub_groups', attrs: {} }])
+
+			const linkedGroupsData = []
+			const subGroupsNode = getBinaryNodeChild(result, 'sub_groups')
+			if (subGroupsNode) {
+				const groupNodes = getBinaryNodeChildren(subGroupsNode, 'group')
+				for (const groupNode of groupNodes) {
+					linkedGroupsData.push({
+						id: groupNode.attrs.id ? jidEncode(groupNode.attrs.id, 'g.us') : undefined,
+						subject: groupNode.attrs.subject || '',
+						creation: groupNode.attrs.creation ? Number(groupNode.attrs.creation) : undefined,
+						owner: groupNode.attrs.creator ? jidNormalizedUser(groupNode.attrs.creator) : undefined,
+						size: groupNode.attrs.size ? Number(groupNode.attrs.size) : undefined
+					})
+				}
+			}
+
+			return {
+				communityJid,
+				isCommunity,
+				linkedGroups: linkedGroupsData
+			}
 		},
 		communityRequestParticipantsList: async (jid: string) => {
 			const result = await communityQuery(jid, 'get', [
@@ -286,7 +368,7 @@ export const makeCommunitiesSocket = (config: SocketConfig) => {
 				// update the invite message to be expired
 				if (key.id) {
 					// create new invite message that is expired
-					inviteMessage = proto.Message.GroupInviteMessage.fromObject(inviteMessage)
+					inviteMessage = proto.Message.GroupInviteMessage.create(inviteMessage)
 					inviteMessage.inviteExpiration = 0
 					inviteMessage.inviteCode = ''
 					ev.emit('messages.update', [
@@ -372,8 +454,6 @@ export const extractCommunityMetadata = (result: BinaryNode) => {
 		size: getBinaryNodeChildren(community, 'participant').length,
 		creation: Number(community.attrs.creation || 0),
 		owner: community.attrs.creator ? jidNormalizedUser(community.attrs.creator) : undefined,
-		ownerJid: community.attrs.creator_pn ? jidNormalizedUser(community.attrs.creator_pn) : undefined,
-		owner_country_code: community.attrs.creator_country_code,
 		desc,
 		descId,
 		linkedParent: getBinaryNodeChild(community, 'linked_parent')?.attrs.jid || undefined,

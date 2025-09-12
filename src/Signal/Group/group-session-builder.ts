@@ -32,7 +32,7 @@ export class GroupSessionBuilder {
 	public async create(senderKeyName: SenderKeyName): Promise<SenderKeyDistributionMessage> {
 		const senderKeyRecord = await this.senderKeyStore.loadSenderKey(senderKeyName)
 
-		if(senderKeyRecord.isEmpty()) {
+		if (senderKeyRecord.isEmpty()) {
 			const keyId = keyhelper.generateSenderKeyId()
 			const senderKey = keyhelper.generateSenderKey()
 			const signingKey = keyhelper.generateSenderSigningKey()
@@ -42,7 +42,7 @@ export class GroupSessionBuilder {
 		}
 
 		const state = senderKeyRecord.getSenderKeyState()
-		if(!state) {
+		if (!state) {
 			throw new Error('No session state available')
 		}
 

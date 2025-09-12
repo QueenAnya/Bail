@@ -22,7 +22,7 @@ export class SenderKeyRecord {
 	private readonly senderKeyStates: SenderKeyState[] = []
 
 	constructor(serialized?: SenderKeyStateStructure[]) {
-		if(serialized) {
+		if (serialized) {
 			for (const structure of serialized) {
 				this.senderKeyStates.push(new SenderKeyState(null, null, null, null, null, null, structure))
 			}
@@ -34,7 +34,7 @@ export class SenderKeyRecord {
 	}
 
 	public getSenderKeyState(keyId?: number): SenderKeyState | undefined {
-		if(keyId === undefined && this.senderKeyStates.length) {
+		if (keyId === undefined && this.senderKeyStates.length) {
 			return this.senderKeyStates[this.senderKeyStates.length - 1]
 		}
 
@@ -43,7 +43,7 @@ export class SenderKeyRecord {
 
 	public addSenderKeyState(id: number, iteration: number, chainKey: Uint8Array, signatureKey: Uint8Array): void {
 		this.senderKeyStates.push(new SenderKeyState(id, iteration, chainKey, null, signatureKey))
-		if(this.senderKeyStates.length > this.MAX_STATES) {
+		if (this.senderKeyStates.length > this.MAX_STATES) {
 			this.senderKeyStates.shift()
 		}
 	}
@@ -63,9 +63,9 @@ export class SenderKeyRecord {
 	}
 	static deserialize(data: Uint8Array | string | SenderKeyStateStructure[]): SenderKeyRecord {
 		let parsed: SenderKeyStateStructure[]
-		if(typeof data === 'string') {
+		if (typeof data === 'string') {
 			parsed = JSON.parse(data, BufferJSON.reviver)
-		} else if(data instanceof Uint8Array) {
+		} else if (data instanceof Uint8Array) {
 			const str = Buffer.from(data).toString('utf-8')
 			parsed = JSON.parse(str, BufferJSON.reviver)
 		} else {

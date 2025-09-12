@@ -1,4 +1,5 @@
 import * as nodeCrypto from 'crypto'
+/* @ts-ignore */
 import { generateKeyPair } from 'libsignal/src/curve'
 
 type KeyPairType = ReturnType<typeof generateKeyPair>
@@ -17,7 +18,7 @@ export interface SigningKeyPair {
 }
 
 export function generateSenderSigningKey(key?: KeyPairType): SigningKeyPair {
-	if(!key) {
+	if (!key) {
 		key = generateKeyPair()
 	}
 

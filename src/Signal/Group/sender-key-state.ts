@@ -36,10 +36,14 @@ export class SenderKeyState {
 		signatureKeyPrivate?: Uint8Array | null,
 		senderKeyStateStructure?: SenderKeyStateStructure | null
 	) {
-		if(senderKeyStateStructure) {
-			this.senderKeyStateStructure = senderKeyStateStructure
+		if (senderKeyStateStructure) {
+			if (!Array.isArray(senderKeyStateStructure.senderMessageKeys)) {
+				this.senderKeyStateStructure = { ...senderKeyStateStructure, senderMessageKeys: [] }
+			} else {
+				this.senderKeyStateStructure = senderKeyStateStructure
+			}
 		} else {
-			if(signatureKeyPair) {
+			if (signatureKeyPair) {
 				signatureKeyPublic = signatureKeyPair.public
 				signatureKeyPrivate = signatureKeyPair.private
 			}
@@ -58,7 +62,7 @@ export class SenderKeyState {
 						: signatureKeyPublic || Buffer.alloc(0)
 			}
 
-			if(signatureKeyPrivate) {
+			if (signatureKeyPrivate) {
 				signingKeyStructure.private =
 					typeof signatureKeyPrivate === 'string' ? Buffer.from(signatureKeyPrivate, 'base64') : signatureKeyPrivate
 			}
@@ -92,9 +96,11 @@ export class SenderKeyState {
 
 	public getSigningKeyPublic(): Buffer {
 		const publicKey = this.senderKeyStateStructure.senderSigningKey.public
-		if(publicKey instanceof Buffer) {
+		if (publicKey instanceof Buffer) {
 			return publicKey
-		} else if(typeof publicKey === 'string') {
+		} else if (publicKey instanceof Uint8Array) {
+			return Buffer.from(publicKey)
+		} else if (typeof publicKey === 'string') {
 			return Buffer.from(publicKey, 'base64')
 		}
 
@@ -103,13 +109,15 @@ export class SenderKeyState {
 
 	public getSigningKeyPrivate(): Buffer | undefined {
 		const privateKey = this.senderKeyStateStructure.senderSigningKey.private
-		if(!privateKey) {
+		if (!privateKey) {
 			return undefined
 		}
 
-		if(privateKey instanceof Buffer) {
+		if (privateKey instanceof Buffer) {
 			return privateKey
-		} else if(typeof privateKey === 'string') {
+		} else if (privateKey instanceof Uint8Array) {
+			return Buffer.from(privateKey)
+		} else if (typeof privateKey === 'string') {
 			return Buffer.from(privateKey, 'base64')
 		}
 
@@ -126,7 +134,7 @@ export class SenderKeyState {
 			seed: senderMessageKey.getSeed()
 		})
 
-		if(this.senderKeyStateStructure.senderMessageKeys.length > this.MAX_MESSAGE_KEYS) {
+		if (this.senderKeyStateStructure.senderMessageKeys.length > this.MAX_MESSAGE_KEYS) {
 			this.senderKeyStateStructure.senderMessageKeys.shift()
 		}
 	}
@@ -134,8 +142,8 @@ export class SenderKeyState {
 	public removeSenderMessageKey(iteration: number): SenderMessageKey | null {
 		const index = this.senderKeyStateStructure.senderMessageKeys.findIndex(key => key.iteration === iteration)
 
-		if(index !== -1) {
-			const messageKey = this.senderKeyStateStructure.senderMessageKeys[index]
+		if (index !== -1) {
+			const messageKey = this.senderKeyStateStructure.senderMessageKeys[index]!
 			this.senderKeyStateStructure.senderMessageKeys.splice(index, 1)
 			return new SenderMessageKey(messageKey.iteration, messageKey.seed)
 		}

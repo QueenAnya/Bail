@@ -11,7 +11,7 @@ function isNull(str: string | null): boolean {
 function intValue(num: number): number {
 	const MAX_VALUE = 0x7fffffff
 	const MIN_VALUE = -0x80000000
-	if(num > MAX_VALUE || num < MIN_VALUE) {
+	if (num > MAX_VALUE || num < MIN_VALUE) {
 		return num & 0xffffffff
 	}
 
@@ -20,7 +20,7 @@ function intValue(num: number): number {
 
 function hashCode(strKey: string): number {
 	let hash = 0
-	if(!isNull(strKey)) {
+	if (!isNull(strKey)) {
 		for (let i = 0; i < strKey.length; i++) {
 			hash = hash * 31 + strKey.charCodeAt(i)
 			hash = intValue(hash)
@@ -56,7 +56,7 @@ export class SenderKeyName {
 	}
 
 	public equals(other: SenderKeyName | null): boolean {
-		if(other === null) return false
+		if (other === null) return false
 		return this.groupId === other.groupId && this.sender.toString() === other.sender.toString()
 	}
 
