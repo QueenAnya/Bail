@@ -1,4 +1,4 @@
-name: Linting Check
+name: Build Project
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  check-lint:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -33,10 +33,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Install packages
+      - name: Install dependencies
         run: |
           yarn install
           yarn install --mode=update-lockfile
 
-      - name: Check linting
-        run: yarn lint
+      - name: Build project
+        run: yarn build
