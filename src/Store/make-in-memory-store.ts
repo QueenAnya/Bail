@@ -40,7 +40,7 @@ export default (config: BaileysInMemoryStoreConfig) => {
 	const chatKey = config.chatKey || waChatKey(true)
 	const labelAssociationKey = config.labelAssociationKey || waLabelAssociationKey
 	const logger: ILogger = config.logger || DEFAULT_CONNECTION_CONFIG.logger.child({ stream: 'in-mem-store' })
-	const KeyedDB = require('@adiwajshing/keyed-db').default
+import KeyedDB from '@adiwajshing/keyed-db';.default
 
 	const chats = new KeyedDB(chatKey, c => c.id) as KeyedDB<Chat, string>
 	const messages: { [_: string]: ReturnType<typeof makeMessagesDictionary> } = {}
@@ -471,13 +471,11 @@ export default (config: BaileysInMemoryStoreConfig) => {
 		fromJSON,
 		writeToFile: (path: string) => {
 			// require fs here so that in case "fs" is not available -- the app does not crash
-			const { writeFileSync } = require('fs')
-			writeFileSync(path, JSON.stringify(toJSON()))
+import { writeFileSync } from 'fs';writeFileSync(path, JSON.stringify(toJSON()))
 		},
 		readFromFile: (path: string) => {
 			// require fs here so that in case "fs" is not available -- the app does not crash
-			const { readFileSync, existsSync } = require('fs')
-			if(existsSync(path)) {
+import { readFileSync, existsSync } from 'fs';if(existsSync(path)) {
 				logger.debug({ path }, 'reading from file')
 				const jsonStr = readFileSync(path, { encoding: 'utf-8' })
 				const json = JSON.parse(jsonStr)
