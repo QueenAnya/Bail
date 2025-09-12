@@ -1,14 +1,31 @@
-import type KeyedDB from '@adiwajshing/keyed-db'
-import type { Comparable } from '@adiwajshing/keyed-db/lib/Types'
-import KeyedDB from '@adiwajshing/keyed-db'.default
+import KeyedDB, { Comparable } from '@adiwajshing/keyed-db'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { proto } from '../../WAProto'
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
 import type makeMDSocket from '../Socket'
-import type { BaileysEventEmitter, Chat, ConnectionState, Contact, GroupMetadata, PresenceData, WAMessage, WAMessageCursor, WAMessageKey } from '../Types'
+import type {
+    BaileysEventEmitter,
+    Chat,
+    ConnectionState,
+    Contact,
+    GroupMetadata,
+    PresenceData,
+    WAMessage,
+    WAMessageCursor,
+    WAMessageKey
+} from '../Types'
 import { Label } from '../Types/Label'
-import { LabelAssociation, LabelAssociationType, MessageLabelAssociation } from '../Types/LabelAssociation'
-import { md5, toNumber, updateMessageWithReaction, updateMessageWithReceipt } from '../Utils'
+import {
+    LabelAssociation,
+    LabelAssociationType,
+    MessageLabelAssociation
+} from '../Types/LabelAssociation'
+import {
+    md5,
+    toNumber,
+    updateMessageWithReaction,
+    updateMessageWithReceipt
+} from '../Utils'
 import { ILogger } from '../Utils/logger'
 import { jidDecode, jidNormalizedUser } from '../WABinary'
 import makeOrderedDictionary from './make-ordered-dictionary'
