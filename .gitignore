@@ -18,3 +18,7 @@ Proxy
 test.ts
 TestData
 wa-logs.txt
+*.bak
+*/*.bak
+*/*/*.bak
+*/*/*/*.bak
