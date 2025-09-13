@@ -1,4 +1,7 @@
-import KeyedDB, { Comparable } from '@adiwajshing/keyed-db'
+import KeyedDB from '@adiwajshing/keyed-db'
+
+// local Comparable type (if package doesn't export it)
+type Comparable<T, K> = { key: (t: T) => K; compare: (a: K, b: K) => number }
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { proto } from '../../WAProto'
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
@@ -63,9 +66,10 @@ export default (config: BaileysInMemoryStoreConfig = {}) => {
 	const socket = config.socket
 	const chatKey = config.chatKey || waChatKey(true)
 	const labelAssociationKey = config.labelAssociationKey || waLabelAssociationKey
-	const logger: ILogger = (config.logger || DEFAULT_CONNECTION_CONFIG.logger).child
-		? (config.logger || DEFAULT_CONNECTION_CONFIG.logger).child({ stream: 'in-mem-store' })
-		: (config.logger || DEFAULT_CONNECTION_CONFIG.logger) as ILogger
+	const _baseLogger = (config.logger || DEFAULT_CONNECTION_CONFIG.logger) as any
+	const logger: ILogger = typeof _baseLogger?.child === 'function'
+		? _baseLogger.child({ stream: 'in-mem-store' })
+		: _baseLogger as ILogger
 
 	// chats keyed DB
 	const chats = new KeyedDB<Chat, string>(chatKey, (c: Chat) => c.id)
@@ -135,9 +139,10 @@ export default (config: BaileysInMemoryStoreConfig = {}) => {
 			chats: Chat[]
 			contacts: Contact[]
 			messages: WAMessage[]
-			isLatest: boolean
+			isLatest?: boolean
 			syncType?: proto.HistorySync.HistorySyncType
 		}) => {
+			isLatest = !!isLatest
 			if (syncType === proto.HistorySync.HistorySyncType.ON_DEMAND) {
 				return // FOR NOW, TODO: handle ON_DEMAND
 			}
@@ -174,7 +179,7 @@ export default (config: BaileysInMemoryStoreConfig = {}) => {
 			contactsUpsert(ctcs)
 		})
 
-		ev.on('contacts.update', async (updates: Array<{ id?: string; imgUrl?: string | 'changed' | 'removed'; [k: string]: any }>) => {
+		ev.on('contacts.update', async (updates: any[]) => {
 			for (const update of updates) {
 				let contact: Contact | undefined
 				if (update.id && contacts[update.id]) {
@@ -198,7 +203,7 @@ export default (config: BaileysInMemoryStoreConfig = {}) => {
 					}
 					// ensure contact entry exists
 					if (!contacts[contact.id]) contacts[contact.id] = contact
-					Object.assign(contacts[contact.id], contact)
+					contacts[contact.id] = Object.assign({}, contacts[contact.id] || {}, contact)
 				} else {
 					logger.debug?.({ update }, 'got update for non-existant contact')
 				}
@@ -214,10 +219,12 @@ export default (config: BaileysInMemoryStoreConfig = {}) => {
 				if (!update.id) continue
 				const result = chats.update(update.id, (chat: Chat) => {
 					if (update.unreadCount && update.unreadCount > 0) {
-						update = { ...update }
-						update.unreadCount = (chat.unreadCount || 0) + (update.unreadCount || 0)
+						const _upd = { ...update }
+						_upd.unreadCount = (chat.unreadCount || 0) + (_upd.unreadCount || 0)
+						Object.assign(chat, _upd)
+						return
 					}
-					Object.assign(chat, update)
+					// merged above
 				})
 				if (!result) {
 					logger.debug?.({ update }, 'got update for non-existant chat')
@@ -253,7 +260,7 @@ export default (config: BaileysInMemoryStoreConfig = {}) => {
 
 		ev.on('presence.update', ({ id, presences: update }: { id: string; presences: { [p: string]: PresenceData } }) => {
 			presences[id] = presences[id] || {}
-			Object.assign(presences[id], update)
+			presences[id] = Object.assign({}, presences[id] || {}, update)
 		})
 
 		ev.on('chats.delete', (deletions: string[]) => {
@@ -325,7 +332,7 @@ export default (config: BaileysInMemoryStoreConfig = {}) => {
 				const id = (update as any).id
 				if (!id) continue
 				if (groupMetadata[id]) {
-					Object.assign(groupMetadata[id], update)
+					groupMetadata[id] = Object.assign({}, groupMetadata[id] || {}, update)
 				} else {
 					logger.debug?.({ update }, 'got update for non-existant group metadata')
 				}
