@@ -1,7 +1,7 @@
 {
   "name": "@queenanya/baileys",
   "type": "module",
-  "version": "8.6.0",
+  "version": "8.7.0-beta",
   "description": "A WebSockets library for interacting with WhatsApp Web",
   "keywords": [
     "whatsapp",
@@ -70,8 +70,8 @@
     "jimp": "^1.6.0",
     "jiti": "^2.4.2",
     "json": "^11.0.0",
-    "link-preview-js": "^3.0.0",
     "libsignal": "git+https://github.com/whiskeysockets/libsignal-node",
+    "link-preview-js": "^3.0.0",
     "lru-cache": "^11.1.0",
     "open": "^8.4.2",
     "pino-pretty": "^13.1.1",
