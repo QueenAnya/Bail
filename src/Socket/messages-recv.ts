@@ -11,6 +11,7 @@ import type {
 	SocketConfig,
 	WACallEvent,
 	WACallUpdateType,
+	WAMessage,
 	WAMessageKey,
 	WAPatchName
 } from '../Types'
@@ -34,7 +35,6 @@ import {
 	hkdf,
 	MISSING_KEYS_ERROR_TEXT,
 	NACK_REASONS,
-	NO_MESSAGE_FOUND_ERROR_TEXT,
 	unixTimestampSeconds,
 	xmppPreKey,
 	xmppSignedPreKey
@@ -294,8 +294,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							typeof plaintextNode.content === 'string'
 								? Buffer.from(plaintextNode.content, 'binary')
 								: Buffer.from(plaintextNode.content as Uint8Array)
-						const messageProto = proto.Message.decode(contentBuf)
-						const fullMessage = proto.WebMessageInfo.create({
+						const messageProto = proto.Message.decode(contentBuf).toJSON()
+						const fullMessage = proto.WebMessageInfo.fromObject({
 							key: {
 								remoteJid: from,
 								id: child.attrs.message_id || child.attrs.server_id,
@@ -303,7 +303,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							},
 							message: messageProto,
 							messageTimestamp: +child.attrs.t!
-						})
+						}).toJSON() as WAMessage
 						await upsertMessage(fullMessage, 'append')
 						logger.info('Processed plaintext newsletter message')
 					} catch (error) {
@@ -400,7 +400,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		} else {
 			// Fallback to old system
 			const key = `${msgId}:${msgKey?.participant}`
-			let retryCount = msgRetryCache.get<number>(key) || 0
+			let retryCount = (await msgRetryCache.get<number>(key)) || 0
 			if (retryCount >= maxMsgRetryCount) {
 				logger.debug({ retryCount, msgId }, 'reached retry limit, clearing')
 				msgRetryCache.del(key)
@@ -408,11 +408,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			}
 
 			retryCount += 1
-			msgRetryCache.set(key, retryCount)
+			await msgRetryCache.set(key, retryCount)
 		}
 
 		const key = `${msgId}:${msgKey?.participant}`
-		const retryCount = msgRetryCache.get<number>(key) || 1
+		const retryCount = (await msgRetryCache.get<number>(key)) || 1
 
 		const { account, signedPreKey, signedIdentityKey: identityKey } = authState.creds
 		const fromJid = node.attrs.from!
@@ -546,7 +546,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
-	const handleGroupNotification = (participant: string, child: BinaryNode, msg: Partial<proto.IWebMessageInfo>) => {
+	const handleGroupNotification = (participant: string, child: BinaryNode, msg: Partial<WAMessage>) => {
 		const participantJid = getBinaryNodeChild(child, 'participant')?.attrs?.jid || participant
 		// TODO: Add participant LID
 		switch (child?.tag) {
@@ -658,7 +658,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const processNotification = async (node: BinaryNode) => {
-		const result: Partial<proto.IWebMessageInfo> = {}
+		const result: Partial<WAMessage> = {}
 		const [child] = getAllBinaryNodeChildren(node)
 		const nodeType = node.attrs.type
 		const from = jidNormalizedUser(node.attrs.from)
@@ -862,19 +862,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		return data instanceof Buffer ? data : Buffer.from(data)
 	}
 
-	const willSendMessageAgain = (id: string, participant: string) => {
+	const willSendMessageAgain = async (id: string, participant: string) => {
 		const key = `${id}:${participant}`
-		const retryCount = msgRetryCache.get<number>(key) || 0
-		return retryCount <= maxMsgRetryCount
+		const retryCount = (await msgRetryCache.get<number>(key)) || 0
+		return retryCount < maxMsgRetryCount
 	}
 
-	const updateSendMessageAgainCount = (id: string, participant: string) => {
+	const updateSendMessageAgainCount = async (id: string, participant: string) => {
 		const key = `${id}:${participant}`
-		const newValue = (msgRetryCache.get<number>(key) || 0) + 1
-		msgRetryCache.set(key, newValue)
+		const newValue = ((await msgRetryCache.get<number>(key)) || 0) + 1
+		await msgRetryCache.set(key, newValue)
 	}
 
-	const sendMessagesAgain = async (key: proto.IMessageKey, ids: string[], retryNode: BinaryNode) => {
+	const sendMessagesAgain = async (key: WAMessageKey, ids: string[], retryNode: BinaryNode) => {
 		const remoteJid = key.remoteJid!
 		const participant = key.participant || remoteJid
 
@@ -939,7 +939,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			}
 		}
 
-		await assertSessions([participant], shouldRecreateSession)
+		await assertSessions([participant])
 
 		if (isJidGroup(remoteJid)) {
 			await authState.keys.set({ 'sender-key-memory': { [remoteJid]: null } })
@@ -950,7 +950,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		for (const [i, msg] of msgs.entries()) {
 			if (!ids[i]) continue
 
-			if (msg && willSendMessageAgain(ids[i], participant)) {
+			if (msg && (await willSendMessageAgain(ids[i], participant))) {
 				updateSendMessageAgainCount(ids[i], participant)
 				const msgRelayOpts: MessageRelayOptions = { messageId: ids[i] }
 
@@ -1039,7 +1039,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						// correctly set who is asking for the retry
 						key.participant = key.participant || attrs.from
 						const retryNode = getBinaryNodeChild(node, 'retry')
-						if (ids[0] && key.participant && willSendMessageAgain(ids[0], key.participant)) {
+						if (ids[0] && key.participant && (await willSendMessageAgain(ids[0], key.participant))) {
 							if (key.fromMe) {
 								try {
 									updateSendMessageAgainCount(ids[0], key.participant)
@@ -1089,7 +1089,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						msg.participant ??= node.attrs.participant
 						msg.messageTimestamp = +node.attrs.t!
 
-						const fullMsg = proto.WebMessageInfo.create(msg as proto.IWebMessageInfo)
+						const fullMsg = proto.WebMessageInfo.fromObject(msg) as WAMessage
 						await upsertMessage(fullMsg, 'append')
 					}
 				})
@@ -1102,7 +1102,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const handleMessage = async (node: BinaryNode) => {
 		if (shouldIgnoreJid(node.attrs.from!) && node.attrs.from !== '@s.whatsapp.net') {
 			logger.debug({ key: node.attrs.key }, 'ignored message')
-			await sendMessageAck(node)
+			await sendMessageAck(node, NACK_REASONS.UnhandledError)
 			return
 		}
 
@@ -1115,23 +1115,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			return
 		}
 
-		let response: string | undefined
-
-		if (getBinaryNodeChild(node, 'unavailable') && !encNode) {
-			await sendMessageAck(node)
-			const { key } = decodeMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '').fullMessage
-			response = await requestPlaceholderResend(key)
-			if (response === 'RESOLVED') {
-				return
-			}
-
-			logger.debug('received unavailable message, acked and requested resend from phone')
-		} else {
-			if (placeholderResendCache.get(node.attrs.id!)) {
-				placeholderResendCache.del(node.attrs.id!)
-			}
-		}
-
 		const {
 			fullMessage: msg,
 			category,
@@ -1139,33 +1122,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			decrypt
 		} = decryptMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '', signalRepository, logger)
 
-		if (response && msg?.messageStubParameters?.[0] === NO_MESSAGE_FOUND_ERROR_TEXT) {
-			msg.messageStubParameters = [NO_MESSAGE_FOUND_ERROR_TEXT, response]
-		}
-
-		if (
-			msg.message?.protocolMessage?.type === proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER &&
-			node.attrs.sender_pn
-		) {
-			const lid = jidNormalizedUser(node.attrs.from),
-				pn = jidNormalizedUser(node.attrs.sender_pn)
-			ev.emit('lid-mapping.update', { lid, pn })
-			await signalRepository.storeLIDPNMapping(lid, pn)
-		}
-
 		const alt = msg.key.participantAlt || msg.key.remoteJidAlt
 		// store new mappings we didn't have before
 		if (!!alt) {
 			const altServer = jidDecode(alt)?.server
-			const lidMapping = signalRepository.getLIDMappingStore()
+			const primaryJid = msg.key.participant || msg.key.remoteJid!
 			if (altServer === 'lid') {
-				if (typeof (await lidMapping.getPNForLID(alt)) === 'string') {
-					await lidMapping.storeLIDPNMapping(alt, msg.key.participant || msg.key.remoteJid!)
+				if (!(await signalRepository.lidMapping.getPNForLID(alt))) {
+					await signalRepository.lidMapping.storeLIDPNMappings([{ lid: alt, pn: primaryJid }])
+					await signalRepository.migrateSession(primaryJid, alt)
 				}
 			} else {
-				if (typeof (await lidMapping.getLIDForPN(alt)) === 'string') {
-					await lidMapping.storeLIDPNMapping(msg.key.participant || msg.key.remoteJid!, alt)
-				}
+				await signalRepository.lidMapping.storeLIDPNMappings([{ lid: primaryJid, pn: alt }])
+				await signalRepository.migrateSession(alt, primaryJid)
 			}
 		}
 
@@ -1200,11 +1169,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							try {
 								if (!ws.isOpen) {
 									logger.debug({ node }, 'Connection closed, skipping retry')
-									return
-								}
-
-								if (getBinaryNodeChild(node, 'unavailable')) {
-									logger.debug('Message unavailable, skipping retry')
 									return
 								}
 
@@ -1268,8 +1232,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 					cleanMessage(msg, authState.creds.me!.id)
 
-					await sendMessageAck(node)
-
 					await upsertMessage(msg, node.attrs.offline ? 'append' : 'notify')
 				})
 			])
@@ -1292,7 +1254,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		status = getCallStatusFromNode(infoChild)
 
 		if (isLidUser(from) && infoChild.tag === 'relaylatency') {
-			const verify = callOfferCache.get(callId)
+			const verify = await callOfferCache.get(callId)
 			if (!verify) {
 				status = 'offer'
 				const callLid: WACallEvent = {
@@ -1303,7 +1265,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					offline: !!attrs.offline,
 					status
 				}
-				callOfferCache.set(callId, callLid)
+				await callOfferCache.set(callId, callLid)
 			}
 		}
 
@@ -1320,10 +1282,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			call.isVideo = !!getBinaryNodeChild(infoChild, 'video')
 			call.isGroup = infoChild.attrs.type === 'group' || !!infoChild.attrs['group-jid']
 			call.groupJid = infoChild.attrs['group-jid']
-			callOfferCache.set(call.id, call)
+			await callOfferCache.set(call.id, call)
 		}
 
-		const existingCall = callOfferCache.get<WACallEvent>(call.id)
+		const existingCall = await callOfferCache.get<WACallEvent>(call.id)
 
 		// use existing call info to populate this event
 		if (existingCall) {
@@ -1333,7 +1295,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 		// delete data once call has ended
 		if (status === 'reject' || status === 'accept' || status === 'timeout' || status === 'terminate') {
-			callOfferCache.del(call.id)
+			await callOfferCache.del(call.id)
 		}
 
 		ev.emit('call', [call])
@@ -1483,7 +1445,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 		// missed call + group call notification message generation
 		if (call.status === 'timeout' || (call.status === 'offer' && call.isGroup)) {
-			const msg: proto.IWebMessageInfo = {
+			const msg: WAMessage = {
 				key: {
 					remoteJid: call.chatId,
 					id: call.id,
@@ -1503,7 +1465,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				msg.message = { call: { callKey: Buffer.from(call.id) } }
 			}
 
-			const protoMsg = proto.WebMessageInfo.create(msg)
+			const protoMsg = proto.WebMessageInfo.fromObject(msg) as WAMessage
 			upsertMessage(protoMsg, call.offline ? 'append' : 'notify')
 		}
 	})

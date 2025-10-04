@@ -1,4 +1,3 @@
-/* @ts-ignore */
 import { calculateMAC } from 'libsignal/src/crypto'
 import { SenderMessageKey } from './sender-message-key'
 
@@ -8,15 +7,9 @@ export class SenderChainKey {
 	private readonly iteration: number
 	private readonly chainKey: Buffer
 
-	constructor(iteration: number, chainKey: any) {
+	constructor(iteration: number, chainKey: Uint8Array | Buffer) {
 		this.iteration = iteration
-		if (chainKey instanceof Buffer) {
-			this.chainKey = chainKey
-		} else if (chainKey instanceof Uint8Array) {
-			this.chainKey = Buffer.from(chainKey)
-		} else {
-			this.chainKey = Buffer.from(chainKey || [])
-		}
+		this.chainKey = Buffer.from(chainKey)
 	}
 
 	public getIteration(): number {

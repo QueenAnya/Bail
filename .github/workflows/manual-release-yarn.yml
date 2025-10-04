@@ -50,6 +50,7 @@ jobs:
           rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
+          yarn install --no-immutable
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

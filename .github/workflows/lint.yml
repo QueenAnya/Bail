@@ -35,8 +35,13 @@ jobs:
 
       - name: Install packages
         run: |
+          rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
+          yarn install --no-immutable
 
       - name: Check linting
         run: yarn lint
+        
+      - name: Release
+        run: "npx release-it --increment --no-git.requireCleanWorkingDir updatesssssss"

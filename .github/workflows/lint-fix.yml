@@ -1,29 +1,19 @@
-name: Manual Release
+name: Linting Check and Fix
 
 on:
   workflow_dispatch:
-    inputs:
-      increment:
-        type: string
-        description: 'Must be: patch, minor, major, pre* or <version>'
-        required: true
-        default: 'patch'
+
+permissions: write-all
 
 jobs:
-  manual-release:
+  check-lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PERSONAL_TOKEN }}
+      - uses: actions/checkout@v3
 
-      - name: Setup GIT
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Setup Node
+      - name: Setup Node and Corepack
         uses: actions/setup-node@v3.6.0
         with:
           node-version: 20.x
@@ -42,12 +32,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Install Dependencies
+      - name: Install packages
         run: |
           rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
           yarn install --no-immutable
 
-      - name: Release
-        run: npx release-it --increment ${{ github.event.inputs.increment }}
+      - name: Check linting
+        run: yarn lint:fix

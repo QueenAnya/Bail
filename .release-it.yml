@@ -1,6 +1,6 @@
 git:
-  commitMessage: "chore(release): v${version}"
-  tagAnnotation: "chore(release): v${version}"
+  commitMessage: "chore(release): ${version}"
+  tagAnnotation: "chore(release): ${version}"
   tagName: "v${version}"
 
 hooks:
