@@ -41,3 +41,6 @@ jobs:
 
       - name: Check linting
         run: yarn lint:fix
+      
+      - name: Release
+        run: "npx release-it --increment --no-git.requireCleanWorkingDir updatesssssss"
