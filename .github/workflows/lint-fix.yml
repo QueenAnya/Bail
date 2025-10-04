@@ -2,6 +2,12 @@ name: Linting Check and Fix
 
 on:
   workflow_dispatch:
+    inputs:
+      increment:
+        type: string
+        description: "Must be: patch, minor, major, pre* or <version>"
+        required: true
+        default: "patch"
 
 permissions: write-all
 
@@ -43,4 +49,4 @@ jobs:
         run: yarn lint:fix
       
       - name: Release
-        run: "npx release-it --increment --no-git.requireCleanWorkingDir updatesssssss"
+        run: "npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
