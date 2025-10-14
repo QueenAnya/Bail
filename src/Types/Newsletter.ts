@@ -1,6 +1,7 @@
 export enum XWAPaths {
 	xwa2_newsletter_create = 'xwa2_newsletter_create',
 	xwa2_newsletter_subscribers = 'xwa2_newsletter_subscribers',
+	xwa2_newsletter_subscribed = 'xwa2_newsletter_subscribed',
 	xwa2_newsletter_view = 'xwa2_newsletter_view',
 	xwa2_newsletter_metadata = 'xwa2_newsletter',
 	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin',
@@ -25,6 +26,16 @@ export enum QueryIds {
 	CHANGE_OWNER = '7341777602580933',
 	DEMOTE = '6551828931592903',
 	DELETE = '30062808666639665'
+}
+export enum QueryIdd {
+	METADATA = '6620195908089573',
+	GETSUBSCRIBED = '6388546374527196',
+	CREATE = '6996806640408138',
+	UNMUTE = '7337137176362961',
+	MUTE = '25151904754424642',
+	FOLLOW = '7871414976211147',
+	UNFOLLOW = '7238632346214362',
+	UPDATE = '7150902998257522'
 }
 export type NewsletterUpdate = {
 	name?: string
@@ -95,4 +106,22 @@ export interface NewsletterMetadata {
 		name?: string
 		description?: string
 	}
+}
+
+export interface NewsLetterMetadata {
+	id: string
+	state: 'ACTIVE' | 'SUSPENDED' | 'GEOSUSPENDED'
+	creationTime: number
+	inviteCode: string
+	name: string
+	desc: string
+	subscriberCount: number
+	verification: 'VERIFIED' | 'UNVERIFIED'
+	picture?: string
+	preview?: string
+	settings: {
+		reaction: 'ALL' | 'BASIC' | 'NONE' | 'BLOCKLlST'
+	}
+	mute?: 'ON' | 'OFF'
+	role?: 'SUBSCRIBER' | 'GUEST' | 'ADMIN' | 'OWNER'
 }

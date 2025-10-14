@@ -5,7 +5,7 @@ import type { LIDMapping, SignalAuthState, SignalKeyStoreWithTransaction } from 
 import type { SignalRepositoryWithLIDStore } from '../Types/Signal'
 import { generateSignalPubKey } from '../Utils'
 import type { ILogger } from '../Utils/logger'
-import { jidDecode, transferDevice } from '../WABinary'
+import { jidDecode, transferDevice, WAJIDDomains } from '../WABinary'
 import type { SenderKeyStore } from './Group/group_cipher'
 import { SenderKeyName } from './Group/sender-key-name'
 import { SenderKeyRecord } from './Group/sender-key-record'
@@ -226,7 +226,7 @@ export function makeLibSignalRepository(
 				}
 			}
 
-			logger.info(
+			logger.debug(
 				{
 					fromJid,
 					totalDevices: userDevices.length,
@@ -321,7 +321,7 @@ export function makeLibSignalRepository(
 
 const jidToSignalProtocolAddress = (jid: string): libsignal.ProtocolAddress => {
 	const decoded = jidDecode(jid)!
-	const { user, device, server } = decoded
+	const { user, device, server, domainType } = decoded
 
 	if (!user) {
 		throw new Error(
@@ -329,9 +329,12 @@ const jidToSignalProtocolAddress = (jid: string): libsignal.ProtocolAddress => {
 		)
 	}
 
-	// LID addresses get _1 suffix for Signal protocol
-	const signalUser = server === 'lid' ? `${user}_1` : user
+	const signalUser = domainType !== WAJIDDomains.WHATSAPP ? `${user}_${domainType}` : user
 	const finalDevice = device || 0
+
+	if (device === 99 && decoded.server !== 'hosted' && decoded.server !== 'hosted.lid') {
+		throw new Error('Unexpected non-hosted device JID with device 99. This ID seems invalid. ID:' + jid)
+	}
 
 	return new libsignal.ProtocolAddress(signalUser, finalDevice)
 }
@@ -345,14 +348,19 @@ function signalStorage(
 	lidMapping: LIDMappingStore
 ): SenderKeyStore & libsignal.SignalStorage {
 	// Shared function to resolve PN signal address to LID if mapping exists
-	const resolveSignalAddress = async (id: string): Promise<string> => {
-		if (id.includes('.') && !id.includes('_1')) {
-			const parts = id.split('.')
-			const device = parts[1] || '0'
-			const pnJid = device === '0' ? `${parts[0]}@s.whatsapp.net` : `${parts[0]}:${device}@s.whatsapp.net`
+	const resolveLIDSignalAddress = async (id: string): Promise<string> => {
+		if (id.includes('.')) {
+			const [deviceId, domainType_] = id.split('_')
+			const domainType = parseInt(domainType_ || '0')
+			const [user, device] = deviceId!.split('.')
 
-			const lidForPN = await lidMapping.getLIDForPN(pnJid)
+			if (domainType === WAJIDDomains.LID || domainType === WAJIDDomains.HOSTED_LID) return id
+
+			const pnJid = `${user!}${device !== '0' ? `:${device}` : ''}@s.whatsapp.net`
+
+			let lidForPN = await lidMapping.getLIDForPN(pnJid)
 			if (lidForPN?.includes('@lid')) {
+				if (domainType === WAJIDDomains.HOSTED) lidForPN = `${lidForPN.split('@')[0]}@hosted.lid`
 				const lidAddr = jidToSignalProtocolAddress(lidForPN)
 				return lidAddr.toString()
 			}
@@ -364,7 +372,7 @@ function signalStorage(
 	return {
 		loadSession: async (id: string) => {
 			try {
-				const wireJid = await resolveSignalAddress(id)
+				const wireJid = await resolveLIDSignalAddress(id)
 				const { [wireJid]: sess } = await keys.get('session', [wireJid])
 
 				if (sess) {
@@ -377,7 +385,7 @@ function signalStorage(
 			return null
 		},
 		storeSession: async (id: string, session: libsignal.SessionRecord) => {
-			const wireJid = await resolveSignalAddress(id)
+			const wireJid = await resolveLIDSignalAddress(id)
 			await keys.set({ session: { [wireJid]: session.serialize() } })
 		},
 		isTrustedIdentity: () => {

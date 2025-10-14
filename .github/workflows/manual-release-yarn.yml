@@ -51,8 +51,6 @@ jobs:
           yarn install
           yarn install --mode=update-lockfile
           yarn install --no-immutable
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Release
         run: "npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
