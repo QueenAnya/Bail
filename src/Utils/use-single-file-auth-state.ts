@@ -48,7 +48,7 @@ export const useSingleFileAuthState = async (
     await ensureFolder()
     return fileLock.acquire().then(async release => {
       try {
-        await writeFile(resolvedPath, JSON.stringify(data, BufferJSON.replacer))
+        await writeFile(resolvedPath, JSON.stringify(data, BufferJSON.replacer, 2))
       } finally {
         release()
       }
