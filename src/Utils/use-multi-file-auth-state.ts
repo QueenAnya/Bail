@@ -40,7 +40,7 @@ export const useMultiFileAuthState = async (
 
 		return mutex.acquire().then(async release => {
 			try {
-				await writeFile(filePath, JSON.stringify(data, BufferJSON.replacer))
+				await writeFile(filePath, JSON.stringify(data, BufferJSON.replacer, 2))
 			} finally {
 				release()
 			}

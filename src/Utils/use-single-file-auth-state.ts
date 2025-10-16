@@ -11,8 +11,10 @@ const fileLock = new Mutex()
 export const useSingleFileAuthState = async (
   folderPath: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
-  const resolvedPath = join(folderPath, 'creds.json');
-  const folder = folderPath
+  // const resolvedPath = join(filePath); // filePath = folderPath if file path given in folderPath or filePath 
+  // const folder = join(resolvedPath, '..'); // if file path given
+  const resolvedPath = join(folderPath, 'creds.json'); // folderPath = filePath if folder path given in filePath or folderPath 
+  const folder = folderPath // if folder path given
 
   const ensureFolder = async () => {
     const folderInfo = await stat(folder).catch(() => null)
@@ -30,10 +32,14 @@ export const useSingleFileAuthState = async (
     keys: { [key: string]: { [id: string]: any } }
   }> => {
     await ensureFolder()
-    return fileLock.runExclusive(async () => {
-      const raw = await readFile(resolvedPath, 'utf-8').catch(() => null)
-      if (!raw) return { creds: initAuthCreds(), keys: {} }
-      return JSON.parse(raw, BufferJSON.reviver)
+    return fileLock.acquire().then(async release => {
+      try {
+        const raw = await readFile(resolvedPath, 'utf-8').catch(() => null)
+        if (!raw) return { creds: initAuthCreds(), keys: {} }
+        return JSON.parse(raw, BufferJSON.reviver)
+      } finally {
+        release()
+      }
     })
   }
 
@@ -42,8 +48,12 @@ export const useSingleFileAuthState = async (
     keys: { [key: string]: { [id: string]: any } }
   }) => {
     await ensureFolder()
-    return fileLock.runExclusive(async () => {
-      await writeFile(resolvedPath, JSON.stringify(data, BufferJSON.replacer, 2))
+    return fileLock.acquire().then(async release => {
+      try {
+        await writeFile(resolvedPath, JSON.stringify(data, BufferJSON.replacer, 2))
+      } finally {
+        release()
+      }
     })
   }
 
