@@ -42,10 +42,9 @@ import {
 	type FullJid,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
-	getServerFromDomainType,
+	isHostedLidUser,
+	isHostedPnUser,
 	isJidGroup,
-	isJidHostedLidUser,
-	isJidHostedPnUser,
 	isLidUser,
 	isPnUser,
 	jidDecode,
@@ -246,7 +245,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			})
 			.filter(jid => jid !== null)
 
-		let mgetDevices: undefined | Record<string, JidWithDevice[] | undefined>
+		let mgetDevices: undefined | Record<string, FullJid[] | undefined>
 
 		if (useCache && userDevicesCache.mget) {
 			const usersToFetch = jidsWithUser.map(j => j?.user).filter(Boolean) as string[]
@@ -257,12 +256,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			if (useCache) {
 				const devices =
 					mgetDevices?.[user!] ||
-					(userDevicesCache.mget ? undefined : ((await userDevicesCache.get(user!)) as JidWithDevice[]))
+					(userDevicesCache.mget ? undefined : ((await userDevicesCache.get(user!)) as FullJid[]))
 				if (devices) {
-					const isLidJid = jid.includes('@lid')
 					const devicesWithJid = devices.map(d => ({
 						...d,
-						jid: isLidJid ? jidEncode(d.user, 'lid', d.device) : jidEncode(d.user, 's.whatsapp.net', d.device)
+						jid: jidEncode(d.user, d.server, d.device)
 					}))
 					deviceResults.push(...devicesWithJid)
 
@@ -281,7 +279,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		const requestedLidUsers = new Set<string>()
 		for (const jid of toFetch) {
-			if (jid.includes('@lid') || jid.includes('@hosted.lid')) {
+			if (isLidUser(jid) || isHostedLidUser(jid)) {
 				const user = jidDecode(jid)?.user
 				if (user) requestedLidUsers.add(user)
 			}
@@ -322,10 +320,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				// Process all devices for this user
 				for (const item of userDevices) {
-					const deterministicServer = getServerFromDomainType(item.server, item.domainType)
 					const finalJid = isLidUser
-						? jidEncode(user, deterministicServer, item.device)
-						: jidEncode(item.user, deterministicServer, item.device)
+						? jidEncode(user, item.server, item.device)
+						: jidEncode(item.user, item.server, item.device)
 
 					deviceResults.push({
 						...item,
@@ -381,6 +378,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const uniqueJids = [...new Set(jids)] // Deduplicate JIDs
 		const jidsRequiringFetch: string[] = []
 
+		logger.debug({ jids }, 'assertSessions call with jids')
+
 		// Check peerSessionsCache and validate sessions using libsignal loadSession
 		for (const jid of uniqueJids) {
 			const signalId = signalRepository.jidToSignalProtocolAddress(jid)
@@ -404,10 +403,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		if (jidsRequiringFetch.length) {
 			// LID if mapped, otherwise original
 			const wireJids = [
-				...jidsRequiringFetch.filter(jid => !!jid.includes('@lid')),
+				...jidsRequiringFetch.filter(jid => !!isLidUser(jid) || !!isHostedLidUser(jid)),
 				...(
 					(await signalRepository.lidMapping.getLIDsForPNs(
-						jidsRequiringFetch.filter(jid => !!jid.includes('@s.whatsapp.net'))
+						jidsRequiringFetch.filter(jid => !!isPnUser(jid) || !!isHostedPnUser(jid))
 					)) || []
 				).map(a => a.lid)
 			]
@@ -467,10 +466,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				push_priority: 'high_force'
 			},
-			additionalNodes: [{
-				tag: 'meta',
-				attrs: {'appdata': 'default'}
-			}]
+			additionalNodes: [
+				{
+					tag: 'meta',
+					attrs: { appdata: 'default' }
+				}
+			]
 		})
 
 		return msgId
@@ -713,8 +714,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					const hasKey = !!senderKeyMap[deviceJid]
 					if (
 						(!hasKey || !!participant) &&
-						!isJidHostedLidUser(deviceJid) &&
-						!isJidHostedPnUser(deviceJid) &&
+						!isHostedLidUser(deviceJid) &&
+						!isHostedPnUser(deviceJid) &&
 						device.device !== 99
 					) {
 						//todo: revamp all this logic
@@ -837,7 +838,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					}
 
 					// Check if this is our device (could match either PN or LID user)
-					const isMe = user === mePnUser || (meLidUser && user === meLidUser)
+					const isMe = user === mePnUser || user === meLidUser
 
 					if (isMe) {
 						meRecipients.push(jid)

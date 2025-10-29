@@ -9,12 +9,12 @@ import { BufferJSON } from './generics'
 const fileLock = new Mutex()
 
 export const useSingleFileAuthState = async (
-  folderPath: string
+  filePath: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
-  // const resolvedPath = join(filePath); // filePath = folderPath if file path given in folderPath or filePath 
-  // const folder = join(resolvedPath, '..'); // if file path given
-  const resolvedPath = join(folderPath, 'creds.json'); // folderPath = filePath if folder path given in filePath or folderPath 
-  const folder = folderPath // if folder path given
+  const resolvedPath = join(filePath);
+  const folder = join(resolvedPath, '..');
+  // const resolvedPath = join(folderPath, 'creds.json'); // folderPath = filePath if folder path given in filePath or folderPath 
+  // const folder = folderPath or filePath // if folder path given
 
   const ensureFolder = async () => {
     const folderInfo = await stat(folder).catch(() => null)

@@ -11,7 +11,30 @@ export enum XWAPaths {
 	xwa2_newsletter_unfollow = 'xwa2_newsletter_unfollow',
 	xwa2_newsletter_change_owner = 'xwa2_newsletter_change_owner',
 	xwa2_newsletter_demote = 'xwa2_newsletter_demote',
-	xwa2_newsletter_delete_v2 = 'xwa2_newsletter_delete_v2'
+	xwa2_newsletter_delete_v2 = 'xwa2_newsletter_delete_v2',
+	PROMOTE = 'xwa2_notify_newsletter_admin_promote',
+    DEMOTE = 'xwa2_notify_newsletter_admin_demote',
+    ADMIN_COUNT = 'xwa2_newsletter_admin',
+    CREATE = 'xwa2_newsletter_create',
+    NEWSLETTER = 'xwa2_newsletter',
+    SUBSCRIBED = 'xwa2_newsletter_subscribed', 
+    METADATA_UPDATE = 'xwa2_notify_newsletter_on_metadata_update'
+}
+export enum QueryIdd {
+	METADATA = '6620195908089573',
+	GETSUBSCRIBED = '6388546374527196',
+	CREATE = '6996806640408138',
+	UNMUTE = '7337137176362961',
+	MUTE = '25151904754424642',
+	FOLLOW = '7871414976211147',
+	UNFOLLOW = '7238632346214362',
+	UPDATE = '7150902998257522',
+	JOB_MUTATION = '7150902998257522',
+    ADMIN_COUNT = '7130823597031706',
+    CHANGE_OWNER = '7341777602580933',
+    DELETE = '8316537688363079',
+    DEMOTE = '6551828931592903',
+    SUBSCRIBED = '6388546374527196'
 }
 export enum QueryIds {
 	CREATE = '8823471724422422',
@@ -27,15 +50,10 @@ export enum QueryIds {
 	DEMOTE = '6551828931592903',
 	DELETE = '30062808666639665'
 }
-export enum QueryIdd {
-	METADATA = '6620195908089573',
-	GETSUBSCRIBED = '6388546374527196',
-	CREATE = '6996806640408138',
-	UNMUTE = '7337137176362961',
-	MUTE = '25151904754424642',
-	FOLLOW = '7871414976211147',
-	UNFOLLOW = '7238632346214362',
-	UPDATE = '7150902998257522'
+export const MexOperations = {
+    PROMOTE: 'NotificationNewsletterAdminPromote',
+    DEMOTE: 'NotificationNewsletterAdminDemote',
+    UPDATE: 'NotificationNewsletterUpdate'
 }
 export type NewsletterUpdate = {
 	name?: string
