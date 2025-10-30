@@ -48,7 +48,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 	const executeWMexQuery = <T>(variables: Record<string, unknown>, queryId: string, dataPath: string): Promise<T> => {
 		return genericExecuteWMexQuery<T>(variables, queryId, dataPath, query, generateMessageTag)
 	}
-	
+
 	const newsletterQuery = async (variables: object | undefined, queryId: string) =>
 		query({
 			tag: 'iq',
@@ -67,8 +67,8 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 				}
 			]
 		})
-		
-		const getSubscribedNewsletters = async (): Promise<NewsLetterMetadata[]> => {
+
+	const getSubscribedNewsletters = async (): Promise<NewsLetterMetadata[]> => {
 		const result = await newsletterQuery(undefined, QueryIdd.GETSUBSCRIBED)
 		const node = getBinaryNodeChildString(result, 'result')
 		const json = JSON.parse(node!)
@@ -107,7 +107,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		},
 
 		newsletterUpdate,
-		
+
 		newsletterFetchAllParticipating: async () => {
 			return await genericExecuteWMexQuery(
 				{},
