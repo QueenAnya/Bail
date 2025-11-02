@@ -191,11 +191,11 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return '3EB0' + hash.toString('hex').toUpperCase().substring(0, 18)
+	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
+export const generateMessageID = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -227,12 +227,50 @@ export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEve
 
 export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWaitForEvent(ev, 'connection.update')
 
+export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
+	ev.on('connection.update', async({ qr }) => {
+		if(qr) {
+			const QR = await import('qrcode-terminal')
+				.then(m => m.default || m)
+				.catch(() => {
+					logger.error('QR code terminal not added as dependency')
+				})
+			QR?.generate(qr, { small: true })
+		}
+	})
+}
+
 /**
  * utility that fetches latest baileys version from the master branch.
  * Use to ensure your WA connection is always on the latest version
  */
-/****
-export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
+ 
+ export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+	try {
+		const result = await axios.get(
+			'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json',
+			{
+				...options,
+				responseType: 'json'
+			}
+		)
+		
+		const version = result.data.versions[result.data.versions.length - 1].version.split('.')
+		const version2 = version[2].replace('-alpha', '');
+		return {
+			version: [+version[0], +version[1], +version2],
+			isLatest: true
+		}
+	} catch(error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
 	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
 	try {
 		const response = await fetch(URL, {
@@ -268,7 +306,6 @@ export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
 		}
 	}
 }
-*/
 
 /**
  * A utility that fetches the latest web version of whatsapp.
@@ -300,58 +337,6 @@ export const fetchLatestWaWebVersion = async (options: RequestInit = {}) => {
 		const regex = /\\?"client_revision\\?":\s*(\d+)/
 		const regexx = /\\?"server_revision\\?":\s*(\d+)/
 
-		const match = data.match(regex)
-
-		if (!match?.[1]) {
-			return {
-				version: baileysVersion as WAVersion,
-				isLatest: false,
-				error: {
-					message: 'Could not find client revision in the fetched content'
-				}
-			}
-		}
-
-		const clientRevision = match[1]
-
-		return {
-			version: [2, 3000, +clientRevision] as WAVersion,
-			isLatest: true
-		}
-	} catch (error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
-	}
-}
-
-export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
-	try {
-		// Absolute minimal headers required to bypass anti-bot detection
-		const defaultHeaders = {
-			'sec-fetch-site': 'none',
-			'user-agent':
-				'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-		}
-
-		const headers = { ...defaultHeaders, ...options.headers }
-
-		const response = await fetch('https://web.whatsapp.com/sw.js', {
-			...options,
-			method: 'GET',
-			headers
-		})
-
-		if (!response.ok) {
-			throw new Boom(`Failed to fetch sw.js: ${response.statusText}`, { statusCode: response.status })
-		}
-
-		const data = await response.text()
-
-		const regex = /\\?"client_revision\\?":\s*(\d+)/
-		const regexx = /\\?"server_revision\\?":\s*(\d+)/
 		const match = data.match(regex)
 
 		if (!match?.[1]) {

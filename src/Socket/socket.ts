@@ -30,6 +30,7 @@ import {
 	getNextPreKeysNode,
 	makeEventBuffer,
 	makeNoiseHandler,
+	printQRIfNecessaryListener,
 	promiseTimeout
 } from '../Utils'
 import { getPlatformId } from '../Utils/browser-utils'
@@ -75,11 +76,17 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
-
-	if (printQRInTerminal) {
-		console.warn(
-			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
-		)
+	
+	/***
+	* if (printQRInTerminal) {
+	*	console.warn(
+	*		'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
+	*. )
+	* }
+	*/
+	
+	if(printQRInTerminal) {
+		printQRIfNecessaryListener(ev, logger)
 	}
 
 	const url = typeof waWebSocketUrl === 'string' ? new URL(waWebSocketUrl) : waWebSocketUrl
