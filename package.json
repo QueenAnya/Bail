@@ -1,9 +1,10 @@
 {
   "name": "@queenanya/libsignal",
-  "version": "4.0.2",
+  "version": "5.0.0",
   "description": "Open Whisper Systems' libsignal for Node.js",
-  "repository": "ForstaLabs/libsignal-node",
+  "repository": "WhiskeySockets/libsignal-node",
   "main": "index.js",
+  "types": "index.d.ts",
   "keywords": [
     "signal",
     "whispersystems",
@@ -15,17 +16,10 @@
     "protobufjs": "6.8.8"
   },
   "files": [
-    "src/*"
+    "src/*",
+    "index.d.ts"
   ],
-  "scripts": {
-    "changelog:last": "conventional-changelog -p angular -r 2",
-    "changelog:preview": "conventional-changelog -p angular -u",
-    "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-    "release": "release-it"
-  },
   "devDependencies": {
-    "conventional-changelog-cli": "^2.2.2",
-    "eslint": "6.0.1",
-    "release-it": "^15.10.3"
+    "eslint": "6.0.1"
   }
 }

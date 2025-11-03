@@ -156,8 +156,7 @@ class SessionCipher {
         }
         console.error("Failed to decrypt message with any known session...");
         for (const e of errs) {
-          //  console.error("Session error:" + e, e.stack);
-          console.error("Session error");
+            console.error("Session error:" + e, e.stack);
         }
         throw new errors.SessionError("No matching sessions found for message");
     }
