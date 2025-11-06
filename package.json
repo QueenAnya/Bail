@@ -11,6 +11,12 @@
     "crypto"
   ],
   "license": "GPL-3.0",
+  "scripts": {
+    "changelog:last": "conventional-changelog -p angular -r 2",
+    "changelog:preview": "conventional-changelog -p angular -u",
+    "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+    "release": "release-it"
+  },
   "dependencies": {
     "curve25519-js": "^0.0.4",
     "protobufjs": "6.8.8"
@@ -20,6 +26,8 @@
     "index.d.ts"
   ],
   "devDependencies": {
-    "eslint": "6.0.1"
+    "conventional-changelog-cli": "^2.2.2",
+    "eslint": "6.0.1",
+    "release-it": "^15.10.3"
   }
 }

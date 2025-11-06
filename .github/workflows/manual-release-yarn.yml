@@ -53,4 +53,8 @@ jobs:
           yarn install --no-immutable
 
       - name: Release
-        run: "npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
+        # run: "npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
+        # run: "yarn release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
+        # run: "yarn dlx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
+        # run: "yarn release --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
+        run: "yarn release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
