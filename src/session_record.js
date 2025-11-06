@@ -170,9 +170,10 @@ const migrations = [{
         } else {
             for (const key in sessions) {
                 if (sessions[key].indexInfo.closed === -1) {
-                    //console.error('V1 session storage migration error: registrationId',
-                                  data.registrationId, 'for open session version',
-                                  data.version);
+                    /** console.error('V1 session storage migration error: registrationId',
+                       *           data.registrationId, 'for open session version',
+                      *            data.version);
+                      */
                 }
             }
         }
