@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     branches:
-      - signal
+      - master
 
 jobs:
   update-nightly:
