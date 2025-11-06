@@ -227,13 +227,13 @@ export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEve
 
 export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWaitForEvent(ev, 'connection.update')
 
-export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
-	ev.on('connection.update', async({ qr }) => {
-		if(qr) {
+export const printQRIfNecessaryListener = (ev: BaileysEventEmitter) => {
+	ev.on('connection.update', async ({ qr }) => {
+		if (qr) {
 			const QR = await import('qrcode-terminal')
 				.then(m => m.default || m)
 				.catch(() => {
-					logger.error('QR code terminal not added as dependency')
+					console.error('QR code terminal not added as dependency')
 				})
 			QR?.generate(qr, { small: true })
 		}
@@ -244,24 +244,29 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILog
  * utility that fetches latest baileys version from the master branch.
  * Use to ensure your WA connection is always on the latest version
  */
- 
- export const fetchLatestBaileysVersion = async(options: AxiosRequestConfig<any> = { }) => {
+
+export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
+	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
 	try {
-		const result = await axios.get(
-			'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json',
-			{
-				...options,
-				responseType: 'json'
-			}
-		)
-		
+		const response = await fetch(URL, {
+			dispatcher: options.dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+		}
+
+		const result = await response.json()
+
 		const version = result.data.versions[result.data.versions.length - 1].version.split('.')
-		const version2 = version[2].replace('-alpha', '');
+		const version2 = version[2].replace('-alpha', '')
 		return {
 			version: [+version[0], +version[1], +version2],
 			isLatest: true
 		}
-	} catch(error) {
+	} catch (error) {
 		return {
 			version: baileysVersion as WAVersion,
 			isLatest: false,
@@ -272,6 +277,43 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILog
 
 export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
 	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
+	try {
+		const response = await fetch(URL, {
+			dispatcher: options.dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+		}
+
+		const text = await response.text()
+		// Extract version from line 7 (const version = [...])
+		const lines = text.split('\n')
+		const versionLine = lines[6] // Line 7 (0-indexed)
+		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
+
+		if (versionMatch) {
+			const version = [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion
+
+			return {
+				version,
+				isLatest: true
+			}
+		} else {
+			throw new Error('Could not parse version from Defaults/index.ts')
+		}
+	} catch (error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+export const fetchAlphaWaWebVersion = async (options: RequestInit = {}) => {
+	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
 	try {
 		const response = await fetch(URL, {
 			dispatcher: options.dispatcher,

@@ -24,14 +24,18 @@ jobs:
 
       - name: Enable Corepack and Set Yarn Version
         run: |
+          corepack cache clean
           corepack enable
           corepack prepare yarn@4.x --activate
 
       - name: Install packages
         run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
-          yarn --cwd proto-extract install --immutable
+          yarn install --no-immutable
+          yarn --cwd proto-extract install --no-immutable
 
       - name: Update WAProto.proto
         id: wa_proto_info

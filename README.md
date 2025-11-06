@@ -1,4 +1,5 @@
 # 🚀 BAILEYS-ANYA
+
 <div align="center">
 
   <img src="https://raw.githubusercontent.com/teamolduser/database/refs/heads/main/image/anya.png" width="350px">
@@ -56,6 +57,7 @@
 <div style="background: rgba(17, 24, 39, 0.6); border-radius: 8px; padding: 20px; margin: 20px 0;">
 
 ### 📂 In package.json:
+
 ```json
 "dependencies": {
     "baileys-anya": "*"
@@ -63,35 +65,41 @@
 ```
 
 ### ⚙️ Terminal Installation:
+
 ```bash
 npm install baileys-anya
 ```
+
 or
+
 ```bash
 yarn add baileys-anya
 ```
+
 or
+
 ```bash
 pnpm add baileys-anya
 ```
 
 ### 🔌 Import:
+
 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
 <div style="background: rgba(6, 182, 212, 0.1); border-radius: 5px; padding: 10px; flex: 1;">
 
 ```typescript
-// ESM 
+// ESM
 import makeWASocket from 'baileys-anya'
 ```
+
 </div>
 <div style="background: rgba(234, 179, 8, 0.1); border-radius: 5px; padding: 10px; flex: 1;">
 
 ```javascript
 // CommonJS
-const {
- default: makeWASocket 
- } = require("baileys-anya")
+const { default: makeWASocket } = require('baileys-anya')
 ```
+
 </div>
 </div>
 </div>
@@ -106,15 +114,15 @@ const {
 
 ### 🎀 Enhanced Features Matrix
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| 🔊 **Channel Messaging** | Send & manage WhatsApp channel content | ✅ |
-| 🎛️ **Interactive Messages** | Create rich button-based experiences | ✅ |
-| 🤖 **AI Message Icon** | Brand your bot messages with AI icon | ✅ |
-| 🖼️ **Enhanced Media** | Uncropped profile pictures & optimized media | ✅ |
-| 🔐 **Custom Pairing** | Personalized device pairing codes | ✅ |
-| 🔧 **Performance Optimizations** | Cleaner logs & improved signal handling | ✅ |
-| 📱 **Cross-Platform** | Works on all NodeJS supported platforms | ✅ |
+| Feature                          | Description                                  | Status |
+| -------------------------------- | -------------------------------------------- | ------ |
+| 🔊 **Channel Messaging**         | Send & manage WhatsApp channel content       | ✅     |
+| 🎛️ **Interactive Messages**      | Create rich button-based experiences         | ✅     |
+| 🤖 **AI Message Icon**           | Brand your bot messages with AI icon         | ✅     |
+| 🖼️ **Enhanced Media**            | Uncropped profile pictures & optimized media | ✅     |
+| 🔐 **Custom Pairing**            | Personalized device pairing codes            | ✅     |
+| 🔧 **Performance Optimizations** | Cleaner logs & improved signal handling      | ✅     |
+| 📱 **Cross-Platform**            | Works on all NodeJS supported platforms      | ✅     |
 
 </div>
 
@@ -132,60 +140,65 @@ const {
 <div style="padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 0 0 10px 10px; margin-top: -5px;">
 
 ### 📊 Get Newsletter Info
+
 ```typescript
 // By invite
-const metadata = await sock.newsletterMetadata("invite", "xxxxx")
+const metadata = await sock.newsletterMetadata('invite', 'xxxxx')
 // By JID
-const metadata = await sock.newsletterMetadata("jid", "abcd@newsletter")
+const metadata = await sock.newsletterMetadata('jid', 'abcd@newsletter')
 console.log(metadata)
 ```
 
 ### 📝 Update Newsletter Content
+
 ```typescript
 // Update description
-await sock.newsletterUpdateDescription("abcd@newsletter", "New Description")
+await sock.newsletterUpdateDescription('abcd@newsletter', 'New Description')
 
 // Update name
-await sock.newsletterUpdateName("abcd@newsletter", "New Name")
+await sock.newsletterUpdateName('abcd@newsletter', 'New Name')
 
 // Update picture
-await sock.newsletterUpdatePicture("abcd@newsletter", buffer)
+await sock.newsletterUpdatePicture('abcd@newsletter', buffer)
 
 // Remove picture
-await sock.newsletterRemovePicture("abcd@newsletter")
+await sock.newsletterRemovePicture('abcd@newsletter')
 ```
 
 ### 🔔 Notification Management
+
 ```typescript
 // Unmute newsletter
-await sock.newsletterUnmute("abcd@newsletter")
+await sock.newsletterUnmute('abcd@newsletter')
 
 // Mute newsletter
-await sock.newsletterMute("abcd@newsletter")
+await sock.newsletterMute('abcd@newsletter')
 ```
 
 ### 🔄 Newsletter Management
+
 ```typescript
 // Create new newsletter
-const metadata = await sock.newsletterCreate("Newsletter Name", "Newsletter Description")
+const metadata = await sock.newsletterCreate('Newsletter Name', 'Newsletter Description')
 console.log(metadata)
 
 // Delete newsletter
-await sock.newsletterDelete("abcd@newsletter")
+await sock.newsletterDelete('abcd@newsletter')
 
 // Follow newsletter
-await sock.newsletterFollow("abcd@newsletter")
+await sock.newsletterFollow('abcd@newsletter')
 
 // Unfollow newsletter
-await sock.newsletterUnfollow("abcd@newsletter")
+await sock.newsletterUnfollow('abcd@newsletter')
 ```
 
 ### 😀 Engagement Features
+
 ```typescript
 // Send reaction to newsletter post
 // Get ID from message URL: https://whatsapp.com/channel/xxxxx/175
-const id = "175"
-await sock.newsletterReactMessage("abcd@newsletter", id, "🥳")
+const id = '175'
+await sock.newsletterReactMessage('abcd@newsletter', id, '🥳')
 ```
 
 </div>
@@ -199,135 +212,140 @@ await sock.newsletterReactMessage("abcd@newsletter", id, "🥳")
 <div style="padding: 15px; background: rgba(236, 72, 153, 0.05); border-radius: 0 0 10px 10px; margin-top: -5px;">
 
 ### 📝 Text Buttons
+
 ```typescript
 const buttons = [
-  { buttonId: 'id1', buttonText: { displayText: 'Button 1' }, type: 1 },
-  { buttonId: 'id2', buttonText: { displayText: 'Button 2' }, type: 1 }
+	{ buttonId: 'id1', buttonText: { displayText: 'Button 1' }, type: 1 },
+	{ buttonId: 'id2', buttonText: { displayText: 'Button 2' }, type: 1 }
 ]
 
 const buttonMessage = {
-    text: "Hi it's button message",
-    footer: 'Hello World',
-    buttons,
-    headerType: 1,
-    viewOnce: true
+	text: "Hi it's button message",
+	footer: 'Hello World',
+	buttons,
+	headerType: 1,
+	viewOnce: true
 }
 
 await sock.sendMessage(id, buttonMessage, { quoted: null })
 ```
 
 ### 🖼️ Image Buttons
+
 ```typescript
 const buttons = [
-  { buttonId: 'id1', buttonText: { displayText: 'Button 1' }, type: 1 },
-  { buttonId: 'id2', buttonText: { displayText: 'Button 2' }, type: 1 }
+	{ buttonId: 'id1', buttonText: { displayText: 'Button 1' }, type: 1 },
+	{ buttonId: 'id2', buttonText: { displayText: 'Button 2' }, type: 1 }
 ]
 
 const buttonMessage = {
-    image: { url: "https://example.com/abcd.jpg" }, // image: buffer or path
-    caption: "Hi it's button message with image",
-    footer: 'Hello World',
-    buttons,
-    headerType: 1,
-    viewOnce: true
+	image: { url: 'https://example.com/abcd.jpg' }, // image: buffer or path
+	caption: "Hi it's button message with image",
+	footer: 'Hello World',
+	buttons,
+	headerType: 1,
+	viewOnce: true
 }
 
 await sock.sendMessage(id, buttonMessage, { quoted: null })
 ```
 
 ### 🎬 Video Buttons
+
 ```typescript
 const buttons = [
-  { buttonId: 'id1', buttonText: { displayText: 'Button 1' }, type: 1 },
-  { buttonId: 'id2', buttonText: { displayText: 'Button 2' }, type: 1 }
+	{ buttonId: 'id1', buttonText: { displayText: 'Button 1' }, type: 1 },
+	{ buttonId: 'id2', buttonText: { displayText: 'Button 2' }, type: 1 }
 ]
 
 const buttonMessage = {
-    video: { url: "https://example.com/abcd.mp4" }, // video: buffer or path
-    caption: "Hi it's button message with video",
-    footer: 'Hello World',
-    buttons,
-    headerType: 1,
-    viewOnce: true
+	video: { url: 'https://example.com/abcd.mp4' }, // video: buffer or path
+	caption: "Hi it's button message with video",
+	footer: 'Hello World',
+	buttons,
+	headerType: 1,
+	viewOnce: true
 }
 
 await sock.sendMessage(id, buttonMessage, { quoted: null })
 ```
 
 ### 🔄 Advanced Interactive Messages
+
 ```typescript
 const interactiveButtons = [
-     {
-        name: "quick_reply",
-        buttonParamsJson: JSON.stringify({
-             display_text: "Quick Reply",
-             id: "ID"
-        })
-     },
-     {
-        name: "cta_url",
-        buttonParamsJson: JSON.stringify({
-             display_text: "Tap Here!",
-             url: "https://www.example.com/"
-        })
-     },
-     {
-        name: "cta_copy",
-        buttonParamsJson: JSON.stringify({
-             display_text: "Copy Code",
-             id: "12345",
-             copy_code: "12345"
-        })
-     }
+	{
+		name: 'quick_reply',
+		buttonParamsJson: JSON.stringify({
+			display_text: 'Quick Reply',
+			id: 'ID'
+		})
+	},
+	{
+		name: 'cta_url',
+		buttonParamsJson: JSON.stringify({
+			display_text: 'Tap Here!',
+			url: 'https://www.example.com/'
+		})
+	},
+	{
+		name: 'cta_copy',
+		buttonParamsJson: JSON.stringify({
+			display_text: 'Copy Code',
+			id: '12345',
+			copy_code: '12345'
+		})
+	}
 ]
 
 const interactiveMessage = {
-    text: "Hello World!",
-    title: "this is the title",
-    footer: "this is the footer",
-    interactiveButtons
+	text: 'Hello World!',
+	title: 'this is the title',
+	footer: 'this is the footer',
+	interactiveButtons
 }
 
 await sock.sendMessage(id, interactiveMessage, { quoted: null })
 ```
 
 ### 🖼️ Rich Media Interactive Messages
+
 ```typescript
 const interactiveButtons = [
-     {
-        name: "quick_reply",
-        buttonParamsJson: JSON.stringify({
-             display_text: "Quick Reply",
-             id: "ID"
-        })
-     },
-     {
-        name: "cta_url",
-        buttonParamsJson: JSON.stringify({
-             display_text: "Visit Website",
-             url: "https://www.example.com/"
-        })
-     }
+	{
+		name: 'quick_reply',
+		buttonParamsJson: JSON.stringify({
+			display_text: 'Quick Reply',
+			id: 'ID'
+		})
+	},
+	{
+		name: 'cta_url',
+		buttonParamsJson: JSON.stringify({
+			display_text: 'Visit Website',
+			url: 'https://www.example.com/'
+		})
+	}
 ]
 
 // With Image
 const imageInteractiveMessage = {
-    image: { url: "https://example.com/abcd.jpg" },
-    caption: "Check out this amazing photo!",
-    title: "Photo Showcase",
-    footer: "Tap a button below",
-    interactiveButtons
+	image: { url: 'https://example.com/abcd.jpg' },
+	caption: 'Check out this amazing photo!',
+	title: 'Photo Showcase',
+	footer: 'Tap a button below',
+	interactiveButtons
 }
 
 await sock.sendMessage(id, imageInteractiveMessage, { quoted: null })
 
 // With Video
 const videoInteractiveMessage = {
-    video: { url: "https://example.com/abcd.mp4" },
-    caption: "Watch this awesome video!",
-    title: "Video Showcase",
-    footer: "Tap a button below",
-    interactiveButtons
+	video: { url: 'https://example.com/abcd.mp4' },
+	caption: 'Watch this awesome video!',
+	title: 'Video Showcase',
+	footer: 'Tap a button below',
+	interactiveButtons
 }
 
 await sock.sendMessage(id, videoInteractiveMessage, { quoted: null })
@@ -341,6 +359,7 @@ await sock.sendMessage(id, videoInteractiveMessage, { quoted: null })
 <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border-radius: 10px; padding: 20px; margin: 20px 0;">
 
 ### AI Icon Feature
+
 ```typescript
 // Simply add "ai: true" to display AI icon with your message
 await sock.sendMessage(id, { text: "Hello! I'm your AI assistant.", ai: true })
@@ -357,12 +376,13 @@ await sock.sendMessage(id, { text: "Hello! I'm your AI assistant.", ai: true })
 <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1)); border-radius: 10px; padding: 20px; margin: 20px 0;">
 
 ### Custom Code Implementation
+
 ```typescript
-if(usePairingCode && !sock.authState.creds.registered) {
-    const phoneNumber = await question('Please enter your mobile phone number:\n')
-    const custom = "4NY4P8KA" // must be 8 digits, can be letters or numbers
-    const code = await sock.requestPairingCode(phoneNumber, custom)
-    console.log(`Pairing code: ${code?.match(/.{1,4}/g)?.join('-') || code}`)
+if (usePairingCode && !sock.authState.creds.registered) {
+	const phoneNumber = await question('Please enter your mobile phone number:\n')
+	const custom = '4NY4P8KA' // must be 8 digits, can be letters or numbers
+	const code = await sock.requestPairingCode(phoneNumber, custom)
+	console.log(`Pairing code: ${code?.match(/.{1,4}/g)?.join('-') || code}`)
 }
 ```
 

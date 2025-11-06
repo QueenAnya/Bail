@@ -38,7 +38,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: yarn
+        run: yarn && yarn install
 
       - name: Update version to alpha
         run: yarn version --prerelease --preid=alpha --no-git --no-git-tag-version

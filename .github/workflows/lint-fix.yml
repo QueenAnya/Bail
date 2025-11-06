@@ -34,6 +34,7 @@ jobs:
 
       - name: Enable Corepack and Set Yarn Version
         run: |
+          corepack cache clean
           corepack enable
           corepack prepare yarn@4.x --activate
 
@@ -48,6 +49,7 @@ jobs:
 
       - name: Install packages
         run: |
+          yarn cache clean
           rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
