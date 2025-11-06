@@ -29,6 +29,6 @@ git add .
 git config --global user.email "khushijain2901@mail.com"
 git config --global user.name "Its-me-001"
 git commit -m "OLDUSER Libsignal"
-git branch -M signal
-git remote add origin https://github.com/QueenAnya/Bail.git
-git push -u origin signal
+git branch -M master
+git remote add origin https://github.com/ITS-ME-001/Libsignal.git
+git push -u origin master
