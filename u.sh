@@ -28,5 +28,5 @@ git config --global user.email "olduser@esm.apiis.dpdns.org"
 git config --global user.name "OLDUSER"
 git commit -m "$cmit"
 git branch -M libsignal
-git remote add origin https://github.com/ITS-ME-001/Queen-Anya_Baileys.git
+git remote add origin https://github.com/ITS-ME-001/Queen-Anya_Baileys2.git
 git push -u origin libsignal
