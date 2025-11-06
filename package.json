@@ -74,7 +74,6 @@
     "jimp": "^1.6.0",
     "jiti": "^2.4.2",
     "json": "^11.0.0",
-    "libsignal": "https://github.com/QueenAnya/Bail/releases/download/nightly/libsignal-nightly.tgz",
     "link-preview-js": "^3.0.0",
     "lru-cache": "^11.1.0",
     "open": "^8.4.2",
