@@ -3,7 +3,7 @@ name: Publish Release YARN
 on:
   push:
     tags:
-      - "av*"
+      - "v*"
 
 permissions: write-all
 

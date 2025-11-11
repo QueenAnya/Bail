@@ -3,7 +3,7 @@ name: Publish Release PNPM
 on:
   push:
     tags:
-      - "v*"
+      - "qv*"
 
 permissions: write-all
 
