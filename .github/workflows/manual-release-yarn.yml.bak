@@ -47,7 +47,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          rm yarn.lock .yarn/cache -rf
+          rm .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
           yarn install --no-immutable
