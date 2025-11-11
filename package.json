@@ -1,0 +1,56 @@
+{
+  "name": "@queenanya/modules",
+  "version": "5.0.0",
+  "description": "Invite Message Function For Add Command and Mention Function",
+  "main": "index.js",
+  "type": "module",
+  "repository": {
+    "url": "git@github.com:QueenAnya/bail.git"
+  },
+  "scripts": {
+    "release": "release-it",
+    "testt": "echo \"Error: no test specified\" && exit 1",
+    "changelog:last": "conventional-changelog -p angular -r 2",
+    "changelog:preview": "conventional-changelog -p angular -u",
+    "changelog:update": "conventional-changelog -p",
+    "test": "node index.js",
+    "tesy": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lintt": "eslint .",
+    "linttt:fix": "eslint . --fix",
+    "linttt": "eslint *",
+    "lint:fix": "eslint * --fix",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "formatt": "prettier --write .",
+    "format": "prettier --write *",
+    "format:fix": "npm run format && npm run lint:fix"
+  },
+  "dependencies": {
+    "@adiwajshing/keyed-db": "latest",
+    "@hapi/boom": "latest",
+    "@queenanya/baileys": "latest",
+    "@whiskeysockets/baileys": "latest",
+    "adm-zip": "latest",
+    "async-mutex": "latest",
+    "axios": "latest",
+    "baileys": "latest",
+    "conventional-changelog-cli": "latest",
+    "fs": "latest",
+    "jimp": "0.22.x",
+    "path": "latest",
+    "pino": "latest",
+    "release-it": "latest"
+  },
+  "devDependencies": {
+    "eslint": "latest",
+    "eslint-config-prettier": "latest",
+    "eslint-plugin-prettier": "latest",
+    "prettier": "latest"
+  },
+  "license": "MIT",
+  "files": [
+    "*.js*",
+    "*/*.js"
+  ]
+}
