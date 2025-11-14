@@ -1,6 +1,6 @@
 {
   "name": "@queenanya/modules",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "description": "Invite Message Function For Add Command and Mention Function",
   "main": "index.js",
   "type": "module",
