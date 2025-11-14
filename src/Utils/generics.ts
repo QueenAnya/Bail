@@ -260,7 +260,7 @@ export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
 
 		const result = await response.json()
 
-		const version = result.data.versions[result.data.versions.length - 1].version.split('.')
+		const version = result.versions[result.versions.length - 1].version.split('.')
 		const version2 = version[2].replace('-alpha', '')
 		return {
 			version: [+version[0], +version[1], +version2],
