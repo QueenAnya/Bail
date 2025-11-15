@@ -1,21 +1,25 @@
 {
-  "name": "baileys_helper",
-  "version": "1.0.6",
+  "name": "baileys_helpers",
+  "version": "1.0.16",
   "description": "This is a plugin to make baileys more interactive",
-  "homepage": "https://scratchive.com",
+  "homepage": "https://www.npmjs.com",
   "keywords": [
     "Baileys",
     "WhatsApp"
   ],
   "license": "ISC",
-  "author": "mehebub648",
-  "type": "commonjs",
-  "main": "export.js",
+  "author": "selfrwrd",
+  "type": "module",
+  "main": "index.js",
+  "exports": "./index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mehebub648/Scratchive-Module-BaileysHelper.git"
+    "url": "https://github.com/selfrwrd/baileys_helpers.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

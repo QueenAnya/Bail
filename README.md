@@ -1,44 +1,44 @@
 # Enhanced WhiskeySockets Interactive Buttons
 
-This repository shows how to send every currently known WhatsApp interactive / native flow button type using WhiskeySockets (Baileys fork) without modifying core source. The functionality is packaged and published as the npm package `baileys_helper` which reproduces the binary node structure the official client emits so buttons render correctly for both private & group chats.
+Library ini menunjukkan cara mengirim setiap jenis tombol interaktif / alur native WhatsApp yang saat ini diketahui menggunakan WhiskeySockets (fork Baileys) tanpa memodifikasi sumber inti. Fungsionalitas ini dikemas dan diterbitkan sebagai paket npm `baileys_helper` yang mereproduksi struktur node biner yang dipancarkan oleh klien resmi sehingga tombol dirender dengan benar untuk obrolan pribadi & grup.
 
-## Problem Statement
+## Pernyataan Masalah
 
-By default, WhiskeySockets cannot send interactive buttons while itsukichan can. The root cause is that WhiskeySockets lacks the required binary node wrappers (`biz`, `interactive`, `native_flow`) that WhatsApp expects for interactive messages.
+Secara default, WhiskeySockets tidak dapat mengirim tombol interaktif sementara itsukichan dapat. Akar penyebabnya adalah WhiskeySockets tidak memiliki pembungkus node biner (`biz`, `interactive`, `native_flow`) yang diharapkan WhatsApp untuk pesan interaktif.
 
-## Solution
+## Solusi
 
-The enhanced functionality provided by the `baileys_helper` package provides the missing functionality by:
+Fungsionalitas tambahan yang disediakan oleh paket `baileys_helper` menyediakan fungsionalitas yang hilang dengan:
 
-1. **Detecting button messages** using the same logic as itsukichan
-2. **Converting** WhiskeySockets' `interactiveButtons` format to the proper protobuf structure
-3. **Adding missing binary nodes** (`biz`, `interactive`, `native_flow`, `bot`) via `additionalNodes`
-4. **Automatically handling** private vs group chat requirements
+1. **Mendeteksi pesan tombol** menggunakan logika yang sama dengan itsukichan
+2. **Mengkonversi** format `interactiveButtons` WhiskeySockets ke struktur protobuf yang tepat
+3. **Menambahkan node biner yang hilang** (`biz`, `interactive`, `native_flow`, `bot`) melalui `additionalNodes`
+4. **Menangani secara otomatis** persyaratan obrolan pribadi vs grup
 
-## Key Features
+## Fitur Utama
 
-- ✅ **No modifications** to WhiskeySockets or itsukichan folders
-- ✅ **Template functionality removed** as requested
-- ✅ **Automatic binary node injection** for button messages
-- ✅ **Private chat support** (adds `bot` node with `biz_bot: '1'`)
-- ✅ **Group chat support** (adds only `biz` node)
-- ✅ **Backward compatibility** (regular messages pass through unchanged)
+- ✅ **Tanpa modifikasi** pada WhiskeySockets atau folder itsukichan
+- ✅ **Fungsionalitas template dihapus** sesuai permintaan
+- ✅ **Injeksi node biner otomatis** untuk pesan tombol
+- ✅ **Dukungan obrolan pribadi** (menambahkan node `bot` dengan `biz_bot: '1'`)
+- ✅ **Dukungan obrolan grup** (menambahkan hanya node `biz`)
+- ✅ **Kompatibilitas mundur** (pesan reguler melewati tanpa perubahan)
 
-## Quick Start (Most Common Case)
+## Mulai Cepat (Kasus Paling Umum)
 
 ```javascript
-const { sendButtons } = require('baileys_helper');
+import { sendButtons } from 'baileys_helper';
 
-await sendButtons(sock, jid, {
-  title: 'Header Title',            // optional header
-  text: 'Pick one option below',    // body
-  footer: 'Footer text',            // optional footer
+await sendButtons(himmel, jid, {
+  title: 'Judul Header',            // header opsional
+  text: 'Pilih salah satu opsi di bawah',    // body
+  footer: 'Teks Footer',            // footer opsional
   buttons: [
-    { id: 'quick_1', text: 'Quick Reply' },       // legacy simple shape auto‑converted
+    { id: 'quick_1', text: 'balasan Cepat' },       // bentuk sederhana legacy otomatis dikonversi
     {
       name: 'cta_url',
       buttonParamsJson: JSON.stringify({
-        display_text: 'Open Site',
+        display_text: 'Buka Situs',
         url: 'https://example.com'
       })
     }
@@ -46,30 +46,30 @@ await sendButtons(sock, jid, {
 });
 ```
 
-For full control (multiple advanced button kinds in one message) use `sendInteractiveMessage` with `interactiveButtons` directly.
+Untuk kontrol penuh (beberapa jenis tombol tingkat lanjut dalam satu pesan) gunakan `sendInteractiveMessage` dengan `interactiveButtons` secara langsung.
 
 ```javascript
-const { sendInteractiveMessage } = require('baileys_helper');
+import { sendInteractiveMessage } from 'baileys_helper';
 
-await sendInteractiveMessage(sock, jid, {
-  text: 'Advanced native flow demo',
-  footer: 'All the things',
+await sendInteractiveMessage(himmel, jid, {
+  text: 'Demo alur native tingkat lanjut',
+  footer: 'Semua fitur',
   interactiveButtons: [
-    // Quick reply (explicit form)
+    // balasan cepat (bentuk eksplisit)
     {
       name: 'quick_reply',
-      buttonParamsJson: JSON.stringify({ display_text: 'Reply A', id: 'reply_a' })
+      buttonParamsJson: JSON.stringify({ display_text: 'Balas A', id: 'reply_a' })
     },
-    // Single select picker (list inside a button)
+    // Pemilih tunggal (daftar di dalam tombol)
     {
       name: 'single_select',
       buttonParamsJson: JSON.stringify({
-        title: 'Pick One',
+        title: 'Pilih Satu',
         sections: [{
-          title: 'Choices',
+          title: 'Pilihan',
           rows: [
-            { header: 'H', title: 'Hello', description: 'Says hi', id: 'opt_hello' },
-            { header: 'B', title: 'Bye', description: 'Says bye', id: 'opt_bye' }
+            { header: 'H', title: 'Halo', description: 'Ucapkan hai', id: 'opt_hello' },
+            { header: 'B', title: 'Sampai jumpa', description: 'Ucapkan bye', id: 'opt_bye' }
           ]
         }]
       })
@@ -79,73 +79,73 @@ await sendInteractiveMessage(sock, jid, {
 ```
 
 ---
-## Supported Button Types (Native Flow Names)
+## Jenis Tombol yang Didukung (Nama Alur Native)
 
-Below are the most common & observed `name` values for `nativeFlowMessage.buttons[]` along with their required JSON keys. You can mix several in one `interactiveButtons` array (WhatsApp will decide layout).
+Di bawah ini adalah nilai `name` yang paling umum & diamati untuk `nativeFlowMessage.buttons[]` beserta kunci JSON yang diperlukan. Anda dapat mencampurkan beberapa dalam satu array `interactiveButtons` (WhatsApp akan memutuskan tata letak).
 
-| Name | Purpose | buttonParamsJson (required keys) |
+| Nama | Tujuan | buttonParamsJson (kunci yang diperlukan) |
 |------|---------|----------------------------------|
-| `quick_reply` | Simple reply that sends its `id` back | `{ display_text, id }` |
-| `single_select` | In‑button picker list | `{ title, sections:[{ title?, rows:[{ id, title, description?, header? }] }] }` |
-| `cta_url` | Open URL | `{ display_text, url, merchant_url? }` |
-| `cta_copy` | Copy text to clipboard | `{ display_text, copy_code }` |
-| `cta_call` | Tap to dial | `{ display_text, phone_number }` |
-| `cta_catalog` | Open business catalog | `{ display_text? }` (WA may ignore extra keys) |
-| `send_location` | Request user location (special flow) | `{ display_text? }` |
-| `review_and_pay` | Order / payment summary (special) | Payment structured payload (server‑validated) |
-| `payment_info` | Payment info flow | Payment structured payload |
-| `mpm` | Multi product message (catalog) | Vendor internal structure |
-| `wa_payment_transaction_details` | Show transaction | Transaction reference keys |
-| `automated_greeting_message_view_catalog` | Greeting -> catalog | (Minimal / internal) |
+| `quick_reply` | Balasan sederhana yang mengirim kembali `id`-nya | `{ display_text, id }` |
+| `single_select` | Pemilih daftar di dalam tombol | `{ title, sections:[{ title?, rows:[{ id, title, description?, header? }] }] }` |
+| `cta_url` | Buka URL | `{ display_text, url, merchant_url? }` |
+| `cta_copy` | Salin teks ke clipboard | `{ display_text, copy_code }` |
+| `cta_call` | Ketuk untuk menelepon | `{ display_text, phone_number }` |
+| `cta_catalog` | Buka katalog bisnis | `{ display_text? }` (WA mungkin mengabaikan kunci tambahan) |
+| `send_location` | Minta lokasi pengguna (alur khusus) | `{ display_text? }` |
+| `review_and_pay` | Ringkasan pesanan / pembayaran (khusus) | Payload terstruktur pembayaran (divalidasi server) |
+| `payment_info` | Alur info pembayaran | Payload terstruktur pembayaran |
+| `mpm` | Pesan produk multi (katalog) | Struktur internal vendor |
+| `wa_payment_transaction_details` | Tampilkan transaksi | Kunci referensi transaksi |
+| `automated_greeting_message_view_catalog` | Salam -> katalog | (Minimal / internal) |
 
-Not all special names are guaranteed to render outside official / business clients; unsupported ones are simply ignored by WhatsApp. Core stable ones for bots are: `quick_reply`, `single_select`, `cta_url`, `cta_copy`, `cta_call`.
+Tidak semua nama khusus dijamin untuk dirender di luar klien resmi / bisnis; yang tidak didukung hanya diabaikan oleh WhatsApp. Inti yang stabil untuk bot adalah: `quick_reply`, `single_select`, `cta_url`, `cta_copy`, `cta_call`.
 
-### Example: URL, Copy & Call Together
+### Contoh: URL, Salin & Panggilan Bersamaan
 ```javascript
-await sendInteractiveMessage(sock, jid, {
-  text: 'Contact actions',
+await sendInteractiveMessage(himmel, jid, {
+  text: 'Aksi kontak',
   interactiveButtons: [
-    { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Docs', url: 'https://example.com' }) },
-    { name: 'cta_copy', buttonParamsJson: JSON.stringify({ display_text: 'Copy Code', copy_code: 'ABC-123' }) },
-    { name: 'cta_call', buttonParamsJson: JSON.stringify({ display_text: 'Call Support', phone_number: '+1234567890' }) }
+    { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Dokumentasi', url: 'https://example.com' }) },
+    { name: 'cta_copy', buttonParamsJson: JSON.stringify({ display_text: 'Salin Kode', copy_code: 'ABC-123' }) },
+    { name: 'cta_call', buttonParamsJson: JSON.stringify({ display_text: 'Panggil Dukungan', phone_number: '+1234567890' }) }
   ]
 });
 ```
 
-### Example: Mixed Quick Replies + Catalog
+### Contoh: balasan Cepat Campuran + Katalog
 ```javascript
-await sendInteractiveMessage(sock, jid, {
-  text: 'Explore products or reply',
+await sendInteractiveMessage(himmel, jid, {
+  text: 'Jelajahi produk atau balas',
   interactiveButtons: [
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Hello', id: 'hi' }) },
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Pricing', id: 'pricing' }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Halo', id: 'hi' }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Harga', id: 'pricing' }) },
     { name: 'cta_catalog', buttonParamsJson: JSON.stringify({}) }
   ]
 });
 ```
 
-### Example: Location Request (Experimental)
+### Contoh: Permintaan Lokasi (Eksperimental)
 ```javascript
-await sendInteractiveMessage(sock, jid, {
-  text: 'Please share your location',
+await sendInteractiveMessage(himmel, jid, {
+  text: 'Silakan bagikan lokasi Anda',
   interactiveButtons: [
-    { name: 'send_location', buttonParamsJson: JSON.stringify({ display_text: 'Share Location' }) }
+    { name: 'send_location', buttonParamsJson: JSON.stringify({ display_text: 'Bagikan Lokasi' }) }
   ]
 });
 ```
 
-### Example: Single Select Menu
+### Contoh: Menu Pemilih Tunggal
 ```javascript
-await sendInteractiveMessage(sock, jid, {
-  text: 'Choose one item',
+await sendInteractiveMessage(himmel, jid, {
+  text: 'Pilih satu item',
   interactiveButtons: [
     { name: 'single_select', buttonParamsJson: JSON.stringify({
         title: 'Menu',
         sections: [{
-          title: 'Main',
+          title: 'Utama',
           rows: [
-            { id: 'it_1', title: 'First', description: 'First choice' },
-            { id: 'it_2', title: 'Second', description: 'Second choice' }
+            { id: 'it_1', title: 'Pertama', description: 'Pilihan pertama' },
+            { id: 'it_2', title: 'Kedua', description: 'Pilihan kedua' }
           ]
         }]
     }) }
@@ -153,168 +153,216 @@ await sendInteractiveMessage(sock, jid, {
 });
 ```
 
-> Tip: Legacy simple objects like `{ id: 'x', text: 'Label' }` passed to `sendButtons` auto‑convert to `quick_reply`.
+> Tip: Objek sederhana legacy seperti `{ id: 'x', text: 'Label' }` yang diteruskan ke `sendButtons` otomatis dikonversi ke `quick_reply`.
 
-<!-- Removed outdated Test Bot Commands section (referenced non-existent app-wks.js) -->
+## Detail Teknis
 
-## Technical Details
+### Struktur Node Biner (Apa yang Disuntikkan Wrapper)
 
-### Binary Node Structure (What The Wrapper Injects)
+Obrolan pribadi: menambahkan `biz` + `interactive/native_flow` + `bot (biz_bot=1)`.
 
-Private chat: adds `biz` + `interactive/native_flow` + `bot (biz_bot=1)`.
+Obrolan grup: menambahkan hanya `biz` + `interactive/native_flow`.
 
-Group chat: adds only `biz` + `interactive/native_flow`.
+Ketika nama tombol pertama khusus (`review_and_pay`, `payment_info`, `mpm`, dll.) terdeteksi, atribut versi/nama berubah untuk mencocokkan lalu lintas klien resmi sehingga WhatsApp mengaktifkan alur tersebut.
 
-When special first button names (`review_and_pay`, `payment_info`, `mpm`, etc.) are detected, version/name attributes change to match official client traffic so WhatsApp enables those flows.
+### Deteksi Jenis Tombol
 
-### Button Type Detection
-
-The wrapper detects button types using the same logic as itsukichan:
+Wrapper mendeteksi jenis tombol menggunakan logika yang sama dengan itsukichan:
 
 - `listMessage` → 'list'
 - `buttonsMessage` → 'buttons'  
 - `interactiveMessage.nativeFlowMessage` → 'native_flow'
 
-### Content Conversion Flow
+### Alur Konversi Konten
 
-Authoring (you write):
+Penulisan (Anda tulis):
 ```javascript
 { text, footer, interactiveButtons: [{ name, buttonParamsJson }, ...] }
 ```
-Wrapper builds (sent to WA):
+Wrapper membangun (dikirim ke WA):
 ```javascript
 { interactiveMessage: { nativeFlowMessage: { buttons: [...] }, body:{ text }, footer:{ text } } }
 ```
 
-## Files Modified
+## File yang Dimodifikasi
 
-### Detailed API Reference: `sendInteractiveMessage`
+### Referensi API Terperinci: `sendInteractiveMessage`
 
-Low‑level power helper used by all higher level wrappers. Use this when you need to:
-- Mix several advanced button kinds in one message (e.g. `quick_reply` + `single_select` + `cta_url`).
-- Provide pre‑built `interactiveMessage` content (after internal transformation) while still benefiting from automatic binary node injection.
-- Attach custom relay options (`statusJidList`, `additionalAttributes`, experimental fields) or manually append extra `additionalNodes`.
+Pembantu tingkat lanjut tingkat rendah yang digunakan oleh semua pembungkus tingkat tinggi. Gunakan ini ketika Anda perlu:
+- Mencampur beberapa jenis tombol tingkat lanjut dalam satu pesan (misalnya `quick_reply` + `single_select` + `cta_url`).
+- Memberikan konten `interactiveMessage` yang sudah dibuat (setelah transformasi internal) sambil tetap mendapat manfaat dari injeksi node biner otomatis.
+- Melampirkan opsi relay kustom (`statusJidList`, `additionalAttributes`, bidang eksperimental) atau secara manual menambahkan `additionalNodes` ekstra.
 
-#### Signature
+#### Tanda Tangan
 ```js
-async function sendInteractiveMessage(sock, jid, content, options = {})
+async function sendInteractiveMessage(himmel, jid, content, options = {})
 ```
 
-#### Parameters
-- `sock`: Active WhiskeySockets/Baileys socket (must expose `relayMessage`, `logger`, `authState` or `user`).
-- `jid`: Destination WhatsApp JID (user or group). Auto‑detects group via `WABinary.isJidGroup`.
-- `content`: High‑level authoring object. Accepts either a regular Baileys message shape or the enhanced authoring shape:
-  - `text` (string) Body text (mapped to `interactiveMessage.body.text`).
-  - `footer` (string) Footer (mapped to `interactiveMessage.footer.text`).
-  - `title` / `subtitle` (string) Optional header title (mapped to `interactiveMessage.header.title`).
-  - `interactiveButtons` (Array) Array of button descriptors. Each item should be either:
-    - `{ name: '<native_flow_name>', buttonParamsJson: JSON.stringify({...}) }` (already normalized), or
-    - A legacy quick reply shape `{ id, text }` / `{ buttonId, buttonText: { displayText } }` which is auto‑normalized to a `quick_reply`.
-  - Any other Baileys message keys (e.g. `contextInfo`) pass through unchanged.
-- `options`: (Optional) Extra relay + generation options:
-  - All fields accepted by `generateWAMessageFromContent` (e.g. custom `timestamp`).
-  - `additionalNodes` (Array) Prepend your own binary nodes (the function appends required interactive nodes after detection).
-  - `additionalAttributes` (Object) Extra attributes for the root relay stanza.
-  - `statusJidList`, `useCachedGroupMetadata` (advanced Baileys relay options).
+#### Parameter
+- `himmel`: Socket WhiskeySockets/Baileys aktif (harus mengekspos `relayMessage`, `logger`, `authState` atau `user`).
+- `jid`: JID WhatsApp tujuan (pengguna atau grup). Mendeteksi grup secara otomatis melalui `WABinary.isJidGroup`.
+- `content`: Objek penulisan tingkat tinggi. Menerima bentuk pesan Baileys biasa atau bentuk penulisan yang disempurnakan:
+  - `text` (string) Teks body (dipetakan ke `interactiveMessage.body.text`).
+  - `footer` (string) Footer (dipetakan ke `interactiveMessage.footer.text`).
+  - `title` / `subtitle` (string) Judul header opsional (dipetakan ke `interactiveMessage.header.title`).
+  - `interactiveButtons` (Array) Array deskriptor tombol. Setiap item harus berupa:
+    - `{ name: '<native_flow_name>', buttonParamsJson: JSON.stringify({...}) }` (sudah dinormalisasi), atau
+    - Bentuk balasan cepat legacy `{ id, text }` / `{ buttonId, buttonText: { displayText } }` yang otomatis dinormalisasi ke `quick_reply`.
+  - Kunci pesan Baileys lainnya (misalnya `contextInfo`) melewati tanpa perubahan.
+- `options`: (Opsional) Opsi relay + generasi ekstra:
+  - Semua bidang yang diterima oleh `generateWAMessageFromContent` (misalnya `timestamp` kustom).
+  - `additionalNodes` (Array) Awali node biner Anda sendiri (fungsi menambahkan node interaktif yang diperlukan setelah deteksi).
+  - `additionalAttributes` (Object) Atribut ekstra untuk stanza relay root.
+  - `statusJidList`, `useCachedGroupMetadata` (opsi relay Baileys tingkat lanjut).
 
-#### What It Does Internally
-1. Calls `convertToInteractiveMessage(content)` if `interactiveButtons` exist, producing:
+#### Apa yang Dilakukannya Secara Internal
+1. Memanggil `convertToInteractiveMessage(content)` jika `interactiveButtons` ada, menghasilkan:
    ```js
    { interactiveMessage: { nativeFlowMessage: { buttons: [...] }, header?, body?, footer? } }
    ```
-2. Imports WhiskeySockets internal helpers (`generateWAMessageFromContent`, `normalizeMessageContent`, `isJidGroup`, `generateMessageIDV2`). Throws if unavailable.
-3. Builds a raw `WAMessage` bypassing normal send validation (lets unsupported interactive types through).
-4. Normalizes and determines button type via `getButtonType` then derives binary node tree with `getButtonArgs`.
-5. Injects required binary nodes:
-   - Always a `biz` node (with nested `interactive/native_flow/...` for buttons and lists) when interactive.
-   - Adds `{ tag: 'bot', attrs: { biz_bot: '1' } }` automatically for private (1:1) chats enabling rendering of interactive flows.
-6. Relays the message using `relayMessage` with `additionalNodes`.
-7. Optionally emits the message locally (`sock.upsertMessage`) for private chats if `sock.config.emitOwnEvents` is set (groups are skipped to avoid duplicates).
+2. Mengimpor pembantu internal WhiskeySockets (`generateWAMessageFromContent`, `normalizeMessageContent`, `isJidGroup`, `generateMessageIDV2`). Melempar jika tidak tersedia.
+3. Membangun `WAMessage` mentah melewati validasi pengiriman normal (memungkinkan jenis interaktif yang tidak didukung untuk melewati).
+4. Menormalisasi dan menentukan jenis tombol melalui `getButtonType` kemudian menurunkan pohon node biner dengan `getButtonArgs`.
+5. Menyuntikkan node biner yang diperlukan:
+   - Selalu node `biz` (dengan `interactive/native_flow/...` bersarang untuk tombol dan daftar) saat interaktif.
+   - Menambahkan `{ tag: 'bot', attrs: { biz_bot: '1' } }` secara otomatis untuk obrolan pribadi (1:1) yang memungkinkan rendering alur interaktif.
+6. Meneruskan pesan menggunakan `relayMessage` dengan `additionalNodes`.
+7. Secara opsional memancarkan pesan secara lokal (`himmel.upsertMessage`) untuk obrolan pribadi jika `himmel.config.emitOwnEvents` diatur (grup dilewati untuk menghindari duplikat).
 
-#### Return Value
-Resolves with the full constructed `WAMessage` object (`{ key, message, messageTimestamp, ... }`) so you can log/store/await acks exactly like a standard `sock.sendMessage` call.
+#### Nilai Kembali
+Mengembalikan objek `WAMessage` lengkap yang dibangun (`{ key, message, messageTimestamp, ... }`) sehingga Anda dapat mencatat/menyimpan/menunggu acks persis seperti panggilan `himmel.sendMessage` standar.
 
-#### Error Handling
-- Throws `Socket is required` if `sock` is null/undefined.
-- Throws `WhiskeySockets functions not available` if internal modules cannot be loaded (e.g. path changes). In such a case you may fall back to plain `sock.sendMessage` for non‑interactive messages.
+#### Penanganan Kesalahan
+- Melempar `Socket diperlukan` jika `himmel` null/undefined.
+- Melempar `Fungsi WhiskeySockets tidak tersedia` jika modul internal tidak dapat dimuat (misalnya perubahan jalur). Dalam kasus seperti itu, Anda mungkin kembali ke `himmel.sendMessage` biasa untuk pesan non-interaktif.
 
-#### Choosing Between Helpers
-- Use `sendButtons` / `sendInteractiveButtonsBasic` for simple quick replies + common CTA cases.
-- Use `sendInteractiveMessage` for any combination including `single_select`, special native flow names, or when you need to attach custom nodes.
+#### Memilih Antara Pembantu
+- Gunakan `sendButtons` / `sendInteractiveButtonsBasic` untuk balasan cepat sederhana + kasus CTA umum.
+- Gunakan `sendInteractiveMessage` untuk kombinasi apa pun termasuk `single_select`, nama alur native khusus, atau ketika Anda perlu melampirkan node kustom.
 
-#### Advanced Example: Mixed Buttons + List + Custom Node
+#### Contoh Tingkat Lanjut: Tombol Campuran + Daftar + Node Kustom
 ```js
-const { sendInteractiveMessage } = require('baileys_helper');
+import { sendInteractiveMessage } from 'baileys_helper';
 
-await sendInteractiveMessage(sock, jid, {
-  text: 'Pick or explore',
-  footer: 'Advanced demo',
+await sendInteractiveMessage(himmel, jid, {
+  text: 'Pilih atau jelajahi',
+  footer: 'Demo tingkat lanjut',
   interactiveButtons: [
-    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Hi', id: 'hi' }) },
-    { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Docs', url: 'https://example.com' }) },
+    { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Hai', id: 'hi' }) },
+    { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Dokumentasi', url: 'https://example.com' }) },
     { name: 'single_select', buttonParamsJson: JSON.stringify({
         title: 'Menu',
         sections: [{
-          title: 'Options',
+          title: 'Opsi',
           rows: [
-            { id: 'a', title: 'Alpha', description: 'First item' },
-            { id: 'b', title: 'Beta', description: 'Second item' }
+            { id: 'a', title: 'Alfa', description: 'Item pertama' },
+            { id: 'b', title: 'Beta', description: 'Item kedua' }
           ]
         }]
     }) }
   ]
 }, {
-  additionalNodes: [ { tag: 'biz', attrs: { experimental_flag: '1' } } ] // will be merged before auto interactive nodes
+  additionalNodes: [ { tag: 'biz', attrs: { experimental_flag: '1' } } ] // akan digabungkan sebelum node interaktif otomatis
 });
 ```
 
-#### Special Native Flow Names & Effects
-| First Button Name | Injected Node Variant | Notes |
+#### Nama Alur Native Khusus & Efek
+| Nama Tombol Pertama | Varian Node yang Disuntikkan | Catatan |
 |-------------------|-----------------------|-------|
-| `review_and_pay`  | `biz` with `native_flow_name=order_details` | Payment/order style flow |
-| `payment_info`    | `biz` with `native_flow_name=payment_info`  | Payment info flow |
-| `mpm`, `cta_catalog`, `send_location`, `call_permission_request`, `wa_payment_transaction_details`, `automated_greeting_message_view_catalog` | `biz > interactive(native_flow v=1) > native_flow(v=2,name=<name>)` | Specialized (may require official client) |
-| Anything else / mixed | `biz > interactive(native_flow v=1) > native_flow(v=9,name=mixed)` | Generic path covering standard quick replies, lists, CTAs |
+| `review_and_pay`  | `biz` dengan `native_flow_name=order_details` | Alur pesanan/pembayaran |
+| `payment_info`    | `biz` dengan `native_flow_name=payment_info`  | Alur info pembayaran |
+| `mpm`, `cta_catalog`, `send_location`, `call_permission_request`, `wa_payment_transaction_details`, `automated_greeting_message_view_catalog` | `biz > interactive(native_flow v=1) > native_flow(v=2,name=<name>)` | Khusus (mungkin memerlukan klien resmi) |
+| Apa pun / campuran | `biz > interactive(native_flow v=1) > native_flow(v=9,name=mixed)` | Jalur generik yang mencakup balasan cepat standar, daftar, CTA |
 
-#### Performance / Throughput
-Cost is roughly equivalent to a standard `sendMessage` call; extra overhead is a small synchronous transformation + node injection. Suitable for high‑volume bots. Consider standard Baileys concurrency limits for large broadcast scenarios.
+#### Performa / Throughput
+Biaya kira-kira setara dengan panggilan `sendMessage` standar; overhead ekstra adalah transformasi sinkron kecil + injeksi node. Cocok untuk bot volume tinggi. Pertimbangkan batas konkurensi Baileys standar untuk skenario siaran besar.
 
-#### Debugging Tips
-- Temporary console log emitted: `Interactive send: { type, nodes, private }` – remove or redirect if noisy.
-- If buttons do not render: ensure first binary node injected is `biz` and private chats include the `bot` node.
-- Confirm each button's `buttonParamsJson` is valid JSON string (catch JSON.stringify mistakes early).
+#### Tips Debugging
+- Log konsol sementara yang dipancarkan: `Interactive send: { type, nodes, private }` – hapus atau alihkan jika berisik.
+- Jika tombol tidak dirender: pastikan node biner pertama yang disuntikkan adalah `biz` dan obrolan pribadi menyertakan node `bot`.
+- Konfirmasi `buttonParamsJson` setiap tombol adalah string JSON yang valid (tangkap kesalahan JSON.stringify sejak dini).
 
-#### Common Mistakes
-- Forgetting to JSON.stringify `buttonParamsJson` payloads.
-- Using `sendInteractiveMessage` without a socket that includes `relayMessage` (e.g., passing a partially constructed object).
-- Adding your own `bot` node for private chats (not needed; auto added).
-- Expecting unsupported special flows (payments/catalog) to render in a non‑business account—WhatsApp may silently ignore them.
+#### Kesalahan Umum
+- Lupa JSON.stringify payload `buttonParamsJson`.
+- Menggunakan `sendInteractiveMessage` tanpa socket yang menyertakan `relayMessage` (misalnya, melewatkan objek yang sebagian dibangun).
+- Menambahkan node `bot` Anda sendiri untuk obrolan pribadi (tidak diperlukan; otomatis ditambahkan).
+- Mengharapkan alur khusus yang tidak didukung (pembayaran/katalog) untuk dirender di akun non-bisnis—WhatsApp mungkin mengabaikannya secara diam-diam.
 
-#### Minimal Raw Usage
-If you already built a correct `interactiveMessage` object you can call:
+#### Penggunaan Mentah Minimal
+Jika Anda telah membangun objek `interactiveMessage` yang benar, Anda dapat memanggil:
 ```js
-await sendInteractiveMessage(sock, jid, {
+await sendInteractiveMessage(himmel, jid, {
   interactiveMessage: {
     nativeFlowMessage: {
-      buttons: [ { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Hi', id: 'hi' }) } ]
+      buttons: [ { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Hai', id: 'hi' }) } ]
     },
-    body: { text: 'Direct native flow' }
+    body: { text: 'Alur native langsung' }
   }
 });
 ```
-The helper will still inject binary nodes & bot node as required.
+Pembantu masih akan menyuntikkan node biner & node bot sesuai kebutuhan.
 
+## Instalasi
 
-- `helpers/buttons.js` - Enhanced with binary node support (template functionality removed)
-- `export.js` - Central export surface for the package and metadata helper
+```bash
+npm install baileys_helper
+```
 
-## Compatibility
+## Penggunaan Dasar
+
+```javascript
+import { sendButtons, sendInteractiveMessage } from 'baileys_helper';
+import { makeWASocket, useMultiFileAuthState } from '@whiskeysockets/baileys';
+import chalk from 'chalk';
+
+// Inisialisasi socket
+const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+const himmel = makeWASocket({
+  auth: state,
+  printQRInTerminal: true
+});
+
+// Event handler untuk koneksi
+himmel.ev.on('connection.update', (update) => {
+  const { connection, lastDisconnect } = update;
+  if (connection === 'close') {
+    const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+    console.log(chalk.red('Koneksi terputus karena '), lastDisconnect.error, ', reconnect ', shouldReconnect);
+    if (shouldReconnect) {
+      startBot();
+    }
+  } else if (connection === 'open') {
+    console.log(chalk.green('Koneksi terbuka'));
+  }
+});
+
+// Contoh pengiriman tombol interaktif
+async function sendInteractiveExample() {
+  try {
+    await sendButtons(himmel, '6281234567890@s.whatsapp.net', {
+      text: 'Silakan pilih menu di bawah ini:',
+      footer: 'Dibuat dengan Baileys Helper',
+      buttons: [
+        { id: 'menu_1', text: 'Menu 1' },
+        { id: 'menu_2', text: 'Menu 2' },
+        { id: 'menu_3', text: 'Menu 3' }
+      ]
+    });
+    console.log(chalk.green('Pesan tombol terkirim!'));
+  } catch (error) {
+    console.error(chalk.red('Gagal mengirim pesan:'), error);
+  }
+}
+```
+
+## Kompatibilitas
 
 - ✅ WhiskeySockets 7.0.0-rc.2+
-- ✅ Node.js 20+
-- ✅ All button types supported by itsukichan
-- ✅ Private and group chats
+- ✅ Node.js 14+
+- ✅ Semua jenis tombol yang didukung oleh itsukichan
+- ✅ Obrolan pribadi dan grup
+- ✅ Modul ES (ESM) dan CommonJS
 
-## Result
+## Hasil
 
-You can now send all mainstream interactive button variants (quick replies, URL / copy / call CTAs, single select lists) plus experimental special flows from WhiskeySockets exactly like the official client, with automatic handling for groups vs private chats and without editing fork source.
+Anda sekarang dapat mengirim semua varian tombol interaktif arus utama (balasan cepat, URL / salin / panggilan CTA, daftar pemilih tunggal) ditambah alur khusus eksperimental dari WhiskeySockets persis seperti klien resmi, dengan penanganan otomatis untuk grup vs obrolan pribadi dan tanpa mengedit sumber fork.
