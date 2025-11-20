@@ -45,7 +45,7 @@ export const BufferJSON = {
 }
 
 export const getKeyAuthor = (key: WAMessageKey | undefined | null, meId = 'me') =>
-	(key?.fromMe ? meId : key?.participant || key?.remoteJid) || ''
+	(key?.fromMe ? meId : key?.participantAlt || key?.remoteJidAlt || key?.participant || key?.remoteJid) || ''
 
 export const writeRandomPadMax16 = (msg: Uint8Array) => {
 	const pad = randomBytes(1)
@@ -96,7 +96,8 @@ export const toNumber = (t: Long | number | null | undefined): number =>
 	typeof t === 'object' && t ? ('toNumber' in t ? t.toNumber() : (t as Long).low) : t || 0
 
 /** unix timestamp of a date in seconds */
-export const unixTimestampSeconds = (date: Date = new Date()) => Math.floor(date.getTime() / 1000)
+export const unixTimestampSeconds = (d = Date.now()) =>
+  Math.floor((d instanceof Date ? d.getTime() : Number(d) || Date.now()) / 1000);
 
 export type DebouncedTimeout = ReturnType<typeof debouncedTimeout>
 

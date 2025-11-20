@@ -92,9 +92,8 @@ export class MessageRetryManager {
 			message,
 			timestamp: Date.now()
 		})
-		
 		this.messageKeyIndex.set(id, keyStr)
-		
+
 		this.logger.debug(`Added message to retry cache: ${to}/${id}`)
 	}
 
@@ -215,7 +214,6 @@ export class MessageRetryManager {
 	}
 
 	private keyToString(key: RecentMessageKey): string {
-		//return `${key.to}:${key.id}`
 		return `${key.to}${MESSAGE_KEY_SEPARATOR}${key.id}`
 	}
 

@@ -349,7 +349,6 @@ export const extractGroupMetadata = (result: BinaryNode) => {
 			return {
 				id: attrs.jid!,
 				phoneNumber: isLidUser(attrs.jid) && isPnUser(attrs.phone_number) ? attrs.phone_number : undefined,
-				//lid: ((isPnUser(attrs.jid) && isLidUser(attrs.lid)) || (isLidUser(attrs.jid) && isLidUser(attrs.lid))) ? attrs.lid : undefined,
 				lid: isLidUser(attrs.lid) && (isPnUser(attrs.jid) || isLidUser(attrs.jid)) ? attrs.lid : undefined,
 				admin: (attrs.type || null) as GroupParticipant['admin']
 			}
