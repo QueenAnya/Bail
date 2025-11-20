@@ -96,8 +96,8 @@ export const toNumber = (t: Long | number | null | undefined): number =>
 	typeof t === 'object' && t ? ('toNumber' in t ? t.toNumber() : (t as Long).low) : t || 0
 
 /** unix timestamp of a date in seconds */
-export const unixTimestampSeconds = (d = Date.now()) =>
-  Math.floor((d instanceof Date ? d.getTime() : Number(d) || Date.now()) / 1000);
+export const unixTimestampSeconds = (d: Date | number | string = Date.now()): number =>
+	Math.floor((d instanceof Date ? d.getTime() : Number(d) || Date.now()) / 1000)
 
 export type DebouncedTimeout = ReturnType<typeof debouncedTimeout>
 

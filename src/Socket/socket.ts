@@ -79,7 +79,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
-	
+
 	/****
 	if (printQRInTerminal) {
 		console.warn(
@@ -1031,7 +1031,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 		Object.assign(creds, update)
 	})
-	
+
 	if (printQRInTerminal) {
 		printQRIfNecessaryListener(ev)
 	}
