@@ -118,7 +118,7 @@ export const makeNoiseHandler = ({
 
 	const localHKDF = async (data: Uint8Array) => {
 		const key = await hkdf(Buffer.from(data), 64, { salt, info: '' })
-		return [key.subarray(0, 32), key.subarray(32)]
+		return [key.slice(0, 32), key.slice(32)]
 	}
 
 	const mixIntoKey = async (data: Uint8Array) => {
