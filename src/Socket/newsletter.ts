@@ -2,7 +2,7 @@ import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../T
 import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
 import { QueryIds, QueryIdd, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
-import { S_WHATSAPP_NET, getBinaryNodeChild } from '../WABinary'
+import { getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'
 import { executeWMexQuery as genericExecuteWMexQuery } from './mex'
 
