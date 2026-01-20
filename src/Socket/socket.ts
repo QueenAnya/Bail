@@ -30,6 +30,7 @@ import {
 	getNextPreKeysNode,
 	makeEventBuffer,
 	makeNoiseHandler,
+	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
@@ -1029,6 +1030,10 @@ export const makeSocket = (config: SocketConfig) => {
 
 		Object.assign(creds, update)
 	})
+
+	if (printQRInTerminal) {
+		printQRIfNecessaryListener(ev)
+	}
 
 	return {
 		type: 'md' as 'md',
