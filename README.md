@@ -2,17 +2,6 @@
 
 <div align='center'>Baileys is a WebSockets-based TypeScript library for interacting with the WhatsApp Web API.</div>
 
-> [!CAUTION]
-> NOTICE OF BREAKING CHANGE.
->
-> As of 7.0.0, multiple breaking changes were introduced into the library.
->
-> Please check out https://whiskey.so/migrate-latest for more information.
-
-# Important Note
-
-This is a temporary README.md, the new guide is in development and will this file will be replaced with .github/README.md (already a default on GitHub).
-
 New guide link: https://baileys.wiki
 
 # Sponsor
@@ -648,6 +637,7 @@ await sock.sendMessage(id, {
 #### Audio Message
 
 - To audio message work in all devices you need to convert with some tool like `ffmpeg` with this flags:
+
   ```bash
       codec: libopus //ogg file
       ac: 1 //one channel
@@ -656,6 +646,7 @@ await sock.sendMessage(id, {
   ```
 
   - Example:
+
   ```bash
   ffmpeg -i input.mp4 -avoid_negative_ts make_zero -ac 1 output.ogg
   ```
