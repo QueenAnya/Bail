@@ -70,8 +70,10 @@ export const useSingleFileAuthState = async (
 						if (type === 'app-state-sync-key' && value) {
 							value = proto.Message.AppStateSyncKeyData.fromObject(value)
 						}
+
 						result[id] = value
 					}
+
 					return result
 				},
 				set: async data => {
@@ -86,6 +88,7 @@ export const useSingleFileAuthState = async (
 							}
 						}
 					}
+
 					await writeFullData(fullData)
 				}
 			}
