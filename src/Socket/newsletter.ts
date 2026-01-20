@@ -2,7 +2,7 @@ import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../T
 import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
 import { QueryIds, QueryIdd, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
-import { S_WHATSAPP_NET, getBinaryNodeChild, getBinaryNodeChildString } from '../WABinary'
+import { S_WHATSAPP_NET, getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'
 import { executeWMexQuery as genericExecuteWMexQuery } from './mex'
 
@@ -48,25 +48,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 	const executeWMexQuery = <T>(variables: Record<string, unknown>, queryId: string, dataPath: string): Promise<T> => {
 		return genericExecuteWMexQuery<T>(variables, queryId, dataPath, query, generateMessageTag)
 	}
-
-	const newsletterQuery = async (variables: object | undefined, queryId: string) =>
-		query({
-			tag: 'iq',
-			attrs: {
-				type: 'get',
-				xmlns: 'w:mex',
-				to: S_WHATSAPP_NET
-			},
-			content: [
-				{
-					tag: 'query',
-					attrs: {
-						query_id: queryId
-					},
-					content: JSON.stringify({ variables })
-				}
-			]
-		})
 
 	const newsletterUpdate = async (jid: string, updates: NewsletterUpdate) => {
 		const variables = {
