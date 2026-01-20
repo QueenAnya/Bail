@@ -5,9 +5,9 @@ on:
     inputs:
       increment:
         type: string
-        description: "Must be: patch, minor, major, pre* or <version>"
+        description: 'Must be: patch, minor, major, pre* or <version>'
         required: true
-        default: "patch"
+        default: 'patch'
 
 permissions: write-all
 
@@ -57,6 +57,6 @@ jobs:
 
       - name: Check linting
         run: yarn lint:fix
-      
+
       - name: Release
-        run: "npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}"
+        run: 'npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}'

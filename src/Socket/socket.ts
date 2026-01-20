@@ -80,13 +80,11 @@ export const makeSocket = (config: SocketConfig) => {
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
 
-	/****
 	if (printQRInTerminal) {
 		console.warn(
 			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
 		)
 	}
-	*/
 
 	const url = typeof waWebSocketUrl === 'string' ? new URL(waWebSocketUrl) : waWebSocketUrl
 
@@ -608,7 +606,7 @@ export const makeSocket = (config: SocketConfig) => {
 		})
 	}
 
-	const end = (error: Error | undefined) => {
+	const end = async (error: Error | undefined) => {
 		if (closed) {
 			logger.trace({ trace: error?.stack }, 'connection already closed')
 			return
@@ -626,7 +624,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 		if (!ws.isClosed && !ws.isClosing) {
 			try {
-				ws.close()
+				await ws.close()
 			} catch {}
 		}
 
@@ -676,7 +674,7 @@ export const makeSocket = (config: SocketConfig) => {
 				it could be that the network is down
 			*/
 			if (diff > keepAliveIntervalMs + 5000) {
-				end(new Boom('Connection was lost', { statusCode: DisconnectReason.connectionLost }))
+				void end(new Boom('Connection was lost', { statusCode: DisconnectReason.connectionLost }))
 			} else if (ws.isOpen) {
 				// if its all good, send a keep alive request
 				query({
@@ -731,7 +729,7 @@ export const makeSocket = (config: SocketConfig) => {
 			})
 		}
 
-		end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
+		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
 	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
@@ -831,14 +829,15 @@ export const makeSocket = (config: SocketConfig) => {
 			await validateConnection()
 		} catch (err: any) {
 			logger.error({ err }, 'error in validating connection')
-			end(err)
+			void end(err)
 		}
 	})
 	ws.on('error', mapWebSocketError(end))
-	ws.on('close', () => end(new Boom('Connection Terminated', { statusCode: DisconnectReason.connectionClosed })))
+	ws.on('close', () => void end(new Boom('Connection Terminated', { statusCode: DisconnectReason.connectionClosed })))
 	// the server terminated the connection
-	ws.on('CB:xmlstreamend', () =>
-		end(new Boom('Connection Terminated by Server', { statusCode: DisconnectReason.connectionClosed }))
+	ws.on(
+		'CB:xmlstreamend',
+		() => void end(new Boom('Connection Terminated by Server', { statusCode: DisconnectReason.connectionClosed }))
 	)
 	// QR gen
 	ws.on('CB:iq,type:set,pair-device', async (stanza: BinaryNode) => {
@@ -866,7 +865,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 			const refNode = refNodes.shift()
 			if (!refNode) {
-				end(new Boom('QR refs attempts ended', { statusCode: DisconnectReason.timedOut }))
+				void end(new Boom('QR refs attempts ended', { statusCode: DisconnectReason.timedOut }))
 				return
 			}
 
@@ -899,7 +898,7 @@ export const makeSocket = (config: SocketConfig) => {
 			await sendNode(reply)
 		} catch (error: any) {
 			logger.info({ trace: error.stack }, 'error in pairing')
-			end(error)
+			void end(error)
 		}
 	})
 	// login complete
@@ -959,16 +958,16 @@ export const makeSocket = (config: SocketConfig) => {
 
 		const { reason, statusCode } = getErrorCodeFromStreamError(node)
 
-		end(new Boom(`Stream Errored (${reason})`, { statusCode, data: reasonNode || node }))
+		void end(new Boom(`Stream Errored (${reason})`, { statusCode, data: reasonNode || node }))
 	})
 	// stream fail, possible logout
 	ws.on('CB:failure', (node: BinaryNode) => {
 		const reason = +(node.attrs.reason || 500)
-		end(new Boom('Connection Failure', { statusCode: reason, data: node.attrs }))
+		void end(new Boom('Connection Failure', { statusCode: reason, data: node.attrs }))
 	})
 
 	ws.on('CB:ib,,downgrade_webclient', () => {
-		end(new Boom('Multi-device beta not joined', { statusCode: DisconnectReason.multideviceMismatch }))
+		void end(new Boom('Multi-device beta not joined', { statusCode: DisconnectReason.multideviceMismatch }))
 	})
 
 	ws.on('CB:ib,,offline_preview', async (node: BinaryNode) => {

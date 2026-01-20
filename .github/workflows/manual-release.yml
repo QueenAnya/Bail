@@ -56,4 +56,4 @@ jobs:
         # run: "yarn release-it --increment ${{ github.event.inputs.increment }}"
         # run: "yarn dlx release-it --increment ${{ github.event.inputs.increment }}"
         # run: "yarn release --increment ${{ github.event.inputs.increment }}"
-        run: "yarn release-it --increment ${{ github.event.inputs.increment }}"
+        run: 'yarn release-it --increment ${{ github.event.inputs.increment }}'
