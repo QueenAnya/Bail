@@ -1,8 +1,8 @@
 import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../Types'
-import type { NewsletterMetadata, NewsLetterMetadata, NewsletterUpdate } from '../Types'
+import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
 import { QueryIds, QueryIdd, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
-import { S_WHATSAPP_NET, isJidNewsletter, getBinaryNodeChild, getBinaryNodeChildString } from '../WABinary'
+import { S_WHATSAPP_NET, getBinaryNodeChild, getBinaryNodeChildString } from '../WABinary'
 import { makeGroupsSocket } from './groups'
 import { executeWMexQuery as genericExecuteWMexQuery } from './mex'
 
@@ -67,16 +67,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 				}
 			]
 		})
-
-	const getSubscribedNewsletters = async (): Promise<NewsLetterMetadata[]> => {
-		const result = await newsletterQuery(undefined, QueryIdd.GETSUBSCRIBED)
-		const node = getBinaryNodeChildString(result, 'result')
-		const json = JSON.parse(node!)
-		if (!json.data) {
-			throw new Error('Error while fetch subscribed newsletters ' + json)
-		}
-		return json.data.xwa2_newsletter_subscribed.map((v: any) => extractNewsletterMetadata(v))
-	}
 
 	const newsletterUpdate = async (jid: string, updates: NewsletterUpdate) => {
 		const variables = {
@@ -262,26 +252,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		newsletterDelete: async (jid: string) => {
 			await executeWMexQuery({ newsletter_id: jid }, QueryIds.DELETE, XWAPaths.xwa2_newsletter_delete_v2)
 		}
-	}
-}
-
-export const extractNewsletterMetadata = (data: any): NewsLetterMetadata => {
-	return {
-		id: data.id,
-		state: data.state,
-		creationTime: +data.thread_metadata.creation_time,
-		inviteCode: data.thread_metadata.invite,
-		name: data.thread_metadata.name.text,
-		desc: data.thread_metadata.description.text,
-		subscriberCount: +data.thread_metadata.subscribers_count,
-		verification: data.thread_metadata.verification,
-		picture: data.thread_metadata.picture?.direct_path,
-		preview: data.thread_metadata.preview.direct_path,
-		settings: {
-			reaction: data.thread_metadata.settings?.reaction_codes.value
-		},
-		mute: data.viewer_metadata?.mute,
-		role: data.viewer_metadata?.role
 	}
 }
 

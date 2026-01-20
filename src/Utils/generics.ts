@@ -378,7 +378,7 @@ export const fetchLatestWaWebVersion = async (options: RequestInit = {}) => {
 		const data = await response.text()
 
 		const regex = /\\?"client_revision\\?":\s*(\d+)/
-		const regexx = /\\?"server_revision\\?":\s*(\d+)/
+		//const regexx = /\\?"server_revision\\?":\s*(\d+)/
 
 		const match = data.match(regex)
 
