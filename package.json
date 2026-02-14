@@ -1,7 +1,7 @@
 {
   "name": "@queenanya/baileys",
   "type": "module",
-  "version": "9.5.1",
+  "version": "9.5.2",
   "description": "A WebSockets library for interacting with WhatsApp Web",
   "keywords": [
     "whatsapp",
@@ -53,8 +53,8 @@
     "p-queue": "^9.0.0",
     "pino": "^9.6",
     "protobufjs": "^7.2.4",
-    "whatsapp-rust-bridge": "0.5.2",
     "qrcode-terminal": "^0.12.0",
+    "whatsapp-rust-bridge": "0.5.2",
     "ws": "^8.13.0"
   },
   "devDependencies": {
