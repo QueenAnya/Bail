@@ -9,7 +9,6 @@ import type {
 	MessageRelayOptions,
 	MiscMessageGenerationOptions,
 	SocketConfig,
-	WAMediaUpload,
 	WAMessage,
 	WAMessageKey
 } from '../Types'
@@ -34,7 +33,6 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
-	prepareWAMessageMedia,
 	unixTimestampSeconds
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
@@ -1033,9 +1031,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			// Inject <biz> node for button messages so WA servers render buttons correctly
-			// Skip if caller already provided a biz node in additionalNodes (e.g. simple.js sendButton/sendCard)
-			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
-			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
+			if (!isJidNewsletter(destinationJid)) {
 				const buttonType = getButtonType(message)
 				if(buttonType) {
 					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
@@ -1401,6 +1397,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
-		},
+		}
 	}
 }
