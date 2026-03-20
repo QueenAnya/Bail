@@ -1125,10 +1125,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 	/** Detect what kind of button message this is so we can inject the correct <biz> node */
 	const getButtonType = (message: proto.IMessage): string | undefined => {
-		if(message.listMessage) return 'list'
-		if(message.buttonsMessage) return 'buttons'
-		if(message.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-		if(message.interactiveMessage?.carouselMessage) return 'native_flow'
+		// unwrap viewOnceMessageV2Extension (iOS wrap)
+		const inner = message.viewOnceMessageV2Extension?.message || message
+		if(inner.listMessage) return 'list'
+		if(inner.buttonsMessage) return 'buttons'
+		if(inner.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+		if(inner.interactiveMessage?.carouselMessage) return 'native_flow'
 		if(message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 		if(message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 		if(message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
@@ -1138,11 +1140,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 	/** Build the <biz> binary node that WhatsApp servers require for button messages */
 	const getButtonArgs = (message: proto.IMessage): BinaryNode => {
-		const nativeFlow = message.interactiveMessage?.nativeFlowMessage
+		// unwrap iOS wrapper
+		const inner = message.viewOnceMessageV2Extension?.message || message
+
+		const nativeFlow = inner.interactiveMessage?.nativeFlowMessage
 			|| message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage
 			|| message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage
 
-		const carouselMessage = message.interactiveMessage?.carouselMessage
+		const carouselMessage = inner.interactiveMessage?.carouselMessage
 			|| message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage
 			|| message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
 

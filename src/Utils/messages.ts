@@ -655,8 +655,8 @@ export const generateWAMessageContent = async (
 		m = { listMessage }
 	}
 
-	// ── sections → ListMessage ─────────────────────────────────────────────────
-	else if ('sections' in message && !!message.sections) {
+	// ── sections → ListMessage (standalone if, runs independently like fork) ──
+	if ('sections' in message && !!message.sections) {
 		const listMessage: proto.Message.IListMessage = {
 			title: ('title' in message ? message.title : undefined) ?? '',
 			buttonText: ('buttonText' in message ? message.buttonText : undefined) ?? '',
@@ -932,14 +932,11 @@ export const generateWAMessageContent = async (
 		m = { viewOnceMessage: { message: m } }
 	}
 
-	// ── iOS compatibility: wrap buttons/list/interactive in viewOnceMessageV2Extension ──
-	// This makes buttonsMessage, listMessage, interactiveMessage visible on iOS
-	if (
-		m.buttonsMessage ||
-		m.listMessage ||
-		m.interactiveMessage ||
-		m.templateMessage
-	) {
+	// ── iOS compatibility: match fork's patchMessageForMdIfRequired exactly ───
+	// buttonsMessage, templateMessage, listMessage → viewOnceMessageV2Extension
+	// interactiveMessage (nativeFlow/shop/collection) → NOT wrapped (fork has typo, never wraps these)
+	// cards/carousel → already wrapped in viewOnceMessage with deviceListMetadata above
+	if (m.buttonsMessage || m.templateMessage || m.listMessage) {
 		m = {
 			viewOnceMessageV2Extension: {
 				message: {
