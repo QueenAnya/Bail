@@ -624,6 +624,8 @@ export const generateWAMessageContent = async (
 				initiatedByMe: true
 			}
 		}
+	} else if ('productList' in message && !!(message as any).productList) {
+		// productList handled below after this block — just skip media
 	} else {
 		m = await prepareWAMessageMedia(message, options)
 	}
@@ -706,7 +708,7 @@ export const generateWAMessageContent = async (
 
 	// ── templateButtons → TemplateMessage ─────────────────────────────────────
 	else if ('templateButtons' in message && !!message.templateButtons) {
-		const hydratedTemplate: proto.IHydratedFourRowTemplate = {
+		const hydratedTemplate: proto.Message.TemplateMessage.IHydratedFourRowTemplate = {
 			hydratedButtons: message.templateButtons
 		}
 
@@ -836,14 +838,14 @@ export const generateWAMessageContent = async (
 		const slides = await Promise.all(
 			message.cards!.map(async slide => {
 				const { image, video, product, title, body, footer, buttons } = slide
-				let header: Record<string, unknown> = {}
+				let header: proto.IMessage = {}
 
 				if (product) {
 					const { imageMessage } = await prepareWAMessageMedia(
 						{ image: normalizeMedia(product.productImage)! },
 						options
 					)
-					header = { productMessage: { product: { ...product, productImage: imageMessage } } }
+					;(header as any).productMessage = { product: { ...product, productImage: imageMessage } }
 				} else if (image) {
 					const prepared = await prepareWAMessageMedia({ image: normalizeMedia(image)! }, options)
 					if (prepared.imageMessage) prepared.imageMessage.viewOnce = true
@@ -861,9 +863,9 @@ export const generateWAMessageContent = async (
 					header: WAProto.Message.InteractiveMessage.Header.create({
 						title,
 						hasMediaAttachment: !!(
-							(header as { imageMessage?: unknown }).imageMessage ||
-							(header as { videoMessage?: unknown }).videoMessage ||
-							(header as { productMessage?: unknown }).productMessage
+							header.imageMessage ||
+							header.videoMessage ||
+							(header as any).productMessage
 						),
 						...header
 					}),

@@ -224,7 +224,7 @@ export const generateTemplateMessage = async (
 		return hydratedBtn
 	})
 
-	const hydratedTemplate: proto.IHydratedFourRowTemplate = {
+	const hydratedTemplate: proto.Message.TemplateMessage.IHydratedFourRowTemplate = {
 		hydratedContentText: content.body,
 		hydratedFooterText: content.footer,
 		hydratedButtons

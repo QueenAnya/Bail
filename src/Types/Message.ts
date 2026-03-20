@@ -386,7 +386,6 @@ export type AnyRegularMessageContent = (
 			interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
 			title?: string
 			subtitle?: string
-			footer?: string
 			hasMediaAttachment?: boolean
 	  }
 	| {
