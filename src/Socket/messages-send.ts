@@ -1031,7 +1031,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			// Inject <biz> node for button messages so WA servers render buttons correctly
-			if (!isJidNewsletter(destinationJid)) {
+			// Skip if caller already provided a biz node in additionalNodes (e.g. simple.js sendButton/sendCard)
+			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
+			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
 				const buttonType = getButtonType(message)
 				if(buttonType) {
 					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
