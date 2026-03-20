@@ -627,7 +627,7 @@ export const generateWAMessageContent = async (
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
 	} else {
-		m = await prepareWAMessageMedia(message, options)
+		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}
 
 	// ── productList → ListMessage with products ────────────────────────────────

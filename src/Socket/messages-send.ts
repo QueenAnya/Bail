@@ -33,7 +33,6 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
-	prepareAlbumMessageContent,
 	unixTimestampSeconds
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
@@ -50,7 +49,6 @@ import {
 	isHostedPnUser,
 	isJidGroup,
 	isJidNewsletter,
-	isJidUser,
 	isLidUser,
 	isPnUser,
 	jidDecode,
