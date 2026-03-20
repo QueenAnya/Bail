@@ -932,6 +932,27 @@ export const generateWAMessageContent = async (
 		m = { viewOnceMessage: { message: m } }
 	}
 
+	// ── iOS compatibility: wrap buttons/list/interactive in viewOnceMessageV2Extension ──
+	// This makes buttonsMessage, listMessage, interactiveMessage visible on iOS
+	if (
+		m.buttonsMessage ||
+		m.listMessage ||
+		m.interactiveMessage ||
+		m.templateMessage
+	) {
+		m = {
+			viewOnceMessageV2Extension: {
+				message: {
+					messageContextInfo: {
+						deviceListMetadataVersion: 2,
+						deviceListMetadata: {}
+					},
+					...m
+				}
+			}
+		}
+	}
+
 	if (
 		(hasOptionalProperty(message, 'mentions') && message.mentions?.length) ||
 		(hasOptionalProperty(message, 'mentionAll') && message.mentionAll)
