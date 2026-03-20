@@ -17,6 +17,7 @@ import {
 	assertMediaContent,
 	bindWaitForEvent,
 	decryptMediaRetryData,
+	delay,
 	encodeNewsletterMessage,
 	encodeSignedDeviceIdentity,
 	encodeWAMessage,
@@ -25,6 +26,7 @@ import {
 	generateMessageIDV2,
 	generateParticipantHashV2,
 	generateWAMessage,
+	generateWAMessageFromContent,
 	getStatusCodeForMediaRetry,
 	getUrlFromDirectPath,
 	getWAUploadToServer,
@@ -46,13 +48,15 @@ import {
 	isHostedLidUser,
 	isHostedPnUser,
 	isJidGroup,
+	isJidNewsletter,
 	isLidUser,
 	isPnUser,
 	jidDecode,
 	jidEncode,
 	jidNormalizedUser,
 	type JidWithDevice,
-	S_WHATSAPP_NET
+	S_WHATSAPP_NET,
+	STORIES_JID
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
@@ -1026,6 +1030,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
+			// Inject <biz> node for button messages so WA servers render buttons correctly
+			if (!isJidNewsletter(destinationJid)) {
+				const buttonType = getButtonType(message)
+				if(buttonType) {
+					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
+				}
+			}
+
 			if (additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
@@ -1105,6 +1117,100 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		return ''
+	}
+
+	/** Detect what kind of button message this is so we can inject the correct <biz> node */
+	const getButtonType = (message: proto.IMessage): string | undefined => {
+		if(message.listMessage) return 'list'
+		if(message.buttonsMessage) return 'buttons'
+		if(message.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+		if(message.interactiveMessage?.carouselMessage) return 'native_flow'
+		if(message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
+		if(message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
+		if(message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+		if(message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+		return undefined
+	}
+
+	/** Build the <biz> binary node that WhatsApp servers require for button messages */
+	const getButtonArgs = (message: proto.IMessage): BinaryNode => {
+		const nativeFlow = message.interactiveMessage?.nativeFlowMessage
+			|| message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage
+			|| message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage
+
+		const carouselMessage = message.interactiveMessage?.carouselMessage
+			|| message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage
+			|| message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
+
+		const firstButtonName = nativeFlow?.buttons?.[0]?.name
+			|| (carouselMessage?.cards?.[0] as proto.Message.IInteractiveMessage | undefined)
+				?.nativeFlowMessage?.buttons?.[0]?.name
+
+		const nativeFlowSpecials = [
+			'mpm', 'cta_catalog', 'send_location',
+			'call_permission_request', 'wa_payment_transaction_details',
+			'automated_greeting_message_view_catalog'
+		]
+
+		// Payment flows need a special biz tag
+		if(nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
+			return {
+				tag: 'biz',
+				attrs: {
+					native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName
+				}
+			}
+		}
+
+		// Special native flow buttons (catalog, location, etc.)
+		if(nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
+			return {
+				tag: 'biz',
+				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() },
+				content: [
+					{
+						tag: 'interactive',
+						attrs: { type: 'native_flow', v: '1' },
+						content: [{ tag: 'native_flow', attrs: { v: '2', name: firstButtonName! } }]
+					},
+					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				]
+			}
+		}
+
+		// Standard interactive / buttons / carousel → native_flow v9 mixed
+		if(nativeFlow || carouselMessage || message.buttonsMessage) {
+			return {
+				tag: 'biz',
+				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() },
+				content: [
+					{
+						tag: 'interactive',
+						attrs: { type: 'native_flow', v: '1' },
+						content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+					},
+					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				]
+			}
+		}
+
+		// List message
+		if(message.listMessage) {
+			return {
+				tag: 'biz',
+				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() },
+				content: [
+					{ tag: 'list', attrs: { v: '2', type: 'product_list' } },
+					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				]
+			}
+		}
+
+		// Fallback
+		return {
+			tag: 'biz',
+			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() }
+		}
 	}
 
 	const getPrivacyTokens = async (jids: string[]) => {
@@ -1291,6 +1397,154 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
-		}
+		},
+
+		/** Build the standard <biz> node required for native-flow / carousel messages */
+		async sendButton(jid: string, content: {
+			text?: string
+			caption?: string
+			title?: string
+			footer?: string
+			buttons?: any[]
+			interactiveButtons?: any[]
+			image?: WAMediaUpload
+			video?: WAMediaUpload
+			document?: WAMediaUpload
+			mimetype?: string
+			hasMediaAttachment?: boolean
+			quoted?: WAMessage
+		}, options: MiscMessageGenerationOptions = {}) {
+			const allButtons = [...(content.buttons || []), ...(content.interactiveButtons || [])]
+			if (!allButtons.length) throw new Error('buttons or interactiveButtons required')
+
+			// Normalise every button format → { name, buttonParamsJson }
+			const processedButtons = allButtons.map((btn: any, i: number) => {
+				if(btn.name && btn.buttonParamsJson) return btn
+				if(btn.buttonId && btn.buttonText?.displayText) return {
+					name: 'quick_reply',
+					buttonParamsJson: JSON.stringify({ display_text: btn.buttonText.displayText, id: btn.buttonId })
+				}
+				if(btn.id || btn.text || btn.displayText) return {
+					name: 'quick_reply',
+					buttonParamsJson: JSON.stringify({ display_text: btn.text || btn.displayText || `Button ${i+1}`, id: btn.id || `btn_${i+1}` })
+				}
+				throw new Error(`button[${i}] has invalid shape`)
+			})
+
+			const msgContent: proto.Message.IInteractiveMessage = { nativeFlowMessage: { buttons: processedButtons, messageParamsJson: '' } }
+
+			// Media header
+			if(content.image || content.video || content.document) {
+				const mediaKey = content.image ? 'image' : content.video ? 'video' : 'document'
+				const mediaVal = (content.image || content.video || content.document)!
+				const prepared = await prepareWAMessageMedia({ [mediaKey]: mediaVal } as any, { upload: waUploadToServer, ...options })
+				msgContent.header = proto.Message.InteractiveMessage.Header.create({
+					title: content.title || '',
+					hasMediaAttachment: content.hasMediaAttachment ?? true,
+					imageMessage: prepared.imageMessage ?? undefined,
+					videoMessage: prepared.videoMessage ?? undefined,
+					documentMessage: prepared.documentMessage ?? undefined,
+				})
+				msgContent.body = { text: content.caption || content.text || '' }
+			} else {
+				msgContent.header = { title: content.title || '', hasMediaAttachment: false }
+				msgContent.body = { text: content.text || content.caption || '' }
+			}
+
+			if(content.footer) msgContent.footer = { text: content.footer }
+
+			const msg = generateWAMessageFromContent(jid, {
+				viewOnceMessage: { message: { interactiveMessage: proto.Message.InteractiveMessage.create(msgContent) } }
+			}, { userJid: authState.creds.me!.id, quoted: options.quoted })
+
+			const isGroup = isJidGroup(jid)
+			const nodes: BinaryNode[] = [{
+				tag: 'biz', attrs: {},
+				content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }]
+			}]
+			if(!isGroup) nodes.push({ tag: 'bot', attrs: { biz_bot: '1' } })
+
+			await relayMessage(jid, msg.message!, { messageId: msg.key.id!, additionalNodes: nodes })
+			return msg
+		},
+
+		/** Carousel / cards message */
+		async sendCard(jid: string, content: {
+			text?: string
+			title?: string
+			footer?: string
+			cards: Array<{
+				image?: WAMediaUpload
+				video?: WAMediaUpload
+				title?: string
+				body?: string
+				footer?: string
+				buttons?: Array<{ name: string; buttonParamsJson: string }>
+			}>
+			quoted?: WAMessage
+		}, options: MiscMessageGenerationOptions = {}) {
+			if(!content.cards?.length) throw new Error('cards required')
+			if(content.cards.length > 10) throw new Error('Maximum 10 cards')
+
+			const carouselCards = await Promise.all(content.cards.map(async card => {
+				const mediaKey = card.image ? 'image' : card.video ? 'video' : null
+				if(!mediaKey) throw new Error('Each card must have image or video')
+				const mediaVal = (card.image || card.video)!
+				const prepared = await prepareWAMessageMedia({ [mediaKey]: mediaVal } as any, { upload: waUploadToServer, ...options })
+
+				return proto.Message.InteractiveMessage.create({
+					header: proto.Message.InteractiveMessage.Header.create({
+						title: card.title || '',
+						hasMediaAttachment: true,
+						imageMessage: prepared.imageMessage ?? undefined,
+						videoMessage: prepared.videoMessage ?? undefined,
+					}),
+					body: proto.Message.InteractiveMessage.Body.create({ text: card.body || '' }),
+					footer: proto.Message.InteractiveMessage.Footer.create({ text: card.footer || '' }),
+					nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+						buttons: (card.buttons || []).map(b => ({ name: b.name, buttonParamsJson: b.buttonParamsJson }))
+					})
+				})
+			}))
+
+			const payload = proto.Message.InteractiveMessage.create({
+				body: { text: content.text || '' },
+				footer: { text: content.footer || '' },
+				header: content.title ? { title: content.title } : undefined,
+				carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.create({ cards: carouselCards, messageVersion: 1 })
+			})
+
+			const msg = generateWAMessageFromContent(jid, {
+				viewOnceMessage: { message: { interactiveMessage: payload } }
+			}, { userJid: authState.creds.me!.id, quoted: options.quoted })
+
+			const isGroup = isJidGroup(jid)
+			const nodes: BinaryNode[] = [{
+				tag: 'biz', attrs: {},
+				content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }]
+			}]
+			if(!isGroup) nodes.push({ tag: 'bot', attrs: { biz_bot: '1' } })
+
+			await relayMessage(jid, msg.message!, { messageId: msg.key.id!, additionalNodes: nodes })
+			return msg
+		},
+
+		/** Alias for sendCard */
+		async sendCards(jid: string, content: {
+			text?: string
+			title?: string
+			footer?: string
+			cards: Array<{
+				image?: WAMediaUpload
+				video?: WAMediaUpload
+				title?: string
+				body?: string
+				footer?: string
+				buttons?: Array<{ name: string; buttonParamsJson: string }>
+			}>
+			quoted?: WAMessage
+		}, options: MiscMessageGenerationOptions = {}) {
+			return this.sendCard(jid, content, options)
+		},
 	}
 }

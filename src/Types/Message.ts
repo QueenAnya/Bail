@@ -113,6 +113,8 @@ export interface WAUrlInfo {
 type Mentionable = {
 	/** list of jids that are mentioned in the accompanying text */
 	mentions?: string[]
+	/** mention all */
+	mentionAll?: boolean
 }
 type Contextable = {
 	/** add contextInfo to the message */
@@ -125,6 +127,63 @@ type ViewOnce = {
 type Editable = {
 	edit?: WAMessageKey
 }
+
+/** Attach classic buttons (up to 3) to a text or media message */
+type Buttonable = {
+	buttons?: proto.Message.ButtonsMessage.IButton[]
+}
+
+/** Attach template buttons (quickReply / url / call) to a message */
+type Templatable = {
+	templateButtons?: proto.IHydratedTemplateButton[]
+	footer?: string
+}
+
+/** Attach native-flow interactive buttons to a message */
+type Interactiveable = {
+	interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+	title?: string
+	subtitle?: string
+	footer?: string
+	hasMediaAttachment?: boolean
+}
+
+/** Attach a single-select list to a text message */
+type Listable = {
+	sections?: proto.Message.ListMessage.ISection[]
+	/** Title shown above the list */
+	title?: string
+	/** Label on the button that opens the list (required) */
+	buttonText?: string
+	footer?: string
+}
+
+/** Attach a WhatsApp Shop storefront to a message */
+type Shopable = {
+	shop?: proto.Message.InteractiveMessage.IShopMessage
+	title?: string
+	subtitle?: string
+	footer?: string
+	hasMediaAttachment?: boolean
+}
+
+/** Attach a WhatsApp Collection to a message */
+type Collectionable = {
+	collection?: proto.Message.InteractiveMessage.ICollectionMessage
+	title?: string
+	subtitle?: string
+	footer?: string
+	hasMediaAttachment?: boolean
+}
+
+/** Attach a carousel of cards to a message */
+type Cardsable = {
+	cards?: Carousel[]
+	title?: string
+	subtitle?: string
+	footer?: string
+}
+
 type WithDimensions = {
 	width?: number
 	height?: number
@@ -167,6 +226,11 @@ export type AnyMediaMessageContent = (
 			jpegThumbnail?: string
 	  } & Mentionable &
 			Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable &
 			WithDimensions)
 	| ({
 			video: WAMediaUpload
@@ -177,6 +241,11 @@ export type AnyMediaMessageContent = (
 			ptv?: boolean
 	  } & Mentionable &
 			Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable &
 			WithDimensions)
 	| {
 			audio: WAMediaUpload
@@ -194,13 +263,29 @@ export type AnyMediaMessageContent = (
 			mimetype: string
 			fileName?: string
 			caption?: string
-	  } & Contextable)
+	  } & Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable)
 ) & { mimetype?: string } & Editable
 
+/** Info for replying to a button */
 export type ButtonReplyInfo = {
-	displayText: string
-	id: string
-	index: number
+	displayText?: string
+	id?: string
+	index?: number
+	// list reply fields
+	title?: string
+	description?: string
+	rowId?: string
+	// interactive (native flow) reply fields
+	nativeFlows?: {
+		name: string
+		paramsJson: string
+		version?: number
+	}
 }
 
 export type GroupInviteInfo = {
@@ -215,12 +300,40 @@ export type WASendableProduct = Omit<proto.Message.ProductMessage.IProductSnapsh
 	productImage: WAMediaUpload
 }
 
+/** One card / slide in a carousel message */
+export type Carousel = {
+	image?: WAMediaUpload
+	video?: WAMediaUpload
+	product?: WASendableProduct
+	title?: string
+	body?: string
+	footer?: string
+	buttons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+}
+
+/** Product entry for productList messages */
+export type ProductListEntry = {
+	productId: string
+}
+
+export type ProductListSection = {
+	title: string
+	products: ProductListEntry[]
+}
+
 export type AnyRegularMessageContent = (
 	| ({
 			text: string
 			linkPreview?: WAUrlInfo | null
 	  } & Mentionable &
 			Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable &
+			Cardsable &
+			Listable &
 			Editable)
 	| AnyMediaMessageContent
 	| { event: EventMessageOptions }
@@ -228,6 +341,13 @@ export type AnyRegularMessageContent = (
 			poll: PollMessageOptions
 	  } & Mentionable &
 			Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable &
+			Cardsable &
+			Listable &
 			Editable)
 	| {
 			contacts: {
@@ -241,7 +361,7 @@ export type AnyRegularMessageContent = (
 	| { react: proto.Message.IReactionMessage }
 	| {
 			buttonReply: ButtonReplyInfo
-			type: 'template' | 'plain'
+			type: 'template' | 'plain' | 'list' | 'interactive'
 	  }
 	| {
 			groupInvite: GroupInviteInfo
@@ -262,6 +382,21 @@ export type AnyRegularMessageContent = (
 			businessOwnerJid?: string
 			body?: string
 			footer?: string
+			/** attach interactive buttons to a product message */
+			interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+			title?: string
+			subtitle?: string
+			hasMediaAttachment?: boolean
+	  }
+	| {
+			/** productList — renders as a List Message with products */
+			productList: ProductListSection[]
+			text?: string
+			title?: string
+			buttonText?: string
+			footer?: string
+			businessOwnerJid?: string
+			thumbnail?: WAMediaUpload | string
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
