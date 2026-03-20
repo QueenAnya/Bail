@@ -743,11 +743,13 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
+			// m already has imageMessage/videoMessage/documentMessage from prepareWAMessageMedia
+			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
 			interactiveMessage.header = {
 				title: ('title' in message ? message.title : undefined) ?? '',
 				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment: ('hasMediaAttachment' in message ? message.hasMediaAttachment : false) ?? false,
+				hasMediaAttachment: ('hasMediaAttachment' in message ? message.hasMediaAttachment : hasMedia) ?? hasMedia,
 				...m
 			}
 		}
@@ -776,11 +778,12 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
+			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
 			interactiveMessage.header = {
 				title: ('title' in message ? message.title : undefined) ?? '',
 				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment: ('hasMediaAttachment' in message ? message.hasMediaAttachment : false) ?? false,
+				hasMediaAttachment: ('hasMediaAttachment' in message ? message.hasMediaAttachment : hasMedia) ?? hasMedia,
 				...m
 			}
 		}
@@ -810,11 +813,12 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
+			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
 			interactiveMessage.header = {
 				title: ('title' in message ? message.title : undefined) ?? '',
 				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment: ('hasMediaAttachment' in message ? message.hasMediaAttachment : false) ?? false,
+				hasMediaAttachment: ('hasMediaAttachment' in message ? message.hasMediaAttachment : hasMedia) ?? hasMedia,
 				...m
 			}
 		}
