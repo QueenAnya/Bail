@@ -1135,6 +1135,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		if(message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 		if(message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
 		if(message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+		// also check v2extension for interactiveMessage
+		if(message.viewOnceMessageV2Extension?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+		if(message.viewOnceMessageV2Extension?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 		return undefined
 	}
 

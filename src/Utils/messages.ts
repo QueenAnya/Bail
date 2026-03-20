@@ -933,10 +933,8 @@ export const generateWAMessageContent = async (
 	}
 
 	// ── iOS compatibility: match fork's patchMessageForMdIfRequired exactly ───
-	// buttonsMessage, templateMessage, listMessage → viewOnceMessageV2Extension
-	// interactiveMessage (nativeFlow/shop/collection) → NOT wrapped (fork has typo, never wraps these)
-	// cards/carousel → already wrapped in viewOnceMessage with deviceListMetadata above
-	if (m.buttonsMessage || m.templateMessage || m.listMessage) {
+	// buttonsMessage, templateMessage, listMessage, interactiveMessage → viewOnceMessageV2Extension
+	if (m.buttonsMessage || m.templateMessage || m.listMessage || m.interactiveMessage) {
 		m = {
 			viewOnceMessageV2Extension: {
 				message: {
