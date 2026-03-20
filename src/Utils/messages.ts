@@ -668,23 +668,75 @@ export const generateWAMessageContent = async (
 		m = { listMessage }
 	}
 
-	// ── buttons / interactiveButtons → InteractiveMessage (native flow) ───────
-	// buttonsMessage is deprecated by WA — convert everything to interactiveMessage
-	else if (('buttons' in message && !!message.buttons) || ('interactiveButtons' in message && !!(message as any).interactiveButtons)) {
-		const rawButtons: any[] = ('buttons' in message && message.buttons)
-			? message.buttons
-			: (message as any).interactiveButtons
+	// ── buttons → buttonsMessage (iOS + Android compatible) ──────────────────
+	else if ('buttons' in message && !!message.buttons) {
+		const buttonsMessage: proto.Message.IButtonsMessage = {
+			buttons: message.buttons.map((b: any) => ({
+				buttonId: b.buttonId || b.id || `btn_${Math.random()}`,
+				buttonText: b.buttonText || { displayText: b.displayText || b.text || '' },
+				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
+			}))
+		}
 
-		// Normalise every button format → { name, buttonParamsJson }
+		if ('text' in message) {
+			buttonsMessage.contentText = message.text
+			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.EMPTY
+		} else {
+			if ('caption' in message) {
+				buttonsMessage.contentText = (message as { caption?: string }).caption
+			}
+			const mediaType = Object.keys(m)[0]?.replace('Message', '').toUpperCase()
+			if (mediaType && mediaType in proto.Message.ButtonsMessage.HeaderType) {
+				buttonsMessage.headerType =
+					proto.Message.ButtonsMessage.HeaderType[
+						mediaType as keyof typeof proto.Message.ButtonsMessage.HeaderType
+					]
+			}
+			Object.assign(buttonsMessage, m)
+		}
+
+		if ('footer' in message && !!message.footer) {
+			buttonsMessage.footerText = message.footer
+		}
+
+		if ('title' in message && !!message.title) {
+			buttonsMessage.text = message.title
+			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.TEXT
+		}
+
+		m = { buttonsMessage }
+	}
+
+	// ── templateButtons → TemplateMessage ─────────────────────────────────────
+	else if ('templateButtons' in message && !!message.templateButtons) {
+		const hydratedTemplate: proto.Message.TemplateMessage.IHydratedFourRowTemplate = {
+			hydratedButtons: message.templateButtons
+		}
+
+		if ('text' in message) {
+			hydratedTemplate.hydratedContentText = message.text
+		} else if ('caption' in message) {
+			hydratedTemplate.hydratedContentText = (message as { caption?: string }).caption
+			Object.assign(hydratedTemplate, m)
+		}
+
+		if ('footer' in message && !!message.footer) {
+			hydratedTemplate.hydratedFooterText = message.footer
+		}
+
+		m = { templateMessage: { hydratedTemplate } }
+	}
+
+	// ── interactiveButtons → InteractiveMessage native flow (Android + newer iOS) ──
+	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
+		const rawButtons: any[] = (message as any).interactiveButtons
+
 		const nativeButtons = rawButtons.map((btn: any, i: number) => {
-			// Already correct format
 			if(btn.name && btn.buttonParamsJson) return { name: btn.name, buttonParamsJson: btn.buttonParamsJson }
-			// Old buttonsMessage format: { buttonId, buttonText: { displayText } }
 			if(btn.buttonId && btn.buttonText?.displayText) return {
 				name: 'quick_reply',
 				buttonParamsJson: JSON.stringify({ display_text: btn.buttonText.displayText, id: btn.buttonId })
 			}
-			// Simple format: { id, text/displayText }
 			if(btn.id || btn.text || btn.displayText) return {
 				name: 'quick_reply',
 				buttonParamsJson: JSON.stringify({ display_text: btn.text || btn.displayText || `Button ${i+1}`, id: btn.id || `btn_${i+1}` })
@@ -721,26 +773,6 @@ export const generateWAMessageContent = async (
 		}
 
 		m = { interactiveMessage }
-	}
-
-	// ── templateButtons → TemplateMessage ─────────────────────────────────────
-	else if ('templateButtons' in message && !!message.templateButtons) {
-		const hydratedTemplate: proto.Message.TemplateMessage.IHydratedFourRowTemplate = {
-			hydratedButtons: message.templateButtons
-		}
-
-		if ('text' in message) {
-			hydratedTemplate.hydratedContentText = message.text
-		} else if ('caption' in message) {
-			hydratedTemplate.hydratedContentText = (message as { caption?: string }).caption
-			Object.assign(hydratedTemplate, m)
-		}
-
-		if ('footer' in message && !!message.footer) {
-			hydratedTemplate.hydratedFooterText = message.footer
-		}
-
-		m = { templateMessage: { hydratedTemplate } }
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
