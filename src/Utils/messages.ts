@@ -668,42 +668,59 @@ export const generateWAMessageContent = async (
 		m = { listMessage }
 	}
 
-	// ── buttons → ButtonsMessage ───────────────────────────────────────────────
-	else if ('buttons' in message && !!message.buttons) {
-		const buttonsMessage: proto.Message.IButtonsMessage = {
-			buttons: message.buttons.map(b => ({
-				...b,
-				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
-			}))
+	// ── buttons / interactiveButtons → InteractiveMessage (native flow) ───────
+	// buttonsMessage is deprecated by WA — convert everything to interactiveMessage
+	else if (('buttons' in message && !!message.buttons) || ('interactiveButtons' in message && !!(message as any).interactiveButtons)) {
+		const rawButtons: any[] = ('buttons' in message && message.buttons)
+			? message.buttons
+			: (message as any).interactiveButtons
+
+		// Normalise every button format → { name, buttonParamsJson }
+		const nativeButtons = rawButtons.map((btn: any, i: number) => {
+			// Already correct format
+			if(btn.name && btn.buttonParamsJson) return { name: btn.name, buttonParamsJson: btn.buttonParamsJson }
+			// Old buttonsMessage format: { buttonId, buttonText: { displayText } }
+			if(btn.buttonId && btn.buttonText?.displayText) return {
+				name: 'quick_reply',
+				buttonParamsJson: JSON.stringify({ display_text: btn.buttonText.displayText, id: btn.buttonId })
+			}
+			// Simple format: { id, text/displayText }
+			if(btn.id || btn.text || btn.displayText) return {
+				name: 'quick_reply',
+				buttonParamsJson: JSON.stringify({ display_text: btn.text || btn.displayText || `Button ${i+1}`, id: btn.id || `btn_${i+1}` })
+			}
+			return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: `Button ${i+1}`, id: `btn_${i+1}` }) }
+		})
+
+		const interactiveMessage: proto.Message.IInteractiveMessage = {
+			nativeFlowMessage: { buttons: nativeButtons, messageParamsJson: '' }
 		}
 
 		if ('text' in message) {
-			buttonsMessage.contentText = message.text
-			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.EMPTY
-		} else {
-			if ('caption' in message) {
-				buttonsMessage.contentText = (message as { caption?: string }).caption
+			interactiveMessage.body = { text: message.text }
+			interactiveMessage.header = {
+				title: ('title' in message ? message.title : undefined) ?? '',
+				subtitle: ('subtitle' in message ? (message as any).subtitle : undefined) ?? '',
+				hasMediaAttachment: false
 			}
-			const mediaType = Object.keys(m)[0]?.replace('Message', '').toUpperCase()
-			if (mediaType && mediaType in proto.Message.ButtonsMessage.HeaderType) {
-				buttonsMessage.headerType =
-					proto.Message.ButtonsMessage.HeaderType[
-						mediaType as keyof typeof proto.Message.ButtonsMessage.HeaderType
-					]
-			}
-			Object.assign(buttonsMessage, m)
+		} else if ('caption' in message) {
+			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
+			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
+			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
+				title: ('title' in message ? message.title : undefined) ?? '',
+				subtitle: ('subtitle' in message ? (message as any).subtitle : undefined) ?? '',
+				hasMediaAttachment: ('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
+				imageMessage: m.imageMessage ?? undefined,
+				videoMessage: m.videoMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined,
+			})
 		}
 
 		if ('footer' in message && !!message.footer) {
-			buttonsMessage.footerText = message.footer
+			interactiveMessage.footer = { text: message.footer }
 		}
 
-		if ('title' in message && !!message.title) {
-			buttonsMessage.text = message.title
-			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.TEXT
-		}
-
-		m = { buttonsMessage }
+		m = { interactiveMessage }
 	}
 
 	// ── templateButtons → TemplateMessage ─────────────────────────────────────
@@ -724,44 +741,6 @@ export const generateWAMessageContent = async (
 		}
 
 		m = { templateMessage: { hydratedTemplate } }
-	}
-
-	// ── interactiveButtons → InteractiveMessage (native flow) ─────────────────
-	else if ('interactiveButtons' in message && !!message.interactiveButtons) {
-		const interactiveMessage: proto.Message.IInteractiveMessage = {
-			nativeFlowMessage: {
-				buttons: message.interactiveButtons,
-				messageParamsJson: ''
-			}
-		}
-
-		if ('text' in message) {
-			interactiveMessage.body = { text: message.text }
-			interactiveMessage.header = {
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment: false
-			}
-		} else if ('caption' in message) {
-			// m = { imageMessage/videoMessage/documentMessage } from prepareWAMessageMedia
-			// InteractiveMessage.Header directly accepts imageMessage, videoMessage, documentMessage
-			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
-			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
-			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment: ('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
-				imageMessage: m.imageMessage ?? undefined,
-				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined,
-			})
-		}
-
-		if ('footer' in message && !!message.footer) {
-			interactiveMessage.footer = { text: message.footer }
-		}
-
-		m = { interactiveMessage }
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────

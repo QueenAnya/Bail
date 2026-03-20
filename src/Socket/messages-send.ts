@@ -1402,9 +1402,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return fullMsg
 			}
 		},
-
-		/** Build the standard <biz> node required for native-flow / carousel messages */
-		async sendButton(jid: string, content: {
+	}
+}
 			text?: string
 			caption?: string
 			title?: string
@@ -1472,83 +1471,5 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return msg
 		},
 
-		/** Carousel / cards message */
-		async sendCard(jid: string, content: {
-			text?: string
-			title?: string
-			footer?: string
-			cards: Array<{
-				image?: WAMediaUpload
-				video?: WAMediaUpload
-				title?: string
-				body?: string
-				footer?: string
-				buttons?: Array<{ name: string; buttonParamsJson: string }>
-			}>
-			quoted?: WAMessage
-		}, options: MiscMessageGenerationOptions = {}) {
-			if(!content.cards?.length) throw new Error('cards required')
-			if(content.cards.length > 10) throw new Error('Maximum 10 cards')
-
-			const carouselCards = await Promise.all(content.cards.map(async card => {
-				const mediaKey = card.image ? 'image' : card.video ? 'video' : null
-				if(!mediaKey) throw new Error('Each card must have image or video')
-				const mediaVal = (card.image || card.video)!
-				const prepared = await prepareWAMessageMedia({ [mediaKey]: mediaVal } as any, { upload: waUploadToServer, ...options })
-
-				return proto.Message.InteractiveMessage.create({
-					header: proto.Message.InteractiveMessage.Header.create({
-						title: card.title || '',
-						hasMediaAttachment: true,
-						imageMessage: prepared.imageMessage ?? undefined,
-						videoMessage: prepared.videoMessage ?? undefined,
-					}),
-					body: proto.Message.InteractiveMessage.Body.create({ text: card.body || '' }),
-					footer: proto.Message.InteractiveMessage.Footer.create({ text: card.footer || '' }),
-					nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
-						buttons: (card.buttons || []).map(b => ({ name: b.name, buttonParamsJson: b.buttonParamsJson }))
-					})
-				})
-			}))
-
-			const payload = proto.Message.InteractiveMessage.create({
-				body: { text: content.text || '' },
-				footer: { text: content.footer || '' },
-				header: content.title ? { title: content.title } : undefined,
-				carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.create({ cards: carouselCards, messageVersion: 1 })
-			})
-
-			const msg = generateWAMessageFromContent(jid, {
-				viewOnceMessage: { message: { interactiveMessage: payload } }
-			}, { userJid: authState.creds.me!.id, quoted: options.quoted })
-
-			const isGroup = isJidGroup(jid)
-			const nodes: BinaryNode[] = [{
-				tag: 'biz', attrs: {},
-				content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }]
-			}]
-			if(!isGroup) nodes.push({ tag: 'bot', attrs: { biz_bot: '1' } })
-
-			await relayMessage(jid, msg.message!, { messageId: msg.key.id!, additionalNodes: nodes })
-			return msg
-		},
-
-		/** Alias for sendCard */
-		async sendCards(jid: string, content: {
-			text?: string
-			title?: string
-			footer?: string
-			cards: Array<{
-				image?: WAMediaUpload
-				video?: WAMediaUpload
-				title?: string
-				body?: string
-				footer?: string
-				buttons?: Array<{ name: string; buttonParamsJson: string }>
-			}>
-			quoted?: WAMessage
-		}, options: MiscMessageGenerationOptions = {}) {
-			return this.sendCard(jid, content, options)
-		},
 	}
 }
