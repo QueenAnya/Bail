@@ -9,6 +9,7 @@ import type {
 	MessageRelayOptions,
 	MiscMessageGenerationOptions,
 	SocketConfig,
+	WAMediaUpload,
 	WAMessage,
 	WAMessageKey
 } from '../Types'
@@ -33,6 +34,7 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
+	prepareWAMessageMedia,
 	unixTimestampSeconds
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
@@ -1031,7 +1033,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			// Inject <biz> node for button messages so WA servers render buttons correctly
-			if (!isJidNewsletter(destinationJid)) {
+			// Skip if caller already provided a biz node in additionalNodes (e.g. simple.js sendButton/sendCard)
+			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
+			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
 				const buttonType = getButtonType(message)
 				if(buttonType) {
 					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
@@ -1151,6 +1155,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			'call_permission_request', 'wa_payment_transaction_details',
 			'automated_greeting_message_view_catalog'
 		]
+
+		// single_select needs its own list-style biz node
+		if(nativeFlow && firstButtonName === 'single_select') {
+			return {
+				tag: 'biz',
+				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() },
+				content: [
+					{ tag: 'list', attrs: { v: '2', type: 'product_list' } },
+					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				]
+			}
+		}
 
 		// Payment flows need a special biz tag
 		if(nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
@@ -1397,6 +1413,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
-		}
+		},
 	}
 }
