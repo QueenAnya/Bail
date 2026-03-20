@@ -32,7 +32,6 @@ import {
 	getNextPreKeysNode,
 	makeEventBuffer,
 	makeNoiseHandler,
-	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
@@ -83,15 +82,13 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
-	
-	/**
+
 	if (printQRInTerminal) {
 		logger.warn(
 			{},
 			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
 		)
 	}
-	*/
 
 	const syncDisabled =
 		PROCESSABLE_HISTORY_TYPES.map(syncType => config.shouldSyncHistoryMessage({ syncType })).filter(x => x === false)
@@ -1098,10 +1095,6 @@ export const makeSocket = (config: SocketConfig) => {
 			logger.debug({ error }, 'failed to send unified_session telemetry')
 		}
 	}
-	
-	if (printQRInTerminal) {
-		printQRIfNecessaryListener(ev)
-		}
 
 	return {
 		type: 'md' as 'md',

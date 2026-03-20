@@ -17,7 +17,6 @@ import {
 	assertMediaContent,
 	bindWaitForEvent,
 	decryptMediaRetryData,
-	delay,
 	encodeNewsletterMessage,
 	encodeSignedDeviceIdentity,
 	encodeWAMessage,
@@ -26,7 +25,6 @@ import {
 	generateMessageIDV2,
 	generateParticipantHashV2,
 	generateWAMessage,
-	generateWAMessageFromContent,
 	getStatusCodeForMediaRetry,
 	getUrlFromDirectPath,
 	getWAUploadToServer,
@@ -48,15 +46,13 @@ import {
 	isHostedLidUser,
 	isHostedPnUser,
 	isJidGroup,
-	isJidNewsletter,
 	isLidUser,
 	isPnUser,
 	jidDecode,
 	jidEncode,
 	jidNormalizedUser,
 	type JidWithDevice,
-	S_WHATSAPP_NET,
-	STORIES_JID
+	S_WHATSAPP_NET
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
@@ -1030,14 +1026,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			// Inject <biz> node for button messages so WA servers render buttons correctly
-			if (!isJidNewsletter(destinationJid)) {
-				const buttonType = getButtonType(message)
-				if(buttonType) {
-					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
-				}
-			}
-
 			if (additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
@@ -1117,100 +1105,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		return ''
-	}
-
-	/** Detect what kind of button message this is so we can inject the correct <biz> node */
-	const getButtonType = (message: proto.IMessage): string | undefined => {
-		if(message.listMessage) return 'list'
-		if(message.buttonsMessage) return 'buttons'
-		if(message.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-		if(message.interactiveMessage?.carouselMessage) return 'native_flow'
-		if(message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
-		if(message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
-		if(message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-		if(message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-		return undefined
-	}
-
-	/** Build the <biz> binary node that WhatsApp servers require for button messages */
-	const getButtonArgs = (message: proto.IMessage): BinaryNode => {
-		const nativeFlow = message.interactiveMessage?.nativeFlowMessage
-			|| message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage
-			|| message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage
-
-		const carouselMessage = message.interactiveMessage?.carouselMessage
-			|| message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage
-			|| message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
-
-		const firstButtonName = nativeFlow?.buttons?.[0]?.name
-			|| (carouselMessage?.cards?.[0] as proto.Message.IInteractiveMessage | undefined)
-				?.nativeFlowMessage?.buttons?.[0]?.name
-
-		const nativeFlowSpecials = [
-			'mpm', 'cta_catalog', 'send_location',
-			'call_permission_request', 'wa_payment_transaction_details',
-			'automated_greeting_message_view_catalog'
-		]
-
-		// Payment flows need a special biz tag
-		if(nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
-			return {
-				tag: 'biz',
-				attrs: {
-					native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName
-				}
-			}
-		}
-
-		// Special native flow buttons (catalog, location, etc.)
-		if(nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
-			return {
-				tag: 'biz',
-				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() },
-				content: [
-					{
-						tag: 'interactive',
-						attrs: { type: 'native_flow', v: '1' },
-						content: [{ tag: 'native_flow', attrs: { v: '2', name: firstButtonName! } }]
-					},
-					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
-				]
-			}
-		}
-
-		// Standard interactive / buttons / carousel → native_flow v9 mixed
-		if(nativeFlow || carouselMessage || message.buttonsMessage) {
-			return {
-				tag: 'biz',
-				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() },
-				content: [
-					{
-						tag: 'interactive',
-						attrs: { type: 'native_flow', v: '1' },
-						content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
-					},
-					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
-				]
-			}
-		}
-
-		// List message
-		if(message.listMessage) {
-			return {
-				tag: 'biz',
-				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() },
-				content: [
-					{ tag: 'list', attrs: { v: '2', type: 'product_list' } },
-					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
-				]
-			}
-		}
-
-		// Fallback
-		return {
-			tag: 'biz',
-			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: unixTimestampSeconds().toString() }
-		}
 	}
 
 	const getPrivacyTokens = async (jids: string[]) => {
