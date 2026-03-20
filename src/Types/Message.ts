@@ -304,6 +304,9 @@ export type WASendableProduct = Omit<proto.Message.ProductMessage.IProductSnapsh
 export type Carousel = {
 	image?: WAMediaUpload
 	video?: WAMediaUpload
+	document?: WAMediaUpload
+	mimetype?: string
+	fileName?: string
 	product?: WASendableProduct
 	title?: string
 	body?: string

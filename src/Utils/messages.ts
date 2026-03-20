@@ -859,7 +859,7 @@ export const generateWAMessageContent = async (
 
 		const slides = await Promise.all(
 			message.cards!.map(async slide => {
-				const { image, video, product, title, body, footer, buttons } = slide
+				const { image, video, document: doc, product, title, body, footer, buttons } = slide as any
 				let header: proto.IMessage = {}
 
 				if (product) {
@@ -879,6 +879,12 @@ export const generateWAMessageContent = async (
 						prepared.videoMessage.gifPlayback = false
 					}
 					header = prepared
+				} else if (doc) {
+					const prepared = await prepareWAMessageMedia(
+						{ document: normalizeMedia(doc)!, mimetype: (slide as any).mimetype || 'application/octet-stream', fileName: (slide as any).fileName },
+						options
+					)
+					header = prepared
 				}
 
 				return WAProto.Message.InteractiveMessage.create({
@@ -887,9 +893,12 @@ export const generateWAMessageContent = async (
 						hasMediaAttachment: !!(
 							header.imageMessage ||
 							header.videoMessage ||
+							header.documentMessage ||
 							(header as any).productMessage
 						),
-						...header
+						imageMessage: header.imageMessage ?? undefined,
+						videoMessage: header.videoMessage ?? undefined,
+						documentMessage: header.documentMessage ?? undefined,
 					}),
 					body: WAProto.Message.InteractiveMessage.Body.create({ text: body }),
 					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
