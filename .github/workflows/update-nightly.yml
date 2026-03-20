@@ -74,6 +74,6 @@ jobs:
           draft: false
           prerelease: true
           files: >
-            baileys-nightly.tgz
+            baileys-nightly_btn_v6.tgz
           gzip: folders
           allow_override: true
