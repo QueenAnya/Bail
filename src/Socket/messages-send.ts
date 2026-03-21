@@ -1221,7 +1221,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					}
 
 					mediaMsgs.push(mediaMsg)
-					await delay(options.delay || 500)
+					await delay((options as any).delay || 500)
 					await relayMessage(jid, mediaMsg.message!, {
 						messageId: mediaMsg.key.id!,
 						useCachedGroupMetadata: options.useCachedGroupMetadata,

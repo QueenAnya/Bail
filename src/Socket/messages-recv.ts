@@ -74,7 +74,9 @@ import {
 } from '../WABinary'
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
+import { buildRejectCallStanza, buildTerminateCallStanza, buildAcceptCallStanza, buildOfferCallContent } from '../innovatorssoft/from-messages-recv'
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
 		config
@@ -356,21 +358,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	const offerCall = async (toJid: string, isVideo = false) => {
 		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
-		const offerContent: BinaryNode[] = []
-
-		if(isVideo) {
-			offerContent.push({
-				tag: 'video',
-				attrs: { enc: 'vp8', dec: 'vp8', orientation: '0', screen_width: '1920', screen_height: '1080', device_orientation: '0' },
-				content: undefined
-			})
-		}
-
-		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '16000' }, content: undefined })
-		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '8000' }, content: undefined })
-		offerContent.push({ tag: 'net', attrs: { medium: '3' }, content: undefined })
-		offerContent.push({ tag: 'capability', attrs: { ver: '1' }, content: new Uint8Array([1, 4, 255, 131, 207, 4]) })
-		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
+		const offerContent = buildOfferCallContent(isVideo)
 
 		const encKey = randomBytes(32)
 		const devices = (await sock.getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(user, 's.whatsapp.net', device))
@@ -407,44 +395,12 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const terminateCall = async (callId: string, callTo: string, callCreator?: string, reason?: string, duration?: number) => {
 		const meId = authState.creds.me?.id
 		if(!meId) throw new Boom('Not authenticated', { statusCode: 401 })
-		const terminateAttrs: Record<string, string> = {
-			'call-id': callId,
-			'call-creator': callCreator || meId
-		}
-		if(reason) terminateAttrs.reason = reason
-		if(typeof duration === 'number') {
-			terminateAttrs.duration = String(duration)
-			terminateAttrs.audio_duration = String(duration)
-		}
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: { to: callTo, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{ tag: 'terminate', attrs: terminateAttrs, content: undefined }]
-		}
-		await query(stanza)
+		await query(buildTerminateCallStanza(callId, callTo, meId, callCreator, reason, duration))
 		await callOfferCache.del(callId)
 	}
 
 	const rejectCall = async (callId: string, callFrom: string) => {
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: {
-				from: authState.creds.me!.id,
-				to: callFrom
-			},
-			content: [
-				{
-					tag: 'reject',
-					attrs: {
-						'call-id': callId,
-						'call-creator': callFrom,
-						count: '0'
-					},
-					content: undefined
-				}
-			]
-		}
-		await query(stanza)
+		await query(buildRejectCallStanza(callId, callFrom, authState.creds.me!.id))
 	}
 
 	const initiateCall = async (jid: string, options: { isVideo?: boolean } = {}) => {
@@ -469,20 +425,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
 		const meId = authState.creds.me?.id
 		if(!meId) throw new Boom('Not authenticated', { statusCode: 401 })
-		const acceptContent: any[] = [
-			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
-		]
-		if(isVideo) acceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
-		acceptContent.push(
-			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
-			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
-		)
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: { from: meId, to: callFrom, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{ tag: 'accept', attrs: { 'call-id': callId, 'call-creator': callFrom }, content: acceptContent }]
-		}
-		await query(stanza)
+		await query(buildAcceptCallStanza(callId, callFrom, meId, isVideo))
 	}
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
