@@ -253,7 +253,7 @@ export const prepareWAMessageMedia = async (
 					const { thumbnail, originalImageDimensions } = await generateThumbnail(
 						originalFilePath!,
 						mediaType as 'image' | 'video',
-						options
+						{ ...options, hdMode: !!(message as any).hd }
 					)
 					uploadData.jpegThumbnail = thumbnail
 					if (!uploadData.width && originalImageDimensions) {
@@ -626,6 +626,13 @@ export const generateWAMessageContent = async (
 		}
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
+	} else if ('album' in message && !!(message as any).album) {
+		// album handled in sendMessage via prepareAlbumMessageContent — skip media here
+		const albumMsg = (message as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
+		m.albumMessage = WAProto.Message.AlbumMessage.fromObject({
+			expectedImageCount: albumMsg.filter(i => 'image' in i).length,
+			expectedVideoCount: albumMsg.filter(i => 'video' in i).length
+		})
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}

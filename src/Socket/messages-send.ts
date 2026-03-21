@@ -1,5 +1,6 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
+import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
@@ -616,8 +617,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			additionalNodes,
 			useUserDevicesCache,
 			useCachedGroupMetadata,
-			statusJidList
-		}: MessageRelayOptions
+			statusJidList,
+			AI = false
+		}: MessageRelayOptions & { AI?: boolean }
 	) => {
 		const meId = authState.creds.me!.id
 		const meLid = authState.creds.me?.lid
@@ -1042,6 +1044,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
+			// AI icon feature — adds bot node to show AI indicator on message
+			if (AI && !isJidGroup(destinationJid) && !isJidNewsletter(destinationJid)) {
+				;(stanza.content as BinaryNode[]).push({
+					tag: 'bot',
+					attrs: { biz_bot: '1' }
+				})
+			}
+
 			if (additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
@@ -1332,7 +1342,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		sendMessage: async (jid: string, content: AnyMessageContent, options: MiscMessageGenerationOptions = {}) => {
+		sendMessage: async (jid: string, content: AnyMessageContent, options: MiscMessageGenerationOptions & { ai?: boolean } = {}) => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1348,6 +1358,45 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							: 0
 						: disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
+			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
+				// Album message: send albumMessage first, then media items with association
+				const albumItems = (content as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
+				const albumMsg = generateWAMessageFromContent(jid, {
+					albumMessage: {
+						expectedImageCount: albumItems.filter(i => 'image' in i).length,
+						expectedVideoCount: albumItems.filter(i => 'video' in i).length
+					}
+				}, { userJid, ...options })
+
+				await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
+
+				const mediaMsgs = []
+				for(const item of albumItems) {
+					const mediaContent = item.image
+						? { image: item.image, caption: item.caption }
+						: { video: (item as any).video, caption: item.caption }
+
+					const mediaMsg = await generateWAMessage(jid, mediaContent as AnyMessageContent, {
+						logger,
+						userJid,
+						upload: waUploadToServer,
+						...options
+					})
+
+					mediaMsg.message!.messageContextInfo = {
+						messageSecret: randomBytes(32),
+						messageAssociation: {
+							associationType: 1,
+							parentMessageKey: albumMsg.key
+						}
+					}
+
+					mediaMsgs.push(mediaMsg)
+					await relayMessage(jid, mediaMsg.message!, { messageId: mediaMsg.key.id! })
+					await delay(300)
+				}
+
+				return { album: albumMsg, mediaMessages: mediaMsgs }
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
@@ -1411,7 +1460,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes,
 					statusJidList: options.statusJidList,
-					additionalNodes
+					additionalNodes,
+					AI: options.ai
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {
@@ -1421,6 +1471,103 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
+		},
+
+		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
+			const userJid = jidNormalizedUser(authState.creds.me!.id)
+			const allUsers = new Set<string>()
+			allUsers.add(userJid)
+
+			for(const id of jids) {
+				if(isJidGroup(id)) {
+					try {
+						const meta = await sock.groupMetadata(id)
+						meta.participants.forEach(p => allUsers.add(jidNormalizedUser(p.id)))
+					} catch(e) {
+						logger.error(`Error getting group metadata for ${id}: ${e}`)
+					}
+				} else if(isPnUser(id) || isLidUser(id)) {
+					allUsers.add(jidNormalizedUser(id))
+				}
+			}
+
+			const getRandomHex = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+			const isMedia = ('image' in content) || ('video' in content) || ('audio' in content)
+			const isAudio = 'audio' in content
+			const msgContent = { ...content } as Record<string, unknown>
+
+			if(isMedia && !isAudio) {
+				if(msgContent.text) { msgContent.caption = msgContent.text; delete msgContent.text }
+				delete msgContent.ptt; delete msgContent.font
+				delete msgContent.backgroundColor; delete msgContent.textColor
+			}
+			if(isAudio) {
+				delete msgContent.text; delete msgContent.caption
+				delete msgContent.font; delete msgContent.textColor
+			}
+
+			const font = !isMedia ? ((content as any).font ?? Math.floor(Math.random() * 9)) : undefined
+			const textColor = !isMedia ? ((content as any).textColor ?? getRandomHex()) : undefined
+			const backgroundColor = (!isMedia || isAudio) ? ((content as any).backgroundColor ?? getRandomHex()) : undefined
+			const ptt = isAudio ? (typeof (content as any).ptt === 'boolean' ? (content as any).ptt : true) : undefined
+
+			const msg = await generateWAMessage(STORIES_JID, msgContent as AnyMessageContent, {
+				logger,
+				userJid,
+				getUrlInfo: text => getUrlInfo(text, {
+					thumbnailWidth: linkPreviewImageThumbnailWidth,
+					fetchOpts: { timeout: 3000, ...(httpRequestOptions || {}) },
+					logger,
+					uploadImage: generateHighQualityLinkPreview ? waUploadToServer : undefined
+				}),
+				upload: waUploadToServer,
+				mediaCache: config.mediaCache,
+				options: config.options,
+				font, textColor, backgroundColor, ptt
+			})
+
+			await relayMessage(STORIES_JID, msg.message!, {
+				messageId: msg.key.id!,
+				statusJidList: Array.from(allUsers),
+				additionalNodes: [{
+					tag: 'meta',
+					attrs: {},
+					content: [{
+						tag: 'mentioned_users',
+						attrs: {},
+						content: jids.map(jid => ({
+							tag: 'to',
+							attrs: { jid: jidNormalizedUser(jid) }
+						}))
+					}]
+				}]
+			})
+
+			for(const id of jids) {
+				try {
+					const normalizedId = jidNormalizedUser(id)
+					const isPrivate = isPnUser(normalizedId)
+					const type = isPrivate ? 'statusMentionMessage' : 'groupStatusMentionMessage'
+					const protocolMessage = {
+						[type]: { message: { protocolMessage: { key: msg.key, type: 25 } } },
+						messageContextInfo: { messageSecret: randomBytes(32) }
+					}
+					const statusMsg = generateWAMessageFromContent(normalizedId, protocolMessage, {
+						userJid: authState.creds.me!.id
+					})
+					await relayMessage(normalizedId, statusMsg.message!, {
+						additionalNodes: [{
+							tag: 'meta',
+							attrs: isPrivate ? { is_status_mention: 'true' } : { is_group_status_mention: 'true' }
+						}]
+					})
+					await delay(2000)
+				} catch(e) {
+					logger.error(`Error sending status mention to ${id}: ${e}`)
+				}
+			}
+
+			return msg
 		},
 	}
 }

@@ -128,6 +128,11 @@ type Editable = {
 	edit?: WAMessageKey
 }
 
+/** Send image/video at HD quality */
+type HDable = {
+	hd?: boolean
+}
+
 /** Attach classic buttons (up to 3) to a text or media message */
 type Buttonable = {
 	buttons?: proto.Message.ButtonsMessage.IButton[]
@@ -231,6 +236,7 @@ export type AnyMediaMessageContent = (
 			Interactiveable &
 			Shopable &
 			Collectionable &
+			HDable &
 			WithDimensions)
 	| ({
 			video: WAMediaUpload
@@ -246,6 +252,7 @@ export type AnyMediaMessageContent = (
 			Interactiveable &
 			Shopable &
 			Collectionable &
+			HDable &
 			WithDimensions)
 	| {
 			audio: WAMediaUpload
@@ -403,6 +410,14 @@ export type AnyRegularMessageContent = (
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
+	| {
+			/** Album message — sends multiple images/videos as a grouped album */
+			album: Array<{
+				image?: WAMediaUpload
+				video?: WAMediaUpload
+				caption?: string
+			}>
+	  }
 ) &
 	ViewOnce
 
