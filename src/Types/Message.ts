@@ -331,6 +331,41 @@ export type ProductListSection = {
 	products: ProductListEntry[]
 }
 
+export type StickerPackSticker = {
+	sticker: WAMediaUpload
+	emojis?: string[]
+	accessibilityLabel?: string
+	isAnimated?: boolean
+	isLottie?: boolean
+}
+
+export type StickerPack = {
+	stickers: StickerPackSticker[]
+	cover: WAMediaUpload
+	name: string
+	publisher: string
+	description?: string
+	packId?: string
+}
+
+export type AdminInviteInfo = {
+	jid: string
+	name: string
+	caption?: string
+	expiration?: number
+}
+
+export type CallCreationInfo = {
+	name?: string
+	time?: number
+	type?: number
+}
+
+export type PaymentInviteInfo = {
+	type?: number
+	expiry?: number
+}
+
 export type AnyRegularMessageContent = (
 	| ({
 			text: string
@@ -418,6 +453,10 @@ export type AnyRegularMessageContent = (
 				caption?: string
 			}>
 	  }
+	| { stickerPack: StickerPack }
+	| { adminInvite: AdminInviteInfo }
+	| { call: CallCreationInfo }
+	| { paymentInvite: PaymentInviteInfo }
 ) &
 	ViewOnce
 

@@ -38,6 +38,8 @@ import {
 	getAudioDuration,
 	getAudioWaveform,
 	getRawMediaUploadData,
+	getStream,
+	toBuffer,
 	type MediaDownloadOptions
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
@@ -607,6 +609,90 @@ export const generateWAMessageContent = async (
 				// poll for multiple choice polls
 				m.pollCreationMessage = pollCreationMessage
 			}
+		}
+	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
+		const ai = (message as any).adminInvite
+		m.newsletterAdminInviteMessage = {
+			newsletterJid: ai.jid,
+			newsletterName: ai.name,
+			caption: ai.caption,
+			inviteExpiration: ai.expiration,
+			contextInfo: message.contextInfo
+		}
+		if(options.getProfilePicUrl) {
+			try {
+				const pfpUrl = await options.getProfilePicUrl(ai.jid, 'preview')
+				if(pfpUrl) {
+					const { thumbnail } = await generateThumbnail(pfpUrl, 'image', {})
+					if(thumbnail) m.newsletterAdminInviteMessage.jpegThumbnail = Buffer.from(thumbnail, 'base64')
+				}
+			} catch {}
+		}
+	} else if ('call' in message && !!(message as any).call) {
+		const c = (message as any).call
+		m.scheduledCallCreationMessage = {
+			scheduledTimestampMs: c.time ?? Date.now(),
+			callType: c.type ?? 1,
+			title: c.name ?? 'Call'
+		}
+	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
+		const pi = (message as any).paymentInvite
+		m.paymentInviteMessage = {
+			expiryTimestamp: pi.expiry ?? 0,
+			serviceType: pi.type ?? 2
+		}
+	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
+		const { stickers, cover, name, publisher, packId, description } = (message as any).stickerPack
+		const { zip } = await import('fflate' as any)
+		const stickerData: Record<string, any> = {}
+		const stickerMetadata = await Promise.all(stickers.map(async (s: any, i: number) => {
+			const { stream } = await getStream(s.sticker ?? s.data)
+			const buffer = await toBuffer(stream)
+			const hash = sha256(buffer).toString('base64url')
+			const fileName = `${i.toString().padStart(2, '0')}_${hash}.webp`
+			stickerData[fileName] = [new Uint8Array(buffer), { level: 0 }]
+			return {
+				fileName, mimetype: 'image/webp',
+				isAnimated: s.isAnimated || false,
+				isLottie: s.isLottie || false,
+				emojis: s.emojis || [],
+				accessibilityLabel: s.accessibilityLabel || ''
+			}
+		}))
+		const zipBuffer: Buffer = await new Promise((resolve, reject) => {
+			zip(stickerData, (err: any, data: any) => err ? reject(err) : resolve(Buffer.from(data)))
+		})
+		const coverBuffer = await toBuffer((await getStream(cover)).stream)
+		const [stickerPackUpload, coverUpload] = await Promise.all([
+			encryptedStream(zipBuffer, 'sticker-pack' as any, { logger: options.logger, opts: options.options }),
+			prepareWAMessageMedia({ image: coverBuffer }, { ...options, mediaTypeOverride: 'image' as any })
+		])
+		const uploadResult = await options.upload(stickerPackUpload.encFilePath, {
+			fileEncSha256B64: stickerPackUpload.fileEncSha256.toString('base64'),
+			mediaType: 'sticker-pack' as any,
+			timeoutMs: options.mediaUploadTimeoutMs
+		})
+		const coverImage = coverUpload.imageMessage!
+		const stickerPackId = packId || generateMessageIDV2()
+		m.stickerPackMessage = {
+			name, publisher, stickerPackId,
+			packDescription: description,
+			stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.THIRD_PARTY,
+			stickerPackSize: stickerPackUpload.fileLength,
+			stickers: stickerMetadata,
+			fileSha256: stickerPackUpload.fileSha256,
+			fileEncSha256: stickerPackUpload.fileEncSha256,
+			mediaKey: stickerPackUpload.mediaKey,
+			directPath: uploadResult.directPath,
+			fileLength: stickerPackUpload.fileLength,
+			mediaKeyTimestamp: unixTimestampSeconds(),
+			trayIconFileName: `${stickerPackId}.png`,
+			imageDataHash: sha256(coverBuffer).toString('base64'),
+			thumbnailDirectPath: coverImage.directPath,
+			thumbnailFileSha256: coverImage.fileSha256,
+			thumbnailFileEncSha256: coverImage.fileEncSha256,
+			thumbnailHeight: coverImage.height,
+			thumbnailWidth: coverImage.width
 		}
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
