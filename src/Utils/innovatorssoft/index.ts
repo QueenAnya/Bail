@@ -42,9 +42,6 @@ export * from './jid-plotting'
 // Message Utilities (button detection, biz nodes, media type)
 export * from './message-utils'
 
-// From src/Socket/messages-recv.ts — call handlers
-export * from './from-messages-recv'
-
 // From src/Socket/messages-send.ts — status mentions
 export * from './from-messages-send'
 

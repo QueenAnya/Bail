@@ -1183,12 +1183,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						: disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
 			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
-				// Album message: send albumMessage first, then media items with association
+				// Album message — matches innovatorssoft prepareAlbumMessageContent
 				const albumItems = (content as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
 				const albumMsg = generateWAMessageFromContent(jid, {
 					albumMessage: {
-						expectedImageCount: albumItems.filter(i => 'image' in i).length,
-						expectedVideoCount: albumItems.filter(i => 'video' in i).length
+						expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
+						expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
 					}
 				}, { userJid, ...options })
 
@@ -1196,31 +1196,41 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				const mediaMsgs = []
 				for(const item of albumItems) {
-					const mediaContent = item.image
-						? { image: item.image, caption: item.caption }
-						: { video: (item as any).video, caption: item.caption }
+					const mediaContent = 'image' in item
+						? { image: item.image, ...(item as any) }
+						: { video: (item as any).video, ...(item as any) }
 
 					const mediaMsg = await generateWAMessage(jid, mediaContent as AnyMessageContent, {
 						logger,
 						userJid,
-						upload: waUploadToServer,
+						upload: async (encFilePath: string, opts: any) => {
+							const up = await waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
+							return up
+						},
 						...options
 					})
 
-					mediaMsg.message!.messageContextInfo = {
-						messageSecret: randomBytes(32),
-						messageAssociation: {
-							associationType: 1,
-							parentMessageKey: albumMsg.key
+					if(mediaMsg.message) {
+						mediaMsg.message.messageContextInfo = {
+							messageSecret: randomBytes(32),
+							messageAssociation: {
+								associationType: 1,
+								parentMessageKey: albumMsg.key
+							}
 						}
 					}
 
 					mediaMsgs.push(mediaMsg)
-					await relayMessage(jid, mediaMsg.message!, { messageId: mediaMsg.key.id! })
-					await delay(300)
+					await delay(options.delay || 500)
+					await relayMessage(jid, mediaMsg.message!, {
+						messageId: mediaMsg.key.id!,
+						useCachedGroupMetadata: options.useCachedGroupMetadata,
+						statusJidList: options.statusJidList,
+						AI: (options as any).ai
+					})
 				}
 
-				return { album: albumMsg, mediaMessages: mediaMsgs }
+				return mediaMsgs
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
