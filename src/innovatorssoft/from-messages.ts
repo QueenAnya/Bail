@@ -98,7 +98,7 @@ export function isAnimatedWebP(buffer: Buffer): boolean {
 			const chunkSize = buffer.readUInt32LE(offset + 4)
 			if(chunkId === 'VP8X') {
 				// flags byte at offset+8, bit 1 (0x02) = animation
-				const flags = buffer[offset + 8]
+				const flags = buffer[offset + 8] ?? 0
 				return (flags & 0x02) !== 0
 			}
 			offset += 8 + chunkSize + (chunkSize % 2)
