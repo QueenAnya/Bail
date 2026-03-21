@@ -41,8 +41,8 @@ import {
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
-import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../Utils/innovatorssoft/message-utils'
-import { execSendStatusMentions } from '../Utils/innovatorssoft/from-messages-send'
+import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../innovatorssoft/message-utils'
+import { execSendStatusMentions } from '../innovatorssoft/from-messages-send'
 import {
 	areJidsSameUser,
 	type BinaryNode,

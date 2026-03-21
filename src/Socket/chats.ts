@@ -55,7 +55,7 @@ import {
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeSocket } from './socket.js'
-import { buildClearMessageModification } from '../Utils/innovatorssoft/from-chats'
+import { buildClearMessageModification } from '../innovatorssoft/from-chats'
 const MAX_SYNC_ATTEMPTS = 2
 
 export const makeChatsSocket = (config: SocketConfig) => {

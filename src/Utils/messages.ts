@@ -48,7 +48,7 @@ import {
 	buildCallMessage,
 	buildPaymentInviteMessage,
 	buildStickerPackMessage
-} from './innovatorssoft/from-messages'
+} from '../innovatorssoft/from-messages'
 
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
