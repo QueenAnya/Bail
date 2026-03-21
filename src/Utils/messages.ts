@@ -623,6 +623,17 @@ export const generateWAMessageContent = async (
 			(message as any).contextInfo,
 			options
 		)
+	} else if ('order' in message && !!(message as any).order) {
+		// order → OrderMessage (from innovatorssoft)
+		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
+	} else if ('keep' in message && !!(message as any).keep) {
+		// keep → KeepInChatMessage (from innovatorssoft)
+		const k = (message as any).keep
+		m.keepInChatMessage = {
+			key: k.key,
+			keepType: k.type ?? 1,
+			timestampMs: k.time ?? Date.now()
+		}
 	} else if ('call' in message && !!(message as any).call) {
 		// innovatorssoft/from-messages.ts → buildCallMessage
 		m.scheduledCallCreationMessage = buildCallMessage((message as any).call)

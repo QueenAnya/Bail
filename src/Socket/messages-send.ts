@@ -1313,6 +1313,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				meId: authState.creds.me!.id,
 				logger,
 				groupMetadata: sock.groupMetadata,
+				cachedGroupMetadata: config.cachedGroupMetadata,
 				relayMessage,
 				waUploadToServer,
 				getUrlInfo,

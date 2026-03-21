@@ -7,7 +7,7 @@
  */
 import { randomBytes } from 'crypto'
 import type { AnyMessageContent, WAMessage, MessageRelayOptions } from '../Types'
-import { isJidGroup, isLidUser, isPnUser, jidNormalizedUser } from '../WABinary'
+import { isJidGroup, jidNormalizedUser } from '../WABinary'
 import { delay } from '../Utils/generics'
 import { generateWAMessage, generateWAMessageFromContent } from '../Utils/messages'
 
@@ -17,6 +17,7 @@ export interface StatusMentionDeps {
 	meId: string
 	logger: { error: (msg: string) => void }
 	groupMetadata: (jid: string) => Promise<{ participants: Array<{ id: string }> }>
+	cachedGroupMetadata?: (jid: string) => Promise<{ participants: Array<{ id: string }> } | undefined>
 	generateWAMessageFn?: typeof generateWAMessage
 	relayMessage: (jid: string, message: any, opts: any) => Promise<any>
 	waUploadToServer: any
@@ -96,21 +97,26 @@ export async function execSendStatusMentions(
 	jids: string[],
 	deps: StatusMentionDeps
 ): Promise<WAMessage> {
-	const { meId, logger, groupMetadata, relayMessage, waUploadToServer, getUrlInfo, config,
+	const { meId, logger, groupMetadata, cachedGroupMetadata, relayMessage, waUploadToServer, getUrlInfo, config,
 		linkPreviewImageThumbnailWidth, generateHighQualityLinkPreview, httpRequestOptions } = deps
 
 	const userJid = jidNormalizedUser(meId)
 	const allUsers = new Set<string>([userJid])
 
 	for(const id of jids) {
-		if(isJidGroup(id)) {
+		const isGroup = isJidGroup(id)
+		// match innovatorssoft: isJidUser = ends with @s.whatsapp.net
+		const isPrivate = id.endsWith('@s.whatsapp.net')
+
+		if(isGroup) {
 			try {
-				const meta = await groupMetadata(id)
+				// innovatorssoft: cachedGroupMetadata first, then fallback to groupMetadata
+				const meta = (cachedGroupMetadata ? await cachedGroupMetadata(id) : undefined) || await groupMetadata(id)
 				meta.participants.forEach(p => allUsers.add(jidNormalizedUser(p.id)))
 			} catch(e) {
-				logger.error(`Error getting group metadata for ${id}: ${e}`)
+				logger.error(`Error getting metadata for group ${id}: ${e}`)
 			}
-		} else if(isPnUser(id) || isLidUser(id)) {
+		} else if(isPrivate) {
 			allUsers.add(jidNormalizedUser(id))
 		}
 	}
