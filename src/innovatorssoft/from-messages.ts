@@ -84,6 +84,37 @@ export async function buildStickerPackMessage(
 ): Promise<proto.Message.IStickerPackMessage> {
 	const { stickers, cover, name, publisher, packId, description } = stickerPack
 	const { zip } = await import('fflate' as any)
+	const { execFileSync } = await import('child_process')
+	const { writeFileSync, readFileSync, unlinkSync } = await import('fs')
+	const { tmpdir } = await import('os')
+	const { randomBytes: rb } = await import('crypto')
+
+	// Auto-convert any media (image/video/gif) to 512x512 webp
+	const toWebp = async (buf: Buffer): Promise<Buffer> => {
+		// Already webp - check magic bytes (52 49 46 46 = RIFF)
+		if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46) {
+			return buf
+		}
+		try {
+			const id = rb(8).toString('hex')
+			const tmp = tmpdir()
+			const input = `${tmp}/${id}_in`
+			const output = `${tmp}/${id}_out.webp`
+			writeFileSync(input, buf)
+			execFileSync('ffmpeg', [
+				'-i', input,
+				'-vf', 'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:0x00000000',
+				'-frames:v', '1',
+				'-y', output
+			], { stdio: 'pipe' })
+			const result = readFileSync(output)
+			try { unlinkSync(input); unlinkSync(output) } catch {}
+			return result
+		} catch {
+			// ffmpeg not available or failed - return as-is
+			return buf
+		}
+	}
 
 	const stickerData: Record<string, any> = {}
 	const stickerMetadata = await Promise.all(stickers.map(async (s: any, i: number) => {
@@ -91,7 +122,9 @@ export async function buildStickerPackMessage(
 		const normalizedSticker = Buffer.isBuffer(raw) ? raw :
 			typeof raw === 'string' ? { url: raw } : raw
 		const { stream } = await getStream(normalizedSticker)
-		const buffer = await toBuffer(stream)
+		let buffer = await toBuffer(stream)
+		// Auto-convert to webp
+		buffer = await toWebp(buffer)
 		const hash = sha256(buffer).toString('base64url')
 		const fileName = `${i.toString().padStart(2, '0')}_${hash}.webp`
 		stickerData[fileName] = [new Uint8Array(buffer), { level: 0 }]
@@ -108,11 +141,11 @@ export async function buildStickerPackMessage(
 		zip(stickerData, (err: any, data: any) => err ? reject(err) : resolve(Buffer.from(data)))
 	})
 
-	const coverBuffer = await toBuffer((await getStream(
+	const coverBuffer = await toWebp(await toBuffer((await getStream(
 		Buffer.isBuffer(cover) ? cover :
 		typeof cover === 'string' ? { url: cover } :
 		cover
-	)).stream)
+	)).stream))
 	const [stickerPackUpload, coverUpload] = await Promise.all([
 		encryptedStream(zipBuffer, 'sticker-pack' as any, { logger: options.logger, opts: options.options }),
 		prepareWAMessageMedia({ image: coverBuffer }, { ...options, mediaTypeOverride: 'image' as any })

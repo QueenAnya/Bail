@@ -7,7 +7,7 @@
  */
 import { randomBytes } from 'crypto'
 import type { AnyMessageContent, WAMessage, MessageRelayOptions } from '../Types'
-import { isJidGroup, jidNormalizedUser, isPnUser } from '../WABinary'
+import { isJidGroup, jidNormalizedUser } from '../WABinary'
 import { delay } from '../Utils/generics'
 import { generateWAMessage, generateWAMessageFromContent } from '../Utils/messages'
 
