@@ -1111,6 +1111,84 @@ await sock.updateMediaMessage(msg)
 ```
 
 
+## Sending Sticker Packs
+
+Send a complete sticker pack that appears in the recipient's sticker tray.
+
+### Requirements
+- `yarn add fflate` — ZIP compression (required)
+- `yarn add sharp` — image processing, required for non-WebP input and thumbnail generation
+
+### Specifications
+- **1–30 stickers** per pack
+- **WebP format** (auto-converted from PNG/JPG if `sharp` installed)
+- **Lottie/WAS animated stickers** supported (auto-detected)
+- **1MB max** per sticker
+
+### Basic Usage
+
+```ts
+import { readFileSync } from 'fs'
+
+await sock.sendMessage(jid, {
+  stickerPack: {
+    name: 'My Pack',
+    publisher: 'My Name',
+    description: 'Cool stickers',       // optional
+    packId: 'unique-pack-id',           // optional, auto-generated if omitted
+    cover: readFileSync('./cover.png'),  // tray icon
+    stickers: [
+      {
+        sticker: readFileSync('./sticker1.webp'),
+        emojis: ['😀', '😃'],
+        accessibilityLabel: 'Smiling face' // optional
+      },
+      {
+        sticker: readFileSync('./sticker2.png'), // auto-converted to WebP
+        emojis: ['😎']
+      },
+      {
+        sticker: { url: 'https://example.com/sticker.webp' }, // URL supported
+        emojis: ['🎉']
+      }
+    ]
+  }
+})
+```
+
+### Lottie / Animated Stickers (WAS format)
+
+```ts
+await sock.sendMessage(jid, {
+  stickerPack: {
+    name: 'Animated Pack',
+    publisher: 'My Name',
+    cover: readFileSync('./cover.png'),
+    stickers: [
+      {
+        sticker: readFileSync('./animation.json'), // Lottie JSON, auto-detected + auto-gzipped
+        emojis: ['✨']
+      },
+      {
+        sticker: readFileSync('./sticker.was'),    // Already WAS (gzipped Lottie)
+        isLottie: true,                            // force flag (optional)
+        emojis: ['🌟']
+      }
+    ]
+  }
+})
+```
+
+### All Supported Input Types (WAMediaUpload)
+
+```ts
+sticker: readFileSync('./sticker.webp')                     // Buffer
+sticker: { url: './sticker.webp' }                          // Local file path
+sticker: { url: 'https://example.com/sticker.webp' }        // HTTP URL
+sticker: createReadStream('./sticker.webp')                  // Stream
+```
+
+
 ## Initiate Voice Call
 
 ```ts
