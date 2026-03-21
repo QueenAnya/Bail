@@ -640,9 +640,6 @@ export const generateWAMessageContent = async (
 	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
 		// innovatorssoft/from-messages.ts → buildPaymentInviteMessage
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
-	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// innovatorssoft/from-messages.ts → buildStickerPackMessage
-		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER
@@ -662,12 +659,15 @@ export const generateWAMessageContent = async (
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
 	} else if ('album' in message && !!(message as any).album) {
-		// album handled in sendMessage via prepareAlbumMessageContent — skip media here
+		// album handled in sendMessage — just set albumMessage header
 		const albumMsg = (message as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
 		m.albumMessage = WAProto.Message.AlbumMessage.fromObject({
 			expectedImageCount: albumMsg.filter(i => 'image' in i).length,
 			expectedVideoCount: albumMsg.filter(i => 'video' in i).length
 		})
+	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
+		// innovatorssoft/from-messages.ts → buildStickerPackMessage
+		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}
