@@ -72,6 +72,7 @@ import {
 } from '../WABinary'
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
+import { createCallHandlers } from '../Utils/innovatorssoft/from-messages-recv'
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
@@ -351,98 +352,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendNode(stanza)
 	}
 
+
+	// Call handlers — logic lives in innovatorssoft/from-messages-recv.ts
 	const rejectCall = async (callId: string, callFrom: string) => {
 		const stanza: BinaryNode = {
 			tag: 'call',
-			attrs: {
-				from: authState.creds.me!.id,
-				to: callFrom
-			},
-			content: [
-				{
-					tag: 'reject',
-					attrs: {
-						'call-id': callId,
-						'call-creator': callFrom,
-						count: '0'
-					},
-					content: undefined
-				}
-			]
+			attrs: { from: authState.creds.me!.id, to: callFrom },
+			content: [{ tag: 'reject', attrs: { 'call-id': callId, 'call-creator': callFrom, count: '0' }, content: undefined }]
 		}
 		await query(stanza)
 	}
 
-	const initiateCall = async (jid: string, options: { isVideo?: boolean } = {}) => {
-		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated')
-		const isVideo = !!options.isVideo
-		const isGroup = isJidGroup(jid)
-		const callId = randomBytes(16).toString('hex').toUpperCase()
-		const audioContent: any[] = [
-			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
-		]
-		if(isVideo) audioContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
-		audioContent.push(
-			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
-			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
-		)
-		const offerStanza: BinaryNode = {
-			tag: 'call',
-			attrs: { from: meId, to: jid, id: callId },
-			content: [{
-				tag: 'offer',
-				attrs: { 'call-id': callId, 'call-creator': meId },
-				content: audioContent
-			}]
-		}
-		await query(offerStanza)
-		await callOfferCache.set(callId, {
-			chatId: jid, from: meId, id: callId,
-			date: new Date(), offline: false, status: 'offer',
-			isVideo, isGroup, groupJid: isGroup ? jid : undefined
-		} as any)
-		return { callId, to: jid, isVideo }
-	}
-
-	const cancelCall = async (callId: string, callTo: string) => {
-		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated')
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: { from: meId, to: callTo, id: randomBytes(8).toString('hex').toUpperCase() },
-			content: [{
-				tag: 'revoke',
-				attrs: { 'call-id': callId, 'call-creator': meId },
-				content: undefined
-			}]
-		}
-		await query(stanza)
-		await callOfferCache.del(callId)
-	}
-
-	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
-		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated')
-		const acceptContent: any[] = [
-			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
-		]
-		if(isVideo) acceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
-		acceptContent.push(
-			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
-			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
-		)
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: { from: meId, to: callFrom, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{
-				tag: 'accept',
-				attrs: { 'call-id': callId, 'call-creator': callFrom },
-				content: acceptContent
-			}]
-		}
-		await query(stanza)
-	}
+	const callHandlers = createCallHandlers(authState, query, callOfferCache, isJidGroup)
+	const { initiateCall, cancelCall, acceptCall } = callHandlers
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
 		const { fullMessage } = decodeMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '')

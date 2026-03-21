@@ -42,6 +42,7 @@ import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
 import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../Utils/innovatorssoft/message-utils'
+import { execSendStatusMentions } from '../Utils/innovatorssoft/from-messages-send'
 import {
 	areJidsSameUser,
 	type BinaryNode,
@@ -1296,102 +1297,20 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 		},
 
+		// Logic lives in innovatorssoft/from-messages-send.ts → execSendStatusMentions
 		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
-			const userJid = jidNormalizedUser(authState.creds.me!.id)
-			const allUsers = new Set<string>()
-			allUsers.add(userJid)
-
-			for(const id of jids) {
-				if(isJidGroup(id)) {
-					try {
-						const meta = await sock.groupMetadata(id)
-						meta.participants.forEach(p => allUsers.add(jidNormalizedUser(p.id)))
-					} catch(e) {
-						logger.error(`Error getting group metadata for ${id}: ${e}`)
-					}
-				} else if(isPnUser(id) || isLidUser(id)) {
-					allUsers.add(jidNormalizedUser(id))
-				}
-			}
-
-			const getRandomHex = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
-			const isMedia = ('image' in content) || ('video' in content) || ('audio' in content)
-			const isAudio = 'audio' in content
-			const msgContent = { ...content } as Record<string, unknown>
-
-			if(isMedia && !isAudio) {
-				if(msgContent.text) { msgContent.caption = msgContent.text; delete msgContent.text }
-				delete msgContent.ptt; delete msgContent.font
-				delete msgContent.backgroundColor; delete msgContent.textColor
-			}
-			if(isAudio) {
-				delete msgContent.text; delete msgContent.caption
-				delete msgContent.font; delete msgContent.textColor
-			}
-
-			const font = !isMedia ? ((content as any).font ?? Math.floor(Math.random() * 9)) : undefined
-			const textColor = !isMedia ? ((content as any).textColor ?? getRandomHex()) : undefined
-			const backgroundColor = (!isMedia || isAudio) ? ((content as any).backgroundColor ?? getRandomHex()) : undefined
-			const ptt = isAudio ? (typeof (content as any).ptt === 'boolean' ? (content as any).ptt : true) : undefined
-
-			const msg = await generateWAMessage(STORIES_JID, msgContent as AnyMessageContent, {
+			return execSendStatusMentions(content, jids, {
+				meId: authState.creds.me!.id,
 				logger,
-				userJid,
-				getUrlInfo: text => getUrlInfo(text, {
-					thumbnailWidth: linkPreviewImageThumbnailWidth,
-					fetchOpts: { timeout: 3000, ...(httpRequestOptions || {}) },
-					logger,
-					uploadImage: generateHighQualityLinkPreview ? waUploadToServer : undefined
-				}),
-				upload: waUploadToServer,
-				mediaCache: config.mediaCache,
-				options: config.options,
-				font, backgroundColor, ptt,
-				...(textColor ? { textColor } : {})
-			} as any)
-
-			await relayMessage(STORIES_JID, msg.message!, {
-				messageId: msg.key.id!,
-				statusJidList: Array.from(allUsers),
-				additionalNodes: [{
-					tag: 'meta',
-					attrs: {},
-					content: [{
-						tag: 'mentioned_users',
-						attrs: {},
-						content: jids.map(jid => ({
-							tag: 'to',
-							attrs: { jid: jidNormalizedUser(jid) }
-						}))
-					}]
-				}]
+				groupMetadata: sock.groupMetadata,
+				relayMessage,
+				waUploadToServer,
+				getUrlInfo,
+				config,
+				linkPreviewImageThumbnailWidth,
+				generateHighQualityLinkPreview,
+				httpRequestOptions
 			})
-
-			for(const id of jids) {
-				try {
-					const normalizedId = jidNormalizedUser(id)
-					const isPrivate = isPnUser(normalizedId)
-					const type = isPrivate ? 'statusMentionMessage' : 'groupStatusMentionMessage'
-					const protocolMessage = {
-						[type]: { message: { protocolMessage: { key: msg.key, type: 25 } } },
-						messageContextInfo: { messageSecret: randomBytes(32) }
-					}
-					const statusMsg = generateWAMessageFromContent(normalizedId, protocolMessage, {
-						userJid: authState.creds.me!.id
-					})
-					await relayMessage(normalizedId, statusMsg.message!, {
-						additionalNodes: [{
-							tag: 'meta',
-							attrs: isPrivate ? { is_status_mention: 'true' } : { is_group_status_mention: 'true' }
-						}]
-					})
-					await delay(2000)
-				} catch(e) {
-					logger.error(`Error sending status mention to ${id}: ${e}`)
-				}
-			}
-
-			return msg
 		},
 	}
 }
