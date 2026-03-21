@@ -7,7 +7,7 @@
  */
 import { randomBytes } from 'crypto'
 import type { AnyMessageContent, WAMessage, MessageRelayOptions } from '../Types'
-import { isJidGroup, jidNormalizedUser, isPnUser } from '../WABinary'
+import { isJidGroup, jidNormalizedUser } from '../WABinary'
 import { delay } from '../Utils/generics'
 import { generateWAMessage, generateWAMessageFromContent } from '../Utils/messages'
 
@@ -148,7 +148,7 @@ export async function execSendStatusMentions(
 	for(const id of jids) {
 		try {
 			const normalizedId = jidNormalizedUser(id)
-			const isPrivate = isPnUser(normalizedId)
+			const isPrivate = normalizedId.endsWith('@s.whatsapp.net')
 			const type = isPrivate ? 'statusMentionMessage' : 'groupStatusMentionMessage'
 			const protocolMessage = {
 				[type]: { message: { protocolMessage: { key: msg.key, type: 25 } } },

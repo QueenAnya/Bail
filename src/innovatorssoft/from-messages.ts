@@ -122,9 +122,9 @@ export async function buildStickerPackMessage(
 		const normalizedSticker = Buffer.isBuffer(raw) ? raw :
 			typeof raw === 'string' ? { url: raw } : raw
 		const { stream } = await getStream(normalizedSticker)
-		let buffer = await toBuffer(stream)
+		let buffer = await toBuffer(stream) as Buffer
 		// Auto-convert to webp
-		buffer = await toWebp(buffer)
+		buffer = await toWebp(buffer) as Buffer
 		const hash = sha256(buffer).toString('base64url')
 		const fileName = `${i.toString().padStart(2, '0')}_${hash}.webp`
 		stickerData[fileName] = [new Uint8Array(buffer), { level: 0 }]
@@ -145,7 +145,7 @@ export async function buildStickerPackMessage(
 		Buffer.isBuffer(cover) ? cover :
 		typeof cover === 'string' ? { url: cover } :
 		cover
-	)).stream))
+	)).stream)) as Buffer
 	const [stickerPackUpload, coverUpload] = await Promise.all([
 		encryptedStream(zipBuffer, 'sticker-pack' as any, { logger: options.logger, opts: options.options }),
 		prepareWAMessageMedia({ image: coverBuffer }, { ...options, mediaTypeOverride: 'image' as any })
