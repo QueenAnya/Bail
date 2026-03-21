@@ -76,7 +76,6 @@ import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
 import { buildRejectCallStanza, buildTerminateCallStanza, buildAcceptCallStanza, buildOfferCallContent } from '../innovatorssoft/from-messages-recv'
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
 		config
