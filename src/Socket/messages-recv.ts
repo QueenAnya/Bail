@@ -69,12 +69,12 @@ import {
 	isLidUser,
 	isPnUser,
 	jidDecode,
+	jidEncode,
 	jidNormalizedUser,
 	S_WHATSAPP_NET
 } from '../WABinary'
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
-import { buildRejectCallStanza, buildAcceptCallStanza } from '../innovatorssoft/from-messages-recv'
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
@@ -100,6 +100,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		uploadPreKeys,
 		sendPeerDataOperationMessage,
 		generateMessageTag,
+		getUSyncDevices,
+		createParticipantNodes,
 		messageRetryManager
 	} = sock
 
@@ -355,82 +357,357 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendNode(stanza)
 	}
 
-	// ── Call handlers (PR #2375 + innovatorssoft/baileys) ─────────────────────
+	// ── Call handlers (WhiskeySockets + PR #2375 + innovatorssoft/baileys) ─────
 
+	/** Reject an incoming call */
 	const rejectCall = async (callId: string, callFrom: string) => {
-		await query(buildRejectCallStanza(callId, callFrom, authState.creds.me!.id))
-	}
-
-	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
-		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated')
-
-		const callId = randomBytes(8).toString('hex')
-		const isVideo = !!options.isVideo
-		const isGroup = isJidGroup(jid)
-
 		const stanza: BinaryNode = {
 			tag: 'call',
 			attrs: {
-				id: generateMessageTag(),
-				from: meId,
-				to: jid,
-				t: String(unixTimestampSeconds()),
-				...(authState.creds.me?.name ? { notify: authState.creds.me.name } : {})
+				from: authState.creds.me!.id,
+				to: callFrom
 			},
 			content: [{
-				tag: 'offer',
+				tag: 'reject',
 				attrs: {
 					'call-id': callId,
-					'call-creator': meId,
-					count: '0'
-				},
-				content: [
-					{ tag: isVideo ? 'video' : 'audio', attrs: {}, content: undefined },
-					{ tag: 'net', attrs: {}, content: undefined },
-					{ tag: 'encopt', attrs: { key: randomBytes(2).toString('hex') }, content: undefined },
-					{ tag: 'relaylatency', attrs: {}, content: undefined },
-					{ tag: 'te', attrs: {}, content: undefined }
-				]
-			}]
-		}
-
-		await query(stanza)
-		await callOfferCache.set(callId, {
-			chatId: jid, from: meId, id: callId,
-			date: new Date(), offline: false, status: 'offer',
-			isVideo, isGroup, groupJid: isGroup ? jid : undefined
-		} as any)
-
-		return { callId, to: jid, isVideo }
-	}
-
-	const cancelCall = async (callId: string, callTo: string) => {
-		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated')
-
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: { from: meId, to: callTo },
-			content: [{
-				tag: 'terminate',
-				attrs: {
-					'call-id': callId,
-					'call-creator': meId,
+					'call-creator': callFrom,
 					count: '0'
 				},
 				content: undefined
 			}]
 		}
+		await query(stanza)
+	}
+
+	/** Build and send a call offer stanza with proper encryption (innovatorssoft) */
+	const offerCall = async (toJid: string, isVideo = false) => {
+		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
+		const offerContent: BinaryNode[] = []
+
+		if(isVideo) {
+			offerContent.push({
+				tag: 'video',
+				attrs: { enc: 'vp8', dec: 'vp8', orientation: '0', screen_width: '1920', screen_height: '1080', device_orientation: '0' },
+				content: undefined
+			})
+		}
+
+		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '16000' }, content: undefined })
+		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '8000' }, content: undefined })
+		offerContent.push({ tag: 'net', attrs: { medium: '3' }, content: undefined })
+		offerContent.push({ tag: 'capability', attrs: { ver: '1' }, content: new Uint8Array([1, 4, 255, 131, 207, 4]) })
+		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
+
+		const encKey = randomBytes(32)
+		const devices = (await getUSyncDevices([toJid], true, false)).map(
+			({ user, device }: { user: string, device?: number }) => jidEncode(user, 's.whatsapp.net', device)
+		)
+		await assertSessions(devices, true)
+
+		const { nodes: destinations, shouldIncludeDeviceIdentity } = await createParticipantNodes(
+			devices,
+			{ call: { callKey: new Uint8Array(encKey) } },
+			{ count: '0' }
+		)
+		offerContent.push({ tag: 'destination', attrs: {}, content: destinations })
+
+		if(shouldIncludeDeviceIdentity) {
+			offerContent.push({
+				tag: 'device-identity',
+				attrs: {},
+				content: encodeSignedDeviceIdentity(authState.creds.account!, true)
+			})
+		}
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: {
+				id: generateMessageTag(),
+				to: toJid
+			},
+			content: [{
+				tag: 'offer',
+				attrs: {
+					'call-id': callId,
+					'call-creator': authState.creds.me!.id
+				},
+				content: offerContent
+			}]
+		}
 
 		await query(stanza)
+		return { id: callId, to: toJid }
+	}
+
+	/** Initiate an outgoing call (PR #2375 + innovatorssoft) */
+	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
+		const meId = authState.creds.me?.id
+		if(!meId) throw new Boom('Not authenticated')
+
+		const isVideo = !!options.isVideo
+		const isGroup = isJidGroup(jid)
+		const result = await offerCall(jid, isVideo)
+		const callId = result.id
+
+		await callOfferCache.set(callId, {
+			chatId: jid,
+			from: meId,
+			id: callId,
+			date: new Date(),
+			offline: false,
+			status: 'offer',
+			isVideo,
+			isGroup,
+			groupJid: isGroup ? jid : undefined
+		} as any)
+
+		return { callId, to: jid, isVideo }
+	}
+
+	/** Terminate/hang up an active or ringing call */
+	const terminateCall = async (
+		callId: string,
+		callTo: string,
+		callCreator?: string,
+		reason?: string,
+		duration?: number
+	) => {
+		const meId = authState.creds.me?.id
+		if(!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+
+		const terminateAttrs: Record<string, string> = {
+			'call-id': callId,
+			'call-creator': callCreator || meId
+		}
+		if(reason) terminateAttrs.reason = reason
+		if(typeof duration === 'number') {
+			terminateAttrs.duration = String(duration)
+			terminateAttrs.audio_duration = String(duration)
+		}
+
+		await query({
+			tag: 'call',
+			attrs: { to: callTo, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'terminate', attrs: terminateAttrs, content: undefined }]
+		})
 		await callOfferCache.del(callId)
 	}
 
+	/** Cancel an outgoing call (calls terminateCall) */
+	const cancelCall = async (callId: string, callTo: string) => {
+		return terminateCall(callId, callTo)
+	}
+
+	/** Accept (answer) an incoming call */
 	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
 		const meId = authState.creds.me?.id
 		if(!meId) throw new Boom('Not authenticated', { statusCode: 401 })
-		await query(buildAcceptCallStanza(callId, callFrom, meId, isVideo))
+
+		const acceptContent: BinaryNode[] = [
+			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
+		]
+		if(isVideo) {
+			acceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
+		}
+		acceptContent.push(
+			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
+			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
+		)
+
+		await query({
+			tag: 'call',
+			attrs: { from: meId, to: callFrom, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'accept', attrs: { 'call-id': callId, 'call-creator': callFrom }, content: acceptContent }]
+		})
+	}
+
+	/** Send preaccept signal (codec capabilities) for an incoming call */
+	const preacceptCall = async (callId: string, callCreator: string, isVideo?: boolean) => {
+		const preacceptContent: BinaryNode[] = [
+			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
+		]
+		if(isVideo) {
+			preacceptContent.push({
+				tag: 'video',
+				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' },
+				content: undefined
+			})
+		}
+		preacceptContent.push(
+			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
+			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
+		)
+
+		await query({
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'preaccept', attrs: { 'call-id': callId, 'call-creator': callCreator }, content: preacceptContent }]
+		})
+	}
+
+	/** Report relay latency measurements to the server */
+	const sendRelayLatency = async (
+		callId: string,
+		callCreator: string,
+		relays: Array<{ relayName?: string; latency: number; relayId?: string; dlBw?: number; ulBw?: number }>,
+		transactionId?: string
+	) => {
+		const attrs: Record<string, string> = { 'call-id': callId, 'call-creator': callCreator }
+		if(transactionId) attrs['transaction-id'] = transactionId
+
+		const teChildren = relays.map(r => {
+			const teAttrs: Record<string, string> = {}
+			if(r.relayName) teAttrs.relay_name = r.relayName
+			teAttrs.latency = String(r.latency)
+			if(r.relayId) teAttrs.relay_id = r.relayId
+			if(r.dlBw !== undefined) teAttrs.dl_bw = String(r.dlBw)
+			if(r.ulBw !== undefined) teAttrs.ul_bw = String(r.ulBw)
+			return { tag: 'te', attrs: teAttrs, content: undefined }
+		})
+
+		await sendNode({
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'relaylatency', attrs, content: teChildren }]
+		})
+	}
+
+	/** Send ICE transport candidates */
+	const sendTransport = async (
+		callId: string,
+		callCreator: string,
+		to: string,
+		candidates: Array<{ priority: string; data: Uint8Array }>,
+		round?: number
+	) => {
+		const attrs: Record<string, string> = {
+			'call-id': callId,
+			'call-creator': callCreator,
+			'transport-message-type': '1'
+		}
+		if(round !== undefined) attrs['p2p-cand-round'] = String(round)
+
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{
+				tag: 'transport',
+				attrs,
+				content: candidates.map(c => ({ tag: 'te', attrs: { priority: c.priority }, content: c.data }))
+			}]
+		})
+	}
+
+	/** Send call duration log to the server after a call ends */
+	const sendCallDuration = async (
+		callId: string,
+		callCreator: string,
+		peer: string,
+		audioDuration: number,
+		callType = '1x1'
+	) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{
+				tag: 'duration',
+				attrs: {
+					'call-id': callId,
+					'call-creator': callCreator,
+					peer,
+					audio_duration: String(audioDuration),
+					type: callType
+				},
+				content: undefined
+			}]
+		})
+	}
+
+	/** Mute or unmute during a call */
+	const muteCall = async (callId: string, callCreator: string, to: string, muted: boolean) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{
+				tag: 'mute_v2',
+				attrs: { 'mute-state': muted ? '1' : '0', 'call-id': callId, 'call-creator': callCreator },
+				content: undefined
+			}]
+		})
+	}
+
+	/** Send heartbeat to keep a group/link call alive */
+	const sendHeartbeat = async (callId: string, callCreator: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: `${callId}@call`, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'heartbeat', attrs: { 'call-id': callId, 'call-creator': callCreator }, content: undefined }]
+		})
+	}
+
+	/** Send encryption re-key during a call */
+	const sendEncRekey = async (callId: string, callCreator: string, to: string, transactionId: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{
+				tag: 'enc_rekey',
+				attrs: { 'transaction-id': transactionId, 'call-id': callId, 'call-creator': callCreator },
+				content: [
+					{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
+					{ tag: 'enc', attrs: { v: '2', type: 'msg' }, content: undefined }
+				]
+			}]
+		})
+	}
+
+	/** Send video state change during a call */
+	const sendVideoState = async (callId: string, callCreator: string, to: string, enabled: boolean, orientation = '1') => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{
+				tag: 'video',
+				attrs: {
+					'call-id': callId,
+					'call-creator': callCreator,
+					state: enabled ? '1' : '0',
+					device_orientation: orientation
+				},
+				content: undefined
+			}]
+		})
+	}
+
+	/** Query info about a call link before joining */
+	const queryCallLink = async (token: string, media = 'video') => {
+		return await query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_query', attrs: { media, token }, content: undefined }]
+		})
+	}
+
+	/** Join a call via its link token */
+	const joinCallLink = async (token: string, media = 'video') => {
+		const joinContent: BinaryNode[] = [
+			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined },
+			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
+			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
+		]
+		if(media === 'video') {
+			joinContent.splice(1, 0, {
+				tag: 'video',
+				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' },
+				content: undefined
+			})
+		}
+		return await query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_join', attrs: { media, token }, content: joinContent }]
+		})
 	}
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
@@ -1651,10 +1928,22 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		...sock,
 		sendMessageAck,
 		sendRetryRequest,
-		rejectCall,
+		offerCall,
 		initiateCall,
 		cancelCall,
+		rejectCall,
 		acceptCall,
+		preacceptCall,
+		terminateCall,
+		sendRelayLatency,
+		sendTransport,
+		sendCallDuration,
+		muteCall,
+		sendHeartbeat,
+		sendEncRekey,
+		sendVideoState,
+		queryCallLink,
+		joinCallLink,
 		fetchMessageHistory,
 		requestPlaceholderResend,
 		messageRetryManager
