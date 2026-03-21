@@ -38,3 +38,6 @@ export * from './chat-control'
 
 // JID Plotting & LID Support
 export * from './jid-plotting'
+
+// Message Utilities (button detection, biz nodes, media type)
+export * from './message-utils'
