@@ -21,7 +21,7 @@ export type CallHandlerDeps = {
 	getUSyncDevices: (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => Promise<Array<{ user: string; device?: number }>>
 	assertSessions: (jids: string[], force?: boolean) => Promise<any>
 	createParticipantNodes: (jids: string[], message: any, extraAttrs?: any) => Promise<{ nodes: BinaryNode[]; shouldIncludeDeviceIdentity: boolean }>
-	callOfferCache: { set: (k: string, v: any) => Promise<any>; del: (k: string) => Promise<any> }
+	callOfferCache: { set: (k: string, v: any, ttl?: number) => any; del: (k: string) => any }
 }
 
 export function makeCallHandlers(deps: CallHandlerDeps) {
