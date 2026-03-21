@@ -48,7 +48,7 @@ export async function execInitiateCall(
 	isGroup: boolean,
 	meId: string,
 	query: (node: BinaryNode) => Promise<any>,
-	callOfferCache: { set: (id: string, val: any) => Promise<any> }
+	callOfferCache: { set: (id: string, val: any) => any; del?: (id: string) => any }
 ): Promise<CallResult> {
 	const callId = randomBytes(16).toString('hex').toUpperCase()
 	const audioContent: any[] = [
@@ -86,7 +86,7 @@ export async function execCancelCall(
 	callTo: string,
 	meId: string,
 	query: (node: BinaryNode) => Promise<any>,
-	callOfferCache: { del: (id: string) => Promise<any> }
+	callOfferCache: { del: (id: string) => any }
 ): Promise<void> {
 	const stanza: BinaryNode = {
 		tag: 'call',
@@ -142,7 +142,7 @@ export async function execAcceptCall(
 export function createCallHandlers(
 	authState: AuthenticationState,
 	query: (node: BinaryNode) => Promise<any>,
-	callOfferCache: { set: (id: string, val: any) => Promise<any>; del: (id: string) => Promise<any> },
+	callOfferCache: { set: (id: string, val: any) => any; del: (id: string) => any },
 	isJidGroup: (jid: string) => boolean
 ) {
 	const getMe = () => {

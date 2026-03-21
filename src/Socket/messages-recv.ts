@@ -75,7 +75,17 @@ import { makeMessagesSocket } from './messages-send'
 import { createCallHandlers } from '../Utils/innovatorssoft/from-messages-recv'
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const makeMessagesRecvSocket = (config: SocketConfig) => {
+export const makeMessagesRecvSocket = (config: SocketConfig): ReturnType<typeof makeMessagesSocket> & {
+	rejectCall: (callId: string, callFrom: string) => Promise<void>
+	initiateCall: (jid: string, options?: { isVideo?: boolean }) => Promise<{ callId: string; to: string; isVideo: boolean }>
+	cancelCall: (callId: string, callTo: string) => Promise<void>
+	acceptCall: (callId: string, callFrom: string, isVideo?: boolean) => Promise<void>
+	sendMessageAck: (node: any, errorCode?: number) => Promise<void>
+	sendRetryRequest: (node: any, forceIncludeKeys?: boolean) => Promise<void>
+	fetchMessageHistory: (count: number, oldestMsgKey: any, oldestMsgTimestamp: any) => Promise<string>
+	requestPlaceholderResend: (messageKey: any) => Promise<string | undefined>
+	messageRetryManager: any
+} => {
 	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
 		config
 	const sock = makeMessagesSocket(config)
