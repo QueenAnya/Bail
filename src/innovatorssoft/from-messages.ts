@@ -105,7 +105,6 @@ export function isLottieBuffer(buffer: Buffer): boolean {
 	} catch { return false }
 }
 
- */
 export async function buildStickerPackMessage(
 	stickerPack: StickerPack,
 	options: MessageContentGenerationOptions
