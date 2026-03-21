@@ -9,7 +9,7 @@ import { proto } from '../../WAProto/index.js'
 import { WAProto } from '../Types'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
 import { sha256 } from '../Utils/crypto'
-import { encryptedStream, getStream, toBuffer } from '../Utils/messages-media'
+import { encryptedStream, getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media'
 import { generateThumbnail } from '../Utils/messages-media'
 import type { MessageContentGenerationOptions } from '../Types'
 import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, StickerPack } from '../Types/Message'
@@ -157,7 +157,6 @@ export async function buildStickerPackMessage(
 ): Promise<proto.Message.IStickerPackMessage> {
 	const { stickers, cover, name, publisher, packId, description } = stickerPack
 	const { zipSync } = await import('fflate' as any)
-	const { getImageProcessingLibrary } = await import('../Utils/messages-media' as any)
 
 	const stickerPackId = packId || generateMessageIDV2()
 	const stickerData: Record<string, any> = {}
