@@ -17,6 +17,8 @@ import type {
 	MessageUserReceipt,
 	SocketConfig,
 	WACallEvent,
+	WAInitiateCallOptions,
+	WAInitiateCallResult,
 	WAMessage,
 	WAMessageKey,
 	WAPatchName
@@ -41,7 +43,6 @@ import {
 	getStatusFromReceiptType,
 	handleIdentityChange,
 	hkdf,
-	generateMessageIDV2,
 	MISSING_KEYS_ERROR_TEXT,
 	NACK_REASONS,
 	NO_MESSAGE_FOUND_ERROR_TEXT,
@@ -68,13 +69,12 @@ import {
 	isLidUser,
 	isPnUser,
 	jidDecode,
-	jidEncode,
 	jidNormalizedUser,
 	S_WHATSAPP_NET
 } from '../WABinary'
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
-import { buildRejectCallStanza, buildTerminateCallStanza, buildAcceptCallStanza, buildOfferCallContent } from '../innovatorssoft/from-messages-recv'
+import { buildRejectCallStanza, buildAcceptCallStanza } from '../innovatorssoft/from-messages-recv'
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
@@ -99,6 +99,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		sendReceipt,
 		uploadPreKeys,
 		sendPeerDataOperationMessage,
+		generateMessageTag,
 		messageRetryManager
 	} = sock
 
@@ -354,72 +355,76 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendNode(stanza)
 	}
 
-	// ── Call handlers (from innovatorssoft/baileys) ────────────────────────────
-
-	const offerCall = async (toJid: string, isVideo = false) => {
-		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
-		const offerContent = buildOfferCallContent(isVideo)
-
-		const encKey = randomBytes(32)
-		const devices = (await sock.getUSyncDevices([toJid], true, false)).map(({ user, device }) => jidEncode(user, 's.whatsapp.net', device))
-		await assertSessions(devices, true)
-
-		const { nodes: destinations, shouldIncludeDeviceIdentity } = await sock.createParticipantNodes(
-			devices,
-			{ call: { callKey: new Uint8Array(encKey) } } as any,
-			{ count: '0' }
-		)
-		offerContent.push({ tag: 'destination', attrs: {}, content: destinations })
-
-		if(shouldIncludeDeviceIdentity) {
-			offerContent.push({
-				tag: 'device-identity',
-				attrs: {},
-				content: encodeSignedDeviceIdentity(authState.creds.account!, true)
-			})
-		}
-
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: { id: generateMessageIDV2(), to: toJid },
-			content: [{
-				tag: 'offer',
-				attrs: { 'call-id': callId, 'call-creator': authState.creds.me!.id },
-				content: offerContent
-			}]
-		}
-		await query(stanza)
-		return { id: callId, to: toJid }
-	}
-
-	const terminateCall = async (callId: string, callTo: string, callCreator?: string, reason?: string, duration?: number) => {
-		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated', { statusCode: 401 })
-		await query(buildTerminateCallStanza(callId, callTo, meId, callCreator, reason, duration))
-		await callOfferCache.del(callId)
-	}
+	// ── Call handlers (PR #2375 + innovatorssoft/baileys) ─────────────────────
 
 	const rejectCall = async (callId: string, callFrom: string) => {
 		await query(buildRejectCallStanza(callId, callFrom, authState.creds.me!.id))
 	}
 
-	const initiateCall = async (jid: string, options: { isVideo?: boolean } = {}) => {
+	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
 		const meId = authState.creds.me?.id
 		if(!meId) throw new Boom('Not authenticated')
+
+		const callId = randomBytes(8).toString('hex')
 		const isVideo = !!options.isVideo
 		const isGroup = isJidGroup(jid)
-		const result = await offerCall(jid, isVideo)
-		const callId = result.id
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: {
+				id: generateMessageTag(),
+				from: meId,
+				to: jid,
+				t: String(unixTimestampSeconds()),
+				...(authState.creds.me?.name ? { notify: authState.creds.me.name } : {})
+			},
+			content: [{
+				tag: 'offer',
+				attrs: {
+					'call-id': callId,
+					'call-creator': meId,
+					count: '0'
+				},
+				content: [
+					{ tag: isVideo ? 'video' : 'audio', attrs: {}, content: undefined },
+					{ tag: 'net', attrs: {}, content: undefined },
+					{ tag: 'encopt', attrs: { key: randomBytes(2).toString('hex') }, content: undefined },
+					{ tag: 'relaylatency', attrs: {}, content: undefined },
+					{ tag: 'te', attrs: {}, content: undefined }
+				]
+			}]
+		}
+
+		await query(stanza)
 		await callOfferCache.set(callId, {
 			chatId: jid, from: meId, id: callId,
 			date: new Date(), offline: false, status: 'offer',
 			isVideo, isGroup, groupJid: isGroup ? jid : undefined
 		} as any)
+
 		return { callId, to: jid, isVideo }
 	}
 
 	const cancelCall = async (callId: string, callTo: string) => {
-		return terminateCall(callId, callTo)
+		const meId = authState.creds.me?.id
+		if(!meId) throw new Boom('Not authenticated')
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: { from: meId, to: callTo },
+			content: [{
+				tag: 'terminate',
+				attrs: {
+					'call-id': callId,
+					'call-creator': meId,
+					count: '0'
+				},
+				content: undefined
+			}]
+		}
+
+		await query(stanza)
+		await callOfferCache.del(callId)
 	}
 
 	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {

@@ -77,6 +77,34 @@ export function buildPaymentInviteMessage(paymentInvite: PaymentInviteInfo): pro
 /**
  * Build stickerPackMessage from stickerPack content
  * Source: messages.ts → stickerPack block
+/**
+ * Detect if buffer is Lottie JSON (raw or gzip-compressed WAS format)
+ * WAS = WhatsApp Animated Sticker = gzip-compressed Lottie JSON
+ * From: PR #260 rsalcara/InfiniteAPI
+ */
+export function isLottieBuffer(buffer: Buffer): boolean {
+	if(buffer.length < 2) return false
+	let jsonBuffer: Buffer
+
+	// Gzip-compressed (WAS format)
+	if(buffer[0] === 0x1f && buffer[1] === 0x8b) {
+		try {
+			const { gunzipSync } = require('zlib')
+			jsonBuffer = gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 }) as Buffer
+		} catch { return false }
+	} else if(buffer[0] === 0x7b) {
+		// Raw JSON starts with '{'
+		jsonBuffer = buffer
+	} else {
+		return false
+	}
+
+	try {
+		const str = jsonBuffer.toString('utf8', 0, Math.min(jsonBuffer.length, 4096))
+		return str.includes('"v"') && str.includes('"layers"') && str.includes('"ip"') && str.includes('"op"')
+	} catch { return false }
+}
+
  */
 export async function buildStickerPackMessage(
 	stickerPack: StickerPack,
@@ -92,13 +120,27 @@ export async function buildStickerPackMessage(
 			typeof raw === 'string' ? { url: raw } : raw
 		const { stream } = await getStream(normalizedSticker)
 		const buffer = await toBuffer(stream) as Buffer
-		const hash = sha256(buffer).toString('base64url')
-		const fileName = `${i.toString().padStart(2, '0')}_${hash}.webp`
-		stickerData[fileName] = [new Uint8Array(buffer), { level: 0 }]
+
+		// Detect Lottie/WAS format (PR #260)
+		const detectedLottie = s.isLottie !== undefined ? s.isLottie : isLottieBuffer(buffer)
+		let finalBuffer = buffer
+
+		// If raw Lottie JSON, gzip-compress to WAS format
+		if(detectedLottie && buffer[0] === 0x7b) {
+			const { gzipSync } = require('zlib')
+			finalBuffer = gzipSync(buffer) as Buffer
+		}
+
+		const hash = sha256(finalBuffer).toString('base64url')
+		// Use .was extension for Lottie, .webp for regular (PR #260)
+		const extension = detectedLottie ? 'was' : 'webp'
+		const fileName = `${i.toString().padStart(2, '0')}_${hash}.${extension}`
+		stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 }]
 		return {
-			fileName, mimetype: 'image/webp',
-			isAnimated: s.isAnimated || false,
-			isLottie: s.isLottie || false,
+			fileName,
+			mimetype: detectedLottie ? 'application/was' : 'image/webp',
+			isAnimated: s.isAnimated || detectedLottie,
+			isLottie: detectedLottie,
 			emojis: s.emojis || [],
 			accessibilityLabel: s.accessibilityLabel || ''
 		}
@@ -113,6 +155,7 @@ export async function buildStickerPackMessage(
 		typeof cover === 'string' ? { url: cover } :
 		cover
 	)).stream) as Buffer
+
 	const [stickerPackUpload, coverUpload] = await Promise.all([
 		encryptedStream(zipBuffer, 'sticker-pack' as any, { logger: options.logger, opts: options.options }),
 		prepareWAMessageMedia({ image: coverBuffer }, { ...options, mediaTypeOverride: 'image' as any })
