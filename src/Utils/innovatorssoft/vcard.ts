@@ -83,7 +83,7 @@ export const createContactCard = (contact: ContactData) => ({
 
 export const createContactCards = (contacts: ContactData[]) => ({
 	contacts: {
-		displayName: contacts.length === 1 ? (contacts[0].displayName || contacts[0].fullName) : `${contacts.length} Contacts`,
+		displayName: contacts.length === 1 ? (contacts[0]?.displayName || contacts[0]?.fullName || '') : `${contacts.length} Contacts`,
 		contacts: contacts.map(c => ({ vcard: generateVCard(c) }))
 	}
 })

@@ -617,7 +617,7 @@ export const generateWAMessageContent = async (
 			newsletterName: ai.name,
 			caption: ai.caption,
 			inviteExpiration: ai.expiration,
-			contextInfo: message.contextInfo
+			contextInfo: (message as any).contextInfo
 		}
 		if(options.getProfilePicUrl) {
 			try {
@@ -689,8 +689,8 @@ export const generateWAMessageContent = async (
 			trayIconFileName: `${stickerPackId}.png`,
 			imageDataHash: sha256(coverBuffer).toString('base64'),
 			thumbnailDirectPath: coverImage.directPath,
-			thumbnailFileSha256: coverImage.fileSha256,
-			thumbnailFileEncSha256: coverImage.fileEncSha256,
+			thumbnailSha256: coverImage.fileSha256,
+			thumbnailEncSha256: coverImage.fileEncSha256,
 			thumbnailHeight: coverImage.height,
 			thumbnailWidth: coverImage.width
 		}

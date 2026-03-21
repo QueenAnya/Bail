@@ -73,6 +73,7 @@ import {
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
 		config
@@ -378,13 +379,13 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const isVideo = !!options.isVideo
 		const isGroup = isJidGroup(jid)
 		const callId = randomBytes(16).toString('hex').toUpperCase()
-		const audioContent = [
-			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined as any }
+		const audioContent: any[] = [
+			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
 		]
-		if(isVideo) audioContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined as any })
+		if(isVideo) audioContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
 		audioContent.push(
-			{ tag: 'net', attrs: { medium: '2' }, content: undefined as any },
-			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined as any }
+			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
+			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
 		)
 		const offerStanza: BinaryNode = {
 			tag: 'call',
@@ -423,7 +424,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
 		const meId = authState.creds.me?.id
 		if(!meId) throw new Boom('Not authenticated')
-		const acceptContent: BinaryNode[] = [
+		const acceptContent: any[] = [
 			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
 		]
 		if(isVideo) acceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })

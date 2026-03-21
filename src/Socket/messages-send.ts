@@ -1523,8 +1523,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				upload: waUploadToServer,
 				mediaCache: config.mediaCache,
 				options: config.options,
-				font, textColor, backgroundColor, ptt
-			})
+				font, backgroundColor, ptt,
+				...(textColor ? { textColor } : {})
+			} as any)
 
 			await relayMessage(STORIES_JID, msg.message!, {
 				messageId: msg.key.id!,
