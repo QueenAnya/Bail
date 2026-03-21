@@ -187,12 +187,12 @@ export async function buildStickerPackMessage(
 		} else if(isWebPBuffer(buffer)) {
 			finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
 		} else {
-			// Convert to WebP via sharp
+			// Convert to WebP via sharp — jimp can't output WebP, user must pass WebP directly
 			const lib = await getImageProcessingLibrary()
 			if(lib?.sharp) {
 				finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
 			} else {
-				// No sharp — use as-is, user must pass WebP
+				// No sharp (Termux) — pass as-is, user should provide WebP stickers
 				finalBuffer = buffer
 			}
 		}
@@ -232,8 +232,11 @@ export async function buildStickerPackMessage(
 		const lib = await getImageProcessingLibrary()
 		if(lib?.sharp) {
 			coverWebP = await lib.sharp.default(coverBuffer).webp().toBuffer()
+		} else if(lib?.jimp) {
+			// jimp can't output WebP — use original buffer as fallback
+			coverWebP = coverBuffer
 		} else {
-			coverWebP = coverBuffer // fallback
+			coverWebP = coverBuffer
 		}
 	}
 
@@ -271,8 +274,11 @@ export async function buildStickerPackMessage(
 				.resize(252, 252, { fit: 'cover', position: 'center' })
 				.jpeg({ quality: 85 })
 				.toBuffer()
+		} else if(lib?.jimp) {
+			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
+			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
 		} else {
-			thumbnailBuffer = coverBuffer // fallback: no sharp
+			thumbnailBuffer = coverBuffer
 		}
 	} catch {
 		thumbnailBuffer = coverBuffer
