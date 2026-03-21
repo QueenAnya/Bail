@@ -1,6 +1,5 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
-import Long from 'long'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -24,8 +23,7 @@ import type {
 	WAPrivacyMessagesValue,
 	WAPrivacyOnlineValue,
 	WAPrivacyValue,
-	WAReadReceiptsValue,
-	WAMessageKey
+	WAReadReceiptsValue
 } from '../Types'
 import { ALL_WA_PATCH_NAMES } from '../Types'
 import type { QuickReplyAction } from '../Types/Bussines.js'
@@ -1055,7 +1053,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	 * Clear a message from chat (delete for me)
 	 * Logic: innovatorssoft/from-chats.ts → buildClearMessageModification
 	 */
-	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+	const clearMessage = (jid: string, key: import('../Types').WAMessageKey, timeStamp: number | import('long').default) => {
 		return chatModify(buildClearMessageModification(key, timeStamp), jid)
 	}
 
