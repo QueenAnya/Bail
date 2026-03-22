@@ -5,6 +5,7 @@
  * Message content builder functions ported from innovatorssoft/baileys.
  * These are imported back into generateWAMessageContent in messages.ts.
  */
+ import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { WAProto } from '../Types'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
