@@ -187,13 +187,15 @@ export async function buildStickerPackMessage(
 		} else if(isWebPBuffer(buffer)) {
 			finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
 		} else {
-			// Convert to WebP via sharp — jimp can't output WebP, user must pass WebP directly
+			// Non-WebP sticker — needs sharp to convert (jimp can't output WebP)
 			const lib = await getImageProcessingLibrary()
 			if(lib?.sharp) {
 				finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
 			} else {
-				// No sharp (Termux) — pass as-is, user should provide WebP stickers
-				finalBuffer = buffer
+				throw new Boom(
+					`Sticker ${i + 1}: No image processing library (sharp) available for converting to WebP. Either install sharp or provide stickers in WebP format.`,
+					{ statusCode: 400 }
+				)
 			}
 		}
 
@@ -232,11 +234,11 @@ export async function buildStickerPackMessage(
 		const lib = await getImageProcessingLibrary()
 		if(lib?.sharp) {
 			coverWebP = await lib.sharp.default(coverBuffer).webp().toBuffer()
-		} else if(lib?.jimp) {
-			// jimp can't output WebP — use original buffer as fallback
-			coverWebP = coverBuffer
 		} else {
-			coverWebP = coverBuffer
+			throw new Boom(
+				'No image processing library (sharp) available for converting cover to WebP. Either install sharp or provide cover in WebP format.',
+				{ statusCode: 400 }
+			)
 		}
 	}
 
@@ -270,15 +272,15 @@ export async function buildStickerPackMessage(
 	try {
 		const lib = await getImageProcessingLibrary()
 		if(lib?.sharp) {
-			thumbnailBuffer = await lib.sharp.default(coverBuffer)
-				.resize(252, 252, { fit: 'cover', position: 'center' })
-				.jpeg({ quality: 85 })
-				.toBuffer()
+			thumbnailBuffer = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
 		} else if(lib?.jimp) {
 			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
 			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
 		} else {
-			thumbnailBuffer = coverBuffer
+			throw new Error('No image processing library available for thumbnail generation')
+		}
+		if(!thumbnailBuffer || thumbnailBuffer.length === 0) {
+			throw new Error('Failed to generate thumbnail buffer')
 		}
 	} catch {
 		thumbnailBuffer = coverBuffer
