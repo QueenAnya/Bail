@@ -5,7 +5,7 @@
  * Message content builder functions ported from innovatorssoft/baileys.
  * These are imported back into generateWAMessageContent in messages.ts.
  */
- import { Boom } from '@hapi/boom'
+import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { WAProto } from '../Types'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
@@ -33,12 +33,12 @@ export async function buildAdminInviteMessage(
 		inviteExpiration: adminInvite.expiration,
 		contextInfo
 	}
-	if(options.getProfilePicUrl) {
+	if (options.getProfilePicUrl) {
 		try {
 			const pfpUrl = await options.getProfilePicUrl(adminInvite.jid, 'preview')
-			if(pfpUrl) {
+			if (pfpUrl) {
 				const { thumbnail } = await generateThumbnail(pfpUrl, 'image', {})
-				if(thumbnail) msg.jpegThumbnail = Buffer.from(thumbnail, 'base64')
+				if (thumbnail) msg.jpegThumbnail = Buffer.from(thumbnail, 'base64')
 			}
 		} catch {}
 	}
@@ -79,7 +79,7 @@ export function buildPaymentInviteMessage(paymentInvite: PaymentInviteInfo): pro
  * Source: PR #84 rsalcara/InfiniteAPI
  */
 export function isWebPBuffer(buffer: Buffer): boolean {
-	if(buffer.length < 12) return false
+	if (buffer.length < 12) return false
 	const riffHeader = buffer.toString('ascii', 0, 4)
 	const webpHeader = buffer.toString('ascii', 8, 12)
 	return riffHeader === 'RIFF' && webpHeader === 'WEBP'
@@ -90,14 +90,14 @@ export function isWebPBuffer(buffer: Buffer): boolean {
  * Source: PR #84 rsalcara/InfiniteAPI
  */
 export function isAnimatedWebP(buffer: Buffer): boolean {
-	if(!isWebPBuffer(buffer)) return false
+	if (!isWebPBuffer(buffer)) return false
 	// VP8X chunk starts at offset 12 for extended WebP
 	try {
 		let offset = 12
-		while(offset + 8 <= buffer.length) {
+		while (offset + 8 <= buffer.length) {
 			const chunkId = buffer.toString('ascii', offset, offset + 4)
 			const chunkSize = buffer.readUInt32LE(offset + 4)
-			if(chunkId === 'VP8X') {
+			if (chunkId === 'VP8X') {
 				// flags byte at offset+8, bit 1 (0x02) = animation
 				const flags = buffer[offset + 8] ?? 0
 				return (flags & 0x02) !== 0
@@ -114,16 +114,18 @@ export function isAnimatedWebP(buffer: Buffer): boolean {
  * Source: PR #260 rsalcara/InfiniteAPI
  */
 export function isLottieBuffer(buffer: Buffer): boolean {
-	if(buffer.length < 2) return false
+	if (buffer.length < 2) return false
 	let jsonBuffer: Buffer
 
-	if(buffer[0] === 0x1f && buffer[1] === 0x8b) {
+	if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
 		// gzip-compressed
 		try {
 			const { gunzipSync } = require('zlib')
 			jsonBuffer = gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 }) as Buffer
-		} catch { return false }
-	} else if(buffer[0] === 0x7b) {
+		} catch {
+			return false
+		}
+	} else if (buffer[0] === 0x7b) {
 		// raw JSON starts with '{'
 		jsonBuffer = buffer
 	} else {
@@ -133,7 +135,9 @@ export function isLottieBuffer(buffer: Buffer): boolean {
 	try {
 		const str = jsonBuffer.toString('utf8', 0, Math.min(jsonBuffer.length, 4096))
 		return str.includes('"v"') && str.includes('"layers"') && str.includes('"ip"') && str.includes('"op"')
-	} catch { return false }
+	} catch {
+		return false
+	}
 }
 
 /**
@@ -164,76 +168,76 @@ export async function buildStickerPackMessage(
 
 	// ── Step 1: Process stickers ──────────────────────────────────────────
 	const validStickers = (stickers as any[]).filter(s => s !== null && s !== undefined)
-	if(validStickers.length < 1) {
+	if (validStickers.length < 1) {
 		throw new Error('Sticker pack must contain at least one sticker')
 	}
 
-	const stickerMetadata = await Promise.all(validStickers.map(async (s: any, i: number) => {
-		const raw = s.sticker ?? s.data
-		const normalized = Buffer.isBuffer(raw) ? raw :
-			typeof raw === 'string' ? { url: raw } : raw
-		const { stream } = await getStream(normalized)
-		const buffer = await toBuffer(stream) as Buffer
+	const stickerMetadata = await Promise.all(
+		validStickers.map(async (s: any, i: number) => {
+			const raw = s.sticker ?? s.data
+			const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
+			const { stream } = await getStream(normalized)
+			const buffer = (await toBuffer(stream)) as Buffer
 
-		// Lottie/WAS detection (PR #260)
-		const detectedLottie = s.isLottie !== undefined ? s.isLottie : isLottieBuffer(buffer)
-		let finalBuffer = buffer
+			// Lottie/WAS detection (PR #260)
+			const detectedLottie = s.isLottie !== undefined ? s.isLottie : isLottieBuffer(buffer)
+			let finalBuffer = buffer
 
-		if(detectedLottie) {
-			// Raw Lottie JSON → gzip to WAS
-			if(buffer[0] === 0x7b) {
-				const { gzipSync } = require('zlib')
-				finalBuffer = gzipSync(buffer) as Buffer
-			}
-		} else if(isWebPBuffer(buffer)) {
-			finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
-		} else {
-			// Non-WebP sticker — needs sharp to convert (jimp can't output WebP)
-			const lib = await getImageProcessingLibrary()
-			if(lib?.sharp) {
-				finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
+			if (detectedLottie) {
+				// Raw Lottie JSON → gzip to WAS
+				if (buffer[0] === 0x7b) {
+					const { gzipSync } = require('zlib')
+					finalBuffer = gzipSync(buffer) as Buffer
+				}
+			} else if (isWebPBuffer(buffer)) {
+				finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
 			} else {
-				throw new Boom(
-					`Sticker ${i + 1}: No image processing library (sharp) available for converting to WebP. Either install sharp or provide stickers in WebP format.`,
-					{ statusCode: 400 }
-				)
+				// Non-WebP sticker — needs sharp to convert (jimp can't output WebP)
+				const lib = await getImageProcessingLibrary()
+				if (lib?.sharp) {
+					finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
+				} else {
+					throw new Boom(
+						`Sticker ${i + 1}: No image processing library (sharp) available for converting to WebP. Either install sharp or provide stickers in WebP format.`,
+						{ statusCode: 400 }
+					)
+				}
 			}
-		}
 
-		const isAnimated = detectedLottie ? true : isAnimatedWebP(finalBuffer)
-		const extension = detectedLottie ? 'was' : 'webp'
-		// Use sha256 hash for filename (deduplication) — RFC 4648 base64url
-		const hash = sha256(finalBuffer).toString('base64url')
-		const fileName = `${hash}.${extension}`
+			const isAnimated = detectedLottie ? true : isAnimatedWebP(finalBuffer)
+			const extension = detectedLottie ? 'was' : 'webp'
+			// Use sha256 hash for filename (deduplication) — RFC 4648 base64url
+			const hash = sha256(finalBuffer).toString('base64url')
+			const fileName = `${hash}.${extension}`
 
-		// Dedup: only add if not already in stickerData
-		if(!stickerData[fileName]) {
-			stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 as 0 }]
-		}
+			// Dedup: only add if not already in stickerData
+			if (!stickerData[fileName]) {
+				stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 as 0 }]
+			}
 
-		return {
-			fileName,
-			mimetype: detectedLottie ? 'application/was' : 'image/webp',
-			isAnimated,
-			isLottie: detectedLottie,
-			emojis: s.emojis || [],
-			accessibilityLabel: s.accessibilityLabel || ''
-		}
-	}))
+			return {
+				fileName,
+				mimetype: detectedLottie ? 'application/was' : 'image/webp',
+				isAnimated,
+				isLottie: detectedLottie,
+				emojis: s.emojis || [],
+				accessibilityLabel: s.accessibilityLabel || ''
+			}
+		})
+	)
 
 	// ── Step 2: Process cover (tray icon) → add INSIDE ZIP ───────────────
-	const coverRaw = Buffer.isBuffer(cover) ? cover :
-		typeof cover === 'string' ? { url: cover } : cover
+	const coverRaw = Buffer.isBuffer(cover) ? cover : typeof cover === 'string' ? { url: cover } : cover
 	const { stream: coverStream } = await getStream(coverRaw)
-	const coverBuffer = await toBuffer(coverStream) as Buffer
+	const coverBuffer = (await toBuffer(coverStream)) as Buffer
 
 	// Cover as WebP in ZIP (tray icon)
 	let coverWebP: Buffer
-	if(isWebPBuffer(coverBuffer)) {
+	if (isWebPBuffer(coverBuffer)) {
 		coverWebP = coverBuffer
 	} else {
 		const lib = await getImageProcessingLibrary()
-		if(lib?.sharp) {
+		if (lib?.sharp) {
 			coverWebP = await lib.sharp.default(coverBuffer).webp().toBuffer()
 		} else {
 			throw new Boom(
@@ -249,11 +253,10 @@ export async function buildStickerPackMessage(
 	// ── Step 3: ZIP + encrypt + upload as 'sticker-pack' ─────────────────
 	const zipBuffer = Buffer.from(zipSync(stickerData))
 
-	const stickerPackEncrypted = await encryptedStream(
-		zipBuffer,
-		'sticker-pack' as any,
-		{ logger: options.logger, opts: options.options }
-	)
+	const stickerPackEncrypted = await encryptedStream(zipBuffer, 'sticker-pack' as any, {
+		logger: options.logger,
+		opts: options.options
+	})
 
 	const stickerPackResult = await options.upload(stickerPackEncrypted.encFilePath, {
 		fileEncSha256B64: stickerPackEncrypted.fileEncSha256.toString('base64'),
@@ -272,30 +275,26 @@ export async function buildStickerPackMessage(
 	let thumbnailBuffer: Buffer
 	try {
 		const lib = await getImageProcessingLibrary()
-		if(lib?.sharp) {
+		if (lib?.sharp) {
 			thumbnailBuffer = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
-		} else if(lib?.jimp) {
+		} else if (lib?.jimp) {
 			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
 			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
 		} else {
 			throw new Error('No image processing library available for thumbnail generation')
 		}
-		if(!thumbnailBuffer || thumbnailBuffer.length === 0) {
+		if (!thumbnailBuffer || thumbnailBuffer.length === 0) {
 			throw new Error('Failed to generate thumbnail buffer')
 		}
 	} catch {
 		thumbnailBuffer = coverBuffer
 	}
 
-	const thumbEncrypted = await encryptedStream(
-		thumbnailBuffer,
-		'thumbnail-sticker-pack' as any,
-		{
-			logger: options.logger,
-			opts: options.options,
-			mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement!
-		}
-	)
+	const thumbEncrypted = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack' as any, {
+		logger: options.logger,
+		opts: options.options,
+		mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement!
+	})
 
 	const thumbResult = await options.upload(thumbEncrypted.encFilePath, {
 		fileEncSha256B64: thumbEncrypted.fileEncSha256.toString('base64'),
@@ -311,7 +310,9 @@ export async function buildStickerPackMessage(
 
 	// ── Step 5: Return complete IStickerPackMessage ───────────────────────
 	return {
-		name, publisher, stickerPackId,
+		name,
+		publisher,
+		stickerPackId,
 		packDescription: description,
 		stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
 		stickerPackSize: zipBuffer.length,

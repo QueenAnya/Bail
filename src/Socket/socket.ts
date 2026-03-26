@@ -83,7 +83,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
-	
+
 	/**
 	if (printQRInTerminal) {
 		logger.warn(
@@ -1098,10 +1098,10 @@ export const makeSocket = (config: SocketConfig) => {
 			logger.debug({ error }, 'failed to send unified_session telemetry')
 		}
 	}
-	
+
 	if (printQRInTerminal) {
 		printQRIfNecessaryListener(ev)
-		}
+	}
 
 	return {
 		type: 'md' as 'md',

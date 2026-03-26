@@ -60,181 +60,196 @@ This patch adds all features from `@innovatorssoft/baileys` into `@whiskeysocket
 ## Sending Messages
 
 ### Text Message
+
 ```ts
 await conn.sendMessage(jid, { text: 'Hello World!' })
 ```
 
 ### Image / Video / Document / Audio
+
 ```ts
 // Image
 await conn.sendMessage(jid, {
-  image: { url: 'https://example.com/img.jpg' },
-  caption: 'Hello!'
+	image: { url: 'https://example.com/img.jpg' },
+	caption: 'Hello!'
 })
 
 // Video
 await conn.sendMessage(jid, {
-  video: { url: 'https://example.com/video.mp4' },
-  caption: 'Watch this'
+	video: { url: 'https://example.com/video.mp4' },
+	caption: 'Watch this'
 })
 
 // Document
 await conn.sendMessage(jid, {
-  document: { url: 'https://example.com/file.pdf' },
-  mimetype: 'application/pdf',
-  fileName: 'file.pdf'
+	document: { url: 'https://example.com/file.pdf' },
+	mimetype: 'application/pdf',
+	fileName: 'file.pdf'
 })
 
 // Audio / Voice Note
 await conn.sendMessage(jid, {
-  audio: { url: 'https://example.com/audio.mp3' },
-  mimetype: 'audio/mp4',
-  ptt: true  // voice note
+	audio: { url: 'https://example.com/audio.mp3' },
+	mimetype: 'audio/mp4',
+	ptt: true // voice note
 })
 ```
 
 ### HD Image / HD Video
+
 ```ts
 // HD Image — full quality, no compression
 await conn.sendMessage(jid, {
-  image: { url: 'https://example.com/photo.jpg' },
-  caption: 'High quality photo',
-  hd: true
+	image: { url: 'https://example.com/photo.jpg' },
+	caption: 'High quality photo',
+	hd: true
 })
 
 // HD Video
 await conn.sendMessage(jid, {
-  video: { url: 'https://example.com/video.mp4' },
-  caption: 'HD video',
-  hd: true
+	video: { url: 'https://example.com/video.mp4' },
+	caption: 'HD video',
+	hd: true
 })
 ```
 
 ### Album Message
+
 ```ts
 await conn.sendMessage(jid, {
-  album: [
-    { image: { url: 'https://example.com/img1.jpg' }, caption: 'Photo 1' },
-    { image: Buffer, caption: 'Photo 2' },
-    { video: { url: 'https://example.com/video.mp4' }, caption: 'Video 1' },
-    { video: Buffer }
-  ]
+	album: [
+		{ image: { url: 'https://example.com/img1.jpg' }, caption: 'Photo 1' },
+		{ image: Buffer, caption: 'Photo 2' },
+		{ video: { url: 'https://example.com/video.mp4' }, caption: 'Video 1' },
+		{ video: Buffer }
+	]
 })
 ```
 
 ### Sticker Pack Message
+
 ```ts
 await conn.sendMessage(jid, {
-  stickerPack: {
-    name: 'My Pack',
-    publisher: 'Author Name',
-    description: 'Cool stickers',
-    cover: fs.readFileSync('./cover.webp'),
-    stickers: [
-      { sticker: fs.readFileSync('./sticker1.webp'), emojis: ['😀'] },
-      { sticker: fs.readFileSync('./sticker2.webp'), emojis: ['😂'], isAnimated: true }
-    ]
-  }
+	stickerPack: {
+		name: 'My Pack',
+		publisher: 'Author Name',
+		description: 'Cool stickers',
+		cover: fs.readFileSync('./cover.webp'),
+		stickers: [
+			{ sticker: fs.readFileSync('./sticker1.webp'), emojis: ['😀'] },
+			{ sticker: fs.readFileSync('./sticker2.webp'), emojis: ['😂'], isAnimated: true }
+		]
+	}
 })
 ```
 
 ### Event Message
+
 ```ts
 await conn.sendMessage(jid, {
-  event: {
-    name: 'Team Meeting',
-    description: 'Weekly sync',
-    startDate: new Date('2025-12-25T10:00:00'),
-    endDate: new Date('2025-12-25T11:00:00'),
-    location: { degreesLatitude: 0, degreesLongitude: 0, name: 'Office' }
-  }
+	event: {
+		name: 'Team Meeting',
+		description: 'Weekly sync',
+		startDate: new Date('2025-12-25T10:00:00'),
+		endDate: new Date('2025-12-25T11:00:00'),
+		location: { degreesLatitude: 0, degreesLongitude: 0, name: 'Office' }
+	}
 })
 ```
 
 ### Call Message
+
 ```ts
 // Schedule a call (not initiate — see Calls section for that)
 await conn.sendMessage(jid, {
-  call: {
-    name: 'Team Call',
-    time: Date.now() + 3600000, // 1 hour from now
-    type: 1  // 1=audio, 2=video
-  }
+	call: {
+		name: 'Team Call',
+		time: Date.now() + 3600000, // 1 hour from now
+		type: 1 // 1=audio, 2=video
+	}
 })
 ```
 
 ### Payment Message
+
 ```ts
 await conn.sendMessage(jid, {
-  payment: {
-    note: 'Payment for services',
-    currency: 'USD',
-    amount: 100,
-    expiry: Date.now() + 86400000
-  }
+	payment: {
+		note: 'Payment for services',
+		currency: 'USD',
+		amount: 100,
+		expiry: Date.now() + 86400000
+	}
 })
 ```
 
 ### Payment Invite Message
+
 ```ts
 await conn.sendMessage(jid, {
-  paymentInvite: {
-    type: 2,
-    expiry: Date.now() + 86400000
-  }
+	paymentInvite: {
+		type: 2,
+		expiry: Date.now() + 86400000
+	}
 })
 ```
 
 ### Admin Invite Message
+
 ```ts
 await conn.sendMessage(jid, {
-  adminInvite: {
-    jid: '120363xxxxxx@newsletter',
-    name: 'My Channel',
-    caption: 'Join my channel!',
-    expiration: Date.now() + 604800000
-  }
+	adminInvite: {
+		jid: '120363xxxxxx@newsletter',
+		name: 'My Channel',
+		caption: 'Join my channel!',
+		expiration: Date.now() + 604800000
+	}
 })
 ```
 
 ### Group Invite Message
+
 ```ts
 await conn.sendMessage(jid, {
-  groupInvite: {
-    jid: 'groupjid@g.us',
-    inviteCode: 'abc123',
-    inviteExpiration: Date.now() + 604800000,
-    text: 'Join our group!',
-    subject: 'My Group'
-  }
+	groupInvite: {
+		jid: 'groupjid@g.us',
+		inviteCode: 'abc123',
+		inviteExpiration: Date.now() + 604800000,
+		text: 'Join our group!',
+		subject: 'My Group'
+	}
 })
 ```
 
 ### vCard / Contact Cards
+
 ```ts
 // Single contact
 await conn.sendMessage(jid, {
-  contacts: {
-    displayName: 'John Doe',
-    contacts: [{
-      vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:John Doe\nTEL;type=CELL:+1234567890\nEND:VCARD`
-    }]
-  }
+	contacts: {
+		displayName: 'John Doe',
+		contacts: [
+			{
+				vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:John Doe\nTEL;type=CELL:+1234567890\nEND:VCARD`
+			}
+		]
+	}
 })
 
 // Multiple contacts
 await conn.sendMessage(jid, {
-  contacts: {
-    displayName: '3 Contacts',
-    contacts: [
-      { vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Alice\nTEL:+1111111111\nEND:VCARD` },
-      { vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Bob\nTEL:+2222222222\nEND:VCARD` }
-    ]
-  }
+	contacts: {
+		displayName: '3 Contacts',
+		contacts: [
+			{ vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Alice\nTEL:+1111111111\nEND:VCARD` },
+			{ vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Bob\nTEL:+2222222222\nEND:VCARD` }
+		]
+	}
 })
 ```
 
 ### Share / Request Phone Number
+
 ```ts
 // Share your phone number
 await conn.sendMessage(jid, { sharePhoneNumber: true })
@@ -244,6 +259,7 @@ await conn.sendMessage(jid, { requestPhoneNumber: true })
 ```
 
 ### Disappearing Messages
+
 ```ts
 // Enable (24h)
 await conn.sendMessage(jid, { disappearingMessagesInChat: true })
@@ -254,6 +270,7 @@ await conn.sendMessage(jid, { disappearingMessagesInChat: false })
 ```
 
 ### Clear Messages
+
 ```ts
 // Clear/delete message for me
 await conn.clearMessage(jid, messageKey, messageTimestamp)
@@ -264,315 +281,324 @@ await conn.clearMessage(jid, messageKey, messageTimestamp)
 ## Button Messages
 
 ### Classic Buttons (iOS + Android)
+
 ```ts
 // Text + buttons
 await conn.sendMessage(jid, {
-  text: 'Choose an option:',
-  footer: 'Powered by Bot',
-  buttons: [
-    { buttonId: 'btn1', buttonText: { displayText: '✅ Yes' } },
-    { buttonId: 'btn2', buttonText: { displayText: '❌ No' } },
-    { buttonId: 'btn3', buttonText: { displayText: '🤔 Maybe' } }
-  ]
+	text: 'Choose an option:',
+	footer: 'Powered by Bot',
+	buttons: [
+		{ buttonId: 'btn1', buttonText: { displayText: '✅ Yes' } },
+		{ buttonId: 'btn2', buttonText: { displayText: '❌ No' } },
+		{ buttonId: 'btn3', buttonText: { displayText: '🤔 Maybe' } }
+	]
 })
 
 // Image + buttons
 await conn.sendMessage(jid, {
-  image: { url: 'https://example.com/img.jpg' },
-  caption: 'What do you think?',
-  footer: 'Select below',
-  buttons: [
-    { buttonId: 'like', buttonText: { displayText: '👍 Like' } },
-    { buttonId: 'dislike', buttonText: { displayText: '👎 Dislike' } }
-  ]
+	image: { url: 'https://example.com/img.jpg' },
+	caption: 'What do you think?',
+	footer: 'Select below',
+	buttons: [
+		{ buttonId: 'like', buttonText: { displayText: '👍 Like' } },
+		{ buttonId: 'dislike', buttonText: { displayText: '👎 Dislike' } }
+	]
 })
 
 // Video + buttons
 await conn.sendMessage(jid, {
-  video: { url: 'https://example.com/video.mp4' },
-  caption: 'Watch and choose',
-  buttons: [
-    { buttonId: 'subscribe', buttonText: { displayText: '🔔 Subscribe' } }
-  ]
+	video: { url: 'https://example.com/video.mp4' },
+	caption: 'Watch and choose',
+	buttons: [{ buttonId: 'subscribe', buttonText: { displayText: '🔔 Subscribe' } }]
 })
 
 // Document + buttons
 await conn.sendMessage(jid, {
-  document: { url: 'https://example.com/file.pdf' },
-  mimetype: 'application/pdf',
-  fileName: 'file.pdf',
-  caption: 'Read this document',
-  buttons: [
-    { buttonId: 'confirm', buttonText: { displayText: '✅ Confirmed' } }
-  ]
+	document: { url: 'https://example.com/file.pdf' },
+	mimetype: 'application/pdf',
+	fileName: 'file.pdf',
+	caption: 'Read this document',
+	buttons: [{ buttonId: 'confirm', buttonText: { displayText: '✅ Confirmed' } }]
 })
 ```
 
 ### Interactive Buttons (native flow)
+
 ```ts
 // Text + interactive buttons
 await conn.sendMessage(jid, {
-  text: 'Choose:',
-  footer: 'Bot Footer',
-  interactiveButtons: [
-    {
-      name: 'quick_reply',
-      buttonParamsJson: JSON.stringify({ display_text: '✅ Accept', id: 'accept' })
-    },
-    {
-      name: 'cta_url',
-      buttonParamsJson: JSON.stringify({
-        display_text: '🌐 Visit',
-        url: 'https://example.com'
-      })
-    },
-    {
-      name: 'cta_copy',
-      buttonParamsJson: JSON.stringify({ display_text: '📋 Copy Code', copy_code: 'ABC123' })
-    },
-    {
-      name: 'cta_call',
-      buttonParamsJson: JSON.stringify({ display_text: '📞 Call', phone_number: '+911234567890' })
-    }
-  ]
+	text: 'Choose:',
+	footer: 'Bot Footer',
+	interactiveButtons: [
+		{
+			name: 'quick_reply',
+			buttonParamsJson: JSON.stringify({ display_text: '✅ Accept', id: 'accept' })
+		},
+		{
+			name: 'cta_url',
+			buttonParamsJson: JSON.stringify({
+				display_text: '🌐 Visit',
+				url: 'https://example.com'
+			})
+		},
+		{
+			name: 'cta_copy',
+			buttonParamsJson: JSON.stringify({ display_text: '📋 Copy Code', copy_code: 'ABC123' })
+		},
+		{
+			name: 'cta_call',
+			buttonParamsJson: JSON.stringify({ display_text: '📞 Call', phone_number: '+911234567890' })
+		}
+	]
 })
 
 // Image + interactive buttons
 await conn.sendMessage(jid, {
-  image: { url: 'https://example.com/img.jpg' },
-  caption: 'Choose an action',
-  footer: 'Footer',
-  interactiveButtons: [
-    {
-      name: 'quick_reply',
-      buttonParamsJson: JSON.stringify({ display_text: '❤️ Like', id: 'like' })
-    }
-  ],
-  hasMediaAttachment: true
+	image: { url: 'https://example.com/img.jpg' },
+	caption: 'Choose an action',
+	footer: 'Footer',
+	interactiveButtons: [
+		{
+			name: 'quick_reply',
+			buttonParamsJson: JSON.stringify({ display_text: '❤️ Like', id: 'like' })
+		}
+	],
+	hasMediaAttachment: true
 })
 ```
 
 ### Template Buttons
+
 ```ts
 await conn.sendMessage(jid, {
-  text: 'Template message',
-  footer: 'Footer',
-  templateButtons: [
-    { index: 1, urlButton: { displayText: '🌐 Website', url: 'https://example.com' } },
-    { index: 2, callButton: { displayText: '📞 Call', phoneNumber: '+911234567890' } },
-    { index: 3, quickReplyButton: { displayText: '💬 Reply', id: 'reply_id' } }
-  ]
+	text: 'Template message',
+	footer: 'Footer',
+	templateButtons: [
+		{ index: 1, urlButton: { displayText: '🌐 Website', url: 'https://example.com' } },
+		{ index: 2, callButton: { displayText: '📞 Call', phoneNumber: '+911234567890' } },
+		{ index: 3, quickReplyButton: { displayText: '💬 Reply', id: 'reply_id' } }
+	]
 })
 ```
 
 ### List / Sections Message
+
 ```ts
 // Text-only list
 await conn.sendMessage(jid, {
-  text: 'Select from menu',
-  footer: 'Bot Menu',
-  title: 'Main Menu',
-  buttonText: 'Open Menu',
-  sections: [
-    {
-      title: '🎮 Entertainment',
-      rows: [
-        { rowId: 'games', title: 'Games', description: 'Play mini games' },
-        { rowId: 'music', title: 'Music', description: 'Listen to music' }
-      ]
-    },
-    {
-      title: '🛠️ Tools',
-      rows: [
-        { rowId: 'translate', title: 'Translate', description: 'Language translate' },
-        { rowId: 'convert', title: 'Convert', description: 'File conversion' }
-      ]
-    }
-  ]
+	text: 'Select from menu',
+	footer: 'Bot Menu',
+	title: 'Main Menu',
+	buttonText: 'Open Menu',
+	sections: [
+		{
+			title: '🎮 Entertainment',
+			rows: [
+				{ rowId: 'games', title: 'Games', description: 'Play mini games' },
+				{ rowId: 'music', title: 'Music', description: 'Listen to music' }
+			]
+		},
+		{
+			title: '🛠️ Tools',
+			rows: [
+				{ rowId: 'translate', title: 'Translate', description: 'Language translate' },
+				{ rowId: 'convert', title: 'Convert', description: 'File conversion' }
+			]
+		}
+	]
 })
 
 // Image + list (via interactiveButtons single_select)
 await conn.sendMessage(jid, {
-  image: { url: 'https://example.com/menu.jpg' },
-  caption: 'Browse our menu',
-  footer: 'Restaurant Bot',
-  interactiveButtons: [
-    {
-      name: 'single_select',
-      buttonParamsJson: JSON.stringify({
-        title: 'View Menu',
-        sections: [
-          {
-            title: 'Food',
-            rows: [
-              { title: 'Fried Rice', description: '$2.50', id: 'nasi-goreng' },
-              { title: 'Fried Noodles', description: '$2.00', id: 'mie-goreng' }
-            ]
-          },
-          {
-            title: 'Drinks',
-            rows: [
-              { title: 'Ice Tea', description: '$0.50', id: 'es-teh' },
-              { title: 'Coffee', description: '$1.00', id: 'kopi' }
-            ]
-          }
-        ]
-      })
-    }
-  ]
+	image: { url: 'https://example.com/menu.jpg' },
+	caption: 'Browse our menu',
+	footer: 'Restaurant Bot',
+	interactiveButtons: [
+		{
+			name: 'single_select',
+			buttonParamsJson: JSON.stringify({
+				title: 'View Menu',
+				sections: [
+					{
+						title: 'Food',
+						rows: [
+							{ title: 'Fried Rice', description: '$2.50', id: 'nasi-goreng' },
+							{ title: 'Fried Noodles', description: '$2.00', id: 'mie-goreng' }
+						]
+					},
+					{
+						title: 'Drinks',
+						rows: [
+							{ title: 'Ice Tea', description: '$0.50', id: 'es-teh' },
+							{ title: 'Coffee', description: '$1.00', id: 'kopi' }
+						]
+					}
+				]
+			})
+		}
+	]
 })
 ```
 
 ### Cards / Carousel Message
+
 ```ts
 await conn.sendMessage(jid, {
-  text: 'Check these out!',
-  footer: 'Swipe right →',
-  cards: [
-    {
-      image: { url: 'https://example.com/card1.jpg' },
-      title: 'Card 1',
-      body: 'Description for card 1',
-      footer: 'Card Footer',
-      buttons: [
-        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Select', id: 'card1' }) },
-        { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Learn More', url: 'https://example.com' }) }
-      ]
-    },
-    {
-      video: { url: 'https://example.com/card2.mp4' },
-      title: 'Card 2',
-      body: 'Video card',
-      footer: 'Card Footer',
-      buttons: [
-        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Watch', id: 'card2' }) }
-      ]
-    },
-    {
-      document: { url: 'https://example.com/doc.pdf' },
-      mimetype: 'application/pdf',
-      fileName: 'doc.pdf',
-      title: 'Document Card',
-      body: 'Download this doc',
-      buttons: [
-        { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Download', id: 'doc1' }) }
-      ]
-    }
-  ]
+	text: 'Check these out!',
+	footer: 'Swipe right →',
+	cards: [
+		{
+			image: { url: 'https://example.com/card1.jpg' },
+			title: 'Card 1',
+			body: 'Description for card 1',
+			footer: 'Card Footer',
+			buttons: [
+				{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Select', id: 'card1' }) },
+				{
+					name: 'cta_url',
+					buttonParamsJson: JSON.stringify({ display_text: 'Learn More', url: 'https://example.com' })
+				}
+			]
+		},
+		{
+			video: { url: 'https://example.com/card2.mp4' },
+			title: 'Card 2',
+			body: 'Video card',
+			footer: 'Card Footer',
+			buttons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Watch', id: 'card2' }) }]
+		},
+		{
+			document: { url: 'https://example.com/doc.pdf' },
+			mimetype: 'application/pdf',
+			fileName: 'doc.pdf',
+			title: 'Document Card',
+			body: 'Download this doc',
+			buttons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Download', id: 'doc1' }) }]
+		}
+	]
 })
 ```
 
 ### Shop Message
+
 ```ts
 await conn.sendMessage(jid, {
-  text: 'Welcome to our shop!',
-  title: 'Our Store',
-  footer: 'Shop Now',
-  shop: { surface: 1, id: 'https://example.com/shop' }
+	text: 'Welcome to our shop!',
+	title: 'Our Store',
+	footer: 'Shop Now',
+	shop: { surface: 1, id: 'https://example.com/shop' }
 })
 
 // With image
 await conn.sendMessage(jid, {
-  image: { url: 'https://example.com/shop.jpg' },
-  caption: 'Browse products',
-  shop: { surface: 1, id: 'https://example.com/shop' }
+	image: { url: 'https://example.com/shop.jpg' },
+	caption: 'Browse products',
+	shop: { surface: 1, id: 'https://example.com/shop' }
 })
 ```
 
 ### Collection Message
+
 ```ts
 await conn.sendMessage(jid, {
-  text: 'Product Collection',
-  footer: 'Browse All',
-  collection: {
-    bizJid: '628xxx@s.whatsapp.net',
-    id: 'collection_id',
-    version: 1
-  }
+	text: 'Product Collection',
+	footer: 'Browse All',
+	collection: {
+		bizJid: '628xxx@s.whatsapp.net',
+		id: 'collection_id',
+		version: 1
+	}
 })
 ```
 
 ### Buttons Interactive Message PAY
+
 ```ts
 await conn.sendMessage(jid, {
-  text: 'Complete your payment',
-  interactiveButtons: [
-    {
-      name: 'review_and_pay',
-      buttonParamsJson: JSON.stringify({
-        currency: 'IDR',
-        total_amount: { value: '100000', offset: '100' },
-        reference_id: 'REF123',
-        type: 'physical-goods',
-        payment_type: 'confirm',
-        payment_status: 'captured',
-        payment_timestamp: Math.floor(Date.now() / 1000),
-        order: {
-          status: 'completed',
-          order_type: 'PAYMENT_REQUEST',
-          subtotal: { value: '100000', offset: '100' },
-          items: [{
-            retailer_id: 'item_001',
-            name: 'Product Name',
-            amount: { value: '100000', offset: '100' },
-            quantity: '1'
-          }]
-        }
-      })
-    }
-  ]
+	text: 'Complete your payment',
+	interactiveButtons: [
+		{
+			name: 'review_and_pay',
+			buttonParamsJson: JSON.stringify({
+				currency: 'IDR',
+				total_amount: { value: '100000', offset: '100' },
+				reference_id: 'REF123',
+				type: 'physical-goods',
+				payment_type: 'confirm',
+				payment_status: 'captured',
+				payment_timestamp: Math.floor(Date.now() / 1000),
+				order: {
+					status: 'completed',
+					order_type: 'PAYMENT_REQUEST',
+					subtotal: { value: '100000', offset: '100' },
+					items: [
+						{
+							retailer_id: 'item_001',
+							name: 'Product Name',
+							amount: { value: '100000', offset: '100' },
+							quantity: '1'
+						}
+					]
+				}
+			})
+		}
+	]
 })
 ```
 
 ### Buttons Interactive Message PIX
+
 ```ts
 await conn.sendMessage(jid, {
-  text: '',
-  interactiveButtons: [
-    {
-      name: 'payment_info',
-      buttonParamsJson: JSON.stringify({
-        payment_settings: [{
-          type: 'pix_static_code',
-          pix_static_code: {
-            merchant_name: 'My Store',
-            key: 'example@email.com',
-            key_type: 'EMAIL'  // PHONE | EMAIL | CPF | EVP
-          }
-        }]
-      })
-    }
-  ]
+	text: '',
+	interactiveButtons: [
+		{
+			name: 'payment_info',
+			buttonParamsJson: JSON.stringify({
+				payment_settings: [
+					{
+						type: 'pix_static_code',
+						pix_static_code: {
+							merchant_name: 'My Store',
+							key: 'example@email.com',
+							key_type: 'EMAIL' // PHONE | EMAIL | CPF | EVP
+						}
+					}
+				]
+			})
+		}
+	]
 })
 ```
 
 ### Buttons Reply Message
+
 ```ts
 // Reply to a classic button
 await conn.sendMessage(jid, {
-  buttonReply: { displayText: 'Button 1', id: 'btn1', index: 0 },
-  type: 'plain'
+	buttonReply: { displayText: 'Button 1', id: 'btn1', index: 0 },
+	type: 'plain'
 })
 
 // Reply to template button
 await conn.sendMessage(jid, {
-  buttonReply: { displayText: 'Yes', id: 'yes', index: 1 },
-  type: 'template'
+	buttonReply: { displayText: 'Yes', id: 'yes', index: 1 },
+	type: 'template'
 })
 
 // Reply to list selection
 await conn.sendMessage(jid, {
-  buttonReply: { title: 'Fried Rice', description: '$2.50', rowId: 'nasi-goreng' },
-  type: 'list'
+	buttonReply: { title: 'Fried Rice', description: '$2.50', rowId: 'nasi-goreng' },
+	type: 'list'
 })
 
 // Reply to interactive (native flow)
 await conn.sendMessage(jid, {
-  buttonReply: {
-    displayText: 'Option 1',
-    nativeFlows: { name: 'menu_options', paramsJson: JSON.stringify({ id: 'opt1' }), version: 1 }
-  },
-  type: 'interactive'
+	buttonReply: {
+		displayText: 'Option 1',
+		nativeFlows: { name: 'menu_options', paramsJson: JSON.stringify({ id: 'opt1' }), version: 1 }
+	},
+	type: 'interactive'
 })
 ```
 
@@ -582,31 +608,30 @@ await conn.sendMessage(jid, {
 
 ```ts
 import {
-  generateInteractiveButtonMessage,
-  generateInteractiveListMessage,
-  generateCombinedButtons,
-  generateCopyCodeButton,
-  generateUrlButtonMessage,
-  generateQuickReplyButtons
+	generateInteractiveButtonMessage,
+	generateInteractiveListMessage,
+	generateCombinedButtons,
+	generateCopyCodeButton,
+	generateUrlButtonMessage,
+	generateQuickReplyButtons
 } from 'baileys'
 
 // Quick reply buttons
 const qr = generateQuickReplyButtons(
-  'Choose an option:',
-  [
-    { id: 'btn1', displayText: '✅ Accept' },
-    { id: 'btn2', displayText: '❌ Reject' }
-  ],
-  { footer: 'Powered by Bot' }
+	'Choose an option:',
+	[
+		{ id: 'btn1', displayText: '✅ Accept' },
+		{ id: 'btn2', displayText: '❌ Reject' }
+	],
+	{ footer: 'Powered by Bot' }
 )
 await conn.sendMessage(jid, qr.interactiveMessage)
 
 // URL buttons
-const url = generateUrlButtonMessage(
-  'Visit our website',
-  [{ displayText: '🌐 Open', url: 'https://example.com' }],
-  { title: 'Our Site', footer: 'Click to open' }
-)
+const url = generateUrlButtonMessage('Visit our website', [{ displayText: '🌐 Open', url: 'https://example.com' }], {
+	title: 'Our Site',
+	footer: 'Click to open'
+})
 await conn.sendMessage(jid, url.interactiveMessage)
 
 // Copy code button
@@ -614,23 +639,25 @@ const copy = generateCopyCodeButton('Your OTP:', '483920', '📋 Copy OTP')
 await conn.sendMessage(jid, copy.interactiveMessage)
 
 // Combined buttons (url + reply + copy + call)
-const combined = generateCombinedButtons('What would you like?', [
-  { type: 'url', displayText: '🌐 Website', url: 'https://example.com' },
-  { type: 'reply', displayText: '💬 Chat', id: 'start_chat' },
-  { type: 'copy', displayText: '📋 Promo', copyCode: 'PROMO2025' },
-  { type: 'call', displayText: '📞 Call', phoneNumber: '+911234567890' }
-], { footer: 'Choose any option' })
+const combined = generateCombinedButtons(
+	'What would you like?',
+	[
+		{ type: 'url', displayText: '🌐 Website', url: 'https://example.com' },
+		{ type: 'reply', displayText: '💬 Chat', id: 'start_chat' },
+		{ type: 'copy', displayText: '📋 Promo', copyCode: 'PROMO2025' },
+		{ type: 'call', displayText: '📞 Call', phoneNumber: '+911234567890' }
+	],
+	{ footer: 'Choose any option' }
+)
 await conn.sendMessage(jid, combined.interactiveMessage)
 
 // List message
 const list = generateInteractiveListMessage({
-  title: '📋 Menu',
-  buttonText: 'Open Menu',
-  description: 'Select an item',
-  footer: 'Bot',
-  sections: [
-    { title: 'Food', rows: [{ rowId: 'rice', title: 'Rice', description: '$2' }] }
-  ]
+	title: '📋 Menu',
+	buttonText: 'Open Menu',
+	description: 'Select an item',
+	footer: 'Bot',
+	sections: [{ title: 'Food', rows: [{ rowId: 'rice', title: 'Rice', description: '$2' }] }]
 })
 await conn.sendMessage(jid, list.listMessage)
 ```
@@ -640,51 +667,66 @@ await conn.sendMessage(jid, list.listMessage)
 ## Status / Story
 
 ### Text Status
+
 ```ts
-await conn.sendMessage('status@broadcast', {
-  text: 'Hello Everyone! 👋',
-  backgroundColor: '#25D366',
-  font: 2
-}, {
-  statusJidList: ['628xxx@s.whatsapp.net', '629xxx@s.whatsapp.net']
-})
+await conn.sendMessage(
+	'status@broadcast',
+	{
+		text: 'Hello Everyone! 👋',
+		backgroundColor: '#25D366',
+		font: 2
+	},
+	{
+		statusJidList: ['628xxx@s.whatsapp.net', '629xxx@s.whatsapp.net']
+	}
+)
 ```
 
 ### Media Status
+
 ```ts
 // Image status
-await conn.sendMessage('status@broadcast', {
-  image: { url: 'https://example.com/img.jpg' },
-  caption: 'Good morning! ☀️'
-}, {
-  statusJidList: ['628xxx@s.whatsapp.net']
-})
+await conn.sendMessage(
+	'status@broadcast',
+	{
+		image: { url: 'https://example.com/img.jpg' },
+		caption: 'Good morning! ☀️'
+	},
+	{
+		statusJidList: ['628xxx@s.whatsapp.net']
+	}
+)
 
 // Video status
-await conn.sendMessage('status@broadcast', {
-  video: { url: 'https://example.com/video.mp4' },
-  caption: 'Watch this!'
-}, {
-  statusJidList: ['628xxx@s.whatsapp.net']
-})
+await conn.sendMessage(
+	'status@broadcast',
+	{
+		video: { url: 'https://example.com/video.mp4' },
+		caption: 'Watch this!'
+	},
+	{
+		statusJidList: ['628xxx@s.whatsapp.net']
+	}
+)
 ```
 
 ### Status Mentions
+
 ```ts
 // Mention specific users/groups in status
-await conn.sendStatusMentions(
-  { text: 'Hello @everyone! 👋', backgroundColor: '#25D366' },
-  ['628xxx@s.whatsapp.net', '629yyy@s.whatsapp.net']
-)
+await conn.sendStatusMentions({ text: 'Hello @everyone! 👋', backgroundColor: '#25D366' }, [
+	'628xxx@s.whatsapp.net',
+	'629yyy@s.whatsapp.net'
+])
 
 // With image
-await conn.sendStatusMentions(
-  { image: { url: 'https://example.com/img.jpg' }, caption: 'Tag friends!' },
-  ['628xxx@s.whatsapp.net']
-)
+await conn.sendStatusMentions({ image: { url: 'https://example.com/img.jpg' }, caption: 'Tag friends!' }, [
+	'628xxx@s.whatsapp.net'
+])
 ```
 
 ### Broadcast Lists
+
 ```ts
 // Send to broadcast list
 await conn.sendMessage('1234567890@broadcast', { text: 'Hello broadcast!' })
@@ -699,6 +741,7 @@ console.log(`Name: ${bList.name}, Recipients: ${bList.recipients}`)
 ## Calls
 
 ### Initiate Voice Call
+
 ```ts
 // Voice call
 const { callId } = await conn.initiateCall(jid)
@@ -714,14 +757,15 @@ await conn.acceptCall(callId, callFrom, false) // false = audio, true = video
 ```
 
 ### Reject Call
+
 ```ts
 // Get callId and callFrom from 'call' event
-conn.ev.on('call', async (calls) => {
-  for (const call of calls) {
-    if (call.status === 'offer') {
-      await conn.rejectCall(call.id, call.from)
-    }
-  }
+conn.ev.on('call', async calls => {
+	for (const call of calls) {
+		if (call.status === 'offer') {
+			await conn.rejectCall(call.id, call.from)
+		}
+	}
 })
 ```
 
@@ -734,10 +778,14 @@ conn.ev.on('call', async (calls) => {
 await conn.sendMessage(jid, { text: 'AI-powered response!' }, { ai: true })
 
 // With image
-await conn.sendMessage(jid, {
-  image: { url: 'https://example.com/img.jpg' },
-  caption: 'AI generated image'
-}, { ai: true })
+await conn.sendMessage(
+	jid,
+	{
+		image: { url: 'https://example.com/img.jpg' },
+		caption: 'AI generated image'
+	},
+	{ ai: true }
+)
 ```
 
 ---
@@ -748,29 +796,53 @@ Import from `baileys/src/Utils/innovatorssoft`:
 
 ```ts
 import {
-  // Anti-Delete
-  MessageStore, createAntiDeleteHandler, createMessageStoreHandler,
-  // Scheduler
-  MessageScheduler, createMessageScheduler,
-  // Auto-Reply
-  AutoReplyHandler, createAutoReply,
-  // Templates
-  TemplateManager, createTemplateManager, renderTemplate, PRESET_TEMPLATES,
-  // Search
-  MessageSearchManager, searchMessages, searchMessagesRegex,
-  // vCard
-  generateVCard, createContactCard, createContactCards, quickContact,
-  // Status
-  StatusHelper, createTextStatus, createImageStatus, STATUS_BACKGROUNDS, STATUS_FONTS,
-  // Chat Control
-  TypingIndicator, createTypingIndicator, PinnedMessagesManager, createReadReceiptController,
-  DISAPPEARING_DURATIONS,
-  // JID
-  parseJid, getSenderPn, plotJid, normalizePhoneToJid, createJidPlotter
+	// Anti-Delete
+	MessageStore,
+	createAntiDeleteHandler,
+	createMessageStoreHandler,
+	// Scheduler
+	MessageScheduler,
+	createMessageScheduler,
+	// Auto-Reply
+	AutoReplyHandler,
+	createAutoReply,
+	// Templates
+	TemplateManager,
+	createTemplateManager,
+	renderTemplate,
+	PRESET_TEMPLATES,
+	// Search
+	MessageSearchManager,
+	searchMessages,
+	searchMessagesRegex,
+	// vCard
+	generateVCard,
+	createContactCard,
+	createContactCards,
+	quickContact,
+	// Status
+	StatusHelper,
+	createTextStatus,
+	createImageStatus,
+	STATUS_BACKGROUNDS,
+	STATUS_FONTS,
+	// Chat Control
+	TypingIndicator,
+	createTypingIndicator,
+	PinnedMessagesManager,
+	createReadReceiptController,
+	DISAPPEARING_DURATIONS,
+	// JID
+	parseJid,
+	getSenderPn,
+	plotJid,
+	normalizePhoneToJid,
+	createJidPlotter
 } from 'baileys/src/Utils/innovatorssoft'
 ```
 
 ### Anti-Delete System
+
 ```ts
 const store = new MessageStore({ maxMessagesPerChat: 1000, ttl: 86400000 })
 
@@ -778,15 +850,15 @@ const store = new MessageStore({ maxMessagesPerChat: 1000, ttl: 86400000 })
 conn.ev.on('messages.upsert', createMessageStoreHandler(store))
 
 // Detect deleted messages
-conn.ev.on('messages.update', (updates) => {
-  const deleted = createAntiDeleteHandler(store)(updates)
-  for (const info of deleted) {
-    console.log('Deleted message:', info.originalMessage)
-    // Re-send to chat
-    conn.sendMessage(info.key.remoteJid!, {
-      text: `🔴 *Anti-Delete*\n${info.originalMessage.message?.conversation || '[media]'}`
-    })
-  }
+conn.ev.on('messages.update', updates => {
+	const deleted = createAntiDeleteHandler(store)(updates)
+	for (const info of deleted) {
+		console.log('Deleted message:', info.originalMessage)
+		// Re-send to chat
+		conn.sendMessage(info.key.remoteJid!, {
+			text: `🔴 *Anti-Delete*\n${info.originalMessage.message?.conversation || '[media]'}`
+		})
+	}
 })
 
 // Get stats
@@ -794,64 +866,59 @@ console.log(store.getStats())
 ```
 
 ### Message Scheduler
+
 ```ts
-const scheduler = createMessageScheduler(
-  (jid, content) => conn.sendMessage(jid, content),
-  {
-    onSent: (s) => console.log(`✅ Sent to ${s.jid}`),
-    onFailed: (s, err) => console.error(`❌ Failed: ${err.message}`)
-  }
-)
+const scheduler = createMessageScheduler((jid, content) => conn.sendMessage(jid, content), {
+	onSent: s => console.log(`✅ Sent to ${s.jid}`),
+	onFailed: (s, err) => console.error(`❌ Failed: ${err.message}`)
+})
 
 // Schedule at specific time
-const entry = scheduler.schedule(
-  jid,
-  { text: '🎂 Happy Birthday!' },
-  new Date('2025-12-25T09:00:00')
-)
+const entry = scheduler.schedule(jid, { text: '🎂 Happy Birthday!' }, new Date('2025-12-25T09:00:00'))
 
 // Schedule with delay (30 minutes)
 scheduler.scheduleDelay(jid, { text: 'Reminder! ⏰' }, 30 * 60 * 1000)
 
 // Manage scheduled messages
 const pending = scheduler.getPending()
-scheduler.cancel(entry.id)          // Cancel one
-scheduler.cancelForJid(jid)         // Cancel all for jid
-scheduler.clearAll()                // Cancel all
-scheduler.stop()                    // Stop timer
-scheduler.start()                   // Restart timer
+scheduler.cancel(entry.id) // Cancel one
+scheduler.cancelForJid(jid) // Cancel all for jid
+scheduler.clearAll() // Cancel all
+scheduler.stop() // Stop timer
+scheduler.start() // Restart timer
 ```
 
 ### Auto-Reply System
+
 ```ts
 const autoReply = createAutoReply(
-  (jid, content, opts) => conn.sendMessage(jid, content, opts),
-  (jid, presence) => conn.sendPresenceUpdate(presence, jid),
-  {
-    simulateTyping: true,
-    typingDuration: 1500,
-    globalCooldown: 2000,
-    onReply: (rule, msg) => console.log(`Rule matched: ${rule.id}`)
-  }
+	(jid, content, opts) => conn.sendMessage(jid, content, opts),
+	(jid, presence) => conn.sendPresenceUpdate(presence, jid),
+	{
+		simulateTyping: true,
+		typingDuration: 1500,
+		globalCooldown: 2000,
+		onReply: (rule, msg) => console.log(`Rule matched: ${rule.id}`)
+	}
 )
 
 // Add rules
 autoReply.addRule({
-  keywords: ['hi', 'hello', 'hey'],
-  response: { text: 'Hello! How can I help you? 👋' },
-  quoted: true
+	keywords: ['hi', 'hello', 'hey'],
+	response: { text: 'Hello! How can I help you? 👋' },
+	quoted: true
 })
 
 autoReply.addRule({
-  exactMatch: '!menu',
-  response: { text: '📋 Menu:\n1. Help\n2. Info\n3. Contact' },
-  priority: 10
+	exactMatch: '!menu',
+	response: { text: '📋 Menu:\n1. Help\n2. Info\n3. Contact' },
+	priority: 10
 })
 
 autoReply.addRule({
-  pattern: /\d{4}-\d{4}/,
-  response: async (msg) => ({ text: `Order found for: ${msg.key.remoteJid}` }),
-  groupsOnly: true
+	pattern: /\d{4}-\d{4}/,
+	response: async msg => ({ text: `Order found for: ${msg.key.remoteJid}` }),
+	groupsOnly: true
 })
 
 // Enable/disable
@@ -859,28 +926,29 @@ autoReply.setRuleActive('rule_id', false)
 
 // Process messages
 conn.ev.on('messages.upsert', async ({ messages }) => {
-  for (const msg of messages) {
-    if (!msg.key.fromMe) await autoReply.processMessage(msg)
-  }
+	for (const msg of messages) {
+		if (!msg.key.fromMe) await autoReply.processMessage(msg)
+	}
 })
 ```
 
 ### Message Templates
+
 ```ts
-const manager = createTemplateManager()  // includes presets
+const manager = createTemplateManager() // includes presets
 
 // Create custom template
 manager.create({
-  name: 'Order',
-  category: 'order',
-  content: '✅ Order #{{orderId}} confirmed!\nCustomer: {{name}}\nTotal: {{total}}'
+	name: 'Order',
+	category: 'order',
+	content: '✅ Order #{{orderId}} confirmed!\nCustomer: {{name}}\nTotal: {{total}}'
 })
 
 // Render
 const text = manager.render('order', {
-  orderId: '12345',
-  name: 'John',
-  total: '$50'
+	orderId: '12345',
+	name: 'John',
+	total: '$50'
 })
 await conn.sendMessage(jid, { text })
 
@@ -890,7 +958,7 @@ if (!valid) console.log('Missing:', missing)
 
 // Quick render without manager
 const text2 = renderTemplate('Hello {{name}}! Welcome to {{company:our store}}', {
-  name: 'Alice'
+	name: 'Alice'
 })
 // → "Hello Alice! Welcome to our store"
 
@@ -901,18 +969,19 @@ console.log(PRESET_TEMPLATES.BIRTHDAY)
 ```
 
 ### Message Search
+
 ```ts
 const search = new MessageSearchManager()
 
 // Add messages
 conn.ev.on('messages.upsert', ({ messages }) => {
-  search.addMessages(messages)
+	search.addMessages(messages)
 })
 
 // Search
 const results = search.search('hello', { limit: 10, fromMe: false })
 for (const r of results) {
-  console.log(r.matchedText, r.relevanceScore)
+	console.log(r.matchedText, r.relevanceScore)
 }
 
 // Regex search
@@ -924,28 +993,35 @@ const groupMsgs = search.getByJid('group@g.us')
 ```
 
 ### vCard Helpers
+
 ```ts
 import { generateVCard, createContactCard, createContactCards, quickContact } from 'baileys/src/Utils/innovatorssoft'
 
 // Generate vCard string
 const vcard = generateVCard({
-  fullName: 'John Doe',
-  phones: [{ number: '+1234567890', type: 'CELL' }],
-  emails: [{ email: 'john@example.com', type: 'WORK' }],
-  organization: 'Example Corp'
+	fullName: 'John Doe',
+	phones: [{ number: '+1234567890', type: 'CELL' }],
+	emails: [{ email: 'john@example.com', type: 'WORK' }],
+	organization: 'Example Corp'
 })
 
 // Send single contact
-await conn.sendMessage(jid, createContactCard({
-  fullName: 'John Doe',
-  phones: [{ number: '+1234567890' }]
-}))
+await conn.sendMessage(
+	jid,
+	createContactCard({
+		fullName: 'John Doe',
+		phones: [{ number: '+1234567890' }]
+	})
+)
 
 // Send multiple contacts
-await conn.sendMessage(jid, createContactCards([
-  { fullName: 'Alice', phones: [{ number: '+111' }] },
-  { fullName: 'Bob', phones: [{ number: '+222' }] }
-]))
+await conn.sendMessage(
+	jid,
+	createContactCards([
+		{ fullName: 'Alice', phones: [{ number: '+111' }] },
+		{ fullName: 'Bob', phones: [{ number: '+222' }] }
+	])
+)
 
 // Quick helper
 const contact = quickContact('John Doe', '+1234567890', { email: 'john@example.com' })
@@ -953,15 +1029,12 @@ await conn.sendMessage(jid, createContactCard(contact))
 ```
 
 ### Status Helpers
+
 ```ts
 import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from 'baileys/src/Utils/innovatorssoft'
 
 // Text status
-const textContent = StatusHelper.text(
-  'Good Morning! ☀️',
-  STATUS_BACKGROUNDS.solid.blue,
-  STATUS_FONTS.DANCING
-)
+const textContent = StatusHelper.text('Good Morning! ☀️', STATUS_BACKGROUNDS.solid.blue, STATUS_FONTS.DANCING)
 await StatusHelper.send(conn, textContent, ['628xxx@s.whatsapp.net'])
 
 // Image status
@@ -978,29 +1051,26 @@ await StatusHelper.send(conn, audioContent, ['628xxx@s.whatsapp.net'])
 
 // Send to groups too
 await StatusHelper.send(conn, textContent, [
-  '628xxx@s.whatsapp.net',
-  '120363xxx@g.us'  // group
+	'628xxx@s.whatsapp.net',
+	'120363xxx@g.us' // group
 ])
 ```
 
 ### Chat Control
+
 ```ts
 import {
-  createTypingIndicator,
-  createPinnedMessagesManager,
-  createReadReceiptController,
-  DISAPPEARING_DURATIONS
+	createTypingIndicator,
+	createPinnedMessagesManager,
+	createReadReceiptController,
+	DISAPPEARING_DURATIONS
 } from 'baileys/src/Utils/innovatorssoft'
 
 // Typing indicator
-const typing = createTypingIndicator(
-  (jid, presence) => conn.sendPresenceUpdate(presence, jid)
-)
+const typing = createTypingIndicator((jid, presence) => conn.sendPresenceUpdate(presence, jid))
 
 // Show typing for 2s then send
-await typing.simulateTyping(jid, 2000, () =>
-  conn.sendMessage(jid, { text: 'Here is your answer!' })
-)
+await typing.simulateTyping(jid, 2000, () => conn.sendMessage(jid, { text: 'Here is your answer!' }))
 
 // Manual control
 await typing.startTyping(jid, { duration: 3000 })
@@ -1016,24 +1086,31 @@ const pinned = pins.getPinned(jid)
 pins.unpin(jid, messageId)
 
 // Read receipts controller
-const readCtrl = createReadReceiptController(
-  (jid, participant, ids) => conn.readMessages([{ id: ids[0], remoteJid: jid, participant }])
+const readCtrl = createReadReceiptController((jid, participant, ids) =>
+	conn.readMessages([{ id: ids[0], remoteJid: jid, participant }])
 )
-readCtrl.disable()  // Disable read receipts
-readCtrl.enable()   // Enable
+readCtrl.disable() // Disable read receipts
+readCtrl.enable() // Enable
 await readCtrl.markRead(jid, participant, [messageId])
 
 // Disappearing durations
-console.log(DISAPPEARING_DURATIONS.HOURS_24)  // 86400
-console.log(DISAPPEARING_DURATIONS.DAYS_7)    // 604800
+console.log(DISAPPEARING_DURATIONS.HOURS_24) // 86400
+console.log(DISAPPEARING_DURATIONS.DAYS_7) // 604800
 ```
 
 ### JID Plotting & LID Support
+
 ```ts
 import {
-  parseJid, getSenderPn, isSelf, plotJid,
-  normalizePhoneToJid, formatJidDisplay,
-  isSameUser, getJidVariants, createJidPlotter
+	parseJid,
+	getSenderPn,
+	isSelf,
+	plotJid,
+	normalizePhoneToJid,
+	formatJidDisplay,
+	isSameUser,
+	getJidVariants,
+	createJidPlotter
 } from 'baileys/src/Utils/innovatorssoft'
 
 // Parse JID info
@@ -1045,10 +1122,10 @@ const me = getSenderPn(conn.authState.creds)
 console.log(me?.phoneNumber, me?.lid)
 
 // Check if same user
-console.log(isSameUser('628xxx@s.whatsapp.net', '628xxx@lid'))  // true
+console.log(isSameUser('628xxx@s.whatsapp.net', '628xxx@lid')) // true
 
 // Normalize phone to JID
-const jid = normalizePhoneToJid('628123456789')  // → 628123456789@s.whatsapp.net
+const jid = normalizePhoneToJid('628123456789') // → 628123456789@s.whatsapp.net
 
 // Format for display
 const display = formatJidDisplay('628xxx:2@s.whatsapp.net', { showDevice: true, showType: true })
@@ -1058,8 +1135,8 @@ const variants = getJidVariants('628123456789')
 
 // LID/PN bidirectional plotter (needs LID mapping store)
 const plotter = createJidPlotter(
-  (pn) => signalRepository.lidMapping.getLIDForPN(pn),
-  (lid) => signalRepository.lidMapping.getPNForLID(lid)
+	pn => signalRepository.lidMapping.getLIDForPN(pn),
+	lid => signalRepository.lidMapping.getPNForLID(lid)
 )
 const result = await plotter.plotBidirectional('628xxx@s.whatsapp.net')
 console.log(result.pn, result.lid)
@@ -1075,8 +1152,8 @@ import makeWASocket, { makeInMemoryStore } from 'baileys'
 const store = makeInMemoryStore({})
 
 const conn = makeWASocket({
-  auth: state,
-  cachedGroupMetadata: async (jid) => store.groupMetadata[jid]
+	auth: state,
+	cachedGroupMetadata: async jid => store.groupMetadata[jid]
 })
 
 store.bind(conn.ev)
@@ -1090,6 +1167,7 @@ store.bind(conn.ev)
 ---
 
 ## Change Add Mode
+
 ```ts
 // Allow all members to add others
 await conn.groupMemberAddMode(jid, 'all_member_add')

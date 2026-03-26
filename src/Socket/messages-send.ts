@@ -1042,7 +1042,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
 				const messages = normalizeMessageContent(message)
 				const buttonType = getButtonType(messages)
-				if(buttonType) {
+				if (buttonType) {
 					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
 				}
 			}
@@ -1167,7 +1167,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		sendMessage: async (jid: string, content: AnyMessageContent, options: MiscMessageGenerationOptions & { ai?: boolean } = {}) => {
+		sendMessage: async (
+			jid: string,
+			content: AnyMessageContent,
+			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
+		) => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1185,21 +1189,28 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				await groupToggleEphemeral(jid, value)
 			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
 				// Album message — matches innovatorssoft prepareAlbumMessageContent
-				const albumItems = (content as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
-				const albumMsg = generateWAMessageFromContent(jid, {
-					albumMessage: {
-						expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
-						expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
-					}
-				}, { userJid, ...options })
+				const albumItems = (content as any).album as Array<{
+					image?: WAMediaUpload
+					video?: WAMediaUpload
+					caption?: string
+				}>
+				const albumMsg = generateWAMessageFromContent(
+					jid,
+					{
+						albumMessage: {
+							expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
+							expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
+						}
+					},
+					{ userJid, ...options }
+				)
 
 				await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
 
 				const mediaMsgs = []
-				for(const item of albumItems) {
-					const mediaContent = 'image' in item
-						? { image: item.image, ...(item as any) }
-						: { video: (item as any).video, ...(item as any) }
+				for (const item of albumItems) {
+					const mediaContent =
+						'image' in item ? { image: item.image, ...(item as any) } : { video: (item as any).video, ...(item as any) }
 
 					const mediaMsg = await generateWAMessage(jid, mediaContent as AnyMessageContent, {
 						logger,
@@ -1211,7 +1222,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						...options
 					})
 
-					if(mediaMsg.message) {
+					if (mediaMsg.message) {
 						mediaMsg.message.messageContextInfo = {
 							messageSecret: randomBytes(32),
 							messageAssociation: {
@@ -1323,6 +1334,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				generateHighQualityLinkPreview,
 				httpRequestOptions
 			})
-		},
+		}
 	}
 }
