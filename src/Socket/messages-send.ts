@@ -1040,7 +1040,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			// Skip if caller already provided a biz node in additionalNodes (e.g. simple.js sendButton/sendCard)
 			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
 			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
-				const buttonType = getButtonType(message)
+				const messages = normalizeMessageContent(message)
+				const buttonType = getButtonType(messages)
 				if(buttonType) {
 					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
 				}
