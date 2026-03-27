@@ -671,7 +671,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
-			const mediaType = getMediaType(message)
+			// normalizeMessageContent once — innovatorssoft pattern
+			const messages = normalizeMessageContent(message) || (message as proto.IMessage)
+			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
 			}
@@ -699,7 +701,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
-			if (normalizeMessageContent(message)?.pinInChatMessage || normalizeMessageContent(message)?.reactionMessage) {
+			if (
+				messages.pinInChatMessage ||
+				messages.keepInChatMessage ||
+				messages.reactionMessage ||
+				messages.protocolMessage?.editedMessage
+			) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
 			}
 
@@ -1036,14 +1043,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			// Inject <biz> node for button messages so WA servers render buttons correctly
-			// Skip if caller already provided a biz node in additionalNodes (e.g. simple.js sendButton/sendCard)
+			// Inject <biz> node for button messages — innovatorssoft pattern
 			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
 			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
-				const messages = normalizeMessageContent(message)
 				const buttonType = getButtonType(messages)
 				if (buttonType) {
-					;(stanza.content as BinaryNode[]).push(getButtonArgs(message))
+					;(stanza.content as BinaryNode[]).push(getButtonArgs(messages))
 				}
 			}
 
@@ -1263,7 +1268,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					upload: waUploadToServer,
 					mediaCache: config.mediaCache,
 					options: config.options,
-					messageId: generateMessageIDV2(sock.user?.id),
+					messageId:
+						(content as any)?.groupStatus && !options.messageId
+							? `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
+							: generateMessageIDV2(sock.user?.id),
 					...options
 				})
 				const isEventMsg = 'event' in content && !!content.event

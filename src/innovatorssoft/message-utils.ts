@@ -47,7 +47,6 @@ export function getMessageType(message: proto.IMessage): string {
  * Returns: 'list' | 'buttons' | 'native_flow' | undefined
  */
 export function getButtonType(message: proto.IMessage): string | undefined {
-	// unwrap viewOnceMessageV2Extension (iOS wrap)
 	const inner = message.viewOnceMessageV2Extension?.message || message
 	if (inner.listMessage) return 'list'
 	if (inner.buttonsMessage) return 'buttons'
@@ -57,7 +56,6 @@ export function getButtonType(message: proto.IMessage): string | undefined {
 	if (message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	if (message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
 	if (message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	// also check v2extension for interactiveMessage
 	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
 	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	return undefined

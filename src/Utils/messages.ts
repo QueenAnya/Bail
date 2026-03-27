@@ -704,7 +704,12 @@ export const generateWAMessageContent = async (
 			footerText: ('footer' in message ? message.footer : undefined) ?? '',
 			description: ('text' in message ? message.text : undefined) ?? '',
 			sections: message.sections,
-			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT
+			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT,
+			contextInfo: {
+				...((message as any).contextInfo || {}),
+				...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
+				...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+			}
 		}
 		m = { listMessage }
 	}
@@ -741,6 +746,12 @@ export const generateWAMessageContent = async (
 		if ('title' in message && !!message.title) {
 			buttonsMessage.text = message.title
 			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.TEXT
+		}
+
+		buttonsMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
 		m = { buttonsMessage }
@@ -820,7 +831,23 @@ export const generateWAMessageContent = async (
 			interactiveMessage.footer = { text: message.footer }
 		}
 
-		m = { interactiveMessage }
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = {
+			viewOnceMessage: {
+				message: {
+					messageContextInfo: {
+						deviceListMetadata: {},
+						deviceListMetadataVersion: 2
+					},
+					interactiveMessage: proto.Message.InteractiveMessage.create(interactiveMessage)
+				}
+			}
+		}
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
@@ -993,6 +1020,36 @@ export const generateWAMessageContent = async (
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
 		m = { viewOnceMessage: { message: m } }
+	}
+
+	// ── viewOnceExt → viewOnceMessageV2Extension ──────────────────────────────
+	if (hasOptionalProperty(message, 'viewOnceExt') && !!(message as any).viewOnceExt) {
+		m = { viewOnceMessageV2Extension: { message: m } }
+	}
+
+	// ── groupStatus → groupStatusMessageV2 ────────────────────────────────────
+	if (hasOptionalProperty(message, 'groupStatus') && !!(message as any).groupStatus) {
+		const messageType = Object.keys(m)[0] as string
+		const key = (m as any)[messageType]
+		if (key && 'contextInfo' in key) {
+			key.contextInfo = { ...(key.contextInfo || {}), isGroupStatus: (message as any).groupStatus }
+		} else if (key) {
+			key.contextInfo = { isGroupStatus: (message as any).groupStatus }
+		}
+		m = { groupStatusMessageV2: { message: m } }
+	}
+
+	// ── interactiveAsTemplate → templateMessage.interactiveMessageTemplate ────
+	else if (hasOptionalProperty(message, 'interactiveAsTemplate') && !!(message as any).interactiveAsTemplate) {
+		if (!m.interactiveMessage) {
+			throw new Boom('Invalid message type for template', { statusCode: 400 })
+		}
+		m = {
+			templateMessage: {
+				interactiveMessageTemplate: m.interactiveMessage,
+				templateId: (message as any).id || `template-${Date.now()}`
+			}
+		}
 	}
 
 	// ── iOS compatibility: match fork's patchMessageForMdIfRequired exactly ───
