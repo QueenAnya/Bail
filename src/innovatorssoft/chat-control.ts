@@ -35,7 +35,7 @@ export class TypingIndicator {
 	async startTyping(jid: string, options: TypingOptions = {}) {
 		this.stopTyping(jid)
 		await this.sendPresence(jid, 'composing')
-		if(options.autoPause !== false && options.duration) {
+		if (options.autoPause !== false && options.duration) {
 			const t = setTimeout(() => this.stopTyping(jid), options.duration)
 			this.intervals.set(jid, t)
 		}
@@ -44,7 +44,7 @@ export class TypingIndicator {
 	async startRecording(jid: string, options: TypingOptions = {}) {
 		this.stopTyping(jid)
 		await this.sendPresence(jid, 'recording')
-		if(options.autoPause !== false && options.duration) {
+		if (options.autoPause !== false && options.duration) {
 			const t = setTimeout(() => this.stopTyping(jid), options.duration)
 			this.intervals.set(jid, t)
 		}
@@ -52,12 +52,17 @@ export class TypingIndicator {
 
 	async stopTyping(jid: string) {
 		const existing = this.intervals.get(jid)
-		if(existing) { clearTimeout(existing); this.intervals.delete(jid) }
-		try { await this.sendPresence(jid, 'paused') } catch {}
+		if (existing) {
+			clearTimeout(existing)
+			this.intervals.delete(jid)
+		}
+		try {
+			await this.sendPresence(jid, 'paused')
+		} catch {}
 	}
 
 	async stopAll() {
-		for(const [jid] of this.intervals) await this.stopTyping(jid)
+		for (const [jid] of this.intervals) await this.stopTyping(jid)
 	}
 
 	async simulateTyping<T>(jid: string, duration: number, callback: () => Promise<T>): Promise<T> {
@@ -82,23 +87,32 @@ export class PinnedMessagesManager {
 
 	unpin(jid: string, messageId: string): boolean {
 		const existing = this.pinnedMessages.get(jid)
-		if(!existing) return false
+		if (!existing) return false
 		const filtered = existing.filter(p => p.messageId !== messageId)
-		if(filtered.length === existing.length) return false
+		if (filtered.length === existing.length) return false
 		this.pinnedMessages.set(jid, filtered)
 		return true
 	}
 
-	getPinned(jid: string): PinnedMessage[] { return this.pinnedMessages.get(jid) || [] }
-	isPinned(jid: string, messageId: string): boolean { return this.getPinned(jid).some(p => p.messageId === messageId) }
-	clearPins(jid: string) { this.pinnedMessages.delete(jid) }
+	getPinned(jid: string): PinnedMessage[] {
+		return this.pinnedMessages.get(jid) || []
+	}
+	isPinned(jid: string, messageId: string): boolean {
+		return this.getPinned(jid).some(p => p.messageId === messageId)
+	}
+	clearPins(jid: string) {
+		this.pinnedMessages.delete(jid)
+	}
 
 	clearExpired(): number {
 		let cleared = 0
 		const now = Date.now()
-		for(const [jid, pins] of this.pinnedMessages) {
+		for (const [jid, pins] of this.pinnedMessages) {
 			const valid = pins.filter(p => !p.expiresAt || p.expiresAt.getTime() > now)
-			if(valid.length < pins.length) { cleared += pins.length - valid.length; this.pinnedMessages.set(jid, valid) }
+			if (valid.length < pins.length) {
+				cleared += pins.length - valid.length
+				this.pinnedMessages.set(jid, valid)
+			}
 		}
 		return cleared
 	}
@@ -115,15 +129,25 @@ export const createReadReceiptController = (
 ) => {
 	let currentConfig = { ...config }
 	return {
-		setConfig(c: ReadReceiptConfig) { currentConfig = { ...currentConfig, ...c } },
-		getConfig() { return { ...currentConfig } },
-		enable() { currentConfig.enabled = true },
-		disable() { currentConfig.enabled = false },
-		isEnabled() { return currentConfig.enabled },
+		setConfig(c: ReadReceiptConfig) {
+			currentConfig = { ...currentConfig, ...c }
+		},
+		getConfig() {
+			return { ...currentConfig }
+		},
+		enable() {
+			currentConfig.enabled = true
+		},
+		disable() {
+			currentConfig.enabled = false
+		},
+		isEnabled() {
+			return currentConfig.enabled
+		},
 		async markRead(jid: string, participant: string | undefined, messageIds: string[]) {
-			if(!currentConfig.enabled) return
-			if(currentConfig.excludeJids?.includes(jid)) return
-			if(currentConfig.readDelay) await new Promise(r => setTimeout(r, currentConfig.readDelay))
+			if (!currentConfig.enabled) return
+			if (currentConfig.excludeJids?.includes(jid)) return
+			if (currentConfig.readDelay) await new Promise(r => setTimeout(r, currentConfig.readDelay))
 			await sendReadReceipt(jid, participant, messageIds)
 		},
 		async forceMarkRead(jid: string, participant: string | undefined, messageIds: string[]) {

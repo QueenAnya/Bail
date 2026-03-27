@@ -35,9 +35,9 @@ export interface PlottedJid {
 const isPnUser = (jid?: string) => jid?.endsWith('@s.whatsapp.net')
 
 export const parseJid = (jid: string): JidInfo | null => {
-	if(!jid) return null
+	if (!jid) return null
 	const decoded = jidDecode(jid)
-	if(!decoded) return null
+	if (!decoded) return null
 	return {
 		jid,
 		user: decoded.user,
@@ -54,9 +54,9 @@ export const parseJid = (jid: string): JidInfo | null => {
 }
 
 export const getSenderPn = (creds: AuthenticationState['creds']): SenderPnInfo | null => {
-	if(!creds?.me?.id) return null
+	if (!creds?.me?.id) return null
 	const decoded = jidDecode(creds.me.id)
-	if(!decoded) return null
+	if (!decoded) return null
 	return {
 		phoneJid: `${decoded.user}@s.whatsapp.net`,
 		phoneNumber: decoded.user,
@@ -70,54 +70,60 @@ export const getSenderPn = (creds: AuthenticationState['creds']): SenderPnInfo |
 export const getCurrentSenderInfo = (authState: AuthenticationState) => getSenderPn(authState.creds)
 
 export const isSelf = (jid: string, senderPn: SenderPnInfo): boolean => {
-	if(!jid || !senderPn) return false
+	if (!jid || !senderPn) return false
 	const normalizedJid = jidNormalizedUser(jid)
 	const normalizedSelf = jidNormalizedUser(senderPn.phoneJid)
-	if(normalizedJid === normalizedSelf) return true
-	if(senderPn.lid) {
+	if (normalizedJid === normalizedSelf) return true
+	if (senderPn.lid) {
 		const normalizedLid = jidNormalizedUser(senderPn.lid)
-		if(normalizedJid === normalizedLid) return true
+		if (normalizedJid === normalizedLid) return true
 	}
 	return false
 }
 
 export const plotJid = (jid: string): PlottedJid | null => {
 	const info = parseJid(jid)
-	if(!info) return null
+	if (!info) return null
 	const result: PlottedJid = { original: jid, primary: jid, info }
-	if(info.isPn) { result.pn = info.normalizedUser; result.primary = info.normalizedUser }
-	else if(info.isLid) { result.lid = info.normalizedUser; result.primary = info.normalizedUser }
+	if (info.isPn) {
+		result.pn = info.normalizedUser
+		result.primary = info.normalizedUser
+	} else if (info.isLid) {
+		result.lid = info.normalizedUser
+		result.primary = info.normalizedUser
+	}
 	return result
 }
 
 export const normalizePhoneToJid = (phone: string): string => {
-	if(phone.includes('@')) return jidNormalizedUser(phone)
+	if (phone.includes('@')) return jidNormalizedUser(phone)
 	return `${phone.replace(/[^\d]/g, '')}@s.whatsapp.net`
 }
 
 export const extractPhoneNumber = (jid: string): string | null => {
 	const info = parseJid(jid)
-	if(!info || !info.isPn) return null
+	if (!info || !info.isPn) return null
 	return info.user
 }
 
 export const formatJidDisplay = (jid: string, options?: { showDevice?: boolean; showType?: boolean }): string => {
 	const info = parseJid(jid)
-	if(!info) return jid
+	if (!info) return jid
 	let display = info.user
-	if(options?.showDevice && info.device > 0) display += `:${info.device}`
-	if(options?.showType) {
-		if(info.isLid) display += ' (LID)'
-		else if(info.isGroup) display += ' (Group)'
-		else if(info.isNewsletter) display += ' (Newsletter)'
-		else if(info.isPn) display += ' (PN)'
+	if (options?.showDevice && info.device > 0) display += `:${info.device}`
+	if (options?.showType) {
+		if (info.isLid) display += ' (LID)'
+		else if (info.isGroup) display += ' (Group)'
+		else if (info.isNewsletter) display += ' (Newsletter)'
+		else if (info.isPn) display += ' (PN)'
 	}
 	return display
 }
 
 export const isSameUser = (jid1: string, jid2: string): boolean => {
-	const i1 = parseJid(jid1), i2 = parseJid(jid2)
-	if(!i1 || !i2) return false
+	const i1 = parseJid(jid1),
+		i2 = parseJid(jid2)
+	if (!i1 || !i2) return false
 	return i1.normalizedUser === i2.normalizedUser
 }
 
@@ -137,10 +143,10 @@ export const constructJidWithDevice = (user: string, device: number, server = 's
 }
 
 export const getRemoteJidFromMessage = (msg: WAMessage): { chatJid: string; senderJid: string } | null => {
-	if(!msg?.key?.remoteJid) return null
+	if (!msg?.key?.remoteJid) return null
 	const chatJid = msg.key.remoteJid
 	const isGroupMsg = chatJid.endsWith('@g.us')
-	const senderJid = isGroupMsg ? (msg.key.participant || chatJid) : chatJid
+	const senderJid = isGroupMsg ? msg.key.participant || chatJid : chatJid
 	return { chatJid, senderJid }
 }
 
@@ -152,17 +158,17 @@ export const createJidPlotter = (
 	plotToPn: (lid: string) => getPNForLID(lid),
 	plotBidirectional: async (jid: string): Promise<PlottedJid> => {
 		const info = parseJid(jid)
-		if(!info) return { original: jid, primary: jid, info: null }
+		if (!info) return { original: jid, primary: jid, info: null }
 		const result: PlottedJid = { original: jid, primary: jid, info }
-		if(info.isPn) {
+		if (info.isPn) {
 			result.pn = info.normalizedUser
 			const lid = await getLIDForPN(jid)
-			if(lid) result.lid = lid
+			if (lid) result.lid = lid
 			result.primary = info.normalizedUser
-		} else if(info.isLid) {
+		} else if (info.isLid) {
 			result.lid = info.normalizedUser
 			const pn = await getPNForLID(jid)
-			if(pn) result.pn = pn
+			if (pn) result.pn = pn
 			result.primary = result.pn || info.normalizedUser
 		}
 		return result
