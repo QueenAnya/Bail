@@ -321,7 +321,11 @@ export const generateCopyCodeButton = (
  * ])
  * await sock.sendMessage(jid, msg.interactiveMessage)
  */
-export const generateUrlButtonMessage = (body: string, buttons: UrlButton[], options?: UrlButtonOptions) => {
+export const generateUrlButtonMessage = (
+	body: string,
+	buttons: UrlButton[],
+	options?: UrlButtonOptions
+) => {
 	const nativeButtons: NativeFlowButton[] = buttons.map(btn => ({
 		name: 'cta_url',
 		buttonParamsJson: JSON.stringify({
@@ -347,7 +351,11 @@ export const generateUrlButtonMessage = (body: string, buttons: UrlButton[], opt
  * ])
  * await sock.sendMessage(jid, msg.interactiveMessage)
  */
-export const generateQuickReplyButtons = (body: string, buttons: QuickReplyButton[], options?: QuickReplyOptions) => {
+export const generateQuickReplyButtons = (
+	body: string,
+	buttons: QuickReplyButton[],
+	options?: QuickReplyOptions
+) => {
 	const nativeButtons: NativeFlowButton[] = buttons.map(btn => ({
 		name: 'quick_reply',
 		buttonParamsJson: JSON.stringify({ display_text: btn.displayText, id: btn.id })
@@ -371,7 +379,11 @@ export const generateQuickReplyButtons = (body: string, buttons: QuickReplyButto
  * ])
  * await sock.sendMessage(jid, msg.interactiveMessage)
  */
-export const generateCombinedButtons = (body: string, buttons: CombinedButton[], options?: CombinedButtonOptions) => {
+export const generateCombinedButtons = (
+	body: string,
+	buttons: CombinedButton[],
+	options?: CombinedButtonOptions
+) => {
 	const nativeButtons: NativeFlowButton[] = buttons.map(btn => {
 		switch (btn.type) {
 			case 'url':

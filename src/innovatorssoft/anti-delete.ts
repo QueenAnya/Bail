@@ -47,19 +47,19 @@ export class MessageStore {
 	}
 
 	stopCleanup() {
-		if (this.cleanupTimer) clearInterval(this.cleanupTimer)
+		if(this.cleanupTimer) clearInterval(this.cleanupTimer)
 	}
 
 	private cleanup() {
 		const cutoff = Date.now() - this.options.ttl
-		for (const [chatId, messages] of this.store) {
-			for (const [msgId, stored] of messages) {
-				if (stored.storedAt < cutoff) messages.delete(msgId)
+		for(const [chatId, messages] of this.store) {
+			for(const [msgId, stored] of messages) {
+				if(stored.storedAt < cutoff) messages.delete(msgId)
 			}
-			if (messages.size === 0) this.store.delete(chatId)
+			if(messages.size === 0) this.store.delete(chatId)
 		}
-		for (const [key, info] of this.deletedMessages) {
-			if (info.deletedAt < cutoff) this.deletedMessages.delete(key)
+		for(const [key, info] of this.deletedMessages) {
+			if(info.deletedAt < cutoff) this.deletedMessages.delete(key)
 		}
 	}
 
@@ -69,21 +69,21 @@ export class MessageStore {
 
 	storeMessage(message: WAMessage) {
 		const chatId = message.key.remoteJid
-		if (!chatId || !message.key.id) return
+		if(!chatId || !message.key.id) return
 		let chatMessages = this.store.get(chatId)
-		if (!chatMessages) {
+		if(!chatMessages) {
 			chatMessages = new Map()
 			this.store.set(chatId, chatMessages)
 		}
-		if (chatMessages.size >= this.options.maxMessagesPerChat) {
+		if(chatMessages.size >= this.options.maxMessagesPerChat) {
 			const oldestKey = chatMessages.keys().next().value
-			if (oldestKey) chatMessages.delete(oldestKey)
+			if(oldestKey) chatMessages.delete(oldestKey)
 		}
 		chatMessages.set(message.key.id, { message, storedAt: Date.now(), isDeleted: false })
 	}
 
 	storeMessages(messages: WAMessage[]) {
-		for (const msg of messages) this.storeMessage(msg)
+		for(const msg of messages) this.storeMessage(msg)
 	}
 
 	getMessage(key: WAMessageKey): StoredMessage | undefined {
@@ -96,7 +96,7 @@ export class MessageStore {
 
 	markAsDeleted(key: WAMessageKey, deletedBy?: string): DeletedMessageInfo | null {
 		const stored = this.getMessage(key)
-		if (!stored) return null
+		if(!stored) return null
 		const now = Date.now()
 		stored.isDeleted = true
 		stored.deletedAt = now
@@ -128,27 +128,20 @@ export class MessageStore {
 		return Array.from(this.store.get(chatId)?.values() ?? []).map(s => s.message)
 	}
 
-	getChatIds() {
-		return Array.from(this.store.keys())
-	}
+	getChatIds() { return Array.from(this.store.keys()) }
 
 	getStats() {
 		let totalMessages = 0
-		for (const messages of this.store.values()) totalMessages += messages.size
+		for(const messages of this.store.values()) totalMessages += messages.size
 		return { totalChats: this.store.size, totalMessages, totalDeleted: this.deletedMessages.size }
 	}
 
-	clear() {
-		this.store.clear()
-		this.deletedMessages.clear()
-	}
-	clearChat(chatId: string) {
-		this.store.delete(chatId)
-	}
+	clear() { this.store.clear(); this.deletedMessages.clear() }
+	clearChat(chatId: string) { this.store.delete(chatId) }
 
 	getAllMessages(): Record<string, WAMessage[]> {
 		const all: Record<string, WAMessage[]> = {}
-		for (const [chatId, messages] of this.store) {
+		for(const [chatId, messages] of this.store) {
 			all[chatId] = Array.from(messages.values()).map(s => s.message)
 		}
 		return all
@@ -163,17 +156,17 @@ export const isDeleteMessage = (message: WAMessage): boolean => {
 
 export const getDeletedMessageKey = (message: WAMessage): WAMessageKey | null => {
 	const protoMsg = message.message?.protocolMessage
-	if (protoMsg?.type !== proto.Message.ProtocolMessage.Type.REVOKE) return null
+	if(protoMsg?.type !== proto.Message.ProtocolMessage.Type.REVOKE) return null
 	return protoMsg.key ?? null
 }
 
 export const createAntiDeleteHandler = (store: MessageStore) => {
 	return (updates: Array<{ key: WAMessageKey; update: Partial<WAMessage> }>) => {
 		const deletedMessages: DeletedMessageInfo[] = []
-		for (const { key, update } of updates) {
-			if (update.messageStubType === proto.WebMessageInfo.StubType.REVOKE) {
+		for(const { key, update } of updates) {
+			if(update.messageStubType === proto.WebMessageInfo.StubType.REVOKE) {
 				const info = store.markAsDeleted(key, update.messageStubParameters?.[0])
-				if (info) deletedMessages.push(info)
+				if(info) deletedMessages.push(info)
 			}
 		}
 		return deletedMessages
@@ -184,19 +177,13 @@ export const createMessageStoreHandler = (store: MessageStore) => {
 	return ({ messages }: { messages: WAMessage[] }) => {
 		const regular = messages.filter(msg => {
 			const c = msg.message
-			if (!c) return false
-			if (c.protocolMessage) return false
-			if (c.senderKeyDistributionMessage) return false
+			if(!c) return false
+			if(c.protocolMessage) return false
+			if(c.senderKeyDistributionMessage) return false
 			return true
 		})
 		store.storeMessages(regular)
 	}
 }
 
-export default {
-	MessageStore,
-	isDeleteMessage,
-	getDeletedMessageKey,
-	createAntiDeleteHandler,
-	createMessageStoreHandler
-}
+export default { MessageStore, isDeleteMessage, getDeletedMessageKey, createAntiDeleteHandler, createMessageStoreHandler }
