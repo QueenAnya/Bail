@@ -5,7 +5,7 @@
  * Chat modification helpers ported from innovatorssoft/baileys.
  * These are imported back into makeChatsSocket.
  */
-import type Long from 'long'
+import Long from 'long'
 import type { WAMessageKey, ChatModification } from '../Types'
 
 /**
