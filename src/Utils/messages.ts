@@ -750,7 +750,7 @@ export const generateWAMessageContent = async (
 
 		buttonsMessage.contextInfo = {
 			...((message as any).contextInfo || {}),
-			...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
@@ -833,7 +833,7 @@ export const generateWAMessageContent = async (
 
 		interactiveMessage.contextInfo = {
 			...((message as any).contextInfo || {}),
-			...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 

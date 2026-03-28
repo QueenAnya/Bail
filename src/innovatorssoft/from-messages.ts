@@ -5,8 +5,8 @@
  * Message content builder functions ported from innovatorssoft/baileys.
  * These are imported back into generateWAMessageContent in messages.ts.
  */
-import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
+import { WAProto } from '../Types'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
 import { sha256 } from '../Utils/crypto'
 import { encryptedStream, getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media'
@@ -313,7 +313,7 @@ export async function buildStickerPackMessage(
 		publisher,
 		stickerPackId,
 		packDescription: description,
-		stickerPackOrigin: proto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
+		stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
 		stickerPackSize: zipBuffer.length,
 		stickers: stickerMetadata,
 
