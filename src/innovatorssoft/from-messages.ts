@@ -5,6 +5,9 @@
  * Message content builder functions ported from innovatorssoft/baileys.
  * These are imported back into generateWAMessageContent in messages.ts.
  */
+import { gunzipSync, gzipSync } from 'zlib'
+import { promises as fs } from 'fs'
+import { zipSync } from 'fflate'
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
@@ -119,7 +122,6 @@ export function isLottieBuffer(buffer: Buffer): boolean {
 	if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
 		// gzip-compressed
 		try {
-			const { gunzipSync } = require('zlib')
 			jsonBuffer = gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 }) as Buffer
 		} catch {
 			return false
@@ -160,8 +162,6 @@ export async function buildStickerPackMessage(
 	options: MessageContentGenerationOptions
 ): Promise<proto.Message.IStickerPackMessage> {
 	const { stickers, cover, name, publisher, packId, description } = stickerPack
-	const { zipSync } = await import('fflate' as any)
-
 	const stickerPackId = packId || generateMessageIDV2()
 	const stickerData: Record<string, any> = {}
 
@@ -185,7 +185,6 @@ export async function buildStickerPackMessage(
 			if (detectedLottie) {
 				// Raw Lottie JSON → gzip to WAS
 				if (buffer[0] === 0x7b) {
-					const { gzipSync } = require('zlib')
 					finalBuffer = gzipSync(buffer) as Buffer
 				}
 			} else if (isWebPBuffer(buffer)) {
@@ -265,7 +264,6 @@ export async function buildStickerPackMessage(
 
 	// Cleanup temp file
 	try {
-		const { promises: fs } = require('fs')
 		await fs.unlink(stickerPackEncrypted.encFilePath)
 	} catch {}
 
@@ -303,7 +301,6 @@ export async function buildStickerPackMessage(
 
 	// Cleanup thumb temp file
 	try {
-		const { promises: fs } = require('fs')
 		await fs.unlink(thumbEncrypted.encFilePath)
 	} catch {}
 
