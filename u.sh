@@ -21,6 +21,10 @@ echo "PLEASE ENTER NAME FOR BRANCH"
 
 echo 'PLEASE WAIT FOR FINISH AUTOMATIC PROCESS'
 
+rm -rf *.bak
+rm -rf */*.bak
+rm -rf */*/*.bak
+prettier --write .
 # rm -rf .git
 git init
 git add .
