@@ -672,7 +672,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		await authState.keys.transaction(async () => {
 			// normalizeMessageContent once — innovatorssoft pattern
-			const messages = normalizeMessageContent(message) || (message as proto.IMessage)
+			const messages = normalizeMessageContent(message) || message as proto.IMessage
 			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
@@ -701,12 +701,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
-			if (
-				messages.pinInChatMessage ||
-				messages.keepInChatMessage ||
-				messages.reactionMessage ||
-				messages.protocolMessage?.editedMessage
-			) {
+			if (messages.pinInChatMessage || messages.keepInChatMessage || messages.reactionMessage || messages.protocolMessage?.editedMessage) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
 			}
 
@@ -1047,7 +1042,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
 			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
 				const buttonType = getButtonType(messages)
-				if (buttonType) {
+				if(buttonType) {
 					;(stanza.content as BinaryNode[]).push(getButtonArgs(messages))
 				}
 			}
@@ -1172,11 +1167,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		sendMessage: async (
-			jid: string,
-			content: AnyMessageContent,
-			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
-		) => {
+		sendMessage: async (jid: string, content: AnyMessageContent, options: MiscMessageGenerationOptions & { ai?: boolean } = {}) => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1194,28 +1185,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				await groupToggleEphemeral(jid, value)
 			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
 				// Album message — matches innovatorssoft prepareAlbumMessageContent
-				const albumItems = (content as any).album as Array<{
-					image?: WAMediaUpload
-					video?: WAMediaUpload
-					caption?: string
-				}>
-				const albumMsg = generateWAMessageFromContent(
-					jid,
-					{
-						albumMessage: {
-							expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
-							expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
-						}
-					},
-					{ userJid, ...options }
-				)
+				const albumItems = (content as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
+				const albumMsg = generateWAMessageFromContent(jid, {
+					albumMessage: {
+						expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
+						expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
+					}
+				}, { userJid, ...options })
 
 				await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
 
 				const mediaMsgs = []
-				for (const item of albumItems) {
-					const mediaContent =
-						'image' in item ? { image: item.image, ...(item as any) } : { video: (item as any).video, ...(item as any) }
+				for(const item of albumItems) {
+					const mediaContent = 'image' in item
+						? { image: item.image, ...(item as any) }
+						: { video: (item as any).video, ...(item as any) }
 
 					const mediaMsg = await generateWAMessage(jid, mediaContent as AnyMessageContent, {
 						logger,
@@ -1227,7 +1211,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						...options
 					})
 
-					if (mediaMsg.message) {
+					if(mediaMsg.message) {
 						mediaMsg.message.messageContextInfo = {
 							messageSecret: randomBytes(32),
 							messageAssociation: {
@@ -1268,10 +1252,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					upload: waUploadToServer,
 					mediaCache: config.mediaCache,
 					options: config.options,
-					messageId:
-						(content as any)?.groupStatus && !options.messageId
-							? `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
-							: generateMessageIDV2(sock.user?.id),
+					messageId: ((content as any)?.groupStatus && !options.messageId)
+						? `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
+						: generateMessageIDV2(sock.user?.id),
 					...options
 				})
 				const isEventMsg = 'event' in content && !!content.event
@@ -1342,6 +1325,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				generateHighQualityLinkPreview,
 				httpRequestOptions
 			})
-		}
+		},
 	}
 }

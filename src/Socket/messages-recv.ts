@@ -359,30 +359,13 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	// ── Call handlers (from innovatorssoft/from-messages-recv) ───────────────
 	const {
-		rejectCall,
-		offerCall,
-		initiateCall,
-		terminateCall,
-		cancelCall,
-		acceptCall,
-		preacceptCall,
-		sendRelayLatency,
-		sendTransport,
-		sendCallDuration,
-		muteCall,
-		sendHeartbeat,
-		sendEncRekey,
-		sendVideoState,
-		queryCallLink,
-		joinCallLink
+		rejectCall, offerCall, initiateCall, terminateCall, cancelCall,
+		acceptCall, preacceptCall, sendRelayLatency, sendTransport,
+		sendCallDuration, muteCall, sendHeartbeat, sendEncRekey,
+		sendVideoState, queryCallLink, joinCallLink
 	} = makeCallHandlers({
-		authState,
-		query,
-		sendNode,
-		generateMessageTag,
-		getUSyncDevices,
-		assertSessions,
-		createParticipantNodes,
+		authState, query, sendNode, generateMessageTag,
+		getUSyncDevices, assertSessions, createParticipantNodes,
 		callOfferCache
 	})
 

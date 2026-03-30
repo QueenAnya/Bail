@@ -6,37 +6,36 @@ import { unixTimestampSeconds } from '../Utils/generics'
 // ── Message Type Detection ─────────────────────────────────────────────────
 
 export function getMediaType(message: proto.IMessage): string {
-	if (message.imageMessage) return 'image'
-	if (message.videoMessage) return message.videoMessage.gifPlayback ? 'gif' : 'video'
-	if (message.audioMessage) return message.audioMessage.ptt ? 'ptt' : 'audio'
-	if (message.contactMessage) return 'vcard'
-	if (message.documentMessage) return 'document'
-	if (message.contactsArrayMessage) return 'contact_array'
-	if (message.liveLocationMessage) return 'livelocation'
-	if (message.stickerMessage) return 'sticker'
-	if (message.listMessage) return 'list'
-	if (message.listResponseMessage) return 'list_response'
-	if (message.buttonsResponseMessage) return 'buttons_response'
-	if (message.orderMessage) return 'order'
-	if (message.productMessage) return 'product'
-	if (message.interactiveResponseMessage) return 'native_flow_response'
-	if (message.groupInviteMessage) return 'url'
+	if(message.imageMessage) return 'image'
+	if(message.videoMessage) return message.videoMessage.gifPlayback ? 'gif' : 'video'
+	if(message.audioMessage) return message.audioMessage.ptt ? 'ptt' : 'audio'
+	if(message.contactMessage) return 'vcard'
+	if(message.documentMessage) return 'document'
+	if(message.contactsArrayMessage) return 'contact_array'
+	if(message.liveLocationMessage) return 'livelocation'
+	if(message.stickerMessage) return 'sticker'
+	if(message.listMessage) return 'list'
+	if(message.listResponseMessage) return 'list_response'
+	if(message.buttonsResponseMessage) return 'buttons_response'
+	if(message.orderMessage) return 'order'
+	if(message.productMessage) return 'product'
+	if(message.interactiveResponseMessage) return 'native_flow_response'
+	if(message.groupInviteMessage) return 'url'
 	return ''
 }
 
 export function getMessageType(message: proto.IMessage): string {
 	const normalizedMessage = normalizeMessageContent(message)
-	if (!normalizedMessage) return 'text'
-	if (normalizedMessage.reactionMessage || normalizedMessage.encReactionMessage) return 'reaction'
-	if (
+	if(!normalizedMessage) return 'text'
+	if(normalizedMessage.reactionMessage || normalizedMessage.encReactionMessage) return 'reaction'
+	if(
 		normalizedMessage.pollCreationMessage ||
 		normalizedMessage.pollCreationMessageV2 ||
 		normalizedMessage.pollCreationMessageV3 ||
 		normalizedMessage.pollUpdateMessage
-	)
-		return 'poll'
-	if (normalizedMessage.eventMessage) return 'event'
-	if (getMediaType(normalizedMessage) !== '') return 'media'
+	) return 'poll'
+	if(normalizedMessage.eventMessage) return 'event'
+	if(getMediaType(normalizedMessage) !== '') return 'media'
 	return 'text'
 }
 
@@ -48,16 +47,16 @@ export function getMessageType(message: proto.IMessage): string {
  */
 export function getButtonType(message: proto.IMessage): string | undefined {
 	const inner = message.viewOnceMessageV2Extension?.message || message
-	if (inner.listMessage) return 'list'
-	if (inner.buttonsMessage) return 'buttons'
-	if (inner.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (inner.interactiveMessage?.carouselMessage) return 'native_flow'
-	if (message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
-	if (message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
-	if (message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
+	if(inner.listMessage) return 'list'
+	if(inner.buttonsMessage) return 'buttons'
+	if(inner.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+	if(inner.interactiveMessage?.carouselMessage) return 'native_flow'
+	if(message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
+	if(message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
+	if(message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+	if(message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+	if(message.viewOnceMessageV2Extension?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+	if(message.viewOnceMessageV2Extension?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	return undefined
 }
 
@@ -67,34 +66,28 @@ export function getButtonType(message: proto.IMessage): string | undefined {
 export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	const inner = message.viewOnceMessageV2Extension?.message || message
 
-	const nativeFlow =
-		inner.interactiveMessage?.nativeFlowMessage ||
-		message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage ||
-		message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage
+	const nativeFlow = inner.interactiveMessage?.nativeFlowMessage
+		|| message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage
+		|| message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage
 
-	const carouselMessage =
-		inner.interactiveMessage?.carouselMessage ||
-		message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage ||
-		message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
+	const carouselMessage = inner.interactiveMessage?.carouselMessage
+		|| message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage
+		|| message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
 
-	const firstButtonName =
-		nativeFlow?.buttons?.[0]?.name ||
-		(carouselMessage?.cards?.[0] as proto.Message.IInteractiveMessage | undefined)?.nativeFlowMessage?.buttons?.[0]
-			?.name
+	const firstButtonName = nativeFlow?.buttons?.[0]?.name
+		|| (carouselMessage?.cards?.[0] as proto.Message.IInteractiveMessage | undefined)
+			?.nativeFlowMessage?.buttons?.[0]?.name
 
 	const nativeFlowSpecials = [
-		'mpm',
-		'cta_catalog',
-		'send_location',
-		'call_permission_request',
-		'wa_payment_transaction_details',
+		'mpm', 'cta_catalog', 'send_location',
+		'call_permission_request', 'wa_payment_transaction_details',
 		'automated_greeting_message_view_catalog'
 	]
 
 	const ts = unixTimestampSeconds().toString()
 
 	// single_select → list-style biz node
-	if (nativeFlow && firstButtonName === 'single_select') {
+	if(nativeFlow && firstButtonName === 'single_select') {
 		return {
 			tag: 'biz',
 			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
@@ -106,7 +99,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	}
 
 	// Payment flows
-	if (nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
+	if(nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
 		return {
 			tag: 'biz',
 			attrs: {
@@ -116,7 +109,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	}
 
 	// Special native flow (catalog, location, etc.)
-	if (nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
+	if(nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
 		return {
 			tag: 'biz',
 			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
@@ -132,7 +125,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	}
 
 	// Standard interactive / buttons / carousel
-	if (nativeFlow || carouselMessage || message.buttonsMessage) {
+	if(nativeFlow || carouselMessage || message.buttonsMessage) {
 		return {
 			tag: 'biz',
 			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
@@ -148,7 +141,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	}
 
 	// List message
-	if (inner.listMessage) {
+	if(inner.listMessage) {
 		return {
 			tag: 'biz',
 			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },

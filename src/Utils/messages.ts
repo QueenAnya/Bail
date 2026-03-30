@@ -674,9 +674,10 @@ export const generateWAMessageContent = async (
 
 	// ── productList → ListMessage with products ────────────────────────────────
 	if ('productList' in message && !!message.productList) {
-		const thumbnail = message.thumbnail
-			? await prepareWAMessageMedia({ image: message.thumbnail as WAMediaUpload }, options)
-			: null
+		const thumbnail =
+			message.thumbnail
+				? await prepareWAMessageMedia({ image: message.thumbnail as WAMediaUpload }, options)
+				: null
 
 		const listMessage: proto.Message.IListMessage = {
 			title: ('title' in message ? message.title : undefined) ?? '',
@@ -734,7 +735,9 @@ export const generateWAMessageContent = async (
 			const mediaType = Object.keys(m)[0]?.replace('Message', '').toUpperCase()
 			if (mediaType && mediaType in proto.Message.ButtonsMessage.HeaderType) {
 				buttonsMessage.headerType =
-					proto.Message.ButtonsMessage.HeaderType[mediaType as keyof typeof proto.Message.ButtonsMessage.HeaderType]
+					proto.Message.ButtonsMessage.HeaderType[
+						mediaType as keyof typeof proto.Message.ButtonsMessage.HeaderType
+					]
 			}
 			Object.assign(buttonsMessage, m)
 		}
@@ -750,7 +753,7 @@ export const generateWAMessageContent = async (
 
 		buttonsMessage.contextInfo = {
 			...((message as any).contextInfo || {}),
-			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
@@ -782,24 +785,16 @@ export const generateWAMessageContent = async (
 		const rawButtons: any[] = (message as any).interactiveButtons
 
 		const nativeButtons = rawButtons.map((btn: any, i: number) => {
-			if (btn.name && btn.buttonParamsJson) return { name: btn.name, buttonParamsJson: btn.buttonParamsJson }
-			if (btn.buttonId && btn.buttonText?.displayText)
-				return {
-					name: 'quick_reply',
-					buttonParamsJson: JSON.stringify({ display_text: btn.buttonText.displayText, id: btn.buttonId })
-				}
-			if (btn.id || btn.text || btn.displayText)
-				return {
-					name: 'quick_reply',
-					buttonParamsJson: JSON.stringify({
-						display_text: btn.text || btn.displayText || `Button ${i + 1}`,
-						id: btn.id || `btn_${i + 1}`
-					})
-				}
-			return {
+			if(btn.name && btn.buttonParamsJson) return { name: btn.name, buttonParamsJson: btn.buttonParamsJson }
+			if(btn.buttonId && btn.buttonText?.displayText) return {
 				name: 'quick_reply',
-				buttonParamsJson: JSON.stringify({ display_text: `Button ${i + 1}`, id: `btn_${i + 1}` })
+				buttonParamsJson: JSON.stringify({ display_text: btn.buttonText.displayText, id: btn.buttonId })
 			}
+			if(btn.id || btn.text || btn.displayText) return {
+				name: 'quick_reply',
+				buttonParamsJson: JSON.stringify({ display_text: btn.text || btn.displayText || `Button ${i+1}`, id: btn.id || `btn_${i+1}` })
+			}
+			return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: `Button ${i+1}`, id: `btn_${i+1}` }) }
 		})
 
 		const interactiveMessage: proto.Message.IInteractiveMessage = {
@@ -819,11 +814,10 @@ export const generateWAMessageContent = async (
 			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
 				title: ('title' in message ? message.title : undefined) ?? '',
 				subtitle: ('subtitle' in message ? (message as any).subtitle : undefined) ?? '',
-				hasMediaAttachment:
-					('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
+				hasMediaAttachment: ('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
+				documentMessage: m.documentMessage ?? undefined,
 			})
 		}
 
@@ -833,7 +827,7 @@ export const generateWAMessageContent = async (
 
 		interactiveMessage.contextInfo = {
 			...((message as any).contextInfo || {}),
-			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
@@ -872,11 +866,10 @@ export const generateWAMessageContent = async (
 			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
 				title: ('title' in message ? message.title : undefined) ?? '',
 				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment:
-					('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
+				hasMediaAttachment: ('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
+				documentMessage: m.documentMessage ?? undefined,
 			})
 		}
 
@@ -910,11 +903,10 @@ export const generateWAMessageContent = async (
 			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
 				title: ('title' in message ? message.title : undefined) ?? '',
 				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment:
-					('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
+				hasMediaAttachment: ('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
+				documentMessage: m.documentMessage ?? undefined,
 			})
 		}
 
@@ -958,11 +950,7 @@ export const generateWAMessageContent = async (
 					header = prepared
 				} else if (doc) {
 					const prepared = await prepareWAMessageMedia(
-						{
-							document: normalizeMedia(doc)!,
-							mimetype: (slide as any).mimetype || 'application/octet-stream',
-							fileName: (slide as any).fileName
-						},
+						{ document: normalizeMedia(doc)!, mimetype: (slide as any).mimetype || 'application/octet-stream', fileName: (slide as any).fileName },
 						options
 					)
 					header = prepared
@@ -979,7 +967,7 @@ export const generateWAMessageContent = async (
 						),
 						imageMessage: header.imageMessage ?? undefined,
 						videoMessage: header.videoMessage ?? undefined,
-						documentMessage: header.documentMessage ?? undefined
+						documentMessage: header.documentMessage ?? undefined,
 					}),
 					body: WAProto.Message.InteractiveMessage.Body.create({ text: body }),
 					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
