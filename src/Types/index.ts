@@ -22,8 +22,6 @@ export type BrowsersMap = {
 	baileys(browser: string): [string, string, string]
 	windows(browser: string): [string, string, string]
 	appropriate(browser: string): [string, string, string]
-	iOS(browser: string): [string, string, string]
-	android(browser: string): [string, string, string]
 }
 
 export enum DisconnectReason {
