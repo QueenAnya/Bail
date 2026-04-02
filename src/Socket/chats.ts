@@ -1,5 +1,6 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
+import Long from 'long'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -23,7 +24,8 @@ import type {
 	WAPrivacyMessagesValue,
 	WAPrivacyOnlineValue,
 	WAPrivacyValue,
-	WAReadReceiptsValue
+	WAReadReceiptsValue,
+	WAMessageKey
 } from '../Types'
 import { ALL_WA_PATCH_NAMES } from '../Types'
 import type { QuickReplyAction } from '../Types/Bussines.js'
@@ -55,7 +57,7 @@ import {
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeSocket } from './socket.js'
-import { buildClearMessageModification } from '../innovatorssoft/from-chats'
+import { buildClearMessageModification } from '../addons/from-chats'
 const MAX_SYNC_ATTEMPTS = 2
 
 export const makeChatsSocket = (config: SocketConfig) => {
@@ -372,43 +374,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	const updateBlockStatus = async (jid: string, action: 'block' | 'unblock') => {
-		jid = jidNormalizedUser(jid)
-
-		let lidJid: string | null = null
-		let pnJid: string | null = null
-
-		// If PN → try resolve LID
-		if (jid.endsWith('@whatsapp.net')) {
-			pnJid = jid
-			try {
-				const lid = await signalRepository?.lidMapping?.getLIDForPN?.(jid).catch(() => null)
-				if (lid) lidJid = jidNormalizedUser(lid)
-			} catch {}
-		}
-		// If LID → resolve PN
-		if (jid.endsWith('@lid')) {
-			lidJid = jid
-			try {
-				const pn = await signalRepository?.lidMapping?.getPNForLID?.(jid).catch(() => null)
-				if (pn) pnJid = jidNormalizedUser(pn)
-			} catch {}
-		}
-
-		// jid MUST be LID
-		if (!lidJid) throw new Error('Failed to resolve LID')
-
-		const dhash = String(Date.now())
-		const itemAttrs: any = {
-			dhash,
-			action,
-			jid: lidJid // only LID
-		}
-		// pn_jid MUST be PN (only for block)
-		if (action === 'block') {
-			if (!pnJid) throw new Error('Failed to resolve PN')
-			itemAttrs.pn_jid = pnJid
-		}
-
 		await query({
 			tag: 'iq',
 			attrs: {
@@ -419,7 +384,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			content: [
 				{
 					tag: 'item',
-					attrs: itemAttrs
+					attrs: {
+						action,
+						jid
+					}
 				}
 			]
 		})
@@ -1085,13 +1053,9 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	/**
 	 * Clear a message from chat (delete for me)
-	 * Logic: innovatorssoft/from-chats.ts → buildClearMessageModification
+	 * Logic: addons/from-chats.ts → buildClearMessageModification
 	 */
-	const clearMessage = (
-		jid: string,
-		key: import('../Types').WAMessageKey,
-		timeStamp: number | import('long').default
-	) => {
+	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
 		return chatModify(buildClearMessageModification(key, timeStamp), jid)
 	}
 
