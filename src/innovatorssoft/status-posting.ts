@@ -40,7 +40,7 @@ export const STATUS_FONTS = {
 	EXOTWO: 9
 }
 
-export const generateStatusMessageId = () => `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
+export const generateStatusMessageId = () => `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
 
 export const getStatusJid = () => STATUS_BROADCAST_JID
 
