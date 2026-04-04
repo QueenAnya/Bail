@@ -41,8 +41,8 @@ import {
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
-import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../addons/message-utils'
-import { execSendStatusMentions } from '../addons/from-messages-send'
+import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../innovatorssoft/message-utils'
+import { execSendStatusMentions } from '../innovatorssoft/from-messages-send'
 import {
 	areJidsSameUser,
 	type BinaryNode,
@@ -671,8 +671,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
-			// normalizeMessageContent once — addons pattern
-			const messages = normalizeMessageContent(message) || (message as proto.IMessage)
+			// normalizeMessageContent once — innovatorssoft pattern
+			const messages = normalizeMessageContent(message) || message as proto.IMessage
 			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
@@ -701,12 +701,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
-			if (
-				messages.pinInChatMessage ||
-				messages.keepInChatMessage ||
-				messages.reactionMessage ||
-				messages.protocolMessage?.editedMessage
-			) {
+			if (messages.pinInChatMessage || messages.keepInChatMessage || messages.reactionMessage || messages.protocolMessage?.editedMessage) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
 			}
 
@@ -1043,11 +1038,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			// Inject <biz> node for button messages — addons pattern
+			// Inject <biz> node for button messages — innovatorssoft pattern
 			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
 			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
 				const buttonType = getButtonType(messages)
-				if (buttonType) {
+				if(buttonType) {
 					;(stanza.content as BinaryNode[]).push(getButtonArgs(messages))
 				}
 			}
@@ -1172,11 +1167,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		sendMessage: async (
-			jid: string,
-			content: AnyMessageContent,
-			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
-		) => {
+		sendMessage: async (jid: string, content: AnyMessageContent, options: MiscMessageGenerationOptions & { ai?: boolean } = {}) => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1193,29 +1184,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						: disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
 			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
-				// Album message — matches addons prepareAlbumMessageContent
-				const albumItems = (content as any).album as Array<{
-					image?: WAMediaUpload
-					video?: WAMediaUpload
-					caption?: string
-				}>
-				const albumMsg = generateWAMessageFromContent(
-					jid,
-					{
-						albumMessage: {
-							expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
-							expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
-						}
-					},
-					{ userJid, ...options }
-				)
+				// Album message — matches innovatorssoft prepareAlbumMessageContent
+				const albumItems = (content as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
+				const albumMsg = generateWAMessageFromContent(jid, {
+					albumMessage: {
+						expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
+						expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
+					}
+				}, { userJid, ...options })
 
 				await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
 
 				const mediaMsgs = []
-				for (const item of albumItems) {
-					const mediaContent =
-						'image' in item ? { image: item.image, ...(item as any) } : { video: (item as any).video, ...(item as any) }
+				for(const item of albumItems) {
+					const mediaContent = 'image' in item
+						? { image: item.image, ...(item as any) }
+						: { video: (item as any).video, ...(item as any) }
 
 					const mediaMsg = await generateWAMessage(jid, mediaContent as AnyMessageContent, {
 						logger,
@@ -1227,7 +1211,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						...options
 					})
 
-					if (mediaMsg.message) {
+					if(mediaMsg.message) {
 						mediaMsg.message.messageContextInfo = {
 							messageSecret: randomBytes(32),
 							messageAssociation: {
@@ -1268,10 +1252,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					upload: waUploadToServer,
 					mediaCache: config.mediaCache,
 					options: config.options,
-					messageId:
-						(content as any)?.groupStatus && !options.messageId
-							? `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
-							: generateMessageIDV2(sock.user?.id),
+					messageId: ((content as any)?.groupStatus && !options.messageId)
+						? `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
+						: generateMessageIDV2(sock.user?.id),
 					...options
 				})
 				const isEventMsg = 'event' in content && !!content.event
@@ -1327,7 +1310,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 		},
 
-		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+		// Logic lives in innovatorssoft/from-messages-send.ts → execSendStatusMentions
 		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
 			return execSendStatusMentions(content, jids, {
 				meId: authState.creds.me!.id,
@@ -1342,6 +1325,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				generateHighQualityLinkPreview,
 				httpRequestOptions
 			})
-		}
+		},
 	}
 }
