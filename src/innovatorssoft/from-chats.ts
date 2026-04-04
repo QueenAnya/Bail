@@ -16,10 +16,7 @@ import type { WAMessageKey, ChatModification } from '../Types'
  * const mod = buildClearMessageModification(key, timestamp)
  * chatModify(mod, jid)
  */
-export function buildClearMessageModification(
-	key: WAMessageKey,
-	timeStamp: number | Long
-): ChatModification {
+export function buildClearMessageModification(key: WAMessageKey, timeStamp: number | Long): ChatModification {
 	return {
 		delete: true,
 		lastMessages: [{ key, messageTimestamp: timeStamp }]
@@ -34,9 +31,7 @@ export function buildClearMessageModification(
  * const { clearMessage } = createChatHelpers(chatModify)
  * await clearMessage(jid, key, timestamp)
  */
-export function createChatHelpers(
-	chatModify: (mod: ChatModification, jid: string) => Promise<any>
-) {
+export function createChatHelpers(chatModify: (mod: ChatModification, jid: string) => Promise<any>) {
 	return {
 		clearMessage: (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
 			return chatModify(buildClearMessageModification(key, timeStamp), jid)

@@ -1087,7 +1087,11 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	 * Clear a message from chat (delete for me)
 	 * Logic: innovatorssoft/from-chats.ts → buildClearMessageModification
 	 */
-	const clearMessage = (jid: string, key: import('../Types').WAMessageKey, timeStamp: number | import('long').default) => {
+	const clearMessage = (
+		jid: string,
+		key: import('../Types').WAMessageKey,
+		timeStamp: number | import('long').default
+	) => {
 		return chatModify(buildClearMessageModification(key, timeStamp), jid)
 	}
 

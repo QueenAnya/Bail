@@ -18,16 +18,30 @@ export type CallHandlerDeps = {
 	query: (node: BinaryNode) => Promise<any>
 	sendNode: (node: BinaryNode) => Promise<void>
 	generateMessageTag: () => string
-	getUSyncDevices: (jids: string[], useCache: boolean, ignoreZeroDevices: boolean) => Promise<Array<{ user: string; device?: number }>>
+	getUSyncDevices: (
+		jids: string[],
+		useCache: boolean,
+		ignoreZeroDevices: boolean
+	) => Promise<Array<{ user: string; device?: number }>>
 	assertSessions: (jids: string[], force?: boolean) => Promise<any>
-	createParticipantNodes: (jids: string[], message: any, extraAttrs?: any) => Promise<{ nodes: BinaryNode[]; shouldIncludeDeviceIdentity: boolean }>
+	createParticipantNodes: (
+		jids: string[],
+		message: any,
+		extraAttrs?: any
+	) => Promise<{ nodes: BinaryNode[]; shouldIncludeDeviceIdentity: boolean }>
 	callOfferCache: { set: (k: string, v: any, ttl?: number) => any; del: (k: string) => any }
 }
 
 export function makeCallHandlers(deps: CallHandlerDeps) {
 	const {
-		authState, query, sendNode, generateMessageTag,
-		getUSyncDevices, assertSessions, createParticipantNodes, callOfferCache
+		authState,
+		query,
+		sendNode,
+		generateMessageTag,
+		getUSyncDevices,
+		assertSessions,
+		createParticipantNodes,
+		callOfferCache
 	} = deps
 
 	/** Reject an incoming call (WhiskeySockets) */
@@ -35,11 +49,13 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		await query({
 			tag: 'call',
 			attrs: { from: authState.creds.me!.id, to: callFrom },
-			content: [{
-				tag: 'reject',
-				attrs: { 'call-id': callId, 'call-creator': callFrom, count: '0' },
-				content: undefined
-			}]
+			content: [
+				{
+					tag: 'reject',
+					attrs: { 'call-id': callId, 'call-creator': callFrom, count: '0' },
+					content: undefined
+				}
+			]
 		})
 	}
 
@@ -48,10 +64,17 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
 		const offerContent: BinaryNode[] = []
 
-		if(isVideo) {
+		if (isVideo) {
 			offerContent.push({
 				tag: 'video',
-				attrs: { enc: 'vp8', dec: 'vp8', orientation: '0', screen_width: '1920', screen_height: '1080', device_orientation: '0' },
+				attrs: {
+					enc: 'vp8',
+					dec: 'vp8',
+					orientation: '0',
+					screen_width: '1920',
+					screen_height: '1080',
+					device_orientation: '0'
+				},
 				content: undefined
 			})
 		}
@@ -62,8 +85,8 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
 
 		const encKey = randomBytes(32)
-		const devices = (await getUSyncDevices([toJid], true, false)).map(
-			({ user, device }) => jidEncode(user, 's.whatsapp.net', device)
+		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) =>
+			jidEncode(user, 's.whatsapp.net', device)
 		)
 		await assertSessions(devices, true)
 
@@ -74,7 +97,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		)
 		offerContent.push({ tag: 'destination', attrs: {}, content: destinations })
 
-		if(shouldIncludeDeviceIdentity) {
+		if (shouldIncludeDeviceIdentity) {
 			offerContent.push({
 				tag: 'device-identity',
 				attrs: {},
@@ -85,11 +108,13 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		await query({
 			tag: 'call',
 			attrs: { id: generateMessageTag(), to: toJid },
-			content: [{
-				tag: 'offer',
-				attrs: { 'call-id': callId, 'call-creator': authState.creds.me!.id },
-				content: offerContent
-			}]
+			content: [
+				{
+					tag: 'offer',
+					attrs: { 'call-id': callId, 'call-creator': authState.creds.me!.id },
+					content: offerContent
+				}
+			]
 		})
 		return { id: callId, to: toJid }
 	}
@@ -97,7 +122,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 	/** Initiate an outgoing call — calls offerCall, caches state (PR #2375 + innovatorssoft) */
 	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
 		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated')
+		if (!meId) throw new Boom('Not authenticated')
 
 		const isVideo = !!options.isVideo
 		const isGroup = isJidGroup(jid)
@@ -105,9 +130,15 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		const callId = result.id
 
 		await callOfferCache.set(callId, {
-			chatId: jid, from: meId, id: callId,
-			date: new Date(), offline: false, status: 'offer',
-			isVideo, isGroup, groupJid: isGroup ? jid : undefined
+			chatId: jid,
+			from: meId,
+			id: callId,
+			date: new Date(),
+			offline: false,
+			status: 'offer',
+			isVideo,
+			isGroup,
+			groupJid: isGroup ? jid : undefined
 		} as WACallEvent)
 
 		return { callId, to: jid, isVideo }
@@ -115,14 +146,18 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 
 	/** Terminate/hang up an active or ringing call (innovatorssoft) */
 	const terminateCall = async (
-		callId: string, callTo: string, callCreator?: string, reason?: string, duration?: number
+		callId: string,
+		callTo: string,
+		callCreator?: string,
+		reason?: string,
+		duration?: number
 	) => {
 		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
 
 		const attrs: Record<string, string> = { 'call-id': callId, 'call-creator': callCreator || meId }
-		if(reason) attrs.reason = reason
-		if(typeof duration === 'number') {
+		if (reason) attrs.reason = reason
+		if (typeof duration === 'number') {
 			attrs.duration = String(duration)
 			attrs.audio_duration = String(duration)
 		}
@@ -141,12 +176,10 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 	/** Accept (answer) an incoming call (innovatorssoft) */
 	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
 		const meId = authState.creds.me?.id
-		if(!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
 
-		const content: BinaryNode[] = [
-			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
-		]
-		if(isVideo) content.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
+		const content: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }]
+		if (isVideo) content.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
 		content.push(
 			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
 			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
@@ -160,10 +193,8 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 
 	/** Send preaccept signal (codec capabilities) for an incoming call (innovatorssoft) */
 	const preacceptCall = async (callId: string, callCreator: string, isVideo?: boolean) => {
-		const content: BinaryNode[] = [
-			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }
-		]
-		if(isVideo) {
+		const content: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }]
+		if (isVideo) {
 			content.push({
 				tag: 'video',
 				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' },
@@ -189,47 +220,80 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		transactionId?: string
 	) => {
 		const attrs: Record<string, string> = { 'call-id': callId, 'call-creator': callCreator }
-		if(transactionId) attrs['transaction-id'] = transactionId
+		if (transactionId) attrs['transaction-id'] = transactionId
 
 		await sendNode({
 			tag: 'call',
 			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{ tag: 'relaylatency', attrs, content: relays.map(r => {
-				const a: Record<string, string> = {}
-				if(r.relayName) a.relay_name = r.relayName
-				a.latency = String(r.latency)
-				if(r.relayId) a.relay_id = r.relayId
-				if(r.dlBw !== undefined) a.dl_bw = String(r.dlBw)
-				if(r.ulBw !== undefined) a.ul_bw = String(r.ulBw)
-				return { tag: 'te', attrs: a, content: undefined }
-			})}]
+			content: [
+				{
+					tag: 'relaylatency',
+					attrs,
+					content: relays.map(r => {
+						const a: Record<string, string> = {}
+						if (r.relayName) a.relay_name = r.relayName
+						a.latency = String(r.latency)
+						if (r.relayId) a.relay_id = r.relayId
+						if (r.dlBw !== undefined) a.dl_bw = String(r.dlBw)
+						if (r.ulBw !== undefined) a.ul_bw = String(r.ulBw)
+						return { tag: 'te', attrs: a, content: undefined }
+					})
+				}
+			]
 		})
 	}
 
 	/** Send ICE transport candidates (innovatorssoft) */
 	const sendTransport = async (
-		callId: string, callCreator: string, to: string,
-		candidates: Array<{ priority: string; data: Uint8Array }>, round?: number
+		callId: string,
+		callCreator: string,
+		to: string,
+		candidates: Array<{ priority: string; data: Uint8Array }>,
+		round?: number
 	) => {
 		const attrs: Record<string, string> = {
-			'call-id': callId, 'call-creator': callCreator, 'transport-message-type': '1'
+			'call-id': callId,
+			'call-creator': callCreator,
+			'transport-message-type': '1'
 		}
-		if(round !== undefined) attrs['p2p-cand-round'] = String(round)
+		if (round !== undefined) attrs['p2p-cand-round'] = String(round)
 		await sendNode({
 			tag: 'call',
 			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{ tag: 'transport', attrs, content: candidates.map(c => ({ tag: 'te', attrs: { priority: c.priority }, content: c.data })) }]
+			content: [
+				{
+					tag: 'transport',
+					attrs,
+					content: candidates.map(c => ({ tag: 'te', attrs: { priority: c.priority }, content: c.data }))
+				}
+			]
 		})
 	}
 
 	/** Send call duration log after a call ends (innovatorssoft) */
 	const sendCallDuration = async (
-		callId: string, callCreator: string, peer: string, audioDuration: number, callType = '1x1'
+		callId: string,
+		callCreator: string,
+		peer: string,
+		audioDuration: number,
+		callType = '1x1'
 	) => {
 		await sendNode({
 			tag: 'call',
 			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{ tag: 'duration', attrs: { 'call-id': callId, 'call-creator': callCreator, peer, audio_duration: String(audioDuration), type: callType }, content: undefined }]
+			content: [
+				{
+					tag: 'duration',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						peer,
+						audio_duration: String(audioDuration),
+						type: callType
+					},
+					content: undefined
+				}
+			]
 		})
 	}
 
@@ -238,7 +302,13 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		await sendNode({
 			tag: 'call',
 			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{ tag: 'mute_v2', attrs: { 'mute-state': muted ? '1' : '0', 'call-id': callId, 'call-creator': callCreator }, content: undefined }]
+			content: [
+				{
+					tag: 'mute_v2',
+					attrs: { 'mute-state': muted ? '1' : '0', 'call-id': callId, 'call-creator': callCreator },
+					content: undefined
+				}
+			]
 		})
 	}
 
@@ -256,25 +326,42 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		await sendNode({
 			tag: 'call',
 			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{
-				tag: 'enc_rekey',
-				attrs: { 'transaction-id': transactionId, 'call-id': callId, 'call-creator': callCreator },
-				content: [
-					{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
-					{ tag: 'enc', attrs: { v: '2', type: 'msg' }, content: undefined }
-				]
-			}]
+			content: [
+				{
+					tag: 'enc_rekey',
+					attrs: { 'transaction-id': transactionId, 'call-id': callId, 'call-creator': callCreator },
+					content: [
+						{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
+						{ tag: 'enc', attrs: { v: '2', type: 'msg' }, content: undefined }
+					]
+				}
+			]
 		})
 	}
 
 	/** Send video state change during a call (innovatorssoft) */
 	const sendVideoState = async (
-		callId: string, callCreator: string, to: string, enabled: boolean, orientation = '1'
+		callId: string,
+		callCreator: string,
+		to: string,
+		enabled: boolean,
+		orientation = '1'
 	) => {
 		await sendNode({
 			tag: 'call',
 			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
-			content: [{ tag: 'video', attrs: { 'call-id': callId, 'call-creator': callCreator, state: enabled ? '1' : '0', device_orientation: orientation }, content: undefined }]
+			content: [
+				{
+					tag: 'video',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						state: enabled ? '1' : '0',
+						device_orientation: orientation
+					},
+					content: undefined
+				}
+			]
 		})
 	}
 
@@ -294,7 +381,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
 			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
 		]
-		if(media === 'video') {
+		if (media === 'video') {
 			content.splice(1, 0, {
 				tag: 'video',
 				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' },
@@ -309,9 +396,21 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 	}
 
 	return {
-		rejectCall, offerCall, initiateCall, terminateCall, cancelCall,
-		acceptCall, preacceptCall, sendRelayLatency, sendTransport,
-		sendCallDuration, muteCall, sendHeartbeat, sendEncRekey,
-		sendVideoState, queryCallLink, joinCallLink
+		rejectCall,
+		offerCall,
+		initiateCall,
+		terminateCall,
+		cancelCall,
+		acceptCall,
+		preacceptCall,
+		sendRelayLatency,
+		sendTransport,
+		sendCallDuration,
+		muteCall,
+		sendHeartbeat,
+		sendEncRekey,
+		sendVideoState,
+		queryCallLink,
+		joinCallLink
 	}
 }
