@@ -1053,22 +1053,6 @@ export const generateWAMessageContent = async (
 		}
 	}
 
-	// ── iOS compatibility: match fork's patchMessageForMdIfRequired exactly ───
-	// buttonsMessage, templateMessage, listMessage, interactiveMessage → viewOnceMessageV2Extension
-	if (m.buttonsMessage || m.templateMessage || m.listMessage || m.interactiveMessage) {
-		m = {
-			viewOnceMessageV2Extension: {
-				message: {
-					messageContextInfo: {
-						deviceListMetadataVersion: 2,
-						deviceListMetadata: {}
-					},
-					...m
-				}
-			}
-		}
-	}
-
 	if (
 		(hasOptionalProperty(message, 'mentions') && message.mentions?.length) ||
 		(hasOptionalProperty(message, 'mentionAll') && message.mentionAll)
