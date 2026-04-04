@@ -23,7 +23,7 @@ export const Browsers: BrowsersMap = {
 	windows: browser => ['Windows', browser, '10.0.22631'],
 	/** The appropriate browser based on your OS & release */
 	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()],
-	/** Pose as an iOS device (matches addons default) */
+	/** Pose as an iOS device (matches innovatorssoft default) */
 	iOS: browser => ['iOS', browser, '18.2'],
 	/** Pose as an Android device */
 	android: browser => ['Android', browser, '15.0']

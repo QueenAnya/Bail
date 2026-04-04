@@ -185,20 +185,22 @@ import makeWASocket from '@whiskeysockets/baileys'
 - [Auto-Reply System](#auto-reply-system)
 - [Message Scheduler](#message-scheduler)
 - [Interactive Messages](#interactive-messages)
+  - [⚠️ Business Account Requirement](#️-business-account-requirement)
+  - [Helper Functions (Recommended)](#helper-functions-recommended)
   - [Buttons Message](#buttons-message)
-  - [Template Buttons Message](#template-buttons-message)
-  - [Interactive Buttons Message](#interactive-buttons-message)
-  - [List Message](#list-message)
-  - [Product List Message](#product-list-message)
-  - [Shop Message](#shop-message)
-  - [Collection Message](#collection-message)
-  - [Cards / Carousel Message](#cards--carousel-message)
+  - [Buttons List Message](#buttons-list-message)
+  - [Buttons Product List Message](#buttons-product-list-message)
+  - [Buttons Cards / Carousel Message](#buttons-cards--carousel-message)
+  - [Buttons Interactive Message](#buttons-interactive-message)
+  - [Buttons Interactive Message PIX](#buttons-interactive-message-pix)
+  - [Buttons Interactive Message PAY](#buttons-interactive-message-pay)
   - [Album Message](#album-message)
-- [Status Mentions](#status-mentions)
+  - [AI Icon Feature](#ai-icon-feature)
+- [Status Mentions Message](#status-mentions-message)
 - [Call Functions](#call-functions)
   - [Reject Call](#reject-call-1)
   - [Initiate Call](#initiate-call)
-  - [Accept / Terminate Call](#accept--terminate-call)
+  - [Accept / Terminate / Mute](#accept--terminate--mute)
 - [Single File Auth State](#single-file-auth-state)
 - [Contact Cards (vCard)](#contact-cards-vcard)
 - [JID Utilities](#jid-utilities)
@@ -483,8 +485,8 @@ The store also provides some simple functions such as `loadMessages` that utiliz
 
 - `id` is the WhatsApp ID, called `jid` too, of the person or group you're sending the message to.
   - It must be in the format `[country code][phone number]@s.whatsapp.net`
-    - Example for people: `+19999999999@s.whatsapp.net`.
-    - For groups, it must be in the format `123456789-123345@g.us`.
+    - Example for people: `<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8ca7bdb5b5b5b5b5b5b5b5b5b5ccffa2fbe4edf8ffedfcfca2e2e9f8">[email&#160;protected]</a>`.
+    - For groups, it must be in the format `<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f1c0c3c2c5c4c7c6c9c8dcc0c3c2c2c5c4b196df8482">[email&#160;protected]</a>`.
   - For broadcast lists, it's `[timestamp of creation]@broadcast`.
   - For stories, the ID is `status@broadcast`.
 
@@ -530,7 +532,9 @@ await sock.sendMessage(jid, { text: 'hello word' }, { quoted: message })
 ```ts
 await sock.sendMessage(jid, {
 	text: '@12345678901',
-	mentions: ['12345678901@s.whatsapp.net']
+	mentions: [
+		'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="af9e9d9c9b9a999897969f9eefdc81d8c7cedbdccedfdf81c1cadb">[email&#160;protected]</a>'
+	]
 })
 ```
 
@@ -679,7 +683,6 @@ await sock.sendMessage(id, {
 #### Audio Message
 
 - To audio message work in all devices you need to convert with some tool like `ffmpeg` with this flags:
-
   ```bash
       codec: libopus //ogg file
       ac: 1 //one channel
@@ -688,7 +691,6 @@ await sock.sendMessage(id, {
   ```
 
   - Example:
-
   ```bash
   ffmpeg -i input.mp4 -avoid_negative_ts make_zero -ac 1 output.ogg
   ```
@@ -1069,7 +1071,10 @@ await sock.removeProfilePicture(jid)
 
 ```ts
 // title & participants
-const group = await sock.groupCreate('My Fab Group', ['1234@s.whatsapp.net', '4564@s.whatsapp.net'])
+const group = await sock.groupCreate('My Fab Group', [
+	'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bd8c8f8e89fdce93cad5dcc9cedccdcd93d3d8c9">[email&#160;protected]</a>',
+	'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="714544474531025f06191005021001015f1f1405">[email&#160;protected]</a>'
+])
 console.log('created group with id: ' + group.gid)
 await sock.sendMessage(group.id, { text: 'hello there' }) // say hello to everyone on the group
 ```
@@ -1080,7 +1085,10 @@ await sock.sendMessage(group.id, { text: 'hello there' }) // say hello to everyo
 // id & people to add to the group (will throw error if it fails)
 await sock.groupParticipantsUpdate(
 	jid,
-	['abcd@s.whatsapp.net', 'efgh@s.whatsapp.net'],
+	[
+		'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="553437363115267b223d3421263425257b3b3021">[email&#160;protected]</a>',
+		'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="503536373810237e27383124233120207e3e3524">[email&#160;protected]</a>'
+	],
 	'add' // replace this parameter with 'remove' or 'demote' or 'promote'
 )
 ```
@@ -1175,7 +1183,10 @@ console.log(response)
 ```ts
 const response = await sock.groupRequestParticipantsUpdate(
 	jid, // group id
-	['abcd@s.whatsapp.net', 'efgh@s.whatsapp.net'],
+	[
+		'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6b7b4b5b296a5f8a1beb7a2a5b7a6a6f8b8b3a2">[email&#160;protected]</a>',
+		'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d7b2b1b0bf97a4f9a0bfb6a3a4b6a7a7f9b9b2a3">[email&#160;protected]</a>'
+	],
 	'approve' // or 'reject'
 )
 console.log(response)
@@ -1410,7 +1421,7 @@ sock.ws.on('CB:edge_routing,id:abcd,routing_info', (node: BinaryNode) => {})
 
 # iOS & Android Support
 
-By default this patched version uses an iOS browser identity (same as innovatorssoft). You can switch to Android if needed:
+By default this patched version uses an iOS browser identity. You can switch at socket creation:
 
 ```ts
 import makeWASocket, { Browsers } from 'baileys'
@@ -1433,10 +1444,10 @@ const sock = makeWASocket({
 
 # Anti-Delete System
 
-Stores incoming messages in memory and recovers them when a sender deletes them.
+Stores incoming messages in memory and recovers the original content when a sender deletes them.
 
 ```ts
-import { MessageStore, createMessageStoreHandler, createAntiDeleteHandler, isDeleteMessage } from 'baileys'
+import { MessageStore, createMessageStoreHandler, createAntiDeleteHandler } from 'baileys'
 
 const store = new MessageStore({
 	maxMessagesPerChat: 1000, // max messages per chat (default: 1000)
@@ -1444,16 +1455,16 @@ const store = new MessageStore({
 	cleanupInterval: 60 * 60 * 1000 // cleanup every 1h (default)
 })
 
-// Store every incoming message
+// 1. Store every incoming message automatically
 sock.ev.on('messages.upsert', createMessageStoreHandler(store))
 
-// Detect and recover deleted messages
+// 2. Detect and recover deleted messages
 sock.ev.on('messages.update', updates => {
 	const deleted = createAntiDeleteHandler(store)(updates)
 	for (const info of deleted) {
-		console.log('Message was deleted:', info.originalMessage)
+		console.log('Deleted message:', info.originalMessage)
 		console.log('Deleted by:', info.deletedBy)
-		console.log('Deleted at:', new Date(info.deletedAt))
+		console.log('Revoked by sender:', info.isRevokedBySender)
 	}
 })
 
@@ -1464,7 +1475,7 @@ const original = store.getOriginalMessage(key)
 console.log(store.getStats())
 // { totalChats: 5, totalMessages: 120, totalDeleted: 3 }
 
-// Stop cleanup timer when done
+// Stop cleanup timer when shutting down
 store.stopCleanup()
 ```
 
@@ -1472,7 +1483,7 @@ store.stopCleanup()
 
 # Auto-Reply System
 
-Rule-based automatic reply system with cooldowns, typing simulation, and JID filtering.
+Rule-based automatic reply with cooldowns, typing simulation, and JID filtering.
 
 ```ts
 import { createAutoReply } from 'baileys'
@@ -1481,33 +1492,33 @@ const autoReply = createAutoReply(
 	(jid, content, options) => sock.sendMessage(jid, content, options),
 	(jid, presence) => sock.sendPresenceUpdate(presence as any, jid),
 	{
-		globalCooldown: 1000, // ms between any reply to same JID
+		globalCooldown: 1000, // ms between replies to same JID
 		simulateTyping: true, // show typing indicator before reply
-		typingDuration: 1500, // ms to show typing
+		typingDuration: 1500,
 		multiMatch: false // stop at first matching rule
 	}
 )
 
-// Add a keyword rule
+// Keyword rule
 autoReply.addRule({
-	keywords: ['hello', 'hi'],
-	response: { text: 'Hello! How can I help?' },
-	cooldown: 5000, // 5s cooldown per JID
+	keywords: ['hello', 'hi', 'hey'],
+	response: { text: 'Hello! How can I help? 👋' },
+	cooldown: 5000,
 	priority: 10,
-	quoted: true // quote the original message
+	quoted: true
 })
 
-// Add an exact match rule
+// Exact match rule
 autoReply.addRule({
 	exactMatch: '!ping',
 	response: { text: 'pong 🏓' },
-	privateOnly: true // only in private chats
+	privateOnly: true
 })
 
-// Add a regex rule
+// Regex rule with dynamic response
 autoReply.addRule({
 	pattern: /order\s*#?(\d+)/i,
-	response: async (msg, match) => ({ text: `Looking up order ${match[1]}...` }),
+	response: async (msg, match) => ({ text: `Looking up order #${match[1]}...` }),
 	groupsOnly: true,
 	allowedJids: ['1234567890@g.us']
 })
@@ -1519,11 +1530,11 @@ sock.ev.on('messages.upsert', async ({ messages }) => {
 	}
 })
 
-// Manage rules
-const rule = autoReply.addRule({ keywords: ['bye'], response: { text: 'Goodbye!' } })
-autoReply.setRuleActive(rule.id, false) // disable
-autoReply.removeRule(rule.id) // remove
-autoReply.clearRules() // remove all
+// Manage rules at runtime
+const rule = autoReply.addRule({ keywords: ['bye'], response: { text: 'Goodbye! 👋' } })
+autoReply.setRuleActive(rule.id, false) // disable temporarily
+autoReply.removeRule(rule.id) // remove permanently
+autoReply.clearRules() // remove all rules
 ```
 
 ---
@@ -1537,9 +1548,9 @@ import { createMessageScheduler } from 'baileys'
 
 const scheduler = createMessageScheduler((jid, content) => sock.sendMessage(jid, content), {
 	maxQueue: 1000,
-	checkInterval: 1000, // check every 1s
-	onSent: (scheduled, msg) => console.log('Sent:', scheduled.id),
-	onFailed: (scheduled, err) => console.error('Failed:', err.message)
+	checkInterval: 1000,
+	onSent: item => console.log('Sent:', item.id),
+	onFailed: (item, err) => console.error('Failed:', err.message)
 })
 
 // Schedule at a specific time
@@ -1550,19 +1561,11 @@ const item = scheduler.schedule(
 )
 
 // Schedule after a delay (ms)
-scheduler.scheduleDelay('1234567890@s.whatsapp.net', { text: 'Reminder after 10 minutes' }, 10 * 60 * 1000)
+scheduler.scheduleDelay('1234567890@s.whatsapp.net', { text: 'Reminder: meeting in 10 minutes!' }, 10 * 60 * 1000)
 
-// Cancel a scheduled message
-scheduler.cancel(item.id)
-
-// Cancel all messages to a JID
-scheduler.cancelForJid('1234567890@s.whatsapp.net')
-
-// List pending
-const pending = scheduler.getPending()
-console.log(`${pending.length} messages scheduled`)
-
-// Stop the scheduler
+scheduler.cancel(item.id) // cancel one
+scheduler.cancelForJid('1234567890@s.whatsapp.net') // cancel all for JID
+console.log(`${scheduler.getPending().length} pending`)
 scheduler.stop()
 ```
 
@@ -1570,157 +1573,414 @@ scheduler.stop()
 
 # Interactive Messages
 
+## ⚠️ Business Account Requirement
+
+> [!IMPORTANT]
+> **`interactiveButtons`, list via `generateInteractiveListMessage`, `cards`, `shop`, `collection`, and `productList` all require a WhatsApp Business account.**
+> They will be silently dropped by WhatsApp servers if sent from a regular account.
+>
+> The following work on **any account** (regular or business):
+>
+> - `album` — album of images/videos
+> - `buttons` — classic 3-button message _(may not render on newer WhatsApp versions)_
+> - `sections` — classic list message _(may not render on newer WhatsApp versions)_
+>
+> For modern interactive messages on both iOS and Android, use the **Helper Functions** below with a Business account.
+
+---
+
+## Helper Functions (Recommended)
+
+These helper functions generate properly formatted native-flow messages that work on both iOS and Android. **Requires Business account.**
+
+```ts
+import {
+	generateQuickReplyButtons,
+	generateUrlButtonMessage,
+	generateCopyCodeButton,
+	generateCombinedButtons,
+	generateInteractiveListMessage,
+	generateInteractiveButtonMessage
+} from 'baileys'
+
+// Quick Reply Buttons
+const quickButtons = generateQuickReplyButtons(
+	'Please select an option below:',
+	[
+		{ id: 'btn-1', displayText: '✅ Accept' },
+		{ id: 'btn-2', displayText: '❌ Reject' },
+		{ id: 'btn-3', displayText: '📞 Contact Support' }
+	],
+	{ footer: 'Powered by Baileys' }
+)
+await sock.sendMessage(jid, quickButtons)
+
+// URL Button
+const urlButton = generateUrlButtonMessage(
+	'Visit our website for more info',
+	[{ displayText: '🌐 Open Website', url: 'https://example.com' }],
+	{ title: 'Product Info', footer: 'Click to open' }
+)
+await sock.sendMessage(jid, urlButton)
+
+// Copy Code Button (OTP, promo codes, etc.)
+const copyButton = generateCopyCodeButton('Your OTP Code is:', '123456', '📋 Copy Code')
+await sock.sendMessage(jid, copyButton)
+
+// Combined Buttons (mix of URL, reply, copy, call)
+const combinedButtons = generateCombinedButtons(
+	'Choose an action:',
+	[
+		{ type: 'reply', displayText: '🛒 Order Now', id: 'order' },
+		{ type: 'url', displayText: '🌐 Website', url: 'https://example.com' },
+		{ type: 'call', displayText: '📞 Call Us', phoneNumber: '+6281234567890' },
+		{ type: 'copy', displayText: '📋 Copy Promo', copyCode: 'PROMO2024' }
+	],
+	{ title: 'Main Menu', footer: 'Baileys' }
+)
+await sock.sendMessage(jid, combinedButtons)
+
+// Interactive List Message
+const listMessage = generateInteractiveListMessage({
+	title: '📋 Product Menu',
+	buttonText: 'View Menu',
+	description: 'Please select a product',
+	footer: 'Powered by Baileys',
+	sections: [
+		{
+			title: 'Food',
+			rows: [
+				{ rowId: 'fried-rice', title: 'Fried Rice', description: '$2.50' },
+				{ rowId: 'fried-noodles', title: 'Fried Noodles', description: '$2.00' }
+			]
+		},
+		{
+			title: 'Beverages',
+			rows: [
+				{ rowId: 'ice-tea', title: 'Ice Tea', description: '$0.50' },
+				{ rowId: 'coffee', title: 'Coffee', description: '$1.00' }
+			]
+		}
+	]
+})
+await sock.sendMessage(jid, listMessage)
+```
+
+---
+
 ## Buttons Message
 
+> Classic 3-button message. May not render on newer WhatsApp versions.
+
 ```ts
 await sock.sendMessage(jid, {
-	text: 'Choose an option:',
+	text: 'This is a button message!',
+	footer: 'Hello World!',
 	buttons: [
-		{ buttonId: 'btn1', buttonText: { displayText: 'Option 1' } },
-		{ buttonId: 'btn2', buttonText: { displayText: 'Option 2' } },
-		{ buttonId: 'btn3', buttonText: { displayText: 'Option 3' } }
-	],
-	footer: 'footer text'
-})
-```
-
-## Template Buttons Message
-
-```ts
-import { proto } from 'baileys'
-
-await sock.sendMessage(jid, {
-	text: 'Template message',
-	templateButtons: [
-		{ quickReplyButton: { displayText: 'Quick Reply', id: 'qr1' } },
-		{ urlButton: { displayText: 'Visit Website', url: 'https://example.com' } },
-		{ callButton: { displayText: 'Call Us', phoneNumber: '+1234567890' } }
-	],
-	footer: 'footer text'
-})
-```
-
-## Interactive Buttons Message
-
-Works on both iOS and Android:
-
-```ts
-await sock.sendMessage(jid, {
-	text: 'Pick one:',
-	interactiveButtons: [
-		{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Yes', id: 'yes' }) },
-		{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'No', id: 'no' }) }
-	],
-	footer: 'footer text'
+		{ buttonId: 'Id1', buttonText: { displayText: 'Button 1' } },
+		{ buttonId: 'Id2', buttonText: { displayText: 'Button 2' } },
+		{ buttonId: 'Id3', buttonText: { displayText: 'Button 3' } }
+	]
 })
 
 // With image header
 await sock.sendMessage(jid, {
 	image: { url: 'https://example.com/image.jpg' },
-	caption: 'Check this out',
-	interactiveButtons: [
-		{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Buy Now', id: 'buy' }) }
+	caption: 'caption',
+	footer: 'Hello World!',
+	buttons: [
+		{ buttonId: 'yes', buttonText: { displayText: '✅ Yes' } },
+		{ buttonId: 'no', buttonText: { displayText: '❌ No' } }
 	]
 })
 ```
 
-## List Message
+---
+
+## Buttons List Message
+
+> Works only in private chat. May not render on newer WhatsApp versions.
 
 ```ts
 await sock.sendMessage(jid, {
-	text: 'Here are your options',
+	text: 'This is a list!',
+	footer: 'Hello World!',
+	title: 'Amazing boldfaced list title',
+	buttonText: 'Required, text on the button to view the list',
 	sections: [
 		{
 			title: 'Section 1',
 			rows: [
-				{ title: 'Option 1', rowId: 'opt1', description: 'Description 1' },
-				{ title: 'Option 2', rowId: 'opt2', description: 'Description 2' }
+				{ title: 'Option 1', rowId: 'option1' },
+				{ title: 'Option 2', rowId: 'option2', description: 'This is a description' }
 			]
 		},
 		{
 			title: 'Section 2',
-			rows: [{ title: 'Option 3', rowId: 'opt3' }]
+			rows: [
+				{ title: 'Option 3', rowId: 'option3' },
+				{ title: 'Option 4', rowId: 'option4', description: 'This is a description V2' }
+			]
 		}
-	],
-	buttonText: 'Tap to choose',
-	title: 'Menu',
-	footer: 'footer text'
+	]
 })
 ```
 
-## Product List Message
+---
+
+## Buttons Product List Message
+
+> Works only in private chat. **Requires Business account.**
 
 ```ts
 await sock.sendMessage(jid, {
-	text: 'Our products',
+	text: 'This is a list!',
+	footer: 'Hello World!',
+	title: 'Amazing boldfaced list title',
+	buttonText: 'Required, text on the button to view the list',
 	productList: [
 		{
-			title: 'Featured',
-			products: [{ productId: 'prod_001' }, { productId: 'prod_002' }]
+			title: 'This is a title',
+			products: [{ productId: '1234' }, { productId: '5678' }]
 		}
 	],
-	title: 'Shop',
-	buttonText: 'View',
-	footer: 'Tap to browse',
-	businessOwnerJid: '1234567890@s.whatsapp.net',
-	thumbnail: { url: 'https://example.com/thumb.jpg' }
+	businessOwnerJid: '628xxx@s.whatsapp.net',
+	thumbnail: 'https://example.com/image.jpg' // or Buffer
 })
 ```
 
-## Shop Message
+---
+
+## Buttons Cards / Carousel Message
+
+> **Requires Business account.**
 
 ```ts
 await sock.sendMessage(jid, {
-	text: 'Welcome to our store',
-	shop: { surface: 1, id: 'store_id' },
-	title: 'Our Store',
-	footer: 'Browse products'
-})
-```
-
-## Collection Message
-
-```ts
-await sock.sendMessage(jid, {
-	text: 'Check our collection',
-	collection: {
-		bizJid: '1234567890@s.whatsapp.net',
-		id: 'collection_id',
-		messageVersion: 1
-	},
-	title: 'New Collection',
-	footer: 'Limited time'
-})
-```
-
-## Cards / Carousel Message
-
-```ts
-await sock.sendMessage(jid, {
-	text: 'Check out our products',
+	text: 'Body Message',
+	title: 'Title Message',
+	footer: 'Footer Message',
 	cards: [
 		{
-			image: { url: 'https://example.com/product1.jpg' },
-			title: 'Product 1',
-			body: 'Great product at a great price',
-			footer: '$19.99',
-			buttons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Buy', id: 'buy_1' }) }]
+			image: { url: 'https://example.com/image.jpg' },
+			title: 'Title Cards',
+			body: 'Body Cards',
+			footer: 'Footer Cards',
+			buttons: [
+				{
+					name: 'quick_reply',
+					buttonParamsJson: JSON.stringify({ display_text: 'Quick Reply', id: 'ID' })
+				},
+				{
+					name: 'cta_url',
+					buttonParamsJson: JSON.stringify({ display_text: 'Visit Website', url: 'https://example.com' })
+				}
+			]
 		},
 		{
-			video: { url: 'https://example.com/product2.mp4' },
-			title: 'Product 2',
-			body: 'Watch the demo',
-			footer: '$29.99',
-			buttons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Buy', id: 'buy_2' }) }]
+			video: { url: 'https://example.com/video.mp4' },
+			title: 'Title Cards',
+			body: 'Body Cards',
+			footer: 'Footer Cards',
+			buttons: [
+				{
+					name: 'quick_reply',
+					buttonParamsJson: JSON.stringify({ display_text: 'Quick Reply', id: 'ID2' })
+				}
+			]
 		}
-	],
-	footer: 'Swipe to see more'
+	]
 })
 ```
+
+---
+
+## Buttons Interactive Message
+
+> **Requires Business account.** Works on both iOS and Android.
+
+```ts
+// Text body
+await sock.sendMessage(jid, {
+	text: 'This is an Interactive message!',
+	title: 'Title',
+	subtitle: 'Subtitle',
+	footer: 'Hello World!',
+	interactiveButtons: [
+		{
+			name: 'quick_reply',
+			buttonParamsJson: JSON.stringify({ display_text: 'Click Me!', id: 'your_id' })
+		},
+		{
+			name: 'cta_url',
+			buttonParamsJson: JSON.stringify({
+				display_text: 'Follow Me',
+				url: 'https://whatsapp.com/channel/0029Vag9VSI2ZjCocqa2lB1y',
+				merchant_url: 'https://whatsapp.com/channel/0029Vag9VSI2ZjCocqa2lB1y'
+			})
+		},
+		{
+			name: 'cta_copy',
+			buttonParamsJson: JSON.stringify({ display_text: 'Copy Code', copy_code: '1234567890' })
+		},
+		{
+			name: 'cta_call',
+			buttonParamsJson: JSON.stringify({ display_text: 'Call Me!', phone_number: '628xxx' })
+		},
+		{
+			name: 'cta_catalog',
+			buttonParamsJson: JSON.stringify({ business_phone_number: '628xxx' })
+		},
+		{
+			name: 'send_location',
+			buttonParamsJson: JSON.stringify({ display_text: 'Send Location' })
+		},
+		{
+			name: 'open_webview',
+			buttonParamsJson: JSON.stringify({
+				title: 'Open Link',
+				link: { in_app_webview: true, url: 'https://example.com' }
+			})
+		},
+		{
+			name: 'single_select',
+			buttonParamsJson: JSON.stringify({
+				title: 'Pick an option',
+				sections: [
+					{
+						title: 'Section 1',
+						highlight_label: 'New',
+						rows: [
+							{ header: 'Header 1', title: 'Title 1', description: 'Description 1', id: 'id_1' },
+							{ header: 'Header 2', title: 'Title 2', description: 'Description 2', id: 'id_2' }
+						]
+					}
+				]
+			})
+		},
+		{
+			name: 'galaxy_message',
+			buttonParamsJson: JSON.stringify({
+				mode: 'published',
+				flow_message_version: '3',
+				flow_token: 'your_flow_token',
+				flow_id: 'your_flow_id',
+				flow_cta: 'Open Flow',
+				flow_action: 'navigate',
+				flow_action_payload: {
+					screen: 'QUESTION_ONE',
+					params: { user_id: '123456789' }
+				}
+			})
+		}
+	]
+})
+
+// With image header
+await sock.sendMessage(jid, {
+	image: { url: 'https://example.com/image.jpg' },
+	caption: 'Body',
+	title: 'Title',
+	subtitle: 'Subtitle',
+	footer: 'Footer',
+	interactiveButtons: [
+		{
+			name: 'quick_reply',
+			buttonParamsJson: JSON.stringify({ display_text: 'Click Me!', id: 'ID1' })
+		}
+	],
+	hasMediaAttachment: false // or true
+})
+
+// With video header
+await sock.sendMessage(jid, {
+	video: { url: 'https://example.com/video.mp4' },
+	caption: 'Body',
+	title: 'Title',
+	subtitle: 'Subtitle',
+	footer: 'Footer',
+	interactiveButtons: [
+		{
+			name: 'quick_reply',
+			buttonParamsJson: JSON.stringify({ display_text: 'Click Me!', id: 'ID1' })
+		}
+	],
+	hasMediaAttachment: false
+})
+```
+
+---
+
+## Buttons Interactive Message PIX
+
+> **Requires Business account** with PIX payment enabled.
+
+```ts
+await sock.sendMessage(jid, {
+	text: '', // Required, even if empty
+	interactiveButtons: [
+		{
+			name: 'payment_info',
+			buttonParamsJson: JSON.stringify({
+				payment_settings: [
+					{
+						type: 'pix_static_code',
+						pix_static_code: {
+							merchant_name: 'Your Business Name',
+							key: 'email@example.com',
+							key_type: 'EMAIL' // PHONE | EMAIL | CPF | EVP
+						}
+					}
+				]
+			})
+		}
+	]
+})
+```
+
+---
+
+## Buttons Interactive Message PAY
+
+> **Requires Business account** with payment processing enabled.
+
+```ts
+await sock.sendMessage(jid, {
+	text: '', // Required, even if empty
+	interactiveButtons: [
+		{
+			name: 'review_and_pay',
+			buttonParamsJson: JSON.stringify({
+				currency: 'IDR',
+				total_amount: { value: '999999', offset: '100' },
+				reference_id: 'ORDER_45XXX',
+				type: 'physical-goods',
+				payment_method: 'confirm',
+				order: {
+					status: 'completed',
+					order_type: 'PAYMENT_REQUEST',
+					items: [
+						{
+							retailer_id: 'your_retailer_id',
+							name: 'Product Name',
+							amount: { value: '999999', offset: '100' },
+							quantity: '1'
+						}
+					]
+				},
+				native_payment_methods: [],
+				share_payment_status: false
+			})
+		}
+	]
+})
+```
+
+---
 
 ## Album Message
 
-Sends multiple images/videos as a grouped album:
+> Works on any account (no Business account required).
 
 ```ts
 await sock.sendMessage(jid, {
@@ -1734,21 +1994,67 @@ await sock.sendMessage(jid, {
 
 ---
 
-# Status Mentions
+## AI Icon Feature
 
-Send a status and notify specific contacts/groups that they were mentioned:
+Adds an AI indicator badge to the message on the receiver's screen.
 
 ```ts
-// Mention individuals
-await sock.sendStatusMentions({ text: 'Check this out!', backgroundColor: '#25D366' }, [
-	'1234567890@s.whatsapp.net',
-	'0987654321@s.whatsapp.net'
-])
+// With sendMessage
+await sock.sendMessage(jid, { text: 'Hi, I am an AI assistant!' }, { ai: true })
 
-// Mention all members of a group
-await sock.sendStatusMentions({ image: { url: 'https://example.com/photo.jpg' }, caption: 'New update!' }, [
-	'1234567890@g.us'
-])
+// With relayMessage (use capital AI)
+await sock.relayMessage(jid, { extendedTextMessage: { text: 'Hi' } }, { AI: true })
+```
+
+---
+
+# Status Mentions Message
+
+Send a status update and notify specific contacts or group members that they were mentioned.
+Limit to 5 mentions per status.
+
+```ts
+const jids = ['123451679@g.us', '62689xxxx@s.whatsapp.net', '62xxxxxxx@s.whatsapp.net']
+
+// Text status
+await sock.sendStatusMentions(
+	{
+		text: 'Hello Everyone :3',
+		font: 2, // optional
+		textColor: 'FF0000', // optional
+		backgroundColor: '#000000' // optional
+	},
+	jids
+)
+
+// Image status
+await sock.sendStatusMentions(
+	{
+		image: { url: 'https://example.com/image.jpg' }, // or Buffer
+		caption: 'Hello Everyone :3' // optional
+	},
+	jids
+)
+
+// Video status
+await sock.sendStatusMentions(
+	{
+		video: { url: 'https://example.com/video.mp4' }, // or Buffer
+		caption: 'Hello Everyone :3' // optional
+	},
+	jids
+)
+
+// Audio status
+await sock.sendStatusMentions(
+	{
+		audio: { url: 'https://example.com/audio.mp3' }, // or Buffer
+		backgroundColor: '#000000', // optional
+		mimetype: 'audio/mp4',
+		ptt: true
+	},
+	jids
+)
 ```
 
 ---
@@ -1778,33 +2084,42 @@ console.log('Call ID:', result.callId)
 const result = await sock.initiateCall('1234567890@s.whatsapp.net', { isVideo: true })
 ```
 
-## Accept / Terminate Call
+## Accept / Terminate / Mute
 
 ```ts
 // Accept an incoming call
 await sock.acceptCall(call.id, call.from, call.isVideo)
 
-// Hang up / terminate
+// Send preaccept signal first (recommended before accept)
+await sock.preacceptCall(call.id, call.from, call.isVideo)
+
+// Terminate / hang up
 await sock.terminateCall(call.id, call.from)
 
-// Cancel an outgoing call
+// Cancel an outgoing call before it's answered
 await sock.cancelCall(callId, toJid)
 
-// Mute/unmute during a call
+// Mute / unmute during a call
 await sock.muteCall(call.id, call.from, toJid, true) // mute
 await sock.muteCall(call.id, call.from, toJid, false) // unmute
+
+// Query a call link before joining
+const info = await sock.queryCallLink(token, 'video')
+
+// Join a call via link
+await sock.joinCallLink(token, 'video')
 ```
 
 ---
 
 # Single File Auth State
 
-Alternative to `useMultiFileAuthState` — stores everything in a single JSON file:
+Store all auth credentials in a single JSON file instead of a folder of files:
 
 ```ts
 import { useSingleFileAuthState } from 'baileys'
 
-const { state, saveCreds } = await useSingleFileAuthState('./auth.json')
+const { state, saveCreds } = await useSingleFileAuthState('./baileys-auth.json')
 
 const sock = makeWASocket({ auth: state })
 sock.ev.on('creds.update', saveCreds)
@@ -1817,7 +2132,7 @@ sock.ev.on('creds.update', saveCreds)
 Generate and send vCard contact messages:
 
 ```ts
-import { generateVCard, createContactCard, createContactCards, quickContact } from 'baileys'
+import { createContactCard, createContactCards, quickContact, generateVCard, parseVCard } from 'baileys'
 
 // Single contact
 await sock.sendMessage(
@@ -1826,7 +2141,8 @@ await sock.sendMessage(
 		fullName: 'John Doe',
 		phones: [{ number: '+1234567890', type: 'CELL' }],
 		emails: [{ email: 'john@example.com', type: 'WORK' }],
-		organization: 'Acme Corp'
+		organization: 'Acme Corp',
+		title: 'Software Engineer'
 	})
 )
 
@@ -1845,9 +2161,13 @@ await sock.sendMessage(jid, createContactCard(quickContact('Jane Smith', '+98765
 // Generate raw vCard string
 const vcard = generateVCard({
 	fullName: 'John Doe',
-	phones: [{ number: '+1234567890' }]
+	phones: [{ number: '+1234567890' }],
+	birthday: '1990-05-15',
+	note: 'Met at conference'
 })
-console.log(vcard)
+
+// Parse a vCard back to an object
+const contact = parseVCard(vcard)
 ```
 
 ---
@@ -1855,13 +2175,22 @@ console.log(vcard)
 # JID Utilities
 
 ```ts
-import { parseJid, plotJid, isSelf, getSenderPn, normalizePhoneToJid } from 'baileys'
+import {
+	parseJid,
+	isSelf,
+	getSenderPn,
+	normalizePhoneToJid,
+	extractPhoneNumber,
+	isSameUser,
+	getJidVariants,
+	plotJid
+} from 'baileys'
 
 // Parse a JID into its components
-const info = parseJid('1234567890@s.whatsapp.net')
+const info = parseJid('1234567890:5@s.whatsapp.net')
 // { user, server, device, isLid, isPn, isGroup, isNewsletter, normalizedUser }
 
-// Check if a JID is the connected account
+// Check if a JID belongs to the connected account
 const senderInfo = getSenderPn(sock.authState.creds)
 console.log(isSelf('1234567890@s.whatsapp.net', senderInfo)) // true/false
 
@@ -1869,7 +2198,18 @@ console.log(isSelf('1234567890@s.whatsapp.net', senderInfo)) // true/false
 const jid = normalizePhoneToJid('+1234567890')
 // → '1234567890@s.whatsapp.net'
 
-// Plot a JID to its canonical form (resolves LID ↔ PN)
+// Extract phone number from JID
+const phone = extractPhoneNumber('1234567890@s.whatsapp.net')
+// → '1234567890'
+
+// Check if two JIDs are the same user (ignores device suffix)
+console.log(isSameUser('1234567890:0@s.whatsapp.net', '1234567890:1@s.whatsapp.net')) // true
+
+// Get all JID variants for a phone number
+const variants = getJidVariants('1234567890')
+// ['1234567890@s.whatsapp.net', '1234567890:0@s.whatsapp.net', '1234567890@lid', ...]
+
+// Plot a JID to its canonical form
 const plotted = plotJid('1234567890@s.whatsapp.net')
 // { original, primary, info, pn?, lid? }
 ```
@@ -1878,67 +2218,77 @@ const plotted = plotJid('1234567890@s.whatsapp.net')
 
 # Message Search
 
-Search through a collection of messages:
+In-memory full-text and regex search across stored messages:
 
 ```ts
 import { MessageSearchManager } from 'baileys'
 
 const search = new MessageSearchManager()
 
-// Feed messages into the index
+// Index messages as they arrive
 sock.ev.on('messages.upsert', ({ messages }) => {
 	search.addMessages(messages)
 })
 
 // Full-text search
-const results = search.search('hello world', {
+const results = search.search('invoice payment', {
 	jid: '1234567890@s.whatsapp.net', // optional: limit to one chat
 	fromMe: false,
 	messageTypes: ['text'],
-	limit: 20
+	limit: 20,
+	caseSensitive: false
 })
 
+for (const r of results) {
+	console.log(r.matchedText, 'score:', r.relevanceScore)
+}
+
 // Regex search
-const results = search.searchRegex(/order\s*#\d+/i)
+const results2 = search.searchRegex(/order\s*#\d+/i, { limit: 10 })
 
-// Get all messages in a chat
-const chatMessages = search.getByJid('1234567890@s.whatsapp.net')
-
-// Get by type
+// Get by JID / type / ID
+const chatMsgs = search.getByJid('1234567890@s.whatsapp.net')
 const images = search.getByType('image')
+const msg = search.getById('ABCDEF123456')
+
+console.log(`Total indexed: ${search.count}`)
 ```
 
 ---
 
 # Templates
 
-Create reusable message templates with variable substitution:
+Reusable message templates with `{{variable}}` substitution:
 
 ```ts
 import { createTemplateManager, renderTemplate } from 'baileys'
 
-// Create manager (comes with preset templates)
+// Create manager — comes with 5 built-in presets
 const manager = createTemplateManager()
 
-// Use a preset
-const msg = manager.render('welcome', { name: 'John', companyName: 'Acme' })
-await sock.sendMessage(jid, { text: msg })
+// Use a built-in preset
+// Available: 'welcome', 'order_confirmation', 'reminder', 'support_ticket', 'birthday'
+const welcome = manager.render('welcome', { name: 'John', companyName: 'Acme Corp' })
+await sock.sendMessage(jid, { text: welcome })
 
 // Create a custom template
+// {{var}} = required, {{var:default}} = optional with default value
 const tpl = manager.create({
 	name: 'Appointment',
-	content: 'Hi {{name}}, your appointment is on {{date}} at {{time:TBD}}.',
-	category: 'reminder'
+	category: 'reminder',
+	content: 'Hi {{name}}, your appointment is on *{{date}}* at *{{time:TBD}}*.\nLocation: {{location:To be confirmed}}'
 })
 
-// Render it
-const text = manager.render(tpl.id, { name: 'Alice', date: 'Monday', time: '3 PM' })
+// Validate data before rendering
+const { valid, missing } = manager.validate(tpl.id, { name: 'Alice', date: 'Monday' })
+if (!valid) console.log('Missing variables:', missing)
+
+// Render
+const text = manager.render(tpl.id, { name: 'Alice', date: 'Monday', time: '3:00 PM' })
 await sock.sendMessage(jid, { text })
 
-// One-off render without manager
-const text2 = renderTemplate('Hello {{name}}!', { name: 'Bob' })
-
-// Available presets: 'welcome', 'order_confirmation', 'reminder', 'support_ticket', 'birthday'
+// One-off render without a manager
+const msg = renderTemplate('Hello {{name}}, your code is {{code}}!', { name: 'Bob', code: '12345' })
 ```
 
 ---
@@ -1952,14 +2302,14 @@ import { createTypingIndicator } from 'baileys'
 
 const typing = createTypingIndicator((jid, presence) => sock.sendPresenceUpdate(presence as any, jid))
 
-await typing.startTyping(jid, { duration: 3000 }) // auto-stop after 3s
-await typing.startRecording(jid) // voice note indicator
+await typing.startTyping(jid, { duration: 3000 }) // auto-stops after 3s
+await typing.startRecording(jid, { duration: 2000 }) // voice note indicator
 await typing.stopTyping(jid)
 await typing.stopAll()
 
 // Simulate typing then send
 await typing.simulateTyping(jid, 2000, async () => {
-	return sock.sendMessage(jid, { text: 'Hello!' })
+	return sock.sendMessage(jid, { text: 'Hello! 👋' })
 })
 ```
 
@@ -1969,13 +2319,19 @@ await typing.simulateTyping(jid, 2000, async () => {
 import { createReadReceiptController } from 'baileys'
 
 const readCtrl = createReadReceiptController(
-	(jid, participant, ids) => sock.readMessages([{ remoteJid: jid, id: ids[0]!, participant }]),
-	{ enabled: true, readDelay: 500, excludeJids: ['1234567890@s.whatsapp.net'] }
+	(jid, participant, ids) => sock.readMessages(ids.map(id => ({ remoteJid: jid, id, participant }))),
+	{
+		enabled: true,
+		readDelay: 500,
+		excludeJids: ['1234567890@s.whatsapp.net']
+	}
 )
 
-readCtrl.disable() // stop auto read receipts
-readCtrl.enable()
-await readCtrl.markRead(jid, participant, [messageId])
+readCtrl.disable() // pause all read receipts
+readCtrl.enable() // resume
+
+await readCtrl.markRead(jid, participant, [messageId]) // respects config
+await readCtrl.forceMarkRead(jid, participant, [messageId]) // ignores config
 ```
 
 ---
@@ -1985,22 +2341,4 @@ await readCtrl.markRead(jid, participant, [messageId])
 Copyright (c) 2025 Rajeh Taher/WhiskeySockets
 
 Licensed under the MIT License:
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-Thus, the maintainers of the project can't be held liable for any potential misuse of this project.
+Permissio
