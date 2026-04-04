@@ -718,11 +718,7 @@ export const generateWAMessageContent = async (
 	// ── buttons → buttonsMessage (iOS + Android compatible) ──────────────────
 	else if ('buttons' in message && !!message.buttons) {
 		const buttonsMessage: proto.Message.IButtonsMessage = {
-			buttons: message.buttons.map((b: any) => ({
-				buttonId: b.buttonId || b.id || `btn_${Math.random()}`,
-				buttonText: b.buttonText || { displayText: b.displayText || b.text || '' },
-				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
-			}))
+			buttons: message.buttons.map((b: any) => ({ ...b, type: proto.Message.ButtonsMessage.Button.Type.RESPONSE }))
 		}
 
 		if ('text' in message) {
