@@ -25,6 +25,35 @@ jobs:
         with:
           version: latest
 
+      - name: Get previous version
+        id: get_previous_version
+        run: |
+          git checkout HEAD~1 package.json || true
+          PREV_VERSION=$(node -p "require('./package.json').version")
+          git checkout HEAD package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          if [ "$(printf '%s\n' "$PREV_VERSION" "$CURRENT_VERSION" | sort -V | head -n1)" != "$CURRENT_VERSION" ] && [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "version_increased=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_increased=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if version is beta
+          if [[ "$CURRENT_VERSION" == *-beta* ]]; then
+            echo "is_beta=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log version changes
+        run: |
+          echo "Previous version: ${{ steps.get_previous_version.outputs.prev_version }}"
+          echo "Current version: ${{ steps.get_previous_version.outputs.current_version }}"
+          echo "Version increased: ${{ steps.get_previous_version.outputs.version_increased }}"
+          echo "Is beta version: ${{ steps.get_previous_version.outputs.is_beta }}"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -39,7 +68,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (as `@queenanya/baileys`)
+      - name: Publish in NPM (as `@queenanya/baileys` in regular)
+        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
         run: |
           pnpm publish --access public --no-git-checks
           pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
@@ -47,10 +77,31 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
 
-      - name: Publish in NPM (teamolduser scope)
+      - name: Publish in NPM (teamolduser scope in regular)
+        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
           pnpm publish --access public --no-git-checks --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          pnpm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+
+      - name: Publish in NPM (as `@queenanya/baileys` in beta)
+        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        run: |
+          pnpm publish --access public --tag beta --no-git-checks
+          pnpm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+
+      - name: Publish in NPM (teamolduser scope in beta)
+        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        run: |
+          npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
+          pnpm publish --access public --tag beta --no-git-checks --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           pnpm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:

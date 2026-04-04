@@ -1,6 +1,6 @@
-# Baileys — addons Feature Port
+# Baileys — innovatorssoft Feature Port
 
-This patch adds all features from `@addons/baileys` into `@whiskeysockets/baileys`.
+This patch adds all features from `@innovatorssoft/baileys` into `@whiskeysockets/baileys`.
 
 ---
 
@@ -43,7 +43,7 @@ This patch adds all features from `@addons/baileys` into `@whiskeysockets/bailey
   - [Initiate Voice Call](#initiate-voice-call)
   - [Reject Call](#reject-call)
 - [AI Icon Feature](#ai-icon-feature)
-- [addons Utils](#addons-utils)
+- [innovatorssoft Utils](#innovatorssoft-utils)
   - [Anti-Delete System](#anti-delete-system)
   - [Message Scheduler](#message-scheduler)
   - [Auto-Reply System](#auto-reply-system)
@@ -790,9 +790,9 @@ await conn.sendMessage(
 
 ---
 
-## addons Utils
+## innovatorssoft Utils
 
-Import from `baileys/src/Utils/addons`:
+Import from `baileys/src/Utils/innovatorssoft`:
 
 ```ts
 import {
@@ -838,7 +838,7 @@ import {
 	plotJid,
 	normalizePhoneToJid,
 	createJidPlotter
-} from 'baileys/src/Utils/addons'
+} from 'baileys/src/Utils/innovatorssoft'
 ```
 
 ### Anti-Delete System
@@ -995,7 +995,7 @@ const groupMsgs = search.getByJid('group@g.us')
 ### vCard Helpers
 
 ```ts
-import { generateVCard, createContactCard, createContactCards, quickContact } from 'baileys/src/Utils/addons'
+import { generateVCard, createContactCard, createContactCards, quickContact } from 'baileys/src/Utils/innovatorssoft'
 
 // Generate vCard string
 const vcard = generateVCard({
@@ -1031,7 +1031,7 @@ await conn.sendMessage(jid, createContactCard(contact))
 ### Status Helpers
 
 ```ts
-import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from 'baileys/src/Utils/addons'
+import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from 'baileys/src/Utils/innovatorssoft'
 
 // Text status
 const textContent = StatusHelper.text('Good Morning! ☀️', STATUS_BACKGROUNDS.solid.blue, STATUS_FONTS.DANCING)
@@ -1064,7 +1064,7 @@ import {
 	createPinnedMessagesManager,
 	createReadReceiptController,
 	DISAPPEARING_DURATIONS
-} from 'baileys/src/Utils/addons'
+} from 'baileys/src/Utils/innovatorssoft'
 
 // Typing indicator
 const typing = createTypingIndicator((jid, presence) => conn.sendPresenceUpdate(presence, jid))
@@ -1111,7 +1111,7 @@ import {
 	isSameUser,
 	getJidVariants,
 	createJidPlotter
-} from 'baileys/src/Utils/addons'
+} from 'baileys/src/Utils/innovatorssoft'
 
 // Parse JID info
 const info = parseJid('628xxx@s.whatsapp.net')

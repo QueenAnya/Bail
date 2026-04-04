@@ -48,7 +48,7 @@ import {
 	buildCallMessage,
 	buildPaymentInviteMessage,
 	buildStickerPackMessage
-} from '../addons/from-messages'
+} from '../innovatorssoft/from-messages'
 
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
@@ -231,8 +231,7 @@ export const prepareWAMessageMedia = async (
 	const requiresDurationComputation = mediaType === 'audio' && typeof uploadData.seconds === 'undefined'
 	const requiresThumbnailComputation =
 		(mediaType === 'image' || mediaType === 'video') && typeof uploadData['jpegThumbnail'] === 'undefined'
-	const requiresWaveformProcessing =
-		mediaType === 'audio' && uploadData.ptt === true && typeof uploadData.waveform === 'undefined'
+	const requiresWaveformProcessing = mediaType === 'audio' && uploadData.ptt === true
 	const requiresAudioBackground = options.backgroundColor && mediaType === 'audio' && uploadData.ptt === true
 	const requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation
 	const { mediaKey, encFilePath, originalFilePath, fileEncSha256, fileSha256, fileLength } = await encryptedStream(
@@ -618,17 +617,17 @@ export const generateWAMessageContent = async (
 			}
 		}
 	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
-		// addons/from-messages.ts → buildAdminInviteMessage
+		// innovatorssoft/from-messages.ts → buildAdminInviteMessage
 		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
 			(message as any).adminInvite,
 			(message as any).contextInfo,
 			options
 		)
 	} else if ('order' in message && !!(message as any).order) {
-		// order → OrderMessage (from addons)
+		// order → OrderMessage (from innovatorssoft)
 		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
 	} else if ('keep' in message && !!(message as any).keep) {
-		// keep → KeepInChatMessage (from addons)
+		// keep → KeepInChatMessage (from innovatorssoft)
 		const k = (message as any).keep
 		m.keepInChatMessage = {
 			key: k.key,
@@ -636,10 +635,10 @@ export const generateWAMessageContent = async (
 			timestampMs: k.time ?? Date.now()
 		}
 	} else if ('call' in message && !!(message as any).call) {
-		// addons/from-messages.ts → buildCallMessage
+		// innovatorssoft/from-messages.ts → buildCallMessage
 		m.scheduledCallCreationMessage = buildCallMessage((message as any).call)
 	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
-		// addons/from-messages.ts → buildPaymentInviteMessage
+		// innovatorssoft/from-messages.ts → buildPaymentInviteMessage
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
@@ -667,7 +666,7 @@ export const generateWAMessageContent = async (
 			expectedVideoCount: albumMsg.filter(i => 'video' in i).length
 		})
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// addons/from-messages.ts → buildStickerPackMessage
+		// innovatorssoft/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
