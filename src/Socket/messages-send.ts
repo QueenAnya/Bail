@@ -1048,16 +1048,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			// Inject <biz> node for button messages — innovatorssoft pattern
-			if (!isJidNewsletter(destinationJid) && buttonType) {
-				const buttonsNode = getButtonArgs(messages)
-				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
-
-				if (filteredButtons) {
-					if (additionalNodes && additionalNodes.length > 0) {
-						;(stanza.content as BinaryNode[]).push(...additionalNodes)
-					}
-				} else {
-					;(stanza.content as BinaryNode[]).push(buttonsNode)
+			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
+			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
+				const buttonType = getButtonType(messages)
+				if (buttonType) {
+					;(stanza.content as BinaryNode[]).push(getButtonArgs(messages))
 				}
 			}
 
