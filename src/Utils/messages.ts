@@ -776,31 +776,8 @@ export const generateWAMessageContent = async (
 
 	// ── interactiveButtons → InteractiveMessage native flow (Android + newer iOS) ──
 	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
-		const rawButtons: any[] = (message as any).interactiveButtons
-
-		const nativeButtons = rawButtons.map((btn: any, i: number) => {
-			if (btn.name && btn.buttonParamsJson) return { name: btn.name, buttonParamsJson: btn.buttonParamsJson }
-			if (btn.buttonId && btn.buttonText?.displayText)
-				return {
-					name: 'quick_reply',
-					buttonParamsJson: JSON.stringify({ display_text: btn.buttonText.displayText, id: btn.buttonId })
-				}
-			if (btn.id || btn.text || btn.displayText)
-				return {
-					name: 'quick_reply',
-					buttonParamsJson: JSON.stringify({
-						display_text: btn.text || btn.displayText || `Button ${i + 1}`,
-						id: btn.id || `btn_${i + 1}`
-					})
-				}
-			return {
-				name: 'quick_reply',
-				buttonParamsJson: JSON.stringify({ display_text: `Button ${i + 1}`, id: `btn_${i + 1}` })
-			}
-		})
-
 		const interactiveMessage: proto.Message.IInteractiveMessage = {
-			nativeFlowMessage: { buttons: nativeButtons, messageParamsJson: '' }
+			nativeFlowMessage: { buttons: (message as any).interactiveButtons }
 		}
 
 		if ('text' in message) {
