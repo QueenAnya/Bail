@@ -659,10 +659,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		const extraAttrs: BinaryNodeAttributes = {}
 
-		const messages = normalizeMessageContent(message) || (message as proto.IMessage)
-		const buttonType = getButtonType(messages)
-		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
-
 		if (participant) {
 			if (!isGroup && !isStatus) {
 				additionalAttributes = { ...additionalAttributes, device_fanout: 'false' }
@@ -677,6 +673,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
+			// normalizeMessageContent once — innovatorssoft pattern
+			const messages = normalizeMessageContent(message) || (message as proto.IMessage)
+			const buttonType = getButtonType(messages)
 			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
@@ -1048,11 +1047,16 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			// Inject <biz> node for button messages — innovatorssoft pattern
-			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
-			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
-				const buttonType = getButtonType(messages)
-				if (buttonType) {
-					;(stanza.content as BinaryNode[]).push(getButtonArgs(messages))
+			if (!isJidNewsletter(destinationJid) && buttonType) {
+				const buttonsNode = getButtonArgs(messages)
+				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
+
+				if (filteredButtons) {
+					if (additionalNodes && additionalNodes.length > 0) {
+						;(stanza.content as BinaryNode[]).push(...additionalNodes)
+					}
+				} else {
+					;(stanza.content as BinaryNode[]).push(buttonsNode)
 				}
 			}
 

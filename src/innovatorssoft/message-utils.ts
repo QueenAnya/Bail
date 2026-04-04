@@ -83,6 +83,18 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 
 	const ts = unixTimestampSeconds().toString()
 
+	// single_select → list-style biz node
+	if (nativeFlow && firstButtonName === 'single_select') {
+		return {
+			tag: 'biz',
+			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
+			content: [
+				{ tag: 'list', attrs: { v: '2', type: 'product_list' } },
+				{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+			]
+		}
+	}
+
 	// Payment flows
 	if (nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
 		return {
