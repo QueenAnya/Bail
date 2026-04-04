@@ -26,7 +26,7 @@ import type {
 	WAMessageKey,
 	WATextMessage
 } from '../Types'
-import { WAMessageStatus } from '../Types'
+import { WAMessageStatus, WAProto } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
 import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
@@ -48,7 +48,7 @@ import {
 	buildCallMessage,
 	buildPaymentInviteMessage,
 	buildStickerPackMessage
-} from '../innovatorssoft/from-messages'
+} from '../addons/from-messages'
 
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
@@ -83,11 +83,11 @@ const MIMETYPE_MAP: { [T in MediaType]?: string } = {
 }
 
 const MessageTypeProto = {
-	image: proto.Message.ImageMessage,
-	video: proto.Message.VideoMessage,
-	audio: proto.Message.AudioMessage,
-	sticker: proto.Message.StickerMessage,
-	document: proto.Message.DocumentMessage
+	image: WAProto.Message.ImageMessage,
+	video: WAProto.Message.VideoMessage,
+	audio: WAProto.Message.AudioMessage,
+	sticker: WAProto.Message.StickerMessage,
+	document: WAProto.Message.DocumentMessage
 } as const
 
 /**
@@ -199,7 +199,7 @@ export const prepareWAMessageMedia = async (
 
 		await fs.unlink(filePath)
 
-		const obj = proto.Message.fromObject({
+		const obj = WAProto.Message.fromObject({
 			// todo: add more support here
 			[`${mediaType}Message`]: (MessageTypeProto as any)[mediaType].fromObject({
 				url: mediaUrl,
@@ -222,7 +222,7 @@ export const prepareWAMessageMedia = async (
 
 		if (cacheableKey) {
 			logger?.debug({ cacheableKey }, 'set cache')
-			await options.mediaCache!.set(cacheableKey, proto.Message.encode(obj).finish())
+			await options.mediaCache!.set(cacheableKey, WAProto.Message.encode(obj).finish())
 		}
 
 		return obj
@@ -231,7 +231,8 @@ export const prepareWAMessageMedia = async (
 	const requiresDurationComputation = mediaType === 'audio' && typeof uploadData.seconds === 'undefined'
 	const requiresThumbnailComputation =
 		(mediaType === 'image' || mediaType === 'video') && typeof uploadData['jpegThumbnail'] === 'undefined'
-	const requiresWaveformProcessing = mediaType === 'audio' && uploadData.ptt === true
+	const requiresWaveformProcessing =
+		mediaType === 'audio' && uploadData.ptt === true && typeof uploadData.waveform === 'undefined'
 	const requiresAudioBackground = options.backgroundColor && mediaType === 'audio' && uploadData.ptt === true
 	const requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation
 	const { mediaKey, encFilePath, originalFilePath, fileEncSha256, fileSha256, fileLength } = await encryptedStream(
@@ -304,7 +305,7 @@ export const prepareWAMessageMedia = async (
 		}
 	})
 
-	const obj = proto.Message.fromObject({
+	const obj = WAProto.Message.fromObject({
 		[`${mediaType}Message`]: MessageTypeProto[mediaType as keyof typeof MessageTypeProto].fromObject({
 			url: mediaUrl,
 			directPath,
@@ -325,7 +326,7 @@ export const prepareWAMessageMedia = async (
 
 	if (cacheableKey) {
 		logger?.debug({ cacheableKey }, 'set cache')
-		await options.mediaCache!.set(cacheableKey, proto.Message.encode(obj).finish())
+		await options.mediaCache!.set(cacheableKey, WAProto.Message.encode(obj).finish())
 	}
 
 	return obj
@@ -337,13 +338,13 @@ export const prepareDisappearingMessageSettingContent = (ephemeralExpiration?: n
 		ephemeralMessage: {
 			message: {
 				protocolMessage: {
-					type: proto.Message.ProtocolMessage.Type.EPHEMERAL_SETTING,
+					type: WAProto.Message.ProtocolMessage.Type.EPHEMERAL_SETTING,
 					ephemeralExpiration
 				}
 			}
 		}
 	}
-	return proto.Message.fromObject(content)
+	return WAProto.Message.fromObject(content)
 }
 
 /**
@@ -447,22 +448,22 @@ export const generateWAMessageContent = async (
 		}
 
 		if (contactLen === 1) {
-			m.contactMessage = proto.Message.ContactMessage.create(message.contacts.contacts[0])
+			m.contactMessage = WAProto.Message.ContactMessage.create(message.contacts.contacts[0])
 		} else {
-			m.contactsArrayMessage = proto.Message.ContactsArrayMessage.create(message.contacts)
+			m.contactsArrayMessage = WAProto.Message.ContactsArrayMessage.create(message.contacts)
 		}
 	} else if (hasNonNullishProperty(message, 'location')) {
-		m.locationMessage = proto.Message.LocationMessage.create(message.location)
+		m.locationMessage = WAProto.Message.LocationMessage.create(message.location)
 	} else if (hasNonNullishProperty(message, 'react')) {
 		if (!message.react.senderTimestampMs) {
 			message.react.senderTimestampMs = Date.now()
 		}
 
-		m.reactionMessage = proto.Message.ReactionMessage.create(message.react)
+		m.reactionMessage = WAProto.Message.ReactionMessage.create(message.react)
 	} else if (hasNonNullishProperty(message, 'delete')) {
 		m.protocolMessage = {
 			key: message.delete,
-			type: proto.Message.ProtocolMessage.Type.REVOKE
+			type: WAProto.Message.ProtocolMessage.Type.REVOKE
 		}
 	} else if (hasNonNullishProperty(message, 'forward')) {
 		m = generateForwardMessageContent(message.forward, message.force)
@@ -548,7 +549,7 @@ export const generateWAMessageContent = async (
 		m.ptvMessage = videoMessage
 	} else if (hasNonNullishProperty(message, 'product')) {
 		const { imageMessage } = await prepareWAMessageMedia({ image: message.product.productImage }, options)
-		m.productMessage = proto.Message.ProductMessage.create({
+		m.productMessage = WAProto.Message.ProductMessage.create({
 			...message,
 			product: {
 				...message.product,
@@ -617,17 +618,17 @@ export const generateWAMessageContent = async (
 			}
 		}
 	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
-		// innovatorssoft/from-messages.ts → buildAdminInviteMessage
+		// addons/from-messages.ts → buildAdminInviteMessage
 		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
 			(message as any).adminInvite,
 			(message as any).contextInfo,
 			options
 		)
 	} else if ('order' in message && !!(message as any).order) {
-		// order → OrderMessage (from innovatorssoft)
-		m.orderMessage = proto.Message.OrderMessage.fromObject((message as any).order)
+		// order → OrderMessage (from addons)
+		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
 	} else if ('keep' in message && !!(message as any).keep) {
-		// keep → KeepInChatMessage (from innovatorssoft)
+		// keep → KeepInChatMessage (from addons)
 		const k = (message as any).keep
 		m.keepInChatMessage = {
 			key: k.key,
@@ -635,10 +636,10 @@ export const generateWAMessageContent = async (
 			timestampMs: k.time ?? Date.now()
 		}
 	} else if ('call' in message && !!(message as any).call) {
-		// innovatorssoft/from-messages.ts → buildCallMessage
+		// addons/from-messages.ts → buildCallMessage
 		m.scheduledCallCreationMessage = buildCallMessage((message as any).call)
 	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
-		// innovatorssoft/from-messages.ts → buildPaymentInviteMessage
+		// addons/from-messages.ts → buildPaymentInviteMessage
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
@@ -661,12 +662,12 @@ export const generateWAMessageContent = async (
 	} else if ('album' in message && !!(message as any).album) {
 		// album handled in sendMessage — just set albumMessage header
 		const albumMsg = (message as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
-		m.albumMessage = proto.Message.AlbumMessage.fromObject({
+		m.albumMessage = WAProto.Message.AlbumMessage.fromObject({
 			expectedImageCount: albumMsg.filter(i => 'image' in i).length,
 			expectedVideoCount: albumMsg.filter(i => 'video' in i).length
 		})
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// innovatorssoft/from-messages.ts → buildStickerPackMessage
+		// addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
@@ -968,8 +969,8 @@ export const generateWAMessageContent = async (
 					header = prepared
 				}
 
-				return proto.Message.InteractiveMessage.create({
-					header: proto.Message.InteractiveMessage.Header.create({
+				return WAProto.Message.InteractiveMessage.create({
+					header: WAProto.Message.InteractiveMessage.Header.create({
 						title,
 						hasMediaAttachment: !!(
 							header.imageMessage ||
@@ -981,26 +982,26 @@ export const generateWAMessageContent = async (
 						videoMessage: header.videoMessage ?? undefined,
 						documentMessage: header.documentMessage ?? undefined
 					}),
-					body: proto.Message.InteractiveMessage.Body.create({ text: body }),
-					footer: proto.Message.InteractiveMessage.Footer.create({ text: footer }),
-					nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+					body: WAProto.Message.InteractiveMessage.Body.create({ text: body }),
+					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
+					nativeFlowMessage: WAProto.Message.InteractiveMessage.NativeFlowMessage.create({
 						buttons: buttons ?? []
 					})
 				})
 			})
 		)
 
-		const interactiveMessage = proto.Message.InteractiveMessage.create({
-			carouselMessage: proto.Message.InteractiveMessage.CarouselMessage.create({ cards: slides }),
-			body: proto.Message.InteractiveMessage.Body.create({
+		const interactiveMessage = WAProto.Message.InteractiveMessage.create({
+			carouselMessage: WAProto.Message.InteractiveMessage.CarouselMessage.create({ cards: slides }),
+			body: WAProto.Message.InteractiveMessage.Body.create({
 				text: ('text' in message ? message.text : '') ?? ''
 			}),
-			header: proto.Message.InteractiveMessage.Header.create({
+			header: WAProto.Message.InteractiveMessage.Header.create({
 				title: ('title' in message ? message.title : undefined) ?? '',
 				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
 				hasMediaAttachment: false
 			}),
-			footer: proto.Message.InteractiveMessage.Footer.create({
+			footer: WAProto.Message.InteractiveMessage.Footer.create({
 				text: ('footer' in message ? message.footer : '') ?? ''
 			})
 		})
@@ -1092,7 +1093,7 @@ export const generateWAMessageContent = async (
 				key: message.edit,
 				editedMessage: m,
 				timestampMs: Date.now(),
-				type: proto.Message.ProtocolMessage.Type.MESSAGE_EDIT
+				type: WAProto.Message.ProtocolMessage.Type.MESSAGE_EDIT
 			}
 		}
 	}
@@ -1114,7 +1115,7 @@ export const generateWAMessageContent = async (
 		}
 	}
 
-	return proto.Message.create(m)
+	return WAProto.Message.create(m)
 }
 
 export const generateWAMessageFromContent = (
@@ -1184,7 +1185,7 @@ export const generateWAMessageFromContent = (
 		}
 	}
 
-	message = proto.Message.create(message)
+	message = WAProto.Message.create(message)
 
 	const messageJSON = {
 		key: {
@@ -1198,7 +1199,7 @@ export const generateWAMessageFromContent = (
 		participant: isJidGroup(jid) || isJidStatusBroadcast(jid) ? userJid : undefined, // TODO: Add support for LIDs
 		status: WAMessageStatus.PENDING
 	}
-	return proto.WebMessageInfo.fromObject(messageJSON) as WAMessage
+	return WAProto.WebMessageInfo.fromObject(messageJSON) as WAMessage
 }
 
 export const generateWAMessage = async (jid: string, content: AnyMessageContent, options: MessageGenerationOptions) => {
