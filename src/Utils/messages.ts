@@ -834,17 +834,7 @@ export const generateWAMessageContent = async (
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
-		m = {
-			viewOnceMessage: {
-				message: {
-					messageContextInfo: {
-						deviceListMetadata: {},
-						deviceListMetadataVersion: 2
-					},
-					interactiveMessage: proto.Message.InteractiveMessage.create(interactiveMessage)
-				}
-			}
-		}
+		m = { interactiveMessage }
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
