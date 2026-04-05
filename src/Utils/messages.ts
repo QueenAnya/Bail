@@ -718,11 +718,7 @@ export const generateWAMessageContent = async (
 	// ── buttons → buttonsMessage (iOS + Android compatible) ──────────────────
 	else if ('buttons' in message && !!message.buttons) {
 		const buttonsMessage: proto.Message.IButtonsMessage = {
-			buttons: message.buttons.map((b: any) => ({
-				buttonId: b.buttonId || b.id || `btn_${Math.random()}`,
-				buttonText: b.buttonText || { displayText: b.displayText || b.text || '' },
-				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
-			}))
+			buttons: message.buttons.map((b: any) => ({ ...b, type: proto.Message.ButtonsMessage.Button.Type.RESPONSE }))
 		}
 
 		if ('text' in message) {
@@ -778,33 +774,10 @@ export const generateWAMessageContent = async (
 		m = { templateMessage: { hydratedTemplate } }
 	}
 
-	// ── interactiveButtons → InteractiveMessage native flow (Android + newer iOS) ──
+	// ── interactiveButtons → InteractiveMessage native flow ──────────────────
 	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
-		const rawButtons: any[] = (message as any).interactiveButtons
-
-		const nativeButtons = rawButtons.map((btn: any, i: number) => {
-			if (btn.name && btn.buttonParamsJson) return { name: btn.name, buttonParamsJson: btn.buttonParamsJson }
-			if (btn.buttonId && btn.buttonText?.displayText)
-				return {
-					name: 'quick_reply',
-					buttonParamsJson: JSON.stringify({ display_text: btn.buttonText.displayText, id: btn.buttonId })
-				}
-			if (btn.id || btn.text || btn.displayText)
-				return {
-					name: 'quick_reply',
-					buttonParamsJson: JSON.stringify({
-						display_text: btn.text || btn.displayText || `Button ${i + 1}`,
-						id: btn.id || `btn_${i + 1}`
-					})
-				}
-			return {
-				name: 'quick_reply',
-				buttonParamsJson: JSON.stringify({ display_text: `Button ${i + 1}`, id: `btn_${i + 1}` })
-			}
-		})
-
 		const interactiveMessage: proto.Message.IInteractiveMessage = {
-			nativeFlowMessage: { buttons: nativeButtons, messageParamsJson: '' }
+			nativeFlowMessage: { buttons: (message as any).interactiveButtons }
 		}
 
 		if ('text' in message) {
@@ -838,17 +811,7 @@ export const generateWAMessageContent = async (
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
-		m = {
-			viewOnceMessage: {
-				message: {
-					messageContextInfo: {
-						deviceListMetadata: {},
-						deviceListMetadataVersion: 2
-					},
-					interactiveMessage: proto.Message.InteractiveMessage.create(interactiveMessage)
-				}
-			}
-		}
+		m = { interactiveMessage }
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
@@ -1032,8 +995,8 @@ export const generateWAMessageContent = async (
 	if (hasOptionalProperty(message, 'groupStatus') && !!(message as any).groupStatus) {
 		const messageType = Object.keys(m)[0] as string
 		const key = (m as any)[messageType]
-		if (key && 'contextInfo' in key && !!key.contextInfo) {
-			key.contextInfo.isGroupStatus = (message as any).groupStatus
+		if (key && 'contextInfo' in key) {
+			key.contextInfo = { ...(key.contextInfo || {}), isGroupStatus: (message as any).groupStatus }
 		} else if (key) {
 			key.contextInfo = { isGroupStatus: (message as any).groupStatus }
 		}

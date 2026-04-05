@@ -679,7 +679,6 @@ await sock.sendMessage(id, {
 #### Audio Message
 
 - To audio message work in all devices you need to convert with some tool like `ffmpeg` with this flags:
-
   ```bash
       codec: libopus //ogg file
       ac: 1 //one channel
@@ -688,7 +687,6 @@ await sock.sendMessage(id, {
   ```
 
   - Example:
-
   ```bash
   ffmpeg -i input.mp4 -avoid_negative_ts make_zero -ac 1 output.ogg
   ```
