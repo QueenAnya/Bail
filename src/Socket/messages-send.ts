@@ -48,6 +48,8 @@ import {
 	type BinaryNode,
 	type BinaryNodeAttributes,
 	type FullJid,
+	getBinaryFilteredButtons,
+	getBinaryFilteredBizBot,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	isHostedLidUser,
@@ -634,6 +636,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const isStatus = jid === statusJid
 		const isLid = server === 'lid'
 		const isNewsletter = server === 'newsletter'
+		const isPrivate = server === 's.whatsapp.net'
 		const isGroupOrStatus = isGroup || isStatus
 		const finalJid = jid
 
@@ -657,7 +660,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		const extraAttrs: BinaryNodeAttributes = {}
 
-		// normalizeMessageContent BEFORE transaction — innovatorssoft exact pattern
+		// normalizeMessageContent BEFORE transaction — exact innovatorssoft pattern
 		const messages = normalizeMessageContent(message) || (message as proto.IMessage)
 		const buttonType = getButtonType(messages)
 		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
@@ -1046,24 +1049,38 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			// Inject <biz> node for button messages — innovatorssoft pattern
-			const callerHasBizNode = additionalNodes?.some(n => n.tag === 'biz')
-			if (!isJidNewsletter(destinationJid) && !callerHasBizNode) {
-				const buttonType = getButtonType(messages)
-				if (buttonType) {
-					;(stanza.content as BinaryNode[]).push(getButtonArgs(messages))
+			// Inject <biz> node — exact innovatorssoft pattern
+			let didPushAdditional = false
+
+			if (!isJidNewsletter(destinationJid) && buttonType) {
+				const buttonsNode = getButtonArgs(messages)
+				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
+
+				if (filteredButtons) {
+					;(stanza.content as BinaryNode[]).push(...(additionalNodes || []))
+					didPushAdditional = true
+				} else {
+					;(stanza.content as BinaryNode[]).push(buttonsNode)
 				}
 			}
 
-			// AI icon feature — adds bot node to show AI indicator on message
-			if (AI && !isJidGroup(destinationJid) && !isJidNewsletter(destinationJid)) {
-				;(stanza.content as BinaryNode[]).push({
+			// AI bot indicator
+			if (AI && isPrivate) {
+				const botNode: BinaryNode = {
 					tag: 'bot',
 					attrs: { biz_bot: '1' }
-				})
+				}
+				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
+
+				if (filteredBizBot) {
+					;(stanza.content as BinaryNode[]).push(...(additionalNodes || []))
+					didPushAdditional = true
+				} else {
+					;(stanza.content as BinaryNode[]).push(botNode)
+				}
 			}
 
-			if (additionalNodes && additionalNodes.length > 0) {
+			if (!didPushAdditional && additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
 

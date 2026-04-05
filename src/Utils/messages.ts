@@ -715,7 +715,7 @@ export const generateWAMessageContent = async (
 		m = { listMessage }
 	}
 
-	// ── buttons → buttonsMessage (iOS + Android compatible) ──────────────────
+	// ── buttons → buttonsMessage ──────────────────────────────────────────────
 	else if ('buttons' in message && !!message.buttons) {
 		const buttonsMessage: proto.Message.IButtonsMessage = {
 			buttons: message.buttons.map((b: any) => ({ ...b, type: proto.Message.ButtonsMessage.Button.Type.RESPONSE }))
@@ -995,8 +995,8 @@ export const generateWAMessageContent = async (
 	if (hasOptionalProperty(message, 'groupStatus') && !!(message as any).groupStatus) {
 		const messageType = Object.keys(m)[0] as string
 		const key = (m as any)[messageType]
-		if (key && 'contextInfo' in key) {
-			key.contextInfo = { ...(key.contextInfo || {}), isGroupStatus: (message as any).groupStatus }
+		if (key && 'contextInfo' in key && !!key.contextInfo) {
+			key.contextInfo.isGroupStatus = (message as any).groupStatus
 		} else if (key) {
 			key.contextInfo = { isGroupStatus: (message as any).groupStatus }
 		}

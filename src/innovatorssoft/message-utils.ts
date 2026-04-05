@@ -43,8 +43,8 @@ export function getMessageType(message: proto.IMessage): string {
 // ── Button / Biz Node Helpers ──────────────────────────────────────────────
 
 /**
- * Detect what kind of button message this is.
- * Matches innovatorssoft/baileys getButtonType exactly.
+ * Detect what kind of button message this is
+ * Returns: 'list' | 'buttons' | 'native_flow' | undefined
  */
 export function getButtonType(message: proto.IMessage): string | undefined {
 	if (message.listMessage) return 'list'
@@ -57,8 +57,7 @@ export function getButtonType(message: proto.IMessage): string | undefined {
 }
 
 /**
- * Build the <biz> binary node that WhatsApp servers require for button messages.
- * Matches innovatorssoft/baileys getButtonArgs exactly.
+ * Build the <biz> binary node that WhatsApp servers require for button messages
  */
 export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	const nativeFlow =
@@ -94,7 +93,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 		}
 	}
 
-	// Special native flow (catalog, location, etc.) — WhatsApp Original only
+	// Special native flow (catalog, location, etc.)
 	if (nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
 		return {
 			tag: 'biz',
@@ -110,7 +109,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 		}
 	}
 
-	// Standard interactive / buttons / carousel — WhatsApp Original + Business
+	// Standard interactive / buttons / carousel
 	if (nativeFlow || carouselMessage || message.buttonsMessage) {
 		return {
 			tag: 'biz',
