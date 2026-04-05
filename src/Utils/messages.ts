@@ -676,49 +676,61 @@ export const generateWAMessageContent = async (
 	// ── productList → ListMessage with products ────────────────────────────────
 	if ('productList' in message && !!message.productList) {
 		const thumbnail = message.thumbnail
-			? await prepareWAMessageMedia({ image: message.thumbnail as WAMediaUpload }, options)
+			? await generateThumbnail(message.thumbnail as WAMediaUpload, 'image', {})
 			: null
 
 		const listMessage: proto.Message.IListMessage = {
-			title: ('title' in message ? message.title : undefined) ?? '',
-			buttonText: ('buttonText' in message ? message.buttonText : undefined) ?? '',
-			footerText: ('footer' in message ? message.footer : undefined) ?? '',
-			description: ('text' in message ? message.text : undefined) ?? '',
+			title: (message as any).title,
+			buttonText: (message as any).buttonText,
+			footerText: (message as any).footer,
+			description: (message as any).text,
 			productListInfo: {
 				productSections: message.productList,
 				headerImage: {
 					productId: message.productList[0]?.products?.[0]?.productId,
-					jpegThumbnail: thumbnail?.imageMessage?.jpegThumbnail ?? undefined
+					jpegThumbnail: (thumbnail as any)?.thumbnail ?? null
 				},
 				businessOwnerJid: message.businessOwnerJid
 			},
 			listType: proto.Message.ListMessage.ListType.PRODUCT_LIST
 		}
+
+		listMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
 		m = { listMessage }
 	}
 
 	// ── sections → ListMessage (standalone if, runs independently like fork) ──
 	if ('sections' in message && !!message.sections) {
 		const listMessage: proto.Message.IListMessage = {
-			title: ('title' in message ? message.title : undefined) ?? '',
-			buttonText: ('buttonText' in message ? message.buttonText : undefined) ?? '',
-			footerText: ('footer' in message ? message.footer : undefined) ?? '',
-			description: ('text' in message ? message.text : undefined) ?? '',
+			title: (message as any).title,
+			buttonText: (message as any).buttonText,
+			footerText: (message as any).footer,
+			description: message.text,
 			sections: message.sections,
-			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT,
-			contextInfo: {
-				...((message as any).contextInfo || {}),
-				...(message.mentions?.length ? { mentionedJid: message.mentions } : {}),
-				...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
-			}
+			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT
 		}
+
+		listMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
 		m = { listMessage }
 	}
 
 	// ── buttons → buttonsMessage ──────────────────────────────────────────────
 	else if ('buttons' in message && !!message.buttons) {
 		const buttonsMessage: proto.Message.IButtonsMessage = {
-			buttons: message.buttons.map((b: any) => ({ ...b, type: proto.Message.ButtonsMessage.Button.Type.RESPONSE }))
+			buttons: message.buttons.map((b: any) => ({
+				...b,
+				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
+			}))
 		}
 
 		if ('text' in message) {
@@ -774,7 +786,7 @@ export const generateWAMessageContent = async (
 		m = { templateMessage: { hydratedTemplate } }
 	}
 
-	// ── interactiveButtons → InteractiveMessage native flow ──────────────────
+	// ── interactiveButtons → InteractiveMessage native flow (Android + newer iOS) ──
 	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
 		const interactiveMessage: proto.Message.IInteractiveMessage = {
 			nativeFlowMessage: { buttons: (message as any).interactiveButtons }
@@ -783,22 +795,18 @@ export const generateWAMessageContent = async (
 		if ('text' in message) {
 			interactiveMessage.body = { text: message.text }
 			interactiveMessage.header = {
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? (message as any).subtitle : undefined) ?? '',
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
-			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
-			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? (message as any).subtitle : undefined) ?? '',
-				hasMediaAttachment:
-					('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
-				imageMessage: m.imageMessage ?? undefined,
-				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
-			})
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: (message as any).hasMediaAttachment ? (message as any).hasMediaAttachment : false,
+				...Object.assign(interactiveMessage, m)
+			}
 		}
 
 		if ('footer' in message && !!message.footer) {
@@ -826,26 +834,28 @@ export const generateWAMessageContent = async (
 		if ('text' in message) {
 			interactiveMessage.body = { text: message.text }
 			interactiveMessage.header = {
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
-			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
-			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment:
-					('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
-				imageMessage: m.imageMessage ?? undefined,
-				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
-			})
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: (message as any).hasMediaAttachment ? (message as any).hasMediaAttachment : false,
+				...Object.assign(interactiveMessage, m)
+			}
 		}
 
 		if ('footer' in message && !!message.footer) {
 			interactiveMessage.footer = { text: message.footer }
+		}
+
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
 		m = { interactiveMessage }
@@ -857,33 +867,35 @@ export const generateWAMessageContent = async (
 			collectionMessage: {
 				bizJid: message.collection.bizJid,
 				id: message.collection.id,
-				messageVersion: message.collection.messageVersion
+				messageVersion: (message.collection as any).version ?? message.collection.messageVersion
 			}
 		}
 
 		if ('text' in message) {
 			interactiveMessage.body = { text: message.text }
 			interactiveMessage.header = {
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
-			const hasMedia = !!(m.imageMessage || m.videoMessage || m.documentMessage)
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
-			interactiveMessage.header = proto.Message.InteractiveMessage.Header.create({
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment:
-					('hasMediaAttachment' in message ? (message as any).hasMediaAttachment : hasMedia) ?? hasMedia,
-				imageMessage: m.imageMessage ?? undefined,
-				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
-			})
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: (message as any).hasMediaAttachment ? (message as any).hasMediaAttachment : false,
+				...Object.assign(interactiveMessage, m)
+			}
 		}
 
 		if ('footer' in message && !!message.footer) {
 			interactiveMessage.footer = { text: message.footer }
+		}
+
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
 		m = { interactiveMessage }

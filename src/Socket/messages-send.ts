@@ -629,14 +629,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const meLid = authState.creds.me?.lid
 		const isRetryResend = Boolean(participant?.jid)
 		let shouldIncludeDeviceIdentity = isRetryResend
+		let didPushAdditional = false
 		const statusJid = 'status@broadcast'
 
 		const { user, server } = jidDecode(jid)!
 		const isGroup = server === 'g.us'
+		const isPrivate = server === 's.whatsapp.net'
 		const isStatus = jid === statusJid
 		const isLid = server === 'lid'
 		const isNewsletter = server === 'newsletter'
-		const isPrivate = server === 's.whatsapp.net'
 		const isGroupOrStatus = isGroup || isStatus
 		const finalJid = jid
 
@@ -660,11 +661,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		const extraAttrs: BinaryNodeAttributes = {}
 
-		// normalizeMessageContent BEFORE transaction — exact innovatorssoft pattern
-		const messages = normalizeMessageContent(message) || (message as proto.IMessage)
-		const buttonType = getButtonType(messages)
-		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
-
 		if (participant) {
 			if (!isGroup && !isStatus) {
 				additionalAttributes = { ...additionalAttributes, device_fanout: 'false' }
@@ -679,6 +675,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
+			// normalizeMessageContent once — innovatorssoft pattern
+			const messages = normalizeMessageContent(message) || (message as proto.IMessage)
+			const buttonType = getButtonType(messages)
 			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
@@ -1049,31 +1048,26 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			// Inject <biz> node — exact innovatorssoft pattern
-			let didPushAdditional = false
-
+			// Inject <biz> node for button messages — innovatorssoft pattern
 			if (!isJidNewsletter(destinationJid) && buttonType) {
 				const buttonsNode = getButtonArgs(messages)
 				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
 
 				if (filteredButtons) {
-					;(stanza.content as BinaryNode[]).push(...(additionalNodes || []))
+					;(stanza.content as BinaryNode[]).push(...additionalNodes!)
 					didPushAdditional = true
 				} else {
 					;(stanza.content as BinaryNode[]).push(buttonsNode)
 				}
 			}
 
-			// AI bot indicator
+			// AI icon feature — adds bot node to show AI indicator on message
 			if (AI && isPrivate) {
-				const botNode: BinaryNode = {
-					tag: 'bot',
-					attrs: { biz_bot: '1' }
-				}
+				const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
 				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
 
 				if (filteredBizBot) {
-					;(stanza.content as BinaryNode[]).push(...(additionalNodes || []))
+					;(stanza.content as BinaryNode[]).push(...additionalNodes!)
 					didPushAdditional = true
 				} else {
 					;(stanza.content as BinaryNode[]).push(botNode)
