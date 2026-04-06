@@ -37,7 +37,7 @@ import {
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
-import { getPlatformId } from '../Utils/browser-utils'
+import { getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -381,6 +381,13 @@ export const makeSocket = (config: SocketConfig) => {
 	let qrTimer: NodeJS.Timeout
 	let closed = false
 
+	// Pairing code state — tracks whether pair-device has been received
+	// and queues requestPairingCode calls that arrive before it
+	let pairingReady = false
+	let pairingInProgress = false
+	let pendingPairingResolve: (() => void) | undefined
+	let pendingPairingReject: ((err: Error) => void) | undefined
+
 	/** log & process any unexpected errors */
 	const onUnexpectedError = (err: Error | Boom, msg: string) => {
 		logger.error({ err }, `unexpected error in '${msg}'`)
@@ -634,6 +641,21 @@ export const makeSocket = (config: SocketConfig) => {
 		clearInterval(keepAliveReq)
 		clearTimeout(qrTimer)
 
+		// If a pairing is pending, reject it so the caller doesn't hang indefinitely
+		if (pendingPairingReject) {
+			pendingPairingReject(
+				error ||
+					new Boom('Connection closed before pairing completed', {
+						statusCode: DisconnectReason.connectionClosed
+					})
+			)
+			pendingPairingResolve = undefined
+			pendingPairingReject = undefined
+		}
+
+		pairingReady = false
+		pairingInProgress = false
+
 		ws.removeAllListeners('close')
 		ws.removeAllListeners('open')
 		ws.removeAllListeners('message')
@@ -748,7 +770,8 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
-	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
+	// Internal: send the actual pairing IQ to WA servers
+	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
 
 		if (customPairingCode && customPairingCode?.length !== 8) {
@@ -757,12 +780,19 @@ export const makeSocket = (config: SocketConfig) => {
 
 		authState.creds.pairingCode = pairingCode
 
-		authState.creds.me = {
-			id: jidEncode(phoneNumber, 's.whatsapp.net'),
-			name: '~'
-		}
-		ev.emit('creds.update', authState.creds)
-		await sendNode({
+		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
+		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the pairing
+		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
+		// companion_platform_display must also be a canonical OS name; custom brand names (e.g.
+		// "Zapper") belong in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked
+		// Devices.
+		const rawPlatformId = parseInt(getPlatformId(browser[1]))
+		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
+		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
+		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
+		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
+
+		await query({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
@@ -774,9 +804,8 @@ export const makeSocket = (config: SocketConfig) => {
 				{
 					tag: 'link_code_companion_reg',
 					attrs: {
-						jid: authState.creds.me.id,
+						jid,
 						stage: 'companion_hello',
-
 						should_show_push_notification: 'true'
 					},
 					content: [
@@ -793,12 +822,12 @@ export const makeSocket = (config: SocketConfig) => {
 						{
 							tag: 'companion_platform_id',
 							attrs: {},
-							content: getPlatformId(browser[1])
+							content: pairingPlatformId
 						},
 						{
 							tag: 'companion_platform_display',
 							attrs: {},
-							content: `${browser[1]} (${browser[0]})`
+							content: `${pairingPlatformName} (${pairingPlatformHost})`
 						},
 						{
 							tag: 'link_code_pairing_nonce',
@@ -809,7 +838,46 @@ export const makeSocket = (config: SocketConfig) => {
 				}
 			]
 		})
+
+		authState.creds.me = { id: jid, name: '~' }
+		ev.emit('creds.update', authState.creds)
+
 		return authState.creds.pairingCode
+	}
+
+	// Public: requestPairingCode queues the request if pair-device hasn't been
+	// received yet (race condition fix — calling too early caused silent timeout)
+	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
+		if (pairingInProgress) {
+			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
+		}
+
+		pairingInProgress = true
+
+		if (pairingReady) {
+			try {
+				return await sendPairingIQ(phoneNumber, customPairingCode)
+			} finally {
+				pairingInProgress = false
+			}
+		}
+
+		logger.debug('pairing not ready yet, queuing request until pair-device is received')
+		return new Promise<string>((resolve, reject) => {
+			pendingPairingResolve = () => {
+				sendPairingIQ(phoneNumber, customPairingCode)
+					.then(resolve)
+					.catch(reject)
+					.finally(() => {
+						pairingInProgress = false
+					})
+			}
+
+			pendingPairingReject = (err: Error) => {
+				pairingInProgress = false
+				reject(err)
+			}
+		})
 	}
 
 	async function generatePairingKey() {
@@ -895,6 +963,16 @@ export const makeSocket = (config: SocketConfig) => {
 		}
 
 		genPairQR()
+
+		// Mark pairing as ready and flush any queued requestPairingCode call
+		pairingReady = true
+		if (pendingPairingResolve) {
+			logger.debug('pair-device received, flushing queued pairing request')
+			const resolve = pendingPairingResolve
+			pendingPairingResolve = undefined
+			pendingPairingReject = undefined
+			resolve()
+		}
 	})
 	// device paired for the first time
 	// if device pairs successfully, the server asks to restart the connection

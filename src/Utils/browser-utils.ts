@@ -26,10 +26,38 @@ export const Browsers: BrowsersMap = {
 	/** Pose as an iOS device (matches innovatorssoft default) */
 	iOS: browser => ['iOS', browser, '18.2'],
 	/** Pose as an Android device */
-	android: browser => ['Android', browser, '15.0']
+	android: browser => ['Android', browser, '15.0'],
+	/** Android companion device. apiLevel is the Android API level (e.g. '14') */
+	androidCompanion: (apiLevel: string) => [apiLevel, 'Android', '']
+}
+
+/**
+ * Checks if the browser tuple represents an Android companion device.
+ * @param browser - Browser tuple [os, platform, version]
+ * @returns True if platform is 'Android' (case-insensitive)
+ */
+export const isAndroidBrowser = (browser: [string, string, string]): boolean => {
+	return browser[1]?.toUpperCase() === 'ANDROID'
 }
 
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
-	return platformType ? platformType.toString() : '1' //chrome
+	if (platformType !== undefined) {
+		return platformType.toString()
+	}
+
+	// 'ANDROID' is not in the PlatformType enum — map to ANDROID_PHONE
+	if (browser.toUpperCase() === 'ANDROID') {
+		const androidPhone = proto.DeviceProps.PlatformType['ANDROID_PHONE' as any]
+		if (androidPhone !== undefined) {
+			return androidPhone.toString()
+		}
+	}
+
+	return (proto.DeviceProps.PlatformType.CHROME || 1).toString()
+}
+
+export const getPlatformDisplayName = (browser: string) => {
+	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
+	return platformType ? browser : 'Chrome'
 }
