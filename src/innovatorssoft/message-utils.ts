@@ -51,6 +51,8 @@ export function getButtonType(message: proto.IMessage): string | undefined {
 	if (message.buttonsMessage) return 'buttons'
 	if (message.interactiveMessage?.nativeFlowMessage) return 'native_flow'
 	if (message.interactiveMessage?.carouselMessage) return 'native_flow'
+	// FIX Bug 3 follow-up: cards are no longer wrapped in viewOnceMessage,
+	// but keep these paths for any externally-constructed messages that still use the old wrapper.
 	if (message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	if (message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
 	return undefined

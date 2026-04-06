@@ -786,10 +786,11 @@ export const generateWAMessageContent = async (
 		m = { templateMessage: { hydratedTemplate } }
 	}
 
-	// ── interactiveButtons → InteractiveMessage native flow (Android + newer iOS) ──
+	// ── interactiveButtons → InteractiveMessage native flow (Android + iOS) ──
 	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
 		const interactiveMessage: proto.Message.IInteractiveMessage = {
-			nativeFlowMessage: { buttons: (message as any).interactiveButtons }
+			// FIX Bug 2: messageParamsJson: '' is required — without it iOS doesn't render buttons
+			nativeFlowMessage: { buttons: (message as any).interactiveButtons, messageParamsJson: '' }
 		}
 
 		if ('text' in message) {
@@ -801,11 +802,16 @@ export const generateWAMessageContent = async (
 			}
 		} else if ('caption' in message) {
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
+			// FIX Bug 1: Object.assign(interactiveMessage, m) was mutating interactiveMessage
+			// AND spreading the whole corrupted object into header — completely broken.
+			// Correct fix: extract only the media fields from m and place them in header.
 			interactiveMessage.header = {
 				title: (message as any).title,
 				subtitle: (message as any).subtitle,
-				hasMediaAttachment: (message as any).hasMediaAttachment ? (message as any).hasMediaAttachment : false,
-				...Object.assign(interactiveMessage, m)
+				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
+				imageMessage: m.imageMessage ?? undefined,
+				videoMessage: m.videoMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
 			}
 		}
 
@@ -840,11 +846,14 @@ export const generateWAMessageContent = async (
 			}
 		} else if ('caption' in message) {
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
+			// FIX Bug 1: same Object.assign corruption as interactiveButtons — fixed
 			interactiveMessage.header = {
 				title: (message as any).title,
 				subtitle: (message as any).subtitle,
-				hasMediaAttachment: (message as any).hasMediaAttachment ? (message as any).hasMediaAttachment : false,
-				...Object.assign(interactiveMessage, m)
+				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
+				imageMessage: m.imageMessage ?? undefined,
+				videoMessage: m.videoMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
 			}
 		}
 
@@ -880,11 +889,14 @@ export const generateWAMessageContent = async (
 			}
 		} else if ('caption' in message) {
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
+			// FIX Bug 1: same Object.assign corruption — fixed
 			interactiveMessage.header = {
 				title: (message as any).title,
 				subtitle: (message as any).subtitle,
-				hasMediaAttachment: (message as any).hasMediaAttachment ? (message as any).hasMediaAttachment : false,
-				...Object.assign(interactiveMessage, m)
+				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
+				imageMessage: m.imageMessage ?? undefined,
+				videoMessage: m.videoMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
 			}
 		}
 
@@ -981,17 +993,11 @@ export const generateWAMessageContent = async (
 			})
 		})
 
-		m = {
-			viewOnceMessage: {
-				message: {
-					messageContextInfo: {
-						deviceListMetadata: {},
-						deviceListMetadataVersion: 2
-					},
-					interactiveMessage
-				}
-			}
-		}
+		// FIX Bug 3: Previously wrapped in viewOnceMessage with hardcoded deviceListMetadata: {}
+		// and deviceListMetadataVersion: 2. These device-list fields must be populated by the
+		// encryption layer at relay time — hardcoding empty {} causes iOS to reject/misrender
+		// the carousel. Just send interactiveMessage directly.
+		m = { interactiveMessage }
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
@@ -1016,7 +1022,9 @@ export const generateWAMessageContent = async (
 	}
 
 	// ── interactiveAsTemplate → templateMessage.interactiveMessageTemplate ────
-	else if (hasOptionalProperty(message, 'interactiveAsTemplate') && !!(message as any).interactiveAsTemplate) {
+	// FIX Bug 4: was `else if` — so it was silently skipped whenever groupStatus was set.
+	// Must be an independent `if` so both can apply independently.
+	if (hasOptionalProperty(message, 'interactiveAsTemplate') && !!(message as any).interactiveAsTemplate) {
 		if (!m.interactiveMessage) {
 			throw new Boom('Invalid message type for template', { statusCode: 400 })
 		}
