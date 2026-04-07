@@ -959,19 +959,19 @@ export const generateWAMessageContent = async (
 					header = prepared
 				}
 
+				const headerProps = {
+					title,
+					hasMediaAttachment: !!(
+						header.imageMessage ||
+						header.videoMessage ||
+						header.documentMessage ||
+						(header as any).productMessage
+					),
+					...header
+				}
+
 				return WAProto.Message.InteractiveMessage.create({
-					header: WAProto.Message.InteractiveMessage.Header.create({
-						title,
-						hasMediaAttachment: !!(
-							header.imageMessage ||
-							header.videoMessage ||
-							header.documentMessage ||
-							(header as any).productMessage
-						),
-						imageMessage: header.imageMessage ?? undefined,
-						videoMessage: header.videoMessage ?? undefined,
-						documentMessage: header.documentMessage ?? undefined
-					}),
+					header: WAProto.Message.InteractiveMessage.Header.create(headerProps),
 					body: WAProto.Message.InteractiveMessage.Body.create({ text: body }),
 					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
 					nativeFlowMessage: WAProto.Message.InteractiveMessage.NativeFlowMessage.create({

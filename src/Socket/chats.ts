@@ -48,7 +48,6 @@ import {
 	type BinaryNode,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
-	isJidUser,
 	jidDecode,
 	jidNormalizedUser,
 	reduceBinaryNodeToDictionary,
@@ -243,40 +242,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		}
 
 		return botList
-	}
-
-	/**
-	 * Get the LID (Linked ID) for a given user JID.
-	 * Ported from innovatorssoft/Baileys.
-	 */
-	const getLidUser = async (jid: string) => {
-		if (!jid) {
-			throw new Boom('Please input a jid user')
-		}
-
-		if (!isJidUser(jid)) {
-			throw new Boom('Invalid JID: Not a user JID!')
-		}
-
-		const targetJid = jidNormalizedUser(jid)
-
-		const usyncQuery = new USyncQuery()
-		usyncQuery.protocols.push({
-			name: 'lid',
-			getQueryElement: () => ({
-				tag: 'lid',
-				attrs: {},
-				content: undefined
-			}),
-			getUserElement: () => null,
-			parser: (node: any) => node.attrs.val
-		})
-		usyncQuery.users.push({ id: targetJid })
-
-		const result = await sock.executeUSyncQuery(usyncQuery)
-		if (result) {
-			return result.list as Array<{ lid: string; id: string }>
-		}
 	}
 
 	const fetchStatus = async (...jids: string[]) => {
@@ -751,11 +716,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		return child?.attrs?.token
 	}
 
-	const sendPresenceUpdate = async (
-		type: WAPresence,
-		toJid?: string,
-		options?: { simulateTyping?: boolean; typingDuration?: number }
-	) => {
+	const sendPresenceUpdate = async (type: WAPresence, toJid?: string) => {
 		const me = authState.creds.me!
 		const isAvailableType = type === 'available'
 		if (isAvailableType || type === 'unavailable') {
@@ -778,7 +739,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				}
 			})
 		} else {
-			const { server } = jidDecode(toJid!)!
+			const { server } = jidDecode(toJid)!
 			const isLid = server === 'lid'
 
 			await sendNode({
@@ -794,20 +755,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					}
 				]
 			})
-
-			// Simulate typing: auto-send 'paused' after typingDuration ms
-			const { simulateTyping = false, typingDuration = 1500 } = options ?? {}
-			if (simulateTyping && (type === 'composing' || type === 'recording')) {
-				await new Promise(r => setTimeout(r, typingDuration))
-				await sendNode({
-					tag: 'chatstate',
-					attrs: {
-						from: isLid ? me.lid! : me.id,
-						to: toJid!
-					},
-					content: [{ tag: 'paused', attrs: {} }]
-				}).catch(() => {})
-			}
 		}
 	}
 
@@ -1326,7 +1273,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		...sock,
 		createCallLink,
 		getBotListV2,
-		getLidUser,
 		messageMutex,
 		receiptMutex,
 		appStatePatchMutex,

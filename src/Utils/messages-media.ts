@@ -14,8 +14,8 @@ import {
 	DEFAULT_ORIGIN,
 	MEDIA_HKDF_KEY_MAPPING,
 	MEDIA_PATH_MAP,
-	NEWSLETTER_MEDIA_PATH_MAP,
-	type MediaType
+	type MediaType,
+	NEWSLETTER_MEDIA_PATH_MAP
 } from '../Defaults'
 import type {
 	BaileysEventMap,
@@ -677,6 +677,10 @@ type MediaUploadResult = {
 	meta_hmac?: string
 	ts?: number
 	fbid?: number
+	thumbnail_info?: {
+		thumbnail_sha256?: string
+		thumbnail_direct_path?: string
+	}
 }
 
 export type UploadParams = {

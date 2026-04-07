@@ -67,7 +67,24 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	auth: undefined as unknown as AuthenticationState,
 	markOnlineOnConnect: true,
 	syncFullHistory: true,
-	patchMessageBeforeSending: msg => msg,
+	patchMessageBeforeSending: (msg: proto.IMessage) => {
+		// iOS fix: wrap buttons/list/template/interactive in viewOnceMessageV2Extension
+		// Matches innovatorssoft patchMessageForMdIfRequired exactly
+		if (msg?.buttonsMessage || msg?.templateMessage || msg?.listMessage || msg?.interactiveMessage?.nativeFlowMessage) {
+			msg = {
+				viewOnceMessageV2Extension: {
+					message: {
+						messageContextInfo: {
+							deviceListMetadataVersion: 2,
+							deviceListMetadata: {}
+						},
+						...msg
+					}
+				}
+			}
+		}
+		return msg
+	},
 	shouldSyncHistoryMessage: ({ syncType }: proto.Message.IHistorySyncNotification) => {
 		return syncType !== proto.HistorySync.HistorySyncType.FULL
 	},
