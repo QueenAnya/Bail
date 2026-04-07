@@ -1,16 +1,19 @@
 /**
- * addons/baileys utility functions
+ * baileys utility functions
  * Ported to TypeScript for @whiskeysockets/baileys
  *
  * Usage:
- *   import { MessageStore, createAntiDeleteHandler } from 'baileys/src/Utils/addons'
- *   import { MessageScheduler, createMessageScheduler } from 'baileys/src/Utils/addons'
- *   import { AutoReplyHandler, createAutoReply } from 'baileys/src/Utils/addons'
- *   import { generateVCard, createContactCard } from 'baileys/src/Utils/addons'
- *   import { StatusHelper, createTextStatus } from 'baileys/src/Utils/addons'
- *   import { MessageSearchManager, searchMessages } from 'baileys/src/Utils/addons'
- *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/Utils/addons'
+ *   import { MessageStore, createAntiDeleteHandler } from 'baileys/src/addons'
+ *   import { MessageScheduler, createMessageScheduler } from 'baileys/src/addons'
+ *   import { AutoReplyHandler, createAutoReply } from 'baileys/src/addons'
+ *   import { generateVCard, createContactCard } from 'baileys/src/addons'
+ *   import { StatusHelper, createTextStatus } from 'baileys/src/addons'
+ *   import { MessageSearchManager, searchMessages } from 'baileys/src/addons'
+ *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/addons'
  */
+
+// Interactive Buttons / Messages
+// export * from './interactive-message'
 
 // Anti-Delete System
 export * from './anti-delete'

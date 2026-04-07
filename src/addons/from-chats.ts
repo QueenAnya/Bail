@@ -2,7 +2,7 @@
  * from-chats.ts
  * Source: src/Socket/chats.ts
  *
- * Chat modification helpers ported from addons/baileys.
+ * Chat modification helpers ported from baileys.
  * These are imported back into makeChatsSocket.
  */
 import Long from 'long'
