@@ -3,6 +3,7 @@ export * from './GroupMetadata'
 export * from './Chat'
 export * from './Contact'
 export * from './State'
+export * from './MexUpdates'
 export * from './Message'
 export * from './Socket'
 export * from './Events'
@@ -21,10 +22,16 @@ export type BrowsersMap = {
 	macOS(browser: string): [string, string, string]
 	baileys(browser: string): [string, string, string]
 	windows(browser: string): [string, string, string]
+	linux(browser: string): [string, string, string]
 	appropriate(browser: string): [string, string, string]
 	iOS(browser: string): [string, string, string]
 	android(browser: string): [string, string, string]
+	/** Android companion device. apiLevel is the Android API level (e.g. '14') */
 	androidCompanion(apiLevel: string): [string, string, string]
+	kaiOS(browser: string): [string, string, string]
+	chromeOS(browser: string): [string, string, string]
+	/** Fully custom browser tuple */
+	custom(platform: string, browser: string, version: string): [string, string, string]
 }
 
 export enum DisconnectReason {
