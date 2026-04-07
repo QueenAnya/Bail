@@ -52,19 +52,19 @@ const PLATFORM_VERSIONS: Record<string, string> = {
 }
 
 export const Browsers: BrowsersMap = {
-	ubuntu: browser => ['Ubuntu', browser, PLATFORM_VERSIONS['ubuntu']],
-	macOS: browser => ['Mac OS', browser, PLATFORM_VERSIONS['darwin']],
-	baileys: browser => ['Baileys', browser, PLATFORM_VERSIONS['baileys']],
-	windows: browser => ['Windows', browser, PLATFORM_VERSIONS['win32']],
-	linux: browser => ['Linux', browser, PLATFORM_VERSIONS['linux']],
+	ubuntu: browser => ['Ubuntu', browser, PLATFORM_VERSIONS['ubuntu']!],
+	macOS: browser => ['Mac OS', browser, PLATFORM_VERSIONS['darwin']!],
+	baileys: browser => ['Baileys', browser, PLATFORM_VERSIONS['baileys']!],
+	windows: browser => ['Windows', browser, PLATFORM_VERSIONS['win32']!],
+	linux: browser => ['Linux', browser, PLATFORM_VERSIONS['linux']!],
 	/** iOS device */
-	iOS: browser => ['iOS', browser, PLATFORM_VERSIONS['ios']],
+	iOS: browser => ['iOS', browser, PLATFORM_VERSIONS['ios']!],
 	/** Android companion device — apiLevel is the Android API level e.g. '14' */
 	android: (apiLevel: string) => [apiLevel, 'Android', ''],
 	/** Alias for android companion used by pairing code flow */
 	androidCompanion: (apiLevel: string) => [apiLevel, 'Android', ''],
-	kaiOS: browser => ['KaiOS', browser, PLATFORM_VERSIONS['kaios']],
-	chromeOS: browser => ['Chrome OS', browser, PLATFORM_VERSIONS['chromeos']],
+	kaiOS: browser => ['KaiOS', browser, PLATFORM_VERSIONS['kaios']!],
+	chromeOS: browser => ['Chrome OS', browser, PLATFORM_VERSIONS['chromeos']!],
 	/** The appropriate browser based on your OS & release */
 	appropriate: browser => {
 		const os = platform()
