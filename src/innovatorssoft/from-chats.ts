@@ -2,10 +2,10 @@
  * from-chats.ts
  * Source: src/Socket/chats.ts
  *
- * Chat modification helpers ported from addons/baileys.
+ * Chat modification helpers ported from innovatorssoft/baileys.
  * These are imported back into makeChatsSocket.
  */
-import Long from 'long'
+import type Long from 'long'
 import type { WAMessageKey, ChatModification } from '../Types'
 
 /**
