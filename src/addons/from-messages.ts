@@ -2,7 +2,7 @@
  * from-messages.ts
  * Source: src/Utils/messages.ts
  *
- * Message content builder functions ported from innovatorssoft/baileys.
+ * Message content builder functions ported from baileys-patchd.
  * These are imported back into generateWAMessageContent in messages.ts.
  */
 import { gunzipSync, gzipSync } from 'zlib'

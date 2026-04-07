@@ -1,15 +1,15 @@
 /**
- * innovatorssoft/baileys utility functions
+ * baileys-patchd utility functions
  * Ported to TypeScript for @whiskeysockets/baileys
  *
  * Usage:
- *   import { MessageStore, createAntiDeleteHandler } from 'baileys/src/Utils/innovatorssoft'
- *   import { MessageScheduler, createMessageScheduler } from 'baileys/src/Utils/innovatorssoft'
- *   import { AutoReplyHandler, createAutoReply } from 'baileys/src/Utils/innovatorssoft'
- *   import { generateVCard, createContactCard } from 'baileys/src/Utils/innovatorssoft'
- *   import { StatusHelper, createTextStatus } from 'baileys/src/Utils/innovatorssoft'
- *   import { MessageSearchManager, searchMessages } from 'baileys/src/Utils/innovatorssoft'
- *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/Utils/innovatorssoft'
+ *   import { MessageStore, createAntiDeleteHandler } from 'baileys-patchd/src/addons'
+ *   import { MessageScheduler, createMessageScheduler } from 'baileys-patchd/src/addons'
+ *   import { AutoReplyHandler, createAutoReply } from 'baileys-patchd/src/addons'
+ *   import { generateVCard, createContactCard } from 'baileys-patchd/src/addons'
+ *   import { StatusHelper, createTextStatus } from 'baileys-patchd/src/addons'
+ *   import { MessageSearchManager, searchMessages } from 'baileys-patchd/src/addons'
+ *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys-patchd/src/addons'
  */
 
 // Anti-Delete System
