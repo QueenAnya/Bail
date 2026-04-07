@@ -24,7 +24,6 @@ export type BrowsersMap = {
 	appropriate(browser: string): [string, string, string]
 	iOS(browser: string): [string, string, string]
 	android(browser: string): [string, string, string]
-	androidCompanion(apiLevel: string): [string, string, string]
 }
 
 export enum DisconnectReason {
