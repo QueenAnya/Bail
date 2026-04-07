@@ -528,7 +528,7 @@ export type WAMediaUploadFunctionOpts = {
 }
 
 export type WAMediaUploadFunction = (
-	encFilePath: string | Buffer,
+	encFilePath: string,
 	opts: WAMediaUploadFunctionOpts
 ) => Promise<{
 	mediaUrl: string
