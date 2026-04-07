@@ -679,7 +679,7 @@ export const generateWAMessageContent = async (
 	// ── productList → ListMessage with products ────────────────────────────────
 	if ('productList' in message && !!message.productList) {
 		const thumbnail = message.thumbnail
-			? await generateThumbnail(message.thumbnail as WAMediaUpload, 'image', {})
+			? await generateThumbnail(message.thumbnail as unknown as string, 'image', {})
 			: null
 
 		const listMessage: proto.Message.IListMessage = {
@@ -713,7 +713,7 @@ export const generateWAMessageContent = async (
 			title: (message as any).title,
 			buttonText: (message as any).buttonText,
 			footerText: (message as any).footer,
-			description: message.text,
+			description: (message as any).text,
 			sections: message.sections,
 			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT
 		}
@@ -959,19 +959,19 @@ export const generateWAMessageContent = async (
 					header = prepared
 				}
 
+				const headerProps = {
+					title,
+					hasMediaAttachment: !!(
+						header.imageMessage ||
+						header.videoMessage ||
+						header.documentMessage ||
+						(header as any).productMessage
+					),
+					...header
+				}
+
 				return WAProto.Message.InteractiveMessage.create({
-					header: WAProto.Message.InteractiveMessage.Header.create({
-						title,
-						hasMediaAttachment: !!(
-							header.imageMessage ||
-							header.videoMessage ||
-							header.documentMessage ||
-							(header as any).productMessage
-						),
-						imageMessage: header.imageMessage ?? undefined,
-						videoMessage: header.videoMessage ?? undefined,
-						documentMessage: header.documentMessage ?? undefined
-					}),
+					header: WAProto.Message.InteractiveMessage.Header.create(headerProps),
 					body: WAProto.Message.InteractiveMessage.Body.create({ text: body }),
 					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
 					nativeFlowMessage: WAProto.Message.InteractiveMessage.NativeFlowMessage.create({

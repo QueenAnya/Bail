@@ -661,6 +661,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		const extraAttrs: BinaryNodeAttributes = {}
 
+		// normalizeMessageContent BEFORE transaction — exact innovatorssoft pattern
+		const messages = normalizeMessageContent(message) || (message as proto.IMessage)
+		const buttonType = getButtonType(messages)
+		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
+
 		if (participant) {
 			if (!isGroup && !isStatus) {
 				additionalAttributes = { ...additionalAttributes, device_fanout: 'false' }
@@ -675,9 +680,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
-			// normalizeMessageContent once — innovatorssoft pattern
-			const messages = normalizeMessageContent(message) || (message as proto.IMessage)
-			const buttonType = getButtonType(messages)
 			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
@@ -1283,7 +1285,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					mediaCache: config.mediaCache,
 					options: config.options,
 					messageId:
-						(content as any)?.groupStatus && !options.messageId
+						((content as any)?.groupStatus || (content as any)?.cards) && !options.messageId
 							? `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
 							: generateMessageIDV2(sock.user?.id),
 					...options
