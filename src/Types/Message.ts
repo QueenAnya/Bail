@@ -520,10 +520,29 @@ export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions &
 	userJid: string
 }
 
+export type WAMediaUploadFunctionOpts = {
+	fileEncSha256B64: string
+	mediaType: MediaType
+	/** Set true when uploading for a newsletter/channel — server uses different path */
+	newsletter?: boolean
+	timeoutMs?: number
+}
+
 export type WAMediaUploadFunction = (
 	encFilePath: string,
-	opts: { fileEncSha256B64: string; mediaType: MediaType; timeoutMs?: number }
-) => Promise<{ mediaUrl: string; directPath: string; meta_hmac?: string; ts?: number; fbid?: number }>
+	opts: WAMediaUploadFunctionOpts
+) => Promise<{
+	mediaUrl: string
+	directPath: string
+	handle?: string
+	meta_hmac?: string
+	ts?: number
+	fbid?: number
+	/** Returned by server when newsletter=true + server_thumb_gen=1 */
+	thumbnailDirectPath?: string
+	/** Returned by server when newsletter=true + server_thumb_gen=1 */
+	thumbnailSha256?: string
+}>
 
 export type MediaGenerationOptions = {
 	logger?: ILogger
@@ -539,6 +558,9 @@ export type MediaGenerationOptions = {
 	backgroundColor?: string
 
 	font?: number
+
+	/** Whether the message is for a newsletter/channel — uses newsletter upload paths */
+	newsletter?: boolean
 }
 export type MessageContentGenerationOptions = MediaGenerationOptions & {
 	getUrlInfo?: (text: string) => Promise<WAUrlInfo | undefined>

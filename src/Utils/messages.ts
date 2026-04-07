@@ -679,7 +679,7 @@ export const generateWAMessageContent = async (
 	// ── productList → ListMessage with products ────────────────────────────────
 	if ('productList' in message && !!message.productList) {
 		const thumbnail = message.thumbnail
-			? await generateThumbnail(message.thumbnail as WAMediaUpload, 'image', {})
+			? await generateThumbnail(message.thumbnail as unknown as string, 'image', {})
 			: null
 
 		const listMessage: proto.Message.IListMessage = {
@@ -713,7 +713,7 @@ export const generateWAMessageContent = async (
 			title: (message as any).title,
 			buttonText: (message as any).buttonText,
 			footerText: (message as any).footer,
-			description: message.text,
+			description: (message as any).text,
 			sections: message.sections,
 			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT
 		}
