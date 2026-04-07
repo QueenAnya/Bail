@@ -281,7 +281,7 @@ export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
 }
 
 export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/innovatorssoft/Baileys/main/lib/Defaults/baileys-version.json'
+	const URL = 'https://raw.githubusercontent.com/addons/Baileys/main/lib/Defaults/baileys-version.json'
 	try {
 		const result = await fetch(URL, {
 			...options,

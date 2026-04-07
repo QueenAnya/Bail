@@ -1410,7 +1410,7 @@ sock.ws.on('CB:edge_routing,id:abcd,routing_info', (node: BinaryNode) => {})
 
 # iOS & Android Support
 
-By default this patched version uses an iOS browser identity (same as innovatorssoft). You can switch to Android if needed:
+By default this patched version uses an iOS browser identity (same as addons). You can switch to Android if needed:
 
 ```ts
 import makeWASocket, { Browsers } from 'baileys'
