@@ -2,7 +2,7 @@
  * from-messages-send.ts
  * Source: src/Socket/messages-send.ts
  *
- * Status mentions + content normalization ported from baileys-patchd.
+ * Status mentions + content normalization ported from baileys.
  * Imported back into makeMessagesSocket.
  */
 import { randomBytes } from 'crypto'

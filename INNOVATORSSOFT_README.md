@@ -1,6 +1,6 @@
 # Baileys — addons Feature Port
 
-This patch adds all features from `@addons/baileys` into `@whiskeysockets/baileys`.
+This patch adds all features from `@queenanya/baileys` into `@whiskeysockets/baileys`.
 
 ---
 
@@ -792,7 +792,7 @@ await conn.sendMessage(
 
 ## addons Utils
 
-Import from `baileys/src/Utils/addons`:
+Import from `@queenanya/baileys`:
 
 ```ts
 import {
@@ -838,7 +838,7 @@ import {
 	plotJid,
 	normalizePhoneToJid,
 	createJidPlotter
-} from 'baileys/src/Utils/addons'
+} from '@queenanya/baileys'
 ```
 
 ### Anti-Delete System
@@ -995,7 +995,7 @@ const groupMsgs = search.getByJid('group@g.us')
 ### vCard Helpers
 
 ```ts
-import { generateVCard, createContactCard, createContactCards, quickContact } from 'baileys/src/Utils/addons'
+import { generateVCard, createContactCard, createContactCards, quickContact } from '@queenanya/baileys'
 
 // Generate vCard string
 const vcard = generateVCard({
@@ -1031,7 +1031,7 @@ await conn.sendMessage(jid, createContactCard(contact))
 ### Status Helpers
 
 ```ts
-import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from 'baileys/src/Utils/addons'
+import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from '@queenanya/baileys'
 
 // Text status
 const textContent = StatusHelper.text('Good Morning! ☀️', STATUS_BACKGROUNDS.solid.blue, STATUS_FONTS.DANCING)
@@ -1064,7 +1064,7 @@ import {
 	createPinnedMessagesManager,
 	createReadReceiptController,
 	DISAPPEARING_DURATIONS
-} from 'baileys/src/Utils/addons'
+} from '@queenanya/baileys'
 
 // Typing indicator
 const typing = createTypingIndicator((jid, presence) => conn.sendPresenceUpdate(presence, jid))
@@ -1111,7 +1111,7 @@ import {
 	isSameUser,
 	getJidVariants,
 	createJidPlotter
-} from 'baileys/src/Utils/addons'
+} from '@queenanya/baileys'
 
 // Parse JID info
 const info = parseJid('628xxx@s.whatsapp.net')

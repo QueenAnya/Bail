@@ -59,7 +59,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Build and send a call offer stanza with proper E2E encryption (baileys-patchd) */
+	/** Build and send a call offer stanza with proper E2E encryption (baileys) */
 	const offerCall = async (toJid: string, isVideo = false) => {
 		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
 		const offerContent: BinaryNode[] = []
@@ -144,7 +144,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		return { callId, to: jid, isVideo }
 	}
 
-	/** Terminate/hang up an active or ringing call (baileys-patchd) */
+	/** Terminate/hang up an active or ringing call (baileys) */
 	const terminateCall = async (
 		callId: string,
 		callTo: string,
@@ -173,7 +173,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 	/** Cancel an outgoing call — delegates to terminateCall */
 	const cancelCall = async (callId: string, callTo: string) => terminateCall(callId, callTo)
 
-	/** Accept (answer) an incoming call (baileys-patchd) */
+	/** Accept (answer) an incoming call (baileys) */
 	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
 		const meId = authState.creds.me?.id
 		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
@@ -191,7 +191,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Send preaccept signal (codec capabilities) for an incoming call (baileys-patchd) */
+	/** Send preaccept signal (codec capabilities) for an incoming call (baileys) */
 	const preacceptCall = async (callId: string, callCreator: string, isVideo?: boolean) => {
 		const content: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }]
 		if (isVideo) {
@@ -212,7 +212,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Report relay latency measurements (baileys-patchd) */
+	/** Report relay latency measurements (baileys) */
 	const sendRelayLatency = async (
 		callId: string,
 		callCreator: string,
@@ -243,7 +243,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Send ICE transport candidates (baileys-patchd) */
+	/** Send ICE transport candidates (baileys) */
 	const sendTransport = async (
 		callId: string,
 		callCreator: string,
@@ -270,7 +270,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Send call duration log after a call ends (baileys-patchd) */
+	/** Send call duration log after a call ends (baileys) */
 	const sendCallDuration = async (
 		callId: string,
 		callCreator: string,
@@ -297,7 +297,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Mute or unmute during a call (baileys-patchd) */
+	/** Mute or unmute during a call (baileys) */
 	const muteCall = async (callId: string, callCreator: string, to: string, muted: boolean) => {
 		await sendNode({
 			tag: 'call',
@@ -312,7 +312,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Send heartbeat to keep a group/link call alive (baileys-patchd) */
+	/** Send heartbeat to keep a group/link call alive (baileys) */
 	const sendHeartbeat = async (callId: string, callCreator: string) => {
 		await sendNode({
 			tag: 'call',
@@ -321,7 +321,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Send encryption re-key during a call (baileys-patchd) */
+	/** Send encryption re-key during a call (baileys) */
 	const sendEncRekey = async (callId: string, callCreator: string, to: string, transactionId: string) => {
 		await sendNode({
 			tag: 'call',
@@ -339,7 +339,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Send video state change during a call (baileys-patchd) */
+	/** Send video state change during a call (baileys) */
 	const sendVideoState = async (
 		callId: string,
 		callCreator: string,
@@ -365,7 +365,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Query info about a call link before joining (baileys-patchd) */
+	/** Query info about a call link before joining (baileys) */
 	const queryCallLink = async (token: string, media = 'video') => {
 		return await query({
 			tag: 'call',
@@ -374,7 +374,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		})
 	}
 
-	/** Join a call via its link token (baileys-patchd) */
+	/** Join a call via its link token (baileys) */
 	const joinCallLink = async (token: string, media = 'video') => {
 		const content: BinaryNode[] = [
 			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined },
