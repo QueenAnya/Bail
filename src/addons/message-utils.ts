@@ -47,17 +47,14 @@ export function getMessageType(message: proto.IMessage): string {
  * Returns: 'list' | 'buttons' | 'native_flow' | undefined
  */
 export function getButtonType(message: proto.IMessage): string | undefined {
-	const inner = message.viewOnceMessageV2Extension?.message || message
-	if (inner.listMessage) return 'list'
-	if (inner.buttonsMessage) return 'buttons'
-	if (inner.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (inner.interactiveMessage?.carouselMessage) return 'native_flow'
+	if (message.listMessage) return 'list'
+	if (message.buttonsMessage) return 'buttons'
+	if (message.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+	if (message.interactiveMessage?.carouselMessage) return 'native_flow'
+	// FIX Bug 3 follow-up: cards are no longer wrapped in viewOnceMessage,
+	// but keep these paths for any externally-constructed messages that still use the old wrapper.
 	if (message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
-	if (message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	if (message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	return undefined
 }
 
@@ -65,17 +62,12 @@ export function getButtonType(message: proto.IMessage): string | undefined {
  * Build the <biz> binary node that WhatsApp servers require for button messages
  */
 export function getButtonArgs(message: proto.IMessage): BinaryNode {
-	const inner = message.viewOnceMessageV2Extension?.message || message
-
 	const nativeFlow =
-		inner.interactiveMessage?.nativeFlowMessage ||
-		message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage ||
-		message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage
+		message.interactiveMessage?.nativeFlowMessage ||
+		message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage
 
 	const carouselMessage =
-		inner.interactiveMessage?.carouselMessage ||
-		message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage ||
-		message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
+		message.interactiveMessage?.carouselMessage || message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage
 
 	const firstButtonName =
 		nativeFlow?.buttons?.[0]?.name ||
@@ -92,18 +84,6 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	]
 
 	const ts = unixTimestampSeconds().toString()
-
-	// single_select → list-style biz node
-	if (nativeFlow && firstButtonName === 'single_select') {
-		return {
-			tag: 'biz',
-			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
-			content: [
-				{ tag: 'list', attrs: { v: '2', type: 'product_list' } },
-				{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
-			]
-		}
-	}
 
 	// Payment flows
 	if (nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
@@ -148,7 +128,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	}
 
 	// List message
-	if (inner.listMessage) {
+	if (message.listMessage) {
 		return {
 			tag: 'biz',
 			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
