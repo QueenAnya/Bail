@@ -1,6 +1,15 @@
 import type { WAMessage } from '../Types'
 
-type MessageType = 'text' | 'image' | 'video' | 'document' | 'audio' | 'sticker' | 'location' | 'contact' | 'other'
+export type MessageType =
+	| 'text'
+	| 'image'
+	| 'video'
+	| 'document'
+	| 'audio'
+	| 'sticker'
+	| 'location'
+	| 'contact'
+	| 'other'
 
 export interface SearchOptions {
 	jid?: string
