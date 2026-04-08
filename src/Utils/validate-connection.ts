@@ -20,11 +20,8 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		// Always use MACOS platform for UserAgent — we connect via web protocol
-		// (WA\x06\x03) so the server expects a web-compatible identity.
-		// Using WEB causes 405 errors; using SMB_ANDROID breaks pair code.
-		// Android identity is only set in DeviceProps (registration node).
-		platform: proto.ClientPayload.UserAgent.Platform.MACOS,
+		platform: proto.ClientPayload.UserAgent.Platform.WEB,
+		//platform: proto.ClientPayload.UserAgent.Platform.MACOS,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
