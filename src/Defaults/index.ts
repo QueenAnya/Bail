@@ -69,8 +69,13 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	syncFullHistory: true,
 	patchMessageBeforeSending: (msg: proto.IMessage) => {
 		// iOS fix: wrap buttons/list/template/interactive in viewOnceMessageV2Extension
-		// Matches addons patchMessageForMdIfRequired exactly
-		if (msg?.buttonsMessage || msg?.templateMessage || msg?.listMessage || msg?.interactiveMessage?.nativeFlowMessage) {
+		// Matches innovatorssoft patchMessageForMdIfRequired exactly
+		if (
+			msg?.buttonsMessage ||
+			msg?.templateMessage ||
+			msg?.listMessage ||
+			msg?.interactiveMessage?.nativeFlowMessage
+		) {
 			msg = {
 				viewOnceMessageV2Extension: {
 					message: {
@@ -102,7 +107,6 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	countryCode: 'US',
 	getMessage: async () => undefined,
 	cachedGroupMetadata: async () => undefined,
-	cachedChatMetadata: async () => undefined,
 	makeSignalRepository: makeLibSignalRepository
 }
 
