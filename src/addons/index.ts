@@ -12,8 +12,12 @@
  *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/addons'
  */
 
-// Interactive Buttons / Messages
-// export * from './interactive-message'
+// Interactive Buttons / Messages — generators (proto builders)
+export * from './interactive-message'
+
+// Interactive Button Sender — runtime helpers (sendButtons, sendInteractiveMessage, etc.)
+// Ported from @ryuu-reinzz/button-helper v2.2.5
+export * from './button-sender'
 
 // Anti-Delete System
 export * from './anti-delete'
