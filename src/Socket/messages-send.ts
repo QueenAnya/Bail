@@ -1197,19 +1197,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
 		) => {
 			const userJid = authState.creds.me!.id
-
-			// Auto-detect ephemeral: provided → group active → off
-			if (!options.ephemeralExpiration) {
-				if (isJidGroup(jid)) {
-					try {
-						const meta =
-							(cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined) || (await groupMetadata(jid))
-						const expiration = Number(meta?.ephemeralDuration) || 0
-						if (expiration > 0) options.ephemeralExpiration = expiration
-					} catch {}
-				}
-			}
-
 			if (
 				typeof content === 'object' &&
 				'disappearingMessagesInChat' in content &&
@@ -1281,6 +1268,36 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return mediaMsgs
 			} else {
+				// Resolve ephemeralExpiration (3-way priority):
+				// 1. Explicitly passed in options   -> honour as-is (0 = force off)
+				// 2. Chat/group has an active timer -> auto-detect
+				// 3. Neither                        -> leave undefined (off)
+				if (options.ephemeralExpiration === undefined && !isJidNewsletter(jid)) {
+					if (isJidGroup(jid)) {
+						// Groups: cache first, live fallback if cache misses
+						try {
+							const meta =
+								(cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined) || (await groupMetadata(jid))
+							const expiration = Number(meta?.ephemeralDuration) || 0
+							if (expiration > 0) options = { ...options, ephemeralExpiration: expiration }
+						} catch {}
+					} else {
+						// Private chats: live-fetch via fetchDisappearingDuration (no cache needed)
+						// result shape: [{ id: jid, disappearing_mode: { duration, setAt } }]
+						// Empty [] = disappearing mode OFF
+						try {
+							const result = await sock.fetchDisappearingDuration(jid)
+							const entry = result?.find(r => (r as any).id === jid)
+							const duration: number | undefined = (entry as any)?.disappearing_mode?.duration
+							if (duration && duration > 0) {
+								options = { ...options, ephemeralExpiration: duration }
+							}
+						} catch {
+							// fetchDisappearingDuration failed -- proceed without ephemeral
+						}
+					}
+				}
+
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
 					userJid,
