@@ -28,9 +28,7 @@ const wMexQuery = (
 }
 
 const parseContent = (content: Buffer | string | Uint8Array): any => {
-	const buf = Buffer.isBuffer(content)
-		? content
-		: Buffer.from(content as Uint8Array)
+	const buf = Buffer.isBuffer(content) ? content : Buffer.from(content as Uint8Array)
 
 	// Try gunzip first (WA may return gzip-compressed response)
 	let str: string

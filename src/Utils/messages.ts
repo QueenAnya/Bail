@@ -814,7 +814,7 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
 			}
 		}
 
@@ -856,7 +856,7 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
 			}
 		}
 
@@ -899,7 +899,7 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
 			}
 		}
 

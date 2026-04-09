@@ -1199,8 +1199,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			if (!options.ephemeralExpiration) {
 				if (isJidGroup(jid)) {
 					try {
-						const meta = (cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined)
-							|| await groupMetadata(jid)
+						const meta =
+							(cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined) || (await groupMetadata(jid))
 						const expiration = Number(meta?.ephemeralDuration) || 0
 						if (expiration > 0) options.ephemeralExpiration = expiration
 					} catch {}
