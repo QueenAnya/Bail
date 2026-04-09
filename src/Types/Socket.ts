@@ -142,6 +142,18 @@ export type SocketConfig = {
 	/** cached group metadata, use to prevent redundant requests to WA & speed up msg sending */
 	cachedGroupMetadata: (jid: string) => Promise<GroupMetadata | undefined>
 
+	/**
+	 * Provide cached chat metadata for a JID (used to auto-detect active ephemeral timers).
+	 * Implement this with your store so sendMessage can pick up the chat's active
+	 * disappearing-message setting without an extra server round-trip.
+	 *
+	 * @example
+	 *   cachedChatMetadata: async (jid) => store.chats.get(jid)
+	 *
+	 * Returns undefined → ephemeral falls back to explicit options.ephemeralExpiration or off.
+	 */
+	cachedChatMetadata: (jid: string) => Promise<Pick<import('./Chat').Chat, 'ephemeralExpiration'> | undefined>
+
 	makeSignalRepository: (
 		auth: SignalAuthState,
 		logger: ILogger,
