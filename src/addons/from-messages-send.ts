@@ -2,7 +2,7 @@
  * from-messages-send.ts
  * Source: src/Socket/messages-send.ts
  *
- * Status mentions + content normalization ported from addons/baileys.
+ * Status mentions + content normalization ported from baileys.
  * Imported back into makeMessagesSocket.
  */
 import { randomBytes } from 'crypto'
@@ -11,7 +11,7 @@ import { isJidGroup, jidNormalizedUser } from '../WABinary'
 import { delay } from '../Utils/generics'
 import { generateWAMessage, generateWAMessageFromContent } from '../Utils/messages'
 
-export const STORIES_JID = 'status@broadcast'
+const STORIES_JID = 'status@broadcast'
 
 export interface StatusMentionDeps {
 	meId: string
@@ -125,12 +125,12 @@ export async function execSendStatusMentions(
 
 	for (const id of jids) {
 		const isGroup = isJidGroup(id)
-		// match addons: isJidUser = ends with @s.whatsapp.net
+		// match fork: isJidUser = ends with @s.whatsapp.net
 		const isPrivate = id.endsWith('@s.whatsapp.net')
 
 		if (isGroup) {
 			try {
-				// addons: cachedGroupMetadata first, then fallback to groupMetadata
+				// fork: cachedGroupMetadata first, then fallback to groupMetadata
 				const meta = (cachedGroupMetadata ? await cachedGroupMetadata(id) : undefined) || (await groupMetadata(id))
 				meta.participants.forEach(p => allUsers.add(jidNormalizedUser(p.id)))
 			} catch (e) {

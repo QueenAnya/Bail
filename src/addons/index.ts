@@ -1,16 +1,23 @@
 /**
- * addons/baileys utility functions
+ * baileys utility functions
  * Ported to TypeScript for @whiskeysockets/baileys
  *
  * Usage:
- *   import { MessageStore, createAntiDeleteHandler } from 'baileys/src/Utils/addons'
- *   import { MessageScheduler, createMessageScheduler } from 'baileys/src/Utils/addons'
- *   import { AutoReplyHandler, createAutoReply } from 'baileys/src/Utils/addons'
- *   import { generateVCard, createContactCard } from 'baileys/src/Utils/addons'
- *   import { StatusHelper, createTextStatus } from 'baileys/src/Utils/addons'
- *   import { MessageSearchManager, searchMessages } from 'baileys/src/Utils/addons'
- *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/Utils/addons'
+ *   import { MessageStore, createAntiDeleteHandler } from 'baileys/src/addons'
+ *   import { MessageScheduler, createMessageScheduler } from 'baileys/src/addons'
+ *   import { AutoReplyHandler, createAutoReply } from 'baileys/src/addons'
+ *   import { generateVCard, createContactCard } from 'baileys/src/addons'
+ *   import { StatusHelper, createTextStatus } from 'baileys/src/addons'
+ *   import { MessageSearchManager, searchMessages } from 'baileys/src/addons'
+ *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/addons'
  */
+
+// Interactive Buttons / Messages — generators (proto builders)
+export * from './interactive-message'
+
+// Interactive Button Sender — runtime helpers (sendButtons, sendInteractiveMessage, etc.)
+// Ported from @ryuu-reinzz/button-helper v2.2.5
+export * from './button-sender'
 
 // Anti-Delete System
 export * from './anti-delete'
