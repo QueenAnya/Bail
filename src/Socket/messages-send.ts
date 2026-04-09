@@ -1268,6 +1268,35 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return mediaMsgs
 			} else {
+				// Resolve ephemeralExpiration (3-way priority):
+				// 1. Explicitly passed in options  -> honour it as-is (including 0 = force off)
+				// 2. Chat/group has an active disappearing timer -> auto-detect & use it
+				// 3. Neither                       -> leave undefined (off)
+				if (options.ephemeralExpiration === undefined && !isJidNewsletter(jid)) {
+					if (isJidGroup(jid)) {
+						// Groups: read ephemeralDuration from cachedGroupMetadata
+						const groupMeta = cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined
+						if (groupMeta?.ephemeralDuration && groupMeta.ephemeralDuration > 0) {
+							options = { ...options, ephemeralExpiration: groupMeta.ephemeralDuration }
+						}
+					} else {
+						// Private chats: live-fetch the active disappearing timer from WA servers
+						// via sock.fetchDisappearingDuration — no local store/cache needed.
+						// Non-fatal: if fetch fails (network, timeout) we silently skip.
+						try {
+							const result = await sock.fetchDisappearingDuration(jid)
+							const entry = result?.find(r => (r as any).jid === jid || (r as any).id === jid)
+							const duration: number | undefined =
+								(entry as any)?.disappearing_mode?.duration ?? (entry as any)?.duration
+							if (duration && duration > 0) {
+								options = { ...options, ephemeralExpiration: duration }
+							}
+						} catch {
+							// fetchDisappearingDuration failed -- proceed without ephemeral
+						}
+					}
+				}
+
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
 					userJid,
