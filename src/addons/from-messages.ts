@@ -2,7 +2,7 @@
  * from-messages.ts
  * Source: src/Utils/messages.ts
  *
- * Message content builder functions ported from baileys.
+ * Message content builder functions ported from innovatorssoft/baileys.
  * These are imported back into generateWAMessageContent in messages.ts.
  */
 import { gunzipSync, gzipSync } from 'zlib'
@@ -174,6 +174,9 @@ export async function buildStickerPackMessage(
 	const stickerMetadata = await Promise.all(
 		validStickers.map(async (s: any, i: number) => {
 			const raw = s.sticker ?? s.data
+			if (!raw) {
+				throw new Error(`Sticker at index ${i + 1} is undefined/null. Make sure to await download() calls.`)
+			}
 			const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
 			const { stream } = await getStream(normalized)
 			const buffer = (await toBuffer(stream)) as Buffer
@@ -225,6 +228,9 @@ export async function buildStickerPackMessage(
 	)
 
 	// ── Step 2: Process cover (tray icon) → add INSIDE ZIP ───────────────
+	if (!cover) {
+		throw new Error('Cover is undefined/null. Make sure to await download() calls.')
+	}
 	const coverRaw = Buffer.isBuffer(cover) ? cover : typeof cover === 'string' ? { url: cover } : cover
 	const { stream: coverStream } = await getStream(coverRaw)
 	const coverBuffer = (await toBuffer(coverStream)) as Buffer

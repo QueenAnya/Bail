@@ -72,7 +72,7 @@ import {
 } from '../WABinary'
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
-import { makeCallHandlers } from '../addons/from-messages-recv'
+import { makeCallHandlers } from '../innovatorssoft/from-messages-recv'
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
@@ -386,7 +386,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendNode(stanza)
 	}
 
-	// ── Call handlers (from addons/from-messages-recv) ───────────────
+	// ── Call handlers (from innovatorssoft/from-messages-recv) ───────────────
 	const {
 		rejectCall,
 		offerCall,
