@@ -597,9 +597,13 @@ export const generateWAMessageContent = async (
 			})
 		}
 
-		m.messageContextInfo = {
-			// encKey
-			messageSecret: message.poll.messageSecret || randomBytes(32)
+		// messageSecret must NOT be set for newsletter polls —
+		// newsletters handle encryption differently and a secret causes send failures
+		if (!options.jid || !isJidNewsletter(options.jid)) {
+			const providedSecret = message.poll.messageSecret
+			const messageSecret =
+				providedSecret instanceof Uint8Array && providedSecret.length === 32 ? providedSecret : randomBytes(32)
+			m.messageContextInfo = { messageSecret }
 		}
 
 		const pollCreationMessage = {

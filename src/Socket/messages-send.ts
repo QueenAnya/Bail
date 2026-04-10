@@ -1053,7 +1053,27 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			// Inject <biz> node for button messages — addons pattern
+			// Inject poll/event meta node directly in relayMessage
+			// (mirrors innovators — handles direct relayMessage calls, not just sendMessage)
+			if (pollMessage || messages.eventMessage) {
+				const hasPollMeta = (additionalNodes ?? []).some(
+					(n: BinaryNode) => n.tag === 'meta' && ('polltype' in n.attrs || 'event_type' in n.attrs)
+				)
+				if (!hasPollMeta) {
+					const metaAttrs: Record<string, string> = messages.eventMessage
+						? { event_type: 'creation' }
+						: isNewsletter
+							? {
+									polltype: 'creation',
+									contenttype: (pollMessage as any)?.pollContentType === 2 ? 'image' : 'text'
+								}
+							: { polltype: 'creation' }
+					;(stanza.content as BinaryNode[]).push({ tag: 'meta', attrs: metaAttrs })
+				}
+			}
+
+			// Inject <biz> node for button messages
+			// Works for: WhatsApp Messenger + WhatsApp Business, Android + iOS
 			if (!isJidNewsletter(destinationJid) && buttonType) {
 				const buttonsNode = getButtonArgs(messages)
 				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
@@ -1064,10 +1084,25 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				} else {
 					;(stanza.content as BinaryNode[]).push(buttonsNode)
 				}
+
+				// bot node: required for buttons to be interactive in private chats
+				// (independent of AI flag — matches innovators + button-helper behaviour)
+				if (isPrivate) {
+					const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
+					const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
+					if (filteredBizBot) {
+						if (!didPushAdditional) {
+							;(stanza.content as BinaryNode[]).push(...additionalNodes!)
+							didPushAdditional = true
+						}
+					} else {
+						;(stanza.content as BinaryNode[]).push(botNode)
+					}
+				}
 			}
 
-			// AI icon feature — adds bot node to show AI indicator on message
-			if (AI && isPrivate) {
+			// AI icon feature — adds bot node for non-button messages with AI flag
+			if (AI && isPrivate && !buttonType) {
 				const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
 				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
 
@@ -1343,11 +1378,16 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				} else if (isPinMsg) {
 					additionalAttributes.edit = '2'
 				} else if (isPollMessage) {
+					// Newsletter polls need a contenttype attr ('image' or 'text')
+					// matching innovators behaviour for cross-client compatibility
+					const pollAttrs: Record<string, string> = { polltype: 'creation' }
+					if (isJidNewsletter(jid)) {
+						const pollContent = (content as any).poll
+						pollAttrs.contenttype = pollContent?.pollContentType === 2 ? 'image' : 'text'
+					}
 					additionalNodes.push({
 						tag: 'meta',
-						attrs: {
-							polltype: 'creation'
-						}
+						attrs: pollAttrs
 					} as BinaryNode)
 				} else if (isEventMsg) {
 					additionalNodes.push({
