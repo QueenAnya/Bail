@@ -48,7 +48,7 @@ import {
 	buildCallMessage,
 	buildPaymentInviteMessage,
 	buildStickerPackMessage
-} from '../innovatorssoft/from-messages'
+} from '../addons/from-messages'
 
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
@@ -597,9 +597,13 @@ export const generateWAMessageContent = async (
 			})
 		}
 
-		m.messageContextInfo = {
-			// encKey
-			messageSecret: message.poll.messageSecret || randomBytes(32)
+		// messageSecret must NOT be set for newsletter polls —
+		// newsletters handle encryption differently and a secret causes send failures
+		if (!options.jid || !isJidNewsletter(options.jid)) {
+			const providedSecret = message.poll.messageSecret
+			const messageSecret =
+				providedSecret instanceof Uint8Array && providedSecret.length === 32 ? providedSecret : randomBytes(32)
+			m.messageContextInfo = { messageSecret }
 		}
 
 		const pollCreationMessage = {
@@ -621,17 +625,17 @@ export const generateWAMessageContent = async (
 			}
 		}
 	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
-		// innovatorssoft/from-messages.ts → buildAdminInviteMessage
+		// addons/from-messages.ts → buildAdminInviteMessage
 		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
 			(message as any).adminInvite,
 			(message as any).contextInfo,
 			options
 		)
 	} else if ('order' in message && !!(message as any).order) {
-		// order → OrderMessage (from innovatorssoft)
+		// order → OrderMessage (from addons)
 		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
 	} else if ('keep' in message && !!(message as any).keep) {
-		// keep → KeepInChatMessage (from innovatorssoft)
+		// keep → KeepInChatMessage (from addons)
 		const k = (message as any).keep
 		m.keepInChatMessage = {
 			key: k.key,
@@ -639,10 +643,10 @@ export const generateWAMessageContent = async (
 			timestampMs: k.time ?? Date.now()
 		}
 	} else if ('call' in message && !!(message as any).call) {
-		// innovatorssoft/from-messages.ts → buildCallMessage
+		// addons/from-messages.ts → buildCallMessage
 		m.scheduledCallCreationMessage = buildCallMessage((message as any).call)
 	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
-		// innovatorssoft/from-messages.ts → buildPaymentInviteMessage
+		// addons/from-messages.ts → buildPaymentInviteMessage
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
@@ -670,7 +674,7 @@ export const generateWAMessageContent = async (
 			expectedVideoCount: albumMsg.filter(i => 'video' in i).length
 		})
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// innovatorssoft/from-messages.ts → buildStickerPackMessage
+		// addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)

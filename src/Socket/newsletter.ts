@@ -12,10 +12,10 @@ const parseNewsletterCreateResponse = (response: NewsletterCreateResponse): News
 		id: id,
 		owner: undefined,
 		name: thread.name.text,
-		creation_time: parseInt(thread.creation_time || '0', 10),
+		creation_time: parseInt(thread.creation_time, 10),
 		description: thread.description.text,
 		invite: thread.invite,
-		subscribers: parseInt(thread.subscribers_count || '0', 10),
+		subscribers: parseInt(thread.subscribers_count, 10),
 		verification: thread.verification,
 		picture: {
 			id: thread.picture.id,

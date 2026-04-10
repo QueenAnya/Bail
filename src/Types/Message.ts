@@ -201,6 +201,11 @@ export type PollMessageOptions = {
 	/** 32 byte message secret to encrypt poll selections */
 	messageSecret?: Uint8Array
 	toAnnouncementGroup?: boolean
+	/**
+	 * Poll content type — used for newsletter polls meta node.
+	 * 1 = TEXT (default), 2 = IMAGE
+	 */
+	pollContentType?: 1 | 2
 }
 
 export type EventMessageOptions = {
