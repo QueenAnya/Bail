@@ -1229,7 +1229,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			jid: string,
 			content: AnyMessageContent,
 			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
-		): Promise<WAMessage | undefined> => {
+		) => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
