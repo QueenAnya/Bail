@@ -604,10 +604,10 @@ export function convertToInteractiveMessage(content: Record<string, unknown>): R
  *  3. Build WAMessage via generateWAMessageFromContent (skips sendMessage
  *     validation that rejects interactiveMessage).
  *  4. Derive & inject required binary nodes so buttons render on all platforms:
- *       - biz node  with actual_actors / host_storage / privacy_mode_ts attrs
- *       - interactive / native_flow child node  (type, v, name)
- *       - quality_control child node  (required for WA Business render)
- *       - bot node  { tag: 'bot', attrs: { biz_bot: '1' } }  (private chats)
+ *       - biz node  { tag:'biz', attrs:{} }
+ *       - interactive child  { type:'native_flow', v:'1' }
+ *       - native_flow child  { v:'9', name:'mixed' }
+ *       - bot node  { tag:'bot', attrs:{ biz_bot:'1' } }  (private chats only)
  *  5. Relay via sock.relayMessage.
  *
  * iOS/Android + WA Messenger + WA Business compatibility:
@@ -680,8 +680,8 @@ export async function sendInteractiveMessage(
 	const additionalNodes: BinaryNode[] = [...(options.additionalNodes ?? [])]
 
 	if (buttonType && normalizedContent) {
-		// biz + interactive/native_flow + quality_control nodes
-		// required for buttons to render on Android, iOS, WA Business
+		// biz > interactive > native_flow(v:9, mixed) — exact sendButton node structure
+		// Works on: Android, iOS, WA Messenger, WA Business
 		const bizNode = getButtonArgs(normalizedContent)
 		additionalNodes.push(bizNode)
 

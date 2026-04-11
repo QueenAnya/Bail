@@ -790,6 +790,12 @@ export const generateWAMessageContent = async (
 			hydratedTemplate.hydratedFooterText = message.footer
 		}
 
+		;(hydratedTemplate as any).contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
 		m = { templateMessage: { hydratedTemplate } }
 	}
 
@@ -832,7 +838,9 @@ export const generateWAMessageContent = async (
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
-		m = { interactiveMessage }
+		// Wrap in viewOnceMessage like sendButton — required for iOS/Android visibility
+		// No deviceListMetadata (that's only for cards/carousel)
+		m = { viewOnceMessage: { message: { interactiveMessage } } }
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────

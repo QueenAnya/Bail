@@ -120,17 +120,17 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	}
 
 	// Standard interactive / buttons / carousel
+	// Uses exact biz node structure from sendButton — works on iOS + Android + WA Business + WA Messenger
 	if (nativeFlow || carouselMessage || message.buttonsMessage) {
 		return {
 			tag: 'biz',
-			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
+			attrs: {},
 			content: [
 				{
 					tag: 'interactive',
 					attrs: { type: 'native_flow', v: '1' },
 					content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
-				},
-				{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				}
 			]
 		}
 	}
@@ -139,17 +139,14 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	if (inner.listMessage) {
 		return {
 			tag: 'biz',
-			attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
-			content: [
-				{ tag: 'list', attrs: { v: '2', type: 'product_list' } },
-				{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
-			]
+			attrs: {},
+			content: [{ tag: 'list', attrs: { v: '2', type: 'product_list' } }]
 		}
 	}
 
 	// Fallback
 	return {
 		tag: 'biz',
-		attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts }
+		attrs: {}
 	}
 }
