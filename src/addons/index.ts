@@ -37,6 +37,9 @@ export * from './message-search'
 // Message Templates
 export * from './templates'
 
+// Chat Control (Typing, Pinned Messages, Read Receipts)
+export * from './chat-control'
+
 // JID Plotting & LID Support
 export * from './jid-plotting'
 
