@@ -1300,7 +1300,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return mediaMsgs as WAMessage[]
+				return mediaMsgs
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
