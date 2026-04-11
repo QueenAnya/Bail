@@ -1,7 +1,7 @@
 import { proto } from '../../WAProto/index.js'
-import type { BinaryNode } from '../WABinary'
-import { normalizeMessageContent } from '../Utils/messages'
 import { unixTimestampSeconds } from '../Utils/generics'
+import { normalizeMessageContent } from '../Utils/messages'
+import type { BinaryNode } from '../WABinary'
 
 // ── Message Type Detection ─────────────────────────────────────────────────
 
@@ -78,9 +78,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 		message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
 
 	const firstButtonName =
-		nativeFlow?.buttons?.[0]?.name ||
-		(carouselMessage?.cards?.[0] as proto.Message.IInteractiveMessage | undefined)?.nativeFlowMessage?.buttons?.[0]
-			?.name
+		nativeFlow?.buttons?.[0]?.name || carouselMessage?.cards?.[0]?.nativeFlowMessage?.buttons?.[0]?.name
 
 	const nativeFlowSpecials = [
 		'mpm',
@@ -98,7 +96,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 		return {
 			tag: 'biz',
 			attrs: {
-				native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName!
+				native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName
 			}
 		}
 	}

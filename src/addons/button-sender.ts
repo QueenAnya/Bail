@@ -40,12 +40,12 @@
  *   })
  */
 
-import { generateWAMessageFromContent, normalizeMessageContent } from '../Utils/messages.js'
+import type { MessageRelayOptions, WAMessageContent } from '../Types/Message.js'
 import { generateMessageIDV2 } from '../Utils/generics.js'
+import { generateWAMessageFromContent, normalizeMessageContent } from '../Utils/messages.js'
 import { isJidGroup } from '../WABinary/jid-utils.js'
-import type { WAMessageContent, MessageRelayOptions } from '../Types/Message.js'
 import type { BinaryNode } from '../WABinary/types.js'
-import { getButtonType, getButtonArgs } from './message-utils.js'
+import { getButtonArgs, getButtonType } from './message-utils.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -163,13 +163,16 @@ export class InteractiveValidationError extends Error {
 			lines.push('Errors:')
 			this.errors.forEach(e => lines.push('  - ' + e))
 		}
+
 		if (this.warnings.length) {
 			lines.push('Warnings:')
 			this.warnings.forEach(w => lines.push('  - ' + w))
 		}
+
 		if (this.example) {
 			lines.push('Example payload:', JSON.stringify(this.example, null, 2))
 		}
+
 		return lines.join('\n')
 	}
 }
@@ -273,23 +276,27 @@ function parseButtonParamsInternal(
 		errors.push(`button[${index}] (${name}) invalid JSON: ${(e as Error).message}`)
 		return null
 	}
+
 	const required = REQUIRED_FIELDS_MAP[name] ?? []
 	for (const field of required) {
 		if (!(field in parsed)) {
 			errors.push(`button[${index}] (${name}) missing required field '${field}'`)
 		}
 	}
+
 	if (name === 'open_webview' && parsed.link) {
 		const link = parsed.link as Record<string, unknown>
 		if (typeof link !== 'object' || !link.url) {
 			errors.push(`button[${index}] (open_webview) link.url required`)
 		}
 	}
+
 	if (name === 'single_select') {
 		if (!Array.isArray(parsed.sections) || (parsed.sections as unknown[]).length === 0) {
 			errors.push(`button[${index}] (single_select) sections must be a non-empty array`)
 		}
 	}
+
 	return parsed
 }
 
@@ -371,18 +378,21 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 			errors.push(`button[${idx}] is not an object`)
 			return b
 		}
+
 		if (btn.name && btn.buttonParamsJson) {
 			if (typeof btn.buttonParamsJson !== 'string') {
 				errors.push(`button[${idx}] buttonParamsJson must be string`)
 			} else {
 				try {
-					JSON.parse(btn.buttonParamsJson as string)
+					JSON.parse(btn.buttonParamsJson)
 				} catch (e: unknown) {
 					errors.push(`button[${idx}] buttonParamsJson is not valid JSON: ${(e as Error).message}`)
 				}
 			}
+
 			return b
 		}
+
 		if (btn.id || btn.text || btn.displayText) return b
 		const oldBt = btn.buttonText as Record<string, unknown> | undefined
 		if (btn.buttonId && oldBt?.displayText) return b
@@ -403,11 +413,13 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 	if (!data || typeof data !== 'object') {
 		return { valid: false, errors: ['payload must be an object'], warnings }
 	}
+
 	const d = data as Record<string, unknown>
 
 	if (!d.text || typeof d.text !== 'string') {
 		errors.push('text is mandatory and must be a string')
 	}
+
 	if (!Array.isArray(d.buttons) || (d.buttons as unknown[]).length === 0) {
 		errors.push('buttons is mandatory and must be a non-empty array')
 	} else {
@@ -417,12 +429,15 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 				errors.push(`button[${i}] must be an object`)
 				return
 			}
+
 			if (b.id && b.text) {
 				if (typeof b.id !== 'string' || typeof b.text !== 'string') {
 					errors.push(`button[${i}] legacy quick reply id/text must be strings`)
 				}
+
 				return
 			}
+
 			if (b.name && b.buttonParamsJson) {
 				if (!SEND_BUTTONS_ALLOWED_COMPLEX.has(b.name as string)) {
 					errors.push(
@@ -430,13 +445,16 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 					)
 					return
 				}
+
 				if (typeof b.buttonParamsJson !== 'string') {
 					errors.push(`button[${i}] buttonParamsJson must be string`)
 					return
 				}
-				parseButtonParamsInternal(b.name as string, b.buttonParamsJson as string, errors, warnings, i)
+
+				parseButtonParamsInternal(b.name as string, b.buttonParamsJson, errors, warnings, i)
 				return
 			}
+
 			errors.push(
 				`button[${i}] invalid shape — expected {id, text} or {name, buttonParamsJson} with name in [${[...SEND_BUTTONS_ALLOWED_COMPLEX].join(', ')}]`
 			)
@@ -456,11 +474,13 @@ export function validateSendInteractiveMessagePayload(data: unknown): Validation
 	if (!data || typeof data !== 'object') {
 		return { valid: false, errors: ['payload must be an object'], warnings }
 	}
+
 	const d = data as Record<string, unknown>
 
 	if (!d.text || typeof d.text !== 'string') {
 		errors.push('text is mandatory and must be a string')
 	}
+
 	if (!Array.isArray(d.interactiveButtons) || (d.interactiveButtons as unknown[]).length === 0) {
 		errors.push('interactiveButtons is mandatory and must be a non-empty array')
 	} else {
@@ -469,18 +489,22 @@ export function validateSendInteractiveMessagePayload(data: unknown): Validation
 				errors.push(`interactiveButtons[${i}] must be an object`)
 				return
 			}
+
 			if (!btn.name || typeof btn.name !== 'string') {
 				errors.push(`interactiveButtons[${i}] missing name`)
 				return
 			}
+
 			if (!INTERACTIVE_ALLOWED_NAMES.has(btn.name)) {
 				errors.push(`interactiveButtons[${i}] name '${btn.name}' not allowed`)
 				return
 			}
+
 			if (!btn.buttonParamsJson || typeof btn.buttonParamsJson !== 'string') {
 				errors.push(`interactiveButtons[${i}] buttonParamsJson must be a non-empty string`)
 				return
 			}
+
 			parseButtonParamsInternal(btn.name, btn.buttonParamsJson, errors, warnings, i)
 		})
 	}
@@ -498,6 +522,7 @@ export function validateInteractiveMessageContent(content: unknown): ValidationR
 	if (!content || typeof content !== 'object') {
 		return { errors: ['content must be an object'], warnings, valid: false }
 	}
+
 	const c = content as Record<string, unknown>
 	const interactive = c.interactiveMessage as Record<string, unknown> | undefined
 
@@ -509,18 +534,22 @@ export function validateInteractiveMessageContent(content: unknown): ValidationR
 		errors.push('interactiveMessage.nativeFlowMessage missing')
 		return { errors, warnings, valid: false }
 	}
+
 	if (!Array.isArray(nativeFlow.buttons)) {
 		errors.push('nativeFlowMessage.buttons must be an array')
 		return { errors, warnings, valid: false }
 	}
+
 	if ((nativeFlow.buttons as unknown[]).length === 0) {
 		warnings.push('nativeFlowMessage.buttons is empty')
 	}
+
 	;(nativeFlow.buttons as NativeSendButton[]).forEach((btn, i) => {
 		if (!btn || typeof btn !== 'object') {
 			errors.push(`buttons[${i}] is not an object`)
 			return
 		}
+
 		if (!btn.buttonParamsJson) {
 			warnings.push(`buttons[${i}] missing buttonParamsJson (may fail to render)`)
 		} else if (typeof btn.buttonParamsJson !== 'string') {
@@ -532,6 +561,7 @@ export function validateInteractiveMessageContent(content: unknown): ValidationR
 				warnings.push(`buttons[${i}] buttonParamsJson invalid JSON (${(e as Error).message})`)
 			}
 		}
+
 		if (!btn.name) {
 			warnings.push(`buttons[${i}] missing name; defaulting to quick_reply`)
 			btn.name = 'quick_reply'
@@ -576,6 +606,7 @@ export function convertToInteractiveMessage(content: Record<string, unknown>): R
 		if (content.text) {
 			interactiveMessage.body = { text: content.text as string }
 		}
+
 		if (content.footer) {
 			interactiveMessage.footer = { text: content.footer as string }
 		}
@@ -590,6 +621,7 @@ export function convertToInteractiveMessage(content: Record<string, unknown>): R
 
 		return { ...newContent, interactiveMessage }
 	}
+
 	return content
 }
 
@@ -644,6 +676,7 @@ export async function sendInteractiveMessage(
 				example: EXAMPLE_PAYLOADS.sendInteractiveMessage
 			})
 		}
+
 		if (strict.warnings.length) {
 			console.warn('[button-sender] sendInteractiveMessage warnings:', strict.warnings)
 		}
@@ -662,6 +695,7 @@ export async function sendInteractiveMessage(
 			)
 		})
 	}
+
 	if (cWarn.length) console.warn('[button-sender] Interactive content warnings:', cWarn)
 
 	// Step 3 — build WAMessage (uses internal @queenanya/baileys helpers directly)
@@ -675,7 +709,7 @@ export async function sendInteractiveMessage(
 	// Step 4 — derive binary nodes
 	// normalizeMessageContent unwraps view-once/ephemerals so getButtonType
 	// inspects the real inner message type correctly.
-	const normalizedContent = normalizeMessageContent(fullMsg.message!)
+	const normalizedContent = normalizeMessageContent(fullMsg.message)
 	const buttonType = normalizedContent ? getButtonType(normalizedContent) : undefined
 
 	const additionalNodes: BinaryNode[] = [...(options.additionalNodes ?? [])]
@@ -901,6 +935,7 @@ export async function sendButtons(
 			example: EXAMPLE_PAYLOADS.sendButtons
 		})
 	}
+
 	if (strict.warnings.length) {
 		console.warn('[button-sender] sendButtons warnings:', strict.warnings)
 	}
@@ -915,12 +950,13 @@ export async function sendButtons(
 			example: EXAMPLE_PAYLOADS.sendButtons.buttons
 		})
 	}
+
 	if (warnings.length) {
 		console.warn('[button-sender] Button validation warnings:', warnings)
 	}
 
 	// Normalise to native_flow format
-	const interactiveButtons = buildInteractiveButtons(cleaned!)
+	const interactiveButtons = buildInteractiveButtons(cleaned)
 
 	const payload: Record<string, unknown> = { text, footer, interactiveButtons }
 	if (title) payload.title = title

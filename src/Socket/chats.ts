@@ -2,6 +2,7 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import Long from 'long'
 import { proto } from '../../WAProto/index.js'
+import { buildClearMessageModification } from '../addons/from-chats'
 import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
 	BotListInfo,
@@ -16,6 +17,7 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
+	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -24,8 +26,7 @@ import type {
 	WAPrivacyMessagesValue,
 	WAPrivacyOnlineValue,
 	WAPrivacyValue,
-	WAReadReceiptsValue,
-	WAMessageKey
+	WAReadReceiptsValue
 } from '../Types'
 import { ALL_WA_PATCH_NAMES } from '../Types'
 import type { QuickReplyAction } from '../Types/Bussines.js'
@@ -57,7 +58,6 @@ import {
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeSocket } from './socket.js'
-import { buildClearMessageModification } from '../addons/from-chats'
 const MAX_SYNC_ATTEMPTS = 2
 
 export const makeChatsSocket = (config: SocketConfig) => {
@@ -387,6 +387,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				if (lid) lidJid = jidNormalizedUser(lid)
 			} catch {}
 		}
+
 		// If LID → resolve PN
 		if (jid.endsWith('@lid')) {
 			lidJid = jid

@@ -92,6 +92,7 @@ export const StatusHelper = {
 		if (!jidList || jidList.length === 0) {
 			console.warn('StatusHelper: jidList is empty.')
 		}
+
 		const groups = jidList.filter(j => j?.endsWith('@g.us'))
 		const individuals = jidList.filter(j => j?.endsWith('@s.whatsapp.net') || j?.endsWith('@lid'))
 		let lastResult: any

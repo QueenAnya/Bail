@@ -35,6 +35,7 @@ export class TemplateManager {
 			seen.add(name)
 			variables.push({ name, defaultValue: match[2], required: !match[2] })
 		}
+
 		return variables
 	}
 
@@ -119,6 +120,7 @@ export class TemplateManager {
 			this.templates.set(t.id, { ...t, createdAt: new Date(t.createdAt), updatedAt: new Date(t.updatedAt) })
 			imported++
 		}
+
 		return imported
 	}
 }
@@ -158,6 +160,7 @@ export const createTemplateManager = (includePresets = true): TemplateManager =>
 			manager.create({ ...template, id: key.toLowerCase() })
 		}
 	}
+
 	return manager
 }
 

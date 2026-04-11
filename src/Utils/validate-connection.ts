@@ -85,10 +85,12 @@ const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	if (platformType === 'ANDROID') {
 		return proto.DeviceProps.PlatformType.ANDROID_PHONE
 	}
+
 	// 'IOS' is not directly in PlatformType enum — map to IOS_PHONE
 	if (platformType === 'IOS') {
 		return proto.DeviceProps.PlatformType.IOS_PHONE
 	}
+
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME

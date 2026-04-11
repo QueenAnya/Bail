@@ -65,11 +65,12 @@ export class MessageScheduler {
 
 	cancel(id: string): boolean {
 		const s = this.queue.get(id)
-		if (s && s.status === 'pending') {
+		if (s?.status === 'pending') {
 			s.status = 'cancelled'
 			this.queue.delete(id)
 			return true
 		}
+
 		return false
 	}
 
@@ -82,6 +83,7 @@ export class MessageScheduler {
 				cancelled++
 			}
 		}
+
 		return cancelled
 	}
 
@@ -115,8 +117,10 @@ export class MessageScheduler {
 				s.error = error.message
 				this.options.onFailed(s, error)
 			}
+
 			this.queue.delete(id)
 		}
+
 		if (this.queue.size === 0) this.stopTimer()
 	}
 
