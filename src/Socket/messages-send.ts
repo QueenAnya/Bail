@@ -1230,7 +1230,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			jid: string,
 			content: AnyMessageContent,
 			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
-		): Promise<WAMessage | WAMessage[] | undefined> => {
+		): Promise<WAMessage | undefined> => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1301,7 +1301,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return mediaMsgs
+				return mediaMsgs[0] as WAMessage | undefined
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
