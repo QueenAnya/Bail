@@ -4,12 +4,6 @@ import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
 import {
-	buildAdminInviteMessage,
-	buildCallMessage,
-	buildPaymentInviteMessage,
-	buildStickerPackMessage
-} from '../addons/from-messages'
-import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
 	MEDIA_KEYS,
@@ -44,9 +38,17 @@ import {
 	getAudioDuration,
 	getAudioWaveform,
 	getRawMediaUploadData,
+	getStream,
+	toBuffer,
 	type MediaDownloadOptions
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
+import {
+	buildAdminInviteMessage,
+	buildCallMessage,
+	buildPaymentInviteMessage,
+	buildStickerPackMessage
+} from '../addons/from-messages'
 
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
@@ -745,13 +747,11 @@ export const generateWAMessageContent = async (
 			if ('caption' in message) {
 				buttonsMessage.contentText = (message as { caption?: string }).caption
 			}
-
 			const mediaType = Object.keys(m)[0]?.replace('Message', '').toUpperCase()
 			if (mediaType && mediaType in proto.Message.ButtonsMessage.HeaderType) {
 				buttonsMessage.headerType =
 					proto.Message.ButtonsMessage.HeaderType[mediaType as keyof typeof proto.Message.ButtonsMessage.HeaderType]
 			}
-
 			Object.assign(buttonsMessage, m)
 		}
 
@@ -938,7 +938,7 @@ export const generateWAMessageContent = async (
 		}
 
 		const slides = await Promise.all(
-			message.cards.map(async slide => {
+			message.cards!.map(async slide => {
 				const { image, video, document: doc, product, title, body, footer, buttons } = slide as any
 				let header: proto.IMessage = {}
 
@@ -958,7 +958,6 @@ export const generateWAMessageContent = async (
 						prepared.videoMessage.viewOnce = true
 						prepared.videoMessage.gifPlayback = false
 					}
-
 					header = prepared
 				} else if (doc) {
 					const prepared = await prepareWAMessageMedia(
@@ -1053,7 +1052,6 @@ export const generateWAMessageContent = async (
 		} else if (key) {
 			key.contextInfo = { isGroupStatus: (message as any).groupStatus }
 		}
-
 		m = { groupStatusMessageV2: { message: m } }
 	}
 
@@ -1064,7 +1062,6 @@ export const generateWAMessageContent = async (
 		if (!m.interactiveMessage) {
 			throw new Boom('Invalid message type for template', { statusCode: 400 })
 		}
-
 		m = {
 			templateMessage: {
 				interactiveMessageTemplate: m.interactiveMessage,

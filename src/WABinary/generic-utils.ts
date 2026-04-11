@@ -107,8 +107,8 @@ export const getBinaryNodeMessages = ({ content }: BinaryNode) => {
 export const getBinaryFilteredButtons = (nodeContent: BinaryNode | BinaryNode['content']): BinaryNode['content'] => {
 	if (!Array.isArray(nodeContent)) return false as any
 	return nodeContent.some((a: BinaryNode) => {
-		const firstChild = Array.isArray(a?.content) ? a.content[0] : undefined
-		const firstGrandchild = Array.isArray(firstChild?.content) ? firstChild.content[0] : undefined
+		const firstChild = Array.isArray(a?.content) ? (a.content as BinaryNode[])[0] : undefined
+		const firstGrandchild = Array.isArray(firstChild?.content) ? (firstChild!.content as BinaryNode[])[0] : undefined
 		return (
 			(typeof firstGrandchild?.tag === 'string' && ['native_flow'].includes(firstGrandchild.tag)) ||
 			(typeof firstChild?.tag === 'string' && ['interactive', 'buttons', 'list'].includes(firstChild.tag)) ||

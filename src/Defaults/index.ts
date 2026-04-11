@@ -83,7 +83,6 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 				}
 			}
 		}
-
 		return msg
 	},
 	shouldSyncHistoryMessage: ({ syncType }: proto.Message.IHistorySyncNotification) => {

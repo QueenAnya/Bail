@@ -269,15 +269,13 @@ export const generateNativeFlowMessage = (
 		interactiveMessage: {
 			body: { text: body },
 			footer: options?.footer ? { text: options.footer } : undefined,
-			// iOS VISIBILITY FIX: header MUST be present with hasMediaAttachment:false.
-			// If omitted entirely, iOS silently hides all buttons and cards.
 			header: options?.header
 				? {
 						title: options.header.title,
 						subtitle: options.header.subtitle,
 						hasMediaAttachment: options.header.hasMediaAttachment ?? false
 					}
-				: { hasMediaAttachment: false },
+				: undefined,
 			nativeFlowMessage: {
 				buttons: buttons.map(btn => ({
 					name: btn.name,

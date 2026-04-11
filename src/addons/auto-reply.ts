@@ -85,7 +85,6 @@ export class AutoReplyHandler {
 			r.active = active
 			return true
 		}
-
 		return false
 	}
 	clearRules() {
@@ -107,12 +106,11 @@ export class AutoReplyHandler {
 
 	private matchRule(text: string, rule: AutoReplyRule) {
 		if (!rule.active) return null
-		if (text.toLowerCase() === rule.exactMatch?.toLowerCase()) return [text]
+		if (rule.exactMatch && text.toLowerCase() === rule.exactMatch.toLowerCase()) return [text]
 		if (rule.keywords?.length) {
 			const lower = text.toLowerCase()
 			for (const kw of rule.keywords) if (lower.includes(kw.toLowerCase())) return [kw]
 		}
-
 		if (rule.pattern) return text.match(rule.pattern)
 		return null
 	}
@@ -171,7 +169,6 @@ export class AutoReplyHandler {
 				this.options.onError(error, rule, message)
 			}
 		}
-
 		return matched
 	}
 }

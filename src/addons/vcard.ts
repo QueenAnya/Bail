@@ -33,28 +33,29 @@ export interface ContactData {
 	note?: string
 }
 
-const escape = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
-const formatPhone = (p: string) => p.replace(/[^\d+]/g, '')
+export const escapeVCard = (s: string) =>
+	s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+export const formatPhone = (p: string) => p.replace(/[^\d+]/g, '')
 
 export const generateVCard = (c: ContactData): string => {
-	const lines = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${escape(c.fullName)}`]
+	const lines = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${escapeVCard(c.fullName)}`]
 	const parts = c.fullName.split(' ')
 	if (parts.length >= 2) {
 		const last = parts[parts.length - 1] || ''
 		const first = parts.slice(0, -1).join(' ')
-		lines.push(`N:${escape(last)};${escape(first)};;;`)
+		lines.push(`N:${escapeVCard(last)};${escapeVCard(first)};;;`)
 	} else {
-		lines.push(`N:${escape(c.fullName)};;;;`)
+		lines.push(`N:${escapeVCard(c.fullName)};;;;`)
 	}
-
-	if (c.organization) lines.push(`ORG:${escape(c.organization)}`)
-	if (c.title) lines.push(`TITLE:${escape(c.title)}`)
+	if (c.organization) lines.push(`ORG:${escapeVCard(c.organization)}`)
+	if (c.title) lines.push(`TITLE:${escapeVCard(c.title)}`)
 	for (const p of c.phones ?? []) {
 		const t = p.type || 'CELL'
 		const n = formatPhone(p.number)
-		lines.push(p.label ? `TEL;type=${t};type=VOICE;X-ABLabel=${escape(p.label)}:${n}` : `TEL;type=${t};type=VOICE:${n}`)
+		lines.push(
+			p.label ? `TEL;type=${t};type=VOICE;X-ABLabel=${escapeVCard(p.label)}:${n}` : `TEL;type=${t};type=VOICE:${n}`
+		)
 	}
-
 	for (const e of c.emails ?? []) lines.push(`EMAIL;type=${e.type || 'OTHER'}:${e.email}`)
 	for (const u of c.urls ?? []) lines.push(`URL;type=${u.type || 'OTHER'}:${u.url}`)
 	for (const a of c.addresses ?? []) {
@@ -62,9 +63,8 @@ export const generateVCard = (c: ContactData): string => {
 		const parts = ['', '', a.street || '', a.city || '', a.state || '', a.postalCode || '', a.country || ''].map(escape)
 		lines.push(`ADR;type=${t}:${parts.join(';')}`)
 	}
-
 	if (c.birthday) lines.push(`BDAY:${c.birthday}`)
-	if (c.note) lines.push(`NOTE:${escape(c.note)}`)
+	if (c.note) lines.push(`NOTE:${escapeVCard(c.note)}`)
 	lines.push('END:VCARD')
 	return lines.join('\r\n')
 }
@@ -91,7 +91,6 @@ export const parseVCard = (vcard: string): Partial<ContactData> => {
 		} else if (key.startsWith('BDAY')) contact.birthday = value
 		else if (key.startsWith('NOTE')) contact.note = value.replace(/\\n/g, '\n')
 	}
-
 	return contact
 }
 

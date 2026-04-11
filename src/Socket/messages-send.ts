@@ -2,8 +2,6 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import { execSendStatusMentions } from '../addons/from-messages-send'
-import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
@@ -37,18 +35,21 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
+	prepareWAMessageMedia,
 	unixTimestampSeconds
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
+import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../addons/message-utils'
+import { execSendStatusMentions } from '../addons/from-messages-send'
 import {
 	areJidsSameUser,
 	type BinaryNode,
 	type BinaryNodeAttributes,
 	type FullJid,
-	getBinaryFilteredBizBot,
 	getBinaryFilteredButtons,
+	getBinaryFilteredBizBot,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	isHostedLidUser,
@@ -61,7 +62,8 @@ import {
 	jidEncode,
 	jidNormalizedUser,
 	type JidWithDevice,
-	S_WHATSAPP_NET
+	S_WHATSAPP_NET,
+	STORIES_JID
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
@@ -400,7 +402,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		if (!isJidGroup(jid)) {
 			throw new Error('Jid must a group jid!')
 		}
-
 		return relayMessage(
 			jid,
 			{
@@ -664,7 +665,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const extraAttrs: BinaryNodeAttributes = {}
 
 		// normalizeMessageContent BEFORE transaction — exact addons pattern
-		const messages = normalizeMessageContent(message) || message
+		const messages = normalizeMessageContent(message) || (message as proto.IMessage)
 		const buttonType = getButtonType(messages)
 		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
 
@@ -1229,7 +1230,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			jid: string,
 			content: AnyMessageContent,
 			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
-		) => {
+		): Promise<WAMessage | undefined> => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1300,7 +1301,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return mediaMsgs
+				return mediaMsgs[0] as WAMessage | undefined
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
@@ -1354,7 +1355,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						const pollContent = (content as any).poll
 						pollAttrs.contenttype = pollContent?.pollContentType === 2 ? 'image' : 'text'
 					}
-
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: pollAttrs

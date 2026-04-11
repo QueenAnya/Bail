@@ -3,7 +3,6 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import Long from 'long'
 import { proto } from '../../WAProto/index.js'
-import { makeCallHandlers } from '../addons/from-messages-recv'
 import {
 	DEFAULT_CACHE_TTLS,
 	KEY_BUNDLE_TYPE,
@@ -18,6 +17,8 @@ import type {
 	MessageUserReceipt,
 	SocketConfig,
 	WACallEvent,
+	WAInitiateCallOptions,
+	WAInitiateCallResult,
 	WAMessage,
 	WAMessageKey,
 	WAPatchName
@@ -71,7 +72,9 @@ import {
 } from '../WABinary'
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
+import { makeCallHandlers } from '../addons/from-messages-recv'
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
 		config
