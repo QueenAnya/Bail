@@ -46,6 +46,8 @@ import { isJidGroup } from '../WABinary/jid-utils.js'
 import type { WAMessageContent, MessageRelayOptions } from '../Types/Message.js'
 import type { BinaryNode } from '../WABinary/types.js'
 import { getButtonType, getButtonArgs } from './message-utils.js'
+// Re-export so callers can import these from button-sender directly (matches button-helper API)
+export { getButtonType, getButtonArgs }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -567,11 +569,10 @@ export function convertToInteractiveMessage(content: Record<string, unknown>): R
 			}
 		}
 
-		// iOS VISIBILITY FIX: header MUST always be present with hasMediaAttachment:false
-		// Without this, iOS renders the message as plain text and hides all buttons/cards.
-		interactiveMessage.header = {
-			title: (content.title ?? content.subtitle ?? '') as string,
-			hasMediaAttachment: false
+		if (content.title || content.subtitle) {
+			interactiveMessage.header = {
+				title: (content.title ?? content.subtitle ?? '') as string
+			}
 		}
 		if (content.text) {
 			interactiveMessage.body = { text: content.text as string }
