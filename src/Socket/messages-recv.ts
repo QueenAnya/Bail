@@ -17,8 +17,6 @@ import type {
 	MessageUserReceipt,
 	SocketConfig,
 	WACallEvent,
-	WAInitiateCallOptions,
-	WAInitiateCallResult,
 	WAMessage,
 	WAMessageKey,
 	WAPatchName
