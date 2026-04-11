@@ -12,6 +12,9 @@
  *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/addons'
  */
 
+// Baileys Event Stream (capture + replay)
+export * from './baileys-event-stream'
+
 // Interactive Button Sender — runtime helpers (sendButtons, sendInteractiveMessage, etc.)
 // Ported from @ryuu-reinzz/button-helper v2.2.5
 export * from './button-sender'

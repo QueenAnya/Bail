@@ -226,7 +226,7 @@ describe('processHistoryMessage', () => {
 									key: {
 										remoteJid: '211071956705386@lid',
 										fromMe: true,
-										id: '3EB052FF8D9D00646C9994'
+										id: '4NY4W3B52FF8D9D00646C9994'
 									},
 									messageTimestamp: 1768320044,
 									userReceipt: [
@@ -264,7 +264,7 @@ describe('processHistoryMessage', () => {
 									key: {
 										remoteJid: '211071956705386@lid',
 										fromMe: true,
-										id: '3EB052FF8D9D00646C9994'
+										id: '4NY4W3B52FF8D9D00646C9994'
 									},
 									userReceipt: [
 										{
@@ -304,7 +304,7 @@ describe('processHistoryMessage', () => {
 									key: {
 										remoteJid: '211071956705386@lid',
 										fromMe: false, // Not from me
-										id: '3EB052FF8D9D00646C9994'
+										id: '4NY4W3B52FF8D9D00646C9994'
 									},
 									userReceipt: [
 										{
@@ -339,7 +339,7 @@ describe('processHistoryMessage', () => {
 									key: {
 										remoteJid: '211071956705386@lid',
 										fromMe: true,
-										id: '3EB052FF8D9D00646C9994'
+										id: '4NY4W3B52FF8D9D00646C9994'
 									},
 									userReceipt: [
 										{

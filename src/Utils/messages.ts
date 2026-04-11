@@ -985,26 +985,45 @@ export const generateWAMessageContent = async (
 			})
 		)
 
-		const interactiveMessage = WAProto.Message.InteractiveMessage.create({
-			carouselMessage: WAProto.Message.InteractiveMessage.CarouselMessage.create({ cards: slides }),
-			body: WAProto.Message.InteractiveMessage.Body.create({
-				text: ('text' in message ? message.text : '') ?? ''
-			}),
-			header: WAProto.Message.InteractiveMessage.Header.create({
-				title: ('title' in message ? message.title : undefined) ?? '',
-				subtitle: ('subtitle' in message ? message.subtitle : undefined) ?? '',
-				hasMediaAttachment: false
-			}),
-			footer: WAProto.Message.InteractiveMessage.Footer.create({
-				text: ('footer' in message ? message.footer : '') ?? ''
-			})
-		})
+		const interactiveMessage: proto.Message.IInteractiveMessage = {
+			carouselMessage: WAProto.Message.InteractiveMessage.CarouselMessage.create({ cards: slides })
+		}
 
-		// FIX Bug 3: Previously wrapped in viewOnceMessage with hardcoded deviceListMetadata: {}
-		// and deviceListMetadataVersion: 2. These device-list fields must be populated by the
-		// encryption layer at relay time — hardcoding empty {} causes iOS to reject/misrender
-		// the carousel. Just send interactiveMessage directly.
-		m = { interactiveMessage }
+		if ('text' in message) {
+			interactiveMessage.body = WAProto.Message.InteractiveMessage.Body.create({
+				text: message.text ?? ''
+			})
+			interactiveMessage.header = WAProto.Message.InteractiveMessage.Header.create({
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: false
+			})
+		}
+
+		if ('footer' in message && !!message.footer) {
+			interactiveMessage.footer = WAProto.Message.InteractiveMessage.Footer.create({
+				text: message.footer ?? ''
+			})
+		}
+
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		// Wrap in viewOnceMessage matching innovators pattern for correct WA rendering
+		m = {
+			viewOnceMessage: {
+				message: {
+					messageContextInfo: {
+						deviceListMetadata: {},
+						deviceListMetadataVersion: 2
+					},
+					interactiveMessage: WAProto.Message.InteractiveMessage.create(interactiveMessage)
+				}
+			}
+		}
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
