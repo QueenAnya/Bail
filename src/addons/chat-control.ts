@@ -36,7 +36,9 @@ export class TypingIndicator {
 		this.stopTyping(jid)
 		await this.sendPresence(jid, 'composing')
 		if (options.autoPause !== false && options.duration) {
-			const t = setTimeout(() => void this.stopTyping(jid), options.duration)
+			const t = setTimeout(async () => {
+				await this.stopTyping(jid)
+			}, options.duration)
 			this.intervals.set(jid, t)
 		}
 	}
@@ -45,7 +47,9 @@ export class TypingIndicator {
 		this.stopTyping(jid)
 		await this.sendPresence(jid, 'recording')
 		if (options.autoPause !== false && options.duration) {
-			const t = setTimeout(() => void this.stopTyping(jid), options.duration)
+			const t = setTimeout(async () => {
+				await this.stopTyping(jid)
+			}, options.duration)
 			this.intervals.set(jid, t)
 		}
 	}
