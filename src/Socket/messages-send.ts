@@ -35,7 +35,6 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
-	prepareWAMessageMedia,
 	unixTimestampSeconds
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
@@ -62,8 +61,7 @@ import {
 	jidEncode,
 	jidNormalizedUser,
 	type JidWithDevice,
-	S_WHATSAPP_NET,
-	STORIES_JID
+	S_WHATSAPP_NET
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'

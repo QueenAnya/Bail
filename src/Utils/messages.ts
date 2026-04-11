@@ -38,8 +38,6 @@ import {
 	getAudioDuration,
 	getAudioWaveform,
 	getRawMediaUploadData,
-	getStream,
-	toBuffer,
 	type MediaDownloadOptions
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
