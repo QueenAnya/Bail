@@ -693,7 +693,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
 				binaryNodeContent.push({
 					tag: 'plaintext',
-					attrs: {},
+					attrs: mediaType ? { mediatype: mediaType } : {},
 					content: bytes
 				})
 				const stanza: BinaryNode = {
@@ -1275,7 +1275,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						logger,
 						userJid,
 						upload: async (encFilePath: string, opts: any) => {
-							return await waUploadToServer(encFilePath, opts)
+							const up = await waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
+							return up
 						},
 						...options
 					})
