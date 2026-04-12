@@ -1,15 +1,5 @@
 export type WACallUpdateType = 'offer' | 'ringing' | 'timeout' | 'reject' | 'accept' | 'terminate'
 
-export type WAInitiateCallOptions = {
-	isVideo?: boolean
-}
-
-export type WAInitiateCallResult = {
-	callId: string
-	to: string
-	isVideo: boolean
-}
-
 export type WACallEvent = {
 	chatId: string
 	from: string

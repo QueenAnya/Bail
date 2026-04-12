@@ -46,8 +46,6 @@ import { isJidGroup } from '../WABinary/jid-utils.js'
 import type { WAMessageContent, MessageRelayOptions } from '../Types/Message.js'
 import type { BinaryNode } from '../WABinary/types.js'
 import { getButtonType, getButtonArgs } from './message-utils.js'
-// Re-export so callers can import these from button-sender directly (matches button-helper API)
-export { getButtonType, getButtonArgs }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -352,7 +350,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 	const errors: string[] = []
 	const warnings: string[] = []
 
-	if (buttons == null) return { errors: [], warnings: [], valid: true, cleaned: [] }
+	if (buttons === null || buttons === undefined) return { errors: [], warnings: [], valid: true, cleaned: [] }
 	if (!Array.isArray(buttons)) {
 		errors.push('buttons must be an array')
 		return { errors, warnings, valid: false, cleaned: [] }
@@ -369,7 +367,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 
 	const cleaned = (buttons as AnyRawButton[]).map((b, idx) => {
 		const btn = b as Record<string, unknown>
-		if (b == null || typeof b !== 'object') {
+		if (b === null || b === undefined || typeof b !== 'object') {
 			errors.push(`button[${idx}] is not an object`)
 			return b
 		}
@@ -569,10 +567,11 @@ export function convertToInteractiveMessage(content: Record<string, unknown>): R
 			}
 		}
 
-		if (content.title || content.subtitle) {
-			interactiveMessage.header = {
-				title: (content.title ?? content.subtitle ?? '') as string
-			}
+		// iOS VISIBILITY FIX: header MUST always be present with hasMediaAttachment:false
+		// Without this, iOS renders the message as plain text and hides all buttons/cards.
+		interactiveMessage.header = {
+			title: (content.title ?? content.subtitle ?? '') as string,
+			hasMediaAttachment: false
 		}
 		if (content.text) {
 			interactiveMessage.body = { text: content.text as string }
@@ -711,9 +710,9 @@ export async function sendInteractiveMessage(
 	// Step 6 (optional) — emit to local event stream
 	// Only for private chats to avoid duplicate processing in groups.
 	if (sock.config?.emitOwnEvents && !isJidGroup(jid)) {
-		process.nextTick(() => {
+		process.nextTick(async () => {
 			if (sock.processingMutex?.mutex && sock.upsertMessage) {
-				sock.processingMutex.mutex(() => sock.upsertMessage!(fullMsg, 'append'))
+				await sock.processingMutex.mutex(() => sock.upsertMessage!(fullMsg, 'append'))
 			}
 		})
 	}

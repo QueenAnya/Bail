@@ -50,7 +50,7 @@ const getMessageType = (message: WAMessage): MessageType => {
 	return 'other'
 }
 
-export const calculateRelevance = (query: string, text: string, position: number): number => {
+const calcRelevance = (query: string, text: string, position: number): number => {
 	let score = 100
 	if (text.toLowerCase() === query.toLowerCase()) score += 50
 	score -= Math.min(position / 10, 20)
@@ -89,7 +89,7 @@ export const searchMessages = (messages: WAMessage[], query: string, options: Se
 				message,
 				matchedText: text.substring(Math.max(0, pos - 20), Math.min(text.length, pos + query.length + 20)),
 				matchPosition: pos,
-				relevanceScore: calculateRelevance(query, text, pos)
+				relevanceScore: calcRelevance(query, text, pos)
 			})
 		}
 		if (options.limit && results.length >= options.limit) break
