@@ -37,7 +37,6 @@ import {
 	generateThumbnail,
 	getAudioDuration,
 	getAudioWaveform,
-	getRawMediaUploadData,
 	getStream,
 	toBuffer,
 	type MediaDownloadOptions
@@ -179,56 +178,6 @@ export const prepareWAMessageMedia = async (
 
 			return obj
 		}
-	}
-
-	const isNewsletter = !!options.jid && isJidNewsletter(options.jid)
-	if (isNewsletter) {
-		logger?.info({ key: cacheableKey }, 'Preparing raw media for newsletter')
-		const { filePath, fileSha256, fileLength } = await getRawMediaUploadData(
-			uploadData.media,
-			options.mediaTypeOverride || mediaType,
-			logger
-		)
-
-		const fileSha256B64 = fileSha256.toString('base64')
-		const { directPath, thumbnailDirectPath, thumbnailSha256 } = await options.upload(filePath, {
-			fileEncSha256B64: fileSha256B64,
-			mediaType: mediaType,
-			timeoutMs: options.mediaUploadTimeoutMs,
-			newsletter: true
-		})
-
-		await fs.unlink(filePath)
-
-		const obj = WAProto.Message.fromObject({
-			// todo: add more support here
-			[`${mediaType}Message`]: (MessageTypeProto as any)[mediaType].fromObject({
-				// url intentionally omitted — newsletters use directPath only
-				directPath,
-				fileSha256,
-				fileLength,
-				thumbnailDirectPath,
-				thumbnailSha256: thumbnailSha256 ? Buffer.from(thumbnailSha256, 'base64') : undefined,
-				...uploadData,
-				media: undefined
-			})
-		})
-
-		if (uploadData.ptv) {
-			obj.ptvMessage = obj.videoMessage
-			delete obj.videoMessage
-		}
-
-		if (obj.stickerMessage) {
-			obj.stickerMessage.stickerSentTs = Date.now()
-		}
-
-		if (cacheableKey) {
-			logger?.debug({ cacheableKey }, 'set cache')
-			await options.mediaCache!.set(cacheableKey, WAProto.Message.encode(obj).finish())
-		}
-
-		return obj
 	}
 
 	const requiresDurationComputation = mediaType === 'audio' && typeof uploadData.seconds === 'undefined'
@@ -1523,20 +1472,11 @@ export const downloadMediaMessage = async <Type extends 'buffer' | 'stream'>(
 		let mediaType = contentType?.replace('Message', '') as MediaType
 		const media = mContent[contentType!]
 
-		if (!media || typeof media !== 'object' || (!('url' in media) && !('thumbnailDirectPath' in media))) {
+		if (!media || typeof media !== 'object' || !('url' in media)) {
 			throw new Boom(`"${contentType}" message is not a media message`)
 		}
 
-		let download: DownloadableMessage
-		if ('thumbnailDirectPath' in media && !('url' in media)) {
-			download = {
-				directPath: media.thumbnailDirectPath,
-				mediaKey: media.mediaKey
-			}
-			mediaType = 'thumbnail-link'
-		} else {
-			download = media
-		}
+		const download = media
 
 		const stream = await downloadContentFromMessage(download, mediaType, options)
 		if (type === 'buffer') {

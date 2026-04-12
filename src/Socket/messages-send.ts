@@ -693,7 +693,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
 				binaryNodeContent.push({
 					tag: 'plaintext',
-					attrs: mediaType ? { mediatype: mediaType } : {},
+					attrs: {},
 					content: bytes
 				})
 				const stanza: BinaryNode = {
@@ -1230,7 +1230,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			jid: string,
 			content: AnyMessageContent,
 			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
-		): Promise<WAMessage | undefined> => {
+		): Promise<WAMessage | WAMessage[] | undefined> => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1275,8 +1275,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						logger,
 						userJid,
 						upload: async (encFilePath: string, opts: any) => {
-							const up = await waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
-							return up
+							return await waUploadToServer(encFilePath, opts)
 						},
 						...options
 					})
@@ -1301,7 +1300,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return mediaMsgs[0] as WAMessage | undefined
+				return mediaMsgs as WAMessage[]
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
