@@ -41,8 +41,8 @@ import {
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
-import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../innovatorssoft/message-utils'
-import { execSendStatusMentions } from '../innovatorssoft/from-messages-send'
+import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../addons/message-utils'
+import { execSendStatusMentions } from '../addons/from-messages-send'
 import {
 	areJidsSameUser,
 	type BinaryNode,
@@ -399,6 +399,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	 * Update Member Label
 	 */
 	const updateMemberLabel = (jid: string, memberLabel: string) => {
+	
+	if (!isJidGroup(jid)) {
+			throw new Error('Jid must a group jid!')
+			
 		return relayMessage(
 			jid,
 			{
@@ -675,7 +679,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
-			// normalizeMessageContent once — innovatorssoft pattern
+			// normalizeMessageContent once — addons pattern
 			const messages = normalizeMessageContent(message) || (message as proto.IMessage)
 			const buttonType = getButtonType(messages)
 			const mediaType = getMediaType(messages)
@@ -1048,7 +1052,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			// Inject <biz> node for button messages — innovatorssoft pattern
+			// Inject <biz> node for button messages — addons pattern
 			if (!isJidNewsletter(destinationJid) && buttonType) {
 				const buttonsNode = getButtonArgs(messages)
 				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
@@ -1207,7 +1211,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						: disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
 			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
-				// Album message — matches innovatorssoft prepareAlbumMessageContent
+				// Album message — matches addons prepareAlbumMessageContent
 				const albumItems = (content as any).album as Array<{
 					image?: WAMediaUpload
 					video?: WAMediaUpload
@@ -1283,8 +1287,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					mediaCache: config.mediaCache,
 					options: config.options,
 					messageId:
-						(content as any)?.groupStatus && !options.messageId
-							? `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
+						((content as any)?.groupStatus || (content as any)?.cards) && !options.messageId
+							? `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
 							: generateMessageIDV2(sock.user?.id),
 					...options
 				})
@@ -1341,7 +1345,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 		},
 
-		// Logic lives in innovatorssoft/from-messages-send.ts → execSendStatusMentions
+		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
 		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
 			return execSendStatusMentions(content, jids, {
 				meId: authState.creds.me!.id,
