@@ -53,7 +53,7 @@ export const PROCESSABLE_HISTORY_TYPES = [
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.iOS('Chrome'),
+	browser: Browsers.macOS('Chrome'),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,
@@ -67,24 +67,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	auth: undefined as unknown as AuthenticationState,
 	markOnlineOnConnect: true,
 	syncFullHistory: true,
-	patchMessageBeforeSending: (msg: proto.IMessage) => {
-		// iOS fix: wrap buttons/list/template/interactive in viewOnceMessageV2Extension
-		// Matches addons patchMessageForMdIfRequired exactly
-		if (msg?.buttonsMessage || msg?.templateMessage || msg?.listMessage || msg?.interactiveMessage?.nativeFlowMessage) {
-			msg = {
-				viewOnceMessageV2Extension: {
-					message: {
-						messageContextInfo: {
-							deviceListMetadataVersion: 2,
-							deviceListMetadata: {}
-						},
-						...msg
-					}
-				}
-			}
-		}
-		return msg
-	},
+	patchMessageBeforeSending: msg => msg,
 	shouldSyncHistoryMessage: ({ syncType }: proto.Message.IHistorySyncNotification) => {
 		return syncType !== proto.HistorySync.HistorySyncType.FULL
 	},
@@ -111,22 +94,11 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	document: '/mms/document',
 	audio: '/mms/audio',
 	sticker: '/mms/image',
-	'sticker-pack': '/mms/sticker-pack',
-	'thumbnail-sticker-pack': '/mms/thumbnail-sticker-pack',
 	'thumbnail-link': '/mms/image',
 	'product-catalog-image': '/product/image',
 	'md-app-state': '',
 	'md-msg-hist': '/mms/md-app-state',
 	'biz-cover-photo': '/pps/biz-cover-photo'
-}
-
-export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
-	image: '/newsletter/newsletter-image',
-	video: '/newsletter/newsletter-video',
-	document: '/newsletter/newsletter-document',
-	audio: '/newsletter/newsletter-audio',
-	sticker: '/newsletter/newsletter-image',
-	'thumbnail-link': '/newsletter/newsletter-image'
 }
 
 export const MEDIA_HKDF_KEY_MAPPING = {
@@ -138,8 +110,6 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	product: 'Image',
 	ptt: 'Audio',
 	sticker: 'Image',
-	'sticker-pack': 'Sticker Pack',
-	'thumbnail-sticker-pack': 'Sticker Pack Thumbnail',
 	video: 'Video',
 	'thumbnail-document': 'Document Thumbnail',
 	'thumbnail-image': 'Image Thumbnail',
@@ -177,3 +147,8 @@ export const TimeMs = {
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
 }
+
+// Phone number MCC (Mobile Country Code) lookup table
+// Ported from innovatorssoft/Baileys
+import PHONENUMBER_MCC_DATA from './phonenumber-mcc.json'
+export const PHONENUMBER_MCC: Record<string, string> = PHONENUMBER_MCC_DATA
