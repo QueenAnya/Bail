@@ -16,6 +16,16 @@ export type WACallParticipant = {
 	type?: string
 }
 
+export type WAInitiateCallOptions = {
+	isVideo?: boolean
+}
+
+export type WAInitiateCallResult = {
+	callId: string
+	to: string
+	isVideo: boolean
+}
+
 export type WACallEvent = {
 	chatId: string
 	from: string

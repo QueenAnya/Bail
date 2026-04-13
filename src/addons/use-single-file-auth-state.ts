@@ -1,15 +1,9 @@
 /**
- * Single-File Auth State
- * Ported from innovatorssoft/Baileys.
+ * Single-file auth state for Baileys.
  *
  * @deprecated Use `useMultiFileAuthState` instead.
  * Stores the full authentication state in a single JSON file.
  * DO NOT USE IN PRODUCTION — provided for backwards compatibility only.
- *
- * @example
- * const { state, saveState } = useSingleFileAuthState('./auth.json')
- * const sock = makeWASocket({ auth: state })
- * sock.ev.on('creds.update', saveState)
  */
 
 import { proto } from '../../WAProto/index.js'
@@ -34,8 +28,15 @@ export interface SingleFileAuthState {
 
 /**
  * @deprecated Use `useMultiFileAuthState` instead.
+ * Stores the full authentication state in a single JSON file.
+ *
+ * @example
+ * const { state, saveState } = useSingleFileAuthState('./auth.json')
+ * const sock = makeWASocket({ auth: state })
+ * sock.ev.on('creds.update', saveState)
  */
 export const useSingleFileAuthState = (filename: string, logger?: ILogger): SingleFileAuthState => {
+	// Lazy-require fs so that environments without fs (e.g., browser bundles) don't crash at import
 	// eslint-disable-next-line @typescript-eslint/no-require-imports
 	const { readFileSync, writeFileSync, existsSync } = require('fs') as typeof import('fs')
 

@@ -42,13 +42,15 @@ export interface MessageExtrasContext {
 		queryId: string,
 		options: Record<string, unknown>
 	) => Promise<BinaryNode>
+	/** Optional group query function for group-level operations */
+	groupQuery?: (node: BinaryNode) => Promise<BinaryNode>
 }
 
 // =====================================================
 // BUTTON TYPE DETECTION
 // =====================================================
 
-type ButtonMessageType = 'list' | 'buttons' | 'native_flow' | undefined
+// type ButtonMessageType = 'list' | 'buttons' | 'native_flow' | undefined
 
 /**
  * Detect the button/interactive message category from a proto message.
@@ -57,7 +59,7 @@ type ButtonMessageType = 'list' | 'buttons' | 'native_flow' | undefined
  * const type = getButtonType(msg.message!)
  * // → 'list' | 'buttons' | 'native_flow' | undefined
  */
-export const getButtonType = (message: proto.IMessage): ButtonMessageType => {
+const getButtonType = (message: proto.IMessage): ButtonMessageType => {
 	if (message.listMessage) return 'list'
 	if (message.buttonsMessage) return 'buttons'
 	if (message.interactiveMessage?.nativeFlowMessage) return 'native_flow'
@@ -76,7 +78,7 @@ export const getButtonType = (message: proto.IMessage): ButtonMessageType => {
  * const bizArgs = getButtonArgs(msg.message!)
  * if (bizArgs) { ... }
  */
-export const getButtonArgs = (message: proto.IMessage): BinaryNode | undefined => {
+const getButtonArgs = (message: proto.IMessage): BinaryNode | undefined => {
 	const nativeFlow =
 		message.interactiveMessage?.nativeFlowMessage ||
 		message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage

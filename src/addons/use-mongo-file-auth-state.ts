@@ -1,8 +1,7 @@
 /**
- * MongoDB Auth State
- * Ported from innovatorssoft/Baileys.
+ * MongoDB auth state for Baileys.
+ * Stores credentials and signal keys in a MongoDB collection.
  *
- * Stores Baileys credentials and Signal keys in a MongoDB collection.
  * Original code from amiruldev, readjusted by @irull2nd.
  *
  * @example
@@ -39,6 +38,7 @@ export const useMongoFileAuthState = async (
 			const data = JSON.stringify(await collection.findOne({ _id: id }))
 			return JSON.parse(data, BufferJSON.reviver)
 		} catch (err) {
+			// eslint-disable-next-line no-console
 			console.log(err)
 		}
 	}
@@ -47,6 +47,7 @@ export const useMongoFileAuthState = async (
 		try {
 			await collection.deleteOne({ _id: id })
 		} catch (err) {
+			// eslint-disable-next-line no-console
 			console.log('error', err)
 		}
 	}
