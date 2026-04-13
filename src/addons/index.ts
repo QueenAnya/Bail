@@ -41,14 +41,10 @@ export * from './jid-plotting'
 
 // Auth state helpers are exported from Utils/ directly
 
-// ── Baileys Event Stream ──────────────────────────────────────────────────
-export * from './baileys-event-stream'
-
 // ── Call Handler ──────────────────────────────────────────────────────────
 export * from './call-handler'
 
 // ── Chat Extras ───────────────────────────────────────────────────────────
-export * from './chat-control'
 // Selective export from chat-extras (buildClearMessageModification/createChatHelpers already in from-chats)
 export { makeChatExtrasAddon, ChatExtrasContext } from './chat-extras'
 
@@ -58,10 +54,6 @@ export * from './decrypt-utils'
 // ── Generics Extras ───────────────────────────────────────────────────────
 // Selective export from generics-extras (getPlatformId/isAndroidBrowser/printQRIfNecessaryListener already in Utils)
 export { asciiDecode, asciiEncode, fromUnicodeEscape, toUnicodeEscape } from './generics-extras'
-
-// ── MEX / Group Handler ───────────────────────────────────────────────────
-export * from './mex-group-handler'
-export * from './mex-updates-types'
 
 // ── From src/Socket & src/Utils extractions ───────────────────────────────
 export * from './from-messages-recv'

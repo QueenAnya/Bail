@@ -42,8 +42,6 @@ export interface MessageExtrasContext {
 		queryId: string,
 		options: Record<string, unknown>
 	) => Promise<BinaryNode>
-	/** Optional group query function for group-level operations */
-	groupQuery?: (node: BinaryNode) => Promise<BinaryNode>
 }
 
 // =====================================================
@@ -141,7 +139,7 @@ const getButtonArgs = (message: proto.IMessage): BinaryNode | undefined => {
 // =====================================================
 
 export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
-	const { query, newsletterWMexQuery, groupQuery } = ctx
+	const { query, newsletterWMexQuery } = ctx
 
 	/**
 	 * Fetch the profile picture URL for any JID, including newsletters.

@@ -21,7 +21,7 @@ const KEY_MAP: { [k: string]: string } = {
 	'sender-key-memory': 'senderKeyMemory'
 }
 
-export interface SingleFileAuthState {
+interface SingleFileAuthState {
 	state: AuthenticationState
 	saveState: () => void
 }
