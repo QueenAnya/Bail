@@ -17,8 +17,6 @@ import type {
 	MessageUserReceipt,
 	SocketConfig,
 	WACallEvent,
-	WAInitiateCallOptions,
-	WAInitiateCallResult,
 	WAMessage,
 	WAMessageKey,
 	WAPatchName
@@ -52,6 +50,8 @@ import {
 	xmppSignedPreKey
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
+import { makeOfflineNodeProcessor, type MessageType } from '../Utils/offline-node-processor'
+import { buildAckStanza } from '../Utils/stanza-ack'
 import {
 	areJidsSameUser,
 	type BinaryNode,
@@ -72,9 +72,8 @@ import {
 } from '../WABinary'
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
-import { makeCallHandlers } from '../addons/from-messages-recv'
+import { makeCallHandlerAddon } from '../addons/call-handler'
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
 		config
@@ -97,10 +96,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		sendReceipt,
 		uploadPreKeys,
 		sendPeerDataOperationMessage,
-		generateMessageTag,
-		getUSyncDevices,
+		messageRetryManager,
 		createParticipantNodes,
-		messageRetryManager
+		getUSyncDevices
 	} = sock
 
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
@@ -257,6 +255,63 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
+	/**
+	 * Handle MEX notifications for groups & communities
+	 * (member link mode, limit sharing, community owner changes)
+	 * Ported from innovatorssoft/Baileys.
+	 */
+	const handleMexGroupNotification = (id: string, node: BinaryNode) => {
+		try {
+			const operation = node?.attrs?.op_name
+			const rawContent = (node?.content as Buffer | undefined)?.toString()
+			if (!rawContent) return
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const content: any = JSON.parse(rawContent)
+
+			const GROUP_SHARING_CHANGE = 'xwa2_notify_group_on_prop_change'
+			const COMMUNITY_OWNER_CHANGE = 'xwa2_notify_group_on_participants_roles_change'
+
+			if (operation === 'NotificationGroupMemberLinkPropertyUpdate') {
+				const contentPath = content.data?.[GROUP_SHARING_CHANGE]
+				if (contentPath) {
+					ev.emit('groups.update', [
+						{
+							id,
+							author: contentPath.updated_by?.id,
+							member_link_mode: contentPath.properties?.member_link_mode
+						}
+					])
+				}
+			} else if (operation === 'NotificationGroupLimitSharingPropertyUpdate') {
+				const contentPath = content.data?.[GROUP_SHARING_CHANGE]
+				if (contentPath) {
+					ev.emit('limit-sharing.update' as keyof typeof ev, {
+						id,
+						author: contentPath.updated_by?.pn || contentPath.updated_by?.id,
+						action: `${contentPath.properties?.limit_sharing?.limit_sharing_enabled ? 'on' : 'off'}`,
+						trigger: contentPath.properties?.limit_sharing?.limit_sharing_trigger,
+						update_time: contentPath.update_time
+					})
+				}
+			} else if (operation === 'NotificationCommunityOwnerUpdate') {
+				const contentPath = content.data?.[COMMUNITY_OWNER_CHANGE]
+				if (contentPath) {
+					ev.emit('community-owner.update' as keyof typeof ev, {
+						id,
+						author: contentPath.updated_by?.pn || contentPath.updated_by?.id,
+						user: contentPath.role_updates?.[0]?.user?.pn || contentPath.role_updates?.[0]?.user?.jid,
+						new_role: contentPath.role_updates?.[0]?.new_role,
+						update_time: contentPath.update_time
+					})
+				}
+			} else {
+				logger.debug({ id, operation }, 'unhandled group mex notification')
+			}
+		} catch (error) {
+			logger.error({ id, node, error }, 'error in handleMexGroupNotification')
+		}
+	}
+
 	// Handles newsletter notifications
 	const handleNewsletterNotification = async (node: BinaryNode) => {
 		const from = node.attrs.from!
@@ -349,71 +404,33 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
-	const sendMessageAck = async ({ tag, attrs, content }: BinaryNode, errorCode?: number) => {
-		const stanza: BinaryNode = {
-			tag: 'ack',
-			attrs: {
-				id: attrs.id!,
-				to: attrs.from!,
-				class: tag
-			}
-		}
-
-		if (!!errorCode) {
-			stanza.attrs.error = errorCode.toString()
-		}
-
-		if (!!attrs.participant) {
-			stanza.attrs.participant = attrs.participant
-		}
-
-		if (!!attrs.recipient) {
-			stanza.attrs.recipient = attrs.recipient
-		}
-
-		if (
-			!!attrs.type &&
-			(tag !== 'message' || getBinaryNodeChild({ tag, attrs, content }, 'unavailable') || errorCode !== 0)
-		) {
-			stanza.attrs.type = attrs.type
-		}
-
-		if (tag === 'message' && getBinaryNodeChild({ tag, attrs, content }, 'unavailable')) {
-			stanza.attrs.from = authState.creds.me!.id
-		}
-
-		logger.debug({ recv: { tag, attrs }, sent: stanza.attrs }, 'sent ack')
+	const sendMessageAck = async (node: BinaryNode, errorCode?: number) => {
+		const stanza = buildAckStanza(node, errorCode, authState.creds.me!.id)
+		logger.debug({ recv: { tag: node.tag, attrs: node.attrs }, sent: stanza.attrs }, 'sent ack')
 		await sendNode(stanza)
 	}
 
-	// ── Call handlers (from addons/from-messages-recv) ───────────────
-	const {
-		rejectCall,
-		offerCall,
-		initiateCall,
-		terminateCall,
-		cancelCall,
-		acceptCall,
-		preacceptCall,
-		sendRelayLatency,
-		sendTransport,
-		sendCallDuration,
-		muteCall,
-		sendHeartbeat,
-		sendEncRekey,
-		sendVideoState,
-		queryCallLink,
-		joinCallLink
-	} = makeCallHandlers({
-		authState,
-		query,
-		sendNode,
-		generateMessageTag,
-		getUSyncDevices,
-		assertSessions,
-		createParticipantNodes,
-		callOfferCache
-	})
+	const rejectCall = async (callId: string, callFrom: string) => {
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: {
+				from: authState.creds.me!.id,
+				to: callFrom
+			},
+			content: [
+				{
+					tag: 'reject',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callFrom,
+						count: '0'
+					},
+					content: undefined
+				}
+			]
+		}
+		await query(stanza)
+	}
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
 		const { fullMessage } = decodeMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '')
@@ -739,6 +756,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				break
 			case 'mex':
 				await handleMexNewsletterNotification(node)
+				handleMexGroupNotification(from, node)
 				break
 			case 'w:gp2':
 				// TODO: HANDLE PARTICIPANT_PN
@@ -1152,7 +1170,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				})
 			])
 		} finally {
-			await sendMessageAck(node)
+			await sendMessageAck(node).catch(ackErr => logger.error({ ackErr }, 'failed to ack receipt'))
 		}
 	}
 
@@ -1189,7 +1207,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				})
 			])
 		} finally {
-			await sendMessageAck(node)
+			await sendMessageAck(node).catch(ackErr => logger.error({ ackErr }, 'failed to ack notification'))
 		}
 	}
 
@@ -1234,14 +1252,12 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				}
 			}
 
-			// Cache for retry receipts BEFORE decrypt — so retry logic works even if decryption throws
-			if (msg.key?.remoteJid && msg.key?.id && messageRetryManager) {
-				messageRetryManager.addRecentMessage(msg.key.remoteJid, msg.key.id, msg.message!)
-				logger.debug({ jid: msg.key.remoteJid, id: msg.key.id }, 'Added message to recent cache for retry receipts')
-			}
-
 			await messageMutex.mutex(async () => {
 				await decrypt()
+
+				if (msg.key?.remoteJid && msg.key?.id && msg.message && messageRetryManager) {
+					messageRetryManager.addRecentMessage(msg.key.remoteJid, msg.key.id, msg.message)
+				}
 
 				// message failed to decrypt
 				if (msg.messageStubType === proto.WebMessageInfo.StubType.CIPHERTEXT && msg.category !== 'peer') {
@@ -1427,51 +1443,128 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
+	/** Extract participants list from a <group_info> or <call_summary> node */
+	const extractCallParticipants = (parentNode: BinaryNode) => {
+		const userNodes = getBinaryNodeChildren(parentNode, 'user')
+		if (!userNodes.length) return undefined
+		return userNodes.map(u => ({
+			jid: u.attrs.jid,
+			state: u.attrs.state,
+			userPn: u.attrs.user_pn,
+			type: u.attrs.type
+		}))
+	}
+
 	const handleCall = async (node: BinaryNode) => {
-		const { attrs } = node
-		const [infoChild] = getAllBinaryNodeChildren(node)
-		const status = getCallStatusFromNode(infoChild!)
+		try {
+			const { attrs } = node
+			// Process ALL children — a <call> node can carry multiple sibling stanzas
+			const children = getAllBinaryNodeChildren(node)
 
-		if (!infoChild) {
-			throw new Boom('Missing call info in call node')
+			if (!children.length) {
+				throw new Boom('Missing call info in call node')
+			}
+
+			for (const infoChild of children) {
+				const status = getCallStatusFromNode(infoChild)
+				const callId = infoChild.attrs['call-id']!
+				const from = infoChild.attrs.from! || infoChild.attrs['call-creator']!
+
+				const call: WACallEvent = {
+					chatId: attrs.from!,
+					from,
+					id: callId,
+					date: new Date(+attrs.t! * 1000),
+					offline: !!attrs.offline,
+					status
+				}
+
+				if (status === 'offer') {
+					call.isVideo = !!getBinaryNodeChild(infoChild, 'video')
+					call.isGroup = infoChild.attrs.type === 'group' || !!infoChild.attrs['group-jid']
+					call.groupJid = infoChild.attrs['group-jid']
+					call.callerPn = infoChild.attrs['caller_pn']
+
+					const groupInfo = getBinaryNodeChild(infoChild, 'group_info')
+					if (groupInfo) {
+						call.isGroup = true
+						call.linkToken = groupInfo.attrs['link-token']
+						call.media = groupInfo.attrs.media
+						call.connectedLimit = groupInfo.attrs['connected-limit']
+							? Number(groupInfo.attrs['connected-limit'])
+							: undefined
+						call.participants = extractCallParticipants(groupInfo)
+					}
+
+					const linkInfo = getBinaryNodeChild(infoChild, 'link_info')
+					if (linkInfo) {
+						call.linkCreator = linkInfo.attrs.link_creator
+						call.linkCreatorPn = linkInfo.attrs.link_creator_pn
+					}
+
+					await callOfferCache.set(call.id, call)
+				}
+
+				if (status === 'group_update') {
+					const groupInfo = getBinaryNodeChild(infoChild, 'group_info')
+					if (groupInfo) {
+						call.isGroup = true
+						call.linkToken = groupInfo.attrs['link-token']
+						call.media = groupInfo.attrs.media
+						call.connectedLimit = groupInfo.attrs['connected-limit']
+							? Number(groupInfo.attrs['connected-limit'])
+							: undefined
+						call.participants = extractCallParticipants(groupInfo)
+					}
+				}
+
+				if (status === 'reminder') {
+					const groupInfo = getBinaryNodeChild(infoChild, 'group_info')
+					if (groupInfo) {
+						call.isGroup = true
+						call.linkToken = groupInfo.attrs['link-token']
+						call.media = groupInfo.attrs.media
+					}
+				}
+
+				if (status === 'terminate') {
+					call.terminateReason = infoChild.attrs.reason
+					const callSummary = getBinaryNodeChild(infoChild, 'call_summary')
+					if (callSummary) {
+						call.media = callSummary.attrs.media
+						call.duration = callSummary.attrs.call_duration ? Number(callSummary.attrs.call_duration) : undefined
+						call.participants = extractCallParticipants(callSummary)
+					}
+				}
+
+				if (status === 'accept' || status === 'preaccept') {
+					call.isVideo = !!getBinaryNodeChild(infoChild, 'video')
+				}
+
+				const existingCall = await callOfferCache.get<WACallEvent>(call.id)
+				if (existingCall) {
+					call.isVideo = call.isVideo !== undefined ? call.isVideo : existingCall.isVideo
+					call.isGroup = call.isGroup !== undefined ? call.isGroup : existingCall.isGroup
+					call.groupJid = call.groupJid !== undefined ? call.groupJid : existingCall.groupJid
+					call.callerPn = call.callerPn || existingCall.callerPn
+					call.linkToken = call.linkToken || existingCall.linkToken
+					call.linkCreator = call.linkCreator || existingCall.linkCreator
+					call.linkCreatorPn = call.linkCreatorPn || existingCall.linkCreatorPn
+					call.media = call.media || existingCall.media
+					call.connectedLimit = call.connectedLimit !== undefined ? call.connectedLimit : existingCall.connectedLimit
+				}
+
+				if (status === 'reject' || status === 'accept' || status === 'timeout' || status === 'terminate') {
+					await callOfferCache.del(call.id)
+				}
+
+				ev.emit('call', [call])
+			}
+		} catch (error) {
+			logger.error({ error, node: binaryNodeToString(node) }, 'error in handling call')
+		} finally {
+			await sendMessageAck(node).catch(ackErr => logger.error({ ackErr }, 'failed to ack call'))
 		}
-
-		const callId = infoChild.attrs['call-id']!
-		const from = infoChild.attrs.from! || infoChild.attrs['call-creator']!
-
-		const call: WACallEvent = {
-			chatId: attrs.from!,
-			from,
-			callerPn: infoChild.attrs['caller_pn'],
-			id: callId,
-			date: new Date(+attrs.t! * 1000),
-			offline: !!attrs.offline,
-			status
-		}
-
-		if (status === 'offer') {
-			call.isVideo = !!getBinaryNodeChild(infoChild, 'video')
-			call.isGroup = infoChild.attrs.type === 'group' || !!infoChild.attrs['group-jid']
-			call.groupJid = infoChild.attrs['group-jid']
-			await callOfferCache.set(call.id, call)
-		}
-
-		const existingCall = await callOfferCache.get<WACallEvent>(call.id)
-
-		// use existing call info to populate this event
-		if (existingCall) {
-			call.isVideo = existingCall.isVideo
-			call.isGroup = existingCall.isGroup
-			call.callerPn = call.callerPn || existingCall.callerPn
-		}
-
-		// delete data once call has ended
-		if (status === 'reject' || status === 'accept' || status === 'timeout' || status === 'terminate') {
-			await callOfferCache.del(call.id)
-		}
-
-		ev.emit('call', [call])
-		await sendMessageAck(node)
 	}
 
 	const handleBadAck = async ({ attrs }: BinaryNode) => {
@@ -1537,74 +1630,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
-	type MessageType = 'message' | 'call' | 'receipt' | 'notification'
-
-	type OfflineNode = {
-		type: MessageType
-		node: BinaryNode
-	}
-
-	/** Yields control to the event loop to prevent blocking */
-	const yieldToEventLoop = (): Promise<void> => {
-		return new Promise(resolve => setImmediate(resolve))
-	}
-
-	const makeOfflineNodeProcessor = () => {
-		const nodeProcessorMap: Map<MessageType, (node: BinaryNode) => Promise<void>> = new Map([
+	const offlineNodeProcessor = makeOfflineNodeProcessor(
+		new Map<MessageType, (node: BinaryNode) => Promise<void>>([
 			['message', handleMessage],
 			['call', handleCall],
 			['receipt', handleReceipt],
 			['notification', handleNotification]
-		])
-		const nodes: OfflineNode[] = []
-		let isProcessing = false
-
-		// Number of nodes to process before yielding to event loop
-		const BATCH_SIZE = 10
-
-		const enqueue = (type: MessageType, node: BinaryNode) => {
-			nodes.push({ type, node })
-
-			if (isProcessing) {
-				return
-			}
-
-			isProcessing = true
-
-			const promise = async () => {
-				let processedInBatch = 0
-
-				while (nodes.length && ws.isOpen) {
-					const { type, node } = nodes.shift()!
-
-					const nodeProcessor = nodeProcessorMap.get(type)
-
-					if (!nodeProcessor) {
-						onUnexpectedError(new Error(`unknown offline node type: ${type}`), 'processing offline node')
-						continue
-					}
-
-					await nodeProcessor(node)
-					processedInBatch++
-
-					// Yield to event loop after processing a batch
-					// This prevents blocking the event loop for too long when there are many offline nodes
-					if (processedInBatch >= BATCH_SIZE) {
-						processedInBatch = 0
-						await yieldToEventLoop()
-					}
-				}
-
-				isProcessing = false
-			}
-
-			promise().catch(error => onUnexpectedError(error, 'processing offline nodes'))
+		]),
+		{
+			isWsOpen: () => ws.isOpen,
+			onUnexpectedError,
+			yieldToEventLoop: () => new Promise(resolve => setImmediate(resolve))
 		}
-
-		return { enqueue }
-	}
-
-	const offlineNodeProcessor = makeOfflineNodeProcessor()
+	)
 
 	const processNode = async (
 		type: MessageType,
@@ -1682,24 +1720,18 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	return {
 		...sock,
+		...makeCallHandlerAddon({
+			query,
+			sendNode,
+			authState,
+			callOfferCache,
+			assertSessions,
+			createParticipantNodes,
+			getUSyncDevices
+		}),
 		sendMessageAck,
 		sendRetryRequest,
-		offerCall,
-		initiateCall,
-		cancelCall,
 		rejectCall,
-		acceptCall,
-		preacceptCall,
-		terminateCall,
-		sendRelayLatency,
-		sendTransport,
-		sendCallDuration,
-		muteCall,
-		sendHeartbeat,
-		sendEncRekey,
-		sendVideoState,
-		queryCallLink,
-		joinCallLink,
 		fetchMessageHistory,
 		requestPlaceholderResend,
 		messageRetryManager

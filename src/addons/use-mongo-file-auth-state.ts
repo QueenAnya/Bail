@@ -16,8 +16,8 @@
 
 import { proto } from '../../WAProto/index.js'
 import type { AuthenticationCreds, AuthenticationState, SignalDataTypeMap } from '../Types'
-import { initAuthCreds } from './auth-utils'
-import { BufferJSON } from './generics'
+import { initAuthCreds } from '../Utils/auth-utils'
+import { BufferJSON } from '../Utils/generics'
 
 interface MongoCollection {
 	findOne(filter: object): Promise<Record<string, unknown> | null>

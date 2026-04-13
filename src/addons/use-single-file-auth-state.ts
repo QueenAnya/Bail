@@ -8,8 +8,8 @@
 
 import { proto } from '../../WAProto/index.js'
 import type { AuthenticationCreds, AuthenticationState, ILogger, SignalDataTypeMap } from '../Types'
-import { initAuthCreds } from './auth-utils'
-import { BufferJSON } from './generics'
+import { initAuthCreds } from '../Utils/auth-utils'
+import { BufferJSON } from '../Utils/generics'
 
 // Legacy key map — only here for backwards compatibility
 const KEY_MAP: { [k: string]: string } = {
