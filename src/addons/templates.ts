@@ -15,7 +15,7 @@ export interface MessageTemplate {
 	updatedAt: Date
 }
 
-export type TemplateData = Record<string, string | number>
+export type TemplateData = Record<string, string | number | undefined | null>
 
 export class TemplateManager {
 	private templates = new Map<string, MessageTemplate>()
