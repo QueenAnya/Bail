@@ -17,11 +17,15 @@
  *   import { useMongoFileAuthState } from 'baileys/src/addons'
  *
  * NOTE: The following files exist in addons but are NOT exported here.
- * Import them directly only when needed:
+ * Import them directly ONLY when needed:
  *   - ./baileys-event-stream  (debug/replay utility)
  *   - ./chat-control          (TypingIndicator, PinnedMessagesManager, ReadReceiptController)
  *   - ./mex-updates-types     (MEX operation name constants)
  *   - ./mex-group-handler     (MEX group/community notification handler)
+ *
+ * NOTE: These live in src/ (not addons) — import from there directly:
+ *   - src/Utils/decrypt-utils  (decryptComment, decryptEventEdit, decryptReaction)
+ *   - src/Socket/chat-extras   (makeChatExtrasAddon → clearMessage, getLidUser, updatePanoramaProfilePicture)
  */
 
 // ─── Interactive Button Sender (Anya) ──────────────────────────────────────
@@ -42,38 +46,35 @@ export * from './vcard'
 // ─── Status Posting ───────────────────────────────────────────────────────
 export * from './status-posting'
 
-// ─── Message Search ───────────────────────────────────────────────────────
-export * from './message-search'
-
 // ─── Message Templates ────────────────────────────────────────────────────
 export * from './templates'
 
 // ─── JID Plotting & LID Support ───────────────────────────────────────────
 export * from './jid-plotting'
 
-// ─── Message Utilities (getMediaType, getMessageType, getButtonType, + WS extras) ──
+// ─── Message Utils + Search (merged) ─────────────────────────────────────
+//     getMediaType, getMessageType, getButtonType, getButtonArgs
+//     MessageType, SearchOptions, SearchResult, RegexSearchOptions
+//     extractMessageText, calculateRelevance, searchMessages, searchMessagesRegex
+//     MessageSearchManager, createMessageSearch
+//     buildMentionContextInfo, extractFromButtonsMessage, normalizeMediaInput
+//     patchMessageForMdIfRequired, prepareAlbumMessageContent
 export * from './message-utils'
 
 // ─── Interactive / Button Message Generators ──────────────────────────────
 export * from './interactive-message'
 
-// ─── From src/Socket/messages-recv.ts — call stanza builders (Anya) ───────
+// ─── From src/Socket/messages-recv.ts (Anya) ──────────────────────────────
 export * from './from-messages-recv'
 
-// ─── From src/Socket/messages-send.ts — status mentions (Anya) ────────────
+// ─── From src/Socket/messages-send.ts (Anya) ──────────────────────────────
 export * from './from-messages-send'
 
-// ─── From src/Socket/chats.ts — chat helpers (Anya) ───────────────────────
+// ─── From src/Socket/chats.ts (Anya) ──────────────────────────────────────
 export * from './from-chats'
 
-// ─── From src/Utils/messages.ts — message content builders (Anya) ──────────
+// ─── From src/Utils/messages.ts (Anya) ────────────────────────────────────
 export * from './from-messages'
-
-// ─── Chat Extras (WS-patched) ─────────────────────────────────────────────
-export * from './chat-extras'
-
-// ─── Decrypt Utils (WS-patched) ───────────────────────────────────────────
-export * from './decrypt-utils'
 
 // ─── Generics Extras (WS-patched) ─────────────────────────────────────────
 export * from './generics-extras'
