@@ -150,16 +150,10 @@ export const getRemoteJidFromMessage = (msg: WAMessage): { chatJid: string; send
 	return { chatJid, senderJid }
 }
 
-export interface JidPlotterWithMapping {
-	plotToLid: (pn: string) => Promise<string | null>
-	plotToPn: (lid: string) => Promise<string | null>
-	plotBidirectional: (jid: string) => Promise<PlottedJid>
-}
-
 export const createJidPlotter = (
 	getLIDForPN: (pn: string) => Promise<string | null>,
 	getPNForLID: (lid: string) => Promise<string | null>
-): JidPlotterWithMapping => ({
+) => ({
 	plotToLid: (pn: string) => getLIDForPN(pn),
 	plotToPn: (lid: string) => getPNForLID(lid),
 	plotBidirectional: async (jid: string): Promise<PlottedJid> => {
