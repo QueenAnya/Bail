@@ -92,18 +92,3 @@ export const isAndroidBrowser = (browser: [string, string?, string?]): boolean =
  * const sock = makeWASocket({ ... })
  * printQRIfNecessaryListener(sock.ev, logger)
  */
-export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: { error: (msg: string) => void }): void => {
-	ev.on('connection.update', async ({ qr }) => {
-		if (qr) {
-			try {
-				// eslint-disable-next-line @typescript-eslint/no-require-imports
-				const QR = (await import('qrcode-terminal').then(m => m.default || m)) as {
-					generate: (qr: string, opts: { small: boolean }) => void
-				}
-				QR.generate(qr, { small: true })
-			} catch {
-				logger.error('QR code terminal not added as dependency — run: npm install qrcode-terminal')
-			}
-		}
-	})
-}

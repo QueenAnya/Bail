@@ -232,13 +232,14 @@ export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEve
 
 export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWaitForEvent(ev, 'connection.update')
 
-export const printQRIfNecessaryListener = (ev: BaileysEventEmitter) => {
+export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger) => {
 	ev.on('connection.update', async ({ qr }) => {
 		if (qr) {
 			const QR = await import('qrcode-terminal')
 				.then(m => m.default || m)
 				.catch(() => {
-					console.error('QR code terminal not added as dependency')
+					//console.error('QR code terminal not added as dependency')
+					logger.error('QR code terminal not added as dependency — run: npm install qrcode-terminal')
 				})
 			QR?.generate(qr, { small: true })
 		}

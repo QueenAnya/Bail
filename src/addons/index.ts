@@ -82,9 +82,6 @@ export * from './from-messages'
 // ── Call Handler (WS-patched) ─────────────────────────────────────────────
 export * from './call-handler'
 
-// ── Generics Extras (WS-patched) ──────────────────────────────────────────
-export * from './generics-extras'
-
 // ── Auth State — re-exported from src/Utils (canonical location) ───────────
 export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
 export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'
