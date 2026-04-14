@@ -57,7 +57,7 @@ import {
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeSocket } from './socket.js'
-import { buildClearMessageModification } from '../addons/from-chats'
+
 const MAX_SYNC_ATTEMPTS = 2
 
 export const makeChatsSocket = (config: SocketConfig) => {
@@ -1087,10 +1087,9 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	/**
 	 * Clear a message from chat (delete for me)
-	 * Logic: addons/from-chats.ts → buildClearMessageModification
 	 */
 	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
-		return chatModify(buildClearMessageModification(key, timeStamp), jid)
+		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
 	}
 
 	/**

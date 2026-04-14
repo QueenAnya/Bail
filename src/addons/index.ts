@@ -31,26 +31,11 @@ export * from './vcard'
 // Status Posting
 export * from './status-posting'
 
-// Message Search
-// (extractMessageText is available via message-utils)
-
-// Message Templates
-// (removed — plain string utility, no Baileys dependency)
-
 // JID Plotting & LID Support
 export * from './jid-plotting'
 
-// Message Utilities (button detection, biz nodes, media type)
+// Message Utilities (button detection, biz nodes, media type, text extraction)
 export * from './message-utils'
-
-// From src/Socket/messages-recv.ts — call stanza builders
-export * from './from-messages-recv'
-
-// From src/Socket/messages-send.ts — status mentions
-export * from './from-messages-send'
-
-// From src/Socket/chats.ts — chat helpers
-export * from './from-chats'
 
 // From src/Utils/messages.ts — message content builders
 export * from './from-messages'
