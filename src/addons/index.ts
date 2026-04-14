@@ -32,10 +32,10 @@ export * from './vcard'
 export * from './status-posting'
 
 // Message Search
-export * from './message-search'
+// (extractMessageText is available via message-utils)
 
 // Message Templates
-export * from './templates'
+// (removed — plain string utility, no Baileys dependency)
 
 // JID Plotting & LID Support
 export * from './jid-plotting'

@@ -1,7 +1,30 @@
 import { proto } from '../../WAProto/index.js'
 import type { BinaryNode } from '../WABinary'
+import type { WAMessage } from '../Types'
 import { normalizeMessageContent } from '../Utils/messages'
 import { unixTimestampSeconds } from '../Utils/generics'
+
+// ── Text Extraction ────────────────────────────────────────────────────────
+
+/**
+ * Extract the text content from any WAMessage type.
+ * Covers conversation, extendedText, image/video/document captions, location, contact, poll.
+ */
+export function extractMessageText(message: WAMessage): string {
+	const c = message.message
+	if (!c) return ''
+	if (c.conversation) return c.conversation
+	if (c.extendedTextMessage?.text) return c.extendedTextMessage.text
+	if (c.imageMessage?.caption) return c.imageMessage.caption
+	if (c.videoMessage?.caption) return c.videoMessage.caption
+	if (c.documentMessage?.caption) return c.documentMessage.caption
+	if (c.documentMessage?.fileName) return c.documentMessage.fileName
+	if (c.locationMessage?.name) return c.locationMessage.name
+	if (c.locationMessage?.address) return c.locationMessage.address
+	if (c.contactMessage?.displayName) return c.contactMessage.displayName
+	if (c.pollCreationMessage?.name) return c.pollCreationMessage.name
+	return ''
+}
 
 // ── Message Type Detection ─────────────────────────────────────────────────
 
