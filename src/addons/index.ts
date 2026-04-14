@@ -54,3 +54,9 @@ export * from './from-chats'
 
 // From src/Utils/messages.ts — message content builders
 export * from './from-messages'
+
+// Chat Control (TypingIndicator, PinnedMessagesManager, ReadReceiptController)
+export * from './chat-control'
+
+// Baileys Event Stream (captureEventStream, readAndEmitEventStream)
+export * from './baileys-event-stream'

@@ -1,4 +1,5 @@
 export * from './Auth'
+export * from './MexUpdates'
 export * from './GroupMetadata'
 export * from './Chat'
 export * from './Contact'
