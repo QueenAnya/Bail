@@ -44,6 +44,20 @@ export const generateStatusMessageId = () => `4NY4W3B${randomBytes(16).toString(
 
 export const getStatusJid = () => STATUS_BROADCAST_JID
 
+export interface TextStatusOptions {
+	text: string
+	backgroundColor?: string
+	font?: number
+	textColor?: string
+	mentions?: string[]
+}
+
+export interface MediaStatusOptions {
+	caption?: string
+	gifPlayback?: boolean
+	waveform?: Uint8Array
+}
+
 export const createTextStatus = (options: {
 	text: string
 	backgroundColor?: string

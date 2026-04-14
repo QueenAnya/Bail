@@ -1,6 +1,23 @@
 import type { WAMessage } from '../Types'
 
-type MessageType = 'text' | 'image' | 'video' | 'document' | 'audio' | 'sticker' | 'location' | 'contact' | 'other'
+export type MessageType =
+	| 'text'
+	| 'image'
+	| 'video'
+	| 'document'
+	| 'audio'
+	| 'sticker'
+	| 'location'
+	| 'contact'
+	| 'other'
+
+export interface RegexSearchOptions {
+	jid?: string
+	fromSender?: string
+	fromMe?: boolean
+	messageTypes?: MessageType[]
+	limit?: number
+}
 
 export interface SearchOptions {
 	jid?: string
