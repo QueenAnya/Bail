@@ -1,56 +1,87 @@
 /**
- * baileys utility functions
- * Ported to TypeScript for @whiskeysockets/baileys
+ * @whiskeysockets/baileys — src/addons
+ * Queen-Anya structure with WS-patched features merged in
  *
- * Usage:
- *   import { MessageStore, createAntiDeleteHandler } from 'baileys/src/addons'
- *   import { MessageScheduler, createMessageScheduler } from 'baileys/src/addons'
- *   import { AutoReplyHandler, createAutoReply } from 'baileys/src/addons'
- *   import { generateVCard, createContactCard } from 'baileys/src/addons'
- *   import { StatusHelper, createTextStatus } from 'baileys/src/addons'
- *   import { MessageSearchManager, searchMessages } from 'baileys/src/addons'
- *   import { TemplateManager, createTemplateManager, renderTemplate } from 'baileys/src/addons'
+ * Quick reference:
+ *   Button sender         → sendButtons, sendInteractiveMessage, sendListMessage ...
+ *   Anti-delete           → MessageStore, createAntiDeleteHandler, createMessageStoreHandler
+ *   Scheduler             → MessageScheduler, ScheduledMessageStatus, createMessageScheduler
+ *   Auto-reply            → AutoReplyHandler, createAutoReply
+ *   vCard                 → generateVCard, createContactCard, quickContact
+ *   Status                → createTextStatus, createImageStatus, StatusHelper (TextStatusOptions, MediaStatusOptions)
+ *   Status mentions       → makeStatusMentionsAddon → sendStatusMentions
+ *   Templates             → TemplateManager, renderTemplate, PRESET_TEMPLATES
+ *   JID utils             → parseJid, plotJid, JidPlotterWithMapping, createJidPlotter
+ *   Message utils         → getMediaType, getMessageType, getButtonType, getButtonArgs
+ *   Message WS extras     → buildMentionContextInfo, patchMessageForMdIfRequired,
+ *                           prepareAlbumMessageContent, normalizeMediaInput
+ *   Socket extras         → makeMessageExtrasAddon → profilePictureUrl, getEphemeralGroup
+ *   Message search        → MessageType, RegexSearchOptions, searchMessages,
+ *                           searchMessagesRegex, MessageSearchManager, createMessageSearch
+ *   Interactive msgs      → generateInteractiveButtonMessage, generateTemplateMessage,
+ *                           generateNativeFlowMessage, generateCombinedButtons ...
+ *   Call handler          → makeCallHandlerAddon → initiateCall, acceptCall, muteCall ...
+ *   Generics extras       → asciiDecode, getPlatformId, printQRIfNecessaryListener
+ *   Auth state            → useSingleFileAuthState, useMongoFileAuthState
+ *
+ *   From src/ re-exports (Anya originals):
+ *     from-chats.ts        → chat socket helpers
+ *     from-messages-recv.ts → messages-recv helpers
+ *     from-messages-send.ts → StatusMentionDeps, normalizeStatusContent, buildStatusMentionNode
+ *     from-messages.ts     → message content builders (buttons, stickers, albums...)
  */
 
-// Interactive Button Sender — runtime helpers (sendButtons, sendInteractiveMessage, etc.)
-// Ported from @ryuu-reinzz/button-helper v2.2.5
+// ── Button Sender ──────────────────────────────────────────────────────────
 export * from './button-sender'
 
-// Anti-Delete System
+// ── Anti-Delete ────────────────────────────────────────────────────────────
 export * from './anti-delete'
 
-// Message Scheduler
+// ── Scheduler ─────────────────────────────────────────────────────────────
 export * from './scheduling'
 
-// Auto-Reply System
+// ── Auto-Reply ────────────────────────────────────────────────────────────
 export * from './auto-reply'
 
-// vCard / Contact Cards
+// ── vCard / Contact Cards ─────────────────────────────────────────────────
 export * from './vcard'
 
-// Status Posting
+// ── Status Posting + Mentions ─────────────────────────────────────────────
+// createTextStatus, createImageStatus, createVideoStatus, createAudioStatus,
+// TextStatusOptions, MediaStatusOptions, StatusHelper,
+// makeStatusMentionsAddon, StatusMentionContent, StatusMentionsContext
 export * from './status-posting'
 
-// Message Search
-export * from './message-search'
-
-// Message Templates
+// ── Message Templates ─────────────────────────────────────────────────────
 export * from './templates'
 
-// JID Plotting & LID Support
+// ── JID Plotting ──────────────────────────────────────────────────────────
 export * from './jid-plotting'
 
-// Message Utilities (button detection, biz nodes, media type)
+// ── Message Utils + WS Extras + Socket Extras ─────────────────────────────
+// getMediaType, getMessageType, getButtonType, getButtonArgs
+// buildMentionContextInfo, patchMessageForMdIfRequired, normalizeMediaInput
+// prepareAlbumMessageContent, makeMessageExtrasAddon
 export * from './message-utils'
 
-// From src/Socket/messages-recv.ts — call stanza builders
-export * from './from-messages-recv'
+// ── Message Search ────────────────────────────────────────────────────────
+// MessageType, SearchOptions, RegexSearchOptions, SearchResult
+// extractMessageText, searchMessages, searchMessagesRegex
+// MessageSearchManager, createMessageSearch
+export * from './message-search'
 
-// From src/Socket/messages-send.ts — status mentions
-export * from './from-messages-send'
+// ── Interactive / Button Message Generators ───────────────────────────────
+export * from './interactive-message'
 
-// From src/Socket/chats.ts — chat helpers
+// ── From src/ (Anya originals) ────────────────────────────────────────────
 export * from './from-chats'
-
-// From src/Utils/messages.ts — message content builders
+export * from './from-messages-recv'
+export * from './from-messages-send'
 export * from './from-messages'
+
+// ── Call Handler (WS-patched) ─────────────────────────────────────────────
+export * from './call-handler'
+
+// ── Auth State — re-exported from src/Utils (canonical location) ───────────
+export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
+export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'
