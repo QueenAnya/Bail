@@ -1179,7 +1179,7 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	if (printQRInTerminal) {
-		printQRIfNecessaryListener(ev)
+		printQRIfNecessaryListener(ev, logger)
 	}
 
 	return {
