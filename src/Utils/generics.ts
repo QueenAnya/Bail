@@ -2,7 +2,6 @@ import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 const baileysVersion = [2, 3000, 1033105955]
-import type { ILogger } from './logger'
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -233,14 +232,16 @@ export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEve
 
 export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWaitForEvent(ev, 'connection.update')
 
-export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
+export const printQRIfNecessaryListener = (
+	ev: BaileysEventEmitter,
+	logger?: { error: (...args: unknown[]) => void }
+) => {
 	ev.on('connection.update', async ({ qr }) => {
 		if (qr) {
 			const QR = await import('qrcode-terminal')
 				.then(m => m.default || m)
 				.catch(() => {
-					//console.error('QR code terminal not added as dependency')
-					logger.error('QR code terminal not added as dependency — run: npm install qrcode-terminal')
+					console.error('QR code terminal not added as dependency')
 				})
 			QR?.generate(qr, { small: true })
 		}

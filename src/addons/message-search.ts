@@ -1,5 +1,6 @@
 import type { WAMessage } from '../Types'
 
+/** Message type for search filtering (use instead of Types/Message.ts MessageType which is keyof proto.Message) */
 export type SearchMessageType =
 	| 'text'
 	| 'image'

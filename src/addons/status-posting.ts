@@ -1,11 +1,9 @@
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, GroupMetadata, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+import type { AnyMessageContent, GroupMetadata, MessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+import type { ILogger } from '../Utils/logger'
 import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
-import type { ILogger } from '../Utils/logger'
-import { isJidGroup, jidNormalizedUser, STORIES_JID } from '../WABinary'
-
-const isJidUser = (jid: string | undefined) => jid?.endsWith('@s.whatsapp.net') ?? false
+import { isJidGroup, isPnUser, jidNormalizedUser, STORIES_JID } from '../WABinary'
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
 
@@ -162,18 +160,7 @@ export interface StatusMentionsContext {
 		msg: unknown,
 		opts: { messageId?: string; statusJidList?: string[]; additionalNodes?: unknown[] }
 	) => Promise<void>
-	waUploadToServer: (
-		stream: unknown,
-		opts: object
-	) => Promise<{
-		handle?: string
-		url?: string
-		directPath?: string
-		mediaKey?: Buffer
-		fileEncSha256?: Buffer
-		fileSha256?: Buffer
-		fileLength?: number
-	}>
+	waUploadToServer: (stream: unknown, opts: object) => Promise<{ handle?: string }>
 	groupMetadata: (jid: string) => Promise<GroupMetadata>
 	cachedGroupMetadata?: (jid: string) => Promise<GroupMetadata | undefined>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -228,7 +215,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 				} catch (error) {
 					logger.error(`Error getting metadata for group ${id}: ${error}`)
 				}
-			} else if (isJidUser(id)) {
+			} else if (isPnUser(id)) {
 				allUsers.add(jidNormalizedUser(id))
 			}
 		}
@@ -262,38 +249,28 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 
 		let msg: WAMessage
 		try {
-			msg = await generateWAMessage(
-				STORIES_JID,
-				messageContent as AnyMessageContent,
-				{
-					logger,
-					userJid,
-					getUrlInfo: (text: string) =>
-						getUrlInfo(text, {
-							thumbnailWidth: linkPreviewImageThumbnailWidth,
-							fetchOpts: { timeout: 3000, ...(axiosOptions || {}) },
-							logger
-						}),
-					upload: async (encFilePath: unknown, opts: object) => {
-						const res = await waUploadToServer(encFilePath, { ...opts })
-						return {
-							mediaUrl: res.url ?? '',
-							directPath: res.directPath ?? '',
-							handle: res.handle,
-							mediaKey: res.mediaKey,
-							fileEncSha256: res.fileEncSha256,
-							fileSha256: res.fileSha256,
-							fileLength: res.fileLength
-						}
-					},
-					mediaCache: config.mediaCache,
-					options: config.options,
-					...(font !== undefined && { font }),
-					...(textColor && { textColor }),
-					...(backgroundColor && { backgroundColor }),
-					...(ptt !== undefined && { ptt })
-				} as unknown as import('../Types').MessageGenerationOptions
-			)
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const genOptions: any = {
+				logger,
+				userJid,
+				getUrlInfo: (text: string) =>
+					getUrlInfo(text, {
+						thumbnailWidth: linkPreviewImageThumbnailWidth,
+						fetchOpts: { timeout: 3000, ...(axiosOptions || {}) },
+						logger,
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						uploadImage: generateHighQualityLinkPreview ? (waUploadToServer as any) : undefined
+					}),
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				upload: async (encFilePath: any, opts: any) => waUploadToServer(encFilePath, { ...opts }),
+				mediaCache: config.mediaCache,
+				options: config.options,
+				...(font !== undefined && { font }),
+				...(textColor && { textColor }),
+				...(backgroundColor && { backgroundColor }),
+				...(ptt !== undefined && { ptt })
+			}
+			msg = await generateWAMessage(STORIES_JID, messageContent as AnyMessageContent, genOptions)
 		} catch (error) {
 			logger.error(`Error generating status message: ${error}`)
 			throw error
@@ -320,7 +297,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 		for (const id of jids) {
 			try {
 				const normalizedId = jidNormalizedUser(id)
-				const isPrivate = isJidUser(normalizedId)
+				const isPrivate = isPnUser(normalizedId)
 				const type = isPrivate ? 'statusMentionMessage' : 'groupStatusMentionMessage'
 				const protocolMessage = {
 					[type]: { message: { protocolMessage: { key: msg.key, type: 25 } } },
