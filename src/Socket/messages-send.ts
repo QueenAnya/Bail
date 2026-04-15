@@ -42,6 +42,7 @@ import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
 import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../addons/message-utils'
+import { execSendStatusMentions } from '../addons/from-messages-send'
 import {
 	areJidsSameUser,
 	type BinaryNode,
@@ -1322,7 +1323,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					mediaCache: config.mediaCache,
 					options: config.options,
 					messageId:
-						((content as any)?.groupStatus || (content as any)?.cards) && !options.messageId
+						(('groupStatus' in content && (content as any).groupStatus) ||
+							('cards' in content && (content as any)?.cards)) &&
+						!options.messageId
 							? `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
 							: generateMessageIDV2(sock.user?.id),
 					...options
@@ -1385,126 +1388,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 		},
 
-		// sendStatusMentions — send a status and mention specific users/groups
+		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
 		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
-			const meId = authState.creds.me!.id
-			const userJid = jidNormalizedUser(meId)
-			const allUsers = new Set<string>([userJid])
-
-			for (const id of jids) {
-				if (isJidGroup(id)) {
-					try {
-						const meta =
-							(config.cachedGroupMetadata ? await config.cachedGroupMetadata(id) : undefined) ||
-							(await sock.groupMetadata(id))
-						meta.participants.forEach((p: { id: string }) => allUsers.add(jidNormalizedUser(p.id)))
-					} catch (e) {
-						logger.error(`Error getting metadata for group ${id}: ${e}`)
-					}
-				} else if (id.endsWith('@s.whatsapp.net')) {
-					allUsers.add(jidNormalizedUser(id))
-				}
-			}
-
-			const getRandomHex = () =>
-				'#' +
-				Math.floor(Math.random() * 16777215)
-					.toString(16)
-					.padStart(6, '0')
-			const isMedia = 'image' in content || 'video' in content || 'audio' in content
-			const isAudio = 'audio' in content
-			const msgContent = { ...content } as Record<string, unknown>
-			if (isMedia && !isAudio) {
-				if (msgContent.text) {
-					msgContent.caption = msgContent.text
-					delete msgContent.text
-				}
-				delete msgContent.ptt
-				delete msgContent.font
-				delete msgContent.backgroundColor
-				delete msgContent.textColor
-			}
-			if (isAudio) {
-				delete msgContent.text
-				delete msgContent.caption
-				delete msgContent.font
-				delete msgContent.textColor
-			}
-
-			const font = !isMedia ? ((content as any).font ?? Math.floor(Math.random() * 9)) : undefined
-			const textColor = !isMedia ? ((content as any).textColor ?? getRandomHex()) : undefined
-			const backgroundColor = !isMedia || isAudio ? ((content as any).backgroundColor ?? getRandomHex()) : undefined
-			const ptt = isAudio ? (typeof (content as any).ptt === 'boolean' ? (content as any).ptt : true) : undefined
-
-			const STORIES_JID = 'status@broadcast'
-			const msg = await generateWAMessage(
-				STORIES_JID,
-				msgContent as AnyMessageContent,
-				{
-					logger,
-					userJid,
-					getUrlInfo: getUrlInfo
-						? (text: string) =>
-								getUrlInfo!(text, {
-									thumbnailWidth: linkPreviewImageThumbnailWidth,
-									fetchOpts: { timeout: 3000, ...(httpRequestOptions || {}) },
-									logger,
-									uploadImage: generateHighQualityLinkPreview ? waUploadToServer : undefined
-								})
-						: undefined,
-					upload: waUploadToServer,
-					mediaCache: config.mediaCache,
-					options: config.options,
-					font,
-					backgroundColor,
-					ptt,
-					...(textColor ? { textColor } : {})
-				} as any
-			)
-
-			await relayMessage(STORIES_JID, msg.message!, {
-				messageId: msg.key.id!,
-				statusJidList: Array.from(allUsers),
-				additionalNodes: [
-					{
-						tag: 'meta',
-						attrs: {},
-						content: [
-							{
-								tag: 'mentioned_users',
-								attrs: {},
-								content: jids.map(jid => ({ tag: 'to', attrs: { jid: jidNormalizedUser(jid) } }))
-							}
-						]
-					}
-				]
+			return execSendStatusMentions(content, jids, {
+				meId: authState.creds.me!.id,
+				logger,
+				groupMetadata: sock.groupMetadata,
+				cachedGroupMetadata: config.cachedGroupMetadata,
+				relayMessage,
+				waUploadToServer,
+				getUrlInfo,
+				config,
+				linkPreviewImageThumbnailWidth,
+				generateHighQualityLinkPreview,
+				httpRequestOptions
 			})
-
-			for (const id of jids) {
-				try {
-					const normalizedId = jidNormalizedUser(id)
-					const isPrivate = normalizedId.endsWith('@s.whatsapp.net')
-					const type = isPrivate ? 'statusMentionMessage' : 'groupStatusMentionMessage'
-					const protocolMessage = {
-						[type]: { message: { protocolMessage: { key: msg.key, type: 25 } } },
-						messageContextInfo: { messageSecret: randomBytes(32) }
-					}
-					const statusMsg = generateWAMessageFromContent(normalizedId, protocolMessage, { userJid: meId })
-					await relayMessage(normalizedId, statusMsg.message!, {
-						additionalNodes: [
-							{
-								tag: 'meta',
-								attrs: isPrivate ? { is_status_mention: 'true' } : { is_group_status_mention: 'true' }
-							}
-						]
-					})
-					await delay(2000)
-				} catch (e) {
-					logger.error(`Error sending status mention to ${id}: ${e}`)
-				}
-			}
-
-			return msg
 		}
 	}
 }

@@ -1044,13 +1044,14 @@ export const generateWAMessageContent = async (
 	}
 
 	// ── groupStatus → groupStatusMessageV2 ────────────────────────────────────
-	if (hasOptionalProperty(message, 'groupStatus') && !!(message as any).groupStatus) {
+	if (hasOptionalProperty(message, 'groupStatus') && !!message.groupStatus) {
 		const messageType = Object.keys(m)[0] as string
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const key = (m as any)[messageType]
 		if (key && 'contextInfo' in key && !!key.contextInfo) {
-			key.contextInfo.isGroupStatus = (message as any).groupStatus
+			key.contextInfo.isGroupStatus = message.groupStatus
 		} else if (key) {
-			key.contextInfo = { isGroupStatus: (message as any).groupStatus }
+			key.contextInfo = { isGroupStatus: message.groupStatus }
 		}
 		m = { groupStatusMessageV2: { message: m } }
 	}

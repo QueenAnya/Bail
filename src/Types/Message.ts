@@ -481,6 +481,16 @@ export type AnyMessageContent =
 	| {
 			limitSharing: boolean
 	  }
+	| {
+			/**
+			 * Send as a group status (story visible to group members).
+			 * Set to `true` to wrap the message in groupStatusMessageV2.
+			 * The jid should be a group JID (e.g. `120363xxxxxxxx@g.us`).
+			 * @example
+			 * await sock.sendMessage('120363xxx@g.us', { text: 'Hello group!', groupStatus: true })
+			 */
+			groupStatus: boolean
+	  }
 
 export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
 
