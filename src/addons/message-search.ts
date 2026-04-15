@@ -1,15 +1,6 @@
 import type { WAMessage } from '../Types'
 
-export type MessageType =
-	| 'text'
-	| 'image'
-	| 'video'
-	| 'document'
-	| 'audio'
-	| 'sticker'
-	| 'location'
-	| 'contact'
-	| 'other'
+type MessageType = 'text' | 'image' | 'video' | 'document' | 'audio' | 'sticker' | 'location' | 'contact' | 'other'
 
 export interface SearchOptions {
 	jid?: string
@@ -27,20 +18,6 @@ export interface SearchResult {
 	matchedText: string
 	matchPosition: number
 	relevanceScore: number
-}
-
-/** Options for regex-based message search */
-export interface RegexSearchOptions {
-	/** Filter by chat JID */
-	jid?: string
-	/** Filter by sender JID */
-	fromSender?: string
-	/** Filter by fromMe flag */
-	fromMe?: boolean
-	/** Filter by message types */
-	messageTypes?: MessageType[]
-	/** Max number of results */
-	limit?: number
 }
 
 export const extractMessageText = (message: WAMessage): string => {
@@ -123,7 +100,7 @@ export const searchMessages = (messages: WAMessage[], query: string, options: Se
 export const searchMessagesRegex = (
 	messages: WAMessage[],
 	pattern: RegExp,
-	options: RegexSearchOptions = {}
+	options: Omit<SearchOptions, 'caseSensitive'> = {}
 ): SearchResult[] => {
 	const results: SearchResult[] = []
 	for (const message of messages) {
@@ -172,7 +149,7 @@ export class MessageSearchManager {
 	search(query: string, options?: SearchOptions) {
 		return searchMessages(this.messages, query, options)
 	}
-	searchRegex(pattern: RegExp, options?: RegexSearchOptions) {
+	searchRegex(pattern: RegExp, options?: Omit<SearchOptions, 'caseSensitive'>) {
 		return searchMessagesRegex(this.messages, pattern, options)
 	}
 	getByJid(jid: string) {

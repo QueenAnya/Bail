@@ -8,15 +8,13 @@ export interface SchedulerOptions {
 	onFailed?: (scheduled: ScheduledMessage, error: Error) => void
 }
 
-export type ScheduledMessageStatus = 'pending' | 'sent' | 'failed' | 'cancelled'
-
 export interface ScheduledMessage {
 	id: string
 	jid: string
 	content: AnyMessageContent
 	scheduledTime: Date
 	createdAt: Date
-	status: ScheduledMessageStatus
+	status: 'pending' | 'sent' | 'failed' | 'cancelled'
 	messageId?: string
 	error?: string
 }
