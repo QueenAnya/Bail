@@ -125,7 +125,7 @@ export async function execSendStatusMentions(
 
 	for (const id of jids) {
 		const isGroup = isJidGroup(id)
-		// match fork: isPnUser = ends with @s.whatsapp.net
+		// match fork: isJidUser = ends with @s.whatsapp.net
 		const isPrivate = id.endsWith('@s.whatsapp.net')
 
 		if (isGroup) {

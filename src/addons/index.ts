@@ -71,7 +71,7 @@ export * from './message-utils'
 export * from './message-search'
 
 // ── Interactive / Button Message Generators ───────────────────────────────
-//export * from './interactive-message'
+export * from './interactive-message'
 
 // ── From src/ (Anya originals) ────────────────────────────────────────────
 export * from './from-chats'
@@ -83,5 +83,5 @@ export * from './from-messages'
 export * from './call-handler'
 
 // ── Auth State — re-exported from src/Utils (canonical location) ───────────
-//export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
-//export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'
+export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
+export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'

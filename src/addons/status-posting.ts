@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto'
 import type { AnyMessageContent, GroupMetadata, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
 import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
-import { isJidGroup, isPnUser, jidNormalizedUser, STORIES_JID } from '../WABinary'
+import { isJidGroup, isJidUser, jidNormalizedUser, STORIES_JID } from '../WABinary'
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
 
@@ -214,7 +214,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 				} catch (error) {
 					logger.error(`Error getting metadata for group ${id}: ${error}`)
 				}
-			} else if (isPnUser(id)) {
+			} else if (isJidUser(id)) {
 				allUsers.add(jidNormalizedUser(id))
 			}
 		}
@@ -298,7 +298,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 		for (const id of jids) {
 			try {
 				const normalizedId = jidNormalizedUser(id)
-				const isPrivate = isPnUser(normalizedId)
+				const isPrivate = isJidUser(normalizedId)
 				const type = isPrivate ? 'statusMentionMessage' : 'groupStatusMentionMessage'
 				const protocolMessage = {
 					[type]: { message: { protocolMessage: { key: msg.key, type: 25 } } },
