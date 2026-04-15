@@ -71,7 +71,7 @@ export * from './message-utils'
 export * from './message-search'
 
 // ── Interactive / Button Message Generators ───────────────────────────────
-export * from './interactive-message'
+//export * from './interactive-message'
 
 // ── From src/ (Anya originals) ────────────────────────────────────────────
 export * from './from-chats'
