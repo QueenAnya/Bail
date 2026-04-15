@@ -2,7 +2,10 @@ import { randomBytes } from 'crypto'
 import type { AnyMessageContent, GroupMetadata, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
 import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
-import { isJidGroup, isJidUser, jidNormalizedUser, STORIES_JID } from '../WABinary'
+import type { ILogger } from '../Utils/logger'
+import { isJidGroup, jidNormalizedUser, STORIES_JID } from '../WABinary'
+
+const isJidUser = (jid: string | undefined) => jid?.endsWith('@s.whatsapp.net') ?? false
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
 
@@ -149,7 +152,7 @@ export interface StatusMentionContent extends Record<string, unknown> {
 
 export interface StatusMentionsContext {
 	authState: { creds: { me?: { id: string } } }
-	logger: { error: (msg: string) => void }
+	logger: ILogger
 	linkPreviewImageThumbnailWidth: number
 	generateHighQualityLinkPreview: boolean
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -159,7 +162,18 @@ export interface StatusMentionsContext {
 		msg: unknown,
 		opts: { messageId?: string; statusJidList?: string[]; additionalNodes?: unknown[] }
 	) => Promise<void>
-	waUploadToServer: (stream: unknown, opts: object) => Promise<{ handle?: string }>
+	waUploadToServer: (
+		stream: unknown,
+		opts: object
+	) => Promise<{
+		handle?: string
+		url?: string
+		directPath?: string
+		mediaKey?: Buffer
+		fileEncSha256?: Buffer
+		fileSha256?: Buffer
+		fileLength?: number
+	}>
 	groupMetadata: (jid: string) => Promise<GroupMetadata>
 	cachedGroupMetadata?: (jid: string) => Promise<GroupMetadata | undefined>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -258,19 +272,27 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 						getUrlInfo(text, {
 							thumbnailWidth: linkPreviewImageThumbnailWidth,
 							fetchOpts: { timeout: 3000, ...(axiosOptions || {}) },
-							logger,
-							uploadImage: generateHighQualityLinkPreview
-								? (waUploadToServer as MiscMessageGenerationOptions['uploadImage'])
-								: undefined
+							logger
 						}),
-					upload: async (encFilePath: unknown, opts: object) => waUploadToServer(encFilePath, { ...opts }),
+					upload: async (encFilePath: unknown, opts: object) => {
+						const res = await waUploadToServer(encFilePath, { ...opts })
+						return {
+							mediaUrl: res.url ?? '',
+							directPath: res.directPath ?? '',
+							handle: res.handle,
+							mediaKey: res.mediaKey,
+							fileEncSha256: res.fileEncSha256,
+							fileSha256: res.fileSha256,
+							fileLength: res.fileLength
+						}
+					},
 					mediaCache: config.mediaCache,
 					options: config.options,
 					...(font !== undefined && { font }),
 					...(textColor && { textColor }),
 					...(backgroundColor && { backgroundColor }),
 					...(ptt !== undefined && { ptt })
-				} as MiscMessageGenerationOptions
+				} as unknown as import('../Types').MessageGenerationOptions
 			)
 		} catch (error) {
 			logger.error(`Error generating status message: ${error}`)
@@ -308,7 +330,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 					normalizedId,
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					protocolMessage as any,
-					{}
+					{ userJid }
 				)
 				await relayMessage(normalizedId, statusMsg.message, {
 					additionalNodes: [

@@ -1,6 +1,6 @@
 import type { WAMessage } from '../Types'
 
-export type MessageType =
+export type SearchMessageType =
 	| 'text'
 	| 'image'
 	| 'video'
@@ -17,7 +17,7 @@ export interface SearchOptions {
 	toDate?: Date
 	fromSender?: string
 	fromMe?: boolean
-	messageTypes?: MessageType[]
+	messageTypes?: SearchMessageType[]
 	limit?: number
 	caseSensitive?: boolean
 }
@@ -38,7 +38,7 @@ export interface RegexSearchOptions {
 	/** Filter by fromMe flag */
 	fromMe?: boolean
 	/** Filter by message types */
-	messageTypes?: MessageType[]
+	messageTypes?: SearchMessageType[]
 	/** Max number of results */
 	limit?: number
 }
@@ -59,7 +59,7 @@ export const extractMessageText = (message: WAMessage): string => {
 	return ''
 }
 
-const getMessageType = (message: WAMessage): MessageType => {
+const getMessageType = (message: WAMessage): SearchMessageType => {
 	const c = message.message
 	if (!c) return 'other'
 	if (c.conversation || c.extendedTextMessage) return 'text'
@@ -181,7 +181,7 @@ export class MessageSearchManager {
 	getBySender(sender: string) {
 		return this.messages.filter(m => m.key.participant === sender || m.key.remoteJid === sender)
 	}
-	getByType(type: MessageType) {
+	getByType(type: SearchMessageType) {
 		return this.messages.filter(m => getMessageType(m) === type)
 	}
 	getById(id: string) {

@@ -2,6 +2,7 @@ import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 const baileysVersion = [2, 3000, 1033105955]
+import type { ILogger } from './logger'
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -232,7 +233,7 @@ export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEve
 
 export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWaitForEvent(ev, 'connection.update')
 
-export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger) => {
+export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
 	ev.on('connection.update', async ({ qr }) => {
 		if (qr) {
 			const QR = await import('qrcode-terminal')

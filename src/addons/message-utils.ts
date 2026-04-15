@@ -158,7 +158,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 // Ported from innovatorssoft/Baileys
 
 import { randomBytes as _randomBytes } from 'crypto'
-import type { AnyMessageContent, MiscMessageGenerationOptions, WAMessage as _WAMessage } from '../Types'
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage as _WAMessage } from '../Types'
 import {
 	generateWAMessage as _generateWAMessage,
 	generateWAMessageFromContent as _generateWAMessageFromContent
@@ -184,8 +184,8 @@ export interface MentionContent {
 }
 
 export type AlbumMediaItem =
-	| ({ image: AnyMessageContent['image'] } & Partial<AnyMessageContent>)
-	| ({ video: AnyMessageContent['video'] } & Partial<AnyMessageContent>)
+	| ({ image: WAMediaUpload } & Partial<AnyMessageContent>)
+	| ({ video: WAMediaUpload } & Partial<AnyMessageContent>)
 
 export interface AlbumOptions extends MiscMessageGenerationOptions {
 	userJid: string
@@ -207,7 +207,7 @@ export interface AlbumOptions extends MiscMessageGenerationOptions {
 }
 
 export interface MessageExtrasContext {
-	query: (_BinaryNode) => Promise<_BinaryNode>
+	query: (node: _BinaryNode) => Promise<_BinaryNode>
 	newsletterWMexQuery?: (
 		variables: Record<string, unknown> | undefined,
 		queryId: string,
@@ -235,13 +235,13 @@ export const buildMentionContextInfo = (message: MentionContent): { contextInfo:
 // ── Media Helpers ──────────────────────────────────────────────────────────
 
 type _ButtonsLike = {
-	imageMessage?: proto.IImageMessage | null
-	videoMessage?: proto.IVideoMessage | null
-	documentMessage?: proto.IDocumentMessage | null
+	imageMessage?: proto.Message.IImageMessage | null
+	videoMessage?: proto.Message.IVideoMessage | null
+	documentMessage?: proto.Message.IDocumentMessage | null
 	header?: {
-		imageMessage?: proto.IImageMessage | null
-		videoMessage?: proto.IVideoMessage | null
-		documentMessage?: proto.IDocumentMessage | null
+		imageMessage?: proto.Message.IImageMessage | null
+		videoMessage?: proto.Message.IVideoMessage | null
+		documentMessage?: proto.Message.IDocumentMessage | null
 	} | null
 }
 
@@ -249,9 +249,9 @@ type _ButtonsLike = {
 export const extractFromButtonsMessage = (
 	msg: _ButtonsLike
 ):
-	| { imageMessage: proto.IImageMessage }
-	| { videoMessage: proto.IVideoMessage }
-	| { documentMessage: proto.IDocumentMessage }
+	| { imageMessage: proto.Message.IImageMessage }
+	| { videoMessage: proto.Message.IVideoMessage }
+	| { documentMessage: proto.Message.IDocumentMessage }
 	| null => {
 	const header = typeof msg.header === 'object' && msg.header !== null
 	if (header ? msg.header?.imageMessage : msg.imageMessage)
@@ -267,10 +267,10 @@ export const extractFromButtonsMessage = (
 export const normalizeMediaInput = (
 	media: Buffer | string | { url: string } | { stream: NodeJS.ReadableStream } | null | undefined
 ): Buffer | { url: string } | { stream: NodeJS.ReadableStream } | null | undefined => {
-	if (!media) return media
+	if (!media) return media as null | undefined
 	if (Buffer.isBuffer(media)) return media
 	if (typeof media === 'string') return { url: media }
-	return media
+	return media as { url: string } | { stream: NodeJS.ReadableStream }
 }
 
 // ── MD Patch ───────────────────────────────────────────────────────────────
@@ -332,9 +332,20 @@ export const prepareAlbumMessageContent = async (
 
 	for (const media of albums) {
 		let mediaMsg: _WAMessage | undefined
-		const uploadFn = async (encFilePath: unknown, opts: { mediaType?: string }) =>
-			options.suki.waUploadToServer(encFilePath, { ...opts, newsletter: _isJidNewsletter(jid) })
-		const sharedOpts = { userJid: options.userJid, upload: uploadFn, ...options }
+		const uploadFn = async (encFilePath: unknown, opts: { mediaType?: string }) => {
+			const res = await options.suki.waUploadToServer(encFilePath, { ...opts, newsletter: _isJidNewsletter(jid) })
+			return {
+				mediaUrl: res.url ?? '',
+				directPath: res.directPath ?? '',
+				handle: res.handle,
+				mediaKey: res.mediaKey,
+				fileEncSha256: res.fileEncSha256,
+				fileSha256: res.fileSha256,
+				fileLength: res.fileLength
+			}
+		}
+		const { userJid, ...restOptions } = options
+		const sharedOpts = { userJid, upload: uploadFn, ...restOptions }
 
 		if ('image' in media && media.image)
 			mediaMsg = await _generateWAMessage(jid, { image: media.image, ...media } as AnyMessageContent, sharedOpts)
