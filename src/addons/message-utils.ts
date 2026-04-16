@@ -288,8 +288,8 @@ export const prepareAlbumMessageContent = async (
 		}
 		const { userJid, ...restOptions } = options
 		const sharedOpts = {
-			{ userJid: options.userJid }
-			upload: uploadFn
+			{ userJid: options.userJid },
+			upload: uploadFn,
 			...restOptions
 		}
 
