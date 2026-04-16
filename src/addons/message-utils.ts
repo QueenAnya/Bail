@@ -1,7 +1,16 @@
+import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import type { BinaryNode } from '../WABinary'
-import { normalizeMessageContent } from '../Utils/messages'
-import { unixTimestampSeconds } from '../Utils/generics'
+import {
+	normalizeMessageContent,
+	unixTimestampSeconds,
+	generateWAMessage,
+	generateWAMessageFromContent,
+	getUrlFromDirectPath
+} from '../Utils'
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+import { QueryIds, XWAPaths } from '../Types'
+import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — Message Type Detection
@@ -125,32 +134,14 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION 3 — WS Extras (mentions, media normalise, MD patch, album, socket extras)
+// SECTION 3 — WS Extras (mentions, media, MD patch, album, socket extras)
 // ─────────────────────────────────────────────────────────────────────────────
-
-import { randomBytes as _randomBytes } from 'crypto'
-import type { AnyMessageContent, MessageGenerationOptions, WAMediaUpload, WAMessage as _WAMessage } from '../Types'
-import {
-	generateWAMessage as _generateWAMessage,
-	generateWAMessageFromContent as _generateWAMessageFromContent
-} from '../Utils/messages'
-import { QueryIds, XWAPaths } from '../Types'
-import { getUrlFromDirectPath } from '../Utils'
-import {
-	getBinaryNodeChild,
-	isJidGroup,
-	isJidNewsletter as _isJidNewsletter,
-	jidNormalizedUser as _jidNormalizedUser,
-	S_WHATSAPP_NET as _S_WHATSAPP_NET
-} from '../WABinary'
-import type { BinaryNode as _BinaryNode } from '../WABinary'
 
 export interface MentionContent {
 	mentions?: string[]
 	mentionAll?: boolean
 }
 
-/** Item in an album — image or video with optional caption */
 export type AlbumMediaItem =
 	| { image: WAMediaUpload; caption?: string; [key: string]: unknown }
 	| { video: WAMediaUpload; caption?: string; gifPlayback?: boolean; [key: string]: unknown }
@@ -159,20 +150,28 @@ export interface AlbumOptions {
 	userJid: string
 	suki: {
 		relayMessage: (jid: string, msg: proto.IMessage, opts: { messageId: string }) => Promise<void>
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		waUploadToServer: (stream: any, opts: { mediaType?: string; newsletter?: boolean }) => Promise<any>
+		waUploadToServer: (
+			stream: unknown,
+			opts: { mediaType?: string; newsletter?: boolean }
+		) => Promise<{
+			handle?: string
+			url?: string
+			directPath?: string
+			mediaKey?: Buffer
+			fileEncSha256?: Buffer
+			fileSha256?: Buffer
+			fileLength?: number
+		}>
 	}
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	[key: string]: any
 }
 
 export interface MessageExtrasContext {
-	query: (node: _BinaryNode) => Promise<_BinaryNode>
+	query: (node: BinaryNode) => Promise<BinaryNode>
 	newsletterWMexQuery?: (
 		variables: Record<string, unknown> | undefined,
 		queryId: string,
 		options: Record<string, unknown>
-	) => Promise<_BinaryNode>
+	) => Promise<BinaryNode>
 }
 
 /** Build contextInfo for @mention or @all. */
@@ -183,28 +182,24 @@ export const buildMentionContextInfo = (message: MentionContent): { contextInfo:
 }
 
 type _ButtonsLike = {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	imageMessage?: any
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	videoMessage?: any
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	documentMessage?: any
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	imageMessage?: proto.Message.IImageMessage | null
+	videoMessage?: proto.Message.IVideoMessage | null
+	documentMessage?: proto.Message.IDocumentMessage | null
 	header?: {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		imageMessage?: any
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		videoMessage?: any
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		documentMessage?: any
+		imageMessage?: proto.Message.IImageMessage | null
+		videoMessage?: proto.Message.IVideoMessage | null
+		documentMessage?: proto.Message.IDocumentMessage | null
 	} | null
 }
 
 /** Extract embedded media from buttons/interactive message (top-level or header-nested). */
 export const extractFromButtonsMessage = (
 	msg: _ButtonsLike
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): { imageMessage: any } | { videoMessage: any } | { documentMessage: any } | null => {
+):
+	| { imageMessage: proto.Message.IImageMessage }
+	| { videoMessage: proto.Message.IVideoMessage }
+	| { documentMessage: proto.Message.IDocumentMessage }
+	| null => {
 	const header = typeof msg.header === 'object' && msg.header !== null
 	if (header ? msg.header?.imageMessage : msg.imageMessage)
 		return { imageMessage: (header ? msg.header!.imageMessage : msg.imageMessage)! }
@@ -248,15 +243,20 @@ export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMes
 /**
  * Build and relay an album (multi-image/video) message.
  * @returns Array of individual media WAMessage objects
+ * @example
+ * const items = await prepareAlbumMessageContent(jid, [
+ *     { image: { url: 'https://...' }, caption: 'Photo 1' },
+ *     { video: { url: 'https://...' }, caption: 'Video 1' }
+ * ], { userJid: sock.user!.id, suki: sock })
  */
 export const prepareAlbumMessageContent = async (
 	jid: string,
 	albums: AlbumMediaItem[],
 	options: AlbumOptions
-): Promise<_WAMessage[]> => {
-	const messages: _WAMessage[] = []
+): Promise<WAMessage[]> => {
+	const messages: WAMessage[] = []
 
-	const albumMsg = _generateWAMessageFromContent(
+	const albumMsg = generateWAMessageFromContent(
 		jid,
 		{
 			albumMessage: {
@@ -264,31 +264,43 @@ export const prepareAlbumMessageContent = async (
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
 		} as unknown as proto.IMessage,
-		{ userJid: options.userJid } as unknown as MessageGenerationOptions
+		options as unknown as MiscMessageGenerationOptions
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
 
 	for (const media of albums) {
-		let mediaMsg: _WAMessage | undefined
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const uploadFn = async (encFilePath: any, opts: any) =>
-			options.suki.waUploadToServer(encFilePath, { ...opts, newsletter: _isJidNewsletter(jid) })
-
-		const sharedOpts: MessageGenerationOptions = {
-			userJid: options.userJid,
-			upload: uploadFn as MessageGenerationOptions['upload']
+		let mediaMsg: WAMessage | undefined
+		const uploadFn = async (encFilePath: unknown, opts: { mediaType?: string }) => {
+			const res = await options.suki.waUploadToServer(encFilePath, {
+				...opts,
+				newsletter: isJidNewsletter(jid)
+			})
+			return {
+				mediaUrl: res.url ?? '',
+				directPath: res.directPath ?? '',
+				handle: res.handle,
+				mediaKey: res.mediaKey,
+				fileEncSha256: res.fileEncSha256,
+				fileSha256: res.fileSha256,
+				fileLength: res.fileLength
+			}
+		}
+		const { userJid, ...restOptions } = options
+		const sharedOpts = {
+			userJid,
+			upload: uploadFn as unknown as import('../Types').WAMediaUploadFunction,
+			...restOptions
 		}
 
 		if ('image' in media && media.image)
-			mediaMsg = await _generateWAMessage(jid, { ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(jid, { ...media } as AnyMessageContent, sharedOpts)
 		else if ('video' in media && media.video)
-			mediaMsg = await _generateWAMessage(jid, { ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(jid, { ...media } as AnyMessageContent, sharedOpts)
 
 		if (mediaMsg) {
 			mediaMsg.message!.messageContextInfo = {
-				messageSecret: _randomBytes(32),
+				messageSecret: randomBytes(32),
 				messageAssociation: { associationType: 1, parentMessageKey: albumMsg.key }
 			}
 			messages.push(mediaMsg)
@@ -302,8 +314,13 @@ export const prepareAlbumMessageContent = async (
 export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 	const { query, newsletterWMexQuery } = ctx
 
+	/**
+	 * Fetch profile picture URL for any JID, including newsletters.
+	 * @example
+	 * const url = await sock.profilePictureUrl('1234567890@s.whatsapp.net')
+	 */
 	const profilePictureUrl = async (jid: string): Promise<string | null> => {
-		if (_isJidNewsletter(jid) && newsletterWMexQuery) {
+		if (isJidNewsletter(jid) && newsletterWMexQuery) {
 			const node = await newsletterWMexQuery(undefined, QueryIds.METADATA, {
 				input: { key: jid, type: 'JID', view_role: 'GUEST' },
 				fetch_viewer_metadata: true,
@@ -318,12 +335,18 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 		}
 		const result = await query({
 			tag: 'iq',
-			attrs: { target: _jidNormalizedUser(jid), to: _S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
+			attrs: { target: jidNormalizedUser(jid), to: S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
 			content: [{ tag: 'picture', attrs: { type: 'image', query: 'url' }, content: undefined }]
 		})
 		return getBinaryNodeChild(result, 'picture')?.attrs?.url || null
 	}
 
+	/**
+	 * Query the ephemeral (disappearing messages) timer for a group.
+	 * @returns timer in seconds, or 0 if not set
+	 * @example
+	 * const timer = await sock.getEphemeralGroup('120363xxx@g.us')
+	 */
 	const getEphemeralGroup = async (jid: string): Promise<number | string> => {
 		if (!isJidGroup(jid)) throw new TypeError('Jid should originate from a group!')
 		const result = await query({
