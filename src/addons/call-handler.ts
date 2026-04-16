@@ -13,8 +13,8 @@
  * ```
  */
 
-import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
+import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import type { SocketConfig, WACallEvent } from '../Types'
 import { encodeSignedDeviceIdentity } from '../Utils'
@@ -90,7 +90,6 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 				return pn.slice(0, -1)
 			}
 		}
-
 		return pn
 	}
 
@@ -237,7 +236,6 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 		if (isVideo) {
 			acceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
 		}
-
 		acceptContent.push(
 			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
 			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
@@ -278,7 +276,6 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 				content: undefined
 			})
 		}
-
 		preacceptContent.push(
 			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
 			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
@@ -307,7 +304,6 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 				content: undefined
 			})
 		}
-
 		return query({
 			tag: 'call',
 			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },

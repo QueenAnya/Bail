@@ -1,9 +1,9 @@
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, GroupMetadata, WAMediaUpload, WAMessage } from '../Types'
+import type { AnyMessageContent, GroupMetadata, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
 import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
 import type { ILogger } from '../Utils/logger'
-import { isJidGroup, isPnUser, jidNormalizedUser, STORIES_JID } from '../WABinary'
+import { isJidGroup, jidNormalizedUser, STORIES_JID, isPnUser } from '../WABinary'
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
 
@@ -106,7 +106,6 @@ export const StatusHelper = {
 		if (!jidList || jidList.length === 0) {
 			console.warn('StatusHelper: jidList is empty.')
 		}
-
 		const groups = jidList.filter(j => j?.endsWith('@g.us'))
 		const individuals = jidList.filter(j => j?.endsWith('@s.whatsapp.net') || j?.endsWith('@lid'))
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,6 +152,7 @@ export interface StatusMentionsContext {
 	authState: { creds: { me?: { id: string } } }
 	logger: ILogger
 	linkPreviewImageThumbnailWidth: number
+	generateHighQualityLinkPreview: boolean
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	axiosOptions?: any
 	relayMessage: (
@@ -203,6 +203,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 		authState,
 		logger,
 		linkPreviewImageThumbnailWidth,
+		generateHighQualityLinkPreview,
 		axiosOptions,
 		relayMessage,
 		waUploadToServer,
@@ -240,13 +241,11 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 				messageContent.caption = messageContent.text
 				delete messageContent.text
 			}
-
 			delete messageContent.ptt
 			delete messageContent.font
 			delete messageContent.backgroundColor
 			delete messageContent.textColor
 		}
-
 		if (isAudio) {
 			delete messageContent.text
 			delete messageContent.caption

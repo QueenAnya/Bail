@@ -5,15 +5,13 @@
  * Message content builder functions ported from baileys.
  * These are imported back into generateWAMessageContent in messages.ts.
  */
-import { Boom } from '@hapi/boom'
-import { zipSync } from 'fflate'
-import { promises as fs } from 'fs'
 import { gunzipSync, gzipSync } from 'zlib'
+import { promises as fs } from 'fs'
+import { zipSync } from 'fflate'
+import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
-import type { MessageContentGenerationOptions } from '../Types'
-import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, StickerPack } from '../Types/Message'
-import { sha256 } from '../Utils/crypto'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
+import { sha256 } from '../Utils/crypto'
 import {
 	encryptedStream,
 	generateThumbnail,
@@ -21,6 +19,8 @@ import {
 	getStream,
 	toBuffer
 } from '../Utils/messages-media'
+import type { MessageContentGenerationOptions } from '../Types'
+import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, StickerPack } from '../Types/Message'
 
 // ── adminInvite → newsletterAdminInviteMessage ─────────────────────────────
 
@@ -49,7 +49,6 @@ export async function buildAdminInviteMessage(
 			}
 		} catch {}
 	}
-
 	return msg
 }
 
@@ -110,11 +109,9 @@ export function isAnimatedWebP(buffer: Buffer): boolean {
 				const flags = buffer[offset + 8] ?? 0
 				return (flags & 0x02) !== 0
 			}
-
 			offset += 8 + chunkSize + (chunkSize % 2)
 		}
 	} catch {}
-
 	return false
 }
 
@@ -288,7 +285,6 @@ export async function buildStickerPackMessage(
 		} else {
 			throw new Error('No image processing library available for thumbnail generation')
 		}
-
 		if (!thumbnailBuffer || thumbnailBuffer.length === 0) {
 			throw new Error('Failed to generate thumbnail buffer')
 		}

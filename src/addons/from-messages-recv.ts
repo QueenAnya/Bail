@@ -8,10 +8,10 @@
 
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
-import type { WACallEvent, WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
 import { encodeSignedDeviceIdentity } from '../Utils'
 import type { BinaryNode } from '../WABinary'
 import { isJidGroup, jidEncode } from '../WABinary'
+import type { WACallEvent, WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
 
 export type CallHandlerDeps = {
 	authState: any
@@ -78,7 +78,6 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 				content: undefined
 			})
 		}
-
 		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '16000' }, content: undefined })
 		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '8000' }, content: undefined })
 		offerContent.push({ tag: 'net', attrs: { medium: '3' }, content: undefined })
@@ -102,7 +101,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 			offerContent.push({
 				tag: 'device-identity',
 				attrs: {},
-				content: encodeSignedDeviceIdentity(authState.creds.account, true)
+				content: encodeSignedDeviceIdentity(authState.creds.account!, true)
 			})
 		}
 
@@ -202,7 +201,6 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 				content: undefined
 			})
 		}
-
 		content.push(
 			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
 			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
@@ -390,7 +388,6 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 				content: undefined
 			})
 		}
-
 		return await query({
 			tag: 'call',
 			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },

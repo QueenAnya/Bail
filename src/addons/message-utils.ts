@@ -1,21 +1,15 @@
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type {
-	AnyMessageContent,
-	MessageGenerationOptions,
-	WAMediaUpload,
-	WAMediaUploadFunction,
-	WAMessage
-} from '../Types'
-import { QueryIds, XWAPaths } from '../Types'
+import type { BinaryNode } from '../WABinary'
 import {
+	normalizeMessageContent,
+	unixTimestampSeconds,
 	generateWAMessage,
 	generateWAMessageFromContent,
-	getUrlFromDirectPath,
-	normalizeMessageContent,
-	unixTimestampSeconds
+	getUrlFromDirectPath
 } from '../Utils'
-import type { BinaryNode } from '../WABinary'
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+import { QueryIds, XWAPaths } from '../Types'
 import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,7 +80,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 		inner.interactiveMessage?.carouselMessage ||
 		message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage ||
 		message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
-
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const firstButtonName: string | undefined =
 		(nativeFlow?.buttons?.[0] as any)?.name ||
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,10 +97,9 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	if (nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
 		return {
 			tag: 'biz',
-			attrs: { native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName }
+			attrs: { native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName! }
 		}
 	}
-
 	if (nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
 		return {
 			tag: 'biz',
@@ -121,7 +114,6 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 			]
 		}
 	}
-
 	if (nativeFlow || carouselMessage || message.buttonsMessage) {
 		return {
 			tag: 'biz',
@@ -135,11 +127,9 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 			]
 		}
 	}
-
 	if (inner.listMessage) {
 		return { tag: 'biz', attrs: {}, content: [{ tag: 'list', attrs: { v: '2', type: 'product_list' } }] }
 	}
-
 	return { tag: 'biz', attrs: {} }
 }
 
@@ -247,7 +237,6 @@ export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMes
 			}
 		}
 	}
-
 	return message
 }
 
@@ -276,7 +265,7 @@ export const prepareAlbumMessageContent = async (
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
 		} as unknown as proto.IMessage,
-		{ userJid: options.userJid } as unknown as MessageGenerationOptions
+		{ userJid: options.userJid } as unknown as import('../Types').MessageGenerationOptions
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -298,10 +287,9 @@ export const prepareAlbumMessageContent = async (
 				fileLength: res.fileLength
 			}
 		}
-
 		const sharedOpts = {
 			userJid: options.userJid,
-			upload: uploadFn as unknown as WAMediaUploadFunction
+			upload: uploadFn as unknown as import('../Types').WAMediaUploadFunction
 		}
 
 		// Error 2/3 fix: media already contains image/video — don't spread again (duplicate key)
@@ -309,13 +297,13 @@ export const prepareAlbumMessageContent = async (
 			mediaMsg = await generateWAMessage(
 				jid,
 				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as MessageGenerationOptions
+				sharedOpts as unknown as import('../Types').MessageGenerationOptions
 			)
 		else if ('video' in media && media.video)
 			mediaMsg = await generateWAMessage(
 				jid,
 				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as MessageGenerationOptions
+				sharedOpts as unknown as import('../Types').MessageGenerationOptions
 			)
 
 		if (mediaMsg) {
@@ -349,11 +337,10 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 			})
 			const resultStr = getBinaryNodeChild(node, 'result')?.content?.toString()
 			if (!resultStr) return null
-
-			const metadata = JSON.parse(resultStr).data[XWAPaths.xwa2_newsletter_metadata]
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const metadata = JSON.parse(resultStr).data[XWAPaths.xwa2_newsletter_metadata] as any
 			return getUrlFromDirectPath(metadata?.thread_metadata?.picture?.direct_path || '')
 		}
-
 		const result = await query({
 			tag: 'iq',
 			attrs: { target: jidNormalizedUser(jid), to: S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
@@ -375,7 +362,7 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 			attrs: { id: `ephemeral-${Date.now()}`, to: jid, type: 'get', xmlns: 'w:g2' },
 			content: [{ tag: 'query', attrs: { request: 'interactive' }, content: undefined }]
 		})
-		return getBinaryNodeChild(getBinaryNodeChild(result, 'group'), 'ephemeral')?.attrs?.expiration || 0
+		return getBinaryNodeChild(getBinaryNodeChild(result, 'group')!, 'ephemeral')?.attrs?.expiration || 0
 	}
 
 	return { profilePictureUrl, getEphemeralGroup }

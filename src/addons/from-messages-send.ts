@@ -6,10 +6,10 @@
  * Imported back into makeMessagesSocket.
  */
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, WAMessage } from '../Types'
+import type { AnyMessageContent, WAMessage, MessageRelayOptions } from '../Types'
+import { isJidGroup, jidNormalizedUser } from '../WABinary'
 import { delay } from '../Utils/generics'
 import { generateWAMessage, generateWAMessageFromContent } from '../Utils/messages'
-import { isJidGroup, jidNormalizedUser } from '../WABinary'
 
 const STORIES_JID = 'status@broadcast'
 
@@ -53,13 +53,11 @@ export function normalizeStatusContent(content: AnyMessageContent): {
 			msgContent.caption = msgContent.text
 			delete msgContent.text
 		}
-
 		delete msgContent.ptt
 		delete msgContent.font
 		delete msgContent.backgroundColor
 		delete msgContent.textColor
 	}
-
 	if (isAudio) {
 		delete msgContent.text
 		delete msgContent.caption

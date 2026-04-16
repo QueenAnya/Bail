@@ -103,7 +103,6 @@ export const searchMessages = (messages: WAMessage[], query: string, options: Se
 		if (options.messageTypes?.length) {
 			if (!options.messageTypes.includes(getMessageType(message))) continue
 		}
-
 		const text = extractMessageText(message)
 		if (!text) continue
 		const st = options.caseSensitive ? text : text.toLowerCase()
@@ -116,10 +115,8 @@ export const searchMessages = (messages: WAMessage[], query: string, options: Se
 				relevanceScore: calculateRelevance(query, text, pos)
 			})
 		}
-
 		if (options.limit && results.length >= options.limit) break
 	}
-
 	return results.sort((a, b) => b.relevanceScore - a.relevanceScore)
 }
 
@@ -136,14 +133,12 @@ export const searchMessagesRegex = (
 		if (options.messageTypes?.length) {
 			if (!options.messageTypes.includes(getMessageType(message))) continue
 		}
-
 		const text = extractMessageText(message)
 		if (!text) continue
 		const match = text.match(pattern)
 		if (match) results.push({ message, matchedText: match[0], matchPosition: match.index ?? 0, relevanceScore: 100 })
 		if (options.limit && results.length >= options.limit) break
 	}
-
 	return results
 }
 
