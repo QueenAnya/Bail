@@ -1,5 +1,5 @@
-import { jidDecode, jidNormalizedUser, isLidUser, isHostedPnUser, isHostedLidUser } from '../WABinary'
-import type { WAMessage, AuthenticationState } from '../Types'
+import type { AuthenticationState, WAMessage } from '../Types'
+import { isHostedLidUser, isHostedPnUser, isLidUser, jidDecode, jidNormalizedUser } from '../WABinary'
 
 export interface JidInfo {
 	jid: string
@@ -78,6 +78,7 @@ export const isSelf = (jid: string, senderPn: SenderPnInfo): boolean => {
 		const normalizedLid = jidNormalizedUser(senderPn.lid)
 		if (normalizedJid === normalizedLid) return true
 	}
+
 	return false
 }
 
@@ -92,6 +93,7 @@ export const plotJid = (jid: string): PlottedJid | null => {
 		result.lid = info.normalizedUser
 		result.primary = info.normalizedUser
 	}
+
 	return result
 }
 
@@ -102,7 +104,7 @@ export const normalizePhoneToJid = (phone: string): string => {
 
 export const extractPhoneNumber = (jid: string): string | null => {
 	const info = parseJid(jid)
-	if (!info || !info.isPn) return null
+	if (!info?.isPn) return null
 	return info.user
 }
 
@@ -117,6 +119,7 @@ export const formatJidDisplay = (jid: string, options?: { showDevice?: boolean; 
 		else if (info.isNewsletter) display += ' (Newsletter)'
 		else if (info.isPn) display += ' (PN)'
 	}
+
 	return display
 }
 
@@ -177,6 +180,7 @@ export const createJidPlotter = (
 			if (pn) result.pn = pn
 			result.primary = result.pn || info.normalizedUser
 		}
+
 		return result
 	}
 })
