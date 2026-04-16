@@ -5,15 +5,16 @@ import {
 	normalizeMessageContent,
 	unixTimestampSeconds,
 	generateWAMessage,
-	generateWAMessageFromContent
+	generateWAMessageFromContent,
+	getUrlFromDirectPath
 } from '../Utils'
 import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
-
 import { QueryIds, XWAPaths } from '../Types'
-import { getUrlFromDirectPath } from '../Utils'
 import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 
-// ── Message Type Detection ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 1 — Message Type Detection
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function getMediaType(message: proto.IMessage): string {
 	if (message.imageMessage) return 'image'
@@ -50,12 +51,10 @@ export function getMessageType(message: proto.IMessage): string {
 	return 'text'
 }
 
-// ── Button / Biz Node Helpers ──────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 2 — Button / Biz Node Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Detect what kind of button message this is
- * Returns: 'list' | 'buttons' | 'native_flow' | undefined
- */
 export function getButtonType(message: proto.IMessage): string | undefined {
 	const inner = message.viewOnceMessageV2Extension?.message || message
 	if (inner.listMessage) return 'list'
@@ -71,27 +70,21 @@ export function getButtonType(message: proto.IMessage): string | undefined {
 	return undefined
 }
 
-/**
- * Build the <biz> binary node that WhatsApp servers require for button messages
- */
 export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	const inner = message.viewOnceMessageV2Extension?.message || message
-
 	const nativeFlow =
 		inner.interactiveMessage?.nativeFlowMessage ||
 		message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage ||
 		message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage
-
 	const carouselMessage =
 		inner.interactiveMessage?.carouselMessage ||
 		message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage ||
 		message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
-
-	const firstButtonName =
-		nativeFlow?.buttons?.[0]?.name ||
-		(carouselMessage?.cards?.[0] as proto.Message.IInteractiveMessage | undefined)?.nativeFlowMessage?.buttons?.[0]
-			?.name
-
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const firstButtonName: string | undefined =
+		(nativeFlow?.buttons?.[0] as any)?.name ||
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(carouselMessage?.cards?.[0] as any)?.nativeFlowMessage?.buttons?.[0]?.name
 	const nativeFlowSpecials = [
 		'mpm',
 		'cta_catalog',
@@ -100,20 +93,13 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 		'wa_payment_transaction_details',
 		'automated_greeting_message_view_catalog'
 	]
-
 	const ts = unixTimestampSeconds().toString()
-
-	// Payment flows
 	if (nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
 		return {
 			tag: 'biz',
-			attrs: {
-				native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName!
-			}
+			attrs: { native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName! }
 		}
 	}
-
-	// Special native flow (catalog, location, etc.)
 	if (nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
 		return {
 			tag: 'biz',
@@ -128,9 +114,6 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 			]
 		}
 	}
-
-	// Standard interactive / buttons / carousel
-	// Uses exact biz node structure from sendButton — works on iOS + Android + WA Business + WA Messenger
 	if (nativeFlow || carouselMessage || message.buttonsMessage) {
 		return {
 			tag: 'biz',
@@ -144,35 +127,18 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 			]
 		}
 	}
-
-	// List message
 	if (inner.listMessage) {
-		return {
-			tag: 'biz',
-			attrs: {},
-			content: [{ tag: 'list', attrs: { v: '2', type: 'product_list' } }]
-		}
+		return { tag: 'biz', attrs: {}, content: [{ tag: 'list', attrs: { v: '2', type: 'product_list' } }] }
 	}
-
-	// Fallback
-	return {
-		tag: 'biz',
-		attrs: {}
-	}
+	return { tag: 'biz', attrs: {} }
 }
 
-// ─── WS-Patched Extras ────────────────────────────────────────────────────
-// buildMentionContextInfo, extractFromButtonsMessage, normalizeMediaInput,
-// patchMessageForMdIfRequired, prepareAlbumMessageContent
-// makeMessageExtrasAddon (profilePictureUrl, getEphemeralGroup)
-// Ported from innovatorssoft/Baileys
-
-// ── Types ──────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 3 — WS Extras (mentions, media, MD patch, album, socket extras)
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface MentionContent {
-	/** Array of JIDs to @mention */
 	mentions?: string[]
-	/** True = @mention everyone */
 	mentionAll?: boolean
 }
 
@@ -208,24 +174,12 @@ export interface MessageExtrasContext {
 	) => Promise<BinaryNode>
 }
 
-// ── Mention / Context Helpers ──────────────────────────────────────────────
-
-/**
- * Build contextInfo for @mention or @all.
- *
- * @example
- * await sock.sendMessage(jid, {
- *     text: '@all read this',
- *     ...buildMentionContextInfo({ mentionAll: true })
- * })
- */
+/** Build contextInfo for @mention or @all. */
 export const buildMentionContextInfo = (message: MentionContent): { contextInfo: proto.IContextInfo } => {
 	if (message.mentionAll) return { contextInfo: { nonJidMentions: 1 } as proto.IContextInfo }
 	if (message.mentions?.length) return { contextInfo: { mentionedJid: message.mentions } }
 	return { contextInfo: {} }
 }
-
-// ── Media Helpers ──────────────────────────────────────────────────────────
 
 type _ButtonsLike = {
 	imageMessage?: proto.Message.IImageMessage | null
@@ -266,12 +220,7 @@ export const normalizeMediaInput = (
 	return media as WAMediaUpload
 }
 
-// ── MD Patch ───────────────────────────────────────────────────────────────
-
-/**
- * Wrap buttons/template/list/interactiveMessage in viewOnceMessageV2Extension
- * so they render on multi-device (MD) clients.
- */
+/** Wrap buttons/template/list/interactive in viewOnceMessageV2Extension for MD clients. */
 export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMessage => {
 	if (
 		message?.buttonsMessage ||
@@ -291,11 +240,8 @@ export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMes
 	return message
 }
 
-// ── Album ──────────────────────────────────────────────────────────────────
-
 /**
  * Build and relay an album (multi-image/video) message.
- *
  * @returns Array of individual media WAMessage objects
  * @example
  * const items = await prepareAlbumMessageContent(jid, [
@@ -318,7 +264,7 @@ export const prepareAlbumMessageContent = async (
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
 		} as unknown as proto.IMessage,
-		options
+		options as unknown as MiscMessageGenerationOptions
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -326,7 +272,10 @@ export const prepareAlbumMessageContent = async (
 	for (const media of albums) {
 		let mediaMsg: WAMessage | undefined
 		const uploadFn = async (encFilePath: unknown, opts: { mediaType?: string }) => {
-			const res = await options.suki.waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
+			const res = await options.suki.waUploadToServer(encFilePath, {
+				...opts,
+				newsletter: isJidNewsletter(jid)
+			})
 			return {
 				mediaUrl: res.url ?? '',
 				directPath: res.directPath ?? '',
@@ -338,12 +287,24 @@ export const prepareAlbumMessageContent = async (
 			}
 		}
 		const { userJid, ...restOptions } = options
-		const sharedOpts = { userJid, upload: uploadFn, ...restOptions }
+		const sharedOpts = {
+			userJid,
+			upload: uploadFn as unknown as import('../Types').WAMediaUploadFunction,
+			...restOptions
+		}
 
 		if ('image' in media && media.image)
-			mediaMsg = await generateWAMessage(jid, { image: media.image, ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(
+				jid,
+				{ image: media.image, ...media } as AnyMessageContent,
+				sharedOpts as unknown as import('../Types').MessageGenerationOptions
+			)
 		else if ('video' in media && media.video)
-			mediaMsg = await generateWAMessage(jid, { video: media.video, ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(
+				jid,
+				{ video: media.video, ...media } as AnyMessageContent,
+				sharedOpts as unknown as import('../Types').MessageGenerationOptions
+			)
 
 		if (mediaMsg) {
 			mediaMsg.message!.messageContextInfo = {
@@ -357,19 +318,12 @@ export const prepareAlbumMessageContent = async (
 	return messages
 }
 
-// ── Socket-Level Extras ────────────────────────────────────────────────────
-
-/**
- * Addon factory for socket-level message extras.
- * Inject into makeMessagesSocket return:
- *   const msgExtras = makeMessageExtrasAddon({ query, newsletterWMexQuery })
- *   return { ...sock, ...msgExtras }
- */
+/** Addon factory for socket-level message extras (profilePictureUrl, getEphemeralGroup). */
 export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 	const { query, newsletterWMexQuery } = ctx
 
 	/**
-	 * Fetch profile picture URL for any JID (users, groups, newsletters).
+	 * Fetch profile picture URL for any JID, including newsletters.
 	 * @example
 	 * const url = await sock.profilePictureUrl('1234567890@s.whatsapp.net')
 	 */
@@ -396,7 +350,7 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 	}
 
 	/**
-	 * Query disappearing messages timer for a group.
+	 * Query the ephemeral (disappearing messages) timer for a group.
 	 * @returns timer in seconds, or 0 if not set
 	 * @example
 	 * const timer = await sock.getEphemeralGroup('120363xxx@g.us')

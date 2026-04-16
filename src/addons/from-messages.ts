@@ -12,8 +12,13 @@ import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
 import { sha256 } from '../Utils/crypto'
-import { encryptedStream, getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media'
-import { generateThumbnail } from '../Utils/messages-media'
+import {
+	encryptedStream,
+	generateThumbnail,
+	getImageProcessingLibrary,
+	getStream,
+	toBuffer
+} from '../Utils/messages-media'
 import type { MessageContentGenerationOptions } from '../Types'
 import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, StickerPack } from '../Types/Message'
 
