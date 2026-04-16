@@ -10,7 +10,6 @@ import {
 } from '../Utils'
 import type {
 	AnyMessageContent,
-	MiscMessageGenerationOptions,
 	MessageGenerationOptions,
 	WAMediaUpload,
 	WAMediaUploadFunction,
