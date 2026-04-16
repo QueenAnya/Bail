@@ -264,7 +264,7 @@ export const prepareAlbumMessageContent = async (
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
 		} as unknown as proto.IMessage,
-		options as unknown as MiscMessageGenerationOptions
+		options
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -288,8 +288,8 @@ export const prepareAlbumMessageContent = async (
 		}
 		const { userJid, ...restOptions } = options
 		const sharedOpts = {
-			userJid,
-			upload: uploadFn as unknown as import('../Types').WAMediaUploadFunction,
+			{ userJid: options.userJid }
+			upload: uploadFn
 			...restOptions
 		}
 
