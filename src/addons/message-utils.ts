@@ -8,7 +8,7 @@ import {
 	generateWAMessageFromContent,
 	getUrlFromDirectPath
 } from '../Utils'
-import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+import type { AnyMessageContent, WAMediaUpload, WAMessage } from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
 import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 

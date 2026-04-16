@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, GroupMetadata, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+import type { AnyMessageContent, GroupMetadata, WAMediaUpload, WAMessage } from '../Types'
 import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
 import type { ILogger } from '../Utils/logger'
@@ -152,7 +152,6 @@ export interface StatusMentionsContext {
 	authState: { creds: { me?: { id: string } } }
 	logger: ILogger
 	linkPreviewImageThumbnailWidth: number
-	generateHighQualityLinkPreview: boolean
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	axiosOptions?: any
 	relayMessage: (
@@ -203,7 +202,6 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 		authState,
 		logger,
 		linkPreviewImageThumbnailWidth,
-		generateHighQualityLinkPreview,
 		axiosOptions,
 		relayMessage,
 		waUploadToServer,
