@@ -8,7 +8,7 @@ import {
 	generateWAMessageFromContent,
 	getUrlFromDirectPath
 } from '../Utils'
-import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMediaUploadFunction, WAMessage } from '../Types'
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
 import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 
@@ -256,6 +256,7 @@ export const prepareAlbumMessageContent = async (
 ): Promise<WAMessage[]> => {
 	const messages: WAMessage[] = []
 
+	// Error 1 fix: generateWAMessageFromContent needs userJid — pass it directly
 	const albumMsg = generateWAMessageFromContent(
 		jid,
 		{
@@ -264,7 +265,7 @@ export const prepareAlbumMessageContent = async (
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
 		} as unknown as proto.IMessage,
-		options
+		{ userJid: options.userJid } as unknown as import('../Types').MessageGenerationOptions
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -286,17 +287,24 @@ export const prepareAlbumMessageContent = async (
 				fileLength: res.fileLength
 			}
 		}
-		const { userJid, ...restOptions } = options
 		const sharedOpts = {
-			{ userJid: options.userJid } as unknown as MessageGenerationOptions,
-			upload: uploadFn as unknown as WAMediaUploadFunction,
-			...restOptions
+			userJid: options.userJid,
+			upload: uploadFn as unknown as import('../Types').WAMediaUploadFunction
 		}
 
+		// Error 2/3 fix: media already contains image/video — don't spread again (duplicate key)
 		if ('image' in media && media.image)
-			mediaMsg = await generateWAMessage(jid, { ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(
+				jid,
+				media as unknown as AnyMessageContent,
+				sharedOpts as unknown as import('../Types').MessageGenerationOptions
+			)
 		else if ('video' in media && media.video)
-			mediaMsg = await generateWAMessage(jid, { ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(
+				jid,
+				media as unknown as AnyMessageContent,
+				sharedOpts as unknown as import('../Types').MessageGenerationOptions
+			)
 
 		if (mediaMsg) {
 			mediaMsg.message!.messageContextInfo = {
