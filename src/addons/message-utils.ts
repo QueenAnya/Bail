@@ -1,6 +1,12 @@
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type { AnyMessageContent, WAMediaUpload, WAMessage } from '../Types'
+import type {
+	AnyMessageContent,
+	MessageGenerationOptions,
+	WAMediaUpload,
+	WAMediaUploadFunction,
+	WAMessage
+} from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
 import {
 	generateWAMessage,
@@ -270,7 +276,7 @@ export const prepareAlbumMessageContent = async (
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
 		} as unknown as proto.IMessage,
-		{ userJid: options.userJid } as unknown as import('../Types').MessageGenerationOptions
+		{ userJid: options.userJid } as unknown as MessageGenerationOptions
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -295,7 +301,7 @@ export const prepareAlbumMessageContent = async (
 
 		const sharedOpts = {
 			userJid: options.userJid,
-			upload: uploadFn as unknown as import('../Types').WAMediaUploadFunction
+			upload: uploadFn as unknown as WAMediaUploadFunction
 		}
 
 		// Error 2/3 fix: media already contains image/video — don't spread again (duplicate key)
@@ -303,13 +309,13 @@ export const prepareAlbumMessageContent = async (
 			mediaMsg = await generateWAMessage(
 				jid,
 				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as import('../Types').MessageGenerationOptions
+				sharedOpts as unknown as MessageGenerationOptions
 			)
 		else if ('video' in media && media.video)
 			mediaMsg = await generateWAMessage(
 				jid,
 				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as import('../Types').MessageGenerationOptions
+				sharedOpts as unknown as MessageGenerationOptions
 			)
 
 		if (mediaMsg) {
