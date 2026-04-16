@@ -239,10 +239,9 @@ export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMes
 		message?.interactiveMessage?.nativeFlowMessage
 	) {
 		return {
-				message: {
-					messageContextInfo: { deviceListMetadataVersion: 2, deviceListMetadata: {} },
-					...message
-				}
+			message: {
+				messageContextInfo: { deviceListMetadataVersion: 2, deviceListMetadata: {} },
+				...message
 			}
 		}
 	}
