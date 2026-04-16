@@ -2,6 +2,8 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
+import { execSendStatusMentions } from '../addons/from-messages-send'
+import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
@@ -40,15 +42,13 @@ import {
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
-import { getButtonType, getButtonArgs, getMediaType, getMessageType } from '../addons/message-utils'
-import { execSendStatusMentions } from '../addons/from-messages-send'
 import {
 	areJidsSameUser,
 	type BinaryNode,
 	type BinaryNodeAttributes,
 	type FullJid,
-	getBinaryFilteredButtons,
 	getBinaryFilteredBizBot,
+	getBinaryFilteredButtons,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	isHostedLidUser,
@@ -400,6 +400,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		if (!isJidGroup(jid)) {
 			throw new Error('Jid must a group jid!')
 		}
+
 		return relayMessage(
 			jid,
 			{
@@ -663,7 +664,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const extraAttrs: BinaryNodeAttributes = {}
 
 		// normalizeMessageContent BEFORE transaction — exact addons pattern
-		const messages = normalizeMessageContent(message) || (message as proto.IMessage)
+		const messages = normalizeMessageContent(message) || message
 		const buttonType = getButtonType(messages)
 		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
 
@@ -1355,6 +1356,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						const pollContent = (content as any).poll
 						pollAttrs.contenttype = pollContent?.pollContentType === 2 ? 'image' : 'text'
 					}
+
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: pollAttrs

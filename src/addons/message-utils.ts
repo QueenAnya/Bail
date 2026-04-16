@@ -1,13 +1,5 @@
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type { BinaryNode } from '../WABinary'
-import {
-	normalizeMessageContent,
-	unixTimestampSeconds,
-	generateWAMessage,
-	generateWAMessageFromContent,
-	getUrlFromDirectPath
-} from '../Utils'
 import type {
 	AnyMessageContent,
 	MessageGenerationOptions,
@@ -16,6 +8,14 @@ import type {
 	WAMessage
 } from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
+import {
+	generateWAMessage,
+	generateWAMessageFromContent,
+	getUrlFromDirectPath,
+	normalizeMessageContent,
+	unixTimestampSeconds
+} from '../Utils'
+import type { BinaryNode } from '../WABinary'
 import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 		inner.interactiveMessage?.carouselMessage ||
 		message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage ||
 		message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 	const firstButtonName: string | undefined =
 		(nativeFlow?.buttons?.[0] as any)?.name ||
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,9 +103,10 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 	if (nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
 		return {
 			tag: 'biz',
-			attrs: { native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName! }
+			attrs: { native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName }
 		}
 	}
+
 	if (nativeFlow && nativeFlowSpecials.includes(firstButtonName ?? '')) {
 		return {
 			tag: 'biz',
@@ -120,6 +121,7 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 			]
 		}
 	}
+
 	if (nativeFlow || carouselMessage || message.buttonsMessage) {
 		return {
 			tag: 'biz',
@@ -133,9 +135,11 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 			]
 		}
 	}
+
 	if (inner.listMessage) {
 		return { tag: 'biz', attrs: {}, content: [{ tag: 'list', attrs: { v: '2', type: 'product_list' } }] }
 	}
+
 	return { tag: 'biz', attrs: {} }
 }
 
@@ -243,6 +247,7 @@ export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMes
 			}
 		}
 	}
+
 	return message
 }
 
@@ -293,6 +298,7 @@ export const prepareAlbumMessageContent = async (
 				fileLength: res.fileLength
 			}
 		}
+
 		const sharedOpts = {
 			userJid: options.userJid,
 			upload: uploadFn as unknown as WAMediaUploadFunction
@@ -343,10 +349,11 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 			})
 			const resultStr = getBinaryNodeChild(node, 'result')?.content?.toString()
 			if (!resultStr) return null
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const metadata = JSON.parse(resultStr).data[XWAPaths.xwa2_newsletter_metadata] as any
+
+			const metadata = JSON.parse(resultStr).data[XWAPaths.xwa2_newsletter_metadata]
 			return getUrlFromDirectPath(metadata?.thread_metadata?.picture?.direct_path || '')
 		}
+
 		const result = await query({
 			tag: 'iq',
 			attrs: { target: jidNormalizedUser(jid), to: S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
@@ -368,7 +375,7 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 			attrs: { id: `ephemeral-${Date.now()}`, to: jid, type: 'get', xmlns: 'w:g2' },
 			content: [{ tag: 'query', attrs: { request: 'interactive' }, content: undefined }]
 		})
-		return getBinaryNodeChild(getBinaryNodeChild(result, 'group')!, 'ephemeral')?.attrs?.expiration || 0
+		return getBinaryNodeChild(getBinaryNodeChild(result, 'group'), 'ephemeral')?.attrs?.expiration || 0
 	}
 
 	return { profilePictureUrl, getEphemeralGroup }

@@ -16,6 +16,7 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
+	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -24,8 +25,7 @@ import type {
 	WAPrivacyMessagesValue,
 	WAPrivacyOnlineValue,
 	WAPrivacyValue,
-	WAReadReceiptsValue,
-	WAMessageKey
+	WAReadReceiptsValue
 } from '../Types'
 import { ALL_WA_PATCH_NAMES } from '../Types'
 import type { QuickReplyAction } from '../Types/Bussines.js'
@@ -387,6 +387,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				if (lid) lidJid = jidNormalizedUser(lid)
 			} catch {}
 		}
+
 		// If LID → resolve PN
 		if (jid.endsWith('@lid')) {
 			lidJid = jid

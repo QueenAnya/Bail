@@ -50,6 +50,7 @@ export const useMongoFileAuthState = async (
 							if (type === 'app-state-sync-key' && value) {
 								value = proto.Message.AppStateSyncKeyData.fromObject(value)
 							}
+
 							data[id] = value
 						})
 					)
@@ -64,6 +65,7 @@ export const useMongoFileAuthState = async (
 							tasks.push(value ? writeData(value, key) : removeData(key))
 						}
 					}
+
 					await Promise.all(tasks)
 				}
 			}

@@ -74,7 +74,6 @@ import {
 import { extractGroupMetadata } from './groups'
 import { makeMessagesSocket } from './messages-send'
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
 		config
@@ -415,6 +414,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				content: undefined
 			})
 		}
+
 		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '16000' }, content: undefined })
 		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '8000' }, content: undefined })
 		offerContent.push({ tag: 'net', attrs: { medium: '3' }, content: undefined })
@@ -439,6 +439,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				content: encodeSignedDeviceIdentity(authState.creds.account!, true)
 			})
 		}
+
 		await query({
 			tag: 'call',
 			attrs: { id: generateMessageTag(), to: toJid },
@@ -485,6 +486,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			attrs.duration = String(duration)
 			attrs.audio_duration = String(duration)
 		}
+
 		await query({
 			tag: 'call',
 			attrs: { to: callTo, id: randomBytes(16).toString('hex').toUpperCase() },
@@ -520,6 +522,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				content: undefined
 			})
 		}
+
 		content.push(
 			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
 			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
@@ -697,6 +700,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				content: undefined
 			})
 		}
+
 		return await query({
 			tag: 'call',
 			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
