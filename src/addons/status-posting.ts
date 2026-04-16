@@ -3,9 +3,7 @@ import type { AnyMessageContent, GroupMetadata, MiscMessageGenerationOptions, WA
 import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
 import type { ILogger } from '../Utils/logger'
-import { isJidGroup, jidNormalizedUser, STORIES_JID } from '../WABinary'
-
-const isJidUser = (jid: string | undefined) => jid?.endsWith('@s.whatsapp.net') ?? false
+import { isJidGroup, jidNormalizedUser, STORIES_JID, isPnUser } from '../WABinary'
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
 
@@ -228,7 +226,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 				} catch (error) {
 					logger.error(`Error getting metadata for group ${id}: ${error}`)
 				}
-			} else if (isJidUser(id)) {
+			} else if (isPnUser(id)) {
 				allUsers.add(jidNormalizedUser(id))
 			}
 		}
@@ -320,7 +318,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 		for (const id of jids) {
 			try {
 				const normalizedId = jidNormalizedUser(id)
-				const isPrivate = isJidUser(normalizedId)
+				const isPrivate = isPnUser(normalizedId)
 				const type = isPrivate ? 'statusMentionMessage' : 'groupStatusMentionMessage'
 				const protocolMessage = {
 					[type]: { message: { protocolMessage: { key: msg.key, type: 25 } } },

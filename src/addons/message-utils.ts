@@ -1,7 +1,17 @@
+import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import type { BinaryNode } from '../WABinary'
-import { normalizeMessageContent } from '../Utils/messages'
-import { unixTimestampSeconds } from '../Utils/generics'
+import {
+	normalizeMessageContent,
+	unixTimestampSeconds,
+	generateWAMessage,
+	generateWAMessageFromContent
+} from '../Utils'
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+
+import { QueryIds, XWAPaths } from '../Types'
+import { getUrlFromDirectPath } from '../Utils'
+import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 
 // ── Message Type Detection ─────────────────────────────────────────────────
 
@@ -157,23 +167,6 @@ export function getButtonArgs(message: proto.IMessage): BinaryNode {
 // makeMessageExtrasAddon (profilePictureUrl, getEphemeralGroup)
 // Ported from innovatorssoft/Baileys
 
-import { randomBytes as _randomBytes } from 'crypto'
-import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage as _WAMessage } from '../Types'
-import {
-	generateWAMessage as _generateWAMessage,
-	generateWAMessageFromContent as _generateWAMessageFromContent
-} from '../Utils/messages'
-import { QueryIds, XWAPaths } from '../Types'
-import { getUrlFromDirectPath } from '../Utils'
-import {
-	getBinaryNodeChild,
-	isJidGroup,
-	isJidNewsletter as _isJidNewsletter,
-	jidNormalizedUser as _jidNormalizedUser,
-	S_WHATSAPP_NET as _S_WHATSAPP_NET
-} from '../WABinary'
-import type { BinaryNode as _BinaryNode } from '../WABinary'
-
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface MentionContent {
@@ -184,10 +177,10 @@ export interface MentionContent {
 }
 
 export type AlbumMediaItem =
-	| ({ image: WAMediaUpload } & Partial<AnyMessageContent>)
-	| ({ video: WAMediaUpload } & Partial<AnyMessageContent>)
+	| { image: WAMediaUpload; caption?: string; [key: string]: unknown }
+	| { video: WAMediaUpload; caption?: string; gifPlayback?: boolean; [key: string]: unknown }
 
-export interface AlbumOptions extends MiscMessageGenerationOptions {
+export interface AlbumOptions {
 	userJid: string
 	suki: {
 		relayMessage: (jid: string, msg: proto.IMessage, opts: { messageId: string }) => Promise<void>
@@ -207,12 +200,12 @@ export interface AlbumOptions extends MiscMessageGenerationOptions {
 }
 
 export interface MessageExtrasContext {
-	query: (node: _BinaryNode) => Promise<_BinaryNode>
+	query: (node: BinaryNode) => Promise<BinaryNode>
 	newsletterWMexQuery?: (
 		variables: Record<string, unknown> | undefined,
 		queryId: string,
 		options: Record<string, unknown>
-	) => Promise<_BinaryNode>
+	) => Promise<BinaryNode>
 }
 
 // ── Mention / Context Helpers ──────────────────────────────────────────────
@@ -265,12 +258,12 @@ export const extractFromButtonsMessage = (
 
 /** Normalise media input: string → { url }, Buffer → as-is, others → as-is. */
 export const normalizeMediaInput = (
-	media: Buffer | string | { url: string } | { stream: NodeJS.ReadableStream } | null | undefined
-): Buffer | { url: string } | { stream: NodeJS.ReadableStream } | null | undefined => {
+	media: WAMediaUpload | string | null | undefined
+): WAMediaUpload | null | undefined => {
 	if (!media) return media as null | undefined
 	if (Buffer.isBuffer(media)) return media
 	if (typeof media === 'string') return { url: media }
-	return media as { url: string } | { stream: NodeJS.ReadableStream }
+	return media as WAMediaUpload
 }
 
 // ── MD Patch ───────────────────────────────────────────────────────────────
@@ -314,10 +307,10 @@ export const prepareAlbumMessageContent = async (
 	jid: string,
 	albums: AlbumMediaItem[],
 	options: AlbumOptions
-): Promise<_WAMessage[]> => {
-	const messages: _WAMessage[] = []
+): Promise<WAMessage[]> => {
+	const messages: WAMessage[] = []
 
-	const albumMsg = _generateWAMessageFromContent(
+	const albumMsg = generateWAMessageFromContent(
 		jid,
 		{
 			albumMessage: {
@@ -331,9 +324,9 @@ export const prepareAlbumMessageContent = async (
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
 
 	for (const media of albums) {
-		let mediaMsg: _WAMessage | undefined
+		let mediaMsg: WAMessage | undefined
 		const uploadFn = async (encFilePath: unknown, opts: { mediaType?: string }) => {
-			const res = await options.suki.waUploadToServer(encFilePath, { ...opts, newsletter: _isJidNewsletter(jid) })
+			const res = await options.suki.waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
 			return {
 				mediaUrl: res.url ?? '',
 				directPath: res.directPath ?? '',
@@ -348,13 +341,13 @@ export const prepareAlbumMessageContent = async (
 		const sharedOpts = { userJid, upload: uploadFn, ...restOptions }
 
 		if ('image' in media && media.image)
-			mediaMsg = await _generateWAMessage(jid, { image: media.image, ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(jid, { image: media.image, ...media } as AnyMessageContent, sharedOpts)
 		else if ('video' in media && media.video)
-			mediaMsg = await _generateWAMessage(jid, { video: media.video, ...media } as AnyMessageContent, sharedOpts)
+			mediaMsg = await generateWAMessage(jid, { video: media.video, ...media } as AnyMessageContent, sharedOpts)
 
 		if (mediaMsg) {
 			mediaMsg.message!.messageContextInfo = {
-				messageSecret: _randomBytes(32),
+				messageSecret: randomBytes(32),
 				messageAssociation: { associationType: 1, parentMessageKey: albumMsg.key }
 			}
 			messages.push(mediaMsg)
@@ -381,7 +374,7 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 	 * const url = await sock.profilePictureUrl('1234567890@s.whatsapp.net')
 	 */
 	const profilePictureUrl = async (jid: string): Promise<string | null> => {
-		if (_isJidNewsletter(jid) && newsletterWMexQuery) {
+		if (isJidNewsletter(jid) && newsletterWMexQuery) {
 			const node = await newsletterWMexQuery(undefined, QueryIds.METADATA, {
 				input: { key: jid, type: 'JID', view_role: 'GUEST' },
 				fetch_viewer_metadata: true,
@@ -396,7 +389,7 @@ export const makeMessageExtrasAddon = (ctx: MessageExtrasContext) => {
 		}
 		const result = await query({
 			tag: 'iq',
-			attrs: { target: _jidNormalizedUser(jid), to: _S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
+			attrs: { target: jidNormalizedUser(jid), to: S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
 			content: [{ tag: 'picture', attrs: { type: 'image', query: 'url' }, content: undefined }]
 		})
 		return getBinaryNodeChild(result, 'picture')?.attrs?.url || null
