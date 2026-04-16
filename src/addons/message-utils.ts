@@ -288,8 +288,8 @@ export const prepareAlbumMessageContent = async (
 		}
 		const { userJid, ...restOptions } = options
 		const sharedOpts = {
-			{ userJid: options.userJid } as MessageGenerationOptions,
-			upload: uploadFn as WAMediaUploadFunction,
+			{ userJid: options.userJid } as unknown as MessageGenerationOptions,
+			upload: uploadFn as unknown as WAMediaUploadFunction,
 			...restOptions
 		}
 
