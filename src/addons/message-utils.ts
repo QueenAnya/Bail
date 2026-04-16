@@ -8,7 +8,7 @@ import {
 	generateWAMessageFromContent,
 	getUrlFromDirectPath
 } from '../Utils'
-import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMessage } from '../Types'
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMediaUpload, WAMediaUploadFunction, WAMessage } from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
 import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 
@@ -288,8 +288,8 @@ export const prepareAlbumMessageContent = async (
 		}
 		const { userJid, ...restOptions } = options
 		const sharedOpts = {
-			{ userJid: options.userJid },
-			upload: uploadFn,
+			{ userJid: options.userJid } as MessageGenerationOptions,
+			upload: uploadFn as WAMediaUploadFunction,
 			...restOptions
 		}
 
