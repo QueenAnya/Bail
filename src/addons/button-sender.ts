@@ -352,7 +352,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 	const errors: string[] = []
 	const warnings: string[] = []
 
-	if (buttons == null) return { errors: [], warnings: [], valid: true, cleaned: [] }
+	if (buttons === null) return { errors: [], warnings: [], valid: true, cleaned: [] }
 	if (!Array.isArray(buttons)) {
 		errors.push('buttons must be an array')
 		return { errors, warnings, valid: false, cleaned: [] }
@@ -369,7 +369,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 
 	const cleaned = (buttons as AnyRawButton[]).map((b, idx) => {
 		const btn = b as Record<string, unknown>
-		if (b == null || typeof b !== 'object') {
+		if (b === null || typeof b !== 'object') {
 			errors.push(`button[${idx}] is not an object`)
 			return b
 		}
@@ -713,7 +713,7 @@ export async function sendInteractiveMessage(
 	if (sock.config?.emitOwnEvents && !isJidGroup(jid)) {
 		process.nextTick(() => {
 			if (sock.processingMutex?.mutex && sock.upsertMessage) {
-				sock.processingMutex.mutex(() => sock.upsertMessage!(fullMsg, 'append'))
+				void sock.processingMutex.mutex(() => sock.upsertMessage!(fullMsg, 'append'))
 			}
 		})
 	}
