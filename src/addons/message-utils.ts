@@ -62,7 +62,7 @@ export function getMessageType(message: proto.IMessage): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function getButtonType(message: proto.IMessage): string | undefined {
-	const inner = message.viewOnceMessageV2Extension?.message || message
+	const inner = message?.message || message
 	if (inner.listMessage) return 'list'
 	if (inner.buttonsMessage) return 'buttons'
 	if (inner.interactiveMessage?.nativeFlowMessage) return 'native_flow'
@@ -71,13 +71,13 @@ export function getButtonType(message: proto.IMessage): string | undefined {
 	if (message.viewOnceMessageV2?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	if (message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
 	if (message.viewOnceMessageV2?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
-	if (message.viewOnceMessageV2Extension?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
+	if (message?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+	if (message?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
 	return undefined
 }
 
 export function getButtonArgs(message: proto.IMessage): BinaryNode {
-	const inner = message.viewOnceMessageV2Extension?.message || message
+	const inner = message?.message || message
 	const nativeFlow =
 		inner.interactiveMessage?.nativeFlowMessage ||
 		message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage ||
@@ -230,7 +230,7 @@ export const normalizeMediaInput = (
 	return media as WAMediaUpload
 }
 
-/** Wrap buttons/template/list/interactive in viewOnceMessageV2Extension for MD clients. */
+/** Wrap buttons/template/list/interactive in  for MD clients. */
 export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMessage => {
 	if (
 		message?.buttonsMessage ||
@@ -239,7 +239,6 @@ export const patchMessageForMdIfRequired = (message: proto.IMessage): proto.IMes
 		message?.interactiveMessage?.nativeFlowMessage
 	) {
 		return {
-			viewOnceMessageV2Extension: {
 				message: {
 					messageContextInfo: { deviceListMetadataVersion: 2, deviceListMetadata: {} },
 					...message
