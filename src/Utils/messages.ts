@@ -838,8 +838,6 @@ export const generateWAMessageContent = async (
 			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
-		// Wrap in viewOnceMessage like sendButton — required for iOS/Android visibility
-		// No deviceListMetadata (that's only for cards/carousel)
 		m = { interactiveMessage }
 	}
 

@@ -82,13 +82,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (as `baileys`)
-        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+        if: steps.get_previous_version.outputs.is_beta == 'false'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (whiskeysockets scope as beta)
-        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+      - name: Publish in NPM (whiskeysockets scope)
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+        if: steps.get_previous_version.outputs.is_beta == 'false'
         run: |
           npx json -I -f package.json -e "this.name='@whiskeysockets/baileys'"
           npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
@@ -96,10 +98,19 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (whiskeysockets scope)
+      - name: Publish in NPM (as `baileys`)
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        if: steps.get_previous_version.outputs.is_beta == 'true'
+        run: npm publish --access public --tag beta
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish in NPM (whiskeysockets scope as beta)
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
           npx json -I -f package.json -e "this.name='@whiskeysockets/baileys'"
-          npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          npm publish --access public --tag beta --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           npx json -I -f package.json -e "this.name='baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

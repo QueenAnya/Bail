@@ -82,7 +82,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (as @queenanya/baileys in regular)
-        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+        if: steps.get_previous_version.outputs.is_beta == 'false'
         run: |
           npm publish --access public
           npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
@@ -90,7 +91,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (@teamolduser/baileys in regular)
-        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+        if: steps.get_previous_version.outputs.is_beta == 'false'
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
           npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
@@ -100,7 +102,8 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (as @queenanya/baileys in beta)
-        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
           npm publish --access public --tag beta
           npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
@@ -108,7 +111,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish in NPM (@teamolduser/baileys in beta)
-        if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+        if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
           npm publish --access public --tag beta --//registry.npmjs.org/:_authToken=$NPM_TOKEN
