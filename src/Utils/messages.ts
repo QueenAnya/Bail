@@ -1023,15 +1023,7 @@ export const generateWAMessageContent = async (
 
 		// Wrap in viewOnceMessage matching innovators pattern for correct WA rendering
 
-		/**"
-		interactiveMessage.contextInfo = {
-			...interactiveMessage.contextInfo,
-			deviceListMetadataVersion: 2,
-			deviceListMetadata: {}
-		}
-		*/
-
-		m = { interactiveMessage: WAProto.Message.InteractiveMessage.create(interactiveMessage) }
+		m = { interactiveMessage }
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
