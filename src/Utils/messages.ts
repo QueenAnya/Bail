@@ -840,7 +840,7 @@ export const generateWAMessageContent = async (
 
 		// Wrap in viewOnceMessage like sendButton — required for iOS/Android visibility
 		// No deviceListMetadata (that's only for cards/carousel)
-		m = { viewOnceMessage: { message: { interactiveMessage } } }
+		m = { interactiveMessage }
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
@@ -1022,17 +1022,16 @@ export const generateWAMessageContent = async (
 		}
 
 		// Wrap in viewOnceMessage matching innovators pattern for correct WA rendering
-		m = {
-			viewOnceMessage: {
-				message: {
-					messageContextInfo: {
-						deviceListMetadata: {},
-						deviceListMetadataVersion: 2
-					},
-					interactiveMessage: WAProto.Message.InteractiveMessage.create(interactiveMessage)
-				}
-			}
+
+		/**"
+		interactiveMessage.contextInfo = {
+			...interactiveMessage.contextInfo,
+			deviceListMetadataVersion: 2,
+			deviceListMetadata: {}
 		}
+		*/
+
+		m = { interactiveMessage: WAProto.Message.InteractiveMessage.create(interactiveMessage) }
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
