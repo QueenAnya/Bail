@@ -1,33 +1,49 @@
-<h1 align='center'><img alt="Baileys logo" src="https://raw.githubusercontent.com/WhiskeySockets/Baileys/refs/heads/master/Media/logo.png" height="75"/></h1>
+<h1 align='center'><img alt="Anya-Bail logo" src="https://raw.githubusercontent.com/WhiskeySockets/Baileys/refs/heads/master/Media/logo.png" height="75"/></h1>
 
-<div align='center'>Anya-Bail is a fork of <a href="https://github.com/WhiskeySockets/Baileys">@whiskeysockets/baileys</a> with additional features ported from <a href="https://github.com/innovatorssoft/Baileys">@innovatorssoft/baileys</a>.</div>
+<div align='center'>Anya-Bail — a fork of <a href="https://github.com/WhiskeySockets/Baileys">@whiskeysockets/baileys</a> extended with <a href="https://github.com/innovatorssoft/Baileys">@innovatorssoft/baileys</a> addons, outgoing calls, advanced message types, and more.</div>
 
-<br/>
+##
+
+- Anya-Bail does not require Selenium or any other browser to interface with WhatsApp Web, it does so directly using a **WebSocket**.
+- Not running Selenium or Chromium saves you like **half a gig** of RAM.
+- Anya-Bail supports interacting with the multi-device & web versions of WhatsApp.
+- Full **WhiskeySockets/Baileys** base + innovatorssoft addons: Auto-Reply, Anti-Delete, Scheduler, Cards, Interactive Buttons, Album, Status Mentions, Outgoing Calls, MongoDB Auth, and more.
 
 > [!IMPORTANT]
-> Anya-Bail is **WhiskeySockets/Baileys** as the base — extended with innovatorssoft addons, outgoing call support, advanced message types, and more.
+> This library is not affiliated with or endorsed by WhatsApp. Use at your own discretion. Do not spam people with this. We discourage any stalkerware, bulk or automated messaging usage.
+
+> [!IMPORTANT]
+> This is a fork maintained by the community. The original WhiskeySockets repository is [here](https://github.com/WhiskeySockets/Baileys).
+
+## Example
+
+Do check out & run [example.ts](Example/example.ts) to see an example usage of the library.
+The script covers most common use cases.
+To run the example script, download or clone the repo and then type the following in a terminal:
+
+1. `cd path/to/anya-bail`
+2. `yarn`
+3. `yarn example`
 
 ## Install
+
+Use the stable version:
 
 ```
 yarn add github:YourUser/anya-bail
 ```
 
-Import in your code:
+Then import your code using:
 
 ```ts
 import makeWASocket from 'anya-bail'
 ```
 
-## Example
+# Links
 
-Check out & run [example.ts](Example/example.ts) to see usage of the library.
-
-```
-cd path/to/anya-bail
-yarn
-yarn example
-```
+- [WhiskeySockets Discord](https://discord.gg/WeJM5FP9GG)
+- [Original WS Docs](https://guide.whiskeysockets.io/)
+- [Innovatorssoft Guide](https://innovatorssoftpk.com/)
 
 # Index
 
@@ -97,7 +113,6 @@ yarn example
     - [Document Message](#document-message)
     - [ViewOnce Message](#view-once-message)
     - [Album Message](#album-message)
-    - [Sticker Pack Message (media)](#sticker-pack-message)
   - [Button & Interactive Messages](#button--interactive-messages)
     - [Buttons Message](#buttons-message)
     - [List Message (sections)](#list-message-sections)
@@ -201,9 +216,15 @@ yarn example
 
 ## Connecting Account
 
-WhatsApp provides a multi-device API that allows Baileys to be authenticated as a second WhatsApp client by scanning a **QR code** or **Pairing Code**.
+WhatsApp provides a multi-device API that allows Baileys to be authenticated as a second WhatsApp client by scanning a **QR code** or **Pairing Code** with WhatsApp on your phone.
+
+> [!NOTE]
+> **[Here](#example-to-start) is a simple example of event handling**
 
 ### Starting socket with **QR-CODE**
+
+> [!TIP]
+> You can customize browser name if you connect with **QR-CODE**, with `Browser` constant, we have some browsers config
 
 ```ts
 import makeWASocket, { Browsers } from 'anya-bail'
@@ -286,6 +307,10 @@ const sock = makeWASocket({
 
 ## Saving & Restoring Sessions
 
+You obviously don't want to keep scanning the QR code every time you want to connect.
+
+So, you can load the credentials to log back in:
+
 ### Multi-File Auth State (default)
 
 ```ts
@@ -295,6 +320,12 @@ const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys')
 const sock = makeWASocket({ auth: state })
 sock.ev.on('creds.update', saveCreds)
 ```
+
+> [!IMPORTANT]
+> `useMultiFileAuthState` is a utility function to help save the auth state in a single folder, this function serves as a good guide to help write auth & key states for SQL/no-SQL databases, which I would recommend in any production grade system.
+
+> [!NOTE]
+> When a message is received/sent, due to signal sessions needing updating, the auth keys (`authState.keys`) will update. Whenever that happens, you must save the updated keys (`authState.keys.set()` is called). Not doing so will prevent your messages from reaching the recipient & cause other unexpected consequences.
 
 ### Single File Auth State
 
@@ -329,6 +360,14 @@ sock.ev.on('creds.update', saveCreds)
 
 ## Handling Events
 
+- Baileys uses the EventEmitter syntax for events.
+  They're all nicely typed up, so you shouldn't have any issues with an Intellisense editor like VS Code.
+
+> [!IMPORTANT]
+> It's important you see all supported events
+
+You can listen to these events like this:
+
 ```ts
 const sock = makeWASocket()
 sock.ev.on('messages.upsert', ({ messages }) => {
@@ -337,6 +376,12 @@ sock.ev.on('messages.upsert', ({ messages }) => {
 ```
 
 ### Example to Start
+
+> [!NOTE]
+> This example includes basic auth storage too
+
+> [!NOTE]
+> For reliable serialization of the authentication state, especially when storing as JSON, always use the `BufferJSON` utility.
 
 ```ts
 import makeWASocket, { DisconnectReason, useMultiFileAuthState } from 'anya-bail'
@@ -368,6 +413,9 @@ async function connectToWhatsApp() {
 
 connectToWhatsApp()
 ```
+
+> [!IMPORTANT]
+> In `messages.upsert` it's recommended to use a loop like `for (const message of event.messages)` to handle all messages in array
 
 ### Decrypt Poll Votes
 
@@ -484,6 +532,13 @@ sock.ev.on('messages.update', updates => {
 
 ## Implementing a Data Store
 
+- Baileys does not come with a defacto storage for chats, contacts, or messages. However, a simple in-memory implementation has been provided. The store listens for chat updates, new messages, message updates, etc., to always have an up-to-date version of the data.
+
+> [!IMPORTANT]
+> I highly recommend building your own data store, as storing someone's entire chat history in memory is a terrible waste of RAM.
+
+It can be used as follows:
+
 ```ts
 import makeWASocket, { makeInMemoryStore } from 'anya-bail'
 
@@ -508,14 +563,14 @@ store.bind(sock.ev)
 
 ## Utility Functions
 
-- `getContentType` — returns the content type for any message
-- `getDevice` — returns the device from message ID
-- `makeCacheableSignalKeyStore` — make auth store faster
-- `downloadContentFromMessage` — download content from any message
-- `getMediaType` — returns media type string from `proto.IMessage`
-- `getMessageType` — returns message category (`text/media/poll/reaction/event`)
-- `getButtonType` — detects button/interactive message type (`list|buttons|native_flow`)
-- `getButtonArgs` — builds the `<biz>` binary node for button messages
+- `getContentType`, returns the content type for any message
+- `getDevice`, returns the device from message
+- `makeCacheableSignalKeyStore`, make auth store more fast
+- `downloadContentFromMessage`, download content from any message
+- `getMediaType`, returns media type string from `proto.IMessage`
+- `getMessageType`, returns message category (text/media/poll/reaction/event)
+- `getButtonType`, detects button/interactive message type (list/buttons/native_flow)
+- `getButtonArgs`, builds the `<biz>` binary node for button messages
 
 ### Message Scheduler
 
@@ -653,13 +708,17 @@ await sock.sendMessage(jid, { contacts: { displayName: 'Jane Smith', contacts: [
 
 ## Sending Messages
 
-```ts
-const jid: string
-const content: AnyMessageContent
-const options: MiscMessageGenerationOptions
+- Send all types of messages with a single function
+  - **[Here](https://baileys.whiskeysockets.io/types/AnyMessageContent.html) you can see all message contents supported, like text message**
+  - **[Here](https://baileys.whiskeysockets.io/types/MiscMessageGenerationOptions.html) you can see all options supported, like quote message**
 
-sock.sendMessage(jid, content, options)
-```
+  ```ts
+  const jid: string
+  const content: AnyMessageContent
+  const options: MiscMessageGenerationOptions
+
+  sock.sendMessage(jid, content, options)
+  ```
 
 ### Non-Media Messages
 
@@ -1053,11 +1112,15 @@ await sock.relayMessage(jid, { extendedTextMessage: { text: 'Hi' } }, { AI: true
 
 ### Media Messages
 
+Sending media (video, stickers, images) is easier & more efficient than ever.
+
 > [!NOTE]
-> You can pass `{ stream: Stream }`, `{ url: 'https://...' }`, or a `Buffer` for any media.
+> In media messages, you can pass `{ stream: Stream }` or `{ url: Url }` or `Buffer` directly
+
+- When specifying a media url, Baileys never loads the entire buffer into memory; it even encrypts the media as a readable stream.
 
 > [!TIP]
-> It's recommended to use Stream or URL to save memory.
+> It's recommended to use Stream or Url to save memory
 
 #### Image Message
 
@@ -1850,8 +1913,10 @@ readReceipts.setConfig({ enabled: true, readDelay: 2000 })
 
 ## Modifying Chats
 
+WA uses an encrypted form of communication to send chat/app updates. This has been implemented mostly and you can send the following updates:
+
 > [!IMPORTANT]
-> If you mess up one of your updates, WA can log you out of all your devices.
+> If you mess up one of your updates, WA can log you out of all your devices and you'll have to log in again.
 
 ### Archive a Chat
 
@@ -2126,7 +2191,11 @@ console.log(`name: ${bList.name}, recps: ${bList.recipients}`)
 
 ## Writing Custom Functionality
 
+Baileys is written with custom functionality in mind. Instead of forking the project & re-writing the internals, you can simply write your own extensions.
+
 ### Enabling Debug Level in Baileys Logs
+
+First, enable the logging of unhandled messages from WhatsApp by setting:
 
 ```ts
 import P from 'pino'
@@ -2146,8 +2215,11 @@ The `'frame'` has three components:
 
 ### Register a Callback for Websocket Events
 
+> [!TIP]
+> Recommended to see `onMessageReceived` function in `socket.ts` file to understand how websockets events are fired
+
 ```ts
-// For any message with tag 'edge_routing'
+// for any message with tag 'edge_routing'
 sock.ws.on('CB:edge_routing', (node: BinaryNode) => {})
 
 // With specific id attribute
@@ -2163,6 +2235,23 @@ sock.ws.on('CB:edge_routing,id:abcd,routing_info', (node: BinaryNode) => {})
 
 Copyright (c) 2025 WhiskeySockets / Anya-Bail Contributors
 
-Licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Licensed under the MIT License:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-The maintainers do not condone use of this application in practices that violate the Terms of Service of WhatsApp. Use at your own discretion.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Thus, the maintainers of the project can't be held liable for any potential misuse of this project.
