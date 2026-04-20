@@ -1,78 +1,123 @@
-<h1 align='center'><img alt="Anya-Bail logo" src="https://raw.githubusercontent.com/WhiskeySockets/Baileys/refs/heads/master/Media/logo.png" height="75"/></h1>
+<div align="center">
 
-<div align='center'>Anya-Bail — a fork of <a href="https://github.com/WhiskeySockets/Baileys">@whiskeysockets/baileys</a> extended with <a href="https://github.com/innovatorssoft/Baileys">@innovatorssoft/baileys</a> addons, outgoing calls, advanced message types, and more.</div>
+  <img src="https://raw.githubusercontent.com/WhiskeySockets/Baileys/refs/heads/master/Media/logo.png" width="128" height="128" />
 
-##
+  <h1>✨ Anya-Bail</h1>
 
-- Anya-Bail does not require Selenium or any other browser to interface with WhatsApp Web, it does so directly using a **WebSocket**.
-- Not running Selenium or Chromium saves you like **half a gig** of RAM.
-- Anya-Bail supports interacting with the multi-device & web versions of WhatsApp.
-- Full **WhiskeySockets/Baileys** base + innovatorssoft addons: Auto-Reply, Anti-Delete, Scheduler, Cards, Interactive Buttons, Album, Status Mentions, Outgoing Calls, MongoDB Auth, and more.
+  <p><b>WhatsApp Web API — TypeScript / JavaScript</b></p>
+
+  <p>
+    A community fork of
+    <a href="https://github.com/WhiskeySockets/Baileys">@whiskeysockets/baileys</a>
+    supercharged with
+    <a href="https://github.com/innovatorssoft/Baileys">@innovatorssoft/baileys</a>
+    addons &amp; more
+  </p>
+
+  <br/>
+
+  <a href="https://github.com/YourUser/anya-bail/stargazers">
+    <img src="https://img.shields.io/github/stars/YourUser/anya-bail?style=for-the-badge&logo=github&color=FFD700&labelColor=1a1a2e" alt="stars"/>
+  </a>
+  <a href="https://github.com/YourUser/anya-bail/network/members">
+    <img src="https://img.shields.io/github/forks/YourUser/anya-bail?style=for-the-badge&logo=github&color=25D366&labelColor=1a1a2e" alt="forks"/>
+  </a>
+  <a href="https://github.com/YourUser/anya-bail/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/YourUser/anya-bail?style=for-the-badge&color=128C7E&labelColor=1a1a2e" alt="license"/>
+  </a>
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white&labelColor=1a1a2e" alt="typescript"/>
+  <img src="https://img.shields.io/badge/WhatsApp-Multi--Device-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=1a1a2e" alt="whatsapp"/>
+  <img src="https://img.shields.io/badge/based%20on-WhiskeySockets-764ABC?style=for-the-badge&labelColor=1a1a2e" alt="based on"/>
+
+<br/><br/>
+
+<a href="#-install">📦 Install</a> ·
+<a href="#-sending-messages">💬 Send Messages</a> ·
+<a href="#-handling-events">⚡ Events</a> ·
+<a href="#-outgoing-calls">📞 Calls</a>
+
+</div>
+
+---
+
+## 🚀 What is Anya-Bail?
+
+Anya-Bail is a **TypeScript/JavaScript WhatsApp Web API** — a fork of [WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) extended with addons from [innovatorssoft/Baileys](https://github.com/innovatorssoft/Baileys) and original features on top.
+
+- 🔌 **No Selenium or Chromium** — connects directly via WebSocket, saving ~500 MB RAM
+- 📱 **Full Multi-Device support** — works with the latest WhatsApp protocol
+- 💬 **40+ message types** — Buttons, Cards, Interactive, Albums, Status Mentions, and more
+- 📞 **Outgoing Calls** — initiate, accept, cancel, mute voice & video calls
+- 🤖 **Auto-Reply system** — keyword/regex rules with typing simulation
+- 🛡️ **Anti-Delete** — detect and recover deleted messages
+- ⏰ **Message Scheduler** — send messages at future times
+- 🔍 **Message Search** — full-text & regex search across stored messages
+- 🗃️ **MongoDB & Single-File auth** — production-ready auth state helpers
+- 🪪 **vCard generator** — create & send contact cards easily
+- 📊 **JID Plotting & LID support** — advanced JID parsing and resolution
 
 > [!IMPORTANT]
-> This library is not affiliated with or endorsed by WhatsApp. Use at your own discretion. Do not spam people with this. We discourage any stalkerware, bulk or automated messaging usage.
+> This library is **not** affiliated with or endorsed by WhatsApp. Use at your own discretion. Do not spam people with this.
 
-> [!IMPORTANT]
-> This is a fork maintained by the community. The original WhiskeySockets repository is [here](https://github.com/WhiskeySockets/Baileys).
+---
 
-## Example
+## 📦 Install
 
-Do check out & run [example.ts](Example/example.ts) to see an example usage of the library.
-The script covers most common use cases.
-To run the example script, download or clone the repo and then type the following in a terminal:
-
-1. `cd path/to/anya-bail`
-2. `yarn`
-3. `yarn example`
-
-## Install
-
-Use the stable version:
-
-```
+```bash
 yarn add github:YourUser/anya-bail
 ```
-
-Then import your code using:
 
 ```ts
 import makeWASocket from 'anya-bail'
 ```
 
-# Links
+**Run the example:**
+
+```bash
+cd path/to/anya-bail
+yarn
+yarn example
+```
+
+---
+
+## 🔗 Links
 
 - [WhiskeySockets Discord](https://discord.gg/WeJM5FP9GG)
-- [Original WS Docs](https://guide.whiskeysockets.io/)
+- [WS Docs](https://guide.whiskeysockets.io/)
 - [Innovatorssoft Guide](https://innovatorssoftpk.com/)
 
-# Index
+---
 
-- [Connecting Account](#connecting-account)
+# 📖 Index
+
+- [🔌 Connecting Account](#-connecting-account)
   - [Connect with QR-CODE](#starting-socket-with-qr-code)
   - [Connect with Pairing Code](#starting-socket-with-pairing-code)
   - [Receive Full History](#receive-full-history)
-- [Important Notes About Socket Config](#important-notes-about-socket-config)
+- [⚙️ Important Notes About Socket Config](#️-important-notes-about-socket-config)
   - [Caching Group Metadata (Recommended)](#caching-group-metadata-recommended)
   - [Improve Retry System & Decrypt Poll Votes](#improve-retry-system--decrypt-poll-votes)
   - [Receive Notifications in Whatsapp App](#receive-notifications-in-whatsapp-app)
-- [Save Auth Info](#saving--restoring-sessions)
+- [💾 Save Auth Info](#-saving--restoring-sessions)
+  - [Multi-File Auth State](#multi-file-auth-state-default)
   - [Single File Auth State](#single-file-auth-state)
   - [MongoDB Auth State](#mongodb-auth-state)
-- [Handling Events](#handling-events)
+- [⚡ Handling Events](#-handling-events)
   - [Example to Start](#example-to-start)
   - [Decrypt Poll Votes](#decrypt-poll-votes)
   - [Auto-Reply System](#auto-reply-system)
   - [Anti-Delete System](#anti-delete-system)
   - [Summary of Events on First Connection](#summary-of-events-on-first-connection)
-- [Implementing a Data Store](#implementing-a-data-store)
-- [Whatsapp IDs Explain](#whatsapp-ids-explain)
-- [Utility Functions](#utility-functions)
+- [🗄️ Implementing a Data Store](#️-implementing-a-data-store)
+- [🆔 Whatsapp IDs Explain](#-whatsapp-ids-explain)
+- [🛠️ Utility Functions](#️-utility-functions)
   - [Message Scheduler](#message-scheduler)
   - [Message Search](#message-search)
   - [Message Templates](#message-templates)
   - [JID Plotting & LID Support](#jid-plotting--lid-support)
   - [vCard / Contact Card Generator](#vcard--contact-card-generator)
-- [Sending Messages](#sending-messages)
+- [💬 Sending Messages](#-sending-messages)
   - [Non-Media Messages](#non-media-messages)
     - [Text Message](#text-message)
     - [Quote Message](#quote-message-works-with-all-types)
@@ -102,7 +147,7 @@ import makeWASocket from 'anya-bail'
     - [Buttons Reply Message](#buttons-reply-message)
   - [Sending with Link Preview](#sending-messages-with-link-previews)
   - [AI Icon Feature](#ai-icon-feature)
-  - [Media Messages](#media-messages)
+  - [🖼️ Media Messages](#️-media-messages)
     - [Image Message](#image-message)
     - [HD Image Message](#hd-image-message)
     - [Video Message](#video-message)
@@ -113,7 +158,7 @@ import makeWASocket from 'anya-bail'
     - [Document Message](#document-message)
     - [ViewOnce Message](#view-once-message)
     - [Album Message](#album-message)
-  - [Button & Interactive Messages](#button--interactive-messages)
+  - [🔘 Button & Interactive Messages](#-button--interactive-messages)
     - [Buttons Message](#buttons-message)
     - [List Message (sections)](#list-message-sections)
     - [Product List Message](#product-list-message)
@@ -128,93 +173,38 @@ import makeWASocket from 'anya-bail'
     - [Quick Reply Buttons (sendButtons)](#quick-reply-buttons-sendbuttons)
     - [sendInteractiveMessage (Advanced)](#sendinteractivemessage-advanced)
     - [Interactive as Template](#interactive-as-template)
-  - [Status / Stories](#status--stories)
+  - [📢 Status / Stories](#-status--stories)
     - [Text Status](#text-status)
     - [Image / Video Status](#image--video-status)
     - [StatusHelper (Quick API)](#statushelper-quick-api)
     - [Send Status Mentions](#send-status-mentions)
     - [Group Status](#group-status)
-- [Outgoing Calls](#outgoing-calls)
+- [📞 Outgoing Calls](#-outgoing-calls)
   - [Initiate a Call](#initiate-a-call)
   - [Accept / Reject a Call](#accept--reject-a-call)
   - [Cancel a Call](#cancel-a-call)
   - [Mute / Unmute in Call](#mute--unmute-in-call)
-- [Modify Messages](#modify-messages)
+- [✏️ Modify Messages](#️-modify-messages)
   - [Delete Messages (for everyone)](#deleting-messages-for-everyone)
   - [Edit Messages](#editing-messages)
-- [Manipulating Media Messages](#manipulating-media-messages)
+- [🖼️ Manipulating Media Messages](#️-manipulating-media-messages)
   - [Thumbnail in Media Messages](#thumbnail-in-media-messages)
   - [Downloading Media Messages](#downloading-media-messages)
   - [Re-upload Media Message to Whatsapp](#re-upload-media-message-to-whatsapp)
-- [Send States in Chat](#send-states-in-chat)
+- [💬 Send States in Chat](#-send-states-in-chat)
   - [Reading Messages](#reading-messages)
   - [Update Presence](#update-presence)
   - [Typing Indicator](#typing-indicator)
   - [Read Receipt Control](#read-receipt-control)
-- [Modifying Chats](#modifying-chats)
-  - [Archive a Chat](#archive-a-chat)
-  - [Mute/Unmute a Chat](#muteunmute-a-chat)
-  - [Mark a Chat Read/Unread](#mark-a-chat-readunread)
-  - [Delete a Message for Me](#delete-a-message-for-me)
-  - [Delete a Chat](#delete-a-chat)
-  - [Pin/Unpin a Chat](#pinunpin-a-chat)
-  - [Star/Unstar a Message](#starunstar-a-message)
-  - [Disappearing Messages](#disappearing-messages)
-  - [Clear Messages](#clear-messages)
-- [User Querys](#user-querys)
-  - [Check If ID Exists in Whatsapp](#check-if-id-exists-in-whatsapp)
-  - [Query Chat History (groups too)](#query-chat-history-groups-too)
-  - [Fetch Status](#fetch-status)
-  - [Fetch Profile Picture (groups too)](#fetch-profile-picture-groups-too)
-  - [Fetch Bussines Profile (such as description or category)](#fetch-bussines-profile-such-as-description-or-category)
-  - [Fetch Someone's Presence (if they're typing or online)](#fetch-someones-presence-if-theyre-typing-or-online)
-- [Change Profile](#change-profile)
-  - [Change Profile Status](#change-profile-status)
-  - [Change Profile Name](#change-profile-name)
-  - [Change Display Picture (groups too)](#change-display-picture-groups-too)
-  - [Panoramic (Wide) Profile Picture](#panoramic-wide-profile-picture)
-  - [Remove display picture (groups too)](#remove-display-picture-groups-too)
-- [Groups](#groups)
-  - [Create a Group](#create-a-group)
-  - [Add/Remove or Demote/Promote](#addremove-or-demotepromote)
-  - [Change Subject (name)](#change-subject-name)
-  - [Change Description](#change-description)
-  - [Change Settings](#change-settings)
-  - [Leave a Group](#leave-a-group)
-  - [Get Invite Code](#get-invite-code)
-  - [Revoke Invite Code](#revoke-invite-code)
-  - [Join Using Invitation Code](#join-using-invitation-code)
-  - [Get Group Info by Invite Code](#get-group-info-by-invite-code)
-  - [Query Metadata (participants, name, description...)](#query-metadata-participants-name-description)
-  - [Join using groupInviteMessage](#join-using-groupinvitemessage)
-  - [Get Request Join List](#get-request-join-list)
-  - [Approve/Reject Request Join](#approvereject-request-join)
-  - [Get All Participating Groups Metadata](#get-all-participating-groups-metadata)
-  - [Toggle Ephemeral](#toggle-ephemeral)
-  - [Change Add Mode](#change-add-mode)
-  - [Update Member Label](#update-member-label)
-- [Privacy](#privacy)
-  - [Block/Unblock User](#blockunblock-user)
-  - [Get Privacy Settings](#get-privacy-settings)
-  - [Get BlockList](#get-blocklist)
-  - [Update LastSeen Privacy](#update-lastseen-privacy)
-  - [Update Online Privacy](#update-online-privacy)
-  - [Update Profile Picture Privacy](#update-profile-picture-privacy)
-  - [Update Status Privacy](#update-status-privacy)
-  - [Update Read Receipts Privacy](#update-read-receipts-privacy)
-  - [Update Groups Add Privacy](#update-groups-add-privacy)
-  - [Update Default Disappearing Mode](#update-default-disappearing-mode)
-- [Broadcast Lists & Stories](#broadcast-lists--stories)
-  - [Send Broadcast & Stories](#send-broadcast--stories)
-  - [Query a Broadcast List's Recipients & Name](#query-a-broadcast-lists-recipients--name)
-- [Writing Custom Functionality](#writing-custom-functionality)
-  - [Enabling Debug Level in Baileys Logs](#enabling-debug-level-in-baileys-logs)
-  - [How Whatsapp Communicate With Us](#how-whatsapp-communicate-with-us)
-  - [Register a Callback for Websocket Events](#register-a-callback-for-websocket-events)
+- [📂 Modifying Chats](#-modifying-chats)
+- [🔍 User Querys](#-user-querys)
+- [👤 Change Profile](#-change-profile)
+- [👥 Groups](#-groups)
+- [🔒 Privacy](#-privacy)
+- [📡 Broadcast Lists & Stories](#-broadcast-lists--stories)
+- [🧩 Writing Custom Functionality](#-writing-custom-functionality)
 
----
-
-## Connecting Account
+## 🔌 Connecting Account
 
 WhatsApp provides a multi-device API that allows Baileys to be authenticated as a second WhatsApp client by scanning a **QR code** or **Pairing Code** with WhatsApp on your phone.
 
@@ -265,7 +255,7 @@ const sock = makeWASocket({
 
 ---
 
-## Important Notes About Socket Config
+## ⚙️ Important Notes About Socket Config
 
 ### Caching Group Metadata (Recommended)
 
@@ -305,7 +295,7 @@ const sock = makeWASocket({
 
 ---
 
-## Saving & Restoring Sessions
+## 💾 Saving & Restoring Sessions
 
 You obviously don't want to keep scanning the QR code every time you want to connect.
 
@@ -358,7 +348,7 @@ sock.ev.on('creds.update', saveCreds)
 
 ---
 
-## Handling Events
+## ⚡ Handling Events
 
 - Baileys uses the EventEmitter syntax for events.
   They're all nicely typed up, so you shouldn't have any issues with an Intellisense editor like VS Code.
@@ -530,7 +520,7 @@ sock.ev.on('messages.update', updates => {
 
 ---
 
-## Implementing a Data Store
+## 🗄️ Implementing a Data Store
 
 - Baileys does not come with a defacto storage for chats, contacts, or messages. However, a simple in-memory implementation has been provided. The store listens for chat updates, new messages, message updates, etc., to always have an up-to-date version of the data.
 
@@ -552,7 +542,7 @@ store.bind(sock.ev)
 
 ---
 
-## Whatsapp IDs Explain
+## 🆔 Whatsapp IDs Explain
 
 - User: `[country code][phone]@s.whatsapp.net` → `19999999999@s.whatsapp.net`
 - Group: `123456789-123345@g.us`
@@ -561,7 +551,7 @@ store.bind(sock.ev)
 
 ---
 
-## Utility Functions
+## 🛠️ Utility Functions
 
 - `getContentType`, returns the content type for any message
 - `getDevice`, returns the device from message
@@ -706,7 +696,7 @@ await sock.sendMessage(jid, { contacts: { displayName: 'Jane Smith', contacts: [
 
 ---
 
-## Sending Messages
+## 💬 Sending Messages
 
 - Send all types of messages with a single function
   - **[Here](https://baileys.whiskeysockets.io/types/AnyMessageContent.html) you can see all message contents supported, like text message**
@@ -1110,7 +1100,7 @@ await sock.relayMessage(jid, { extendedTextMessage: { text: 'Hi' } }, { AI: true
 
 ---
 
-### Media Messages
+### 🖼️ Media Messages
 
 Sending media (video, stickers, images) is easier & more efficient than ever.
 
@@ -1231,7 +1221,7 @@ await sock.sendMessage(jid, {
 
 ---
 
-### Button & Interactive Messages
+### 🔘 Button & Interactive Messages
 
 #### Buttons Message
 
@@ -1614,7 +1604,7 @@ await sock.sendMessage(jid, {
 
 ---
 
-### Status / Stories
+### 📢 Status / Stories
 
 #### Text Status
 
@@ -1725,7 +1715,7 @@ await sock.sendMessage('120363xxxxxxxx@g.us', {
 
 ---
 
-## Outgoing Calls
+## 📞 Outgoing Calls
 
 ### Initiate a Call
 
@@ -1765,7 +1755,7 @@ await sock.muteCall(callId, callCreator, to, false) // unmute
 
 ---
 
-## Modify Messages
+## ✏️ Modify Messages
 
 ### Deleting Messages (for everyone)
 
@@ -1788,7 +1778,7 @@ await sock.sendMessage(jid, {
 
 ---
 
-## Manipulating Media Messages
+## 🖼️ Manipulating Media Messages
 
 ### Thumbnail in Media Messages
 
@@ -1833,7 +1823,7 @@ await sock.updateMediaMessage(msg)
 
 ---
 
-## Send States in Chat
+## 💬 Send States in Chat
 
 ### Reading Messages
 
@@ -1911,7 +1901,7 @@ readReceipts.setConfig({ enabled: true, readDelay: 2000 })
 
 ---
 
-## Modifying Chats
+## 📂 Modifying Chats
 
 WA uses an encrypted form of communication to send chat/app updates. This has been implemented mostly and you can send the following updates:
 
@@ -1997,7 +1987,7 @@ await sock.clearMessage(jid, key, timestamps)
 
 ---
 
-## User Querys
+## 🔍 User Querys
 
 ### Check If ID Exists in Whatsapp
 
@@ -2043,7 +2033,7 @@ await sock.presenceSubscribe(jid)
 
 ---
 
-## Change Profile
+## 👤 Change Profile
 
 ### Change Profile Status
 
@@ -2093,7 +2083,7 @@ await sock.removeProfilePicture(jid)
 
 ---
 
-## Groups
+## 👥 Groups
 
 ```ts
 // Create
@@ -2142,7 +2132,7 @@ await sock.updateMemberLabel(
 
 ---
 
-## Privacy
+## 🔒 Privacy
 
 ```ts
 await sock.updateBlockStatus(jid, 'block')
@@ -2160,7 +2150,7 @@ await sock.updateDefaultDisappearingMode(86400)
 
 ---
 
-## Broadcast Lists & Stories
+## 📡 Broadcast Lists & Stories
 
 ### Send Broadcast & Stories
 
@@ -2189,7 +2179,7 @@ console.log(`name: ${bList.name}, recps: ${bList.recipients}`)
 
 ---
 
-## Writing Custom Functionality
+## 🧩 Writing Custom Functionality
 
 Baileys is written with custom functionality in mind. Instead of forking the project & re-writing the internals, you can simply write your own extensions.
 
@@ -2231,7 +2221,7 @@ sock.ws.on('CB:edge_routing,id:abcd,routing_info', (node: BinaryNode) => {})
 
 ---
 
-# License
+## 📄 License
 
 Copyright (c) 2025 WhiskeySockets / Anya-Bail Contributors
 
