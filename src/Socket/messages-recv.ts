@@ -276,14 +276,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					const linkedProfiles = data.xwa2_notify_linked_profiles as
 						| { jid?: string; added_profiles?: Array<string | { pn?: string; jid?: string }> }
 						| undefined
-					if (linkedProfiles) {
-						const lid = linkedProfiles.jid
-						for (const profile of linkedProfiles.added_profiles ?? []) {
-							const pn = typeof profile === 'string' ? profile : (profile?.pn ?? profile?.jid ?? null)
-							if (lid && pn) {
-								ev.emit('lid-mapping.update', { lid, pn })
-							}
-						}
+					if (!linkedProfiles) break
+					const lid = linkedProfiles.jid
+					for (const profile of linkedProfiles.added_profiles ?? []) {
+						const pn = typeof profile === 'string' ? profile : (profile?.pn ?? profile?.jid ?? null)
+						if (lid && pn) ev.emit('lid-mapping.update', { lid, pn })
 					}
 					break
 				}

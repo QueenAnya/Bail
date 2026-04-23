@@ -8,7 +8,7 @@
 
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
-import type { WACallEvent, WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
+import type { WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
 import { encodeSignedDeviceIdentity } from '../Utils'
 import type { BinaryNode } from '../WABinary'
 import { isJidGroup, jidEncode } from '../WABinary'

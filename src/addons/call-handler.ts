@@ -16,7 +16,7 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type { SocketConfig, WACallEvent } from '../Types'
+import type { SocketConfig } from '../Types'
 import { encodeSignedDeviceIdentity } from '../Utils'
 import { isJidGroup, jidEncode } from '../WABinary'
 
