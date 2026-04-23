@@ -9,8 +9,7 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import type { WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { WACallEvent } from '../Types'
+import type { WACallEvent } from '../Types' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { encodeSignedDeviceIdentity } from '../Utils'
 import type { BinaryNode } from '../WABinary'
 import { isJidGroup, jidEncode } from '../WABinary'
