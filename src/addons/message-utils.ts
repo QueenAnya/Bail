@@ -1,12 +1,6 @@
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type {
-	AnyMessageContent,
-	MessageGenerationOptions,
-	WAMediaUpload,
-	WAMediaUploadFunction,
-	WAMessage
-} from '../Types'
+import type { WAMediaUpload, WAMediaUploadFunction, WAMessage } from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
 import {
 	generateWAMessage,
