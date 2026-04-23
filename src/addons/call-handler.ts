@@ -17,6 +17,8 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import type { SocketConfig } from '../Types'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { WACallEvent } from '../Types'
 import { encodeSignedDeviceIdentity } from '../Utils'
 import { isJidGroup, jidEncode } from '../WABinary'
 
