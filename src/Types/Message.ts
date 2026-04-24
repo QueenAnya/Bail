@@ -538,6 +538,12 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
+	/** if the message is for a newsletter */
+	newsletter?: boolean
+	/** additional binary nodes to attach to the message */
+	additionalNodes?: BinaryNode[]
+	/** if true, show AI icon on the message bubble */
+	ai?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string

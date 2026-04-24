@@ -1242,7 +1242,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		sendMessage: async (
 			jid: string,
 			content: AnyMessageContent,
-			options: MiscMessageGenerationOptions & { ai?: boolean } = {}
+			options: MiscMessageGenerationOptions = {}
 		): Promise<WAMessage | undefined> => {
 			const userJid = authState.creds.me!.id
 			if (
