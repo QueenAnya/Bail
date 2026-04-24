@@ -462,6 +462,14 @@ export type AnyRegularMessageContent = (
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { paymentInvite: PaymentInviteInfo }
+	| {
+			richResponse: {
+				text: string
+				code?: string
+				language?: string
+				botJid?: string
+			}
+	  }
 ) &
 	ViewOnce
 
