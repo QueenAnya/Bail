@@ -267,7 +267,7 @@ import { buildVCard, createScheduler, AutoReplyEngine, makeCallHandlers, ... } f
 
 ## Changelog
 
-### v8.0.0
+### v8.0.0 — 25 April 2026
 
 - Interactive/button/template/list/interactive message system
 - Album messages
@@ -276,12 +276,14 @@ import { buildVCard, createScheduler, AutoReplyEngine, makeCallHandlers, ... } f
 - AI icon (`options.ai = true`)
 - Rich response / Meta AI messages (9 socket methods)
 - Full outgoing call API
-- Full mex notification dispatcher
+- Full mex notification dispatcher (reachout timelock, message capping, linked profiles)
 - MongoDB + single-file auth states
 - Extended browser map (iOS, Android, Linux, KaiOS, ChromeOS)
 - Pairing race-condition fix
-- Unavailable message placeholder resend
-- 17-file addons layer
+- Unavailable message placeholder resend (`decodeMessageNode` path)
+- 17-file addons layer (`message-composer` moved to addons)
+- `MiscMessageGenerationOptions` extended: `ai`, `newsletter`, `additionalNodes`
+- MEX events: `message-capping.update`, `lid-mapping.update`, `reachoutTimeLock`
 - Message ID prefix: `4NY4W3B`
 - WA version: `2.3000.1037656372`
 
