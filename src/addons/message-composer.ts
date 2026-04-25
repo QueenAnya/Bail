@@ -180,7 +180,7 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 	const lines = codeStr.split('\n')
 
 	for (let li = 0; li < lines.length; li++) {
-		const line = lines[li]
+		const line = lines[li] as string
 		const isLast = li === lines.length - 1
 		const nl = isLast ? '' : '\n'
 
@@ -241,14 +241,14 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 
 		const merged: CodeToken[] = []
 		for (const t of tokens) {
-			const prev = merged.length > 0 ? merged[merged.length - 1] : undefined
+			const prev = merged.length > 0 ? merged[merged.length - 1]! : undefined
 			if (prev && prev.highlightType === t.highlightType) {
 				prev.codeContent += t.codeContent
 			} else {
 				merged.push({ ...t })
 			}
 		}
-		if (merged.length > 0) merged[merged.length - 1].codeContent += nl
+		if (merged.length > 0) merged[merged.length - 1]!.codeContent += nl
 		blocks.push(...merged)
 	}
 
@@ -280,9 +280,7 @@ export const buildBotForwardedMessage = (
 	const richResponse: Record<string, unknown> = { messageType: 1, submessages, contextInfo }
 	if (unifiedResponse) richResponse.unifiedResponse = unifiedResponse
 	return {
-		botForwardedMessage: {
-			message: { richResponseMessage: richResponse as unknown as proto.Message.IRichResponseMessage }
-		}
+		richResponseMessage: richResponse as unknown as proto.IAIRichResponseMessage
 	}
 }
 
