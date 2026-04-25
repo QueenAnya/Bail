@@ -160,3 +160,6 @@ export const TimeMs = {
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
 }
+
+/** 120s timeout for history sync stall detection, same as WA Web's handleChunkProgress / restartPausedTimer (g = 120) */
+export const HISTORY_SYNC_PAUSED_TIMEOUT_MS = 120_000

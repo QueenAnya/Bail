@@ -47,12 +47,22 @@ import {
 	MISSING_KEYS_ERROR_TEXT,
 	NACK_REASONS,
 	NO_MESSAGE_FOUND_ERROR_TEXT,
+	SERVER_ERROR_CODES,
 	toNumber,
 	unixTimestampSeconds,
 	xmppPreKey,
 	xmppSignedPreKey
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
+import {
+	buildMergedTcTokenIndexWrite,
+	isTcTokenExpired,
+	readTcTokenIndex,
+	resolveIssuanceJid,
+	resolveTcTokenJid,
+	storeTcTokensFromIqResult,
+	TC_TOKEN_INDEX_KEY
+} from '../Utils/tc-token-utils'
 import {
 	areJidsSameUser,
 	type BinaryNode,
@@ -100,8 +110,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		generateMessageTag,
 		getUSyncDevices,
 		createParticipantNodes,
-		messageRetryManager
+		messageRetryManager,
+		issuePrivacyTokens
 	} = sock
+
+	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
 
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
 	const retryMutex = makeMutex()
@@ -1048,7 +1061,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				validateSession: signalRepository.validateSession,
 				assertSessions,
 				debounceCache: identityAssertDebounce,
-				logger
+				logger,
+				onBeforeSessionRefresh: reissueTcTokenAfterIdentityChange
 			})
 
 			if (result.action === 'no_identity_node') {
@@ -1062,6 +1076,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 		const actingParticipantLid = fullNode.attrs.participant
 		const actingParticipantPn = fullNode.attrs.participant_pn
+		const actingParticipantUsername = fullNode.attrs.participant_username
 
 		const affectedParticipantLid = getBinaryNodeChild(child, 'participant')?.attrs?.jid || actingParticipantLid!
 		const affectedParticipantPn = getBinaryNodeChild(child, 'participant')?.attrs?.phone_number || actingParticipantPn!
@@ -1085,7 +1100,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					{
 						...metadata,
 						author: actingParticipantLid,
-						authorPn: actingParticipantPn
+						authorPn: actingParticipantPn,
+						authorUsername: actingParticipantUsername
 					}
 				])
 				break
@@ -1372,34 +1388,109 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
+	/**
+	 * In-memory cache of storage JIDs with stored tctokens, seeded from the persisted index.
+	 */
+	const tcTokenKnownJids = new Set<string>()
+
+	const tcTokenIndexLoaded = (async () => {
+		try {
+			const jids = await readTcTokenIndex(authState.keys)
+			for (const jid of jids) tcTokenKnownJids.add(jid)
+			logger.debug({ count: tcTokenKnownJids.size }, 'loaded tctoken index')
+		} catch (err: any) {
+			logger.warn({ err: err?.message }, 'failed to load tctoken index')
+		}
+	})()
+
+	let tcTokenIndexTimer: ReturnType<typeof setTimeout> | undefined
+
+	async function flushTcTokenIndex() {
+		if (tcTokenIndexTimer) {
+			clearTimeout(tcTokenIndexTimer)
+			tcTokenIndexTimer = undefined
+		}
+
+		const write = await buildMergedTcTokenIndexWrite(authState.keys, tcTokenKnownJids)
+		return authState.keys.set({ tctoken: write })
+	}
+
+	function scheduleTcTokenIndexSave() {
+		if (tcTokenIndexTimer) {
+			clearTimeout(tcTokenIndexTimer)
+		}
+
+		tcTokenIndexTimer = setTimeout(() => {
+			tcTokenIndexTimer = undefined
+			flushTcTokenIndex().catch(err => {
+				logger.warn({ err: err?.message }, 'failed to save tctoken index')
+			})
+		}, 5000)
+	}
+
+	function trackTcTokenJid(jid: string) {
+		if (jid && jid !== TC_TOKEN_INDEX_KEY && !tcTokenKnownJids.has(jid)) {
+			tcTokenKnownJids.add(jid)
+			scheduleTcTokenIndexSave()
+		}
+	}
+
 	const handlePrivacyTokenNotification = async (node: BinaryNode) => {
 		const tokensNode = getBinaryNodeChild(node, 'tokens')
-		const from = jidNormalizedUser(node.attrs.from)
-
 		if (!tokensNode) return
 
-		const tokenNodes = getBinaryNodeChildren(tokensNode, 'token')
+		const from = jidNormalizedUser(node.attrs.from)
 
-		for (const tokenNode of tokenNodes) {
-			const { attrs, content } = tokenNode
-			const type = attrs.type
-			const timestamp = attrs.t
+		const senderLid =
+			node.attrs.sender_lid && isLidUser(jidNormalizedUser(node.attrs.sender_lid))
+				? jidNormalizedUser(node.attrs.sender_lid)
+				: undefined
+		const fallbackJid = senderLid ?? (await resolveTcTokenJid(from, getLIDForPN))
 
-			if (type === 'trusted_contact' && content instanceof Buffer) {
-				logger.debug(
-					{
-						from,
-						timestamp,
-						tcToken: content
-					},
-					'received trusted contact token'
-				)
+		logger.debug({ from, storageJid: fallbackJid }, 'processing privacy token notification')
 
-				await authState.keys.set({
-					tctoken: { [from]: { token: content, timestamp } }
-				})
+		await storeTcTokensFromIqResult({
+			result: node,
+			fallbackJid,
+			keys: authState.keys,
+			getLIDForPN,
+			onNewJidStored: trackTcTokenJid
+		})
+	}
+
+	/**
+	 * Fire-and-forget tctoken re-issuance after a peer's device identity changed.
+	 */
+	const reissueTcTokenAfterIdentityChange = (from: string): void => {
+		void (async () => {
+			const normalizedJid = jidNormalizedUser(from)
+			const tcJid = await resolveTcTokenJid(normalizedJid, getLIDForPN)
+			const tcTokenData = await authState.keys.get('tctoken', [tcJid])
+			const senderTs = tcTokenData?.[tcJid]?.senderTimestamp
+
+			if (senderTs === null || senderTs === undefined || isTcTokenExpired(senderTs)) {
+				return
 			}
-		}
+
+			logger.debug({ jid: normalizedJid, senderTimestamp: senderTs }, 'identity changed, re-issuing tctoken')
+			const getPNForLID = signalRepository.lidMapping.getPNForLID.bind(signalRepository.lidMapping)
+			const issueJid = await resolveIssuanceJid(
+				normalizedJid,
+				sock.serverProps.lidTrustedTokenIssueToLid,
+				getLIDForPN,
+				getPNForLID
+			)
+			const result = await issuePrivacyTokens([issueJid], senderTs)
+			await storeTcTokensFromIqResult({
+				result,
+				fallbackJid: tcJid,
+				keys: authState.keys,
+				getLIDForPN,
+				onNewJidStored: trackTcTokenJid
+			})
+		})().catch(err => {
+			logger.debug({ jid: from, err: err?.message }, 'failed to re-issue tctoken after identity change')
+		})
 	}
 
 	async function decipherLinkPublicKey(data: Uint8Array | Buffer) {
@@ -1674,32 +1765,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			return
 		}
 
-		// Handle unavailable messages by requesting placeholder resend
-		if (getBinaryNodeChild(node, 'unavailable') && !encNode) {
-			const { key } = decodeMessageNode(node, authState.creds.me!.id!, authState.creds.me!.lid || '').fullMessage
-
-			// Fire-and-forget: don't block message handling with the 5s delay in requestPlaceholderResend
-			void requestPlaceholderResend(key)
-				.then(resendResponse => {
-					if (resendResponse === 'RESOLVED') {
-						logger.debug({ key }, 'unavailable message resolved via placeholder resend')
-					} else {
-						logger.debug({ key }, 'received unavailable message, requested resend from phone')
-					}
-				})
-				.catch(error => {
-					logger.error({ error, key }, 'failed to request placeholder resend')
-				})
-
-			// ACK immediately and return — don't proceed to decrypt path to avoid duplicate ACK
-			await sendMessageAck(node)
-			return
-		} else {
-			if (placeholderResendCache.get(node.attrs.id)) {
-				await placeholderResendCache.del(node.attrs.id)
-			}
-		}
-
 		let acked = false
 
 		try {
@@ -1969,24 +2034,41 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const handleBadAck = async ({ attrs }: BinaryNode) => {
 		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id }
 
-		// WARNING: REFRAIN FROM ENABLING THIS FOR NOW. IT WILL CAUSE A LOOP
-		// // current hypothesis is that if pash is sent in the ack
-		// // it means -- the message hasn't reached all devices yet
-		// // we'll retry sending the message here
-		// if(attrs.phash) {
-		// 	logger.info({ attrs }, 'received phash in ack, resending message...')
-		// 	const msg = await getMessage(key)
-		// 	if(msg) {
-		// 		await relayMessage(key.remoteJid!, msg, { messageId: key.id!, useUserDevicesCache: false })
-		// 	} else {
-		// 		logger.warn({ attrs }, 'could not send message again, as it was not found')
-		// 	}
-		// }
-
-		// error in acknowledgement,
-		// device could not display the message
 		if (attrs.error) {
 			logger.warn({ attrs }, 'received error in ack')
+
+			// 463: missing trusted-contact token — re-issue and the user should retry
+			if (attrs.error === SERVER_ERROR_CODES.MissingTcToken) {
+				logger.debug({ jid: attrs.from }, 'missing tctoken (463), triggering re-issuance')
+				const normalizedJid = jidNormalizedUser(attrs.from)
+				const tcJid = await resolveTcTokenJid(normalizedJid, getLIDForPN)
+				const tcTokenData = await authState.keys.get('tctoken', [tcJid])
+				const senderTs = tcTokenData?.[tcJid]?.senderTimestamp
+				const getPNForLID = signalRepository.lidMapping.getPNForLID.bind(signalRepository.lidMapping)
+				const issueJid = await resolveIssuanceJid(
+					normalizedJid,
+					sock.serverProps.lidTrustedTokenIssueToLid,
+					getLIDForPN,
+					getPNForLID
+				)
+				const result = await issuePrivacyTokens([issueJid], senderTs)
+				await storeTcTokensFromIqResult({
+					result,
+					fallbackJid: tcJid,
+					keys: authState.keys,
+					getLIDForPN,
+					onNewJidStored: trackTcTokenJid
+				})
+			}
+
+			// 479: SMAX_INVALID — stale device session, refresh sessions
+			if (attrs.error === SERVER_ERROR_CODES.SmaxInvalid) {
+				logger.debug({ jid: attrs.from }, 'smax invalid (479), refreshing session')
+				await assertSessions([attrs.from], true).catch(err =>
+					logger.warn({ err, jid: attrs.from }, 'failed to refresh session after smax invalid')
+				)
+			}
+
 			ev.emit('messages.update', [
 				{
 					key,
@@ -1996,20 +2078,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					}
 				}
 			])
-
-			// resend the message with device_fanout=false, use at your own risk
-			// if (attrs.error === '475') {
-			// 	const msg = await getMessage(key)
-			// 	if (msg) {
-			// 		await relayMessage(key.remoteJid!, msg, {
-			// 			messageId: key.id!,
-			// 			useUserDevicesCache: false,
-			// 			additionalAttributes: {
-			// 				device_fanout: 'false'
-			// 			}
-			// 		})
-			// 	}
-			// }
 		}
 	}
 

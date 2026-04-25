@@ -23,6 +23,8 @@ export type WAMessageKey = proto.IMessageKey & {
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
+	remoteJidUsername?: string
+	participantUsername?: string
 }
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo
@@ -194,6 +196,13 @@ type WithDimensions = {
 	height?: number
 }
 
+export type AlbumMessageOptions = {
+	/** Number of images expected in the album */
+	expectedImageCount?: number
+	/** Number of videos expected in the album */
+	expectedVideoCount?: number
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -281,7 +290,10 @@ export type AnyMediaMessageContent = (
 			Interactiveable &
 			Shopable &
 			Collectionable)
-) & { mimetype?: string } & Editable
+) & { mimetype?: string } & Editable & {
+		/** key of the parent albumMessage to associate this media with */
+		albumParentKey?: WAMessageKey
+	}
 
 /** Info for replying to a button */
 export type ButtonReplyInfo = {
@@ -450,14 +462,10 @@ export type AnyRegularMessageContent = (
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
-	| {
-			/** Album message — sends multiple images/videos as a grouped album */
-			album: Array<{
-				image?: WAMediaUpload
-				video?: WAMediaUpload
-				caption?: string
-			}>
-	  }
+	| ({
+			album: AlbumMessageOptions
+	  } & Contextable &
+			Mentionable)
 	| { stickerPack: StickerPack }
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }

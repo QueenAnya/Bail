@@ -2,7 +2,7 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import Long from 'long'
 import { proto } from '../../WAProto/index.js'
-import { DEFAULT_CACHE_TTLS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
+import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
 	BotListInfo,
 	CacheStore,
@@ -37,9 +37,13 @@ import {
 	decodePatches,
 	decodeSyncdSnapshot,
 	encodeSyncdPatch,
+	ensureLTHashStateVersion,
 	extractSyncdPatches,
 	generateProfilePicture,
 	getHistoryMsg,
+	isAppStateSyncIrrecoverable,
+	isMissingKeyError,
+	MAX_SYNC_ATTEMPTS,
 	newLTHashState,
 	processSyncAction
 } from '../Utils'
@@ -50,6 +54,10 @@ import {
 	type BinaryNode,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
+	isHostedLidUser,
+	isHostedPnUser,
+	isLidUser,
+	isPnUser,
 	jidDecode,
 	jidNormalizedUser,
 	reduceBinaryNodeToDictionary,
@@ -57,8 +65,6 @@ import {
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeSocket } from './socket.js'
-
-const MAX_SYNC_ATTEMPTS = 2
 
 export const makeChatsSocket = (config: SocketConfig) => {
 	const {
@@ -82,6 +88,28 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		onUnexpectedError,
 		sendUnifiedSession
 	} = sock
+
+	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
+
+	/** Server-assigned AB props for protocol behavior. */
+	const serverProps = {
+		/** AB prop 10518: gate tctoken on 1:1 messages. Default true (safe: avoids 463). */
+		privacyTokenOn1to1: true,
+		/** AB prop 9666: gate tctoken on profile picture IQs. WA Web default: true. */
+		profilePicPrivacyToken: true,
+		/** AB prop 14303: issue tctokens to LID instead of PN. WA Web default: false. */
+		lidTrustedTokenIssueToLid: false
+	}
+
+	// In-memory history sync completion tracking (resets on reconnection)
+	const historySyncStatus = {
+		initialBootstrapComplete: false,
+		recentSyncComplete: false
+	}
+	let historySyncPausedTimeout: NodeJS.Timeout | undefined
+
+	// Collections blocked on missing app state sync keys
+	const blockedCollections = new Set<WAPatchName>()
 
 	let privacySettings: { [_: string]: string } | undefined
 
@@ -374,42 +402,44 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	const updateBlockStatus = async (jid: string, action: 'block' | 'unblock') => {
-		jid = jidNormalizedUser(jid)
+		const normalizedJid = jidNormalizedUser(jid)
+		let lid: string
+		let pn_jid: string | undefined
 
-		let lidJid: string | null = null
-		let pnJid: string | null = null
+		if (isLidUser(normalizedJid) || isHostedLidUser(normalizedJid)) {
+			lid = normalizedJid
 
-		// If PN → try resolve LID
-		if (jid.endsWith('@whatsapp.net')) {
-			pnJid = jid
-			try {
-				const lid = await signalRepository?.lidMapping?.getLIDForPN?.(jid).catch(() => null)
-				if (lid) lidJid = jidNormalizedUser(lid)
-			} catch {}
+			if (action === 'block') {
+				const pn = await signalRepository.lidMapping.getPNForLID(normalizedJid)
+				if (!pn) {
+					throw new Boom(`Unable to resolve PN JID for LID: ${jid}`, { statusCode: 400 })
+				}
+
+				pn_jid = jidNormalizedUser(pn)
+			}
+		} else if (isPnUser(normalizedJid) || isHostedPnUser(normalizedJid)) {
+			const mapped = await signalRepository.lidMapping.getLIDForPN(normalizedJid)
+			if (!mapped) {
+				throw new Boom(`Unable to resolve LID for PN JID: ${jid}`, { statusCode: 400 })
+			}
+
+			lid = mapped
+
+			if (action === 'block') {
+				pn_jid = jidNormalizedUser(normalizedJid)
+			}
+		} else {
+			throw new Boom(`Invalid jid: ${jid}`, { statusCode: 400 })
 		}
 
-		// If LID → resolve PN
-		if (jid.endsWith('@lid')) {
-			lidJid = jid
-			try {
-				const pn = await signalRepository?.lidMapping?.getPNForLID?.(jid).catch(() => null)
-				if (pn) pnJid = jidNormalizedUser(pn)
-			} catch {}
-		}
+		const itemAttrs: {
+			action: 'block' | 'unblock'
+			jid: string
+			pn_jid?: string
+		} = { action, jid: lid! }
 
-		// jid MUST be LID
-		if (!lidJid) throw new Error('Failed to resolve LID')
-
-		const dhash = String(Date.now())
-		const itemAttrs: any = {
-			dhash,
-			action,
-			jid: lidJid // only LID
-		}
-		// pn_jid MUST be PN (only for block)
-		if (action === 'block') {
-			if (!pnJid) throw new Error('Failed to resolve PN')
-			itemAttrs.pn_jid = pnJid
+		if (action === 'block' && pn_jid) {
+			itemAttrs.pn_jid = pn_jid
 		}
 
 		await query({
@@ -554,6 +584,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 							if (typeof initialVersionMap[name] === 'undefined') {
 								initialVersionMap[name] = state.version
 							}
+
+							ensureLTHashStateVersion(state)
 						} else {
 							state = newLTHashState()
 						}
@@ -639,23 +671,23 @@ export const makeChatsSocket = (config: SocketConfig) => {
 								collectionsToHandle.delete(name)
 							}
 						} catch (error: any) {
-							// if retry attempts overshoot
-							// or key not found
-							const isIrrecoverableError =
-								attemptsMap[name]! >= MAX_SYNC_ATTEMPTS ||
-								error.output?.statusCode === 404 ||
-								error.name === 'TypeError'
-							logger.info(
-								{ name, error: error.stack },
-								`failed to sync state from version${isIrrecoverableError ? '' : ', removing and trying from scratch'}`
-							)
-							await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
-							// increment number of retries
 							attemptsMap[name] = (attemptsMap[name] || 0) + 1
 
-							if (isIrrecoverableError) {
-								// stop retrying
+							if (isMissingKeyError(error)) {
+								blockedCollections.add(name)
 								collectionsToHandle.delete(name)
+								logger.info({ name }, 'app state sync blocked on missing key, waiting for key share')
+							} else {
+								const isIrrecoverable = isAppStateSyncIrrecoverable(error, attemptsMap[name]!)
+								logger.info(
+									{ name, error: error.stack },
+									`failed to sync state from version${isIrrecoverable ? '' : ', removing and trying from scratch'}`
+								)
+								await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
+
+								if (isIrrecoverable) {
+									collectionsToHandle.delete(name)
+								}
 							}
 						}
 					}
@@ -831,7 +863,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				await resyncAppState([name], false)
 
 				const { [name]: currentSyncVersion } = await authState.keys.get('app-state-sync-version', [name])
-				initial = currentSyncVersion || newLTHashState()
+				initial = ensureLTHashStateVersion(currentSyncVersion || newLTHashState())
 
 				encodeResult = await encodeSyncdPatch(patchCreate, myAppStateKeyId, initial, getAppStateSyncKey)
 				const { patch, state } = encodeResult
@@ -1179,7 +1211,15 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		// If the app state key arrives and we are waiting to sync, trigger the sync now.
 		if (msg.message?.protocolMessage?.appStateSyncKeyShare && syncState === SyncState.Syncing) {
 			logger.info('App state sync key arrived, triggering app state sync')
-			await doAppStateSync()
+			// unblock any collections that were waiting for a key
+			if (blockedCollections.size > 0) {
+				const toUnblock = Array.from(blockedCollections) as WAPatchName[]
+				blockedCollections.clear()
+				logger.info({ count: toUnblock.length }, 'unblocking collections after key share')
+				await resyncAppState(toUnblock, false)
+			} else {
+				await doAppStateSync()
+			}
 		}
 	})
 
@@ -1208,6 +1248,38 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			default:
 				logger.info({ node }, 'received unknown sync')
 				break
+		}
+	})
+
+	ev.on('messaging-history.set', ({ syncType, progress, isLatest }) => {
+		const scheduleOrClearPausedTimeout = () => {
+			if (historySyncPausedTimeout) {
+				clearTimeout(historySyncPausedTimeout)
+				historySyncPausedTimeout = undefined
+			}
+
+			historySyncPausedTimeout = setTimeout(() => {
+				historySyncPausedTimeout = undefined
+				ev.emit('messaging-history.status', { syncType: syncType!, status: 'paused', explicit: false })
+			}, HISTORY_SYNC_PAUSED_TIMEOUT_MS)
+		}
+
+		if (progress === 100) {
+			if (historySyncPausedTimeout) {
+				clearTimeout(historySyncPausedTimeout)
+				historySyncPausedTimeout = undefined
+			}
+
+			ev.emit('messaging-history.status', { syncType: syncType!, status: 'complete', explicit: true })
+
+			if (syncType === proto.HistorySync.HistorySyncType.INITIAL_BOOTSTRAP) {
+				historySyncStatus.initialBootstrapComplete = true
+			} else if (syncType === proto.HistorySync.HistorySyncType.RECENT) {
+				historySyncStatus.recentSyncComplete = true
+			}
+		} else if (isLatest) {
+			// no progress=100 yet — start stall timer
+			scheduleOrClearPausedTimeout()
 		}
 	})
 
@@ -1269,6 +1341,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	return {
 		...sock,
+		serverProps,
+		blockedCollections,
 		createCallLink,
 		getBotListV2,
 		messageMutex,

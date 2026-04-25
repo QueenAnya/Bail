@@ -666,11 +666,22 @@ export const generateWAMessageContent = async (
 		// productList handled below after this block — just skip media
 	} else if ('album' in message && !!(message as any).album) {
 		// album handled in sendMessage — just set albumMessage header
-		const albumMsg = (message as any).album as Array<{ image?: WAMediaUpload; video?: WAMediaUpload; caption?: string }>
+		const albumOpts = (message as any).album as { expectedImageCount?: number; expectedVideoCount?: number }
 		m.albumMessage = WAProto.Message.AlbumMessage.fromObject({
-			expectedImageCount: albumMsg.filter(i => 'image' in i).length,
-			expectedVideoCount: albumMsg.filter(i => 'video' in i).length
+			expectedImageCount: albumOpts.expectedImageCount ?? 0,
+			expectedVideoCount: albumOpts.expectedVideoCount ?? 0
 		})
+	} else if ('albumParentKey' in message && !!(message as any).albumParentKey) {
+		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
+		if ((message as any).albumParentKey) {
+			m.messageContextInfo = {
+				...m.messageContextInfo,
+				messageAssociation: {
+					associationType: WAProto.MessageAssociation.AssociationType.MEDIA_ALBUM,
+					parentMessageKey: (message as any).albumParentKey
+				}
+			}
+		}
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
 		// addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)

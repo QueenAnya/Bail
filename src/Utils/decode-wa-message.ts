@@ -75,6 +75,18 @@ export const NACK_REASONS = {
 	DBOperationFailed: 552
 }
 
+/**
+ * Server-side error codes returned in ack stanzas (server → client) that we
+ * currently have dedicated handlers for.
+ * Distinct from the client-side NackReason enum.
+ */
+export const SERVER_ERROR_CODES = {
+	/** 1:1 message missing privacy token (tctoken) */
+	MissingTcToken: '463',
+	/** Stanza validation failure (SMAX_INVALID) — likely stale device session */
+	SmaxInvalid: '479'
+} as const
+
 type MessageType =
 	| 'chat'
 	| 'peer_broadcast'
@@ -201,6 +213,10 @@ export function decodeMessageNode(stanza: BinaryNode, meId: string, meLid: strin
 		participant,
 		participantAlt: isJidGroup(chatId) ? addressingContext.senderAlt : undefined,
 		addressingMode: addressingContext.addressingMode,
+		remoteJidUsername: !isJidGroup(chatId)
+			? stanza.attrs.peer_recipient_username || stanza.attrs.recipient_username
+			: undefined,
+		participantUsername: stanza.attrs.participant ? stanza.attrs.participant_username : undefined,
 		...(msgType === 'newsletter' && stanza.attrs.server_id ? { server_id: stanza.attrs.server_id } : {})
 	}
 

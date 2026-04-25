@@ -47,7 +47,8 @@ export const processContactAction = (
 				id,
 				name: action.fullName || action.firstName || action.username || undefined,
 				lid: lidJid || undefined,
-				phoneNumber
+				phoneNumber,
+				username: action.username || undefined
 			}
 		]
 	})

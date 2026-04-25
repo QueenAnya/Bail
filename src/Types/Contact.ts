@@ -11,6 +11,8 @@ export interface Contact {
 	notify?: string
 	/** I have no idea */
 	verifiedName?: string
+	/** username associated with this contact, when provided by WA */
+	username?: string
 	// Baileys Added
 	/**
 	 * Url of the profile picture of the contact

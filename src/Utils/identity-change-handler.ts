@@ -21,6 +21,12 @@ export type IdentityChangeContext = {
 	assertSessions: (jids: string[], force?: boolean) => Promise<boolean>
 	debounceCache: NodeCache<boolean>
 	logger: ILogger
+	/**
+	 * Invoked right before assertSessions is called for an existing-session identity change.
+	 * Used to kick off fire-and-forget side effects (e.g. tctoken re-issuance).
+	 * Must not throw; implementations are responsible for their own error handling.
+	 */
+	onBeforeSessionRefresh?: (jid: string) => void
 }
 
 export async function handleIdentityChange(
@@ -74,6 +80,7 @@ export async function handleIdentityChange(
 	}
 
 	try {
+		ctx.onBeforeSessionRefresh?.(from)
 		await ctx.assertSessions([from], true)
 		return { action: 'session_refreshed' }
 	} catch (error) {
