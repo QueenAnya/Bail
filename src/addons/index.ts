@@ -64,6 +64,13 @@ export * from './jid-plotting'
 // prepareAlbumMessageContent, makeMessageExtrasAddon
 export * from './message-utils'
 
+// ── Message Composer (Rich / Bot / Meta AI messages) ──────────────────────
+// tokenizeCode, buildRichContextInfo, buildBotForwardedMessage
+// generateTableContent, generateListContent, generateCodeBlockContent
+// generateLatexContent, generateLatexImageContent, generateLatexInlineImageContent
+// captureUnifiedResponse, generateUnifiedResponseContent, generateRichMessageContent
+export * from './message-composer'
+
 // ── Message Search ────────────────────────────────────────────────────────
 // MessageType, SearchOptions, RegexSearchOptions, SearchResult
 // extractMessageText, searchMessages, searchMessagesRegex

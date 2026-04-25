@@ -52,7 +52,7 @@ import {
 	type CapturedUnifiedResponse,
 	type LatexExpression,
 	type RichSubMessage
-} from '../Utils/message-composer'
+} from '../addons/message-composer'
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
