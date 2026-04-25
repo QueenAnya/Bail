@@ -1676,13 +1676,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 		// Handle unavailable messages by requesting placeholder resend
 		if (getBinaryNodeChild(node, 'unavailable') && !encNode) {
-			const { key } = decryptMessageNode(
-				node,
-				authState.creds.me!.id,
-				authState.creds.me!.lid || '',
-				signalRepository,
-				logger
-			).fullMessage.key
+			const { key } = decodeMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '').fullMessage
 
 			// Fire-and-forget: don't block message handling with the 5s delay in requestPlaceholderResend
 			void requestPlaceholderResend(key)
@@ -1701,7 +1695,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			await sendMessageAck(node)
 			return
 		} else {
-			if (await placeholderResendCache.get(node.attrs.id)) {
+			if (placeholderResendCache.get(node.attrs.id)) {
 				await placeholderResendCache.del(node.attrs.id)
 			}
 		}
