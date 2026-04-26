@@ -19,3 +19,8 @@ test.ts
 TestData
 wa-logs*
 coverage
+wa-logs.txt
+*.bak
+*/*.bak
+*/*/*.bak
+*/*/*/*.bak
