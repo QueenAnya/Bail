@@ -436,9 +436,16 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			action: 'block' | 'unblock'
 			jid: string
 			pn_jid?: string
-		} = { action, jid: lid! }
+		} = {
+			action,
+			jid: lid
+		}
 
-		if (action === 'block' && pn_jid) {
+		if (action === 'block') {
+			if (!pn_jid) {
+				throw new Boom(`pn_jid required for block: ${jid}`, { statusCode: 400 })
+			}
+
 			itemAttrs.pn_jid = pn_jid
 		}
 

@@ -667,20 +667,9 @@ export const generateWAMessageContent = async (
 	} else if ('album' in message && !!(message as any).album) {
 		// album handled in sendMessage — just set albumMessage header
 		const albumOpts = (message as any).album as { expectedImageCount?: number; expectedVideoCount?: number }
-		m.albumMessage = WAProto.Message.AlbumMessage.fromObject({
-			expectedImageCount: albumOpts.expectedImageCount ?? 0,
-			expectedVideoCount: albumOpts.expectedVideoCount ?? 0
-		})
-	} else if ('albumParentKey' in message && !!(message as any).albumParentKey) {
-		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
-		if ((message as any).albumParentKey) {
-			m.messageContextInfo = {
-				...m.messageContextInfo,
-				messageAssociation: {
-					associationType: WAProto.MessageAssociation.AssociationType.MEDIA_ALBUM,
-					parentMessageKey: (message as any).albumParentKey
-				}
-			}
+		m.albumMessage = {
+			expectedImageCount: albumOpts.expectedImageCount,
+			expectedVideoCount: albumOpts.expectedVideoCount
 		}
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
 		// addons/from-messages.ts → buildStickerPackMessage
@@ -1115,6 +1104,16 @@ export const generateWAMessageContent = async (
 			key.contextInfo = { ...key.contextInfo, ...message.contextInfo }
 		} else if (key!) {
 			key.contextInfo = message.contextInfo
+		}
+	}
+
+	if (hasOptionalProperty(message, 'albumParentKey') && !!message.albumParentKey) {
+		m.messageContextInfo = {
+			...m.messageContextInfo,
+			messageAssociation: {
+				associationType: WAProto.MessageAssociation.AssociationType.MEDIA_ALBUM,
+				parentMessageKey: message.albumParentKey
+			}
 		}
 	}
 

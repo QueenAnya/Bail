@@ -1199,7 +1199,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						})
 						const currentData = await authState.keys.get('tctoken', [tcTokenJid])
 						const currentEntry = currentData[tcTokenJid]
-						const indexWrite = await buildMergedTcTokenIndexWrite(authState.keys, new Set([tcTokenJid]))
+						const indexWrite = await buildMergedTcTokenIndexWrite(authState.keys, [tcTokenJid])
 						await authState.keys.set({
 							tctoken: {
 								[tcTokenJid]: {
