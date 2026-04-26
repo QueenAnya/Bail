@@ -569,6 +569,9 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				const collectionsToHandle = new Set<string>(collections)
 				// in case something goes wrong -- ensure we don't enter a loop that cannot be exited from
 				const attemptsMap: { [T in WAPatchName]?: number } = {}
+				// collections that failed and need a full snapshot on retry
+				// mirrors WA Web's ErrorFatal -> force snapshot behavior
+				const forceSnapshotCollections = new Set<WAPatchName>()
 				// keep executing till all collections are done
 				// sometimes a single patch request will not return all the patches (God knows why)
 				// so we fetch till they're all done (this is determined by the "has_more_patches" flag)
@@ -592,15 +595,17 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 						states[name] = state
 
-						logger.info(`resyncing ${name} from v${state.version}`)
+						const shouldForceSnapshot = forceSnapshotCollections.has(name)
+						if (shouldForceSnapshot) forceSnapshotCollections.delete(name)
+
+						logger.info(`resyncing ${name} from v${state.version}${shouldForceSnapshot ? ' (forcing snapshot)' : ''}`)
 
 						nodes.push({
 							tag: 'collection',
 							attrs: {
 								name,
 								version: state.version.toString(),
-								// return snapshot if being synced from scratch
-								return_snapshot: (!state.version).toString()
+								return_snapshot: (!state.version || shouldForceSnapshot).toString()
 							}
 						})
 					}
@@ -672,22 +677,22 @@ export const makeChatsSocket = (config: SocketConfig) => {
 							}
 						} catch (error: any) {
 							attemptsMap[name] = (attemptsMap[name] || 0) + 1
+							const logData = { name, version: states[name]?.version, error: error?.message }
+							await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
 
-							if (isMissingKeyError(error)) {
+							if (isMissingKeyError(error) && attemptsMap[name]! >= MAX_SYNC_ATTEMPTS) {
+								logger.warn(logData, `${name} blocked on missing key, parking after ${attemptsMap[name]} attempts`)
 								blockedCollections.add(name)
 								collectionsToHandle.delete(name)
-								logger.info({ name }, 'app state sync blocked on missing key, waiting for key share')
+							} else if (isMissingKeyError(error)) {
+								logger.info(logData, `${name} blocked on missing key, retrying with snapshot`)
+								forceSnapshotCollections.add(name)
+							} else if (isAppStateSyncIrrecoverable(error, attemptsMap[name]!)) {
+								logger.warn(logData, `failed to sync ${name}, giving up`)
+								collectionsToHandle.delete(name)
 							} else {
-								const isIrrecoverable = isAppStateSyncIrrecoverable(error, attemptsMap[name]!)
-								logger.info(
-									{ name, error: error.stack },
-									`failed to sync state from version${isIrrecoverable ? '' : ', removing and trying from scratch'}`
-								)
-								await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
-
-								if (isIrrecoverable) {
-									collectionsToHandle.delete(name)
-								}
+								logger.info(logData, `failed to sync ${name}, forcing snapshot retry`)
+								forceSnapshotCollections.add(name)
 							}
 						}
 					}
