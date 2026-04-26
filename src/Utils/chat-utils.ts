@@ -145,7 +145,6 @@ export const MAX_SYNC_ATTEMPTS = 2
 /**
  * Check if an error is a missing app state sync key.
  * WA Web treats these as "Blocked" (waits for key arrival), not fatal.
- * In Baileys we retry with a snapshot which may use a different key.
  */
 export const isMissingKeyError = (error: any): boolean => {
 	return error?.data?.isMissingKey === true
@@ -154,7 +153,6 @@ export const isMissingKeyError = (error: any): boolean => {
 /**
  * Determines if an app state sync error is unrecoverable.
  * TypeError indicates a WASM crash; otherwise we give up after MAX_SYNC_ATTEMPTS.
- * Missing keys are NOT checked here — they are handled separately as "Blocked".
  */
 export const isAppStateSyncIrrecoverable = (error: any, attempts: number): boolean => {
 	return attempts >= MAX_SYNC_ATTEMPTS || error?.name === 'TypeError'
@@ -966,9 +964,9 @@ export const processSyncAction = (
 					action.lidContactAction.firstName ||
 					action.lidContactAction.username ||
 					undefined,
-				username: action.lidContactAction.username || undefined,
 				lid: id!,
-				phoneNumber: undefined
+				phoneNumber: undefined,
+				username: action.lidContactAction.username || undefined
 			}
 		])
 	} else if (action?.privacySettingChannelsPersonalisedRecommendationAction) {

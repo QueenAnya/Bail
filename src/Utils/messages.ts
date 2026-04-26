@@ -1,8 +1,14 @@
 import { Boom } from '@hapi/boom'
-import { randomBytes, randomUUID } from 'crypto'
+import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
+import {
+	buildAdminInviteMessage,
+	buildCallMessage,
+	buildPaymentInviteMessage,
+	buildStickerPackMessage
+} from '../addons/from-messages'
 import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
@@ -38,12 +44,9 @@ import {
 	getAudioDuration,
 	getAudioWaveform,
 	getRawMediaUploadData,
-	getStream,
-	toBuffer,
 	type MediaDownloadOptions
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
-import { tokenizeCode } from '../addons/message-composer.js'
 
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
@@ -186,10 +189,11 @@ export const prepareWAMessageMedia = async (
 		)
 
 		const fileSha256B64 = fileSha256.toString('base64')
-		const { mediaUrl, directPath } = await options.upload(filePath, {
+		const { directPath, thumbnailDirectPath, thumbnailSha256 } = await options.upload(filePath, {
 			fileEncSha256B64: fileSha256B64,
 			mediaType: mediaType,
-			timeoutMs: options.mediaUploadTimeoutMs
+			timeoutMs: options.mediaUploadTimeoutMs,
+			newsletter: true
 		})
 
 		await fs.unlink(filePath)
@@ -197,10 +201,12 @@ export const prepareWAMessageMedia = async (
 		const obj = WAProto.Message.fromObject({
 			// todo: add more support here
 			[`${mediaType}Message`]: (MessageTypeProto as any)[mediaType].fromObject({
-				url: mediaUrl,
+				// url intentionally omitted — newsletters use directPath only
 				directPath,
 				fileSha256,
 				fileLength,
+				thumbnailDirectPath,
+				thumbnailSha256: thumbnailSha256 ? Buffer.from(thumbnailSha256, 'base64') : undefined,
 				...uploadData,
 				media: undefined
 			})
@@ -257,7 +263,7 @@ export const prepareWAMessageMedia = async (
 					const { thumbnail, originalImageDimensions } = await generateThumbnail(
 						originalFilePath!,
 						mediaType as 'image' | 'video',
-						options
+						{ ...options, hdMode: !!(message as any).hd }
 					)
 					uploadData.jpegThumbnail = thumbnail
 					if (!uploadData.width && originalImageDimensions) {
@@ -515,6 +521,29 @@ export const generateWAMessageContent = async (
 					type: proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT
 				}
 				break
+			case 'list':
+				m.listResponseMessage = {
+					title: message.buttonReply.title,
+					description: message.buttonReply.description,
+					singleSelectReply: {
+						selectedRowId: message.buttonReply.rowId
+					},
+					listType: proto.Message.ListResponseMessage.ListType.SINGLE_SELECT
+				}
+				break
+			case 'interactive':
+				m.interactiveResponseMessage = {
+					body: {
+						text: message.buttonReply.displayText,
+						format: proto.Message.InteractiveResponseMessage.Body.Format.EXTENSIONS_1
+					},
+					nativeFlowResponseMessage: {
+						name: message.buttonReply.nativeFlows?.name,
+						paramsJson: message.buttonReply.nativeFlows?.paramsJson,
+						version: message.buttonReply.nativeFlows?.version
+					}
+				}
+				break
 		}
 	} else if (hasOptionalProperty(message, 'ptv') && message.ptv) {
 		const { videoMessage } = await prepareWAMessageMedia({ video: message.video }, options)
@@ -566,9 +595,13 @@ export const generateWAMessageContent = async (
 			})
 		}
 
-		m.messageContextInfo = {
-			// encKey
-			messageSecret: message.poll.messageSecret || randomBytes(32)
+		// messageSecret must NOT be set for newsletter polls —
+		// newsletters handle encryption differently and a secret causes send failures
+		if (!options.jid || !isJidNewsletter(options.jid)) {
+			const providedSecret = message.poll.messageSecret
+			const messageSecret =
+				providedSecret instanceof Uint8Array && providedSecret.length === 32 ? providedSecret : randomBytes(32)
+			m.messageContextInfo = { messageSecret }
 		}
 
 		const pollCreationMessage = {
@@ -589,11 +622,30 @@ export const generateWAMessageContent = async (
 				m.pollCreationMessage = pollCreationMessage
 			}
 		}
-	} else if (hasNonNullishProperty(message, 'album')) {
-		m.albumMessage = {
-			expectedImageCount: message.album.expectedImageCount,
-			expectedVideoCount: message.album.expectedVideoCount
+	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
+		// addons/from-messages.ts → buildAdminInviteMessage
+		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
+			(message as any).adminInvite,
+			(message as any).contextInfo,
+			options
+		)
+	} else if ('order' in message && !!(message as any).order) {
+		// order → OrderMessage (from addons)
+		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
+	} else if ('keep' in message && !!(message as any).keep) {
+		// keep → KeepInChatMessage (from addons)
+		const k = (message as any).keep
+		m.keepInChatMessage = {
+			key: k.key,
+			keepType: k.type ?? 1,
+			timestampMs: k.time ?? Date.now()
 		}
+	} else if ('call' in message && !!(message as any).call) {
+		// addons/from-messages.ts → buildCallMessage
+		m.scheduledCallCreationMessage = buildCallMessage((message as any).call)
+	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
+		// addons/from-messages.ts → buildPaymentInviteMessage
+		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER
@@ -610,211 +662,416 @@ export const generateWAMessageContent = async (
 				initiatedByMe: true
 			}
 		}
-
-		// ── Interactive / button messages (pass-through) ──────────────────────────
-		// Ported from @innovatorssoft/baileys
-	} else if (hasNonNullishProperty(message, 'interactiveMessage')) {
-		m.interactiveMessage = WAProto.Message.InteractiveMessage.fromObject((message as any).interactiveMessage)
-		m.interactiveMessage.contextInfo = {
-			...((message as any).interactiveMessage.contextInfo || (message as any).contextInfo || {})
-		}
-	} else if (hasNonNullishProperty(message, 'buttonsMessage')) {
-		m.buttonsMessage = WAProto.Message.ButtonsMessage.fromObject((message as any).buttonsMessage)
-		m.buttonsMessage.contextInfo = {
-			...((message as any).buttonsMessage.contextInfo || (message as any).contextInfo || {})
-		}
-	} else if (hasNonNullishProperty(message, 'listMessage')) {
-		m.listMessage = WAProto.Message.ListMessage.fromObject((message as any).listMessage)
-		m.listMessage.contextInfo = {
-			...((message as any).listMessage.contextInfo || (message as any).contextInfo || {})
-		}
-	} else if (hasNonNullishProperty(message, 'templateMessage')) {
-		m.templateMessage = WAProto.Message.TemplateMessage.fromObject((message as any).templateMessage)
-		m.templateMessage.contextInfo = {
-			...((message as any).templateMessage.contextInfo || (message as any).contextInfo || {})
-		}
-
-		// ── Sticker pack message ──────────────────────────────────────────────────
-		// Ported from @innovatorssoft/baileys
-	} else if (hasNonNullishProperty(message, 'stickerPack')) {
-		const { stickers, cover, name, publisher, packId, description } = (message as any).stickerPack as {
-			stickers: Array<{
-				sticker: any
-				isAnimated?: boolean
-				isLottie?: boolean
-				emojis?: string[]
-				accessibilityLabel?: string
-			}>
-			cover: any
-			name: string
-			publisher: string
-			packId?: string
-			description?: string
-		}
-
-		const { zip } = await import('fflate')
-
-		const stickerData: Record<string, [Uint8Array, { level: number }]> = {}
-		const stickerMetadata = await Promise.all(
-			stickers.map(async (s, i) => {
-				const { stream } = await getStream(s.sticker)
-				const buffer = await toBuffer(stream)
-				const hash = sha256(buffer).toString('base64url')
-				const fileName = `${i.toString().padStart(2, '0')}_${hash}.webp`
-				stickerData[fileName] = [new Uint8Array(buffer), { level: 0 }]
-				return {
-					fileName,
-					mimetype: 'image/webp',
-					isAnimated: s.isAnimated || false,
-					isLottie: s.isLottie || false,
-					emojis: s.emojis || [],
-					accessibilityLabel: s.accessibilityLabel || ''
+	} else if ('productList' in message && !!(message as any).productList) {
+		// productList handled below after this block — just skip media
+	} else if ('album' in message && !!(message as any).album) {
+		// album handled in sendMessage — just set albumMessage header
+		const albumOpts = (message as any).album as { expectedImageCount?: number; expectedVideoCount?: number }
+		m.albumMessage = WAProto.Message.AlbumMessage.fromObject({
+			expectedImageCount: albumOpts.expectedImageCount ?? 0,
+			expectedVideoCount: albumOpts.expectedVideoCount ?? 0
+		})
+	} else if ('albumParentKey' in message && !!(message as any).albumParentKey) {
+		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
+		if ((message as any).albumParentKey) {
+			m.messageContextInfo = {
+				...m.messageContextInfo,
+				messageAssociation: {
+					associationType: WAProto.MessageAssociation.AssociationType.MEDIA_ALBUM,
+					parentMessageKey: (message as any).albumParentKey
 				}
+			}
+		}
+	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
+		// addons/from-messages.ts → buildStickerPackMessage
+		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
+	} else {
+		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
+	}
+
+	// ── productList → ListMessage with products ────────────────────────────────
+	if ('productList' in message && !!message.productList) {
+		const thumbnail = message.thumbnail
+			? await generateThumbnail(message.thumbnail as unknown as string, 'image', {})
+			: null
+
+		const listMessage: proto.Message.IListMessage = {
+			title: (message as any).title,
+			buttonText: (message as any).buttonText,
+			footerText: (message as any).footer,
+			description: (message as any).text,
+			productListInfo: {
+				productSections: message.productList,
+				headerImage: {
+					productId: message.productList[0]?.products?.[0]?.productId,
+					jpegThumbnail: (thumbnail as any)?.thumbnail ?? null
+				},
+				businessOwnerJid: message.businessOwnerJid
+			},
+			listType: proto.Message.ListMessage.ListType.PRODUCT_LIST
+		}
+
+		listMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = { listMessage }
+	}
+
+	// ── sections → ListMessage (standalone if, runs independently like fork) ──
+	if ('sections' in message && !!message.sections) {
+		const listMessage: proto.Message.IListMessage = {
+			title: (message as any).title,
+			buttonText: (message as any).buttonText,
+			footerText: (message as any).footer,
+			description: (message as any).text,
+			sections: message.sections,
+			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT
+		}
+
+		listMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = { listMessage }
+	}
+
+	// ── buttons → buttonsMessage ──────────────────────────────────────────────
+	else if ('buttons' in message && !!message.buttons) {
+		const buttonsMessage: proto.Message.IButtonsMessage = {
+			buttons: message.buttons.map((b: any) => ({
+				...b,
+				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
+			}))
+		}
+
+		if ('text' in message) {
+			buttonsMessage.contentText = message.text
+			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.EMPTY
+		} else {
+			if ('caption' in message) {
+				buttonsMessage.contentText = (message as { caption?: string }).caption
+			}
+
+			const mediaType = Object.keys(m)[0]?.replace('Message', '').toUpperCase()
+			if (mediaType && mediaType in proto.Message.ButtonsMessage.HeaderType) {
+				buttonsMessage.headerType =
+					proto.Message.ButtonsMessage.HeaderType[mediaType as keyof typeof proto.Message.ButtonsMessage.HeaderType]
+			}
+
+			Object.assign(buttonsMessage, m)
+		}
+
+		if ('footer' in message && !!message.footer) {
+			buttonsMessage.footerText = message.footer
+		}
+
+		if ('title' in message && !!message.title) {
+			buttonsMessage.text = message.title
+			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.TEXT
+		}
+
+		buttonsMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = { buttonsMessage }
+	}
+
+	// ── templateButtons → TemplateMessage ─────────────────────────────────────
+	else if ('templateButtons' in message && !!message.templateButtons) {
+		const hydratedTemplate: proto.Message.TemplateMessage.IHydratedFourRowTemplate = {
+			hydratedButtons: message.templateButtons
+		}
+
+		if ('text' in message) {
+			hydratedTemplate.hydratedContentText = message.text
+		} else if ('caption' in message) {
+			hydratedTemplate.hydratedContentText = (message as { caption?: string }).caption
+			Object.assign(hydratedTemplate, m)
+		}
+
+		if ('footer' in message && !!message.footer) {
+			hydratedTemplate.hydratedFooterText = message.footer
+		}
+
+		;(hydratedTemplate as any).contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = { templateMessage: { hydratedTemplate } }
+	}
+
+	// ── interactiveButtons → InteractiveMessage native flow (Android + iOS) ──
+	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
+		const interactiveMessage: proto.Message.IInteractiveMessage = {
+			// FIX Bug 2: messageParamsJson: '' is required — without it iOS doesn't render buttons
+			nativeFlowMessage: { buttons: (message as any).interactiveButtons, messageParamsJson: '' }
+		}
+
+		if ('text' in message) {
+			interactiveMessage.body = { text: message.text }
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: false
+			}
+		} else if ('caption' in message) {
+			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
+			// FIX Bug 1: Object.assign(interactiveMessage, m) was mutating interactiveMessage
+			// AND spreading the whole corrupted object into header — completely broken.
+			// Correct fix: extract only the media fields from m and place them in header.
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
+				imageMessage: m.imageMessage ?? undefined,
+				videoMessage: m.videoMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
+			}
+		}
+
+		if ('footer' in message && !!message.footer) {
+			interactiveMessage.footer = { text: message.footer }
+		}
+
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = { interactiveMessage }
+	}
+
+	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
+	else if ('shop' in message && !!message.shop) {
+		const interactiveMessage: proto.Message.IInteractiveMessage = {
+			shopStorefrontMessage: {
+				surface: message.shop.surface,
+				id: message.shop.id
+			}
+		}
+
+		if ('text' in message) {
+			interactiveMessage.body = { text: message.text }
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: false
+			}
+		} else if ('caption' in message) {
+			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
+			// FIX Bug 1: same Object.assign corruption as interactiveButtons — fixed
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
+				imageMessage: m.imageMessage ?? undefined,
+				videoMessage: m.videoMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
+			}
+		}
+
+		if ('footer' in message && !!message.footer) {
+			interactiveMessage.footer = { text: message.footer }
+		}
+
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = { interactiveMessage }
+	}
+
+	// ── collection → InteractiveMessage (collectionMessage) ───────────────────
+	else if ('collection' in message && !!message.collection) {
+		const interactiveMessage: proto.Message.IInteractiveMessage = {
+			collectionMessage: {
+				bizJid: message.collection.bizJid,
+				id: message.collection.id,
+				messageVersion: (message.collection as any).version ?? message.collection.messageVersion
+			}
+		}
+
+		if ('text' in message) {
+			interactiveMessage.body = { text: message.text }
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: false
+			}
+		} else if ('caption' in message) {
+			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
+			// FIX Bug 1: same Object.assign corruption — fixed
+			interactiveMessage.header = {
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
+				imageMessage: m.imageMessage ?? undefined,
+				videoMessage: m.videoMessage ?? undefined,
+				documentMessage: m.documentMessage ?? undefined
+			}
+		}
+
+		if ('footer' in message && !!message.footer) {
+			interactiveMessage.footer = { text: message.footer }
+		}
+
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+		}
+
+		m = { interactiveMessage }
+	}
+
+	// ── cards → InteractiveMessage (carouselMessage, wrapped in viewOnce) ──────
+	else if ('cards' in message && !!message.cards) {
+		const normalizeMedia = (media: WAMediaUpload | string | undefined): WAMediaUpload | undefined => {
+			if (!media) return undefined
+			if (Buffer.isBuffer(media)) return media
+			if (typeof media === 'string') return { url: media }
+			return media
+		}
+
+		const slides = await Promise.all(
+			message.cards.map(async slide => {
+				const { image, video, document: doc, product, title, body, footer, buttons } = slide as any
+				let header: proto.IMessage = {}
+
+				if (product) {
+					const { imageMessage } = await prepareWAMessageMedia(
+						{ image: normalizeMedia(product.productImage)! },
+						options
+					)
+					;(header as any).productMessage = { product: { ...product, productImage: imageMessage } }
+				} else if (image) {
+					const prepared = await prepareWAMessageMedia({ image: normalizeMedia(image)! }, options)
+					if (prepared.imageMessage) prepared.imageMessage.viewOnce = true
+					header = prepared
+				} else if (video) {
+					const prepared = await prepareWAMessageMedia({ video: normalizeMedia(video)! }, options)
+					if (prepared.videoMessage) {
+						prepared.videoMessage.viewOnce = true
+						prepared.videoMessage.gifPlayback = false
+					}
+
+					header = prepared
+				} else if (doc) {
+					const prepared = await prepareWAMessageMedia(
+						{
+							document: normalizeMedia(doc)!,
+							mimetype: (slide as any).mimetype || 'application/octet-stream',
+							fileName: (slide as any).fileName
+						},
+						options
+					)
+					header = prepared
+				}
+
+				const headerProps = {
+					title,
+					hasMediaAttachment: !!(
+						header.imageMessage ||
+						header.videoMessage ||
+						header.documentMessage ||
+						(header as any).productMessage
+					),
+					...header
+				}
+
+				return WAProto.Message.InteractiveMessage.create({
+					header: WAProto.Message.InteractiveMessage.Header.create(headerProps),
+					body: WAProto.Message.InteractiveMessage.Body.create({ text: body }),
+					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
+					nativeFlowMessage: WAProto.Message.InteractiveMessage.NativeFlowMessage.create({
+						buttons: buttons ?? []
+					})
+				})
 			})
 		)
 
-		const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
-			zip(stickerData, (err, data) => {
-				if (err) reject(err)
-				else resolve(Buffer.from(data))
+		const interactiveMessage: proto.Message.IInteractiveMessage = {
+			carouselMessage: WAProto.Message.InteractiveMessage.CarouselMessage.create({ cards: slides })
+		}
+
+		if ('text' in message) {
+			interactiveMessage.body = WAProto.Message.InteractiveMessage.Body.create({
+				text: message.text ?? ''
 			})
-		})
-
-		const coverBuffer = await toBuffer((await getStream(cover)).stream)
-
-		const [stickerPackUpload, coverUpload] = await Promise.all([
-			encryptedStream(zipBuffer as any, 'sticker-pack' as any, {
-				logger: options.logger,
-				opts: (options as any).options
-			}),
-			prepareWAMessageMedia(
-				{ image: coverBuffer },
-				{
-					...options,
-					mediaTypeOverride: 'image'
-				}
-			)
-		])
-
-		const stickerPackUploadResult = await options.upload(stickerPackUpload.encFilePath, {
-			fileEncSha256B64: stickerPackUpload.fileEncSha256.toString('base64'),
-			mediaType: 'sticker-pack' as any,
-			timeoutMs: options.mediaUploadTimeoutMs
-		})
-
-		const coverImage = coverUpload.imageMessage!
-		const imageDataHash = sha256(coverBuffer).toString('base64')
-		const stickerPackId = packId || generateMessageIDV2()
-
-		m.stickerPackMessage = {
-			name,
-			publisher,
-			stickerPackId,
-			packDescription: description,
-			stickerPackOrigin: proto.Message.StickerPackMessage.StickerPackOrigin.THIRD_PARTY,
-			stickerPackSize: stickerPackUpload.fileLength,
-			stickers: stickerMetadata,
-			fileSha256: stickerPackUpload.fileSha256,
-			fileEncSha256: stickerPackUpload.fileEncSha256,
-			mediaKey: stickerPackUpload.mediaKey,
-			directPath: stickerPackUploadResult.directPath,
-			fileLength: stickerPackUpload.fileLength,
-			mediaKeyTimestamp: unixTimestampSeconds(),
-			trayIconFileName: `${stickerPackId}.png`,
-			imageDataHash,
-			thumbnailDirectPath: coverImage.directPath ?? undefined,
-			thumbnailFileSha256: coverImage.fileSha256 ?? undefined,
-			thumbnailFileEncSha256: coverImage.fileEncSha256 ?? undefined,
-			thumbnailHeight: coverImage.height ?? undefined,
-			thumbnailWidth: coverImage.width ?? undefined
-		}
-
-		m.stickerPackMessage.contextInfo = {
-			...((message as any).contextInfo || {})
-		}
-
-		// ── Meta AI rich response message ─────────────────────────────────────────
-		// Ported from @innovatorssoft/baileys
-	} else if (hasNonNullishProperty(message, 'richResponse')) {
-		const DEFAULT_BOT_JID = '867051314767696@bot'
-		const {
-			text,
-			code,
-			language = 'javascript',
-			botJid = DEFAULT_BOT_JID
-		} = (message as any).richResponse as {
-			text?: string
-			code?: string
-			language?: string
-			botJid?: string
-		}
-
-		const sections: object[] = []
-
-		if (text) {
-			sections.push({
-				view_model: {
-					primitive: { text, __typename: 'GenAIMarkdownTextUXPrimitive' },
-					__typename: 'GenAISingleLayoutViewModel'
-				}
+			interactiveMessage.header = WAProto.Message.InteractiveMessage.Header.create({
+				title: (message as any).title,
+				subtitle: (message as any).subtitle,
+				hasMediaAttachment: false
 			})
 		}
 
-		if (code) {
-			sections.push({
-				view_model: {
-					primitive: {
-						language,
-						code_blocks: tokenizeCode(String(code), language),
-						__typename: 'GenAICodeUXPrimitive'
-					},
-					__typename: 'GenAISingleLayoutViewModel'
-				}
+		if ('footer' in message && !!message.footer) {
+			interactiveMessage.footer = WAProto.Message.InteractiveMessage.Footer.create({
+				text: message.footer ?? ''
 			})
 		}
 
-		if (sections.length === 0) {
-			throw new Boom('richResponse requires at least one of text or code')
+		interactiveMessage.contextInfo = {
+			...((message as any).contextInfo || {}),
+			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
 		}
 
-		const unifiedData = {
-			response_id: randomUUID(),
-			sections
-		}
+		// Wrap in viewOnceMessage matching innovators pattern for correct WA rendering
 
-		return WAProto.Message.fromObject({
-			messageContextInfo: {
-				deviceListMetadata: {},
-				deviceListMetadataVersion: 2,
-				messageSecret: randomBytes(32)
-			},
-			botForwardedMessage: {
-				message: {
-					richResponseMessage: {
-						submessages: [],
-						messageType: 1,
-						unifiedResponse: {
-							data: Buffer.from(JSON.stringify(unifiedData))
-						},
-						contextInfo: {
-							forwardingScore: 2,
-							isForwarded: true,
-							forwardedAiBotMessageInfo: { botJid },
-							botMessageSharingInfo: {
-								botEntryPointOrigin: 1,
-								forwardScore: 2
-							}
-						}
-					}
-				}
-			}
-		})
-	} else {
-		m = await prepareWAMessageMedia(message, options)
+		m = { interactiveMessage }
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
 		m = { viewOnceMessage: { message: m } }
+	}
+
+	// ── viewOnceExt → viewOnceMessageV2Extension ──────────────────────────────
+	if (hasOptionalProperty(message, 'viewOnceExt') && !!(message as any).viewOnceExt) {
+		m = { viewOnceMessageV2Extension: { message: m } }
+	}
+
+	// ── groupStatus → groupStatusMessageV2 ────────────────────────────────────
+	if (hasOptionalProperty(message, 'groupStatus') && !!message.groupStatus) {
+		const messageType = Object.keys(m)[0] as string
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const key = (m as any)[messageType]
+		if (key && 'contextInfo' in key && !!key.contextInfo) {
+			key.contextInfo.isGroupStatus = message.groupStatus
+		} else if (key) {
+			key.contextInfo = { isGroupStatus: message.groupStatus }
+		}
+
+		m = { groupStatusMessageV2: { message: m } }
+	}
+
+	// ── interactiveAsTemplate → templateMessage.interactiveMessageTemplate ────
+	// FIX Bug 4: was `else if` — so it was silently skipped whenever groupStatus was set.
+	// Must be an independent `if` so both can apply independently.
+	if (hasOptionalProperty(message, 'interactiveAsTemplate') && !!(message as any).interactiveAsTemplate) {
+		if (!m.interactiveMessage) {
+			throw new Boom('Invalid message type for template', { statusCode: 400 })
+		}
+
+		m = {
+			templateMessage: {
+				interactiveMessageTemplate: m.interactiveMessage,
+				templateId: (message as any).id || `template-${Date.now()}`
+			}
+		}
 	}
 
 	if (
@@ -858,16 +1115,6 @@ export const generateWAMessageContent = async (
 			key.contextInfo = { ...key.contextInfo, ...message.contextInfo }
 		} else if (key!) {
 			key.contextInfo = message.contextInfo
-		}
-	}
-
-	if (hasOptionalProperty(message, 'albumParentKey') && !!message.albumParentKey) {
-		m.messageContextInfo = {
-			...m.messageContextInfo,
-			messageAssociation: {
-				associationType: WAProto.MessageAssociation.AssociationType.MEDIA_ALBUM,
-				parentMessageKey: message.albumParentKey
-			}
 		}
 	}
 

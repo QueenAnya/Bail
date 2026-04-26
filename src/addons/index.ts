@@ -1,89 +1,94 @@
 /**
- * src/addons/index.ts
- * Barrel export for all anya-bail addons.
+ * @whiskeysockets/baileys — src/addons
+ * Queen-Anya structure with WS-patched features merged in
  *
- * All features ported from @innovatorssoft/baileys that are not present
- * in upstream WhiskeySockets/Baileys are exported from here.
+ * Quick reference:
+ *   Button sender         → sendButtons, sendInteractiveMessage, sendListMessage ...
+ *   Anti-delete           → MessageStore, createAntiDeleteHandler, createMessageStoreHandler
+ *   Scheduler             → MessageScheduler, ScheduledMessageStatus, createMessageScheduler
+ *   Auto-reply            → AutoReplyHandler, createAutoReply
+ *   vCard                 → generateVCard, createContactCard, quickContact
+ *   Status                → createTextStatus, createImageStatus, StatusHelper (TextStatusOptions, MediaStatusOptions)
+ *   Status mentions       → makeStatusMentionsAddon → sendStatusMentions
+ *   Templates             → TemplateManager, renderTemplate, PRESET_TEMPLATES
+ *   JID utils             → parseJid, plotJid, JidPlotterWithMapping, createJidPlotter
+ *   Message utils         → getMediaType, getMessageType, getButtonType, getButtonArgs
+ *   Message WS extras     → buildMentionContextInfo, patchMessageForMdIfRequired,
+ *                           prepareAlbumMessageContent, normalizeMediaInput
+ *   Socket extras         → makeMessageExtrasAddon → profilePictureUrl, getEphemeralGroup
+ *   Message search        → MessageType, RegexSearchOptions, searchMessages,
+ *                           searchMessagesRegex, MessageSearchManager, createMessageSearch
+ *   Interactive msgs      → generateInteractiveButtonMessage, generateTemplateMessage,
+ *                           generateNativeFlowMessage, generateCombinedButtons ...
+ *   Call handler          → makeCallHandlerAddon → initiateCall, acceptCall, muteCall ...
+ *   Generics extras       → asciiDecode, getPlatformId, printQRIfNecessaryListener
+ *   Auth state            → useSingleFileAuthState, useMongoFileAuthState
  *
- * Import example:
- *   import {
- *     generateNativeFlowMessage,
- *     generateQuickReplyButtons,
- *     useSingleFileAuthState,
- *     useMongoAuthState,
- *     makeCallSocket,
- *     ExtendedBrowsers,
- *   } from '@anya/baileys/addons'
+ *   From src/ re-exports (Anya originals):
+ *     from-chats.ts        → chat socket helpers
+ *     from-messages-recv.ts → messages-recv helpers
+ *     from-messages-send.ts → StatusMentionDeps, normalizeStatusContent, buildStatusMentionNode
+ *     from-messages.ts     → message content builders (buttons, stickers, albums...)
  */
 
-// ── Interactive / Button messages ─────────────────────────────────────────────
-export {
-	generateInteractiveButtonMessage,
-	generateInteractiveListMessage,
-	generateTemplateMessage,
-	generateNativeFlowMessage,
-	generateCopyCodeButton,
-	generateUrlButtonMessage,
-	generateQuickReplyButtons,
-	generateCombinedButtons
-} from './interactive-message.js'
+// ── Button Sender ──────────────────────────────────────────────────────────
+export * from './button-sender'
 
-export type {
-	NativeFlowButton,
-	NativeFlowOptions,
-	ButtonItem,
-	InteractiveButtonContent,
-	InteractiveListRow,
-	InteractiveListSection,
-	InteractiveListContent,
-	TemplateButton,
-	TemplateMessageContent,
-	CombinedButton
-} from './interactive-message.js'
+// ── Anti-Delete ────────────────────────────────────────────────────────────
+export * from './anti-delete'
 
-// ── Rich Response (Meta AI) messages ─────────────────────────────────────────
-export {
-	CodeHighlightType,
-	RichSubMessageType,
-	tokenizeCode,
-	buildRichContextInfo,
-	buildBotForwardedMessage,
-	generateTableContent,
-	generateListContent,
-	generateCodeBlockContent,
-	generateLatexContent,
-	generateLatexImageContent,
-	generateLatexInlineImageContent,
-	captureUnifiedResponse,
-	generateUnifiedResponseContent,
-	generateRichMessageContent
-} from './message-composer.js'
+// ── Scheduler ─────────────────────────────────────────────────────────────
+export * from './scheduling'
 
-export type { CapturedUnifiedResponse } from './message-composer.js'
+// ── Auto-Reply ────────────────────────────────────────────────────────────
+export * from './auto-reply'
 
-// ── Outgoing Call API ─────────────────────────────────────────────────────────
-export { makeCallSocket } from './calls.js'
-export type { CallOfferCacheEntry, InitiateCallOptions, RelayInfo, CallsSocketPrimitives } from './calls.js'
+// ── vCard / Contact Cards ─────────────────────────────────────────────────
+export * from './vcard'
 
-// ── Auth State ────────────────────────────────────────────────────────────────
-export { useSingleFileAuthState } from './use-single-file-auth-state.js'
-export type { SingleFileAuthStateResult } from './use-single-file-auth-state.js'
+// ── Status Posting + Mentions ─────────────────────────────────────────────
+// createTextStatus, createImageStatus, createVideoStatus, createAudioStatus,
+// TextStatusOptions, MediaStatusOptions, StatusHelper,
+// makeStatusMentionsAddon, StatusMentionContent, StatusMentionsContext
+export * from './status-posting'
 
-export { useMongoAuthState } from './use-mongo-auth-state.js'
-export type { MongoCollection, MongoAuthStateResult } from './use-mongo-auth-state.js'
+// ── Message Templates ─────────────────────────────────────────────────────
+export * from './templates'
 
-// ── MEX Notification constants ────────────────────────────────────────────────
-export { MexOperations, MexUpdatesOperations, XWAPathsMexUpdates } from './mex-updates.js'
-export type { MexOperation, MexUpdatesOperation } from './mex-updates.js'
+// ── JID Plotting ──────────────────────────────────────────────────────────
+export * from './jid-plotting'
 
-// ── Browser Presets (iOS / Android) ──────────────────────────────────────────
-export { ExtendedBrowsers, IOS_BROWSER_PRESET, ANDROID_BROWSER_PRESET } from './browser-presets.js'
-export type { BrowserTuple, BrowserFactory } from './browser-presets.js'
+// ── Message Utils + WS Extras + Socket Extras ─────────────────────────────
+// getMediaType, getMessageType, getButtonType, getButtonArgs
+// buildMentionContextInfo, patchMessageForMdIfRequired, normalizeMediaInput
+// prepareAlbumMessageContent, makeMessageExtrasAddon
+export * from './message-utils'
 
-// ── Unavailable message resend ────────────────────────────────────────────────
-export { makeUnavailableResendHandler } from './unavailable-resend.js'
-export type { PlaceholderResendCache, UnavailableResendPrimitives } from './unavailable-resend.js'
+// ── Message Composer (Rich / Bot / Meta AI messages) ──────────────────────
+// tokenizeCode, buildRichContextInfo, buildBotForwardedMessage
+// generateTableContent, generateListContent, generateCodeBlockContent
+// generateLatexContent, generateLatexImageContent, generateLatexInlineImageContent
+// captureUnifiedResponse, generateUnifiedResponseContent, generateRichMessageContent
+export * from './message-composer'
 
-// ── Album message helper ──────────────────────────────────────────────────────
-export { prepareAlbumMessageContent } from './album-message.js'
-export type { AlbumItem, AlbumMessageHelperOptions } from './album-message.js'
+// ── Message Search ────────────────────────────────────────────────────────
+// MessageType, SearchOptions, RegexSearchOptions, SearchResult
+// extractMessageText, searchMessages, searchMessagesRegex
+// MessageSearchManager, createMessageSearch
+export * from './message-search'
+
+// ── Interactive / Button Message Generators ───────────────────────────────
+//export * from './interactive-message'
+
+// ── From src/ (Anya originals) ────────────────────────────────────────────
+export * from './from-chats'
+export * from './from-messages-recv'
+export * from './from-messages-send'
+export * from './from-messages'
+
+// ── Call Handler (WS-patched) ─────────────────────────────────────────────
+export * from './call-handler'
+
+// ── Auth State — re-exported from src/Utils (canonical location) ───────────
+export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
+export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'

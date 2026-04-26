@@ -1,18 +1,15 @@
 /**
- * message-composer.ts
- * Ported from @innovatorssoft/baileys
- * Builders for Meta AI–style rich response messages:
- *   - Tables, Lists, Code blocks (with syntax highlighting), LaTeX, Unified responses
+ * message-composer.ts (addons)
+ * Rich message builders for Meta AI / Bot botForwardedMessage payloads.
+ * Ported from WhiskeySockets/Baileys main (April 2026).
  */
 
-import { generateMessageIDV2 } from '../Utils/generics.js'
 import type { proto } from '../../WAProto/index.js'
+import { generateMessageID } from '../Utils/generics'
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Keyword sets ──────────────────────────────────────────────────────────────
 
-const DEFAULT_BOT_JID = '867051314767696@bot'
-
-const JS_KEYWORDS = new Set([
+export const JS_KEYWORDS = new Set([
 	'import',
 	'export',
 	'from',
@@ -63,7 +60,7 @@ const JS_KEYWORDS = new Set([
 	'with'
 ])
 
-const PYTHON_KEYWORDS = new Set([
+export const PYTHON_KEYWORDS = new Set([
 	'import',
 	'from',
 	'as',
@@ -103,7 +100,7 @@ const PYTHON_KEYWORDS = new Set([
 	'print'
 ])
 
-const LANGUAGE_KEYWORDS: Record<string, Set<string>> = {
+export const LANGUAGE_KEYWORDS: Record<string, Set<string>> = {
 	javascript: JS_KEYWORDS,
 	typescript: JS_KEYWORDS,
 	js: JS_KEYWORDS,
@@ -112,36 +109,35 @@ const LANGUAGE_KEYWORDS: Record<string, Set<string>> = {
 	py: PYTHON_KEYWORDS
 }
 
-export const CodeHighlightType = {
-	DEFAULT: 0,
-	KEYWORD: 1,
-	METHOD: 2,
-	STRING: 3,
-	NUMBER: 4,
-	COMMENT: 5
-} as const
+// ── Enums ─────────────────────────────────────────────────────────────────────
 
-export const RichSubMessageType = {
-	UNKNOWN: 0,
-	GRID_IMAGE: 1,
-	TEXT: 2,
-	INLINE_IMAGE: 3,
-	TABLE: 4,
-	CODE: 5,
-	DYNAMIC: 6,
-	MAP: 7,
-	LATEX: 8,
-	CONTENT_ITEMS: 9
-} as const
+export enum CodeHighlightType {
+	DEFAULT = 0,
+	KEYWORD = 1,
+	METHOD = 2,
+	STRING = 3,
+	NUMBER = 4,
+	COMMENT = 5
+}
+
+export enum RichSubMessageType {
+	UNKNOWN = 0,
+	GRID_IMAGE = 1,
+	TEXT = 2,
+	INLINE_IMAGE = 3,
+	TABLE = 4,
+	CODE = 5,
+	DYNAMIC = 6,
+	MAP = 7,
+	LATEX = 8,
+	CONTENT_ITEMS = 9
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type CodeToken = {
-	highlightType: number
-	codeContent: string
-}
+export type CodeToken = { highlightType: CodeHighlightType; codeContent: string }
 
-type LatexExpression = {
+export type LatexExpression = {
 	latexExpression: string
 	url?: string
 	width?: number
@@ -153,26 +149,28 @@ type LatexExpression = {
 	imageTrailingPadding?: number
 }
 
-type Submessage = Record<string, unknown>
-
-type RichContextInfo = {
-	forwardingScore: number
-	isForwarded: boolean
-	forwardedAiBotMessageInfo: { botJid: string }
-	forwardOrigin: number
-	stanzaId?: string
-	participant?: string
-	quotedMessage?: proto.IMessage
+export type RichSubMessage = {
+	messageType: RichSubMessageType | number
+	messageText?: string
+	tableMetadata?: { title: string; rows: Array<{ items: string[]; isHeading?: boolean }> }
+	codeMetadata?: { codeLanguage: string; codeBlocks: CodeToken[] }
+	latexMetadata?: { text: string; expressions: LatexExpression[] }
+	imageMetadata?: {
+		imageUrl: { imagePreviewUrl: string; imageHighResUrl: string }
+		imageText?: string
+		alignment?: number
+	}
 }
 
-type UploadFn = (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
-type RenderLatexFn = (expr: string) => Promise<{ buffer: Buffer; width: number; height: number }>
+export type RichMessageContent = { message: proto.IMessage; messageId: string }
 
 export type CapturedUnifiedResponse = {
-	unifiedResponse: { data: unknown }
-	submessages: Submessage[]
+	unifiedResponse: { data: Buffer | Uint8Array }
+	submessages: RichSubMessage[]
 	contextInfo: Record<string, unknown>
 }
+
+type QuotedMsg = { key?: proto.IMessageKey; message?: proto.IMessage | null; sender?: string } | undefined
 
 // ── Tokenizer ─────────────────────────────────────────────────────────────────
 
@@ -182,7 +180,7 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 	const lines = codeStr.split('\n')
 
 	for (let li = 0; li < lines.length; li++) {
-		const line = lines[li]
+		const line = lines[li] as string
 		const isLast = li === lines.length - 1
 		const nl = isLast ? '' : '\n'
 
@@ -196,15 +194,25 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 			continue
 		}
 
-		const regex =
-			/(\/\/.*$|#.*$)|("(?:[^"\\]|\\.)*")|('(?:[^'\\]|\\.)*')|(`(?:[^`\\]|\\.)*`)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_$][\w$]*\b)|([^\s\w$"'`]+)|(\s+)/g
+		const regex = new RegExp(
+			[
+				'(\\/\\/.*$|#.*$)',
+				'("(?:[^"\\\\]|\\\\.)*")',
+				"('(?:[^'\\\\]|\\\\.)*')",
+				'(`(?:[^`\\\\]|\\\\.)*`)',
+				'(\\b\\d+(?:\\.\\d+)?\\b)',
+				'(\\b[a-zA-Z_$][\\w$]*\\b)',
+				'([^\\s\\w$"\'`]+)',
+				'(\\s+)'
+			].join('|'),
+			'g'
+		)
 
 		let match: RegExpExecArray | null
 		const tokens: CodeToken[] = []
 
 		while ((match = regex.exec(line)) !== null) {
 			const val = match[0]
-
 			if (match[1]) {
 				tokens.push({ highlightType: CodeHighlightType.COMMENT, codeContent: val })
 			} else if (match[2] || match[3] || match[4]) {
@@ -216,11 +224,10 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 					tokens.push({ highlightType: CodeHighlightType.KEYWORD, codeContent: val })
 				} else {
 					const after = line.slice(regex.lastIndex).trimStart()
-					if (after.startsWith('(')) {
-						tokens.push({ highlightType: CodeHighlightType.METHOD, codeContent: val })
-					} else {
-						tokens.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: val })
-					}
+					tokens.push({
+						highlightType: after.startsWith('(') ? CodeHighlightType.METHOD : CodeHighlightType.DEFAULT,
+						codeContent: val
+					})
 				}
 			} else {
 				tokens.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: val })
@@ -232,21 +239,16 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 			continue
 		}
 
-		// Merge adjacent same-type tokens
 		const merged: CodeToken[] = []
 		for (const t of tokens) {
-			const prev = merged.length > 0 ? merged[merged.length - 1] : undefined
+			const prev = merged.length > 0 ? merged[merged.length - 1]! : undefined
 			if (prev && prev.highlightType === t.highlightType) {
 				prev.codeContent += t.codeContent
 			} else {
 				merged.push({ ...t })
 			}
 		}
-
-		if (merged.length > 0) {
-			merged[merged.length - 1].codeContent += nl
-		}
-
+		if (merged.length > 0) merged[merged.length - 1]!.codeContent += nl
 		blocks.push(...merged)
 	}
 
@@ -255,47 +257,30 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 
 // ── Context / wrapper helpers ─────────────────────────────────────────────────
 
-export const buildRichContextInfo = (
-	quoted?: { key?: proto.IMessageKey; message?: proto.IMessage; sender?: string } | null,
-	botJid = DEFAULT_BOT_JID
-): RichContextInfo => {
-	const ctxInfo: RichContextInfo = {
+export const buildRichContextInfo = (quoted?: QuotedMsg): Record<string, unknown> => {
+	const ctxInfo: Record<string, unknown> = {
 		forwardingScore: 1,
 		isForwarded: true,
-		forwardedAiBotMessageInfo: { botJid },
+		forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
 		forwardOrigin: 4
 	}
-
 	if (quoted?.key) {
-		ctxInfo.stanzaId = quoted.key.id ?? undefined
-		ctxInfo.participant = quoted.key.participant || (quoted as any).sender || quoted.key.remoteJid || undefined
-		ctxInfo.quotedMessage = quoted.message ?? undefined
+		ctxInfo.stanzaId = quoted.key.id
+		ctxInfo.participant = quoted.key.participant || quoted.sender || quoted.key.remoteJid
+		ctxInfo.quotedMessage = quoted.message
 	}
-
 	return ctxInfo
 }
 
 export const buildBotForwardedMessage = (
-	submessages: Submessage[],
-	contextInfo: RichContextInfo,
-	unifiedResponse?: CapturedUnifiedResponse['unifiedResponse']
-) => {
-	const richResponse: Record<string, unknown> = {
-		messageType: 1,
-		submessages,
-		contextInfo
-	}
-
-	if (unifiedResponse) {
-		richResponse.unifiedResponse = unifiedResponse
-	}
-
+	submessages: RichSubMessage[],
+	contextInfo: Record<string, unknown>,
+	unifiedResponse?: { data: Buffer | Uint8Array }
+): proto.IMessage => {
+	const richResponse: Record<string, unknown> = { messageType: 1, submessages, contextInfo }
+	if (unifiedResponse) richResponse.unifiedResponse = unifiedResponse
 	return {
-		botForwardedMessage: {
-			message: {
-				richResponseMessage: richResponse
-			}
-		}
+		richResponseMessage: richResponse as unknown as proto.IAIRichResponseMessage
 	}
 }
 
@@ -305,85 +290,67 @@ export const generateTableContent = (
 	title: string,
 	headers: string[],
 	rows: string[][],
-	quoted?: Parameters<typeof buildRichContextInfo>[0],
+	quoted?: QuotedMsg,
 	options: { headerText?: string; footer?: string } = {}
-) => {
+): RichMessageContent => {
 	const { footer, headerText } = options
 	const tableRows = [{ items: headers, isHeading: true }, ...rows.map(row => ({ items: row.map(String) }))]
-
-	const submessages: Submessage[] = []
-	if (headerText) submessages.push({ messageType: 2, messageText: headerText })
-	submessages.push({ messageType: 4, tableMetadata: { title, rows: tableRows } })
-	if (footer) submessages.push({ messageType: 2, messageText: footer })
-
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	submessages.push({ messageType: RichSubMessageType.TABLE, tableMetadata: { title, rows: tableRows } })
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-		messageId: generateMessageIDV2()
+		messageId: generateMessageID()
 	}
 }
 
 export const generateListContent = (
 	title: string,
-	items: (string | string[])[],
-	quoted?: Parameters<typeof buildRichContextInfo>[0],
+	items: string[] | string[][],
+	quoted?: QuotedMsg,
 	options: { headerText?: string; footer?: string } = {}
-) => {
+): RichMessageContent => {
 	const { footer, headerText } = options
-	const tableRows = items.map(item => ({
-		items: Array.isArray(item) ? item.map(String) : [String(item)]
-	}))
-
-	const submessages: Submessage[] = []
-	if (headerText) submessages.push({ messageType: 2, messageText: headerText })
-	submessages.push({ messageType: 4, tableMetadata: { title, rows: tableRows } })
-	if (footer) submessages.push({ messageType: 2, messageText: footer })
-
+	const tableRows = items.map(item => ({ items: Array.isArray(item) ? item.map(String) : [String(item)] }))
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	submessages.push({ messageType: RichSubMessageType.TABLE, tableMetadata: { title, rows: tableRows } })
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-		messageId: generateMessageIDV2()
+		messageId: generateMessageID()
 	}
 }
 
 export const generateCodeBlockContent = (
 	code: string,
-	quoted?: Parameters<typeof buildRichContextInfo>[0],
-	options: { title?: string; language?: string; footer?: string } = {}
-) => {
+	quoted?: QuotedMsg,
+	options: { title?: string; footer?: string; language?: string } = {}
+): RichMessageContent => {
 	const { title, footer, language = 'javascript' } = options
-	const submessages: Submessage[] = []
-
-	if (title) submessages.push({ messageType: 2, messageText: title })
+	const submessages: RichSubMessage[] = []
+	if (title) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: title })
 	submessages.push({
-		messageType: 5,
-		codeMetadata: {
-			codeLanguage: language,
-			codeBlocks: tokenizeCode(code, language)
-		}
+		messageType: RichSubMessageType.CODE,
+		codeMetadata: { codeLanguage: language, codeBlocks: tokenizeCode(code, language) }
 	})
-	if (footer) submessages.push({ messageType: 2, messageText: footer })
-
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-		messageId: generateMessageIDV2()
+		messageId: generateMessageID()
 	}
 }
 
 export const generateLatexContent = (
-	quoted: Parameters<typeof buildRichContextInfo>[0] | null,
-	options: {
-		text?: string
-		expressions: LatexExpression[]
-		headerText?: string
-		footer?: string
-	}
-) => {
+	quoted: QuotedMsg,
+	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string }
+): RichMessageContent => {
 	const { text, expressions, headerText, footer } = options
-	const submessages: Submessage[] = []
-
-	if (headerText) submessages.push({ messageType: 2, messageText: headerText })
-
-	const latexExpressions = expressions.map(expr => {
-		const entry: Record<string, unknown> = {
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	const latexExpressions: LatexExpression[] = expressions.map(expr => {
+		const entry: LatexExpression = {
 			latexExpression: expr.latexExpression,
 			url: expr.url,
 			width: expr.width,
@@ -396,73 +363,60 @@ export const generateLatexContent = (
 		if (expr.imageTrailingPadding !== undefined) entry.imageTrailingPadding = expr.imageTrailingPadding
 		return entry
 	})
-
-	submessages.push({ messageType: 8, latexMetadata: { text: text || '', expressions: latexExpressions } })
-	if (footer) submessages.push({ messageType: 2, messageText: footer })
-
+	submessages.push({
+		messageType: RichSubMessageType.LATEX,
+		latexMetadata: { text: text || '', expressions: latexExpressions }
+	})
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-		messageId: generateMessageIDV2()
+		messageId: generateMessageID()
 	}
 }
 
 export const generateLatexImageContent = async (
-	quoted: Parameters<typeof buildRichContextInfo>[0] | null,
-	options: {
-		text?: string
-		expressions: LatexExpression[]
-		headerText?: string
-		footer?: string
-	},
-	uploadFn: UploadFn,
-	renderLatexToPng: RenderLatexFn
-) => {
+	quoted: QuotedMsg,
+	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+	uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>,
+	renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>
+): Promise<RichMessageContent> => {
 	const { text, expressions, headerText, footer } = options
-	const submessages: Submessage[] = []
-
-	if (headerText) submessages.push({ messageType: 2, messageText: headerText })
-
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
 	const latexExpressions = await Promise.all(
 		expressions.map(async expr => {
 			const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
-			const uploadResult = await uploadFn(buffer, 'image')
-			const imageUrl = uploadResult.url || uploadResult.directPath
-			return { latexExpression: expr.latexExpression, url: imageUrl, width, height }
+			const res = await uploadFn(buffer, 'image')
+			return { latexExpression: expr.latexExpression, url: res.url || res.directPath, width, height }
 		})
 	)
-
-	submessages.push({ messageType: 8, latexMetadata: { text: text || '', expressions: latexExpressions } })
-	if (footer) submessages.push({ messageType: 2, messageText: footer })
-
+	submessages.push({
+		messageType: RichSubMessageType.LATEX,
+		latexMetadata: { text: text || '', expressions: latexExpressions }
+	})
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-		messageId: generateMessageIDV2()
+		messageId: generateMessageID()
 	}
 }
 
 export const generateLatexInlineImageContent = async (
-	quoted: Parameters<typeof buildRichContextInfo>[0] | null,
-	options: {
-		text?: string
-		expressions: LatexExpression[]
-		headerText?: string
-		footer?: string
-	},
-	uploadFn: UploadFn,
-	renderLatexToPng: RenderLatexFn
-) => {
+	quoted: QuotedMsg,
+	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+	uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>,
+	renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>
+): Promise<RichMessageContent> => {
 	const { text, expressions, headerText, footer } = options
-	const submessages: Submessage[] = []
-
-	if (headerText) submessages.push({ messageType: 2, messageText: headerText })
-	if (text) submessages.push({ messageType: 2, messageText: text })
-
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	if (text) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: text })
 	for (const expr of expressions) {
 		const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
-		const uploadResult = await uploadFn(buffer, 'image')
-		const imageUrl = uploadResult.url || uploadResult.directPath
+		const res = await uploadFn(buffer, 'image')
+		const imageUrl = res.url || res.directPath || ''
 		submessages.push({
-			messageType: 3,
+			messageType: RichSubMessageType.INLINE_IMAGE,
 			imageMetadata: {
 				imageUrl: { imagePreviewUrl: imageUrl, imageHighResUrl: imageUrl },
 				imageText: expr.latexExpression,
@@ -470,20 +424,15 @@ export const generateLatexInlineImageContent = async (
 			}
 		})
 	}
-
-	if (footer) submessages.push({ messageType: 2, messageText: footer })
-
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-		messageId: generateMessageIDV2()
+		messageId: generateMessageID()
 	}
 }
 
-/**
- * Capture the unifiedResponse payload from an incoming Meta AI botForwardedMessage.
- * Returns null if the message is not a rich response.
- */
-export const captureUnifiedResponse = (msg: proto.IMessage): CapturedUnifiedResponse | null => {
+export const captureUnifiedResponse = (msg: proto.IMessage | null | undefined): CapturedUnifiedResponse | null => {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const botFwd = (msg as any)?.botForwardedMessage?.message
 	if (!botFwd) return null
 	const rich = botFwd.richResponseMessage
@@ -495,28 +444,15 @@ export const captureUnifiedResponse = (msg: proto.IMessage): CapturedUnifiedResp
 	}
 }
 
-/**
- * Re-send a previously captured unified response to a new JID.
- */
 export const generateUnifiedResponseContent = (
-	quoted: Parameters<typeof buildRichContextInfo>[0] | null,
+	quoted: QuotedMsg,
 	captured: CapturedUnifiedResponse
-) => {
-	return {
-		message: buildBotForwardedMessage(captured.submessages, buildRichContextInfo(quoted), captured.unifiedResponse),
-		messageId: generateMessageIDV2()
-	}
-}
+): RichMessageContent => ({
+	message: buildBotForwardedMessage(captured.submessages, buildRichContextInfo(quoted), captured.unifiedResponse),
+	messageId: generateMessageID()
+})
 
-/**
- * Build a fully custom rich message from an arbitrary submessages array.
- */
-export const generateRichMessageContent = (
-	submessages: Submessage[],
-	quoted?: Parameters<typeof buildRichContextInfo>[0]
-) => {
-	return {
-		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-		messageId: generateMessageIDV2()
-	}
-}
+export const generateRichMessageContent = (submessages: RichSubMessage[], quoted?: QuotedMsg): RichMessageContent => ({
+	message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+	messageId: generateMessageID()
+})
