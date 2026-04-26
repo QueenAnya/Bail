@@ -1356,7 +1356,17 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			return
 		}
 
-		logger.info('History sync is enabled, awaiting notification with a 20s timeout.')
+		// On reconnection (accountSyncCounter > 0), the server does not push
+		// history sync notifications — the device already has its data.
+		// Skip the 20s wait and go online immediately.
+		if (authState.creds.accountSyncCounter > 0) {
+			logger.info('Reconnection with existing sync data, skipping history sync wait. Transitioning to Online.')
+			syncState = SyncState.Online
+			setTimeout(() => ev.flush(), 0)
+			return
+		}
+
+		logger.info('First connection, awaiting history sync notification with a 20s timeout.')
 
 		if (awaitingSyncTimeout) {
 			clearTimeout(awaitingSyncTimeout)
@@ -1364,10 +1374,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 		awaitingSyncTimeout = setTimeout(() => {
 			if (syncState === SyncState.AwaitingInitialSync) {
-				// TODO: investigate
 				logger.warn('Timeout in AwaitingInitialSync, forcing state to Online and flushing buffer')
 				syncState = SyncState.Online
 				ev.flush()
+
+				// Increment so subsequent reconnections skip the 20s wait.
+				const accountSyncCounter = (authState.creds.accountSyncCounter || 0) + 1
+				ev.emit('creds.update', { accountSyncCounter })
 			}
 		}, 20_000)
 	})
