@@ -1358,6 +1358,15 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 		logger.info('History sync is enabled, awaiting notification with a 20s timeout.')
 
+		// On reconnection (accountSyncCounter > 0), skip the 20s wait — we already
+		// have a synced session and messages should be delivered immediately.
+		if ((authState.creds.accountSyncCounter || 0) > 0) {
+			logger.info('Reconnection detected (accountSyncCounter > 0), skipping history sync wait.')
+			syncState = SyncState.Online
+			setTimeout(() => ev.flush(), 0)
+			return
+		}
+
 		if (awaitingSyncTimeout) {
 			clearTimeout(awaitingSyncTimeout)
 		}
