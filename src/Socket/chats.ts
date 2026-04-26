@@ -677,21 +677,34 @@ export const makeChatsSocket = (config: SocketConfig) => {
 							}
 						} catch (error: any) {
 							attemptsMap[name] = (attemptsMap[name] || 0) + 1
-							const logData = { name, version: states[name]?.version, error: error?.message }
+							const logData = {
+								name,
+								attempt: attemptsMap[name],
+								version: states[name].version,
+								statusCode: (error as any).output?.statusCode,
+								errorType: (error as any).name,
+								error: (error as any).stack
+							}
 							await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
 
 							if (isMissingKeyError(error) && attemptsMap[name]! >= MAX_SYNC_ATTEMPTS) {
-								logger.warn(logData, `${name} blocked on missing key, parking after ${attemptsMap[name]} attempts`)
+								logger.warn(
+									logData,
+									`${name} blocked on missing key from v${states[name].version}, parking after ${attemptsMap[name]} attempts`
+								)
 								blockedCollections.add(name)
 								collectionsToHandle.delete(name)
 							} else if (isMissingKeyError(error)) {
-								logger.info(logData, `${name} blocked on missing key, retrying with snapshot`)
+								logger.info(
+									logData,
+									`${name} blocked on missing key from v${states[name].version}, retrying with snapshot`
+								)
 								forceSnapshotCollections.add(name)
 							} else if (isAppStateSyncIrrecoverable(error, attemptsMap[name]!)) {
-								logger.warn(logData, `failed to sync ${name}, giving up`)
+								logger.warn(logData, `failed to sync ${name} from v${states[name].version}, giving up`)
 								collectionsToHandle.delete(name)
 							} else {
-								logger.info(logData, `failed to sync ${name}, forcing snapshot retry`)
+								logger.info(logData, `failed to sync ${name} from v${states[name].version}, forcing snapshot retry`)
 								forceSnapshotCollections.add(name)
 							}
 						}

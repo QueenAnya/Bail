@@ -92,7 +92,7 @@ async function storeTcTokensFromHistorySync(
 	if (Object.keys(entries).length) {
 		logger?.debug({ count: Object.keys(entries).length }, 'storing tctokens from history sync')
 		try {
-			const indexWrite = await buildMergedTcTokenIndexWrite(keyStore, new Set(Object.keys(entries)))
+			const indexWrite = await buildMergedTcTokenIndexWrite(keyStore, Object.keys(entries))
 			await keyStore.set({ tctoken: { ...entries, ...indexWrite } })
 		} catch (err) {
 			logger?.warn({ err }, 'failed to store tctokens from history sync')

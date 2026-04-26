@@ -2062,7 +2062,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			}
 
 			// 479: SMAX_INVALID — stale device session, refresh sessions
-			if (attrs.error === SERVER_ERROR_CODES.SmaxInvalid) {
+			if (attrs.error === SERVER_ERROR_CODES.SmaxInvalid && attrs.from) {
 				logger.debug({ jid: attrs.from }, 'smax invalid (479), refreshing session')
 				await assertSessions([attrs.from], true).catch(err =>
 					logger.warn({ err, jid: attrs.from }, 'failed to refresh session after smax invalid')
