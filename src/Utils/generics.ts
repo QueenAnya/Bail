@@ -1,7 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-const baileysVersion = [2, 3000, 1033105955]
+const baileysVersion = [2, 3000, 1038166097]
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -253,37 +253,27 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILog
  */
 
 export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
+	// innovatorssoft JSON endpoint — clean, reliable
+	const URL = 'https://raw.githubusercontent.com/innovatorssoft/Baileys/main/lib/Defaults/baileys-version.json'
 	try {
 		const response = await fetch(URL, {
 			dispatcher: options.dispatcher,
 			method: 'GET',
 			headers: options.headers
 		})
-
 		if (!response.ok) {
 			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
 		}
-
-		const result = await response.json()
-
-		const version = result.versions[result.versions.length - 1].version.split('.')
-		const version2 = version[2].replace('-alpha', '')
-		return {
-			version: [+version[0], +version[1], +version2],
-			isLatest: true
-		}
+		const json = (await response.json()) as { version: WAVersion }
+		return { version: json.version, isLatest: true }
 	} catch (error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
+		return { version: baileysVersion as WAVersion, isLatest: false, error }
 	}
 }
 
 export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
+	// innovatorssoft JSON endpoint — clean, no TS parsing needed
+	const URL = 'https://raw.githubusercontent.com/innovatorssoft/Baileys/main/lib/Defaults/baileys-version.json'
 	try {
 		const response = await fetch(URL, {
 			dispatcher: options.dispatcher,
@@ -293,29 +283,10 @@ export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
 		if (!response.ok) {
 			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
 		}
-
-		const text = await response.text()
-		// Extract version from line 7 (const version = [...])
-		const lines = text.split('\n')
-		const versionLine = lines[6] // Line 7 (0-indexed)
-		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
-
-		if (versionMatch) {
-			const version = [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion
-
-			return {
-				version,
-				isLatest: true
-			}
-		} else {
-			throw new Error('Could not parse version from Defaults/index.ts')
-		}
+		const json = (await response.json()) as { version: WAVersion }
+		return { version: json.version, isLatest: true }
 	} catch (error) {
-		return {
-			version: baileysVersion as WAVersion,
-			isLatest: false,
-			error
-		}
+		return { version: baileysVersion as WAVersion, isLatest: false, error }
 	}
 }
 

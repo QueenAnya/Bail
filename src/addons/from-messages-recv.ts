@@ -9,6 +9,7 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import type { WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
+import type { WACallEvent } from '../Types' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { encodeSignedDeviceIdentity } from '../Utils'
 import type { BinaryNode } from '../WABinary'
 import { isJidGroup, jidEncode } from '../WABinary'
@@ -140,7 +141,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 			isVideo,
 			isGroup,
 			groupJid: isGroup ? jid : undefined
-		} as any)
+		} as WACallEvent)
 
 		return { callId, to: jid, isVideo }
 	}

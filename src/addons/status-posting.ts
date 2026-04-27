@@ -261,34 +261,38 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 
 		let msg: WAMessage
 		try {
-			msg = await generateWAMessage(STORIES_JID, messageContent as AnyMessageContent, {
-				logger,
-				userJid,
-				getUrlInfo: (text: string) =>
-					getUrlInfo(text, {
-						thumbnailWidth: linkPreviewImageThumbnailWidth,
-						fetchOpts: { timeout: 3000, ...(axiosOptions || {}) },
-						logger
-					}),
-				upload: async (encFilePath: unknown, opts: object) => {
-					const res = await waUploadToServer(encFilePath, { ...opts })
-					return {
-						mediaUrl: res.url ?? '',
-						directPath: res.directPath ?? '',
-						handle: res.handle,
-						mediaKey: res.mediaKey,
-						fileEncSha256: res.fileEncSha256,
-						fileSha256: res.fileSha256,
-						fileLength: res.fileLength
-					}
-				},
-				mediaCache: config.mediaCache,
-				options: config.options,
-				...(font !== undefined && { font }),
-				...(textColor && { textColor }),
-				...(backgroundColor && { backgroundColor }),
-				...(ptt !== undefined && { ptt })
-			})
+			msg = await generateWAMessage(
+				STORIES_JID,
+				messageContent as AnyMessageContent,
+				{
+					logger,
+					userJid,
+					getUrlInfo: (text: string) =>
+						getUrlInfo(text, {
+							thumbnailWidth: linkPreviewImageThumbnailWidth,
+							fetchOpts: { timeout: 3000, ...(axiosOptions || {}) },
+							logger
+						}),
+					upload: async (encFilePath: unknown, opts: object) => {
+						const res = await waUploadToServer(encFilePath, { ...opts })
+						return {
+							mediaUrl: res.url ?? '',
+							directPath: res.directPath ?? '',
+							handle: res.handle,
+							mediaKey: res.mediaKey,
+							fileEncSha256: res.fileEncSha256,
+							fileSha256: res.fileSha256,
+							fileLength: res.fileLength
+						}
+					},
+					mediaCache: config.mediaCache,
+					options: config.options,
+					...(font !== undefined && { font }),
+					...(textColor && { textColor }),
+					...(backgroundColor && { backgroundColor }),
+					...(ptt !== undefined && { ptt })
+				} as unknown as import('../Types').MessageGenerationOptions
+			)
 		} catch (error) {
 			logger.error(`Error generating status message: ${error}`)
 			throw error
@@ -323,8 +327,8 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 				}
 				const statusMsg = await generateWAMessageFromContent(
 					normalizedId,
-
-					protocolMessage,
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					protocolMessage as any,
 					{ userJid }
 				)
 				await relayMessage(normalizedId, statusMsg.message, {
