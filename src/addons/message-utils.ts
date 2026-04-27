@@ -2,7 +2,6 @@ import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import type { WAMediaUpload, WAMediaUploadFunction, WAMessage } from '../Types'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { AnyMessageContent, MessageGenerationOptions } from '../Types' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { QueryIds, XWAPaths } from '../Types'
 import {
 	generateWAMessage,
@@ -272,7 +271,7 @@ export const prepareAlbumMessageContent = async (
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
 		} as unknown as proto.IMessage,
-		{ userJid: options.userJid } as unknown as MessageGenerationOptions
+		{ userJid: options.userJid } as any
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -304,14 +303,14 @@ export const prepareAlbumMessageContent = async (
 		if ('image' in media && media.image)
 			mediaMsg = await generateWAMessage(
 				jid,
-				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as MessageGenerationOptions
+				media any,
+				sharedOpts as any,
 			)
 		else if ('video' in media && media.video)
 			mediaMsg = await generateWAMessage(
 				jid,
-				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as MessageGenerationOptions
+				media as any,
+				sharedOpts as any,
 			)
 
 		if (mediaMsg) {

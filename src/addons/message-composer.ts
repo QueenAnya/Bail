@@ -412,7 +412,7 @@ export const generateLatexInlineImageContent = async (
 	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
 	if (text) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: text })
 	for (const expr of expressions) {
-		const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
+		const { buffer /* width, height */ } = await renderLatexToPng(expr.latexExpression)
 		const res = await uploadFn(buffer, 'image')
 		const imageUrl = res.url || res.directPath || ''
 		submessages.push({
