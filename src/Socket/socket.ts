@@ -789,8 +789,8 @@ export const makeSocket = (config: SocketConfig) => {
 		const rawPlatformId = parseInt(getPlatformId(browser[1]))
 		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
 		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
+		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : browser[1]
+		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : browser[0]
 
 		await query({
 			tag: 'iq',
