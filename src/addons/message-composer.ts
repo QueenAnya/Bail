@@ -280,7 +280,7 @@ export const buildBotForwardedMessage = (
 	const richResponse: Record<string, unknown> = { messageType: 1, submessages, contextInfo }
 	if (unifiedResponse) richResponse.unifiedResponse = unifiedResponse
 	return {
-		richResponseMessage: richResponse as unknown as proto.IAIRichResponseMessage
+		richResponseMessage: richResponse as proto.IAIRichResponseMessage
 	}
 }
 

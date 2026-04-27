@@ -270,7 +270,7 @@ export const prepareAlbumMessageContent = async (
 				expectedImageCount: albums.filter(item => 'image' in item).length,
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
-		} as unknown as proto.IMessage,
+		} as proto.IMessage,
 		{ userJid: options.userJid } as any
 	)
 
@@ -296,7 +296,7 @@ export const prepareAlbumMessageContent = async (
 
 		const sharedOpts = {
 			userJid: options.userJid,
-			upload: uploadFn as unknown as WAMediaUploadFunction
+			upload: uploadFn as any
 		}
 
 		// Error 2/3 fix: media already contains image/video — don't spread again (duplicate key)
