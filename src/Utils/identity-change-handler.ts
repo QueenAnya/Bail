@@ -79,8 +79,9 @@ export async function handleIdentityChange(
 		return { action: 'skipped_offline' }
 	}
 
+	ctx.onBeforeSessionRefresh?.(from)
+
 	try {
-		ctx.onBeforeSessionRefresh?.(from)
 		await ctx.assertSessions([from], true)
 		return { action: 'session_refreshed' }
 	} catch (error) {
