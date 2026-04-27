@@ -300,18 +300,8 @@ export const prepareAlbumMessageContent = async (
 		}
 
 		// Error 2/3 fix: media already contains image/video — don't spread again (duplicate key)
-		if ('image' in media && media.image)
-			mediaMsg = await generateWAMessage(
-				jid,
-				media any,
-				sharedOpts as any,
-			)
-		else if ('video' in media && media.video)
-			mediaMsg = await generateWAMessage(
-				jid,
-				media as any,
-				sharedOpts as any,
-			)
+		if ('image' in media && media.image) mediaMsg = await generateWAMessage(jid, media as any, sharedOpts as any)
+		else if ('video' in media && media.video) mediaMsg = await generateWAMessage(jid, media as any, sharedOpts as any)
 
 		if (mediaMsg) {
 			mediaMsg.message!.messageContextInfo = {
