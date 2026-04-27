@@ -31,9 +31,8 @@ export type BaileysEventMap = {
 		isLatest?: boolean
 		progress?: number | null
 		syncType?: proto.HistorySync.HistorySyncType | null
-		peerDataRequestSessionId?: string | null
-		pastParticipants?: proto.IPastParticipants[] | null
 		chunkOrder?: number | null
+		peerDataRequestSessionId?: string | null
 	}
 	/** signals history sync milestones (completion or stall) per sync type */
 	'messaging-history.status': {
@@ -154,7 +153,6 @@ export type BufferedEventData = {
 		syncType?: proto.HistorySync.HistorySyncType
 		chunkOrder?: number | null
 		peerDataRequestSessionId?: string
-		pastParticipants?: proto.IPastParticipants[]
 	}
 	chatUpserts: { [jid: string]: Chat }
 	chatUpdates: { [jid: string]: ChatUpdate }

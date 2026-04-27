@@ -242,13 +242,12 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 		const merged: CodeToken[] = []
 		for (const t of tokens) {
 			const prev = merged.length > 0 ? merged[merged.length - 1]! : undefined
-			if (prev?.highlightType === t.highlightType) {
+			if (prev && prev.highlightType === t.highlightType) {
 				prev.codeContent += t.codeContent
 			} else {
 				merged.push({ ...t })
 			}
 		}
-
 		if (merged.length > 0) merged[merged.length - 1]!.codeContent += nl
 		blocks.push(...merged)
 	}
@@ -270,7 +269,6 @@ export const buildRichContextInfo = (quoted?: QuotedMsg): Record<string, unknown
 		ctxInfo.participant = quoted.key.participant || quoted.sender || quoted.key.remoteJid
 		ctxInfo.quotedMessage = quoted.message
 	}
-
 	return ctxInfo
 }
 
@@ -282,7 +280,7 @@ export const buildBotForwardedMessage = (
 	const richResponse: Record<string, unknown> = { messageType: 1, submessages, contextInfo }
 	if (unifiedResponse) richResponse.unifiedResponse = unifiedResponse
 	return {
-		richResponseMessage: richResponse
+		richResponseMessage: richResponse as any
 	}
 }
 
@@ -414,7 +412,7 @@ export const generateLatexInlineImageContent = async (
 	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
 	if (text) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: text })
 	for (const expr of expressions) {
-		const { buffer /* width, height */ } = await renderLatexToPng(expr.latexExpression)
+		const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
 		const res = await uploadFn(buffer, 'image')
 		const imageUrl = res.url || res.directPath || ''
 		submessages.push({
@@ -426,7 +424,6 @@ export const generateLatexInlineImageContent = async (
 			}
 		})
 	}
-
 	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),

@@ -1,10 +1,10 @@
 import { proto } from '../../WAProto/index.js'
 import { makeLibSignalRepository } from '../Signal/libsignal'
-import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'
+import type {SocketConfig, WAVersion} from '../Types'
 import { Browsers } from '../Utils/browser-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1038166097]
+const version = [2, 3000, 1035194821]
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -64,7 +64,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	retryRequestDelayMs: 250,
 	maxMsgRetryCount: 5,
 	fireInitQueries: true,
-	auth: undefined as unknown as AuthenticationState,
+	auth: undefined as any
 	markOnlineOnConnect: true,
 	syncFullHistory: true,
 	patchMessageBeforeSending: msg => msg,
@@ -94,14 +94,13 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	document: '/mms/document',
 	audio: '/mms/audio',
 	sticker: '/mms/image',
-	'sticker-pack': '/mms/sticker-pack',
-	'thumbnail-sticker-pack': '/mms/thumbnail-sticker-pack',
 	'thumbnail-link': '/mms/image',
 	'product-catalog-image': '/product/image',
 	'md-app-state': '',
 	'md-msg-hist': '/mms/md-app-state',
 	'biz-cover-photo': '/pps/biz-cover-photo'
 }
+
 
 export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	image: '/newsletter/newsletter-image',
@@ -121,8 +120,6 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	product: 'Image',
 	ptt: 'Audio',
 	sticker: 'Image',
-	'sticker-pack': 'Sticker Pack',
-	'thumbnail-sticker-pack': 'Sticker Pack Thumbnail',
 	video: 'Video',
 	'thumbnail-document': 'Document Thumbnail',
 	'thumbnail-image': 'Image Thumbnail',
@@ -139,6 +136,9 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 export type MediaType = keyof typeof MEDIA_HKDF_KEY_MAPPING
 
 export const MEDIA_KEYS = Object.keys(MEDIA_PATH_MAP) as MediaType[]
+
+/** 120s timeout for history sync stall detection, same as WA Web's handleChunkProgress / restartPausedTimer (g = 120) */
+export const HISTORY_SYNC_PAUSED_TIMEOUT_MS = 120_000
 
 export const MIN_PREKEY_COUNT = 5
 
@@ -160,6 +160,3 @@ export const TimeMs = {
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
 }
-
-/** 120s timeout for history sync stall detection, same as WA Web's handleChunkProgress / restartPausedTimer (g = 120) */
-export const HISTORY_SYNC_PAUSED_TIMEOUT_MS = 120_000

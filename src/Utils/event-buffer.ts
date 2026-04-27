@@ -312,14 +312,9 @@ function append<E extends BufferableEvent>(
 			data.historySets.syncType = eventData.syncType
 			data.historySets.progress = eventData.progress
 			data.historySets.chunkOrder = eventData.chunkOrder
+			data.historySets.chunkOrder = eventData.chunkOrder
 			data.historySets.peerDataRequestSessionId = eventData.peerDataRequestSessionId
 			data.historySets.isLatest = eventData.isLatest || data.historySets.isLatest
-			if (eventData.pastParticipants?.length) {
-				data.historySets.pastParticipants = [
-					...(data.historySets.pastParticipants || []),
-					...eventData.pastParticipants
-				]
-			}
 
 			break
 		case 'chats.upsert':
@@ -608,8 +603,8 @@ function consolidateEvents(data: BufferedEventData) {
 			chunkOrder: data.historySets.chunkOrder,
 			progress: data.historySets.progress,
 			isLatest: data.historySets.isLatest,
-			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId,
-			pastParticipants: data.historySets.pastParticipants
+			chunkOrder: data.historySets.chunkOrder,
+			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId
 		}
 	}
 

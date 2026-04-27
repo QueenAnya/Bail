@@ -3,20 +3,6 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import { execSendStatusMentions } from '../addons/from-messages-send'
-import {
-	type CapturedUnifiedResponse,
-	captureUnifiedResponse,
-	generateCodeBlockContent,
-	generateLatexContent,
-	generateLatexImageContent,
-	generateLatexInlineImageContent,
-	generateListContent,
-	generateRichMessageContent,
-	generateTableContent,
-	generateUnifiedResponseContent,
-	type LatexExpression,
-	type RichSubMessage
-} from '../addons/message-composer'
 import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
@@ -53,6 +39,17 @@ import {
 	parseAndInjectE2ESessions,
 	unixTimestampSeconds
 } from '../Utils'
+import {
+	captureUnifiedResponse,
+	generateCodeBlockContent,
+	generateLatexContent,
+	generateLatexImageContent,
+	generateLatexInlineImageContent,
+	generateListContent,
+	generateRichMessageContent,
+	generateTableContent,
+	generateUnifiedResponseContent
+} from '../addons/message-composer'
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
@@ -75,17 +72,17 @@ import {
 	getBinaryNodeChildren,
 	isHostedLidUser,
 	isHostedPnUser,
-	isJidBot,
 	isJidGroup,
+	isJidBot,
 	isJidMetaAI,
 	isJidNewsletter,
+	PSA_WID,
 	isLidUser,
 	isPnUser,
 	jidDecode,
 	jidEncode,
 	jidNormalizedUser,
 	type JidWithDevice,
-	PSA_WID,
 	S_WHATSAPP_NET
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
@@ -1427,7 +1424,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return mediaMsgs[0]
+				return mediaMsgs[0] as WAMessage | undefined
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
@@ -1487,14 +1484,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: pollAttrs
-					})
+					} as BinaryNode)
 				} else if (isEventMsg) {
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: {
 							event_type: 'creation'
 						}
-					})
+					} as BinaryNode)
 				}
 
 				await relayMessage(jid, fullMsg.message!, {

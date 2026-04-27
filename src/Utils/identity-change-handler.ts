@@ -1,5 +1,5 @@
 import NodeCache from '@cacheable/node-cache'
-import { areJidsSameUser, type BinaryNode, getBinaryNodeChild, jidDecode } from '../WABinary'
+import { areJidsSameUser, getBinaryNodeChild, jidDecode } from '../WABinary'
 import { isStringNullOrEmpty } from './generics'
 import type { ILogger } from './logger'
 
@@ -22,8 +22,9 @@ export type IdentityChangeContext = {
 	debounceCache: NodeCache<boolean>
 	logger: ILogger
 	/**
-	 * Invoked right before assertSessions is called for an existing-session identity change.
-	 * Used to kick off fire-and-forget side effects (e.g. tctoken re-issuance).
+	 * Invoked right before `assertSessions` is called for an existing-session identity change.
+	 * Used to kick off fire-and-forget side effects (e.g. tctoken re-issuance) in the same
+	 * order WA Web does — i.e. before the E2E session is re-established.
 	 * Must not throw; implementations are responsible for their own error handling.
 	 */
 	onBeforeSessionRefresh?: (jid: string) => void
@@ -79,8 +80,11 @@ export async function handleIdentityChange(
 		return { action: 'skipped_offline' }
 	}
 
+	ctx.onBeforeSessionRefresh?.(from)
+
+	ctx.onBeforeSessionRefresh?.(from)
+
 	try {
-		ctx.onBeforeSessionRefresh?.(from)
 		await ctx.assertSessions([from], true)
 		return { action: 'session_refreshed' }
 	} catch (error) {

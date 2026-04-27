@@ -65,7 +65,6 @@ import {
 } from '../Utils/tc-token-utils'
 import {
 	areJidsSameUser,
-	type BinaryNode,
 	binaryNodeToString,
 	getAllBinaryNodeChildren,
 	getBinaryNodeChild,
@@ -295,7 +294,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						const pn = typeof profile === 'string' ? profile : (profile?.pn ?? profile?.jid ?? null)
 						if (lid && pn) ev.emit('lid-mapping.update', { lid, pn })
 					}
-
 					break
 				}
 
@@ -654,7 +652,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			isVideo,
 			isGroup,
 			groupJid: isGroup ? jid : undefined
-		})
+		} as WACallEvent)
 		return { callId, to: jid, isVideo }
 	}
 

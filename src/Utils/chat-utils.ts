@@ -14,11 +14,7 @@ import type {
 	WAPatchCreate,
 	WAPatchName
 } from '../Types'
-import {
-	type ChatLabelAssociation,
-	LabelAssociationType,
-	type MessageLabelAssociation
-} from '../Types/LabelAssociation'
+import { LabelAssociationType } from '../Types/LabelAssociation'
 import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, isJidGroup, jidNormalizedUser } from '../WABinary'
 import { aesDecrypt, aesEncrypt, hmacSign } from './crypto'
 import { toNumber } from './generics'
@@ -136,6 +132,23 @@ export const ensureLTHashStateVersion = (state: LTHashState): LTHashState => {
 	if (typeof state.version !== 'number' || isNaN(state.version)) {
 		state.version = 0
 	}
+	return state
+}
+
+export const MAX_SYNC_ATTEMPTS = 2
+
+export const isMissingKeyError = (error: any): boolean => {
+	return error?.data?.isMissingKey === true
+}
+
+export const isAppStateSyncIrrecoverable = (error: any, attempts: number): boolean => {
+	return attempts >= MAX_SYNC_ATTEMPTS || error?.name === 'TypeError'
+}
+
+export const ensureLTHashStateVersion = (state: LTHashState): LTHashState => {
+	if (typeof state.version !== 'number' || isNaN(state.version)) {
+		state.version = 0
+	}
 
 	return state
 }
@@ -145,6 +158,7 @@ export const MAX_SYNC_ATTEMPTS = 2
 /**
  * Check if an error is a missing app state sync key.
  * WA Web treats these as "Blocked" (waits for key arrival), not fatal.
+ * In Baileys we retry with a snapshot which may use a different key.
  */
 export const isMissingKeyError = (error: any): boolean => {
 	return error?.data?.isMissingKey === true
@@ -153,6 +167,7 @@ export const isMissingKeyError = (error: any): boolean => {
 /**
  * Determines if an app state sync error is unrecoverable.
  * TypeError indicates a WASM crash; otherwise we give up after MAX_SYNC_ATTEMPTS.
+ * Missing keys are NOT checked here — they are handled separately as "Blocked".
  */
 export const isAppStateSyncIrrecoverable = (error: any, attempts: number): boolean => {
 	return attempts >= MAX_SYNC_ATTEMPTS || error?.name === 'TypeError'
@@ -367,7 +382,7 @@ export const extractSyncdPatches = async (result: BinaryNode, options: RequestIn
 						content = Buffer.from(Object.values(content))
 					}
 
-					const syncd = proto.SyncdPatch.decode(content)
+					const syncd = proto.SyncdPatch.decode(content as Uint8Array)
 					if (!syncd.version) {
 						syncd.version = { version: +collectionNode.attrs.version! + 1 }
 					}
@@ -964,6 +979,7 @@ export const processSyncAction = (
 					action.lidContactAction.firstName ||
 					action.lidContactAction.username ||
 					undefined,
+				username: action.lidContactAction.username || undefined,
 				lid: id!,
 				phoneNumber: undefined,
 				username: action.lidContactAction.username || undefined

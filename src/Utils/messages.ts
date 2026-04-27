@@ -1,7 +1,6 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
-import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
 import {
 	buildAdminInviteMessage,
@@ -317,7 +316,7 @@ export const prepareWAMessageMedia = async (
 			mediaKeyTimestamp: unixTimestampSeconds(),
 			...uploadData,
 			media: undefined
-		})
+		} as any)
 	})
 
 	if (uploadData.ptv) {
@@ -681,7 +680,7 @@ export const generateWAMessageContent = async (
 	// ── productList → ListMessage with products ────────────────────────────────
 	if ('productList' in message && !!message.productList) {
 		const thumbnail = message.thumbnail
-			? await generateThumbnail(message.thumbnail as unknown as string, 'image', {})
+			? await generateThumbnail(message.thumbnail as any'image', {})
 			: null
 
 		const listMessage: proto.Message.IListMessage = {

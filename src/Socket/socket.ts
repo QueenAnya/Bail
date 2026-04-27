@@ -41,7 +41,6 @@ import { getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
 import { buildPairingQRData } from '../Utils/companion-reg-client-utils'
 import {
 	assertNodeErrorFree,
-	type BinaryNode,
 	binaryNodeToString,
 	encodeBinaryNode,
 	getAllBinaryNodeChildren,
