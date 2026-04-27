@@ -9,10 +9,10 @@ export interface Contact {
 	name?: string
 	/** name of the contact, the contact has set on their own on WA */
 	notify?: string
-	/** username associated with this contact, when provided by WA */
-	username?: string
 	/** I have no idea */
 	verifiedName?: string
+	/** username associated with this contact, when provided by WA */
+	username?: string
 	// Baileys Added
 	/**
 	 * Url of the profile picture of the contact

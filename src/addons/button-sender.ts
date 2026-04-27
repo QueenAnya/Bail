@@ -318,7 +318,7 @@ function parseButtonParamsInternal(
  */
 export function buildInteractiveButtons(buttons: AnyRawButton[] = []): NativeSendButton[] {
 	return buttons.map((b, i) => {
-		const btn = b as Record<string, unknown>
+		const btn = b
 
 		// 1. Already native shape
 		if (btn.name && btn.buttonParamsJson) return b as NativeSendButton
@@ -375,7 +375,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 	}
 
 	const cleaned = (buttons as AnyRawButton[]).map((b, idx) => {
-		const btn = b as Record<string, unknown>
+		const btn = b
 		if (b === null || typeof b !== 'object') {
 			errors.push(`button[${idx}] is not an object`)
 			return b
@@ -426,7 +426,7 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 		errors.push('buttons is mandatory and must be a non-empty array')
 	} else {
 		;(d.buttons as AnyRawButton[]).forEach((btn, i) => {
-			const b = btn as Record<string, unknown>
+			const b = btn
 			if (!btn || typeof btn !== 'object') {
 				errors.push(`button[${i}] must be an object`)
 				return
@@ -692,7 +692,7 @@ export async function sendInteractiveMessage(
 			context: 'sendInteractiveMessage.validateInteractiveMessageContent',
 			errors: cErr,
 			warnings: cWarn,
-			example: convertToInteractiveMessage(EXAMPLE_PAYLOADS.sendInteractiveMessage as any)
+			example: convertToInteractiveMessage(EXAMPLE_PAYLOADS.sendInteractiveMessage)
 		})
 	}
 
@@ -700,7 +700,7 @@ export async function sendInteractiveMessage(
 
 	// Step 3 — build WAMessage (uses internal @queenanya/baileys helpers directly)
 	const userJid: string = sock.authState?.creds?.me?.id ?? sock.user?.id ?? ''
-	const fullMsg = generateWAMessageFromContent(jid, convertedContent as WAMessageContent, {
+	const fullMsg = generateWAMessageFromContent(jid, convertedContent, {
 		userJid,
 		messageId: generateMessageIDV2(userJid),
 		timestamp: new Date()
@@ -845,8 +845,8 @@ export async function sendInteractiveMessageV2(
 			}
 
 			content.document = fileBuffer
-			content.fileName = (content.fileName as string | undefined) ?? fileName
-			content.mimetype = (content.mimetype as string | undefined) ?? mimeType
+			content.fileName = content.fileName ?? fileName
+			content.mimetype = content.mimetype ?? mimeType
 		} catch (e) {
 			console.warn('[button-sender] ⚠️ Failed to build dummy document:', e)
 		}

@@ -17,7 +17,6 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import type { SocketConfig } from '../Types'
-import type { WACallEvent } from '../Types' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { encodeSignedDeviceIdentity } from '../Utils'
 import { isJidGroup, jidEncode } from '../WABinary'
 
@@ -224,7 +223,7 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 			isVideo,
 			isGroup,
 			groupJid: isGroup ? jid : undefined
-		} as WACallEvent)
+		} as any)
 
 		return { callId, to: jid, isVideo }
 	}
