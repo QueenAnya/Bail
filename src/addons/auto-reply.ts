@@ -66,7 +66,7 @@ export class AutoReplyHandler {
 		}
 		if (!fullRule.keywords && !fullRule.pattern && !fullRule.exactMatch)
 			throw new Error('Rule must have keywords, pattern, or exactMatch')
-		this.rules.set(fullRule.id, fullRule)
+		this.rules.set(fullRule.id, fullRule as AutoReplyRule & { id: string })
 		return fullRule
 	}
 

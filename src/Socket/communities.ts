@@ -1,12 +1,5 @@
 import { proto } from '../../WAProto/index.js'
-import {
-	type GroupMetadata,
-	type GroupParticipant,
-	type ParticipantAction,
-	type SocketConfig,
-	type WAMessageKey,
-	WAMessageStubType
-} from '../Types'
+import { WAMessageStubType } from '../Types'
 import { generateMessageID, generateMessageIDV2, unixTimestampSeconds } from '../Utils'
 import logger from '../Utils/logger'
 import {

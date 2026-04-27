@@ -1,5 +1,5 @@
 import type { USyncQueryProtocol } from '../../Types/USync'
-import { assertNodeErrorFree, type BinaryNode } from '../../WABinary'
+import { assertNodeErrorFree } from '../../WABinary'
 import { USyncUser } from '../USyncUser'
 
 export class USyncUsernameProtocol implements USyncQueryProtocol {

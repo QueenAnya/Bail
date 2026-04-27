@@ -10,8 +10,6 @@ import type {
 } from '../Types/Auth'
 import {
 	assertNodeErrorFree,
-	type BinaryNode,
-	type FullJid,
 	getBinaryNodeChild,
 	getBinaryNodeChildBuffer,
 	getBinaryNodeChildren,

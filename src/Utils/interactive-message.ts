@@ -150,7 +150,7 @@ export const generateInteractiveButtonMessage = async (
 		buttonsMessage.videoMessage = media.videoMessage
 		buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.VIDEO
 	} else if (content.headerDocument && options) {
-		const doc = content.headerDocument
+		const doc = content.headerDocument as WAMediaUpload & { filename?: string }
 		const media = await prepareWAMessageMedia(
 			{ document: doc, mimetype: 'application/pdf', fileName: doc.filename },
 			options
