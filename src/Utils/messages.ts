@@ -263,7 +263,7 @@ export const prepareWAMessageMedia = async (
 					const { thumbnail, originalImageDimensions } = await generateThumbnail(
 						originalFilePath!,
 						mediaType as 'image' | 'video',
-						{ ...options, hdMode: !!(message as any).hd }
+						options
 					)
 					uploadData.jpegThumbnail = thumbnail
 					if (!uploadData.width && originalImageDimensions) {
@@ -680,9 +680,7 @@ export const generateWAMessageContent = async (
 
 	// ── productList → ListMessage with products ────────────────────────────────
 	if ('productList' in message && !!message.productList) {
-		const thumbnail = message.thumbnail
-			? await generateThumbnail(message.thumbnail as unknown as string, 'image', {})
-			: null
+		const thumbnail = message.thumbnail ? await generateThumbnail(message.thumbnail as any, 'image', {}) : null
 
 		const listMessage: proto.Message.IListMessage = {
 			title: (message as any).title,

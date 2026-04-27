@@ -271,8 +271,8 @@ export const prepareAlbumMessageContent = async (
 				expectedImageCount: albums.filter(item => 'image' in item).length,
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
-		} as unknown as proto.IMessage,
-		{ userJid: options.userJid } as unknown as MessageGenerationOptions
+		} as any,
+		{ userJid: options.userJid } as any
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -297,22 +297,12 @@ export const prepareAlbumMessageContent = async (
 
 		const sharedOpts = {
 			userJid: options.userJid,
-			upload: uploadFn as unknown as WAMediaUploadFunction
+			upload: uploadFn as any
 		}
 
 		// Error 2/3 fix: media already contains image/video — don't spread again (duplicate key)
-		if ('image' in media && media.image)
-			mediaMsg = await generateWAMessage(
-				jid,
-				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as MessageGenerationOptions
-			)
-		else if ('video' in media && media.video)
-			mediaMsg = await generateWAMessage(
-				jid,
-				media as unknown as AnyMessageContent,
-				sharedOpts as unknown as MessageGenerationOptions
-			)
+		if ('image' in media && media.image) mediaMsg = await generateWAMessage(jid, media as any, sharedOpts as any)
+		else if ('video' in media && media.video) mediaMsg = await generateWAMessage(jid, media as any, sharedOpts as any)
 
 		if (mediaMsg) {
 			mediaMsg.message!.messageContextInfo = {

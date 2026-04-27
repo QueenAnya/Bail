@@ -236,6 +236,8 @@ export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWait
 export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
 	ev.on('connection.update', async ({ qr }) => {
 		if (qr) {
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-ignore — optional peer dependency
 			const QR = await import('qrcode-terminal')
 				.then(m => m.default || m)
 				.catch(() => {

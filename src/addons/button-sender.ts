@@ -692,9 +692,7 @@ export async function sendInteractiveMessage(
 			context: 'sendInteractiveMessage.validateInteractiveMessageContent',
 			errors: cErr,
 			warnings: cWarn,
-			example: convertToInteractiveMessage(
-				EXAMPLE_PAYLOADS.sendInteractiveMessage as unknown as Record<string, unknown>
-			)
+			example: convertToInteractiveMessage(EXAMPLE_PAYLOADS.sendInteractiveMessage as any)
 		})
 	}
 

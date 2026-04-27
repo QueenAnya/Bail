@@ -291,7 +291,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 					...(textColor && { textColor }),
 					...(backgroundColor && { backgroundColor }),
 					...(ptt !== undefined && { ptt })
-				} as unknown as import('../Types').MessageGenerationOptions
+				} as any
 			)
 		} catch (error) {
 			logger.error(`Error generating status message: ${error}`)

@@ -508,7 +508,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				category: category?.content?.toString(),
 				business_hours: {
 					timezone: businessHours?.attrs?.timezone,
-					business_config: businessHoursConfig?.map(({ attrs }) => attrs as unknown as WABusinessHoursConfig)
+					business_config: businessHoursConfig?.map(({ attrs }) => attrs as any)
 				}
 			}
 		}

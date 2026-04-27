@@ -6,6 +6,7 @@
  * These are imported back into generateWAMessageContent in messages.ts.
  */
 import { Boom } from '@hapi/boom'
+// @ts-ignore — optional peer dependency
 import { zipSync } from 'fflate'
 import { promises as fs } from 'fs'
 import { gunzipSync, gzipSync } from 'zlib'
@@ -296,11 +297,15 @@ export async function buildStickerPackMessage(
 		thumbnailBuffer = coverBuffer
 	}
 
-	const thumbEncrypted = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack' as any, {
-		logger: options.logger,
-		opts: options.options,
-		mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement!
-	})
+	const thumbEncrypted = await encryptedStream(
+		thumbnailBuffer,
+		'thumbnail-sticker-pack' as any,
+		{
+			logger: options.logger,
+			opts: options.options,
+			mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement!
+		} as any
+	)
 
 	const thumbResult = await options.upload(thumbEncrypted.encFilePath, {
 		fileEncSha256B64: thumbEncrypted.fileEncSha256.toString('base64'),
