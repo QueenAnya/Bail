@@ -1,7 +1,6 @@
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import type { WAMediaUpload, WAMediaUploadFunction, WAMessage } from '../Types'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { AnyMessageContent, MessageGenerationOptions } from '../Types' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { QueryIds, XWAPaths } from '../Types'
 import {
