@@ -1,8 +1,6 @@
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type { WAMediaUpload, WAMediaUploadFunction, WAMessage } from '../Types'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { AnyMessageContent, MessageGenerationOptions } from '../Types' // eslint-disable-line @typescript-eslint/no-unused-vars
+import type { WAMediaUpload, WAMessage } from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
 import {
 	generateWAMessage,
@@ -182,7 +180,7 @@ export interface MessageExtrasContext {
 
 /** Build contextInfo for @mention or @all. */
 export const buildMentionContextInfo = (message: MentionContent): { contextInfo: proto.IContextInfo } => {
-	if (message.mentionAll) return { contextInfo: { nonJidMentions: 1 } as proto.IContextInfo }
+	if (message.mentionAll) return { contextInfo: { nonJidMentions: 1 } }
 	if (message.mentions?.length) return { contextInfo: { mentionedJid: message.mentions } }
 	return { contextInfo: {} }
 }
@@ -223,7 +221,7 @@ export const normalizeMediaInput = (
 	if (!media) return media as null | undefined
 	if (Buffer.isBuffer(media)) return media
 	if (typeof media === 'string') return { url: media }
-	return media as WAMediaUpload
+	return media
 }
 
 /** Wrap buttons/template/list/interactive in viewOnceMessageV2Extension for MD clients. */
@@ -271,8 +269,8 @@ export const prepareAlbumMessageContent = async (
 				expectedImageCount: albums.filter(item => 'image' in item).length,
 				expectedVideoCount: albums.filter(item => 'video' in item).length
 			}
-		} as any,
-		{ userJid: options.userJid } as any
+		},
+		{ userJid: options.userJid }
 	)
 
 	await options.suki.relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
@@ -301,8 +299,8 @@ export const prepareAlbumMessageContent = async (
 		}
 
 		// Error 2/3 fix: media already contains image/video — don't spread again (duplicate key)
-		if ('image' in media && media.image) mediaMsg = await generateWAMessage(jid, media as any, sharedOpts as any)
-		else if ('video' in media && media.video) mediaMsg = await generateWAMessage(jid, media as any, sharedOpts as any)
+		if ('image' in media && media.image) mediaMsg = await generateWAMessage(jid, media, sharedOpts)
+		else if ('video' in media && media.video) mediaMsg = await generateWAMessage(jid, media, sharedOpts)
 
 		if (mediaMsg) {
 			mediaMsg.message!.messageContextInfo = {

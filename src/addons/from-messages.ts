@@ -6,7 +6,6 @@
  * These are imported back into generateWAMessageContent in messages.ts.
  */
 import { Boom } from '@hapi/boom'
-// @ts-ignore — optional peer dependency
 import { zipSync } from 'fflate'
 import { promises as fs } from 'fs'
 import { gunzipSync, gzipSync } from 'zlib'
@@ -131,7 +130,7 @@ export function isLottieBuffer(buffer: Buffer): boolean {
 	if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
 		// gzip-compressed
 		try {
-			jsonBuffer = gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 }) as Buffer
+			jsonBuffer = gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 })
 		} catch {
 			return false
 		}
@@ -194,7 +193,7 @@ export async function buildStickerPackMessage(
 			if (detectedLottie) {
 				// Raw Lottie JSON → gzip to WAS
 				if (buffer[0] === 0x7b) {
-					finalBuffer = gzipSync(buffer) as Buffer
+					finalBuffer = gzipSync(buffer)
 				}
 			} else if (isWebPBuffer(buffer)) {
 				finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
@@ -260,14 +259,14 @@ export async function buildStickerPackMessage(
 	// ── Step 3: ZIP + encrypt + upload as 'sticker-pack' ─────────────────
 	const zipBuffer = Buffer.from(zipSync(stickerData))
 
-	const stickerPackEncrypted = await encryptedStream(zipBuffer, 'sticker-pack' as any, {
+	const stickerPackEncrypted = await encryptedStream(zipBuffer, 'sticker-pack', {
 		logger: options.logger,
 		opts: options.options
 	})
 
 	const stickerPackResult = await options.upload(stickerPackEncrypted.encFilePath, {
 		fileEncSha256B64: stickerPackEncrypted.fileEncSha256.toString('base64'),
-		mediaType: 'sticker-pack' as any,
+		mediaType: 'sticker-pack',
 		timeoutMs: options.mediaUploadTimeoutMs
 	})
 
@@ -297,19 +296,15 @@ export async function buildStickerPackMessage(
 		thumbnailBuffer = coverBuffer
 	}
 
-	const thumbEncrypted = await encryptedStream(
-		thumbnailBuffer,
-		'thumbnail-sticker-pack' as any,
-		{
-			logger: options.logger,
-			opts: options.options,
-			mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement!
-		} as any
-	)
+	const thumbEncrypted = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack', {
+		logger: options.logger,
+		opts: options.options,
+		mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement!
+	})
 
 	const thumbResult = await options.upload(thumbEncrypted.encFilePath, {
 		fileEncSha256B64: thumbEncrypted.fileEncSha256.toString('base64'),
-		mediaType: 'thumbnail-sticker-pack' as any,
+		mediaType: 'thumbnail-sticker-pack',
 		timeoutMs: options.mediaUploadTimeoutMs
 	})
 

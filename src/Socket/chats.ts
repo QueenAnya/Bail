@@ -1,5 +1,6 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
+import Long from 'long'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -15,6 +16,7 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
+	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -52,12 +54,12 @@ import {
 	type BinaryNode,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
+	isHostedLidUser,
+	isHostedPnUser,
 	isLidUser,
 	isPnUser,
 	jidDecode,
 	jidNormalizedUser,
-	isHostedLidUser,
-	isHostedPnUser,
 	reduceBinaryNodeToDictionary,
 	S_WHATSAPP_NET
 } from '../WABinary'
@@ -89,8 +91,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
 
-	let privacySettings: { [_: string]: string } | undefined
-
 	/** Server-assigned AB props for protocol behavior. */
 	const serverProps = {
 		/** AB prop 10518: gate tctoken on 1:1 messages. Default true (safe: avoids 463). */
@@ -100,6 +100,18 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		/** AB prop 14303: issue tctokens to LID instead of PN. WA Web default: false. */
 		lidTrustedTokenIssueToLid: false
 	}
+
+	// In-memory history sync completion tracking (resets on reconnection)
+	const historySyncStatus = {
+		initialBootstrapComplete: false,
+		recentSyncComplete: false
+	}
+	let historySyncPausedTimeout: NodeJS.Timeout | undefined
+
+	// Collections blocked on missing app state sync keys
+	const blockedCollections = new Set<WAPatchName>()
+
+	let privacySettings: { [_: string]: string } | undefined
 
 	let syncState: SyncState = SyncState.Connecting
 
@@ -117,17 +129,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	// Timeout for AwaitingInitialSync state
 	let awaitingSyncTimeout: NodeJS.Timeout | undefined
-
-	// In-memory history sync completion tracking (resets on reconnection)
-	const historySyncStatus = {
-		initialBootstrapComplete: false,
-		recentSyncComplete: false
-	}
-	let historySyncPausedTimeout: NodeJS.Timeout | undefined
-
-	// Collections blocked on missing app state sync keys (mirrors WA Web's "Blocked" state).
-	// When a key arrives via APP_STATE_SYNC_KEY_SHARE, these are re-synced.
-	const blockedCollections = new Set<WAPatchName>()
 
 	const placeholderResendCache =
 		config.placeholderResendCache ||
@@ -508,7 +509,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				category: category?.content?.toString(),
 				business_hours: {
 					timezone: businessHours?.attrs?.timezone,
-					business_config: businessHoursConfig?.map(({ attrs }) => attrs as any)
+					business_config: businessHoursConfig?.map(({ attrs }) => attrs as unknown as WABusinessHoursConfig)
 				}
 			}
 		}
@@ -590,10 +591,11 @@ export const makeChatsSocket = (config: SocketConfig) => {
 						let state = result[name]
 
 						if (state) {
-							state = ensureLTHashStateVersion(state)
 							if (typeof initialVersionMap[name] === 'undefined') {
 								initialVersionMap[name] = state.version
 							}
+
+							ensureLTHashStateVersion(state)
 						} else {
 							state = newLTHashState()
 						}
@@ -601,9 +603,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 						states[name] = state
 
 						const shouldForceSnapshot = forceSnapshotCollections.has(name)
-						if (shouldForceSnapshot) {
-							forceSnapshotCollections.delete(name)
-						}
+						if (shouldForceSnapshot) forceSnapshotCollections.delete(name)
 
 						logger.info(`resyncing ${name} from v${state.version}${shouldForceSnapshot ? ' (forcing snapshot)' : ''}`)
 
@@ -612,8 +612,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 							attrs: {
 								name,
 								version: state.version.toString(),
-								// return snapshot if syncing from scratch or forcing after a failed attempt
-								return_snapshot: (shouldForceSnapshot || !state.version).toString()
+								return_snapshot: (!state.version || shouldForceSnapshot).toString()
 							}
 						})
 					}
@@ -685,7 +684,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 							}
 						} catch (error: any) {
 							attemptsMap[name] = (attemptsMap[name] || 0) + 1
-
 							const logData = {
 								name,
 								attempt: attemptsMap[name],
@@ -694,10 +692,9 @@ export const makeChatsSocket = (config: SocketConfig) => {
 								errorType: error.name,
 								error: error.stack
 							}
+							await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
 
 							if (isMissingKeyError(error) && attemptsMap[name] >= MAX_SYNC_ATTEMPTS) {
-								// WA Web treats missing keys as "Blocked" — park the collection
-								// until the key arrives via APP_STATE_SYNC_KEY_SHARE.
 								logger.warn(
 									logData,
 									`${name} blocked on missing key from v${states[name].version}, parking after ${attemptsMap[name]} attempts`
@@ -705,7 +702,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 								blockedCollections.add(name)
 								collectionsToHandle.delete(name)
 							} else if (isMissingKeyError(error)) {
-								// Retry with a snapshot which may use a different key.
 								logger.info(
 									logData,
 									`${name} blocked on missing key from v${states[name].version}, retrying with snapshot`
@@ -716,8 +712,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 								collectionsToHandle.delete(name)
 							} else {
 								logger.info(logData, `failed to sync ${name} from v${states[name].version}, forcing snapshot retry`)
-								// force a full snapshot on retry to recover from
-								// corrupted local state (e.g. LTHash MAC mismatch)
 								forceSnapshotCollections.add(name)
 							}
 						}
@@ -741,8 +735,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		const baseContent: BinaryNode[] = [{ tag: 'picture', attrs: { type, query: 'url' } }]
 
 		// WA Web only includes tctoken for user JIDs (not groups/newsletters)
-		// and never for own profile pic (Chat model for self has no tcToken).
-		// Including tctoken for own JID causes the server to never respond.
+		// and never for own profile pic — including tctoken for self causes server to never respond
 		const normalizedJid = jidNormalizedUser(jid)
 		const isUserJid = isPnUser(normalizedJid) || isLidUser(normalizedJid)
 		const me = authState.creds.me
@@ -751,12 +744,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		let content: BinaryNode[] | undefined = baseContent
 
 		if (serverProps.profilePicPrivacyToken && isUserJid && !isSelf) {
-			content = await buildTcTokenFromJid({
-				authState,
-				jid: normalizedJid,
-				baseContent,
-				getLIDForPN
-			})
+			content = await buildTcTokenFromJid({ authState, jid: normalizedJid, baseContent, getLIDForPN })
 		}
 
 		jid = jidNormalizedUser(jid)
@@ -769,7 +757,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					type: 'get',
 					xmlns: 'w:profile:picture'
 				},
-				content
+				content: content
 			},
 			timeoutMs
 		)
@@ -916,7 +904,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				await resyncAppState([name], false)
 
 				const { [name]: currentSyncVersion } = await authState.keys.get('app-state-sync-version', [name])
-				initial = currentSyncVersion ? ensureLTHashStateVersion(currentSyncVersion) : newLTHashState()
+				initial = ensureLTHashStateVersion(currentSyncVersion || newLTHashState())
 
 				encodeResult = await encodeSyncdPatch(patchCreate, myAppStateKeyId, initial, getAppStateSyncKey)
 				const { patch, state } = encodeResult
@@ -975,21 +963,22 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		}
 	}
 
-	/** fetch AB props */
+	/** sending non-abt props may fix QR scan fail if server expects */
 	const fetchProps = async () => {
+		//TODO: implement both protocol 1 and protocol 2 prop fetching, specially for abKey for WM
 		const resultNode = await query({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
-				xmlns: 'abt',
+				xmlns: 'w',
 				type: 'get'
 			},
 			content: [
 				{
 					tag: 'props',
 					attrs: {
-						protocol: '1',
-						...(authState?.creds?.lastPropHash ? { hash: authState.creds.lastPropHash } : {})
+						protocol: '2',
+						hash: authState?.creds?.lastPropHash || ''
 					}
 				}
 			]
@@ -1008,23 +997,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			props = reduceBinaryNodeToDictionary(propsNode, 'prop')
 		}
 
-		// Extract protocol-relevant AB props (only the ones we need)
-		const privacyTokenProp = props['10518'] ?? props['privacy_token_sending_on_all_1_on_1_messages']
-		if (privacyTokenProp !== undefined) {
-			serverProps.privacyTokenOn1to1 = privacyTokenProp === 'true' || privacyTokenProp === '1'
-		}
-
-		const profilePicProp = props['9666'] ?? props['profile_scraping_privacy_token_in_photo_iq']
-		if (profilePicProp !== undefined) {
-			serverProps.profilePicPrivacyToken = profilePicProp === 'true' || profilePicProp === '1'
-		}
-
-		const lidIssueProp = props['14303'] ?? props['lid_trusted_token_issue_to_lid']
-		if (lidIssueProp !== undefined) {
-			serverProps.lidTrustedTokenIssueToLid = lidIssueProp === 'true' || lidIssueProp === '1'
-		}
-
-		logger.debug({ serverProps }, 'fetched props')
+		logger.debug('fetched props')
 
 		return props
 	}
@@ -1187,6 +1160,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
+	 * Clear a message from chat (delete for me)
+	 */
+	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
+	}
+
+	/**
 	 * queries need to be fired on connection open
 	 * help ensure parity with WA Web
 	 * */
@@ -1217,56 +1197,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				PROCESSABLE_HISTORY_TYPES.includes(historyMsg.syncType! as proto.HistorySync.HistorySyncType)
 			: false
 
-		if (historyMsg && shouldProcessHistoryMsg) {
-			const syncType = historyMsg.syncType as proto.HistorySync.HistorySyncType
-
-			// INITIAL_BOOTSTRAP — fire immediately, no progress check (same as WA Web K function)
-			if (
-				syncType === proto.HistorySync.HistorySyncType.INITIAL_BOOTSTRAP &&
-				!historySyncStatus.initialBootstrapComplete
-			) {
-				historySyncStatus.initialBootstrapComplete = true
-				ev.emit('messaging-history.status', {
-					syncType,
-					status: 'complete',
-					explicit: true
-				})
-			}
-
-			// RECENT with progress === 100 — explicit completion
-			if (
-				syncType === proto.HistorySync.HistorySyncType.RECENT &&
-				historyMsg.progress === 100 &&
-				!historySyncStatus.recentSyncComplete
-			) {
-				historySyncStatus.recentSyncComplete = true
-				clearTimeout(historySyncPausedTimeout)
-				historySyncPausedTimeout = undefined
-				ev.emit('messaging-history.status', {
-					syncType,
-					status: 'complete',
-					explicit: true
-				})
-			}
-
-			// Reset 120s paused timeout on any RECENT chunk (like WA Web's handleChunkProgress)
-			if (syncType === proto.HistorySync.HistorySyncType.RECENT && !historySyncStatus.recentSyncComplete) {
-				clearTimeout(historySyncPausedTimeout)
-				historySyncPausedTimeout = setTimeout(() => {
-					if (!historySyncStatus.recentSyncComplete) {
-						historySyncStatus.recentSyncComplete = true
-						ev.emit('messaging-history.status', {
-							syncType: proto.HistorySync.HistorySyncType.RECENT,
-							status: 'paused',
-							explicit: false
-						})
-					}
-
-					historySyncPausedTimeout = undefined
-				}, HISTORY_SYNC_PAUSED_TIMEOUT_MS)
-			}
-		}
-
 		// State machine: decide on sync and flush
 		if (historyMsg && syncState === SyncState.AwaitingInitialSync) {
 			if (awaitingSyncTimeout) {
@@ -1287,8 +1217,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 		const doAppStateSync = async () => {
 			if (syncState === SyncState.Syncing) {
-				// All collections will be synced, so clear any blocked ones
-				blockedCollections.clear()
 				logger.info('Doing app state sync')
 				await resyncAppState(ALL_WA_PATCH_NAMES, true)
 
@@ -1324,7 +1252,15 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		// If the app state key arrives and we are waiting to sync, trigger the sync now.
 		if (msg.message?.protocolMessage?.appStateSyncKeyShare && syncState === SyncState.Syncing) {
 			logger.info('App state sync key arrived, triggering app state sync')
-			await doAppStateSync()
+			// unblock any collections that were waiting for a key
+			if (blockedCollections.size > 0) {
+				const toUnblock = Array.from(blockedCollections)
+				blockedCollections.clear()
+				logger.info({ count: toUnblock.length }, 'unblocking collections after key share')
+				await resyncAppState(toUnblock, false)
+			} else {
+				await doAppStateSync()
+			}
 		}
 	})
 
@@ -1356,13 +1292,39 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		}
 	})
 
-	ev.on('connection.update', ({ connection, receivedPendingNotifications }) => {
-		if (connection === 'close') {
-			blockedCollections.clear()
-			clearTimeout(historySyncPausedTimeout)
-			historySyncPausedTimeout = undefined
+	ev.on('messaging-history.set', ({ syncType, progress, isLatest }) => {
+		const scheduleOrClearPausedTimeout = () => {
+			if (historySyncPausedTimeout) {
+				clearTimeout(historySyncPausedTimeout)
+				historySyncPausedTimeout = undefined
+			}
+
+			historySyncPausedTimeout = setTimeout(() => {
+				historySyncPausedTimeout = undefined
+				ev.emit('messaging-history.status', { syncType: syncType!, status: 'paused', explicit: false })
+			}, HISTORY_SYNC_PAUSED_TIMEOUT_MS)
 		}
 
+		if (progress === 100) {
+			if (historySyncPausedTimeout) {
+				clearTimeout(historySyncPausedTimeout)
+				historySyncPausedTimeout = undefined
+			}
+
+			ev.emit('messaging-history.status', { syncType: syncType!, status: 'complete', explicit: true })
+
+			if (syncType === proto.HistorySync.HistorySyncType.INITIAL_BOOTSTRAP) {
+				historySyncStatus.initialBootstrapComplete = true
+			} else if (syncType === proto.HistorySync.HistorySyncType.RECENT) {
+				historySyncStatus.recentSyncComplete = true
+			}
+		} else if (isLatest) {
+			// no progress=100 yet — start stall timer
+			scheduleOrClearPausedTimeout()
+		}
+	})
+
+	ev.on('connection.update', ({ connection, receivedPendingNotifications }) => {
 		if (connection === 'open') {
 			if (fireInitQueries) {
 				executeInitQueries().catch(error => onUnexpectedError(error, 'init queries'))
@@ -1376,11 +1338,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		if (!receivedPendingNotifications || syncState !== SyncState.Connecting) {
 			return
 		}
-
-		historySyncStatus.initialBootstrapComplete = false
-		historySyncStatus.recentSyncComplete = false
-		clearTimeout(historySyncPausedTimeout)
-		historySyncPausedTimeout = undefined
 
 		syncState = SyncState.AwaitingInitialSync
 		logger.info('Connection is now AwaitingInitialSync, buffering events')
@@ -1399,17 +1356,16 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			return
 		}
 
-		// On reconnection (accountSyncCounter > 0), the server does not push
-		// history sync notifications — the device already has its data.
-		// Skip the 20s wait and go online immediately.
+		// On reconnection (accountSyncCounter > 0), server won't push history sync —
+		// device already has data. Skip 20s wait and go online immediately.
 		if (authState.creds.accountSyncCounter > 0) {
-			logger.info('Reconnection with existing sync data, skipping history sync wait. Transitioning to Online.')
+			logger.info('Reconnection detected, skipping history sync wait. Transitioning to Online.')
 			syncState = SyncState.Online
 			setTimeout(() => ev.flush(), 0)
 			return
 		}
 
-		logger.info('First connection, awaiting history sync notification with a 20s timeout.')
+		logger.info('History sync is enabled, awaiting notification with a 20s timeout.')
 
 		if (awaitingSyncTimeout) {
 			clearTimeout(awaitingSyncTimeout)
@@ -1420,35 +1376,11 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				logger.warn('Timeout in AwaitingInitialSync, forcing state to Online and flushing buffer')
 				syncState = SyncState.Online
 				ev.flush()
-
-				// Increment so subsequent reconnections skip the 20s wait.
-				// Late-arriving history is still processed via processMessage
-				// regardless of the state machine phase.
+				// Increment so subsequent reconnections skip the 20s wait
 				const accountSyncCounter = (authState.creds.accountSyncCounter || 0) + 1
 				ev.emit('creds.update', { accountSyncCounter })
 			}
 		}, 20_000)
-	})
-
-	// When an app state sync key arrives (myAppStateKeyId is set) and there are
-	// collections blocked on a missing key, trigger a re-sync for just those collections.
-	// This mirrors WA Web's Blocked → retry-on-key-arrival behavior.
-	ev.on('creds.update', ({ myAppStateKeyId }) => {
-		if (!myAppStateKeyId || blockedCollections.size === 0) {
-			return
-		}
-
-		// If we're in the middle of a full sync, doAppStateSync handles all collections
-		if (syncState === SyncState.Syncing) {
-			blockedCollections.clear()
-			return
-		}
-
-		const collections = [...blockedCollections] as WAPatchName[]
-		blockedCollections.clear()
-
-		logger.info({ collections }, 'app state sync key arrived, re-syncing blocked collections')
-		resyncAppState(collections, false).catch(error => onUnexpectedError(error, 'blocked collections resync'))
 	})
 
 	ev.on('lid-mapping.update', async ({ lid, pn }) => {
@@ -1462,6 +1394,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	return {
 		...sock,
 		serverProps,
+		blockedCollections,
 		createCallLink,
 		getBotListV2,
 		messageMutex,
@@ -1495,6 +1428,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		getBusinessProfile,
 		resyncAppState,
 		chatModify,
+		clearMessage,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,
