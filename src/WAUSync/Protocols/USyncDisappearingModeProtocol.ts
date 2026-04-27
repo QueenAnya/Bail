@@ -1,5 +1,5 @@
 import type { USyncQueryProtocol } from '../../Types/USync'
-import { assertNodeErrorFree } from '../../WABinary'
+import { assertNodeErrorFree, type BinaryNode } from '../../WABinary'
 
 export type DisappearingModeData = {
 	duration: number

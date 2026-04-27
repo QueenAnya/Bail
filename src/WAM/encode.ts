@@ -1,5 +1,14 @@
 import { BinaryInfo } from './BinaryInfo'
-import { FLAG_BYTE, FLAG_EVENT, FLAG_EXTENDED, FLAG_FIELD, FLAG_GLOBAL, WEB_EVENTS, WEB_GLOBALS } from './constants'
+import {
+	FLAG_BYTE,
+	FLAG_EVENT,
+	FLAG_EXTENDED,
+	FLAG_FIELD,
+	FLAG_GLOBAL,
+	type Value,
+	WEB_EVENTS,
+	WEB_GLOBALS
+} from './constants'
 
 const getHeaderBitLength = (key: number) => (key < 256 ? 2 : 3)
 

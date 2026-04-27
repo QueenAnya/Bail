@@ -1,5 +1,5 @@
 import type { USyncQueryProtocol } from '../Types/USync'
-import { getBinaryNodeChild } from '../WABinary'
+import { type BinaryNode, getBinaryNodeChild } from '../WABinary'
 import { USyncBotProfileProtocol } from './Protocols/UsyncBotProfileProtocol'
 import { USyncLIDProtocol } from './Protocols/UsyncLIDProtocol'
 import {
@@ -47,7 +47,7 @@ export class USyncQuery {
 	}
 
 	parseUSyncQueryResult(result: BinaryNode | undefined): USyncQueryResult | undefined {
-		if (!result || result.attrs.type !== 'result') {
+		if (result?.attrs.type !== 'result') {
 			return
 		}
 

@@ -688,13 +688,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 								name,
 								attempt: attemptsMap[name],
 								version: states[name].version,
-								statusCode: (error as any).output?.statusCode,
-								errorType: (error as any).name,
-								error: (error as any).stack
+								statusCode: error.output?.statusCode,
+								errorType: error.name,
+								error: error.stack
 							}
 							await authState.keys.set({ 'app-state-sync-version': { [name]: null } })
 
-							if (isMissingKeyError(error) && attemptsMap[name]! >= MAX_SYNC_ATTEMPTS) {
+							if (isMissingKeyError(error) && attemptsMap[name] >= MAX_SYNC_ATTEMPTS) {
 								logger.warn(
 									logData,
 									`${name} blocked on missing key from v${states[name].version}, parking after ${attemptsMap[name]} attempts`
@@ -707,7 +707,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 									`${name} blocked on missing key from v${states[name].version}, retrying with snapshot`
 								)
 								forceSnapshotCollections.add(name)
-							} else if (isAppStateSyncIrrecoverable(error, attemptsMap[name]!)) {
+							} else if (isAppStateSyncIrrecoverable(error, attemptsMap[name])) {
 								logger.warn(logData, `failed to sync ${name} from v${states[name].version}, giving up`)
 								collectionsToHandle.delete(name)
 							} else {
@@ -1254,7 +1254,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			logger.info('App state sync key arrived, triggering app state sync')
 			// unblock any collections that were waiting for a key
 			if (blockedCollections.size > 0) {
-				const toUnblock = Array.from(blockedCollections) as WAPatchName[]
+				const toUnblock = Array.from(blockedCollections)
 				blockedCollections.clear()
 				logger.info({ count: toUnblock.length }, 'unblocking collections after key share')
 				await resyncAppState(toUnblock, false)
@@ -1356,6 +1356,15 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			return
 		}
 
+		// On reconnection (accountSyncCounter > 0), server won't push history sync —
+		// device already has data. Skip 20s wait and go online immediately.
+		if (authState.creds.accountSyncCounter > 0) {
+			logger.info('Reconnection detected, skipping history sync wait. Transitioning to Online.')
+			syncState = SyncState.Online
+			setTimeout(() => ev.flush(), 0)
+			return
+		}
+
 		logger.info('History sync is enabled, awaiting notification with a 20s timeout.')
 
 		if (awaitingSyncTimeout) {
@@ -1364,10 +1373,12 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 		awaitingSyncTimeout = setTimeout(() => {
 			if (syncState === SyncState.AwaitingInitialSync) {
-				// TODO: investigate
 				logger.warn('Timeout in AwaitingInitialSync, forcing state to Online and flushing buffer')
 				syncState = SyncState.Online
 				ev.flush()
+				// Increment so subsequent reconnections skip the 20s wait
+				const accountSyncCounter = (authState.creds.accountSyncCounter || 0) + 1
+				ev.emit('creds.update', { accountSyncCounter })
 			}
 		}, 20_000)
 	})
