@@ -8,7 +8,7 @@ import {
 	WA_ADV_HOSTED_ACCOUNT_SIG_PREFIX
 } from '../Defaults'
 import type { AuthenticationCreds, SignalCreds, SocketConfig } from '../Types'
-import { getBinaryNodeChild, jidDecode, S_WHATSAPP_NET } from '../WABinary'
+import { type BinaryNode, getBinaryNodeChild, jidDecode, S_WHATSAPP_NET } from '../WABinary'
 import { Curve, hmacSign } from './crypto'
 import { encodeBigEndian } from './generics'
 import { createSignalIdentity } from './signal'
@@ -35,8 +35,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 
 const PLATFORM_MAP = {
 	'Mac OS': proto.ClientPayload.WebInfo.WebSubPlatform.DARWIN,
-	Windows: proto.ClientPayload.WebInfo.WebSubPlatform.WIN32,
-	Android: proto.ClientPayload.WebInfo.WebSubPlatform.WIN_HYBRID
+	Windows: proto.ClientPayload.WebInfo.WebSubPlatform.WIN32
 }
 
 const getWebInfo = (config: SocketConfig): proto.ClientPayload.IWebInfo => {

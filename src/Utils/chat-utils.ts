@@ -14,7 +14,11 @@ import type {
 	WAPatchCreate,
 	WAPatchName
 } from '../Types'
-import { LabelAssociationType } from '../Types/LabelAssociation'
+import {
+	type ChatLabelAssociation,
+	LabelAssociationType,
+	type MessageLabelAssociation
+} from '../Types/LabelAssociation'
 import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, isJidGroup, jidNormalizedUser } from '../WABinary'
 import { aesDecrypt, aesEncrypt, hmacSign } from './crypto'
 import { toNumber } from './generics'
@@ -127,23 +131,6 @@ const generatePatchMac = (
 }
 
 export const newLTHashState = (): LTHashState => ({ version: 0, hash: Buffer.alloc(128), indexValueMap: {} })
-
-export const ensureLTHashStateVersion = (state: LTHashState): LTHashState => {
-	if (typeof state.version !== 'number' || isNaN(state.version)) {
-		state.version = 0
-	}
-	return state
-}
-
-export const MAX_SYNC_ATTEMPTS = 2
-
-export const isMissingKeyError = (error: any): boolean => {
-	return error?.data?.isMissingKey === true
-}
-
-export const isAppStateSyncIrrecoverable = (error: any, attempts: number): boolean => {
-	return attempts >= MAX_SYNC_ATTEMPTS || error?.name === 'TypeError'
-}
 
 export const ensureLTHashStateVersion = (state: LTHashState): LTHashState => {
 	if (typeof state.version !== 'number' || isNaN(state.version)) {
@@ -981,8 +968,7 @@ export const processSyncAction = (
 					undefined,
 				username: action.lidContactAction.username || undefined,
 				lid: id!,
-				phoneNumber: undefined,
-				username: action.lidContactAction.username || undefined
+				phoneNumber: undefined
 			}
 		])
 	} else if (action?.privacySettingChannelsPersonalisedRecommendationAction) {

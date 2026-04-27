@@ -1,5 +1,4 @@
 import { pipeline } from 'stream/promises'
-import { pipeline } from 'stream/promises'
 import { promisify } from 'util'
 import { createInflate, inflate } from 'zlib'
 import { proto } from '../../WAProto/index.js'

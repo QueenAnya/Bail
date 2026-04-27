@@ -312,7 +312,6 @@ function append<E extends BufferableEvent>(
 			data.historySets.syncType = eventData.syncType
 			data.historySets.progress = eventData.progress
 			data.historySets.chunkOrder = eventData.chunkOrder
-			data.historySets.chunkOrder = eventData.chunkOrder
 			data.historySets.peerDataRequestSessionId = eventData.peerDataRequestSessionId
 			data.historySets.isLatest = eventData.isLatest || data.historySets.isLatest
 
@@ -600,7 +599,6 @@ function consolidateEvents(data: BufferedEventData) {
 			messages: Object.values(data.historySets.messages),
 			contacts: Object.values(data.historySets.contacts),
 			syncType: data.historySets.syncType,
-			chunkOrder: data.historySets.chunkOrder,
 			progress: data.historySets.progress,
 			isLatest: data.historySets.isLatest,
 			chunkOrder: data.historySets.chunkOrder,

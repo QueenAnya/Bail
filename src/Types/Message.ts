@@ -25,8 +25,6 @@ export type WAMessageKey = proto.IMessageKey & {
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
-	remoteJidUsername?: string
-	participantUsername?: string
 }
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo
@@ -114,36 +112,6 @@ export interface WAUrlInfo {
 }
 
 // types to generate WA messages
-
-/** Attach native-flow interactive buttons */
-type Interactiveable = {
-	interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
-	title?: string
-	subtitle?: string
-	footer?: string
-	hasMediaAttachment?: boolean
-}
-
-/** Attach a single-select list to a text message */
-type Listable = {
-	sections?: proto.Message.ListMessage.ISection[]
-	/** Title shown above the list */
-	title?: string
-	/** Label on the button that opens the list (required) */
-	buttonText?: string
-	footer?: string
-}
-
-type Buttonable = {
-	buttons?: proto.Message.ButtonsMessage.IButton[]
-	footer?: string
-}
-
-type Templatable = {
-	templateButtons?: proto.HydratedTemplateButton[]
-	footer?: string
-}
-
 type Mentionable = {
 	/** list of jids that are mentioned in the accompanying text */
 	mentions?: string[]
@@ -166,50 +134,6 @@ type WithDimensions = {
 	height?: number
 }
 
-export type StickerPackSticker = {
-	fileSha256?: Uint8Array | null
-	fileEncSha256?: Uint8Array | null
-	mediaKey?: Uint8Array | null
-	directPath?: string | null
-	fileLength?: number | Long | null
-	thumbnailDirectPath?: string | null
-	thumbnailSha256?: Uint8Array | null
-	thumbnailEncSha256?: Uint8Array | null
-}
-
-export type StickerPack = {
-	stickers: StickerPackSticker[]
-	name?: string | null
-	publisherId?: string | null
-	publisherWebsite?: string | null
-}
-
-export type AdminInviteInfo = {
-	groupJid: string
-	inviteCode: string
-	inviteExpiration?: number | Long | null
-	groupName?: string | null
-	jpegThumbnail?: Uint8Array | null
-	caption?: string | null
-}
-
-export type CallCreationInfo = {
-	callId: string
-	type: 'offer' | 'revoke'
-}
-
-export type PaymentInviteInfo = {
-	serviceType: string
-	expiry?: number | null
-}
-
-export type AlbumMessageOptions = {
-	/** Number of images expected in the album */
-	expectedImageCount?: number
-	/** Number of videos expected in the album */
-	expectedVideoCount?: number
-}
-
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -230,43 +154,6 @@ export type EventMessageOptions = {
 	isScheduleCall?: boolean
 	extraGuestsAllowed?: boolean
 	messageSecret?: Uint8Array<ArrayBufferLike>
-}
-
-export type StickerPackSticker = {
-	fileSha256?: Uint8Array | null
-	fileEncSha256?: Uint8Array | null
-	mediaKey?: Uint8Array | null
-	directPath?: string | null
-	fileLength?: number | Long | null
-	thumbnailDirectPath?: string | null
-	thumbnailSha256?: Uint8Array | null
-	thumbnailEncSha256?: Uint8Array | null
-}
-
-export type StickerPack = {
-	stickers: StickerPackSticker[]
-	name?: string | null
-	publisherId?: string | null
-	publisherWebsite?: string | null
-}
-
-export type AdminInviteInfo = {
-	groupJid: string
-	inviteCode: string
-	inviteExpiration?: number | Long | null
-	groupName?: string | null
-	jpegThumbnail?: Uint8Array | null
-	caption?: string | null
-}
-
-export type CallCreationInfo = {
-	callId: string
-	type: 'offer' | 'revoke'
-}
-
-export type PaymentInviteInfo = {
-	serviceType: string
-	expiry?: number | null
 }
 
 export type AlbumMessageOptions = {
@@ -322,9 +209,6 @@ export type AnyMediaMessageContent = (
 ) & { mimetype?: string } & Editable & {
 		/** key of the parent albumMessage to associate this media with */
 		albumParentKey?: WAMessageKey
-	} & {
-		/** key of the parent albumMessage to associate this media with */
-		albumParentKey?: WAMessageKey
 	}
 
 export type ButtonReplyInfo = {
@@ -363,18 +247,6 @@ export type AnyRegularMessageContent = (
 			album: AlbumMessageOptions
 	  } & Contextable &
 			Mentionable)
-	| { stickerPack: StickerPack }
-	| { adminInvite: AdminInviteInfo }
-	| { call: CallCreationInfo }
-	| { paymentInvite: PaymentInviteInfo }
-	| {
-			richResponse: {
-				text: string
-				code?: string
-				language?: string
-				botJid?: string
-			}
-	  }
 	| {
 			contacts: {
 				displayName?: string
@@ -469,12 +341,6 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
-	/** if the message is for a newsletter */
-	newsletter?: boolean
-	/** additional binary nodes to attach to the message */
-	additionalNodes?: BinaryNode[]
-	/** if true, show AI icon on the message bubble */
-	ai?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string

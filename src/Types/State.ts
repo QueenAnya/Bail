@@ -40,5 +40,4 @@ export type ConnectionState = {
 	 * If this is false, the primary phone and other devices will receive notifs
 	 * */
 	isOnline?: boolean
-	reachoutTimeLock?: ReachoutTimelockState
 }

@@ -9,7 +9,7 @@ import {
 	toProductNode,
 	uploadingNecessaryImagesOfProduct
 } from '../Utils/business'
-import { jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
+import { type BinaryNode, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
 import { getBinaryNodeChild } from '../WABinary/generic-utils'
 import { makeMessagesRecvSocket } from './messages-recv'
 

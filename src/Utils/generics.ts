@@ -11,7 +11,7 @@ import type {
 	WAVersion
 } from '../Types'
 import { DisconnectReason } from '../Types'
-import { getAllBinaryNodeChildren, jidDecode } from '../WABinary'
+import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
 
 export const BufferJSON = {
@@ -406,15 +406,6 @@ export const getCallStatusFromNode = ({ tag, attrs }: BinaryNode) => {
 		case 'accept':
 			status = 'accept'
 			break
-		case 'preaccept':
-			status = 'preaccept'
-			break
-		case 'transport':
-			status = 'transport'
-			break
-		case 'relaylatency':
-			status = 'relaylatency'
-			break
 		default:
 			status = 'ringing'
 			break
@@ -489,14 +480,4 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
-}
-
-export const printQRIfNecessaryListener = (ev: any, logger: any) => {
-	ev.on('connection.update', ({ qr }: { qr?: string }) => {
-		if (qr) {
-			const QR = require('qrcode-terminal') as any
-			QR.generate(qr, { small: true })
-			logger.info('QR code generated, scan with WhatsApp')
-		}
-	})
 }

@@ -1,5 +1,5 @@
 import * as constants from './constants'
-import { jidDecode } from './jid-utils'
+import { type FullJid, jidDecode } from './jid-utils'
 import type { BinaryNode, BinaryNodeCodingOptions } from './types'
 
 export const encodeBinaryNode = (

@@ -3,6 +3,7 @@ import type { GroupMetadata, GroupParticipant, ParticipantAction, SocketConfig, 
 import { WAMessageAddressingMode, WAMessageStubType } from '../Types'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils'
 import {
+	type BinaryNode,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	getBinaryNodeChildString,
@@ -354,8 +355,8 @@ export const extractGroupMetadata = (result: BinaryNode) => {
 				id: attrs.jid!,
 				phoneNumber: isLidUser(attrs.jid) && isPnUser(attrs.phone_number) ? attrs.phone_number : undefined,
 				lid: isPnUser(attrs.jid) && isLidUser(attrs.lid) ? attrs.lid : undefined,
-				admin: (attrs.type || null) as GroupParticipant['admin'],
-				username: attrs.participant_username || attrs.username || undefined
+				username: attrs.participant_username || attrs.username || undefined,
+				admin: (attrs.type || null) as GroupParticipant['admin']
 			}
 		}),
 		ephemeralDuration: eph ? +eph : undefined

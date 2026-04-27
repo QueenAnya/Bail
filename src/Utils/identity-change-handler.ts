@@ -1,5 +1,5 @@
 import NodeCache from '@cacheable/node-cache'
-import { areJidsSameUser, getBinaryNodeChild, jidDecode } from '../WABinary'
+import { areJidsSameUser, type BinaryNode, getBinaryNodeChild, jidDecode } from '../WABinary'
 import { isStringNullOrEmpty } from './generics'
 import type { ILogger } from './logger'
 
@@ -79,8 +79,6 @@ export async function handleIdentityChange(
 		ctx.logger.debug({ jid: from }, 'skipping session refresh during offline processing')
 		return { action: 'skipped_offline' }
 	}
-
-	ctx.onBeforeSessionRefresh?.(from)
 
 	ctx.onBeforeSessionRefresh?.(from)
 

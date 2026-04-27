@@ -29,14 +29,3 @@ export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
 	return platformType ? platformType.toString() : '1' //chrome
 }
-
-export const getPlatformDisplayName = (browser: string): string => {
-	const map: Record<string, string> = {
-		Chrome: 'Chrome',
-		Firefox: 'Firefox',
-		Safari: 'Safari',
-		Edge: 'Edge',
-		Opera: 'Opera'
-	}
-	return map[browser] || browser
-}

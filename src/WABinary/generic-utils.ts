@@ -1,5 +1,6 @@
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
+import { type BinaryNode } from './types'
 
 // some extra useful utilities
 
@@ -137,13 +138,4 @@ export function binaryNodeToString(node: BinaryNode | BinaryNode['content'], i =
 	const content: string = children ? `>\n${children}\n${tabs(i)}</${node.tag}>` : '/>'
 
 	return tag + content
-}
-
-export const getBinaryFilteredButtons = (node: BinaryNode): BinaryNode[] => {
-	const buttons = getBinaryNodeChildren(node, 'button')
-	return buttons.filter(b => b.attrs.type !== 'response')
-}
-
-export const getBinaryFilteredBizBot = (node: BinaryNode): BinaryNode | undefined => {
-	return getBinaryNodeChild(node, 'biz') || getBinaryNodeChild(node, 'bot')
 }
