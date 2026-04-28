@@ -14,7 +14,7 @@ import type {
 import type { Label } from './Label'
 import type { LabelAssociation } from './LabelAssociation'
 import type { MessageUpsertType, MessageUserReceiptUpdate, WAMessage, WAMessageKey, WAMessageUpdate } from './Message'
-import type { ConnectionState, NewChatMessageCapInfo } from './State'
+import type { ConnectionState } from './State'
 
 // TODO: refactor this mess
 export type BaileysEventMap = {
@@ -31,9 +31,8 @@ export type BaileysEventMap = {
 		isLatest?: boolean
 		progress?: number | null
 		syncType?: proto.HistorySync.HistorySyncType | null
-		peerDataRequestSessionId?: string | null
-		pastParticipants?: proto.IPastParticipants[] | null
 		chunkOrder?: number | null
+		peerDataRequestSessionId?: string | null
 	}
 	/** signals history sync milestones (completion or stall) per sync type */
 	'messaging-history.status': {
@@ -122,8 +121,6 @@ export type BaileysEventMap = {
 	'newsletter-participants.update': { id: string; author: string; user: string; new_role: string; action: string }
 	'newsletter-settings.update': { id: string; update: any }
 
-	'message-capping.update': NewChatMessageCapInfo
-
 	/** Settings and actions sync events */
 	'chats.lock': { id: string; locked: boolean }
 	'settings.update':
@@ -154,7 +151,6 @@ export type BufferedEventData = {
 		syncType?: proto.HistorySync.HistorySyncType
 		chunkOrder?: number | null
 		peerDataRequestSessionId?: string
-		pastParticipants?: proto.IPastParticipants[]
 	}
 	chatUpserts: { [jid: string]: Chat }
 	chatUpdates: { [jid: string]: ChatUpdate }

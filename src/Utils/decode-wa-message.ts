@@ -59,6 +59,7 @@ export const DECRYPTION_RETRY_CONFIG = {
 	sessionRecordErrors: ['No session record', 'SessionError: No session record']
 }
 
+/** NACK reason codes we send to the server (client → server) */
 export const NACK_REASONS = {
 	ParsingError: 487,
 	UnrecognizedStanza: 488,
@@ -77,8 +78,8 @@ export const NACK_REASONS = {
 
 /**
  * Server-side error codes returned in ack stanzas (server → client) that we
- * currently have dedicated handlers for.
- * Distinct from the client-side NackReason enum.
+ * currently have dedicated handlers for. Extend as more handlers are added.
+ * Distinct from the client-side NackReason enum (WAWebCreateNackFromStanza).
  */
 export const SERVER_ERROR_CODES = {
 	/** 1:1 message missing privacy token (tctoken) */
@@ -208,15 +209,15 @@ export function decodeMessageNode(stanza: BinaryNode, meId: string, meLid: strin
 	const key: WAMessageKey = {
 		remoteJid: chatId,
 		remoteJidAlt: !isJidGroup(chatId) ? addressingContext.senderAlt : undefined,
+		remoteJidUsername: !isJidGroup(chatId)
+			? stanza.attrs.peer_recipient_username || stanza.attrs.recipient_username
+			: undefined,
 		fromMe,
 		id: msgId,
 		participant,
 		participantAlt: isJidGroup(chatId) ? addressingContext.senderAlt : undefined,
-		addressingMode: addressingContext.addressingMode,
-		remoteJidUsername: !isJidGroup(chatId)
-			? stanza.attrs.peer_recipient_username || stanza.attrs.recipient_username
-			: undefined,
 		participantUsername: stanza.attrs.participant ? stanza.attrs.participant_username : undefined,
+		addressingMode: addressingContext.addressingMode,
 		...(msgType === 'newsletter' && stanza.attrs.server_id ? { server_id: stanza.attrs.server_id } : {})
 	}
 

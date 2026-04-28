@@ -456,7 +456,9 @@ function signalStorage(
 			const { [wireJid]: existingKey } = await keys.get('identity-key', [wireJid])
 
 			const keysMatch =
-				existingKey?.length === identityKey.length && existingKey.every((byte, i) => byte === identityKey[i])
+				existingKey &&
+				existingKey.length === identityKey.length &&
+				existingKey.every((byte, i) => byte === identityKey[i])
 
 			if (existingKey && !keysMatch) {
 				// Identity changed - clear session and update key
