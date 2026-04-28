@@ -46,9 +46,9 @@ export const processContactAction = (
 			{
 				id,
 				name: action.fullName || action.firstName || action.username || undefined,
+				username: action.username || undefined,
 				lid: lidJid || undefined,
-				phoneNumber,
-				username: action.username || undefined
+				phoneNumber
 			}
 		]
 	})
