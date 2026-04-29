@@ -100,31 +100,6 @@ export const getBinaryNodeMessages = ({ content }: BinaryNode) => {
 	return msgs
 }
 
-/**
- * Returns truthy if the additionalNodes array already contains a <biz> / button node
- * so relayMessage doesn't inject a duplicate.
- */
-export const getBinaryFilteredButtons = (nodeContent: BinaryNode | BinaryNode['content']): BinaryNode['content'] => {
-	if (!Array.isArray(nodeContent)) return false as any
-	return nodeContent.some((a: BinaryNode) => {
-		const firstChild = Array.isArray(a?.content) ? a.content[0] : undefined
-		const firstGrandchild = Array.isArray(firstChild?.content) ? firstChild.content[0] : undefined
-		return (
-			(typeof firstGrandchild?.tag === 'string' && ['native_flow'].includes(firstGrandchild.tag)) ||
-			(typeof firstChild?.tag === 'string' && ['interactive', 'buttons', 'list'].includes(firstChild.tag)) ||
-			['hsm', 'biz'].includes(a?.tag)
-		)
-	}) as any
-}
-
-/**
- * Returns truthy if the additionalNodes array already contains a <bot> biz_bot node.
- */
-export const getBinaryFilteredBizBot = (nodeContent: BinaryNode | BinaryNode['content']): BinaryNode['content'] => {
-	if (!Array.isArray(nodeContent)) return false as any
-	return nodeContent.some((b: BinaryNode) => b?.tag === 'bot' && b?.attrs?.biz_bot === '1') as any
-}
-
 function bufferToUInt(e: Uint8Array | Buffer, t: number) {
 	let a = 0
 	for (let i = 0; i < t; i++) {

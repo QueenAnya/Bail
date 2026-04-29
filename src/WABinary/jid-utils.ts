@@ -1,8 +1,4 @@
 export const S_WHATSAPP_NET = '@s.whatsapp.net'
-export const LID = '@lid'
-export const G_US = '@g.us'
-export const C_US = '@g.us'
-//export const C_US = '@c.us'
 export const OFFICIAL_BIZ_JID = '16505361212@c.us'
 export const SERVER_JID = 'server@c.us'
 export const PSA_WID = '0@c.us'
@@ -121,7 +117,7 @@ export const jidNormalizedUser = (jid: string | undefined) => {
 	}
 
 	const { user, server } = result
-	return jidEncode(user, server === 'c.us' ? 's.whatsapp.net' : server)
+	return jidEncode(user, server === 'c.us' ? 's.whatsapp.net' : (server as JidServer))
 }
 
 export const transferDevice = (fromJid: string, toJid: string) => {
