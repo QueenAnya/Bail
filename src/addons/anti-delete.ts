@@ -1,123 +1,208 @@
-/**
- * Anti-Delete System
- * Caches messages so that when they are deleted, the original content is preserved
- * and an event can be emitted with the original message.
- */
-
+import { proto } from '../../WAProto/index.js'
 import type { WAMessage, WAMessageKey } from '../Types'
 
-export type AntiDeleteEntry = {
+// ── Types ──────────────────────────────────────────────────────────────────
+
+export interface MessageStoreOptions {
+	maxMessagesPerChat?: number
+	ttl?: number
+	cleanupInterval?: number
+}
+
+export interface StoredMessage {
 	message: WAMessage
-	cachedAt: number
+	storedAt: number
+	isDeleted: boolean
+	deletedAt?: number
+	deletedBy?: string
 }
 
-export type AntiDeleteOptions = {
-	/** Maximum number of messages to cache per chat (default: 100) */
-	maxPerChat?: number
-	/** Max age in ms before a cached message is evicted (default: 48h) */
-	maxAgeMs?: number
-	/** Only cache messages from groups */
-	groupOnly?: boolean
-	/** Only cache messages from private chats */
-	privateOnly?: boolean
+export interface DeletedMessageInfo {
+	originalMessage: WAMessage
+	key: WAMessageKey
+	deletedAt: number
+	deletedBy?: string
+	isRevokedBySender: boolean
 }
 
-const DEFAULT_MAX_PER_CHAT = 100
-const DEFAULT_MAX_AGE = 48 * 60 * 60 * 1000
+// ── MessageStore ───────────────────────────────────────────────────────────
 
-/** cache: chatJid -> messageId -> entry */
-const cache = new Map<string, Map<string, AntiDeleteEntry>>()
+export class MessageStore {
+	private store = new Map<string, Map<string, StoredMessage>>()
+	private deletedMessages = new Map<string, DeletedMessageInfo>()
+	private cleanupTimer: ReturnType<typeof setInterval> | null = null
+	private options: Required<MessageStoreOptions>
 
-let options: AntiDeleteOptions = {}
-
-/**
- * Configure the anti-delete system
- */
-export const configureAntiDelete = (opts: AntiDeleteOptions): void => {
-	options = opts
-}
-
-/**
- * Cache a message for anti-delete tracking
- */
-export const cacheMessageForAntiDelete = (message: WAMessage): void => {
-	const jid = message.key.remoteJid
-	const id = message.key.id
-	if (!jid || !id) return
-	if (!message.message) return
-
-	if (!cache.has(jid)) cache.set(jid, new Map())
-	const chatCache = cache.get(jid)!
-
-	const maxPerChat = options.maxPerChat ?? DEFAULT_MAX_PER_CHAT
-
-	// Evict oldest if over limit
-	if (chatCache.size >= maxPerChat) {
-		const oldest = [...chatCache.entries()].sort((a, b) => a[1].cachedAt - b[1].cachedAt)[0]
-		if (oldest) chatCache.delete(oldest[0])
-	}
-
-	chatCache.set(id, { message, cachedAt: Date.now() })
-}
-
-/**
- * Retrieve the original message when a delete is detected.
- * Returns null if the message was not cached.
- */
-export const getAntiDeletedMessage = (key: WAMessageKey): WAMessage | null => {
-	const jid = key.remoteJid
-	const id = key.id
-	if (!jid || !id) return null
-
-	const chatCache = cache.get(jid)
-	if (!chatCache) return null
-
-	const entry = chatCache.get(id)
-	if (!entry) return null
-
-	const maxAge = options.maxAgeMs ?? DEFAULT_MAX_AGE
-	if (Date.now() - entry.cachedAt > maxAge) {
-		chatCache.delete(id)
-		return null
-	}
-
-	return entry.message
-}
-
-/**
- * Manually remove a message from the anti-delete cache
- */
-export const removeFromAntiDeleteCache = (key: WAMessageKey): void => {
-	const jid = key.remoteJid
-	const id = key.id
-	if (jid && id) cache.get(jid)?.delete(id)
-}
-
-/**
- * Clear all cached messages for a given chat
- */
-export const clearAntiDeleteCacheForChat = (jid: string): void => {
-	cache.delete(jid)
-}
-
-/**
- * Clear all anti-delete caches
- */
-export const clearAllAntiDeleteCaches = (): void => {
-	cache.clear()
-}
-
-/**
- * Run periodic eviction of stale entries.
- * Call this e.g. every 30 minutes.
- */
-export const evictStaleAntiDeleteEntries = (): void => {
-	const maxAge = options.maxAgeMs ?? DEFAULT_MAX_AGE
-	const now = Date.now()
-	for (const [jid, chatCache] of cache.entries()) {
-		for (const [id, entry] of chatCache.entries()) {
-			if (now - entry.cachedAt > maxAge) chatCache.delete(id)
+	constructor(options: MessageStoreOptions = {}) {
+		this.options = {
+			maxMessagesPerChat: options.maxMessagesPerChat ?? 1000,
+			ttl: options.ttl ?? 24 * 60 * 60 * 1000,
+			cleanupInterval: options.cleanupInterval ?? 60 * 60 * 1000
 		}
-		if (chatCache.size === 0) cache.delete(jid)
+		this.startCleanup()
 	}
+
+	private startCleanup() {
+		this.cleanupTimer = setInterval(() => this.cleanup(), this.options.cleanupInterval)
+	}
+
+	stopCleanup() {
+		if (this.cleanupTimer) clearInterval(this.cleanupTimer)
+	}
+
+	private cleanup() {
+		const cutoff = Date.now() - this.options.ttl
+		for (const [chatId, messages] of this.store) {
+			for (const [msgId, stored] of messages) {
+				if (stored.storedAt < cutoff) messages.delete(msgId)
+			}
+
+			if (messages.size === 0) this.store.delete(chatId)
+		}
+
+		for (const [key, info] of this.deletedMessages) {
+			if (info.deletedAt < cutoff) this.deletedMessages.delete(key)
+		}
+	}
+
+	private getKey(key: WAMessageKey) {
+		return `${key.remoteJid}:${key.id}`
+	}
+
+	storeMessage(message: WAMessage) {
+		const chatId = message.key.remoteJid
+		if (!chatId || !message.key.id) return
+		let chatMessages = this.store.get(chatId)
+		if (!chatMessages) {
+			chatMessages = new Map()
+			this.store.set(chatId, chatMessages)
+		}
+
+		if (chatMessages.size >= this.options.maxMessagesPerChat) {
+			const oldestKey = chatMessages.keys().next().value
+			if (oldestKey) chatMessages.delete(oldestKey)
+		}
+
+		chatMessages.set(message.key.id, { message, storedAt: Date.now(), isDeleted: false })
+	}
+
+	storeMessages(messages: WAMessage[]) {
+		for (const msg of messages) this.storeMessage(msg)
+	}
+
+	getMessage(key: WAMessageKey): StoredMessage | undefined {
+		return this.store.get(key.remoteJid!)?.get(key.id!)
+	}
+
+	getOriginalMessage(key: WAMessageKey): WAMessage | undefined {
+		return this.getMessage(key)?.message
+	}
+
+	markAsDeleted(key: WAMessageKey, deletedBy?: string): DeletedMessageInfo | null {
+		const stored = this.getMessage(key)
+		if (!stored) return null
+		const now = Date.now()
+		stored.isDeleted = true
+		stored.deletedAt = now
+		stored.deletedBy = deletedBy
+		const info: DeletedMessageInfo = {
+			originalMessage: stored.message,
+			key,
+			deletedAt: now,
+			deletedBy,
+			isRevokedBySender: !deletedBy || deletedBy === stored.message.key.participant
+		}
+		this.deletedMessages.set(this.getKey(key), info)
+		return info
+	}
+
+	getDeletedMessage(key: WAMessageKey) {
+		return this.deletedMessages.get(this.getKey(key))
+	}
+
+	getAllDeletedMessages() {
+		return Array.from(this.deletedMessages.values())
+	}
+
+	getDeletedMessagesByChat(chatId: string) {
+		return Array.from(this.deletedMessages.values()).filter(i => i.key.remoteJid === chatId)
+	}
+
+	getChatMessages(chatId: string): WAMessage[] {
+		return Array.from(this.store.get(chatId)?.values() ?? []).map(s => s.message)
+	}
+
+	getChatIds() {
+		return Array.from(this.store.keys())
+	}
+
+	getStats() {
+		let totalMessages = 0
+		for (const messages of this.store.values()) totalMessages += messages.size
+		return { totalChats: this.store.size, totalMessages, totalDeleted: this.deletedMessages.size }
+	}
+
+	clear() {
+		this.store.clear()
+		this.deletedMessages.clear()
+	}
+	clearChat(chatId: string) {
+		this.store.delete(chatId)
+	}
+
+	getAllMessages(): Record<string, WAMessage[]> {
+		const all: Record<string, WAMessage[]> = {}
+		for (const [chatId, messages] of this.store) {
+			all[chatId] = Array.from(messages.values()).map(s => s.message)
+		}
+
+		return all
+	}
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+export const isDeleteMessage = (message: WAMessage): boolean => {
+	return message.message?.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE
+}
+
+export const getDeletedMessageKey = (message: WAMessage): WAMessageKey | null => {
+	const protoMsg = message.message?.protocolMessage
+	if (protoMsg?.type !== proto.Message.ProtocolMessage.Type.REVOKE) return null
+	return protoMsg.key ?? null
+}
+
+export const createAntiDeleteHandler = (store: MessageStore) => {
+	return (updates: Array<{ key: WAMessageKey; update: Partial<WAMessage> }>) => {
+		const deletedMessages: DeletedMessageInfo[] = []
+		for (const { key, update } of updates) {
+			if (update.messageStubType === proto.WebMessageInfo.StubType.REVOKE) {
+				const info = store.markAsDeleted(key, update.messageStubParameters?.[0])
+				if (info) deletedMessages.push(info)
+			}
+		}
+
+		return deletedMessages
+	}
+}
+
+export const createMessageStoreHandler = (store: MessageStore) => {
+	return ({ messages }: { messages: WAMessage[] }) => {
+		const regular = messages.filter(msg => {
+			const c = msg.message
+			if (!c) return false
+			if (c.protocolMessage) return false
+			if (c.senderKeyDistributionMessage) return false
+			return true
+		})
+		store.storeMessages(regular)
+	}
+}
+
+export default {
+	MessageStore,
+	isDeleteMessage,
+	getDeletedMessageKey,
+	createAntiDeleteHandler,
+	createMessageStoreHandler
 }
