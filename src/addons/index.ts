@@ -1,18 +1,25 @@
 /**
- * baileys-full-merge — addons/index.ts
- * Union of: Baileys-patchd v1 + v2 + anya-bail + baileys-merged v1 + v2
- * NOTHING removed — complete feature set from all sources.
+ * anya-bail — addons/index.ts
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * SOURCE MAP
  * ─────────────────────────────────────────────────────────────────────────────
- * innovatorssoft  → auto-reply, anti-delete, message-scheduler, jid-plot, rich-response
- * baileys-patchd  → browser-presets, lid-support, pairing-fix, outgoing-calls,
- *                   past-participants, mex-linked-profiles, privacy-tokens
+ * innovatorssoft  → auto-reply, anti-delete, message-scheduler, jid-plot,
+ *                   rich-response, jid-plotting (shared with anya-bail)
  * anya-bail       → button-sender, vcard, status-posting, templates, jid-plotting,
  *                   message-utils, message-composer, message-search, call-handler,
- *                   scheduling, from-chats, from-messages, from-messages-recv,
- *                   from-messages-send, interactive-message
+ *                   scheduling, interactive-message, from-chats, from-messages,
+ *                   from-messages-recv, from-messages-send
+ *
+ * NOTE: The following patch features are baked directly into Socket/Utils source:
+ *   pairing-fix         → src/Socket/socket.ts
+ *   browser-presets     → src/Utils/browser-utils.ts + src/Socket/socket.ts
+ *   lid-support         → src/WABinary/jid-utils.ts
+ *   outgoing-calls      → src/Socket/chats.ts + src/Socket/messages-recv.ts
+ *   mex-linked-profiles → src/Socket/messages-recv.ts
+ *   past-participants   → src/Utils/history.ts + src/Utils/event-buffer.ts
+ *   privacy-tokens      → src/Socket/messages-send.ts
+ *   stickerpack         → src/addons/from-messages.ts (buildStickerPackMessage)
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -22,15 +29,6 @@ export * from './anti-delete'
 export * from './message-scheduler'
 export * from './jid-plot'
 export * from './rich-response'
-
-// ── baileys-patchd v1 patch branches ─────────────────────────────────────────
-export * from './browser-presets'
-export * from './lid-support'
-export * from './pairing-fix'
-export * from './outgoing-calls'
-export * from './past-participants'
-export * from './mex-linked-profiles'
-export * from './privacy-tokens'
 
 // ── anya-bail ─────────────────────────────────────────────────────────────────
 export * from './button-sender'
