@@ -1,183 +1,108 @@
+/**
+ * Auto-Reply System
+ * Register keyword patterns that automatically reply when a message matches
+ */
+
 import type { WAMessage } from '../Types'
-import type { AnyMessageContent } from '../Types'
 
-export interface AutoReplyRule {
-	id?: string
-	keywords?: string[]
-	pattern?: RegExp
-	exactMatch?: string
-	response:
-		| AnyMessageContent
-		| ((message: WAMessage, match: RegExpMatchArray | string[]) => Promise<AnyMessageContent> | AnyMessageContent)
-	cooldown?: number
-	priority?: number
-	active?: boolean
-	groupsOnly?: boolean
+export type AutoReplyRule = {
+	/** Unique ID for this rule */
+	id: string
+	/** Pattern to match: string (exact/includes) or RegExp */
+	pattern: string | RegExp
+	/** Match mode */
+	matchMode?: 'exact' | 'includes' | 'startsWith' | 'endsWith' | 'regex'
+	/** Reply content (text reply) */
+	replyText?: string
+	/** Custom handler, return the reply text or null to suppress */
+	handler?: (message: WAMessage, matchedText: string) => string | null | Promise<string | null>
+	/** Only match in groups */
+	groupOnly?: boolean
+	/** Only match in private chats */
 	privateOnly?: boolean
-	allowedJids?: string[]
-	blockedJids?: string[]
-	quoted?: boolean
+	/** Case-sensitive match (default: false) */
+	caseSensitive?: boolean
+	/** Whether to only match when the bot is mentioned */
+	mentionOnly?: boolean
 }
 
-export interface AutoReplyOptions {
-	globalCooldown?: number
-	simulateTyping?: boolean
-	typingDuration?: number
-	multiMatch?: boolean
-	onReply?: (rule: AutoReplyRule, message: WAMessage, response: AnyMessageContent) => void
-	onError?: (error: Error, rule: AutoReplyRule, message: WAMessage) => void
+const rules: AutoReplyRule[] = []
+
+/**
+ * Register an auto-reply rule
+ */
+export const addAutoReplyRule = (rule: AutoReplyRule): void => {
+	const existing = rules.findIndex(r => r.id === rule.id)
+	if (existing !== -1) rules.splice(existing, 1)
+	rules.push(rule)
 }
 
-export class AutoReplyHandler {
-	private rules = new Map<string, AutoReplyRule & { id: string }>()
-	private cooldowns = new Map<string, number>()
-	private globalCooldown = new Map<string, number>()
-	private sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>
-	private sendPresence?: (jid: string, presence: string) => Promise<void>
-	private options: Required<AutoReplyOptions>
-
-	constructor(
-		sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>,
-		sendPresence?: (jid: string, presence: string) => Promise<void>,
-		options: AutoReplyOptions = {}
-	) {
-		this.sendMessage = sendMessage
-		this.sendPresence = sendPresence
-		this.options = {
-			globalCooldown: options.globalCooldown ?? 1000,
-			simulateTyping: options.simulateTyping ?? false,
-			typingDuration: options.typingDuration ?? 1000,
-			multiMatch: options.multiMatch ?? false,
-			onReply: options.onReply ?? (() => {}),
-			onError: options.onError ?? (() => {})
-		}
-	}
-
-	private generateId() {
-		return `ar_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-	}
-
-	addRule(rule: AutoReplyRule) {
-		const fullRule = {
-			...rule,
-			id: rule.id ?? this.generateId(),
-			active: rule.active ?? true,
-			priority: rule.priority ?? 0
-		}
-		if (!fullRule.keywords && !fullRule.pattern && !fullRule.exactMatch)
-			throw new Error('Rule must have keywords, pattern, or exactMatch')
-		this.rules.set(fullRule.id, fullRule)
-		return fullRule
-	}
-
-	removeRule(id: string) {
-		return this.rules.delete(id)
-	}
-	getRules() {
-		return Array.from(this.rules.values())
-	}
-	getRule(id: string) {
-		return this.rules.get(id)
-	}
-	setRuleActive(id: string, active: boolean) {
-		const r = this.rules.get(id)
-		if (r) {
-			r.active = active
-			return true
-		}
-
-		return false
-	}
-	clearRules() {
-		this.rules.clear()
-	}
-
-	private checkCooldown(ruleId: string, jid: string) {
-		return Date.now() - (this.cooldowns.get(`${ruleId}:${jid}`) ?? 0) > 0
-	}
-
-	private checkGlobalCooldown(jid: string) {
-		return Date.now() - (this.globalCooldown.get(jid) ?? 0) > this.options.globalCooldown
-	}
-
-	private setCooldown(ruleId: string, jid: string, cooldown: number) {
-		this.cooldowns.set(`${ruleId}:${jid}`, Date.now() + cooldown)
-		this.globalCooldown.set(jid, Date.now())
-	}
-
-	private matchRule(text: string, rule: AutoReplyRule) {
-		if (!rule.active) return null
-		if (text.toLowerCase() === rule.exactMatch?.toLowerCase()) return [text]
-		if (rule.keywords?.length) {
-			const lower = text.toLowerCase()
-			for (const kw of rule.keywords) if (lower.includes(kw.toLowerCase())) return [kw]
-		}
-
-		if (rule.pattern) return text.match(rule.pattern)
-		return null
-	}
-
-	private isJidAllowed(jid: string, rule: AutoReplyRule) {
-		const isGroup = jid.endsWith('@g.us')
-		if (jid.endsWith('@newsletter')) return false
-		if (rule.groupsOnly && !isGroup) return false
-		if (rule.privateOnly && isGroup) return false
-		if (rule.allowedJids?.length && !rule.allowedJids.includes(jid)) return false
-		if (rule.blockedJids?.includes(jid)) return false
+/**
+ * Remove an auto-reply rule by ID
+ */
+export const removeAutoReplyRule = (id: string): boolean => {
+	const idx = rules.findIndex(r => r.id === id)
+	if (idx !== -1) {
+		rules.splice(idx, 1)
 		return true
 	}
-
-	async processMessage(message: WAMessage): Promise<boolean> {
-		const content = message.message
-		if (!content) return false
-		const text =
-			content.conversation ||
-			content.extendedTextMessage?.text ||
-			content.imageMessage?.caption ||
-			content.videoMessage?.caption ||
-			content.documentMessage?.caption ||
-			''
-		if (!text) return false
-		const jid = message.key.remoteJid
-		if (!jid || !this.checkGlobalCooldown(jid)) return false
-
-		const sortedRules = Array.from(this.rules.values())
-			.filter(r => r.active)
-			.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
-
-		let matched = false
-		for (const rule of sortedRules) {
-			if (!this.isJidAllowed(jid, rule)) continue
-			if (rule.cooldown && !this.checkCooldown(rule.id, jid)) continue
-			const match = this.matchRule(text, rule)
-			if (!match) continue
-			try {
-				let response: AnyMessageContent
-				if (typeof rule.response === 'function') response = await rule.response(message, match)
-				else response = rule.response
-
-				if (this.options.simulateTyping && this.sendPresence) {
-					await this.sendPresence(jid, 'composing')
-					await new Promise(r => setTimeout(r, this.options.typingDuration))
-					await this.sendPresence(jid, 'paused')
-				}
-
-				await this.sendMessage(jid, response, rule.quoted ? { quoted: message } : undefined)
-				if (rule.cooldown) this.setCooldown(rule.id, jid, rule.cooldown)
-				this.options.onReply(rule, message, response)
-				matched = true
-				if (!this.options.multiMatch) break
-			} catch (error: any) {
-				this.options.onError(error, rule, message)
-			}
-		}
-
-		return matched
-	}
+	return false
 }
 
-export const createAutoReply = (
-	sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>,
-	sendPresence?: (jid: string, presence: string) => Promise<void>,
-	options?: AutoReplyOptions
-) => new AutoReplyHandler(sendMessage, sendPresence, options)
+/**
+ * Get all registered auto-reply rules
+ */
+export const getAutoReplyRules = (): AutoReplyRule[] => [...rules]
+
+/**
+ * Clear all auto-reply rules
+ */
+export const clearAutoReplyRules = (): void => {
+	rules.length = 0
+}
+
+/**
+ * Check a message against all rules and return the first matching reply text.
+ * Returns null if no rule matches.
+ */
+export const checkAutoReply = async (message: WAMessage, isGroup: boolean): Promise<string | null> => {
+	const text = message.message?.conversation || message.message?.extendedTextMessage?.text || ''
+	if (!text) return null
+
+	for (const rule of rules) {
+		if (rule.groupOnly && !isGroup) continue
+		if (rule.privateOnly && isGroup) continue
+
+		const checkText = rule.caseSensitive ? text : text.toLowerCase()
+		let pattern = rule.pattern
+
+		let matched = false
+		let matchedText = text
+
+		if (pattern instanceof RegExp) {
+			const m = checkText.match(pattern)
+			if (m) {
+				matched = true
+				matchedText = m[0]
+			}
+		} else {
+			const p = rule.caseSensitive ? pattern : pattern.toLowerCase()
+			const mode = rule.matchMode || 'includes'
+			if (mode === 'exact') matched = checkText === p
+			else if (mode === 'includes') matched = checkText.includes(p)
+			else if (mode === 'startsWith') matched = checkText.startsWith(p)
+			else if (mode === 'endsWith') matched = checkText.endsWith(p)
+			if (matched) matchedText = p
+		}
+
+		if (!matched) continue
+
+		if (rule.handler) {
+			const result = await rule.handler(message, matchedText)
+			if (result !== null) return result
+		} else if (rule.replyText) {
+			return rule.replyText
+		}
+	}
+	return null
+}
