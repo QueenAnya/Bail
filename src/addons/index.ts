@@ -8,7 +8,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * innovatorssoft  → auto-reply, anti-delete, message-scheduler, jid-plot, rich-response
  * baileys-patchd  → browser-presets, lid-support, pairing-fix, outgoing-calls,
- *                   past-participants, mex-linked-profiles, stickerpack, privacy-tokens
+ *                   past-participants, mex-linked-profiles, privacy-tokens
  * anya-bail       → button-sender, vcard, status-posting, templates, jid-plotting,
  *                   message-utils, message-composer, message-search, call-handler,
  *                   scheduling, from-chats, from-messages, from-messages-recv,
@@ -30,7 +30,6 @@ export * from './pairing-fix'
 export * from './outgoing-calls'
 export * from './past-participants'
 export * from './mex-linked-profiles'
-export * from './stickerpack'
 export * from './privacy-tokens'
 
 // ── anya-bail ─────────────────────────────────────────────────────────────────
