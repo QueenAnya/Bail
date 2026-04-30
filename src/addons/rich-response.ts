@@ -21,11 +21,12 @@ export const sendTable = async (
 	opts?: { title?: string; headerRow?: boolean } & MiscMessageGenerationOptions
 ): Promise<void> => {
 	const hasHeader = opts?.headerRow !== false
-	const colWidths = rows[0]?.map((_, ci) => Math.max(...rows.map(r => (r[ci] ?? '').length))) ?? []
-	const divider = colWidths.map(w => '─'.repeat(w + 2)).join('┼')
+	const colWidths =
+		rows[0]?.map((_: string, ci: number) => Math.max(...rows.map((r: string[]) => (r[ci] ?? '').length))) ?? []
+	const divider = colWidths.map((w: number) => '─'.repeat(w + 2)).join('┼')
 
-	const formatted = rows.map((row, ri) => {
-		const line = row.map((cell, ci) => (cell ?? '').padEnd(colWidths[ci] ?? 0)).join(' │ ')
+	const formatted = rows.map((row: string[], ri: number) => {
+		const line = row.map((cell: string, ci: number) => (cell ?? '').padEnd(colWidths[ci] ?? 0)).join(' │ ')
 		if (hasHeader && ri === 0) return `┌${divider}┐\n│ ${line} │\n├${divider}┤`
 		return `│ ${line} │`
 	})
@@ -48,7 +49,7 @@ export const sendList = async (
 	opts?: { title?: string; ordered?: boolean } & MiscMessageGenerationOptions
 ): Promise<void> => {
 	const { title, ordered = false } = opts ?? {}
-	const lines = items.map((item, i) => (ordered ? `${i + 1}. ${item}` : `• ${item}`))
+	const lines = items.map((item: string, i: number) => (ordered ? `${i + 1}. ${item}` : `• ${item}`))
 	const text = (title ? `*${title}*\n` : '') + lines.join('\n')
 	await sendMessage(jid, { text }, opts)
 }
@@ -127,14 +128,27 @@ export const sendLatexInlineImage = async (
 
 // ─── Rich Message ──────────────────────────────────────────────────────────────
 
-import type { RichMessageOptions, RichTextTable, RichTextList, CodeBlockOptions, LatexOptions } from '../Types'
+type RichTextTable = { rows: string[][]; headerRow?: boolean; title?: string }
+type RichTextList = { items: string[]; ordered?: boolean; title?: string }
+type CodeBlockOptions = { code: string; language?: string }
+type LatexOptions = { expression: string }
+type RichMessageOptions = {
+	parts: (
+		| { type: 'text'; text: string }
+		| { type: 'table'; table: RichTextTable }
+		| { type: 'list'; list: RichTextList }
+		| { type: 'code'; code: CodeBlockOptions }
+		| { type: 'latex'; latex: LatexOptions }
+	)[]
+	caption?: string
+}
 
 const renderTable = (table: RichTextTable): string => {
 	const rows = table.rows
 	if (!rows.length) return ''
 	const hasHeader = table.headerRow !== false
 	const colWidths = rows[0]!.map((_, ci) => Math.max(...rows.map(r => (r[ci] ?? '').length)))
-	const divider = colWidths.map(w => '─'.repeat(w + 2)).join('┼')
+	const divider = colWidths.map((w: number) => '─'.repeat(w + 2)).join('┼')
 	const lines = rows.map((row, ri) => {
 		const line = row.map((cell, ci) => (cell ?? '').padEnd(colWidths[ci] ?? 0)).join(' │ ')
 		if (hasHeader && ri === 0) return `┌${divider}┐\n│ ${line} │\n├${divider}┤`
@@ -162,7 +176,7 @@ export const sendRichMessage = async (
 	rich: RichMessageOptions,
 	opts?: MiscMessageGenerationOptions
 ): Promise<void> => {
-	const parts = rich.parts.map(part => {
+	const parts = rich.parts.map((part: any) => {
 		switch (part.type) {
 			case 'text':
 				return part.text
