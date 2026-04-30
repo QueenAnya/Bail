@@ -32,11 +32,13 @@ import {
 	getNextPreKeysNode,
 	makeEventBuffer,
 	makeNoiseHandler,
+	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
 import { getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
+import { buildPairingQRData } from '../Utils/companion-reg-client-utils'
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -83,12 +85,14 @@ export const makeSocket = (config: SocketConfig) => {
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
 
+	/**
 	if (printQRInTerminal) {
 		logger.warn(
 			{},
 			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
 		)
 	}
+	*/
 
 	const syncDisabled =
 		PROCESSABLE_HISTORY_TYPES.map(syncType => config.shouldSyncHistoryMessage({ syncType })).filter(x => x === false)
@@ -312,15 +316,12 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
-		// LID query uses a separate USyncQuery with LIDProtocol
-		// Source: Baileys-fix-on-whatsapp-lid-support
-		const lidQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				// Instead of warning+skip, add to lidQuery
-				lidQuery.withUser(new USyncUser().withLid(jid))
+				logger?.warn('LIDs are not supported with onWhatsApp')
+				continue
 			} else {
 				if (!contactEnabled) {
 					contactEnabled = true
@@ -332,29 +333,15 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		const output: { jid: string; exists: boolean; lid?: string }[] = []
-
-		if (usyncQuery.users.length > 0) {
-			const results = await executeUSyncQuery(usyncQuery)
-			if (results) {
-				const mapped = results.list
-					.filter(a => !!a.contact)
-					.map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
-				output.push(...mapped)
-			}
+		if (usyncQuery.users.length === 0) {
+			return [] // return early without forcing an empty query
 		}
 
-		if (lidQuery.users.length > 0) {
-			const lidResults = await executeUSyncQuery(lidQuery)
-			if (lidResults) {
-				const mapped = lidResults.list
-					.filter(a => !!a.lid)
-					.map(({ lid, id }) => ({ jid: id, exists: true, lid: lid as string }))
-				output.push(...mapped)
-			}
-		}
+		const results = await executeUSyncQuery(usyncQuery)
 
-		return output
+		if (results) {
+			return results.list.filter(a => !!a.contact).map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
+		}
 	}
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
@@ -394,6 +381,13 @@ export const makeSocket = (config: SocketConfig) => {
 	let keepAliveReq: NodeJS.Timeout
 	let qrTimer: NodeJS.Timeout
 	let closed = false
+
+	// Pairing code state — tracks whether pair-device has been received
+	// and queues requestPairingCode calls that arrive before it
+	let pairingReady = false
+	let pairingInProgress = false
+	let pendingPairingResolve: (() => void) | undefined
+	let pendingPairingReject: ((err: Error) => void) | undefined
 
 	/** log & process any unexpected errors */
 	const onUnexpectedError = (err: Error | Boom, msg: string) => {
@@ -648,10 +642,10 @@ export const makeSocket = (config: SocketConfig) => {
 		clearInterval(keepAliveReq)
 		clearTimeout(qrTimer)
 
-		// Clear pending pairing queue on disconnect — Source: Baileys-fix-pairing-code
+		// If a pairing is pending, reject it so the caller doesn't hang indefinitely
 		if (pendingPairingReject) {
 			pendingPairingReject(
-				error ??
+				error ||
 					new Boom('Connection closed before pairing completed', {
 						statusCode: DisconnectReason.connectionClosed
 					})
@@ -659,6 +653,7 @@ export const makeSocket = (config: SocketConfig) => {
 			pendingPairingResolve = undefined
 			pendingPairingReject = undefined
 		}
+
 		pairingReady = false
 		pairingInProgress = false
 
@@ -776,17 +771,7 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
-	// ── Pairing-code fix: queue request until pair-device is received ────────────
-	// Source: Baileys-fix-pairing-code
-	let pairingReady = false
-	let pairingInProgress = false
-	let pendingPairingResolve: (() => void) | undefined
-	let pendingPairingReject: ((err: Error) => void) | undefined
-
-	/**
-	 * Raw pairing IQ sender — only called when pairingReady === true.
-	 * Uses canonical browser platform IDs (1-6) to avoid server 400 rejections.
-	 */
+	// Internal: send the actual pairing IQ to WA servers
 	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
 
@@ -797,9 +782,11 @@ export const makeSocket = (config: SocketConfig) => {
 		authState.creds.pairingCode = pairingCode
 
 		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
-
-		// WA servers only accept browser-type platform IDs (CHROME=1 through EDGE=6) in
-		// the pairing IQ — DESKTOP (7) and non-browser types are rejected with 400.
+		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the pairing
+		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
+		// companion_platform_display must also be a canonical OS name; custom brand names (e.g.
+		// "Zapper") belong in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked
+		// Devices.
 		const rawPlatformId = parseInt(getPlatformId(browser[1]))
 		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
 		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
@@ -859,10 +846,8 @@ export const makeSocket = (config: SocketConfig) => {
 		return authState.creds.pairingCode
 	}
 
-	/**
-	 * Request a pairing code. Queues the IQ if pair-device hasn't arrived yet.
-	 * Source: Baileys-fix-pairing-code
-	 */
+	// Public: requestPairingCode queues the request if pair-device hasn't been
+	// received yet (race condition fix — calling too early caused silent timeout)
 	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		if (pairingInProgress) {
 			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
@@ -888,6 +873,7 @@ export const makeSocket = (config: SocketConfig) => {
 						pairingInProgress = false
 					})
 			}
+
 			pendingPairingReject = (err: Error) => {
 				pairingInProgress = false
 				reject(err)
@@ -969,7 +955,7 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 
 			const ref = (refNode.content as Buffer).toString('utf-8')
-			const qr = [ref, noiseKeyB64, identityKeyB64, advB64].join(',')
+			const qr = buildPairingQRData(ref, noiseKeyB64, identityKeyB64, advB64, browser)
 
 			ev.emit('connection.update', { qr })
 
@@ -980,7 +966,6 @@ export const makeSocket = (config: SocketConfig) => {
 		genPairQR()
 
 		// Mark pairing as ready and flush any queued requestPairingCode call
-		// Source: Baileys-fix-pairing-code
 		pairingReady = true
 		if (pendingPairingResolve) {
 			logger.debug('pair-device received, flushing queued pairing request')
@@ -1191,6 +1176,10 @@ export const makeSocket = (config: SocketConfig) => {
 		} catch (error) {
 			logger.debug({ error }, 'failed to send unified_session telemetry')
 		}
+	}
+
+	if (printQRInTerminal) {
+		printQRIfNecessaryListener(ev, logger)
 	}
 
 	return {

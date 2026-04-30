@@ -7,8 +7,7 @@ export * from './Defaults/index'
 export * from './WABinary/index'
 export * from './WAM/index'
 export * from './WAUSync/index'
-// Baileys-patchd: all ported addon features
-export * from './addons'
+export * from './addons/index'
 
 export type WASocket = ReturnType<typeof makeWASocket>
 export { makeWASocket }
