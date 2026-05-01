@@ -1194,6 +1194,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
 		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
 	}
+	const deleteChat = clearMessage
 
 	/**
 	 * queries need to be fired on connection open
@@ -1505,7 +1506,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		resyncAppState,
 		chatModify,
 		clearMessage,
-		clearMessage as deleteChat,
+		deleteChat,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,
