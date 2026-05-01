@@ -767,7 +767,7 @@ export type AnyRegularMessageContent = (
 	| { order: OrderMessageOptions }
 	| { payment: PaymentMessageOptions }
 	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
-	| { buttons: ButtonsMessageOptions }
+	//.| { buttons: ButtonsMessageOptions }
 	| { list: ListMessageOptions }
 	| { template: TemplateMessageOptions }
 	| { interactive: InteractiveMessageOptions }
