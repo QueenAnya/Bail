@@ -17,15 +17,17 @@ export type WAMessage = proto.IWebMessageInfo & {
 export type WAMessageContent = proto.IMessage
 export type WAContactMessage = proto.Message.IContactMessage
 export type WAContactsArrayMessage = proto.Message.IContactsArrayMessage
+
 export type WAMessageKey = proto.IMessageKey & {
 	remoteJidAlt?: string
+	remoteJidUsername?: string
 	participantAlt?: string
+	participantUsername?: string
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
-	remoteJidUsername?: string
-	participantUsername?: string
 }
+
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo
 export type WALocationMessage = proto.Message.ILocationMessage
@@ -35,12 +37,16 @@ export type WAGenericMediaMessage =
 	| proto.Message.IAudioMessage
 	| proto.Message.IDocumentMessage
 	| proto.Message.IStickerMessage
+
 export const WAMessageStubType = proto.WebMessageInfo.StubType
 export const WAMessageStatus = proto.WebMessageInfo.Status
+
 import type { ILogger } from '../Utils/logger'
+
 export type WAMediaPayloadURL = { url: URL | string }
 export type WAMediaPayloadStream = { stream: Readable }
 export type WAMediaUpload = Buffer | WAMediaPayloadStream | WAMediaPayloadURL
+
 /** Set of message types that are supported by the library */
 export type MessageType = keyof proto.Message
 
@@ -118,10 +124,12 @@ type Mentionable = {
 	/** mention all */
 	mentionAll?: boolean
 }
+
 type Contextable = {
 	/** add contextInfo to the message */
 	contextInfo?: proto.IContextInfo
 }
+
 type ViewOnce = {
 	viewOnce?: boolean
 }
@@ -196,13 +204,6 @@ type WithDimensions = {
 	height?: number
 }
 
-export type AlbumMessageOptions = {
-	/** Number of images expected in the album */
-	expectedImageCount?: number
-	/** Number of videos expected in the album */
-	expectedVideoCount?: number
-}
-
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -228,6 +229,291 @@ export type EventMessageOptions = {
 	isScheduleCall?: boolean
 	extraGuestsAllowed?: boolean
 	messageSecret?: Uint8Array<ArrayBufferLike>
+}
+
+export type AlbumMessageOptions = {
+	/** Number of images expected in the album */
+	expectedImageCount?: number
+	/** Number of videos expected in the album */
+	expectedVideoCount?: number
+}
+
+export type KeepMessageOptions = {
+	/** The message key to keep */
+	key: proto.IMessageKey
+	/** Keep duration in seconds (86400 = 24h, 604800 = 7d, 0 = unkeep) */
+	keepDurationSeconds?: number
+}
+
+export type ButtonContent = {
+	/** Button display text */
+	displayText: string
+	/** Button ID */
+	id: string
+	/** Button type */
+	type?: 'reply' | 'url' | 'call' | 'copy'
+	/** URL for url-type buttons */
+	url?: string
+	/** Phone number for call-type buttons */
+	phoneNumber?: string
+	/** Text to copy for copy-type buttons */
+	copyCode?: string
+}
+
+export type ButtonsMessageOptions = {
+	/** Message body text */
+	text: string
+	/** Footer text */
+	footer?: string
+	/** Header text */
+	headerText?: string
+	/** Buttons to display */
+	buttons: ButtonContent[]
+	/** Header type: text | image | video | document */
+	headerType?: 'text' | 'image' | 'video' | 'document'
+	/** Media for header */
+	headerMedia?: WAMediaUpload
+}
+
+export type ListMessageSection = {
+	title: string
+	rows: {
+		title: string
+		rowId: string
+		description?: string
+	}[]
+}
+
+export type ListMessageOptions = {
+	text: string
+	footer?: string
+	title?: string
+	buttonText: string
+	sections: ListMessageSection[]
+}
+
+export type TemplateButtonContent =
+	| { index: number; urlButton: { displayText: string; url: string } }
+	| { index: number; callButton: { displayText: string; phoneNumber: string } }
+	| { index: number; quickReplyButton: { displayText: string; id: string } }
+
+export type TemplateMessageOptions = {
+	text: string
+	footer?: string
+	templateButtons: TemplateButtonContent[]
+	/** Optional header: text, image, video, document */
+	header?: string
+	headerMedia?: WAMediaUpload
+}
+
+export type InteractiveButton =
+	| { type: 'reply'; displayText: string; id: string }
+	| { type: 'url'; displayText: string; url: string; merchantUrl?: string }
+	| { type: 'cta_call'; displayText: string; phoneNumber: string }
+	| { type: 'cta_copy'; displayText: string; copyCode: string }
+
+export type CarouselCard = {
+	body: string
+	footer?: string
+	headerImage?: WAMediaUpload
+	headerVideo?: WAMediaUpload
+	buttons: InteractiveButton[]
+}
+
+export type InteractiveMessageOptions = {
+	body: string
+	footer?: string
+	/** Header options */
+	header?: {
+		title?: string
+		subtitle?: string
+		hasMediaAttachment?: boolean
+	}
+	/** Buttons (for native-flow / button-list style) */
+	buttons?: InteractiveButton[]
+	/** Carousel cards */
+	cards?: CarouselCard[]
+	/** Products list */
+	shop?: {
+		id: string
+		thumbnail?: WAMediaUpload
+		title?: string
+	}
+}
+
+export type InteractiveMessagePIXOptions = InteractiveMessageOptions & {
+	/** PIX payment key */
+	pixKey: string
+	/** Payment amount in cents */
+	amount: number
+	/** Merchant name */
+	merchantName: string
+}
+
+export type InteractiveMessagePAYOptions = InteractiveMessageOptions & {
+	/** Payment amount */
+	amount: number
+	/** Currency code, e.g. "BRL" */
+	currency: string
+	/** Reference ID */
+	referenceId?: string
+	/** Payment note */
+	note?: string
+}
+
+export type PaymentMessageOptions = {
+	/** Amount in smallest currency unit (e.g. cents) */
+	amount: number
+	/** Currency code (e.g. "USD", "BRL") */
+	currency: string
+	/** Note/memo for the payment */
+	note?: string
+	/** Receiver JID */
+	receiverJid: string
+	/** Request or send */
+	type?: 'request' | 'send'
+	/** Background color (hex) */
+	backgroundColor?: string
+}
+
+export type PaymentInviteMessageOptions = {
+	/** Type of payment service */
+	serviceType?: 'UNKNOWN' | 'FACEBOOK_PAY' | 'NOVI' | 'UPI' | 'PAYTM' | 'BR_GPY' | 'BR_PIX'
+	/** Expiry timestamp (ms since epoch) */
+	expiryTimestamp?: number
+	/** Alternative V2 property */
+	type?: number
+	/** Alternative V2 property */
+	expiry?: number
+}
+
+export type OrderMessageOptions = {
+	/** Order ID */
+	orderId: string
+	/** Thumbnail image of an order item */
+	thumbnail?: WAMediaUpload
+	/** Item count */
+	itemCount: number
+	/** Order status */
+	status?: 'INQUIRY' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELED'
+	/** Surface (e.g. 1 = catalog, 2 = message) */
+	surface?: number
+	/** Message associated with the order */
+	message?: string
+	/** Order title */
+	title?: string
+	/** Seller JID */
+	sellerJid?: string
+	/** Token */
+	token?: string
+}
+
+export type Sticker = {
+	/** Sticker media source */
+	data?: WAMediaUpload
+	sticker?: WAMediaUpload
+	/** Emoji tags for this sticker */
+	emojis?: string[]
+	/** Accessibility label */
+	accessibilityLabel?: string
+	isAnimated?: boolean
+	isLottie?: boolean
+}
+
+export type StickerPack = {
+	/** All stickers in the pack */
+	stickers: Sticker[]
+	/** Cover sticker shown in the tray */
+	cover: WAMediaUpload
+	/** Display name of the pack */
+	name: string
+	/** Publisher name */
+	publisher: string
+	/** Optional description */
+	description?: string
+	/** Pack ID — auto-generated if not provided */
+	packId?: string
+}
+
+export type StickerPackMessageOptions = {
+	/** Pack name */
+	packName: string
+	/** Pack publisher */
+	publisher?: string
+	/** Pack ID */
+	packId?: string
+	/** Sticker count */
+	stickerCount?: number
+}
+
+export type StatusMentionOptions = {
+	/** Status JIDs to mention */
+	statusJidList: string[]
+	/** Text to accompany */
+	text: string
+	/** Background color */
+	backgroundColor?: string
+	/** Font */
+	font?: number
+}
+
+export type ShopMessageOptions = {
+	/** Surface: 1=unknown, 2=catalog */
+	surface?: number
+	/** Message */
+	message?: string
+}
+
+export type CollectionMessageOptions = {
+	/** Business JID owning the collection */
+	bizJid: string
+	/** Collection ID */
+	id: string
+	/** Message version */
+	messageVersion?: number
+}
+
+export type RichTextTable = {
+	/** Table data rows (first row = header if headerRow=true) */
+	rows: string[][]
+	/** Whether first row is a header */
+	headerRow?: boolean
+	/** Optional title */
+	title?: string
+}
+
+export type RichTextList = {
+	/** List items */
+	items: string[]
+	/** Ordered (numbered) list */
+	ordered?: boolean
+	/** Optional title */
+	title?: string
+}
+
+export type CodeBlockOptions = {
+	/** Code string */
+	code: string
+	/** Language hint */
+	language?: string
+}
+
+export type LatexOptions = {
+	/** LaTeX expression */
+	expression: string
+}
+
+export type RichMessageOptions = {
+	/** Rich text content parts */
+	parts: (
+		| { type: 'text'; text: string }
+		| { type: 'table'; table: RichTextTable }
+		| { type: 'list'; list: RichTextList }
+		| { type: 'code'; code: CodeBlockOptions }
+		| { type: 'latex'; latex: LatexOptions }
+	)[]
+	/** Optional caption */
+	caption?: string
 }
 
 type SharePhoneNumber = {
@@ -348,39 +634,20 @@ export type ProductListSection = {
 	products: ProductListEntry[]
 }
 
-export type StickerPackSticker = {
-	sticker: WAMediaUpload
-	emojis?: string[]
-	accessibilityLabel?: string
-	isAnimated?: boolean
-	isLottie?: boolean
-}
-
-export type StickerPack = {
-	stickers: StickerPackSticker[]
-	cover: WAMediaUpload
-	name: string
-	publisher: string
-	description?: string
-	packId?: string
-}
-
 export type AdminInviteInfo = {
-	jid: string
-	name: string
-	caption?: string
+	groupJid?: string
+	jid?: string
+	name?: string
+	inviteCode?: string
+	inviteExpiration?: number
 	expiration?: number
+	caption?: string
 }
 
 export type CallCreationInfo = {
 	name?: string
 	time?: number
 	type?: number
-}
-
-export type PaymentInviteInfo = {
-	type?: number
-	expiry?: number
 }
 
 export type AnyRegularMessageContent = (
@@ -411,6 +678,10 @@ export type AnyRegularMessageContent = (
 			Cardsable &
 			Listable &
 			Editable)
+	| ({
+			album: AlbumMessageOptions
+	  } & Contextable &
+			Mentionable)
 	| {
 			contacts: {
 				displayName?: string
@@ -462,14 +733,28 @@ export type AnyRegularMessageContent = (
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
-	| ({
-			album: AlbumMessageOptions
-	  } & Contextable &
-			Mentionable)
-	| { stickerPack: StickerPack }
+	| { keep: KeepMessageOptions }
+	| { order: OrderMessageOptions }
+	| { payment: PaymentMessageOptions }
+	| { paymentInvite: PaymentInviteMessageOptions }
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
-	| { paymentInvite: PaymentInviteInfo }
+	| { stickerPack: StickerPackMessageOptions | StickerPack }
+	| { richStickerPack: StickerPack }
+	| { buttons: ButtonsMessageOptions }
+	| { list: ListMessageOptions }
+	| { template: TemplateMessageOptions }
+	| { interactive: InteractiveMessageOptions }
+	| { interactivePIX: InteractiveMessagePIXOptions }
+	| { interactivePAY: InteractiveMessagePAYOptions }
+	| { statusMention: StatusMentionOptions }
+	| { shop: ShopMessageOptions }
+	| { collection: CollectionMessageOptions }
+	| { hdImage: WAMediaUpload; caption?: string; mimetype?: string }
+	| { hdVideo: WAMediaUpload; caption?: string; mimetype?: string }
+	| { callMessage: proto.Message.IScheduledCallCreationMessage }
+	| { pollResult: proto.Message.IPollResultSnapshotMessage }
+	| { richMessage: RichMessageOptions }
 	| {
 			richResponse: {
 				text: string
@@ -553,6 +838,7 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	/** if true, show AI icon on the message bubble */
 	ai?: boolean
 }
+
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
 }
@@ -584,21 +870,19 @@ export type MediaGenerationOptions = {
 	upload: WAMediaUploadFunction
 	/** cache media so it does not have to be uploaded again */
 	mediaCache?: CacheStore
-
 	mediaUploadTimeoutMs?: number
-
 	options?: RequestInit
-
 	backgroundColor?: string
-
 	font?: number
 }
+
 export type MessageContentGenerationOptions = MediaGenerationOptions & {
 	getUrlInfo?: (text: string) => Promise<WAUrlInfo | undefined>
 	getProfilePicUrl?: (jid: string, type: 'image' | 'preview') => Promise<string | undefined>
 	getCallLink?: (type: 'audio' | 'video', event?: { startTime: number }) => Promise<string | undefined>
 	jid?: string
 }
+
 export type MessageGenerationOptions = MessageContentGenerationOptions & MessageGenerationOptionsFromContent
 
 /**
