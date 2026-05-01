@@ -317,30 +317,30 @@ function parseButtonParamsInternal(
  */
 export function buildInteractiveButtons(buttons: AnyRawButton[] = []): NativeSendButton[] {
 	return buttons.map((b, i) => {
-		const btn = b
+		const btn = b as Record<string, unknown>
 
 		// 1. Already native shape
-		if (btn.name && btn.buttonParamsJson) return b as NativeSendButton
+		if (btn['name'] && btn['buttonParamsJson']) return b as NativeSendButton
 
 		// 2. Legacy quick-reply
-		if (btn.id || btn.text || btn.displayText) {
+		if (btn['id'] || btn['text'] || btn['displayText']) {
 			return {
 				name: 'quick_reply',
 				buttonParamsJson: JSON.stringify({
-					display_text: btn.text ?? btn.displayText ?? `Button ${i + 1}`,
-					id: btn.id ?? `quick_${i + 1}`
+					display_text: (btn['text'] ?? btn['displayText'] ?? `Button ${i + 1}`) as string,
+					id: (btn['id'] ?? `quick_${i + 1}`) as string
 				})
 			}
 		}
 
 		// 3. Old Baileys shape
-		const oldBt = btn.buttonText as Record<string, unknown> | undefined
-		if (btn.buttonId && oldBt?.displayText) {
+		const oldBt = btn['buttonText'] as Record<string, unknown> | undefined
+		if (btn['buttonId'] && oldBt?.['displayText']) {
 			return {
 				name: 'quick_reply',
 				buttonParamsJson: JSON.stringify({
-					display_text: oldBt.displayText as string,
-					id: btn.buttonId as string
+					display_text: oldBt['displayText'] as string,
+					id: btn['buttonId'] as string
 				})
 			}
 		}
@@ -374,18 +374,18 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 	}
 
 	const cleaned = (buttons as AnyRawButton[]).map((b, idx) => {
-		const btn = b
+		const btn = b as Record<string, unknown>
 		if (b === null || typeof b !== 'object') {
 			errors.push(`button[${idx}] is not an object`)
 			return b
 		}
 
-		if (btn.name && btn.buttonParamsJson) {
-			if (typeof btn.buttonParamsJson !== 'string') {
+		if (btn['name'] && btn['buttonParamsJson']) {
+			if (typeof btn['buttonParamsJson'] !== 'string') {
 				errors.push(`button[${idx}] buttonParamsJson must be string`)
 			} else {
 				try {
-					JSON.parse(btn.buttonParamsJson)
+					JSON.parse(btn['buttonParamsJson'] as string)
 				} catch (e: unknown) {
 					errors.push(`button[${idx}] buttonParamsJson is not valid JSON: ${(e as Error).message}`)
 				}
@@ -394,9 +394,9 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 			return b
 		}
 
-		if (btn.id || btn.text || btn.displayText) return b
-		const oldBt = btn.buttonText as Record<string, unknown> | undefined
-		if (btn.buttonId && oldBt?.displayText) return b
+		if (btn['id'] || btn['text'] || btn['displayText']) return b
+		const oldBt = btn['buttonText'] as Record<string, unknown> | undefined
+		if (btn['buttonId'] && oldBt?.['displayText']) return b
 		warnings.push(`button[${idx}] unrecognized shape; passing through unchanged`)
 		return b
 	})
@@ -425,34 +425,34 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 		errors.push('buttons is mandatory and must be a non-empty array')
 	} else {
 		;(d.buttons as AnyRawButton[]).forEach((btn, i) => {
-			const b = btn
+			const b = btn as Record<string, unknown>
 			if (!btn || typeof btn !== 'object') {
 				errors.push(`button[${i}] must be an object`)
 				return
 			}
 
-			if (b.id && b.text) {
-				if (typeof b.id !== 'string' || typeof b.text !== 'string') {
+			if (b['id'] && b['text']) {
+				if (typeof b['id'] !== 'string' || typeof b['text'] !== 'string') {
 					errors.push(`button[${i}] legacy quick reply id/text must be strings`)
 				}
 
 				return
 			}
 
-			if (b.name && b.buttonParamsJson) {
-				if (!SEND_BUTTONS_ALLOWED_COMPLEX.has(b.name as string)) {
+			if (b['name'] && b['buttonParamsJson']) {
+				if (!SEND_BUTTONS_ALLOWED_COMPLEX.has(b['name'] as string)) {
 					errors.push(
-						`button[${i}] name '${b.name}' not allowed in sendButtons (allowed: ${[...SEND_BUTTONS_ALLOWED_COMPLEX].join(', ')})`
+						`button[${i}] name '${b['name']}' not allowed in sendButtons (allowed: ${[...SEND_BUTTONS_ALLOWED_COMPLEX].join(', ')})`
 					)
 					return
 				}
 
-				if (typeof b.buttonParamsJson !== 'string') {
+				if (typeof b['buttonParamsJson'] !== 'string') {
 					errors.push(`button[${i}] buttonParamsJson must be string`)
 					return
 				}
 
-				parseButtonParamsInternal(b.name as string, b.buttonParamsJson, errors, warnings, i)
+				parseButtonParamsInternal(b['name'] as string, b['buttonParamsJson'] as string, errors, warnings, i)
 				return
 			}
 
