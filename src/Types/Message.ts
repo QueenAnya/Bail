@@ -271,7 +271,7 @@ export type TemplateMessageOptions = {
 	headerMedia?: WAMediaUpload
 }
 
-export type InteractiveButton =
+type InteractiveButton =
 	| { type: 'reply'; displayText: string; id: string }
 	| { type: 'url'; displayText: string; url: string; merchantUrl?: string }
 	| { type: 'cta_call'; displayText: string; phoneNumber: string }
@@ -767,14 +767,14 @@ export type AnyRegularMessageContent = (
 	| { order: OrderMessageOptions }
 	| { payment: PaymentMessageOptions }
 	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
-	//.| { buttons: ButtonsMessageOptions }
-	//| { list: ListMessageOptions }
-	//| { template: TemplateMessageOptions }
+	// | { buttons: ButtonsMessageOptions }
+	// | { list: ListMessageOptions }
+	// | { template: TemplateMessageOptions }
 	| { interactive: InteractiveMessageOptions }
 	| { interactivePIX: InteractiveMessagePIXOptions }
 	| { interactivePAY: InteractiveMessagePAYOptions }
 	| { statusMention: StatusMentionOptions }
-	| { shop: ShopMessageOptions }
+	// | { shop: ShopMessageOptions }
 	| { collection: CollectionMessageOptions }
 	| { hdImage: WAMediaUpload; caption?: string; mimetype?: string }
 	| { hdVideo: WAMediaUpload; caption?: string; mimetype?: string }
