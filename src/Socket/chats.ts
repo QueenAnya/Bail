@@ -1191,12 +1191,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	/**
 	 * Clear a message from chat (delete for me)
 	 */
-	const clearMessage = (jid: string) => {
-		return chatModify({ delete: true, lastMessages: [{ key: WAMessageKey, messageTimestamp: timeStamp: Date.now() }] }, jid)
-	}
-
-	const deleteChat = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
-		return chatModify({ delete: true, lastMessages: [{ key: key || WAMessageKey, messageTimestamp: timeStamp: timeStamp || Date.now() }] }, jid)
+	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
 	}
 
 	/**
@@ -1509,7 +1505,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		resyncAppState,
 		chatModify,
 		clearMessage,
-		deleteChat,
+		deleteChat: clearMessage,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,
