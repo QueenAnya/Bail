@@ -376,15 +376,16 @@ export type PaymentMessageOptions = {
 	backgroundColor?: string
 }
 
+export type PaymentInviteInfo = {
+	type?: number
+	expiry?: number
+}
+
 export type PaymentInviteMessageOptions = {
 	/** Type of payment service */
-	serviceType?: 'UNKNOWN' | 'FACEBOOK_PAY' | 'NOVI' | 'UPI' | 'PAYTM' | 'BR_GPY' | 'BR_PIX'
+	serviceType: 'UNKNOWN' | 'FACEBOOK_PAY' | 'NOVI' | 'UPI' | 'PAYTM' | 'BR_GPY' | 'BR_PIX'
 	/** Expiry timestamp (ms since epoch) */
 	expiryTimestamp?: number
-	/** Alternative V2 property */
-	type?: number
-	/** Alternative V2 property */
-	expiry?: number
 }
 
 export type OrderMessageOptions = {
@@ -408,21 +409,35 @@ export type OrderMessageOptions = {
 	token?: string
 }
 
+/**
+ * Individual sticker within a sticker pack (V1 style)
+ */
 export type Sticker = {
 	/** Sticker media source */
-	data?: WAMediaUpload
-	sticker?: WAMediaUpload
+	data: WAMediaUpload
 	/** Emoji tags for this sticker */
 	emojis?: string[]
 	/** Accessibility label */
+	accessibilityLabel?: string
+}
+
+/**
+ * Individual sticker within a sticker pack (V2 style)
+ */
+export type StickerPackSticker = {
+	sticker: WAMediaUpload
+	emojis?: string[]
 	accessibilityLabel?: string
 	isAnimated?: boolean
 	isLottie?: boolean
 }
 
+/**
+ * Full sticker pack definition (Merged V1/V2)
+ */
 export type StickerPack = {
-	/** All stickers in the pack */
-	stickers: Sticker[]
+	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
+	stickers: StickerPackSticker[] | Sticker[]
 	/** Cover sticker shown in the tray */
 	cover: WAMediaUpload
 	/** Display name of the pack */
@@ -736,7 +751,7 @@ export type AnyRegularMessageContent = (
 	| { keep: KeepMessageOptions }
 	| { order: OrderMessageOptions }
 	| { payment: PaymentMessageOptions }
-	| { paymentInvite: PaymentInviteMessageOptions }
+	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { stickerPack: StickerPackMessageOptions | StickerPack }
