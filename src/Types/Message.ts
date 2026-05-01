@@ -768,8 +768,8 @@ export type AnyRegularMessageContent = (
 	| { payment: PaymentMessageOptions }
 	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
 	//.| { buttons: ButtonsMessageOptions }
-	| { list: ListMessageOptions }
-	| { template: TemplateMessageOptions }
+	//| { list: ListMessageOptions }
+	//| { template: TemplateMessageOptions }
 	| { interactive: InteractiveMessageOptions }
 	| { interactivePIX: InteractiveMessagePIXOptions }
 	| { interactivePAY: InteractiveMessagePAYOptions }
