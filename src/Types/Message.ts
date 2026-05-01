@@ -240,6 +240,15 @@ export type ButtonsMessageOptions = {
 	headerMedia?: WAMediaUpload
 }
 
+export type ListMessageSection = {
+	title: string
+	rows: {
+		title: string
+		rowId: string
+		description?: string
+	}[]
+}
+
 export type ListMessageOptions = {
 	text: string
 	footer?: string
@@ -332,7 +341,7 @@ export type PaymentMessageOptions = {
 	backgroundColor?: string
 }
 
-export type PaymentInviteInfo = {
+export type PaymentInviteInfoo = {
 	type?: number
 	expiry?: number
 }
@@ -380,7 +389,7 @@ export type Sticker = {
 /**
  * Individual sticker within a sticker pack (V2 style)
  */
-export type StickerPackSticker = {
+export type StickerPackStickerr = {
 	sticker: WAMediaUpload
 	emojis?: string[]
 	accessibilityLabel?: string
@@ -391,22 +400,7 @@ export type StickerPackSticker = {
 /**
  * Full sticker pack definition (Merged V1/V2)
  */
-export type StickerPack = {
-	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
-	stickers: StickerPackSticker[] | Sticker[]
-	/** Cover sticker shown in the tray */
-	cover: WAMediaUpload
-	/** Display name of the pack */
-	name: string
-	/** Publisher name */
-	publisher: string
-	/** Optional description */
-	description?: string
-	/** Pack ID — auto-generated if not provided */
-	packId?: string
-}
-
-export type StickerPack = {
+export type StickerPackk = {
 	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
 	stickers: StickerPackSticker[] | Sticker[]
 	/** Cover sticker shown in the tray */
@@ -769,6 +763,24 @@ export type AnyRegularMessageContent = (
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { paymentInvite: PaymentInviteInfo }
+	| { keep: KeepMessageOptions }
+	| { order: OrderMessageOptions }
+	| { payment: PaymentMessageOptions }
+	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
+	| { buttons: ButtonsMessageOptions }
+	| { list: ListMessageOptions }
+	| { template: TemplateMessageOptions }
+	| { interactive: InteractiveMessageOptions }
+	| { interactivePIX: InteractiveMessagePIXOptions }
+	| { interactivePAY: InteractiveMessagePAYOptions }
+	| { statusMention: StatusMentionOptions }
+	| { shop: ShopMessageOptions }
+	| { collection: CollectionMessageOptions }
+	| { hdImage: WAMediaUpload; caption?: string; mimetype?: string }
+	| { hdVideo: WAMediaUpload; caption?: string; mimetype?: string }
+	| { callMessage: proto.Message.IScheduledCallCreationMessage }
+	| { pollResult: proto.Message.IPollResultSnapshotMessage }
+	// | { richMessage: RichMessageOptions }
 	| {
 			richResponse: {
 				text: string
