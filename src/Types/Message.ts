@@ -406,6 +406,102 @@ export type StickerPack = {
 	packId?: string
 }
 
+export type StickerPack = {
+	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
+	stickers: StickerPackSticker[] | Sticker[]
+	/** Cover sticker shown in the tray */
+	cover: WAMediaUpload
+	/** Display name of the pack */
+	name: string
+	/** Publisher name */
+	publisher: string
+	/** Optional description */
+	description?: string
+	/** Pack ID — auto-generated if not provided */
+	packId?: string
+}
+
+export type StickerPackMessageOptions = {
+	/** Pack name */
+	packName: string
+	/** Pack publisher */
+	publisher?: string
+	/** Pack ID */
+	packId?: string
+	/** Sticker count */
+	stickerCount?: number
+}
+
+export type StatusMentionOptions = {
+	/** Status JIDs to mention */
+	statusJidList: string[]
+	/** Text to accompany */
+	text: string
+	/** Background color */
+	backgroundColor?: string
+	/** Font */
+	font?: number
+}
+
+export type ShopMessageOptions = {
+	/** Surface: 1=unknown, 2=catalog */
+	surface?: number
+	/** Message */
+	message?: string
+}
+
+export type CollectionMessageOptions = {
+	/** Business JID owning the collection */
+	bizJid: string
+	/** Collection ID */
+	id: string
+	/** Message version */
+	messageVersion?: number
+}
+
+export type RichTextTable = {
+	/** Table data rows (first row = header if headerRow=true) */
+	rows: string[][]
+	/** Whether first row is a header */
+	headerRow?: boolean
+	/** Optional title */
+	title?: string
+}
+
+export type RichTextList = {
+	/** List items */
+	items: string[]
+	/** Ordered (numbered) list */
+	ordered?: boolean
+	/** Optional title */
+	title?: string
+}
+
+export type CodeBlockOptions = {
+	/** Code string */
+	code: string
+	/** Language hint */
+	language?: string
+}
+
+export type LatexOptions = {
+	/** LaTeX expression */
+	expression: string
+}
+
+export type RichMessageOptions = {
+	/** Rich text content parts */
+	parts: (
+		| { type: 'text'; text: string }
+		| { type: 'table'; table: RichTextTable }
+		| { type: 'list'; list: RichTextList }
+		| { type: 'code'; code: CodeBlockOptions }
+		| { type: 'latex'; latex: LatexOptions }
+	)[]
+	/** Optional caption */
+	caption?: string
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
