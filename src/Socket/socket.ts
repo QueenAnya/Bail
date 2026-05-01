@@ -35,9 +35,10 @@ import {
 	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
-	xmppSignedPreKey
+	xmppSignedPreKey,
+	getCompanionPlatformId
 } from '../Utils'
-import { getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
+import { getPlatformDisplayName<, } from '../Utils/browser-utils'
 import { buildPairingQRData } from '../Utils/companion-reg-client-utils'
 import {
 	assertNodeErrorFree,
@@ -787,7 +788,7 @@ export const makeSocket = (config: SocketConfig) => {
 		// companion_platform_display must also be a canonical OS name; custom brand names (e.g.
 		// "Zapper") belong in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked
 		// Devices.
-		const rawPlatformId = parseInt(getPlatformId(browser[1]))
+		const rawPlatformId = parseInt(getCompanionPlatformId(browser))
 		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
 		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
 		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'

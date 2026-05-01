@@ -767,15 +767,20 @@ export type AnyRegularMessageContent = (
 	| { order: OrderMessageOptions }
 	| { payment: PaymentMessageOptions }
 	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
+	// | { buttons: ButtonsMessageOptions }
+	// | { list: ListMessageOptions }
+	// | { template: TemplateMessageOptions }
 	| { interactive: InteractiveMessageOptions }
 	| { interactivePIX: InteractiveMessagePIXOptions }
 	| { interactivePAY: InteractiveMessagePAYOptions }
 	| { statusMention: StatusMentionOptions }
+	// | { shop: ShopMessageOptions }
 	| { collection: CollectionMessageOptions }
 	| { hdImage: WAMediaUpload; caption?: string; mimetype?: string }
 	| { hdVideo: WAMediaUpload; caption?: string; mimetype?: string }
 	| { callMessage: proto.Message.IScheduledCallCreationMessage }
 	| { pollResult: proto.Message.IPollResultSnapshotMessage }
+	// | { richMessage: RichMessageOptions }
 	| {
 			richResponse: {
 				text: string
