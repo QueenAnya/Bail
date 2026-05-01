@@ -297,6 +297,53 @@ export type InteractiveMessageOptions = {
 	}
 }
 
+export type InteractiveMessagePIXOptions = InteractiveMessageOptions & {
+	/** PIX payment key */
+	pixKey: string
+	/** Payment amount in cents */
+	amount: number
+	/** Merchant name */
+	merchantName: string
+}
+
+export type InteractiveMessagePAYOptions = InteractiveMessageOptions & {
+	/** Payment amount */
+	amount: number
+	/** Currency code, e.g. "BRL" */
+	currency: string
+	/** Reference ID */
+	referenceId?: string
+	/** Payment note */
+	note?: string
+}
+
+export type PaymentMessageOptions = {
+	/** Amount in smallest currency unit (e.g. cents) */
+	amount: number
+	/** Currency code (e.g. "USD", "BRL") */
+	currency: string
+	/** Note/memo for the payment */
+	note?: string
+	/** Receiver JID */
+	receiverJid: string
+	/** Request or send */
+	type?: 'request' | 'send'
+	/** Background color (hex) */
+	backgroundColor?: string
+}
+
+export type PaymentInviteInfo = {
+	type?: number
+	expiry?: number
+}
+
+export type PaymentInviteMessageOptions = {
+	/** Type of payment service */
+	serviceType: 'UNKNOWN' | 'FACEBOOK_PAY' | 'NOVI' | 'UPI' | 'PAYTM' | 'BR_GPY' | 'BR_PIX'
+	/** Expiry timestamp (ms since epoch) */
+	expiryTimestamp?: number
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
