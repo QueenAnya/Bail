@@ -203,6 +203,43 @@ export type AlbumMessageOptions = {
 	expectedVideoCount?: number
 }
 
+export type KeepMessageOptions = {
+	/** The message key to keep */
+	key: proto.IMessageKey
+	/** Keep duration in seconds (86400 = 24h, 604800 = 7d, 0 = unkeep) */
+	keepDurationSeconds?: number
+}
+
+export type ButtonContent = {
+	/** Button display text */
+	displayText: string
+	/** Button ID */
+	id: string
+	/** Button type */
+	type?: 'reply' | 'url' | 'call' | 'copy'
+	/** URL for url-type buttons */
+	url?: string
+	/** Phone number for call-type buttons */
+	phoneNumber?: string
+	/** Text to copy for copy-type buttons */
+	copyCode?: string
+}
+
+export type ButtonsMessageOptions = {
+	/** Message body text */
+	text: string
+	/** Footer text */
+	footer?: string
+	/** Header text */
+	headerText?: string
+	/** Buttons to display */
+	buttons: ButtonContent[]
+	/** Header type: text | image | video | document */
+	headerType?: 'text' | 'image' | 'video' | 'document'
+	/** Media for header */
+	headerMedia?: WAMediaUpload
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
