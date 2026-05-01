@@ -5,7 +5,7 @@ import { proto } from '../../WAProto/index.js'
 import { execSendStatusMentions } from '../addons/from-messages-send'
 import {
 	type CapturedUnifiedResponse,
-	captureUnifiedResponse,
+	extractUnifiedResponse,
 	generateCodeBlockContent,
 	generateLatexContent,
 	generateLatexImageContent,
@@ -1633,7 +1633,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * Capture the unifiedResponse payload from an incoming Meta AI message.
 		 * Returns null if the message is not a rich response.
 		 */
-		captureUnifiedResponse,
+		extractUnifiedResponse,
 
 		/**
 		 * Re-send a captured unifiedResponse to a new JID.

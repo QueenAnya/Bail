@@ -47,7 +47,6 @@ import { isJidGroup } from '../WABinary/jid-utils.js'
 import type { BinaryNode } from '../WABinary/types.js'
 import { getButtonArgs, getButtonType } from './message-utils.js'
 // Re-export so callers can import these from button-sender directly (matches button-helper API)
-export { getButtonType, getButtonArgs }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

@@ -434,7 +434,7 @@ export const generateLatexInlineImageContent = async (
 	}
 }
 
-export const captureUnifiedResponse = (msg: proto.IMessage | null | undefined): CapturedUnifiedResponse | null => {
+export const extractUnifiedResponse = (msg: proto.IMessage | null | undefined): CapturedUnifiedResponse | null => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const botFwd = (msg as any)?.botForwardedMessage?.message
 	if (!botFwd) return null
