@@ -240,6 +240,63 @@ export type ButtonsMessageOptions = {
 	headerMedia?: WAMediaUpload
 }
 
+export type ListMessageOptions = {
+	text: string
+	footer?: string
+	title?: string
+	buttonText: string
+	sections: ListMessageSection[]
+}
+
+export type TemplateButtonContent =
+	| { index: number; urlButton: { displayText: string; url: string } }
+	| { index: number; callButton: { displayText: string; phoneNumber: string } }
+	| { index: number; quickReplyButton: { displayText: string; id: string } }
+
+export type TemplateMessageOptions = {
+	text: string
+	footer?: string
+	templateButtons: TemplateButtonContent[]
+	/** Optional header: text, image, video, document */
+	header?: string
+	headerMedia?: WAMediaUpload
+}
+
+export type InteractiveButton =
+	| { type: 'reply'; displayText: string; id: string }
+	| { type: 'url'; displayText: string; url: string; merchantUrl?: string }
+	| { type: 'cta_call'; displayText: string; phoneNumber: string }
+	| { type: 'cta_copy'; displayText: string; copyCode: string }
+
+export type CarouselCard = {
+	body: string
+	footer?: string
+	headerImage?: WAMediaUpload
+	headerVideo?: WAMediaUpload
+	buttons: InteractiveButton[]
+}
+
+export type InteractiveMessageOptions = {
+	body: string
+	footer?: string
+	/** Header options */
+	header?: {
+		title?: string
+		subtitle?: string
+		hasMediaAttachment?: boolean
+	}
+	/** Buttons (for native-flow / button-list style) */
+	buttons?: InteractiveButton[]
+	/** Carousel cards */
+	cards?: CarouselCard[]
+	/** Products list */
+	shop?: {
+		id: string
+		thumbnail?: WAMediaUpload
+		title?: string
+	}
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
