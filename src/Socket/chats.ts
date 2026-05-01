@@ -1191,11 +1191,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	/**
 	 * Clear a message from chat (delete for me)
 	 */
-	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
-		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
+	const clearMessage = (jid: string) => {
+		return chatModify({ delete: true, lastMessages: [{ key: WAMessageKey, messageTimestamp: timeStamp: Date.now() }] }, jid)
 	}
 
-	const deleteChat = clearMessage
+	const deleteChat = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+		return chatModify({ delete: true, lastMessages: [{ key: key || WAMessageKey, messageTimestamp: timeStamp: timeStamp || Date.now() }] }, jid)
+	}
 
 	/**
 	 * queries need to be fired on connection open
