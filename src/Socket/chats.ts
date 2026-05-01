@@ -1505,7 +1505,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		resyncAppState,
 		chatModify,
 		clearMessage,
-		deleteChat: clearMessage,
+		clearMessage as deleteChat,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,
