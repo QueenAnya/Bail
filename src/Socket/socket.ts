@@ -28,6 +28,7 @@ import {
 	generateMdTagPrefix,
 	generateRegistrationNode,
 	getCodeFromWSError,
+	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
 	makeEventBuffer,
@@ -35,10 +36,9 @@ import {
 	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
-	xmppSignedPreKey,
-	getCompanionPlatformId
+	xmppSignedPreKey
 } from '../Utils'
-import { getPlatformDisplayName<, } from '../Utils/browser-utils'
+import { getPlatformDisplayName } from '../Utils/browser-utils'
 import { buildPairingQRData } from '../Utils/companion-reg-client-utils'
 import {
 	assertNodeErrorFree,

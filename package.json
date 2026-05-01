@@ -1,7 +1,7 @@
 {
   "name": "@queenanya/baileys",
   "type": "module",
-  "version": "9.4.1",
+  "version": "9.6.0",
   "description": "A WebSockets library for interacting with WhatsApp Web",
   "keywords": [
     "whatsapp",
@@ -50,12 +50,12 @@
     "libsignal": "https://registry.npmjs.org/@queenanya/libsignal/-/libsignal-5.0.5.tgz",
     "long": "^5.3.2",
     "lru-cache": "^11.1.0",
-    "music-metadata": "^11.7.0",
+    "music-metadata": "11.12.1",
     "p-queue": "^9.0.0",
     "pino": "^9.6",
     "protobufjs": "^7.2.4",
     "qrcode-terminal": "^0.12.0",
-    "whatsapp-rust-bridge": "0.5.2",
+    "whatsapp-rust-bridge": "0.5.3",
     "ws": "^8.13.0"
   },
   "devDependencies": {
