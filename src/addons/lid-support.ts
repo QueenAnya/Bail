@@ -35,6 +35,7 @@ export const splitJidsByType = (jids: string[]): { pnJids: string[]; lidJids: st
 			pnJids.push(jid)
 		}
 	}
+
 	return { pnJids, lidJids }
 }
 

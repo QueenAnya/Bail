@@ -52,6 +52,7 @@ export const createPairingQueue = (sendPairingIQ: SendPairingIQFn): PairingQueue
 			pendingResolve = undefined
 			pendingReject = undefined
 		}
+
 		ready = false
 		inProgress = false
 	}
@@ -60,6 +61,7 @@ export const createPairingQueue = (sendPairingIQ: SendPairingIQFn): PairingQueue
 		if (inProgress) {
 			throw new Error('A pairing request is already in progress')
 		}
+
 		inProgress = true
 
 		if (ready) {
@@ -79,6 +81,7 @@ export const createPairingQueue = (sendPairingIQ: SendPairingIQFn): PairingQueue
 						inProgress = false
 					})
 			}
+
 			pendingReject = (err: Error) => {
 				inProgress = false
 				reject(err)
