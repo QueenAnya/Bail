@@ -344,6 +344,68 @@ export type PaymentInviteMessageOptions = {
 	expiryTimestamp?: number
 }
 
+export type OrderMessageOptions = {
+	/** Order ID */
+	orderId: string
+	/** Thumbnail image of an order item */
+	thumbnail?: WAMediaUpload
+	/** Item count */
+	itemCount: number
+	/** Order status */
+	status?: 'INQUIRY' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELED'
+	/** Surface (e.g. 1 = catalog, 2 = message) */
+	surface?: number
+	/** Message associated with the order */
+	message?: string
+	/** Order title */
+	title?: string
+	/** Seller JID */
+	sellerJid?: string
+	/** Token */
+	token?: string
+}
+
+/**
+ * Individual sticker within a sticker pack (V1 style)
+ */
+export type Sticker = {
+	/** Sticker media source */
+	data: WAMediaUpload
+	/** Emoji tags for this sticker */
+	emojis?: string[]
+	/** Accessibility label */
+	accessibilityLabel?: string
+}
+
+/**
+ * Individual sticker within a sticker pack (V2 style)
+ */
+export type StickerPackSticker = {
+	sticker: WAMediaUpload
+	emojis?: string[]
+	accessibilityLabel?: string
+	isAnimated?: boolean
+	isLottie?: boolean
+}
+
+/**
+ * Full sticker pack definition (Merged V1/V2)
+ */
+export type StickerPack = {
+	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
+	stickers: StickerPackSticker[] | Sticker[]
+	/** Cover sticker shown in the tray */
+	cover: WAMediaUpload
+	/** Display name of the pack */
+	name: string
+	/** Publisher name */
+	publisher: string
+	/** Optional description */
+	description?: string
+	/** Pack ID — auto-generated if not provided */
+	packId?: string
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
