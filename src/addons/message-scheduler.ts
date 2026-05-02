@@ -31,7 +31,7 @@ export type ScheduledMessageJob = {
 type SendFn = (jid: string, content: AnyMessageContent, options?: MiscMessageGenerationOptions) => Promise<any>
 
 const jobs = new Map<string, ScheduledMessageJob>()
-const timers = new Map<string, ReturnType<typeof setTimeout>>()
+let timers = new Map<string, ReturnType<typeof setTimeout>>()
 let sendFn: SendFn | null = null
 
 /**
@@ -50,7 +50,6 @@ const scheduleTimer = (job: ScheduledMessageJob): void => {
 			job.error = 'sendFn not attached'
 			return
 		}
-
 		try {
 			await sendFn(job.jid, job.content, job.options)
 			job.status = 'sent'
@@ -152,8 +151,7 @@ export const cancelAllScheduledMessages = (): void => {
 	for (const [id, timer] of timers.entries()) {
 		clearTimeout(timer)
 		const job = jobs.get(id)
-		if (job?.status === 'pending') job.status = 'cancelled'
+		if (job && job.status === 'pending') job.status = 'cancelled'
 	}
-
 	timers.clear()
 }

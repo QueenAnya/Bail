@@ -28,7 +28,6 @@ import {
 	generateMdTagPrefix,
 	generateRegistrationNode,
 	getCodeFromWSError,
-	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
 	makeEventBuffer,
@@ -38,7 +37,7 @@ import {
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
-import { getPlatformDisplayName } from '../Utils/browser-utils'
+import { getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
 import { buildPairingQRData } from '../Utils/companion-reg-client-utils'
 import {
 	assertNodeErrorFree,
@@ -788,11 +787,11 @@ export const makeSocket = (config: SocketConfig) => {
 		// companion_platform_display must also be a canonical OS name; custom brand names (e.g.
 		// "Zapper") belong in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked
 		// Devices.
-		const rawPlatformId = parseInt(getCompanionPlatformId(browser))
+		const rawPlatformId = parseInt(getPlatformId(browser[1]))
 		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
 		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : browser[1] // 'Firefox'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : browser[0] // 'Windows'
+		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
+		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
 
 		await query({
 			tag: 'iq',
