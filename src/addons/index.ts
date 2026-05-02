@@ -78,7 +78,7 @@ export * from './message-composer'
 export * from './message-search'
 
 // ── Interactive / Button Message Generators ───────────────────────────────
-//export * from './interactive-message'
+export * from './interactive-message'
 
 // ── Call Handler ──────────────────────────────────────────────────────────
 export * from './call-handler'
@@ -97,6 +97,14 @@ export * from './from-chats'
 export * from './from-messages-recv'
 export * from './from-messages-send'
 export * from './from-messages'
+
+// ── Patch feature addons ──────────────────────────────────────────────────
+export * from './browser-presets'
+export * from './lid-support'
+export * from './outgoing-calls'
+export * from './pairing-fix'
+export * from './past-participants'
+export * from './stickerpack'
 
 // ── Auth State — re-exported from src/Utils (canonical location) ───────────
 export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
