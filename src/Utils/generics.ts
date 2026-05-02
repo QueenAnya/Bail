@@ -480,15 +480,6 @@ export const getCallStatusFromNode = ({ tag, attrs }: BinaryNode) => {
 		case 'reject':
 			status = 'reject'
 			break
-		case 'preaccept':
-			status = 'preaccept'
-			break
-		case 'transport':
-			status = 'transport'
-			break
-		case 'relaylatency':
-			status = 'relaylatency'
-			break
 		case 'accept':
 			status = 'accept'
 			break
