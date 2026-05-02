@@ -1,6 +1,23 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
+import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
+import { execSendStatusMentions } from '../addons/from-messages-send'
+import {
+	type CapturedUnifiedResponse,
+	extractUnifiedResponse,
+	generateCodeBlockContent,
+	generateLatexContent,
+	generateLatexImageContent,
+	generateLatexInlineImageContent,
+	generateListContent,
+	generateRichMessageContent,
+	generateTableContent,
+	generateUnifiedResponseContent,
+	type LatexExpression,
+	type RichSubMessage
+} from '../addons/message-composer'
+import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
@@ -9,6 +26,7 @@ import type {
 	MessageRelayOptions,
 	MiscMessageGenerationOptions,
 	SocketConfig,
+	WAMediaUpload,
 	WAMessage,
 	WAMessageKey
 } from '../Types'
@@ -17,6 +35,7 @@ import {
 	assertMediaContent,
 	bindWaitForEvent,
 	decryptMediaRetryData,
+	delay,
 	encodeNewsletterMessage,
 	encodeSignedDeviceIdentity,
 	encodeWAMessage,
@@ -25,6 +44,7 @@ import {
 	generateMessageIDV2,
 	generateParticipantHashV2,
 	generateWAMessage,
+	generateWAMessageFromContent,
 	getStatusCodeForMediaRetry,
 	getUrlFromDirectPath,
 	getWAUploadToServer,
@@ -49,6 +69,8 @@ import {
 	type BinaryNode,
 	type BinaryNodeAttributes,
 	type FullJid,
+	getBinaryFilteredBizBot,
+	getBinaryFilteredButtons,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	isHostedLidUser,
@@ -56,6 +78,7 @@ import {
 	isJidBot,
 	isJidGroup,
 	isJidMetaAI,
+	isJidNewsletter,
 	isLidUser,
 	isPnUser,
 	jidDecode,
@@ -98,7 +121,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	/**
 	 * Set of tctoken storage JIDs with a fire-and-forget `issuePrivacyTokens` IQ in flight.
 	 * Prevents duplicate IQs from rapid back-to-back sends before `senderTimestamp` persists.
-	 * Entries are always removed in `.finally()`, so the set is bounded by concurrency.
 	 */
 	const inFlightTcTokenIssuance = new Set<string>()
 
@@ -408,6 +430,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	 * Update Member Label
 	 */
 	const updateMemberLabel = (jid: string, memberLabel: string) => {
+		if (!isJidGroup(jid)) {
+			throw new Error('Jid must a group jid!')
+		}
+
 		return relayMessage(
 			jid,
 			{
@@ -630,17 +656,20 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			additionalNodes,
 			useUserDevicesCache,
 			useCachedGroupMetadata,
-			statusJidList
-		}: MessageRelayOptions
+			statusJidList,
+			AI = false
+		}: MessageRelayOptions & { AI?: boolean }
 	) => {
 		const meId = authState.creds.me!.id
 		const meLid = authState.creds.me?.lid
 		const isRetryResend = Boolean(participant?.jid)
 		let shouldIncludeDeviceIdentity = isRetryResend
+		let didPushAdditional = false
 		const statusJid = 'status@broadcast'
 
 		const { user, server } = jidDecode(jid)!
 		const isGroup = server === 'g.us'
+		const isPrivate = server === 's.whatsapp.net'
 		const isStatus = jid === statusJid
 		const isLid = server === 'lid'
 		const isNewsletter = server === 'newsletter'
@@ -667,6 +696,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		const extraAttrs: BinaryNodeAttributes = {}
 
+		// normalizeMessageContent BEFORE transaction — exact addons pattern
+		const messages = normalizeMessageContent(message) || message
+		const buttonType = getButtonType(messages)
+		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
+
 		if (participant) {
 			if (!isGroup && !isStatus) {
 				additionalAttributes = { ...additionalAttributes, device_fanout: 'false' }
@@ -681,7 +715,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
-			const mediaType = getMediaType(message)
+			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
 			}
@@ -691,7 +725,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
 				binaryNodeContent.push({
 					tag: 'plaintext',
-					attrs: {},
+					attrs: mediaType ? { mediatype: mediaType } : {},
 					content: bytes
 				})
 				const stanza: BinaryNode = {
@@ -709,7 +743,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
-			if (normalizeMessageContent(message)?.pinInChatMessage || normalizeMessageContent(message)?.reactionMessage) {
+			if (
+				messages.pinInChatMessage ||
+				messages.keepInChatMessage ||
+				messages.reactionMessage ||
+				messages.protocolMessage?.editedMessage
+			) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
 			}
 
@@ -1047,7 +1086,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			if (tcTokenBuffer?.length && isTcTokenExpired(existingTokenEntry?.timestamp)) {
 				logger.debug({ jid: destinationJid, timestamp: existingTokenEntry?.timestamp }, 'tctoken expired, clearing')
 				tcTokenBuffer = undefined
-				// Preserve senderTimestamp so the fire-and-forget issuance dedupe survives cleanup.
 				const cleared =
 					existingTokenEntry?.senderTimestamp !== undefined
 						? { token: Buffer.alloc(0), senderTimestamp: existingTokenEntry.senderTimestamp }
@@ -1067,7 +1105,68 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			if (additionalNodes && additionalNodes.length > 0) {
+			// Inject poll/event meta node directly in relayMessage
+			// (mirrors innovators — handles direct relayMessage calls, not just sendMessage)
+			if (pollMessage || messages.eventMessage) {
+				const hasPollMeta = (additionalNodes ?? []).some(
+					(n: BinaryNode) => n.tag === 'meta' && ('polltype' in n.attrs || 'event_type' in n.attrs)
+				)
+				if (!hasPollMeta) {
+					const metaAttrs: Record<string, string> = messages.eventMessage
+						? { event_type: 'creation' }
+						: isNewsletter
+							? {
+									polltype: 'creation',
+									contenttype: (pollMessage as any)?.pollContentType === 2 ? 'image' : 'text'
+								}
+							: { polltype: 'creation' }
+					;(stanza.content as BinaryNode[]).push({ tag: 'meta', attrs: metaAttrs })
+				}
+			}
+
+			// Inject <biz> node for button messages
+			// Works for: WhatsApp Messenger + WhatsApp Business, Android + iOS
+			if (!isJidNewsletter(destinationJid) && buttonType) {
+				const buttonsNode = getButtonArgs(messages)
+				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
+
+				if (filteredButtons) {
+					;(stanza.content as BinaryNode[]).push(...additionalNodes!)
+					didPushAdditional = true
+				} else {
+					;(stanza.content as BinaryNode[]).push(buttonsNode)
+				}
+
+				// bot node: required for buttons to be interactive in private chats
+				// (independent of AI flag — matches innovators + button-helper behaviour)
+				if (isPrivate) {
+					const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
+					const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
+					if (filteredBizBot) {
+						if (!didPushAdditional) {
+							;(stanza.content as BinaryNode[]).push(...additionalNodes!)
+							didPushAdditional = true
+						}
+					} else {
+						;(stanza.content as BinaryNode[]).push(botNode)
+					}
+				}
+			}
+
+			// AI icon feature — adds bot node for non-button messages with AI flag
+			if (AI && isPrivate && !buttonType) {
+				const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
+				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
+
+				if (filteredBizBot) {
+					;(stanza.content as BinaryNode[]).push(...additionalNodes!)
+					didPushAdditional = true
+				} else {
+					;(stanza.content as BinaryNode[]).push(botNode)
+				}
+			}
+
+			if (!didPushAdditional && additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
 
@@ -1076,7 +1175,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			await sendNode(stanza)
 
 			// Fire-and-forget: issue our token to the contact AFTER message send.
-			// WA Web skips protocol messages and PSA/bot contacts (TcTokenChatAction: isRegularUser)
+			// WA Web skips protocol messages and PSA/bot contacts
 			const isProtocolMsg = !!normalizeMessageContent(message)?.protocolMessage
 			const isBotOrPSA = destinationJid === PSA_WID || isJidBot(destinationJid) || isJidMetaAI(destinationJid)
 			if (
@@ -1098,7 +1197,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							keys: authState.keys,
 							getLIDForPN
 						})
-
 						const currentData = await authState.keys.get('tctoken', [tcTokenJid])
 						const currentEntry = currentData[tcTokenJid]
 						const indexWrite = await buildMergedTcTokenIndexWrite(authState.keys, [tcTokenJid])
@@ -1130,68 +1228,32 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		return msgId
 	}
 
-	const getMessageType = (message: proto.IMessage) => {
-		const normalizedMessage = normalizeMessageContent(message)
-		if (!normalizedMessage) return 'text'
+	const getPrivacyTokens = async (jids: string[]) => {
+		const t = unixTimestampSeconds().toString()
+		const result = await query({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'privacy'
+			},
+			content: [
+				{
+					tag: 'tokens',
+					attrs: {},
+					content: jids.map(jid => ({
+						tag: 'token',
+						attrs: {
+							jid: jidNormalizedUser(jid),
+							t,
+							type: 'trusted_contact'
+						}
+					}))
+				}
+			]
+		})
 
-		if (normalizedMessage.reactionMessage || normalizedMessage.encReactionMessage) {
-			return 'reaction'
-		}
-
-		if (
-			normalizedMessage.pollCreationMessage ||
-			normalizedMessage.pollCreationMessageV2 ||
-			normalizedMessage.pollCreationMessageV3 ||
-			normalizedMessage.pollUpdateMessage
-		) {
-			return 'poll'
-		}
-
-		if (normalizedMessage.eventMessage) {
-			return 'event'
-		}
-
-		if (getMediaType(normalizedMessage) !== '') {
-			return 'media'
-		}
-
-		return 'text'
-	}
-
-	const getMediaType = (message: proto.IMessage) => {
-		if (message.imageMessage) {
-			return 'image'
-		} else if (message.videoMessage) {
-			return message.videoMessage.gifPlayback ? 'gif' : 'video'
-		} else if (message.audioMessage) {
-			return message.audioMessage.ptt ? 'ptt' : 'audio'
-		} else if (message.contactMessage) {
-			return 'vcard'
-		} else if (message.documentMessage) {
-			return 'document'
-		} else if (message.contactsArrayMessage) {
-			return 'contact_array'
-		} else if (message.liveLocationMessage) {
-			return 'livelocation'
-		} else if (message.stickerMessage) {
-			return 'sticker'
-		} else if (message.listMessage) {
-			return 'list'
-		} else if (message.listResponseMessage) {
-			return 'list_response'
-		} else if (message.buttonsResponseMessage) {
-			return 'buttons_response'
-		} else if (message.orderMessage) {
-			return 'order'
-		} else if (message.productMessage) {
-			return 'product'
-		} else if (message.interactiveResponseMessage) {
-			return 'native_flow_response'
-		} else if (message.groupInviteMessage) {
-			return 'url'
-		}
-
-		return ''
+		return result
 	}
 
 	const issuePrivacyTokens = async (jids: string[], timestamp?: number) => {
@@ -1228,6 +1290,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 	return {
 		...sock,
+		getPrivacyTokens,
 		issuePrivacyTokens,
 		assertSessions,
 		relayMessage,
@@ -1289,7 +1352,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
-		sendMessage: async (jid: string, content: AnyMessageContent, options: MiscMessageGenerationOptions = {}) => {
+		sendMessage: async (
+			jid: string,
+			content: AnyMessageContent,
+			options: MiscMessageGenerationOptions = {}
+		): Promise<WAMessage | undefined> => {
 			const userJid = authState.creds.me!.id
 			if (
 				typeof content === 'object' &&
@@ -1305,6 +1372,62 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							: 0
 						: disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
+			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
+				// Album message — matches addons prepareAlbumMessageContent
+				const albumItems = (content as any).album as Array<{
+					image?: WAMediaUpload
+					video?: WAMediaUpload
+					caption?: string
+				}>
+				const albumMsg = generateWAMessageFromContent(
+					jid,
+					{
+						albumMessage: {
+							expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
+							expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
+						}
+					},
+					{ userJid, ...options }
+				)
+
+				await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
+
+				const mediaMsgs = []
+				for (const item of albumItems) {
+					const mediaContent =
+						'image' in item ? { image: item.image, ...(item as any) } : { video: (item as any).video, ...(item as any) }
+
+					const mediaMsg = await generateWAMessage(jid, mediaContent as AnyMessageContent, {
+						logger,
+						userJid,
+						upload: async (encFilePath: string, opts: any) => {
+							const up = await waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
+							return up
+						},
+						...options
+					})
+
+					if (mediaMsg.message) {
+						mediaMsg.message.messageContextInfo = {
+							messageSecret: randomBytes(32),
+							messageAssociation: {
+								associationType: 1,
+								parentMessageKey: albumMsg.key
+							}
+						}
+					}
+
+					mediaMsgs.push(mediaMsg)
+					await delay((options as any).delay || 500)
+					await relayMessage(jid, mediaMsg.message!, {
+						messageId: mediaMsg.key.id!,
+						useCachedGroupMetadata: options.useCachedGroupMetadata,
+						statusJidList: options.statusJidList,
+						AI: (options as any).ai
+					})
+				}
+
+				return mediaMsgs[0]
 			} else {
 				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
@@ -1325,7 +1448,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					upload: waUploadToServer,
 					mediaCache: config.mediaCache,
 					options: config.options,
-					messageId: generateMessageIDV2(sock.user?.id),
+					messageId:
+						(('groupStatus' in content && (content as any).groupStatus) ||
+							('cards' in content && (content as any)?.cards)) &&
+						!options.messageId
+							? `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+							: generateMessageIDV2(sock.user?.id),
 					...options
 				})
 				const isEventMsg = 'event' in content && !!content.event
@@ -1348,19 +1476,25 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				} else if (isPinMsg) {
 					additionalAttributes.edit = '2'
 				} else if (isPollMessage) {
+					// Newsletter polls need a contenttype attr ('image' or 'text')
+					// matching innovators behaviour for cross-client compatibility
+					const pollAttrs: Record<string, string> = { polltype: 'creation' }
+					if (isJidNewsletter(jid)) {
+						const pollContent = (content as any).poll
+						pollAttrs.contenttype = pollContent?.pollContentType === 2 ? 'image' : 'text'
+					}
+
 					additionalNodes.push({
 						tag: 'meta',
-						attrs: {
-							polltype: 'creation'
-						}
-					} as BinaryNode)
+						attrs: pollAttrs
+					})
 				} else if (isEventMsg) {
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: {
 							event_type: 'creation'
 						}
-					} as BinaryNode)
+					})
 				}
 
 				await relayMessage(jid, fullMsg.message!, {
@@ -1368,7 +1502,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes,
 					statusJidList: options.statusJidList,
-					additionalNodes
+					additionalNodes,
+					AI: options.ai
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {
@@ -1378,6 +1513,135 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
+		},
+
+		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
+			return execSendStatusMentions(content, jids, {
+				meId: authState.creds.me!.id,
+				logger,
+				groupMetadata: sock.groupMetadata,
+				cachedGroupMetadata: config.cachedGroupMetadata,
+				relayMessage,
+				waUploadToServer,
+				getUrlInfo,
+				config,
+				linkPreviewImageThumbnailWidth,
+				generateHighQualityLinkPreview,
+				httpRequestOptions
+			})
+		},
+
+		/**
+		 * Send a rich table via botForwardedMessage → richResponseMessage.
+		 */
+		sendTable: async (
+			jid: string,
+			title: string,
+			headers: string[],
+			rows: string[][],
+			quoted?: any,
+			options: { headerText?: string; footer?: string } = {}
+		) => {
+			const { message, messageId } = generateTableContent(title, headers, rows, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a rich list (single-column table).
+		 */
+		sendList: async (
+			jid: string,
+			title: string,
+			items: string[] | string[][],
+			quoted?: any,
+			options: { headerText?: string; footer?: string } = {}
+		) => {
+			const { message, messageId } = generateListContent(title, items, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a syntax-highlighted code block.
+		 */
+		sendCodeBlock: async (
+			jid: string,
+			code: string,
+			quoted?: any,
+			options: { title?: string; footer?: string; language?: string } = {}
+		) => {
+			const { message, messageId } = generateCodeBlockContent(code, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a LaTeX expression as text (no image rendering).
+		 */
+		sendLatex: async (
+			jid: string,
+			quoted: any,
+			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string }
+		) => {
+			const { message, messageId } = generateLatexContent(quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Render LaTeX to PNG images, upload, and send.
+		 */
+		sendLatexImage: async (
+			jid: string,
+			quoted: any,
+			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+			renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
+			uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
+		) => {
+			const { message, messageId } = await generateLatexImageContent(quoted, options, uploadFn, renderLatexToPng)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Render LaTeX to PNG inline image blocks, upload, and send.
+		 */
+		sendLatexInlineImage: async (
+			jid: string,
+			quoted: any,
+			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+			renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
+			uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
+		) => {
+			const { message, messageId } = await generateLatexInlineImageContent(quoted, options, uploadFn, renderLatexToPng)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a fully custom rich message from a raw submessages array.
+		 */
+		sendRichMessage: async (jid: string, submessages: RichSubMessage[], quoted?: any) => {
+			const { message, messageId } = generateRichMessageContent(submessages, quoted)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Capture the unifiedResponse payload from an incoming Meta AI message.
+		 * Returns null if the message is not a rich response.
+		 */
+		extractUnifiedResponse,
+
+		/**
+		 * Re-send a captured unifiedResponse to a new JID.
+		 */
+		sendUnifiedResponse: async (jid: string, quoted: any, captured: CapturedUnifiedResponse) => {
+			const { message, messageId } = generateUnifiedResponseContent(quoted, captured)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
 		}
 	}
 }

@@ -203,6 +203,299 @@ export type AlbumMessageOptions = {
 	expectedVideoCount?: number
 }
 
+export type KeepMessageOptions = {
+	/** The message key to keep */
+	key: proto.IMessageKey
+	/** Keep duration in seconds (86400 = 24h, 604800 = 7d, 0 = unkeep) */
+	keepDurationSeconds?: number
+}
+
+export type ButtonContent = {
+	/** Button display text */
+	displayText: string
+	/** Button ID */
+	id: string
+	/** Button type */
+	type?: 'reply' | 'url' | 'call' | 'copy'
+	/** URL for url-type buttons */
+	url?: string
+	/** Phone number for call-type buttons */
+	phoneNumber?: string
+	/** Text to copy for copy-type buttons */
+	copyCode?: string
+}
+
+export type ButtonsMessageOptions = {
+	/** Message body text */
+	text: string
+	/** Footer text */
+	footer?: string
+	/** Header text */
+	headerText?: string
+	/** Buttons to display */
+	buttons: ButtonContent[]
+	/** Header type: text | image | video | document */
+	headerType?: 'text' | 'image' | 'video' | 'document'
+	/** Media for header */
+	headerMedia?: WAMediaUpload
+}
+
+export type ListMessageSection = {
+	title: string
+	rows: {
+		title: string
+		rowId: string
+		description?: string
+	}[]
+}
+
+export type ListMessageOptions = {
+	text: string
+	footer?: string
+	title?: string
+	buttonText: string
+	sections: ListMessageSection[]
+}
+
+export type TemplateButtonContent =
+	| { index: number; urlButton: { displayText: string; url: string } }
+	| { index: number; callButton: { displayText: string; phoneNumber: string } }
+	| { index: number; quickReplyButton: { displayText: string; id: string } }
+
+export type TemplateMessageOptions = {
+	text: string
+	footer?: string
+	templateButtons: TemplateButtonContent[]
+	/** Optional header: text, image, video, document */
+	header?: string
+	headerMedia?: WAMediaUpload
+}
+
+type InteractiveButton =
+	| { type: 'reply'; displayText: string; id: string }
+	| { type: 'url'; displayText: string; url: string; merchantUrl?: string }
+	| { type: 'cta_call'; displayText: string; phoneNumber: string }
+	| { type: 'cta_copy'; displayText: string; copyCode: string }
+
+export type CarouselCard = {
+	body: string
+	footer?: string
+	headerImage?: WAMediaUpload
+	headerVideo?: WAMediaUpload
+	buttons: InteractiveButton[]
+}
+
+export type InteractiveMessageOptions = {
+	body: string
+	footer?: string
+	/** Header options */
+	header?: {
+		title?: string
+		subtitle?: string
+		hasMediaAttachment?: boolean
+	}
+	/** Buttons (for native-flow / button-list style) */
+	buttons?: InteractiveButton[]
+	/** Carousel cards */
+	cards?: CarouselCard[]
+	/** Products list */
+	shop?: {
+		id: string
+		thumbnail?: WAMediaUpload
+		title?: string
+	}
+}
+
+export type InteractiveMessagePIXOptions = InteractiveMessageOptions & {
+	/** PIX payment key */
+	pixKey: string
+	/** Payment amount in cents */
+	amount: number
+	/** Merchant name */
+	merchantName: string
+}
+
+export type InteractiveMessagePAYOptions = InteractiveMessageOptions & {
+	/** Payment amount */
+	amount: number
+	/** Currency code, e.g. "BRL" */
+	currency: string
+	/** Reference ID */
+	referenceId?: string
+	/** Payment note */
+	note?: string
+}
+
+export type PaymentMessageOptions = {
+	/** Amount in smallest currency unit (e.g. cents) */
+	amount: number
+	/** Currency code (e.g. "USD", "BRL") */
+	currency: string
+	/** Note/memo for the payment */
+	note?: string
+	/** Receiver JID */
+	receiverJid: string
+	/** Request or send */
+	type?: 'request' | 'send'
+	/** Background color (hex) */
+	backgroundColor?: string
+}
+
+export type PaymentInviteInfoo = {
+	type?: number
+	expiry?: number
+}
+
+export type PaymentInviteMessageOptions = {
+	/** Type of payment service */
+	serviceType: 'UNKNOWN' | 'FACEBOOK_PAY' | 'NOVI' | 'UPI' | 'PAYTM' | 'BR_GPY' | 'BR_PIX'
+	/** Expiry timestamp (ms since epoch) */
+	expiryTimestamp?: number
+}
+
+export type OrderMessageOptions = {
+	/** Order ID */
+	orderId: string
+	/** Thumbnail image of an order item */
+	thumbnail?: WAMediaUpload
+	/** Item count */
+	itemCount: number
+	/** Order status */
+	status?: 'INQUIRY' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELED'
+	/** Surface (e.g. 1 = catalog, 2 = message) */
+	surface?: number
+	/** Message associated with the order */
+	message?: string
+	/** Order title */
+	title?: string
+	/** Seller JID */
+	sellerJid?: string
+	/** Token */
+	token?: string
+}
+
+/**
+ * Individual sticker within a sticker pack (V1 style)
+ */
+export type Sticker = {
+	/** Sticker media source */
+	data: WAMediaUpload
+	/** Emoji tags for this sticker */
+	emojis?: string[]
+	/** Accessibility label */
+	accessibilityLabel?: string
+}
+
+/**
+ * Individual sticker within a sticker pack (V2 style)
+ */
+export type StickerPackStickerr = {
+	sticker: WAMediaUpload
+	emojis?: string[]
+	accessibilityLabel?: string
+	isAnimated?: boolean
+	isLottie?: boolean
+}
+
+/**
+ * Full sticker pack definition (Merged V1/V2)
+ */
+export type StickerPackk = {
+	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
+	stickers: StickerPackSticker[] | Sticker[]
+	/** Cover sticker shown in the tray */
+	cover: WAMediaUpload
+	/** Display name of the pack */
+	name: string
+	/** Publisher name */
+	publisher: string
+	/** Optional description */
+	description?: string
+	/** Pack ID — auto-generated if not provided */
+	packId?: string
+}
+
+export type StickerPackMessageOptions = {
+	/** Pack name */
+	packName: string
+	/** Pack publisher */
+	publisher?: string
+	/** Pack ID */
+	packId?: string
+	/** Sticker count */
+	stickerCount?: number
+}
+
+export type StatusMentionOptions = {
+	/** Status JIDs to mention */
+	statusJidList: string[]
+	/** Text to accompany */
+	text: string
+	/** Background color */
+	backgroundColor?: string
+	/** Font */
+	font?: number
+}
+
+export type ShopMessageOptions = {
+	/** Surface: 1=unknown, 2=catalog */
+	surface?: number
+	/** Message */
+	message?: string
+}
+
+export type CollectionMessageOptions = {
+	/** Business JID owning the collection */
+	bizJid: string
+	/** Collection ID */
+	id: string
+	/** Message version */
+	messageVersion?: number
+}
+
+export type RichTextTable = {
+	/** Table data rows (first row = header if headerRow=true) */
+	rows: string[][]
+	/** Whether first row is a header */
+	headerRow?: boolean
+	/** Optional title */
+	title?: string
+}
+
+export type RichTextList = {
+	/** List items */
+	items: string[]
+	/** Ordered (numbered) list */
+	ordered?: boolean
+	/** Optional title */
+	title?: string
+}
+
+export type CodeBlockOptions = {
+	/** Code string */
+	code: string
+	/** Language hint */
+	language?: string
+}
+
+export type LatexOptions = {
+	/** LaTeX expression */
+	expression: string
+}
+
+export type RichMessageOptions = {
+	/** Rich text content parts */
+	parts: (
+		| { type: 'text'; text: string }
+		| { type: 'table'; table: RichTextTable }
+		| { type: 'list'; list: RichTextList }
+		| { type: 'code'; code: CodeBlockOptions }
+		| { type: 'latex'; latex: LatexOptions }
+	)[]
+	/** Optional caption */
+	caption?: string
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -470,6 +763,24 @@ export type AnyRegularMessageContent = (
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { paymentInvite: PaymentInviteInfo }
+	| { keep: KeepMessageOptions }
+	| { order: OrderMessageOptions }
+	| { payment: PaymentMessageOptions }
+	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
+	// | { buttons: ButtonsMessageOptions }
+	// | { list: ListMessageOptions }
+	// | { template: TemplateMessageOptions }
+	| { interactive: InteractiveMessageOptions }
+	| { interactivePIX: InteractiveMessagePIXOptions }
+	| { interactivePAY: InteractiveMessagePAYOptions }
+	| { statusMention: StatusMentionOptions }
+	// | { shop: ShopMessageOptions }
+	| { collection: CollectionMessageOptions }
+	| { hdImage: WAMediaUpload; caption?: string; mimetype?: string }
+	| { hdVideo: WAMediaUpload; caption?: string; mimetype?: string }
+	| { callMessage: proto.Message.IScheduledCallCreationMessage }
+	| { pollResult: proto.Message.IPollResultSnapshotMessage }
+	// | { richMessage: RichMessageOptions }
 	| {
 			richResponse: {
 				text: string

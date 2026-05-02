@@ -385,7 +385,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 				errors.push(`button[${idx}] buttonParamsJson must be string`)
 			} else {
 				try {
-					JSON.parse(btn['buttonParamsJson'] as string)
+					JSON.parse(btn['buttonParamsJson'])
 				} catch (e: unknown) {
 					errors.push(`button[${idx}] buttonParamsJson is not valid JSON: ${(e as Error).message}`)
 				}
@@ -452,7 +452,7 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 					return
 				}
 
-				parseButtonParamsInternal(b['name'] as string, b['buttonParamsJson'] as string, errors, warnings, i)
+				parseButtonParamsInternal(b['name'] as string, b['buttonParamsJson'], errors, warnings, i)
 				return
 			}
 

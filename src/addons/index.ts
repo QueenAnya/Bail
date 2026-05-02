@@ -78,7 +78,7 @@ export * from './message-composer'
 export * from './message-search'
 
 // ── Interactive / Button Message Generators ───────────────────────────────
-export * from './interactive-message'
+//export * from './interactive-message'
 
 // ── Call Handler ──────────────────────────────────────────────────────────
 export * from './call-handler'

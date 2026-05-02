@@ -4,7 +4,7 @@
  * Useful for resolving JIDs in groups that use LID addressing
  */
 
-import { jidDecode, jidEncode, isLidUser, isPnUser } from '../WABinary'
+import { isLidUser, isPnUser, jidDecode, jidEncode } from '../WABinary'
 
 export type JidPlotEntry = {
 	pnJid: string
@@ -71,6 +71,7 @@ export const getAllJidPlotEntries = (): JidPlotEntry[] => {
 			entries.push({ pnJid: key, lidJid: value })
 		}
 	}
+
 	return entries
 }
 
@@ -89,6 +90,6 @@ export const normalizeJidForSend = (jid: string): string => {
 	const decoded = jidDecode(jid)
 	if (!decoded) return jid
 	const { user, server } = decoded
-	const normalized = jidEncode(user, server === 'c.us' ? 's.whatsapp.net' : (server as any))
+	const normalized = jidEncode(user, server === 'c.us' ? 's.whatsapp.net' : server)
 	return resolvePnJid(normalized) || normalized
 }
