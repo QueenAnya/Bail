@@ -725,7 +725,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
 				binaryNodeContent.push({
 					tag: 'plaintext',
-					attrs: mediaType ? { mediatype: mediaType } : {},
+					attrs: {},
 					content: bytes
 				})
 				const stanza: BinaryNode = {
@@ -743,12 +743,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
-			if (
-				messages.pinInChatMessage ||
-				messages.keepInChatMessage ||
-				messages.reactionMessage ||
-				messages.protocolMessage?.editedMessage
-			) {
+			if (normalizeMessageContent(message)?.pinInChatMessage || normalizeMessageContent(message)?.reactionMessage) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
 			}
 
