@@ -1134,7 +1134,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						id: attrs.jid!,
 						phoneNumber: isLidUser(attrs.jid) && isPnUser(attrs.phone_number) ? attrs.phone_number : undefined,
 						lid: isPnUser(attrs.jid) && isLidUser(attrs.lid) ? attrs.lid : undefined,
-						username: attrs.participant_username || attrs.username || undefined,
 						admin: (attrs.type || null) as GroupParticipant['admin']
 					}
 				})
@@ -1637,12 +1636,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			participant: attrs.participant
 		}
 
-		if (shouldIgnoreJid(remoteJid!) && remoteJid !== S_WHATSAPP_NET) {
-			logger.debug({ remoteJid }, 'ignoring receipt from jid')
-			await sendMessageAck(node)
-			return
-		}
-
 		const ids = [attrs.id!]
 		if (Array.isArray(content)) {
 			const items = getBinaryNodeChildren(content[0], 'item')
@@ -1717,11 +1710,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	const handleNotification = async (node: BinaryNode) => {
 		const remoteJid = node.attrs.from
-		if (shouldIgnoreJid(remoteJid!) && remoteJid !== S_WHATSAPP_NET) {
-			logger.debug({ remoteJid, id: node.attrs.id }, 'ignored notification')
-			await sendMessageAck(node)
-			return
-		}
 
 		try {
 			await Promise.all([
@@ -1754,12 +1742,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleMessage = async (node: BinaryNode) => {
-		if (shouldIgnoreJid(node.attrs.from!) && node.attrs.from !== S_WHATSAPP_NET) {
-			logger.debug({ key: node.attrs.key }, 'ignored message')
-			await sendMessageAck(node, NACK_REASONS.UnhandledError)
-			return
-		}
-
 		const encNode = getBinaryNodeChild(node, 'enc')
 		// TODO: temporary fix for crashes and issues resulting of failed msmsg decryption
 		if (encNode?.attrs.type === 'msmsg') {
@@ -1792,12 +1774,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					await signalRepository.lidMapping.storeLIDPNMappings([{ lid: primaryJid, pn: alt }])
 					await signalRepository.migrateSession(alt, primaryJid)
 				}
-			}
-
-			// Cache for retry receipts BEFORE decrypt — so retry logic works even if decryption throws
-			if (msg.key?.remoteJid && msg.key?.id && messageRetryManager) {
-				messageRetryManager.addRecentMessage(msg.key.remoteJid, msg.key.id, msg.message!)
-				logger.debug({ jid: msg.key.remoteJid, id: msg.key.id }, 'Added message to recent cache for retry receipts')
 			}
 
 			await messageMutex.mutex(async () => {
@@ -1992,9 +1968,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const handleCall = async (node: BinaryNode) => {
-		const { attrs } = node
-		const [infoChild] = getAllBinaryNodeChildren(node)
 		try {
+			const { attrs } = node
+			const [infoChild] = getAllBinaryNodeChildren(node)
+
 			if (!infoChild) {
 				throw new Boom('Missing call info in call node')
 			}
@@ -2190,7 +2167,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			)
 			ignoreJid = !isNodeFromMe || isJidGroup(attrs.from) ? attrs.from : attrs.recipient
 		}
-
 		if (ignoreJid && ignoreJid !== S_WHATSAPP_NET && shouldIgnoreJid(ignoreJid)) {
 			await sendMessageAck(node, type === 'message' ? NACK_REASONS.UnhandledError : undefined)
 			return

@@ -1,7 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-const baileysVersion = [2, 3000, 1038669233]
+const baileysVersion = [2, 3000, 1035194821]
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -477,15 +477,14 @@ export const getCallStatusFromNode = ({ tag, attrs }: BinaryNode) => {
 			}
 
 			break
+		case 'preaccept':
+			status = 'preaccept'
+			break
 		case 'reject':
 			status = 'reject'
 			break
 		case 'accept':
 			status = 'accept'
-			break
-		case 'preaccept':
-			status = 'preaccept'
-			break
 		case 'transport':
 			status = 'transport'
 			break

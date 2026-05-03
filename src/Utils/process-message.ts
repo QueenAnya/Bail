@@ -1,3 +1,4 @@
+import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import type {
 	AuthenticationCreds,
@@ -182,12 +183,24 @@ export const shouldIncrementChatUnread = (message: WAMessage) => !message.key.fr
  * Get the ID of the chat from the given key.
  * Typically -- that'll be the remoteJid, but for broadcasts, it'll be the participant
  */
-export const getChatId = ({ remoteJid, participant, fromMe }: WAMessageKey) => {
-	if (isJidBroadcast(remoteJid!) && !isJidStatusBroadcast(remoteJid!) && !fromMe) {
-		return participant!
+export const getChatId = ({ remoteJid, participant, fromMe }: WAMessageKey): string => {
+	if (!remoteJid) {
+		throw new Boom('Cannot derive chat id: message key is missing remoteJid', {
+			data: { remoteJid, participant, fromMe }
+		})
 	}
 
-	return remoteJid!
+	if (isJidBroadcast(remoteJid) && !isJidStatusBroadcast(remoteJid) && !fromMe) {
+		if (!participant) {
+			throw new Boom('Cannot derive chat id: broadcast message key is missing participant', {
+				data: { remoteJid, fromMe }
+			})
+		}
+
+		return participant
+	}
+
+	return remoteJid
 }
 
 type PollContext = {
@@ -348,17 +361,14 @@ const processMessage = async (
 							.catch(err => logger?.warn({ err }, 'failed to store LID-PN mappings from history sync'))
 					}
 
+					await storeTcTokensFromHistorySync(data.chats, signalRepository, keyStore, logger)
+
 					ev.emit('messaging-history.set', {
 						...data,
 						isLatest: histNotification.syncType !== proto.HistorySync.HistorySyncType.ON_DEMAND ? isLatest : undefined,
-						peerDataRequestSessionId: histNotification.peerDataRequestSessionId,
-						chunkOrder: histNotification.chunkOrder
+						chunkOrder: histNotification.chunkOrder,
+						peerDataRequestSessionId: histNotification.peerDataRequestSessionId
 					})
-
-					// Store tctokens from history sync chats (fire-and-forget)
-					storeTcTokensFromHistorySync(data.chats, signalRepository, keyStore, logger).catch(err =>
-						logger?.warn({ err }, 'failed to process tctokens from history sync')
-					)
 				}
 
 				break
@@ -579,7 +589,7 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername!,
+				authorUsername: message.key.participantUsername,
 				participants,
 				action
 			})
@@ -600,7 +610,7 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername!,
+				authorUsername: message.key.participantUsername,
 				participant: participant.lid,
 				participantPn: participant.pn,
 				action,
