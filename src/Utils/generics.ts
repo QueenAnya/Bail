@@ -1,7 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-const baileysVersion = [2, 3000, 1035194821]
+const baileysVersion = [2, 3000, 1033105955]
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -197,11 +197,11 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 18)
+	return '3EB0' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase()
+export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -477,14 +477,15 @@ export const getCallStatusFromNode = ({ tag, attrs }: BinaryNode) => {
 			}
 
 			break
-		case 'preaccept':
-			status = 'preaccept'
-			break
 		case 'reject':
 			status = 'reject'
 			break
 		case 'accept':
 			status = 'accept'
+			break
+		case 'preaccept':
+			status = 'preaccept'
+			break
 		case 'transport':
 			status = 'transport'
 			break

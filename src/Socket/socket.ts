@@ -794,9 +794,6 @@ export const makeSocket = (config: SocketConfig) => {
 		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : browser[1] // 'Firefox'
 		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : browser[0] // 'Windows'
 
-		authState.creds.me = { id: jid, name: '~' }
-		ev.emit('creds.update', authState.creds)
-
 		await query({
 			tag: 'iq',
 			attrs: {
@@ -843,6 +840,9 @@ export const makeSocket = (config: SocketConfig) => {
 				}
 			]
 		})
+
+		authState.creds.me = { id: jid, name: '~' }
+		ev.emit('creds.update', authState.creds)
 
 		return authState.creds.pairingCode
 	}
