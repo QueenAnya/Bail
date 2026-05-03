@@ -579,7 +579,7 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername!,
+				authorUsername: message.key.participantUsername,
 				participants,
 				action
 			})
@@ -600,7 +600,7 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername!,
+				authorUsername: message.key.participantUsername,
 				participant: participant.lid,
 				participantPn: participant.pn,
 				action,
