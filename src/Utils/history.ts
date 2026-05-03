@@ -70,8 +70,8 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 					id: chat.id!,
 					name: chat.displayName || chat.name || chat.username || undefined,
 					lid: chat.lidJid || chat.accountLid || undefined,
-					username: chat.username || undefined,
-					phoneNumber: chat.pnJid || undefined
+					phoneNumber: chat.pnJid || undefined,
+					username: chat.username || undefined
 				})
 
 				const chatId = chat.id!

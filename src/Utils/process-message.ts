@@ -348,14 +348,17 @@ const processMessage = async (
 							.catch(err => logger?.warn({ err }, 'failed to store LID-PN mappings from history sync'))
 					}
 
-					await storeTcTokensFromHistorySync(data.chats, signalRepository, keyStore, logger)
-
 					ev.emit('messaging-history.set', {
 						...data,
 						isLatest: histNotification.syncType !== proto.HistorySync.HistorySyncType.ON_DEMAND ? isLatest : undefined,
-						chunkOrder: histNotification.chunkOrder,
-						peerDataRequestSessionId: histNotification.peerDataRequestSessionId
+						peerDataRequestSessionId: histNotification.peerDataRequestSessionId,
+						chunkOrder: histNotification.chunkOrder
 					})
+
+					// Store tctokens from history sync chats (fire-and-forget)
+					storeTcTokensFromHistorySync(data.chats, signalRepository, keyStore, logger).catch(err =>
+						logger?.warn({ err }, 'failed to process tctokens from history sync')
+					)
 				}
 
 				break
@@ -576,7 +579,7 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername,
+				authorUsername: message.key.participantUsername!,
 				participants,
 				action
 			})
@@ -597,7 +600,7 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername,
+				authorUsername: message.key.participantUsername!,
 				participant: participant.lid,
 				participantPn: participant.pn,
 				action,
