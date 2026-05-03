@@ -2190,6 +2190,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			)
 			ignoreJid = !isNodeFromMe || isJidGroup(attrs.from) ? attrs.from : attrs.recipient
 		}
+
 		if (ignoreJid && ignoreJid !== S_WHATSAPP_NET && shouldIgnoreJid(ignoreJid)) {
 			await sendMessageAck(node, type === 'message' ? NACK_REASONS.UnhandledError : undefined)
 			return
