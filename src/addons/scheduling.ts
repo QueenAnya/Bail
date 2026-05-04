@@ -1,14 +1,9 @@
-import type { WAMessage } from '../Types'
-import type { AnyMessageContent } from '../Types'
+/**
+ * Message Scheduler — schedule messages to be sent at future times
+ * Part of innovatorssoft/baileys addons
+ */
 
-export interface SchedulerOptions {
-	maxQueue?: number
-	checkInterval?: number
-	onSent?: (scheduled: ScheduledMessage, message?: WAMessage) => void
-	onFailed?: (scheduled: ScheduledMessage, error: Error) => void
-}
-
-export type ScheduledMessageStatus = 'pending' | 'sent' | 'failed' | 'cancelled'
+import type { AnyMessageContent, WAMessage } from '../Types'
 
 export interface ScheduledMessage {
 	id: string
@@ -16,21 +11,27 @@ export interface ScheduledMessage {
 	content: AnyMessageContent
 	scheduledTime: Date
 	createdAt: Date
-	status: ScheduledMessageStatus
-	messageId?: string
+	status: 'pending' | 'sent' | 'failed' | 'cancelled'
 	error?: string
+	messageId?: string
 }
 
+export interface SchedulerOptions {
+	maxQueue?: number
+	checkInterval?: number
+	onSent?: (scheduled: ScheduledMessage, message: WAMessage | undefined) => void
+	onFailed?: (scheduled: ScheduledMessage, error: Error) => void
+}
+
+export type SendMessageFunction = (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>
+
 export class MessageScheduler {
-	private queue = new Map<string, ScheduledMessage>()
+	private queue: Map<string, ScheduledMessage> = new Map()
 	private timer: ReturnType<typeof setInterval> | null = null
-	private sendMessage: (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>
+	private sendMessage: SendMessageFunction
 	private options: Required<SchedulerOptions>
 
-	constructor(
-		sendMessage: (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>,
-		options: SchedulerOptions = {}
-	) {
+	constructor(sendMessage: SendMessageFunction, options: SchedulerOptions = {}) {
 		this.sendMessage = sendMessage
 		this.options = {
 			maxQueue: options.maxQueue ?? 1000,
@@ -40,14 +41,18 @@ export class MessageScheduler {
 		}
 	}
 
-	private generateId() {
+	private generateId(): string {
 		return `sched_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 	}
 
 	schedule(jid: string, content: AnyMessageContent, scheduledTime: Date): ScheduledMessage {
-		if (this.queue.size >= this.options.maxQueue)
-			throw new Error(`Maximum queue size (${this.options.maxQueue}) reached`)
-		if (scheduledTime.getTime() <= Date.now()) throw new Error('Scheduled time must be in the future')
+		if (this.queue.size >= this.options.maxQueue) {
+			throw new Error(`Max queue size (${this.options.maxQueue}) reached`)
+		}
+		if (scheduledTime.getTime() <= Date.now()) {
+			throw new Error('Scheduled time must be in the future')
+		}
+
 		const scheduled: ScheduledMessage = {
 			id: this.generateId(),
 			jid,
@@ -56,6 +61,7 @@ export class MessageScheduler {
 			createdAt: new Date(),
 			status: 'pending'
 		}
+
 		this.queue.set(scheduled.id, scheduled)
 		this.ensureTimerRunning()
 		return scheduled
@@ -67,12 +73,11 @@ export class MessageScheduler {
 
 	cancel(id: string): boolean {
 		const s = this.queue.get(id)
-		if (s?.status === 'pending') {
+		if (s && s.status === 'pending') {
 			s.status = 'cancelled'
 			this.queue.delete(id)
 			return true
 		}
-
 		return false
 	}
 
@@ -85,7 +90,6 @@ export class MessageScheduler {
 				cancelled++
 			}
 		}
-
 		return cancelled
 	}
 
@@ -93,7 +97,7 @@ export class MessageScheduler {
 		return Array.from(this.queue.values()).filter(s => s.status === 'pending')
 	}
 
-	get(id: string) {
+	get(id: string): ScheduledMessage | undefined {
 		return this.queue.get(id)
 	}
 
@@ -104,49 +108,48 @@ export class MessageScheduler {
 		return count
 	}
 
-	private async processQueue() {
+	stop(): void {
+		this.stopTimer()
+	}
+
+	start(): void {
+		if (this.queue.size > 0) this.ensureTimerRunning()
+	}
+
+	private async processQueue(): Promise<void> {
 		const now = Date.now()
 		for (const [id, s] of this.queue) {
-			if (s.status !== 'pending') continue
-			if (s.scheduledTime.getTime() > now) continue
+			if (s.status !== 'pending' || s.scheduledTime.getTime() > now) continue
 			try {
 				const message = await this.sendMessage(s.jid, s.content)
 				s.status = 'sent'
-				s.messageId = message?.key?.id ?? undefined
+				s.messageId = (message as any)?.key?.id
 				this.options.onSent(s, message)
 			} catch (error: any) {
 				s.status = 'failed'
 				s.error = error.message
 				this.options.onFailed(s, error)
 			}
-
 			this.queue.delete(id)
 		}
-
 		if (this.queue.size === 0) this.stopTimer()
 	}
 
-	private ensureTimerRunning() {
-		if (!this.timer) this.timer = setInterval(() => this.processQueue(), this.options.checkInterval)
+	private ensureTimerRunning(): void {
+		if (!this.timer) {
+			this.timer = setInterval(() => this.processQueue(), this.options.checkInterval)
+		}
 	}
 
-	private stopTimer() {
+	private stopTimer(): void {
 		if (this.timer) {
 			clearInterval(this.timer)
 			this.timer = null
 		}
 	}
-
-	stop() {
-		this.stopTimer()
-	}
-
-	start() {
-		if (this.queue.size > 0) this.ensureTimerRunning()
-	}
 }
 
 export const createMessageScheduler = (
-	sendMessage: (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>,
+	sendMessage: SendMessageFunction,
 	options?: SchedulerOptions
-) => new MessageScheduler(sendMessage, options)
+): MessageScheduler => new MessageScheduler(sendMessage, options)
