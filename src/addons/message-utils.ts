@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type { WAMediaUpload, WAMessage } from '../Types'
 import { QueryIds, XWAPaths } from '../Types'
+import type { WAMediaUpload, WAMessage } from '../Types'
 import {
 	generateWAMessage,
 	generateWAMessageFromContent,
@@ -9,8 +9,8 @@ import {
 	normalizeMessageContent,
 	unixTimestampSeconds
 } from '../Utils'
-import type { BinaryNode } from '../WABinary'
 import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary'
+import type { BinaryNode } from '../WABinary'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — Message Type Detection

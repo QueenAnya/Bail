@@ -15,9 +15,9 @@ import type {
 	MessageReceiptType,
 	MessageRelayOptions,
 	MessageUserReceipt,
+	NewChatMessageCapInfo,
 	SocketConfig,
 	WACallEvent,
-	NewChatMessageCapInfo,
 	WAInitiateCallOptions,
 	WAInitiateCallResult,
 	WAMessage,
@@ -47,12 +47,22 @@ import {
 	MISSING_KEYS_ERROR_TEXT,
 	NACK_REASONS,
 	NO_MESSAGE_FOUND_ERROR_TEXT,
+	SERVER_ERROR_CODES,
 	toNumber,
 	unixTimestampSeconds,
 	xmppPreKey,
 	xmppSignedPreKey
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
+import {
+	buildMergedTcTokenIndexWrite,
+	isTcTokenExpired,
+	readTcTokenIndex,
+	resolveIssuanceJid,
+	resolveTcTokenJid,
+	storeTcTokensFromIqResult,
+	TC_TOKEN_INDEX_KEY
+} from '../Utils/tc-token-utils'
 import {
 	areJidsSameUser,
 	type BinaryNode,
@@ -68,6 +78,7 @@ import {
 	isLidUser,
 	isPnUser,
 	jidDecode,
+	jidEncode,
 	jidNormalizedUser,
 	S_WHATSAPP_NET
 } from '../WABinary'
@@ -97,8 +108,13 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		uploadPreKeys,
 		sendPeerDataOperationMessage,
 		generateMessageTag,
-		messageRetryManager
+		getUSyncDevices,
+		createParticipantNodes,
+		messageRetryManager,
+		issuePrivacyTokens
 	} = sock
+
+	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
 
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
 	const retryMutex = makeMutex()
@@ -194,6 +210,40 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		return sendPeerDataOperationMessage(pdoMessage)
 	}
 
+	// ── Mex notification types ────────────────────────────────────────────────
+
+	type MexGqlData = Record<string, unknown>
+
+	type MexGqlResponse = {
+		data?: MexGqlData
+		errors?: unknown[]
+	}
+
+	type ReachoutTimelockNotificationPayload = {
+		is_active?: boolean
+		enforcement_type?: string
+		time_enforcement_ends?: string
+	}
+
+	type MexLegacyNewsletterUpdate = {
+		jid?: string
+		user?: string
+		settings?: Record<string, unknown>
+	}
+
+	type MexLegacyNewsletterData = {
+		operation?: string
+		updates?: MexLegacyNewsletterUpdate[]
+	}
+
+	const ENFORCEMENT_TYPE_VALUES = new Set<string>(Object.values(ReachoutTimelockEnforcementType))
+
+	function isValidEnforcementType(value: string | undefined): value is ReachoutTimelockEnforcementType {
+		return typeof value === 'string' && ENFORCEMENT_TYPE_VALUES.has(value)
+	}
+
+	// ── Top-level mex dispatcher (PR: feat-mex-notification-dispatch) ─────────
+
 	const handleMexNotification = async (node: BinaryNode) => {
 		const updateNode = getBinaryNodeChild(node, 'update')
 
@@ -233,6 +283,21 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				case 'MessageCappingInfoNotification':
 					handleMessageCappingNotification(data)
 					break
+
+				case 'NotificationLinkedProfilesUpdates': {
+					// PR: fix-mex-linked-profiles
+					const linkedProfiles = data.xwa2_notify_linked_profiles as
+						| { jid?: string; added_profiles?: Array<string | { pn?: string; jid?: string }> }
+						| undefined
+					if (!linkedProfiles) break
+					const lid = linkedProfiles.jid
+					for (const profile of linkedProfiles.added_profiles ?? []) {
+						const pn = typeof profile === 'string' ? profile : (profile?.pn ?? profile?.jid ?? null)
+						if (lid && pn) ev.emit('lid-mapping.update', { lid, pn })
+					}
+
+					break
+				}
 
 				// newsletter ops still use the legacy <mex> child structure
 				case 'NotificationNewsletterUpdate':
@@ -283,6 +348,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			return
 		}
 
+		// WA Web defaults to now+60s when the server omits the expiry
 		const timeEnforcementEnds = payload.time_enforcement_ends
 			? new Date(parseInt(payload.time_enforcement_ends, 10) * 1000)
 			: new Date(Date.now() + 60_000)
@@ -314,38 +380,30 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		ev.emit('message-capping.update', payload)
 	}
 
+	// ── Legacy mex newsletter notification handler ────────────────────────────
+
 	const handleLegacyMexNewsletterNotification = async (node: BinaryNode) => {
 		const mexNode = getBinaryNodeChild(node, 'mex')
-		const updateNode2 = mexNode?.content
-			? null
-			: getBinaryNodeChild(node, 'update') || getAllBinaryNodeChildren(node)[0]
-		const payloadNode = mexNode?.content ? mexNode : updateNode2
-		if (!payloadNode?.content) {
-			logger.warn({ node }, 'Invalid mex newsletter notification')
+		if (!mexNode?.content) {
+			logger.warn({ node: binaryNodeToString(node) }, 'invalid mex newsletter notification')
 			return
 		}
 
-		let data: any
+		let parsed: MexLegacyNewsletterData
 		try {
-			const payloadContent = payloadNode.content
-			if (Array.isArray(payloadContent)) {
-				logger.warn({ payloadNode }, 'Invalid mex newsletter notification payload format')
-				return
-			}
-
+			// PR fix-mex-linked-profiles: handle binary-encoded content correctly
+			const payloadContent = mexNode.content
 			const contentBuf =
-				typeof payloadContent === 'string' ? Buffer.from(payloadContent, 'binary') : Buffer.from(payloadContent)
-			data = JSON.parse(contentBuf.toString())
+				typeof payloadContent === 'string' ? Buffer.from(payloadContent, 'binary') : Buffer.from(payloadContent as any)
+			parsed = JSON.parse(contentBuf.toString())
 		} catch (error) {
-			logger.error({ err: error, node }, 'Failed to parse mex newsletter notification')
+			logger.error({ err: error, node: binaryNodeToString(node) }, 'failed to parse mex newsletter notification')
 			return
 		}
 
-		const operation = data?.operation
-		const updates = data?.updates
-
+		const { operation, updates } = parsed
 		if (!updates || !operation) {
-			logger.warn({ data }, 'Invalid mex newsletter notification content')
+			logger.warn({ parsed }, 'invalid mex newsletter notification content')
 			return
 		}
 
@@ -379,21 +437,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 				break
 
-			case 'NotificationLinkedProfilesUpdates':
-				for (const update of updates || []) {
-					const lid = update?.jid
-					const addedProfiles = Array.isArray(update?.added_profiles) ? update.added_profiles : []
-					for (const profile of addedProfiles) {
-						const pn = typeof profile === 'string' ? profile : (profile?.pn ?? profile?.jid ?? null)
-						if (lid && pn) {
-							ev.emit('lid-mapping.update', { lid, pn })
-						}
-					}
-				}
-				break
-
 			default:
-				logger.info({ operation, data }, 'Unhandled mex newsletter notification')
+				logger.info({ operation, parsed }, 'unhandled mex newsletter notification')
 				break
 		}
 	}
@@ -527,81 +572,78 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await sendNode(stanza)
 	}
 
+	// ── Call handlers ─────────────────────────────────────────────────
+
 	const rejectCall = async (callId: string, callFrom: string) => {
-		const stanza: BinaryNode = {
+		await query({
 			tag: 'call',
-			attrs: {
-				from: authState.creds.me!.id,
-				to: callFrom
-			},
+			attrs: { from: authState.creds.me!.id, to: callFrom },
 			content: [
-				{
-					tag: 'reject',
-					attrs: {
-						'call-id': callId,
-						'call-creator': callFrom,
-						count: '0'
-					},
-					content: undefined
-				}
+				{ tag: 'reject', attrs: { 'call-id': callId, 'call-creator': callFrom, count: '0' }, content: undefined }
 			]
+		})
+	}
+
+	const offerCall = async (toJid: string, isVideo = false) => {
+		const callId = randomBytes(16).toString('hex').toUpperCase().substring(0, 64)
+		const offerContent: BinaryNode[] = []
+		if (isVideo) {
+			offerContent.push({
+				tag: 'video',
+				attrs: {
+					enc: 'vp8',
+					dec: 'vp8',
+					orientation: '0',
+					screen_width: '1920',
+					screen_height: '1080',
+					device_orientation: '0'
+				},
+				content: undefined
+			})
 		}
-		await query(stanza)
+
+		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '16000' }, content: undefined })
+		offerContent.push({ tag: 'audio', attrs: { enc: 'opus', rate: '8000' }, content: undefined })
+		offerContent.push({ tag: 'net', attrs: { medium: '3' }, content: undefined })
+		offerContent.push({ tag: 'capability', attrs: { ver: '1' }, content: new Uint8Array([1, 4, 255, 131, 207, 4]) })
+		offerContent.push({ tag: 'encopt', attrs: { keygen: '2' }, content: undefined })
+
+		const encKey = randomBytes(32)
+		const devices = (await getUSyncDevices([toJid], true, false)).map(({ user, device }) =>
+			jidEncode(user, 's.whatsapp.net', device)
+		)
+		await assertSessions(devices, true)
+		const { nodes: destinations, shouldIncludeDeviceIdentity } = await createParticipantNodes(
+			devices,
+			{ call: { callKey: new Uint8Array(encKey) } },
+			{ count: '0' }
+		)
+		offerContent.push({ tag: 'destination', attrs: {}, content: destinations })
+		if (shouldIncludeDeviceIdentity) {
+			offerContent.push({
+				tag: 'device-identity',
+				attrs: {},
+				content: encodeSignedDeviceIdentity(authState.creds.account!, true)
+			})
+		}
+
+		await query({
+			tag: 'call',
+			attrs: { id: generateMessageTag(), to: toJid },
+			content: [
+				{ tag: 'offer', attrs: { 'call-id': callId, 'call-creator': authState.creds.me!.id }, content: offerContent }
+			]
+		})
+		return { id: callId, to: toJid }
 	}
 
 	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
 		const meId = authState.creds.me?.id
-		if (!meId) {
-			throw new Boom('Not authenticated')
-		}
-
-		const callId = randomBytes(8).toString('hex')
+		if (!meId) throw new Boom('Not authenticated')
 		const isVideo = !!options.isVideo
 		const isGroup = isJidGroup(jid)
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: {
-				id: generateMessageTag(),
-				from: meId,
-				to: jid,
-				t: String(unixTimestampSeconds()),
-				...(authState.creds.me?.name ? { notify: authState.creds.me.name } : {})
-			},
-			content: [
-				{
-					tag: 'offer',
-					attrs: {
-						'call-id': callId,
-						'call-creator': meId,
-						count: '0'
-					},
-					content: [
-						{
-							tag: isVideo ? 'video' : 'audio',
-							attrs: {}
-						},
-						{
-							tag: 'net',
-							attrs: {}
-						},
-						{
-							tag: 'encopt',
-							attrs: { key: randomBytes(2).toString('hex') }
-						},
-						{
-							tag: 'relaylatency',
-							attrs: {}
-						},
-						{
-							tag: 'te',
-							attrs: {}
-						}
-					]
-				}
-			]
-		}
-
-		await query(stanza)
+		const result = await offerCall(jid, isVideo)
+		const callId = result.id
 		await callOfferCache.set(callId, {
 			chatId: jid,
 			from: meId,
@@ -613,37 +655,244 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			isGroup,
 			groupJid: isGroup ? jid : undefined
 		})
-
-		// TODO: implement ICE/DTLS-SRTP call media setup once full signaling requirements are mapped.
 		return { callId, to: jid, isVideo }
 	}
 
-	const cancelCall = async (callId: string, callTo: string) => {
+	const terminateCall = async (
+		callId: string,
+		callTo: string,
+		callCreator?: string,
+		reason?: string,
+		duration?: number
+	) => {
 		const meId = authState.creds.me?.id
-		if (!meId) {
-			throw new Boom('Not authenticated')
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+		const attrs: Record<string, string> = { 'call-id': callId, 'call-creator': callCreator || meId }
+		if (reason) attrs.reason = reason
+		if (typeof duration === 'number') {
+			attrs.duration = String(duration)
+			attrs.audio_duration = String(duration)
 		}
 
-		const stanza: BinaryNode = {
+		await query({
 			tag: 'call',
-			attrs: {
-				from: meId,
-				to: callTo
-			},
+			attrs: { to: callTo, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'terminate', attrs, content: undefined }]
+		})
+		await callOfferCache.del(callId)
+	}
+
+	const cancelCall = async (callId: string, callTo: string) => terminateCall(callId, callTo)
+
+	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
+		const meId = authState.creds.me?.id
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+		const content: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }]
+		if (isVideo) content.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' }, content: undefined })
+		content.push(
+			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
+			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined }
+		)
+		await query({
+			tag: 'call',
+			attrs: { from: meId, to: callFrom, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'accept', attrs: { 'call-id': callId, 'call-creator': callFrom }, content }]
+		})
+	}
+
+	const preacceptCall = async (callId: string, callCreator: string, isVideo?: boolean) => {
+		const content: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined }]
+		if (isVideo) {
+			content.push({
+				tag: 'video',
+				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' },
+				content: undefined
+			})
+		}
+
+		content.push(
+			{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
+			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
+		)
+		await query({
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'preaccept', attrs: { 'call-id': callId, 'call-creator': callCreator }, content }]
+		})
+	}
+
+	const sendRelayLatency = async (
+		callId: string,
+		callCreator: string,
+		relays: Array<{ relayName?: string; latency: number; relayId?: string; dlBw?: number; ulBw?: number }>,
+		transactionId?: string
+	) => {
+		const attrs: Record<string, string> = { 'call-id': callId, 'call-creator': callCreator }
+		if (transactionId) attrs['transaction-id'] = transactionId
+		await sendNode({
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
 			content: [
 				{
-					tag: 'terminate',
-					attrs: {
-						'call-id': callId,
-						'call-creator': meId,
-						count: '0'
-					}
+					tag: 'relaylatency',
+					attrs,
+					content: relays.map(r => {
+						const a: Record<string, string> = {}
+						if (r.relayName) a.relay_name = r.relayName
+						a.latency = String(r.latency)
+						if (r.relayId) a.relay_id = r.relayId
+						if (r.dlBw !== undefined) a.dl_bw = String(r.dlBw)
+						if (r.ulBw !== undefined) a.ul_bw = String(r.ulBw)
+						return { tag: 'te', attrs: a, content: undefined }
+					})
 				}
 			]
+		})
+	}
+
+	const sendTransport = async (
+		callId: string,
+		callCreator: string,
+		to: string,
+		candidates: Array<{ priority: string; data: Uint8Array }>,
+		round?: number
+	) => {
+		const attrs: Record<string, string> = {
+			'call-id': callId,
+			'call-creator': callCreator,
+			'transport-message-type': '1'
+		}
+		if (round !== undefined) attrs['p2p-cand-round'] = String(round)
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'transport',
+					attrs,
+					content: candidates.map(c => ({ tag: 'te', attrs: { priority: c.priority }, content: c.data }))
+				}
+			]
+		})
+	}
+
+	const sendCallDuration = async (
+		callId: string,
+		callCreator: string,
+		peer: string,
+		audioDuration: number,
+		callType = '1x1'
+	) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'duration',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						peer,
+						audio_duration: String(audioDuration),
+						type: callType
+					},
+					content: undefined
+				}
+			]
+		})
+	}
+
+	const muteCall = async (callId: string, callCreator: string, to: string, muted: boolean) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'mute_v2',
+					attrs: { 'mute-state': muted ? '1' : '0', 'call-id': callId, 'call-creator': callCreator },
+					content: undefined
+				}
+			]
+		})
+	}
+
+	const sendHeartbeat = async (callId: string, callCreator: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: `${callId}@call`, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'heartbeat', attrs: { 'call-id': callId, 'call-creator': callCreator }, content: undefined }]
+		})
+	}
+
+	const sendEncRekey = async (callId: string, callCreator: string, to: string, transactionId: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'enc_rekey',
+					attrs: { 'transaction-id': transactionId, 'call-id': callId, 'call-creator': callCreator },
+					content: [
+						{ tag: 'encopt', attrs: { keygen: '2' }, content: undefined },
+						{ tag: 'enc', attrs: { v: '2', type: 'msg' }, content: undefined }
+					]
+				}
+			]
+		})
+	}
+
+	const sendVideoState = async (
+		callId: string,
+		callCreator: string,
+		to: string,
+		enabled: boolean,
+		orientation = '1'
+	) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'video',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						state: enabled ? '1' : '0',
+						device_orientation: orientation
+					},
+					content: undefined
+				}
+			]
+		})
+	}
+
+	const queryCallLink = async (token: string, media = 'video') => {
+		return await query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_query', attrs: { media, token }, content: undefined }]
+		})
+	}
+
+	const joinCallLink = async (token: string, media = 'video') => {
+		const content: BinaryNode[] = [
+			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' }, content: undefined },
+			{ tag: 'net', attrs: { medium: '2' }, content: undefined },
+			{ tag: 'capability', attrs: { ver: '1' }, content: undefined }
+		]
+		if (media === 'video') {
+			content.splice(1, 0, {
+				tag: 'video',
+				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' },
+				content: undefined
+			})
 		}
 
-		await query(stanza)
-		await callOfferCache.del(callId)
+		return await query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_join', attrs: { media, token }, content }]
+		})
 	}
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
@@ -813,7 +1062,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				validateSession: signalRepository.validateSession,
 				assertSessions,
 				debounceCache: identityAssertDebounce,
-				logger
+				logger,
+				onBeforeSessionRefresh: reissueTcTokenAfterIdentityChange
 			})
 
 			if (result.action === 'no_identity_node') {
@@ -884,6 +1134,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						id: attrs.jid!,
 						phoneNumber: isLidUser(attrs.jid) && isPnUser(attrs.phone_number) ? attrs.phone_number : undefined,
 						lid: isPnUser(attrs.jid) && isLidUser(attrs.lid) ? attrs.lid : undefined,
+						username: attrs.participant_username || attrs.username || undefined,
 						admin: (attrs.type || null) as GroupParticipant['admin']
 					}
 				})
@@ -1139,34 +1390,109 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
+	/**
+	 * In-memory cache of storage JIDs with stored tctokens, seeded from the persisted index.
+	 */
+	const tcTokenKnownJids = new Set<string>()
+
+	const tcTokenIndexLoaded = (async () => {
+		try {
+			const jids = await readTcTokenIndex(authState.keys)
+			for (const jid of jids) tcTokenKnownJids.add(jid)
+			logger.debug({ count: tcTokenKnownJids.size }, 'loaded tctoken index')
+		} catch (err: any) {
+			logger.warn({ err: err?.message }, 'failed to load tctoken index')
+		}
+	})()
+
+	let tcTokenIndexTimer: ReturnType<typeof setTimeout> | undefined
+
+	async function flushTcTokenIndex() {
+		if (tcTokenIndexTimer) {
+			clearTimeout(tcTokenIndexTimer)
+			tcTokenIndexTimer = undefined
+		}
+
+		const write = await buildMergedTcTokenIndexWrite(authState.keys, tcTokenKnownJids)
+		return authState.keys.set({ tctoken: write })
+	}
+
+	function scheduleTcTokenIndexSave() {
+		if (tcTokenIndexTimer) {
+			clearTimeout(tcTokenIndexTimer)
+		}
+
+		tcTokenIndexTimer = setTimeout(() => {
+			tcTokenIndexTimer = undefined
+			flushTcTokenIndex().catch(err => {
+				logger.warn({ err: err?.message }, 'failed to save tctoken index')
+			})
+		}, 5000)
+	}
+
+	function trackTcTokenJid(jid: string) {
+		if (jid && jid !== TC_TOKEN_INDEX_KEY && !tcTokenKnownJids.has(jid)) {
+			tcTokenKnownJids.add(jid)
+			scheduleTcTokenIndexSave()
+		}
+	}
+
 	const handlePrivacyTokenNotification = async (node: BinaryNode) => {
 		const tokensNode = getBinaryNodeChild(node, 'tokens')
-		const from = jidNormalizedUser(node.attrs.from)
-
 		if (!tokensNode) return
 
-		const tokenNodes = getBinaryNodeChildren(tokensNode, 'token')
+		const from = jidNormalizedUser(node.attrs.from)
 
-		for (const tokenNode of tokenNodes) {
-			const { attrs, content } = tokenNode
-			const type = attrs.type
-			const timestamp = attrs.t
+		const senderLid =
+			node.attrs.sender_lid && isLidUser(jidNormalizedUser(node.attrs.sender_lid))
+				? jidNormalizedUser(node.attrs.sender_lid)
+				: undefined
+		const fallbackJid = senderLid ?? (await resolveTcTokenJid(from, getLIDForPN))
 
-			if (type === 'trusted_contact' && content instanceof Buffer) {
-				logger.debug(
-					{
-						from,
-						timestamp,
-						tcToken: content
-					},
-					'received trusted contact token'
-				)
+		logger.debug({ from, storageJid: fallbackJid }, 'processing privacy token notification')
 
-				await authState.keys.set({
-					tctoken: { [from]: { token: content, timestamp } }
-				})
+		await storeTcTokensFromIqResult({
+			result: node,
+			fallbackJid,
+			keys: authState.keys,
+			getLIDForPN,
+			onNewJidStored: trackTcTokenJid
+		})
+	}
+
+	/**
+	 * Fire-and-forget tctoken re-issuance after a peer's device identity changed.
+	 */
+	const reissueTcTokenAfterIdentityChange = (from: string): void => {
+		void (async () => {
+			const normalizedJid = jidNormalizedUser(from)
+			const tcJid = await resolveTcTokenJid(normalizedJid, getLIDForPN)
+			const tcTokenData = await authState.keys.get('tctoken', [tcJid])
+			const senderTs = tcTokenData?.[tcJid]?.senderTimestamp
+
+			if (senderTs === null || senderTs === undefined || isTcTokenExpired(senderTs)) {
+				return
 			}
-		}
+
+			logger.debug({ jid: normalizedJid, senderTimestamp: senderTs }, 'identity changed, re-issuing tctoken')
+			const getPNForLID = signalRepository.lidMapping.getPNForLID.bind(signalRepository.lidMapping)
+			const issueJid = await resolveIssuanceJid(
+				normalizedJid,
+				sock.serverProps.lidTrustedTokenIssueToLid,
+				getLIDForPN,
+				getPNForLID
+			)
+			const result = await issuePrivacyTokens([issueJid], senderTs)
+			await storeTcTokensFromIqResult({
+				result,
+				fallbackJid: tcJid,
+				keys: authState.keys,
+				getLIDForPN,
+				onNewJidStored: trackTcTokenJid
+			})
+		})().catch(err => {
+			logger.debug({ jid: from, err: err?.message }, 'failed to re-issue tctoken after identity change')
+		})
 	}
 
 	async function decipherLinkPublicKey(data: Uint8Array | Buffer) {
@@ -1408,8 +1734,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							remoteJid,
 							fromMe,
 							participant: node.attrs.participant,
-							participantUsername: node.attrs.participant_username,
 							participantAlt,
+							participantUsername: node.attrs.participant_username,
 							addressingMode,
 							id: node.attrs.id,
 							...(msg.key || {})
@@ -1442,46 +1768,45 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			return
 		}
 
-		const {
-			fullMessage: msg,
-			category,
-			author,
-			decrypt
-		} = decryptMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '', signalRepository, logger)
-
-		const alt = msg.key.participantAlt || msg.key.remoteJidAlt
-		// store new mappings we didn't have before
-		if (!!alt) {
-			const altServer = jidDecode(alt)?.server
-			const primaryJid = msg.key.participant || msg.key.remoteJid!
-			if (altServer === 'lid') {
-				if (!(await signalRepository.lidMapping.getPNForLID(alt))) {
-					await signalRepository.lidMapping.storeLIDPNMappings([{ lid: alt, pn: primaryJid }])
-					await signalRepository.migrateSession(primaryJid, alt)
-				}
-			} else {
-				await signalRepository.lidMapping.storeLIDPNMappings([{ lid: primaryJid, pn: alt }])
-				await signalRepository.migrateSession(alt, primaryJid)
-			}
-		}
-
-		if (msg.key?.remoteJid && msg.key?.id && messageRetryManager) {
-			messageRetryManager.addRecentMessage(msg.key.remoteJid, msg.key.id, msg.message!)
-			logger.debug(
-				{
-					jid: msg.key.remoteJid,
-					id: msg.key.id
-				},
-				'Added message to recent cache for retry receipts'
-			)
-		}
+		let acked = false
 
 		try {
+			const {
+				fullMessage: msg,
+				category,
+				author,
+				decrypt
+			} = decryptMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '', signalRepository, logger)
+
+			const alt = msg.key.participantAlt || msg.key.remoteJidAlt
+			// store new mappings we didn't have before
+			if (!!alt) {
+				const altServer = jidDecode(alt)?.server
+				const primaryJid = msg.key.participant || msg.key.remoteJid!
+				if (altServer === 'lid') {
+					if (!(await signalRepository.lidMapping.getPNForLID(alt))) {
+						await signalRepository.lidMapping.storeLIDPNMappings([{ lid: alt, pn: primaryJid }])
+						await signalRepository.migrateSession(primaryJid, alt)
+					}
+				} else {
+					await signalRepository.lidMapping.storeLIDPNMappings([{ lid: primaryJid, pn: alt }])
+					await signalRepository.migrateSession(alt, primaryJid)
+				}
+			}
+
+			// Cache for retry receipts BEFORE decrypt — so retry logic works even if decryption throws
+			if (msg.key?.remoteJid && msg.key?.id && messageRetryManager) {
+				messageRetryManager.addRecentMessage(msg.key.remoteJid, msg.key.id, msg.message!)
+				logger.debug({ jid: msg.key.remoteJid, id: msg.key.id }, 'Added message to recent cache for retry receipts')
+			}
+
 			await messageMutex.mutex(async () => {
 				await decrypt()
+
 				// message failed to decrypt
 				if (msg.messageStubType === proto.WebMessageInfo.StubType.CIPHERTEXT && msg.category !== 'peer') {
 					if (msg?.messageStubParameters?.[0] === MISSING_KEYS_ERROR_TEXT) {
+						acked = true
 						return sendMessageAck(node, NACK_REASONS.ParsingError)
 					}
 
@@ -1499,12 +1824,14 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 								{ msgId: msg.key.id, unavailableType },
 								'skipping placeholder resend for excluded unavailable type'
 							)
+							acked = true
 							return sendMessageAck(node)
 						}
 
 						const messageAge = unixTimestampSeconds() - toNumber(msg.messageTimestamp)
 						if (messageAge > PLACEHOLDER_MAX_AGE_SECONDS) {
 							logger.debug({ msgId: msg.key.id, messageAge }, 'skipping placeholder resend for old message')
+							acked = true
 							return sendMessageAck(node)
 						}
 
@@ -1542,6 +1869,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							.catch(err => {
 								logger.warn({ err, msgId: msg.key.id }, 'failed to request placeholder resend for unavailable message')
 							})
+						acked = true
 						await sendMessageAck(node)
 						// Don't return — fall through to upsertMessage so the stub is emitted
 					} else {
@@ -1553,6 +1881,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 									{ msgId: msg.key.id, messageAge, remoteJid: msg.key.remoteJid },
 									'skipping retry for expired status message'
 								)
+								acked = true
 								return sendMessageAck(node)
 							}
 						}
@@ -1600,6 +1929,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 								}
 							}
 
+							acked = true
 							await sendMessageAck(node, NACK_REASONS.UnhandledError)
 						})
 					}
@@ -1627,6 +1957,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							type = 'inactive'
 						}
 
+						acked = true
 						await sendReceipt(msg.key.remoteJid!, participant!, [msg.key.id!], type)
 
 						// send ack for history message
@@ -1636,6 +1967,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							await sendReceipt(jid, undefined, [msg.key.id!], 'hist_sync') // TODO: investigate
 						}
 					} else {
+						acked = true
 						await sendMessageAck(node)
 						logger.debug({ key: msg.key }, 'processed newsletter message without receipts')
 					}
@@ -1647,78 +1979,98 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			})
 		} catch (error) {
 			logger.error({ error, node: binaryNodeToString(node) }, 'error in handling message')
+			if (!acked) {
+				await sendMessageAck(node, NACK_REASONS.UnhandledError).catch(ackErr =>
+					logger.error({ ackErr }, 'failed to ack message after error')
+				)
+			}
 		}
 	}
 
 	const handleCall = async (node: BinaryNode) => {
 		const { attrs } = node
 		const [infoChild] = getAllBinaryNodeChildren(node)
-		const status = getCallStatusFromNode(infoChild!)
+		try {
+			if (!infoChild) {
+				throw new Boom('Missing call info in call node')
+			}
 
-		if (!infoChild) {
-			throw new Boom('Missing call info in call node')
+			const status = getCallStatusFromNode(infoChild)
+
+			const callId = infoChild.attrs['call-id']!
+			const from = infoChild.attrs.from! || infoChild.attrs['call-creator']!
+
+			const call: WACallEvent = {
+				chatId: attrs.from!,
+				from,
+				callerPn: infoChild.attrs['caller_pn'],
+				id: callId,
+				date: new Date(+attrs.t! * 1000),
+				offline: !!attrs.offline,
+				status
+			}
+
+			if (status === 'relaylatency') {
+				const latencyValue = infoChild.attrs.latency || infoChild.attrs['latency_ms'] || infoChild.attrs['latency-ms']
+				const latencyMs = latencyValue ? Number(latencyValue) : undefined
+				if (Number.isFinite(latencyMs)) {
+					call.latencyMs = latencyMs
+				}
+			}
+
+			if (status === 'offer') {
+				call.isVideo = !!getBinaryNodeChild(infoChild, 'video')
+				call.isGroup = infoChild.attrs.type === 'group' || !!infoChild.attrs['group-jid']
+				call.groupJid = infoChild.attrs['group-jid']
+				await callOfferCache.set(call.id, call)
+			}
+
+			const existingCall = await callOfferCache.get<WACallEvent>(call.id)
+
+			// use existing call info to populate this event
+			if (existingCall) {
+				call.isVideo = existingCall.isVideo
+				call.isGroup = existingCall.isGroup
+				call.callerPn = call.callerPn || existingCall.callerPn
+			}
+
+			// delete data once call has ended
+			if (status === 'reject' || status === 'accept' || status === 'timeout' || status === 'terminate') {
+				await callOfferCache.del(call.id)
+			}
+
+			ev.emit('call', [call])
+		} catch (error) {
+			logger.error({ error, node: binaryNodeToString(node) }, 'error in handling call')
+		} finally {
+			await sendMessageAck(node).catch(ackErr => logger.error({ ackErr }, 'failed to ack call'))
 		}
-
-		const callId = infoChild.attrs['call-id']!
-		const from = infoChild.attrs.from! || infoChild.attrs['call-creator']!
-
-		const call: WACallEvent = {
-			chatId: attrs.from!,
-			from,
-			callerPn: infoChild.attrs['caller_pn'],
-			id: callId,
-			date: new Date(+attrs.t! * 1000),
-			offline: !!attrs.offline,
-			status
-		}
-
-		if (status === 'offer') {
-			call.isVideo = !!getBinaryNodeChild(infoChild, 'video')
-			call.isGroup = infoChild.attrs.type === 'group' || !!infoChild.attrs['group-jid']
-			call.groupJid = infoChild.attrs['group-jid']
-			await callOfferCache.set(call.id, call)
-		}
-
-		const existingCall = await callOfferCache.get<WACallEvent>(call.id)
-
-		// use existing call info to populate this event
-		if (existingCall) {
-			call.isVideo = existingCall.isVideo
-			call.isGroup = existingCall.isGroup
-			call.callerPn = call.callerPn || existingCall.callerPn
-		}
-
-		// delete data once call has ended
-		if (status === 'reject' || status === 'accept' || status === 'timeout' || status === 'terminate') {
-			await callOfferCache.del(call.id)
-		}
-
-		ev.emit('call', [call])
-
-		await sendMessageAck(node)
 	}
 
 	const handleBadAck = async ({ attrs }: BinaryNode) => {
 		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id }
 
-		// WARNING: REFRAIN FROM ENABLING THIS FOR NOW. IT WILL CAUSE A LOOP
-		// // current hypothesis is that if pash is sent in the ack
-		// // it means -- the message hasn't reached all devices yet
-		// // we'll retry sending the message here
-		// if(attrs.phash) {
-		// 	logger.info({ attrs }, 'received phash in ack, resending message...')
-		// 	const msg = await getMessage(key)
-		// 	if(msg) {
-		// 		await relayMessage(key.remoteJid!, msg, { messageId: key.id!, useUserDevicesCache: false })
-		// 	} else {
-		// 		logger.warn({ attrs }, 'could not send message again, as it was not found')
-		// 	}
-		// }
-
 		// error in acknowledgement,
 		// device could not display the message
 		if (attrs.error) {
-			logger.warn({ attrs }, 'received error in ack')
+			if (attrs.error === SERVER_ERROR_CODES.MissingTcToken) {
+				// 463 = account restricted + no tctoken for this contact.
+				// WA Web prevents this client-side (disables compose bar).
+				// No retry — retrying worsens the restriction by counting
+				// as another "reach out" to an unknown contact.
+				logger.warn(
+					{ msgId: attrs.id, from: attrs.from },
+					'error 463: account restricted or missing tctoken for contact'
+				)
+			} else if (attrs.error === SERVER_ERROR_CODES.SmaxInvalid) {
+				logger.warn(
+					{ msgId: attrs.id, from: attrs.from },
+					'smax-invalid (479): stanza rejected by server — likely stale device session or malformed addressing'
+				)
+			} else {
+				logger.warn({ attrs }, 'received error in ack')
+			}
+
 			ev.emit('messages.update', [
 				{
 					key,
@@ -1728,20 +2080,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					}
 				}
 			])
-
-			// resend the message with device_fanout=false, use at your own risk
-			// if (attrs.error === '475') {
-			// 	const msg = await getMessage(key)
-			// 	if (msg) {
-			// 		await relayMessage(key.remoteJid!, msg, {
-			// 			messageId: key.id!,
-			// 			useUserDevicesCache: false,
-			// 			additionalAttributes: {
-			// 				device_fanout: 'false'
-			// 			}
-			// 		})
-			// 	}
-			// }
 		}
 	}
 
@@ -1897,20 +2235,120 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	})
 
-	ev.on('connection.update', ({ isOnline }) => {
+	/** timestamp of last tctoken prune run — throttles to once per 24h */
+	let lastTcTokenPruneTs = 0
+
+	ev.on('connection.update', ({ isOnline, connection }) => {
 		if (typeof isOnline !== 'undefined') {
 			sendActiveReceipts = isOnline
 			logger.trace(`sendActiveReceipts set to "${sendActiveReceipts}"`)
 		}
+
+		// Flush pending tctoken index save on disconnect to avoid writing after close
+		if (connection === 'close' && tcTokenIndexTimer) {
+			clearTimeout(tcTokenIndexTimer)
+			tcTokenIndexTimer = undefined
+			try {
+				void Promise.resolve(flushTcTokenIndex()).catch(() => {})
+			} catch {
+				/* ignore sync errors */
+			}
+		}
+
+		// Prune expired tctokens when coming online, at most once per 24 hours
+		if (isOnline) {
+			const now = Date.now()
+			const DAY_MS = 24 * 60 * 60 * 1000
+			if (now - lastTcTokenPruneTs >= DAY_MS) {
+				lastTcTokenPruneTs = now
+				void pruneExpiredTcTokens()
+			}
+		}
 	})
+
+	async function pruneExpiredTcTokens() {
+		try {
+			await tcTokenIndexLoaded
+
+			const persisted = await readTcTokenIndex(authState.keys)
+			const allJids = new Set<string>(tcTokenKnownJids)
+			for (const jid of persisted) allJids.add(jid)
+			if (!allJids.size) return
+
+			const jids = [...allJids]
+			const allTokens = await authState.keys.get('tctoken', jids)
+
+			type TcTokenWriteValue = null | { token: Buffer; timestamp?: string; senderTimestamp?: number }
+			const writes: { [jid: string]: TcTokenWriteValue } = {}
+			const survivors = new Set<string>()
+			let mutated = 0
+
+			for (const jid of jids) {
+				const entry = allTokens[jid]
+				if (!entry) {
+					mutated++
+					continue
+				}
+
+				const hasPeerToken = !!entry.token?.length
+				const peerTokenExpired = hasPeerToken && isTcTokenExpired(entry.timestamp)
+				const hasSenderTs = entry.senderTimestamp !== undefined
+				const senderTsExpired = hasSenderTs && isTcTokenExpired(entry.senderTimestamp)
+				const keepPeerToken = hasPeerToken && !peerTokenExpired
+				const keepSenderTs = hasSenderTs && !senderTsExpired
+
+				if (!keepPeerToken && !keepSenderTs) {
+					writes[jid] = null
+					mutated++
+				} else if (peerTokenExpired && keepSenderTs) {
+					writes[jid] = { token: Buffer.alloc(0), senderTimestamp: entry.senderTimestamp }
+					survivors.add(jid)
+					mutated++
+				} else {
+					survivors.add(jid)
+				}
+			}
+
+			if (mutated === 0) return
+
+			await authState.keys.set({
+				tctoken: {
+					...writes,
+					[TC_TOKEN_INDEX_KEY]: {
+						token: Buffer.from(JSON.stringify([...survivors]))
+					}
+				}
+			})
+
+			tcTokenKnownJids.clear()
+			for (const jid of survivors) tcTokenKnownJids.add(jid)
+
+			logger.debug({ mutated, remaining: survivors.size }, 'pruned expired tctokens')
+		} catch (err: any) {
+			logger.warn({ err: err?.message }, 'failed to prune expired tctokens')
+		}
+	}
 
 	return {
 		...sock,
 		sendMessageAck,
 		sendRetryRequest,
+		offerCall,
 		initiateCall,
-		rejectCall,
 		cancelCall,
+		rejectCall,
+		acceptCall,
+		preacceptCall,
+		terminateCall,
+		sendRelayLatency,
+		sendTransport,
+		sendCallDuration,
+		muteCall,
+		sendHeartbeat,
+		sendEncRekey,
+		sendVideoState,
+		queryCallLink,
+		joinCallLink,
 		fetchMessageHistory,
 		requestPlaceholderResend,
 		messageRetryManager

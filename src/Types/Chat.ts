@@ -3,8 +3,7 @@ import type { AccountSettings } from './Auth'
 import type { QuickReplyAction } from './Bussines.js'
 import type { BufferedEventData } from './Events'
 import type { LabelActionBody } from './Label'
-import type { ChatLabelAssociationActionBody } from './LabelAssociation'
-import type { MessageLabelAssociationActionBody } from './LabelAssociation'
+import type { ChatLabelAssociationActionBody, MessageLabelAssociationActionBody } from './LabelAssociation'
 import type { MinimalMessage, WAMessageKey } from './Message'
 
 /** privacy settings in WhatsApp Web */
