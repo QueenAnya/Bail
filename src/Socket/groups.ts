@@ -1,6 +1,7 @@
+import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
-import { WAMessageAddressingMode, WAMessageStubType } from '../Types'
 import type { GroupMetadata, GroupParticipant, ParticipantAction, SocketConfig, WAMessageKey } from '../Types'
+import { WAMessageAddressingMode, WAMessageStubType } from '../Types'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils'
 import {
 	type BinaryNode,

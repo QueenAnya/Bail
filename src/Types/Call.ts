@@ -22,7 +22,6 @@ export type WAInitiateCallResult = {
 export type WACallEvent = {
 	chatId: string
 	from: string
-	callerPn?: string
 	isGroup?: boolean
 	groupJid?: string
 	id: string

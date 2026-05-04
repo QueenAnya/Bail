@@ -1,11 +1,6 @@
-import { QueryIdd, QueryIds, XWAPaths } from '../Types'
-import type {
-	NewsletterCreateResponse,
-	SocketConfig,
-	WAMediaUpload,
-	NewsletterMetadata,
-	NewsletterUpdate
-} from '../Types'
+import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../Types'
+import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
+import { QueryIds, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
 import { getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'
@@ -83,16 +78,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		},
 
 		newsletterUpdate,
-
-		newsletterFetchAllParticipating: async () => {
-			return await genericExecuteWMexQuery(
-				{},
-				QueryIdd.GETSUBSCRIBED,
-				XWAPaths.xwa2_newsletter_subscribed,
-				query,
-				generateMessageTag
-			)
-		},
 
 		newsletterSubscribers: async (jid: string) => {
 			return executeWMexQuery<{ subscribers: number }>(

@@ -1,3 +1,4 @@
+import { Boom } from '@hapi/boom'
 import NodeCache from '@cacheable/node-cache'
 import { AsyncLocalStorage } from 'async_hooks'
 import { Mutex } from 'async-mutex'
@@ -368,14 +369,12 @@ export const initAuthCreds = (): AuthenticationCreds => {
 }
 
 /**
- * Returns the authenticated user's JID (me.id) or throws a Boom 401 if not logged in.
- * Use this wherever a valid self-JID is required before performing an operation.
+ * Returns the authenticated user's JID, or throws Boom-401 if not authenticated.
  */
-export const assertMeId = (creds: AuthenticationCreds): string => {
-	const meId = creds.me?.id
-	if (!meId) {
-		const { Boom } = require('@hapi/boom')
-		throw new Boom('not authenticated — me.id is missing', { statusCode: 401 })
+export const assertMeId = (creds: import('../Types').AuthenticationCreds): string => {
+	const id = creds.me?.id
+	if (!id) {
+		throw new Boom('Cannot proceed: socket is not authenticated yet (creds.me.id is missing)', { statusCode: 401 })
 	}
-	return meId
+	return id
 }

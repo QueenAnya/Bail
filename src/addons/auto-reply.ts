@@ -1,21 +1,26 @@
-import type { WAMessage, AnyMessageContent } from '../Types'
+/**
+ * Auto-Reply System — keyword/regex-based automatic response handler
+ * Part of innovatorssoft/baileys addons
+ */
+
+import type { AnyMessageContent, WAMessage } from '../Types'
 
 export interface AutoReplyRule {
-	id?: string
+	id: string
 	keywords?: string[]
 	pattern?: RegExp
 	exactMatch?: string
 	response:
 		| AnyMessageContent
-		| ((message: WAMessage, match: RegExpMatchArray | string[]) => Promise<AnyMessageContent> | AnyMessageContent)
-	cooldown?: number
-	priority?: number
-	active?: boolean
-	groupsOnly?: boolean
-	privateOnly?: boolean
+		| ((msg: WAMessage, match: RegExpMatchArray | null) => AnyMessageContent | Promise<AnyMessageContent>)
 	allowedJids?: string[]
 	blockedJids?: string[]
+	groupsOnly?: boolean
+	privateOnly?: boolean
+	cooldown?: number
 	quoted?: boolean
+	active?: boolean
+	priority?: number
 }
 
 export interface AutoReplyOptions {
@@ -27,19 +32,23 @@ export interface AutoReplyOptions {
 	onError?: (error: Error, rule: AutoReplyRule, message: WAMessage) => void
 }
 
+export type AutoReplySendFunction = (
+	jid: string,
+	content: AnyMessageContent,
+	options?: { quoted?: WAMessage }
+) => Promise<WAMessage | undefined>
+
+export type PresenceFunction = (jid: string, presence: 'composing' | 'paused') => Promise<void>
+
 export class AutoReplyHandler {
-	private rules = new Map<string, AutoReplyRule & { id: string }>()
-	private cooldowns = new Map<string, number>()
-	private globalCooldown = new Map<string, number>()
-	private sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>
-	private sendPresence?: (jid: string, presence: string) => Promise<void>
+	private rules: Map<string, AutoReplyRule> = new Map()
+	private cooldowns: Map<string, number> = new Map()
+	private globalCooldown: Map<string, number> = new Map()
+	private sendMessage: AutoReplySendFunction
+	private sendPresence?: PresenceFunction
 	private options: Required<AutoReplyOptions>
 
-	constructor(
-		sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>,
-		sendPresence?: (jid: string, presence: string) => Promise<void>,
-		options: AutoReplyOptions = {}
-	) {
+	constructor(sendMessage: AutoReplySendFunction, sendPresence?: PresenceFunction, options: AutoReplyOptions = {}) {
 		this.sendMessage = sendMessage
 		this.sendPresence = sendPresence
 		this.options = {
@@ -52,71 +61,59 @@ export class AutoReplyHandler {
 		}
 	}
 
-	private generateId() {
-		return `ar_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-	}
-
-	addRule(rule: AutoReplyRule) {
-		const fullRule = {
+	addRule(rule: Omit<AutoReplyRule, 'id'> & { id?: string }): AutoReplyRule {
+		const full: AutoReplyRule = {
 			...rule,
-			id: rule.id ?? this.generateId(),
+			id: rule.id ?? `ar_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
 			active: rule.active ?? true,
 			priority: rule.priority ?? 0
 		}
-		if (!fullRule.keywords && !fullRule.pattern && !fullRule.exactMatch)
-			throw new Error('Rule must have keywords, pattern, or exactMatch')
-		this.rules.set(fullRule.id, fullRule)
-		return fullRule
+		if (!full.keywords && !full.pattern && !full.exactMatch) {
+			throw new Error('Rule must have at least one of: keywords, pattern, or exactMatch')
+		}
+		this.rules.set(full.id, full)
+		return full
 	}
 
-	removeRule(id: string) {
+	removeRule(id: string): boolean {
 		return this.rules.delete(id)
 	}
-	getRules() {
+	getRules(): AutoReplyRule[] {
 		return Array.from(this.rules.values())
 	}
-	getRule(id: string) {
+	getRule(id: string): AutoReplyRule | undefined {
 		return this.rules.get(id)
 	}
-	setRuleActive(id: string, active: boolean) {
+	setRuleActive(id: string, active: boolean): boolean {
 		const r = this.rules.get(id)
 		if (r) {
 			r.active = active
 			return true
 		}
-
 		return false
 	}
-	clearRules() {
+	clearRules(): void {
 		this.rules.clear()
 	}
 
-	private checkCooldown(ruleId: string, jid: string) {
-		return Date.now() - (this.cooldowns.get(`${ruleId}:${jid}`) ?? 0) > 0
-	}
-
-	private checkGlobalCooldown(jid: string) {
+	private checkGlobalCooldown(jid: string): boolean {
 		return Date.now() - (this.globalCooldown.get(jid) ?? 0) > this.options.globalCooldown
 	}
 
-	private setCooldown(ruleId: string, jid: string, cooldown: number) {
-		this.cooldowns.set(`${ruleId}:${jid}`, Date.now() + cooldown)
-		this.globalCooldown.set(jid, Date.now())
-	}
-
-	private matchRule(text: string, rule: AutoReplyRule) {
+	private matchRule(text: string, rule: AutoReplyRule): RegExpMatchArray | null {
 		if (!rule.active) return null
-		if (text.toLowerCase() === rule.exactMatch?.toLowerCase()) return [text]
+		if (rule.exactMatch && text.toLowerCase() === rule.exactMatch.toLowerCase()) return [text]
 		if (rule.keywords?.length) {
 			const lower = text.toLowerCase()
-			for (const kw of rule.keywords) if (lower.includes(kw.toLowerCase())) return [kw]
+			for (const kw of rule.keywords) {
+				if (lower.includes(kw.toLowerCase())) return [kw]
+			}
 		}
-
 		if (rule.pattern) return text.match(rule.pattern)
 		return null
 	}
 
-	private isJidAllowed(jid: string, rule: AutoReplyRule) {
+	private isJidAllowed(jid: string, rule: AutoReplyRule): boolean {
 		const isGroup = jid.endsWith('@g.us')
 		if (jid.endsWith('@newsletter')) return false
 		if (rule.groupsOnly && !isGroup) return false
@@ -140,20 +137,22 @@ export class AutoReplyHandler {
 		const jid = message.key.remoteJid
 		if (!jid || !this.checkGlobalCooldown(jid)) return false
 
-		const sortedRules = Array.from(this.rules.values())
+		const sorted = Array.from(this.rules.values())
 			.filter(r => r.active)
 			.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
 
 		let matched = false
-		for (const rule of sortedRules) {
+		for (const rule of sorted) {
 			if (!this.isJidAllowed(jid, rule)) continue
-			if (rule.cooldown && !this.checkCooldown(rule.id, jid)) continue
+			if (rule.cooldown) {
+				const key = `${rule.id}:${jid}`
+				if (Date.now() < (this.cooldowns.get(key) ?? 0)) continue
+			}
 			const match = this.matchRule(text, rule)
 			if (!match) continue
+
 			try {
-				let response: AnyMessageContent
-				if (typeof rule.response === 'function') response = await rule.response(message, match)
-				else response = rule.response
+				const response = typeof rule.response === 'function' ? await rule.response(message, match) : rule.response
 
 				if (this.options.simulateTyping && this.sendPresence) {
 					await this.sendPresence(jid, 'composing')
@@ -162,7 +161,11 @@ export class AutoReplyHandler {
 				}
 
 				await this.sendMessage(jid, response, rule.quoted ? { quoted: message } : undefined)
-				if (rule.cooldown) this.setCooldown(rule.id, jid, rule.cooldown)
+
+				if (rule.cooldown) {
+					this.cooldowns.set(`${rule.id}:${jid}`, Date.now() + rule.cooldown)
+				}
+				this.globalCooldown.set(jid, Date.now())
 				this.options.onReply(rule, message, response)
 				matched = true
 				if (!this.options.multiMatch) break
@@ -170,13 +173,12 @@ export class AutoReplyHandler {
 				this.options.onError(error, rule, message)
 			}
 		}
-
 		return matched
 	}
 }
 
 export const createAutoReply = (
-	sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>,
-	sendPresence?: (jid: string, presence: string) => Promise<void>,
+	sendMessage: AutoReplySendFunction,
+	sendPresence?: PresenceFunction,
 	options?: AutoReplyOptions
-) => new AutoReplyHandler(sendMessage, sendPresence, options)
+): AutoReplyHandler => new AutoReplyHandler(sendMessage, sendPresence, options)
