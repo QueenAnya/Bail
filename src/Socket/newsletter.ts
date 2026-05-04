@@ -1,6 +1,11 @@
-import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../Types'
-import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
 import { QueryIdd, QueryIds, XWAPaths } from '../Types'
+import type {
+	NewsletterCreateResponse,
+	SocketConfig,
+	WAMediaUpload,
+	NewsletterMetadata,
+	NewsletterUpdate
+} from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
 import { getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'

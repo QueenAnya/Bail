@@ -14,8 +14,8 @@ import {
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
-import type { LIDMapping, SocketConfig } from '../Types'
 import { DisconnectReason } from '../Types'
+import type { LIDMapping, SocketConfig } from '../Types'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,

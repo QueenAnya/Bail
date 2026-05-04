@@ -12,8 +12,8 @@
  * are implemented here as standalone helpers that require a `sendNode` / `query` ref.
  */
 
-import type { BinaryNode } from '../WABinary'
 import { getBinaryNodeChild } from '../WABinary'
+import type { BinaryNode } from '../WABinary'
 // generateMessageTag is a socket-layer util; we inline a compatible version here
 const generateMessageTag = (): string =>
 	Math.random().toString(36).slice(2, 8).toUpperCase() + Date.now().toString(36).toUpperCase()

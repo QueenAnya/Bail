@@ -241,7 +241,7 @@ describe('Sticker Pack Messages', () => {
 			const stickers = Array(61)
 				.fill(null)
 				.map(() => ({
-					data: MINIMAL_PNG
+					sticker: MINIMAL_PNG
 				}))
 
 			const stickerPack: StickerPack = {
@@ -295,7 +295,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: largeSticker }]
+				stickers: [{ sticker: largeSticker }]
 			}
 
 			const options = createMockOptions()
@@ -308,7 +308,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }, { data: MINIMAL_PNG }, { data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }, { sticker: MINIMAL_PNG }, { sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -325,7 +325,7 @@ describe('Sticker Pack Messages', () => {
 			const stickers = Array(60)
 				.fill(null)
 				.map(() => ({
-					data: MINIMAL_PNG
+					sticker: MINIMAL_PNG
 				}))
 
 			const stickerPack: StickerPack = {
@@ -351,8 +351,8 @@ describe('Sticker Pack Messages', () => {
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
 				stickers: [
-					{ data: MINIMAL_PNG, emojis: ['😀'] },
-					{ data: MINIMAL_PNG, emojis: ['😎'] }
+					{ sticker: MINIMAL_PNG, emojis: ['😀'] },
+					{ sticker: MINIMAL_PNG, emojis: ['😎'] }
 				]
 			}
 
@@ -377,7 +377,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Dedup Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }, { data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }, { sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -396,7 +396,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }],
+				stickers: [{ sticker: MINIMAL_PNG }],
 				packId: 'custom-pack-id-123'
 			}
 
@@ -412,7 +412,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -428,7 +428,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }],
+				stickers: [{ sticker: MINIMAL_PNG }],
 				description: 'A test sticker pack description'
 			}
 
@@ -446,7 +446,7 @@ describe('Sticker Pack Messages', () => {
 				cover: MINIMAL_PNG,
 				stickers: [
 					{
-						data: MINIMAL_PNG,
+						sticker: MINIMAL_PNG,
 						emojis: ['🎉', '🥳'],
 						accessibilityLabel: 'Party celebration sticker'
 					}
@@ -490,7 +490,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -507,7 +507,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Upload Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -523,7 +523,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Media Type Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -539,7 +539,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Thumbnail Media Type Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -557,7 +557,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Crypto Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -574,7 +574,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Hash Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -592,7 +592,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'File Length Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -609,7 +609,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Direct Path Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -626,7 +626,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Timestamp Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -648,7 +648,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Thumbnail Fields Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -667,7 +667,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Image Data Hash Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -687,7 +687,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Tray Icon Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }],
+				stickers: [{ sticker: MINIMAL_PNG }],
 				packId: 'my-custom-pack'
 			}
 
@@ -703,7 +703,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Auto Tray Icon Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -723,7 +723,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Origin Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -742,7 +742,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Pack Size Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -764,9 +764,9 @@ describe('Sticker Pack Messages', () => {
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
 				stickers: [
-					{ data: MINIMAL_PNG }, // Red
-					{ data: BLUE_PNG }, // Blue
-					{ data: GREEN_PNG } // Green
+					{ sticker: MINIMAL_PNG }, // Red
+					{ sticker: BLUE_PNG }, // Blue
+					{ sticker: GREEN_PNG } // Green
 				]
 			}
 
@@ -790,7 +790,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'PNG Conversion Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -807,7 +807,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'WebP Direct Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_WEBP,
-				stickers: [{ data: MINIMAL_WEBP }]
+				stickers: [{ sticker: MINIMAL_WEBP }]
 			}
 
 			const options = createMockOptions()
@@ -825,9 +825,9 @@ describe('Sticker Pack Messages', () => {
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
 				stickers: [
-					{ data: MINIMAL_PNG, emojis: ['😀', '😃'] },
-					{ data: BLUE_PNG, emojis: ['💙'] },
-					{ data: GREEN_PNG, emojis: ['💚', '🌿', '🍀'] }
+					{ sticker: MINIMAL_PNG, emojis: ['😀', '😃'] },
+					{ sticker: BLUE_PNG, emojis: ['💙'] },
+					{ sticker: GREEN_PNG, emojis: ['💚', '🌿', '🍀'] }
 				]
 			}
 
@@ -847,9 +847,9 @@ describe('Sticker Pack Messages', () => {
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
 				stickers: [
-					{ data: MINIMAL_PNG, accessibilityLabel: 'First' },
-					{ data: BLUE_PNG, accessibilityLabel: 'Second' },
-					{ data: GREEN_PNG, accessibilityLabel: 'Third' }
+					{ sticker: MINIMAL_PNG, accessibilityLabel: 'First' },
+					{ sticker: BLUE_PNG, accessibilityLabel: 'Second' },
+					{ sticker: GREEN_PNG, accessibilityLabel: 'Third' }
 				]
 			}
 
@@ -870,7 +870,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Animated Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: ANIMATED_WEBP }]
+				stickers: [{ sticker: ANIMATED_WEBP }]
 			}
 
 			const options = createMockOptions()
@@ -885,7 +885,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Static Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_WEBP }]
+				stickers: [{ sticker: MINIMAL_WEBP }]
 			}
 
 			const options = createMockOptions()
@@ -900,7 +900,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Converted PNG Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()
@@ -916,9 +916,9 @@ describe('Sticker Pack Messages', () => {
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
 				stickers: [
-					{ data: ANIMATED_WEBP, accessibilityLabel: 'animated' },
-					{ data: MINIMAL_WEBP, accessibilityLabel: 'static' },
-					{ data: MINIMAL_PNG, accessibilityLabel: 'converted' }
+					{ sticker: ANIMATED_WEBP, accessibilityLabel: 'animated' },
+					{ sticker: MINIMAL_WEBP, accessibilityLabel: 'static' },
+					{ sticker: MINIMAL_PNG, accessibilityLabel: 'converted' }
 				]
 			}
 
@@ -943,7 +943,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Exif Preservation Test',
 				publisher: 'Test Publisher',
 				cover: WEBP_WITH_EXIF,
-				stickers: [{ data: WEBP_WITH_EXIF }]
+				stickers: [{ sticker: WEBP_WITH_EXIF }]
 			}
 
 			const options = createMockOptions()
@@ -961,7 +961,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'No Re-encode Test',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_WEBP,
-				stickers: [{ data: MINIMAL_WEBP }]
+				stickers: [{ sticker: MINIMAL_WEBP }]
 			}
 
 			const options = createMockOptions()
@@ -978,7 +978,7 @@ describe('Sticker Pack Messages', () => {
 				name: 'Cover Preservation Test',
 				publisher: 'Test Publisher',
 				cover: WEBP_WITH_EXIF, // WebP cover should be preserved
-				stickers: [{ data: MINIMAL_PNG }]
+				stickers: [{ sticker: MINIMAL_PNG }]
 			}
 
 			const options = createMockOptions()

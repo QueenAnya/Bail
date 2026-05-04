@@ -99,5 +99,3 @@ export * from './from-messages-send'
 export * from './from-messages'
 
 // ── Auth State — re-exported from src/Utils (canonical location) ───────────
-export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
-export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'

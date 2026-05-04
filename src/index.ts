@@ -8,6 +8,7 @@ export * from './WABinary/index'
 export * from './WAM/index'
 export * from './WAUSync/index'
 export * from './addons/index'
+export * from './Store/index'
 
 export type WASocket = ReturnType<typeof makeWASocket>
 export { makeWASocket }

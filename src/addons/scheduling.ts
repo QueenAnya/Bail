@@ -1,5 +1,4 @@
-import type { WAMessage } from '../Types'
-import type { AnyMessageContent } from '../Types'
+import type { WAMessage, AnyMessageContent } from '../Types'
 
 export interface SchedulerOptions {
 	maxQueue?: number

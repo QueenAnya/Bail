@@ -1452,7 +1452,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						(('groupStatus' in content && (content as any).groupStatus) ||
 							('cards' in content && (content as any)?.cards)) &&
 						!options.messageId
-							? `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+							? `4NY4W3B${randomBytes(8).toString('hex').toUpperCase().substring(0, 15)}`
 							: generateMessageIDV2(sock.user?.id),
 					...options
 				})
