@@ -1,11 +1,6 @@
-import { QueryIdd, QueryIds, XWAPaths } from '../Types'
-import type {
-	NewsletterCreateResponse,
-	SocketConfig,
-	WAMediaUpload,
-	NewsletterMetadata,
-	NewsletterUpdate
-} from '../Types'
+import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../Types'
+import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
+import { QueryIds, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
 import { getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'
@@ -84,16 +79,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 
 		newsletterUpdate,
 
-		newsletterFetchAllParticipating: async () => {
-			return await genericExecuteWMexQuery(
-				{},
-				QueryIdd.GETSUBSCRIBED,
-				XWAPaths.xwa2_newsletter_subscribed,
-				query,
-				generateMessageTag
-			)
-		},
-
 		newsletterSubscribers: async (jid: string) => {
 			return executeWMexQuery<{ subscribers: number }>(
 				{ newsletter_id: jid },
@@ -117,11 +102,11 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		},
 
 		newsletterFollow: (jid: string) => {
-			return executeWMexQuery({ newsletter_id: jid }, QueryIds.FOLLOW, XWAPaths.xwa2_newsletter_join_v2)
+			return executeWMexQuery({ newsletter_id: jid }, QueryIds.FOLLOW, XWAPaths.xwa2_newsletter_follow)
 		},
 
 		newsletterUnfollow: (jid: string) => {
-			return executeWMexQuery({ newsletter_id: jid }, QueryIds.UNFOLLOW, XWAPaths.xwa2_newsletter_leave_v2)
+			return executeWMexQuery({ newsletter_id: jid }, QueryIds.UNFOLLOW, XWAPaths.xwa2_newsletter_unfollow)
 		},
 
 		newsletterMute: (jid: string) => {

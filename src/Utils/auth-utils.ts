@@ -366,16 +366,3 @@ export const initAuthCreds = (): AuthenticationCreds => {
 		additionalData: undefined
 	}
 }
-
-/**
- * Returns the authenticated user's JID (me.id) or throws a Boom 401 if not logged in.
- * Use this wherever a valid self-JID is required before performing an operation.
- */
-export const assertMeId = (creds: AuthenticationCreds): string => {
-	const meId = creds.me?.id
-	if (!meId) {
-		const { Boom } = require('@hapi/boom')
-		throw new Boom('not authenticated — me.id is missing', { statusCode: 401 })
-	}
-	return meId
-}

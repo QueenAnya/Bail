@@ -1,9 +1,8 @@
-import { pipeline } from 'stream/promises'
 import { promisify } from 'util'
-import { createInflate, inflate } from 'zlib'
+import { inflate } from 'zlib'
 import { proto } from '../../WAProto/index.js'
-import { WAMessageStubType } from '../Types'
 import type { Chat, Contact, LIDMapping, WAMessage } from '../Types'
+import { WAMessageStubType } from '../Types'
 import { isHostedLidUser, isHostedPnUser, isLidUser, isPnUser } from '../WABinary'
 import { toNumber } from './generics'
 import type { ILogger } from './logger.js'
@@ -32,15 +31,16 @@ const extractPnFromMessages = (messages: proto.IHistorySyncMsg[]): string | unde
 
 export const downloadHistory = async (msg: proto.Message.IHistorySyncNotification, options: RequestInit) => {
 	const stream = await downloadContentFromMessage(msg, 'md-msg-hist', { options })
+	const bufferArray: Buffer[] = []
+	for await (const chunk of stream) {
+		bufferArray.push(chunk)
+	}
 
-	// Pipe decrypted stream directly through zlib inflate
-	// This avoids allocating an intermediate buffer for the compressed data
-	const inflater = createInflate()
-	const chunks: Buffer[] = []
-	inflater.on('data', (chunk: Buffer) => chunks.push(chunk))
-	await pipeline(stream, inflater)
+	let buffer: Buffer = Buffer.concat(bufferArray)
 
-	const buffer = Buffer.concat(chunks)
+	// decompress buffer
+	buffer = await inflatePromise(buffer)
+
 	const syncData = proto.HistorySync.decode(buffer)
 	return syncData
 }
@@ -69,9 +69,9 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 				contacts.push({
 					id: chat.id!,
 					name: chat.displayName || chat.name || chat.username || undefined,
+					username: chat.username || undefined,
 					lid: chat.lidJid || chat.accountLid || undefined,
-					phoneNumber: chat.pnJid || undefined,
-					username: chat.username || undefined
+					phoneNumber: chat.pnJid || undefined
 				})
 
 				const chatId = chat.id!
@@ -117,7 +117,7 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 					}
 				}
 
-				chats.push(chat)
+				chats.push({ ...chat })
 			}
 
 			break
@@ -135,8 +135,7 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 		messages,
 		lidPnMappings,
 		syncType: item.syncType,
-		progress: item.progress,
-		pastParticipants: item.pastParticipants
+		progress: item.progress
 	}
 }
 

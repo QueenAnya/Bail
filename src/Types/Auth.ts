@@ -80,8 +80,7 @@ export type SignalDataTypeMap = {
 	'app-state-sync-version': LTHashState
 	'lid-mapping': string
 	'device-list': string[]
-	tctoken: { token: Buffer; timestamp?: string; senderTimestamp?: number }
-	'identity-key': Uint8Array
+	tctoken: { token: Buffer; timestamp?: string }
 }
 
 export type SignalDataSet = { [T in keyof SignalDataTypeMap]?: { [id: string]: SignalDataTypeMap[T] | null } }
