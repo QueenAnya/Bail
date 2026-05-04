@@ -34,3 +34,7 @@ export const getPlatformDisplayName = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
 	return platformType ? browser : 'Chrome'
 }
+
+export const isAndroidBrowser = (browser: WABrowserDescription): boolean => {
+	return browser[1]?.toLowerCase() === 'android'
+}

@@ -379,6 +379,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 				break
 
+			case 'NotificationLinkedProfilesUpdates':
+				for (const update of updates || []) {
+					const lid = update?.jid
+					const addedProfiles = Array.isArray(update?.added_profiles) ? update.added_profiles : []
+					for (const profile of addedProfiles) {
+						const pn = typeof profile === 'string' ? profile : (profile?.pn ?? profile?.jid ?? null)
+						if (lid && pn) {
+							ev.emit('lid-mapping.update', { lid, pn })
+						}
+					}
+				}
+				break
+
 			default:
 				logger.info({ operation, data }, 'Unhandled mex newsletter notification')
 				break
