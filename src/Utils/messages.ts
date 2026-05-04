@@ -588,8 +588,6 @@ export const generateWAMessageContent = async (
 		}
 	} else if ('stickerPack' in message) {
 		m = await prepareStickerPackMessage(message.stickerPack, options)
-	}
-
 	} else if (hasNonNullishProperty(message, 'album')) {
 		m.albumMessage = {
 			expectedImageCount: message.album.expectedImageCount,
