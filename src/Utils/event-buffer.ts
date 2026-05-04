@@ -319,7 +319,6 @@ function append<E extends BufferableEvent>(
 			data.historySets.progress = eventData.progress
 			data.historySets.peerDataRequestSessionId = eventData.peerDataRequestSessionId
 			data.historySets.isLatest = eventData.isLatest || data.historySets.isLatest
-			data.historySets.chunkOrder = eventData.chunkOrder
 
 			break
 		case 'chats.upsert':

@@ -1,5 +1,5 @@
-import { promisify } from 'util'
 import { pipeline } from 'stream/promises'
+import { promisify } from 'util'
 import { createInflate, inflate } from 'zlib'
 import { proto } from '../../WAProto/index.js'
 import type { Chat, Contact, LIDMapping, WAMessage } from '../Types'
@@ -32,13 +32,14 @@ const extractPnFromMessages = (messages: proto.IHistorySyncMsg[]): string | unde
 
 export const downloadHistory = async (msg: proto.Message.IHistorySyncNotification, options: RequestInit) => {
 	const stream = await downloadContentFromMessage(msg, 'md-msg-hist', { options })
-	// Pipe decrypted stream directly through zlib inflate (avoids intermediate buffer)
+	// Pipe decrypted stream directly through zlib inflate
+	// This avoids allocating an intermediate buffer for the compressed data
 	const inflater = createInflate()
 	const chunks: Buffer[] = []
 	inflater.on('data', (chunk: Buffer) => chunks.push(chunk))
 	await pipeline(stream, inflater)
-	const buffer = Buffer.concat(chunks)
 
+	const buffer = Buffer.concat(chunks)
 	const syncData = proto.HistorySync.decode(buffer)
 	return syncData
 }
@@ -115,7 +116,7 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 					}
 				}
 
-				chats.push({ ...chat })
+				chats.push(chat)
 			}
 
 			break
@@ -132,6 +133,7 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 		contacts,
 		messages,
 		lidPnMappings,
+		pastParticipants: item.pastParticipants,
 		syncType: item.syncType,
 		progress: item.progress
 	}

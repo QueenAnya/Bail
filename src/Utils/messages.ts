@@ -1,6 +1,5 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
-import { zip } from 'fflate'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
@@ -21,7 +20,6 @@ import type {
 	MessageGenerationOptionsFromContent,
 	MessageUserReceipt,
 	MessageWithContextInfo,
-	StickerPack,
 	WAMediaUpload,
 	WAMessage,
 	WAMessageContent,
@@ -39,11 +37,8 @@ import {
 	generateThumbnail,
 	getAudioDuration,
 	getAudioWaveform,
-	getImageProcessingLibrary,
 	getRawMediaUploadData,
-	getStream,
-	type MediaDownloadOptions,
-	toBuffer
+	type MediaDownloadOptions
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
 
@@ -161,7 +156,7 @@ export const prepareWAMessageMedia = async (
 	}
 
 	if (!uploadData.mimetype) {
-		uploadData.mimetype = MIMETYPE_MAP[options.mediaTypeOverride || mediaType]
+		uploadData.mimetype = MIMETYPE_MAP[mediaType]
 	}
 
 	if (cacheableKey) {
@@ -228,7 +223,8 @@ export const prepareWAMessageMedia = async (
 	const requiresDurationComputation = mediaType === 'audio' && typeof uploadData.seconds === 'undefined'
 	const requiresThumbnailComputation =
 		(mediaType === 'image' || mediaType === 'video') && typeof uploadData['jpegThumbnail'] === 'undefined'
-	const requiresWaveformProcessing = mediaType === 'audio' && uploadData.ptt === true
+	const requiresWaveformProcessing =
+		mediaType === 'audio' && uploadData.ptt === true && typeof uploadData.waveform === 'undefined'
 	const requiresAudioBackground = options.backgroundColor && mediaType === 'audio' && uploadData.ptt === true
 	const requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation
 	const { mediaKey, encFilePath, originalFilePath, fileEncSha256, fileSha256, fileLength } = await encryptedStream(
@@ -491,13 +487,6 @@ export const generateWAMessageContent = async (
 				}
 			}
 		}
-	} else if ('stickerPack' in message) {
-		m = await prepareStickerPackMessage(message.stickerPack, options)
-	} else if (hasNonNullishProperty(message, 'album')) {
-		m.albumMessage = {
-			expectedImageCount: message.album.expectedImageCount,
-			expectedVideoCount: message.album.expectedVideoCount
-		}
 	} else if (hasNonNullishProperty(message, 'pin')) {
 		m.pinInChatMessage = {}
 		m.messageContextInfo = {}
@@ -597,6 +586,15 @@ export const generateWAMessageContent = async (
 				m.pollCreationMessage = pollCreationMessage
 			}
 		}
+	} else if ('stickerPack' in message) {
+		m = await prepareStickerPackMessage(message.stickerPack, options)
+	}
+
+	} else if (hasNonNullishProperty(message, 'album')) {
+		m.albumMessage = {
+			expectedImageCount: message.album.expectedImageCount,
+			expectedVideoCount: message.album.expectedVideoCount
+		}
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER
@@ -621,14 +619,25 @@ export const generateWAMessageContent = async (
 		m = { viewOnceMessage: { message: m } }
 	}
 
-	if (hasOptionalProperty(message, 'mentions') && message.mentions?.length) {
+	if (
+		(hasOptionalProperty(message, 'mentions') && message.mentions?.length) ||
+		(hasOptionalProperty(message, 'mentionAll') && message.mentionAll)
+	) {
 		const messageType = Object.keys(m)[0]! as Extract<keyof proto.IMessage, MessageWithContextInfo>
 		const key = m[messageType]
-		if ('contextInfo' in key! && !!key.contextInfo) {
-			key.contextInfo.mentionedJid = message.mentions
+		if (key && 'contextInfo' in key) {
+			key.contextInfo = key.contextInfo || {}
+			if (message.mentions?.length) {
+				key.contextInfo.mentionedJid = message.mentions
+			}
+
+			if (message.mentionAll) {
+				key.contextInfo.nonJidMentions = 1
+			}
 		} else if (key!) {
 			key.contextInfo = {
-				mentionedJid: message.mentions
+				mentionedJid: message.mentions,
+				nonJidMentions: message.mentionAll ? 1 : 0
 			}
 		}
 	}
@@ -651,6 +660,16 @@ export const generateWAMessageContent = async (
 			key.contextInfo = { ...key.contextInfo, ...message.contextInfo }
 		} else if (key!) {
 			key.contextInfo = message.contextInfo
+		}
+	}
+
+	if (hasOptionalProperty(message, 'albumParentKey') && !!message.albumParentKey) {
+		m.messageContextInfo = {
+			...m.messageContextInfo,
+			messageAssociation: {
+				associationType: WAProto.MessageAssociation.AssociationType.MEDIA_ALBUM,
+				parentMessageKey: message.albumParentKey
+			}
 		}
 	}
 
@@ -1106,70 +1125,6 @@ export const assertMediaContent = (content: proto.IMessage | null | undefined) =
 	}
 
 	return mediaContent
-}
-
-/**
- * Checks if a WebP buffer is animated by looking for VP8X chunk with animation flag
- * or ANIM/ANMF chunks
- */
-function isAnimatedWebP(buffer: Buffer): boolean {
-	// WebP must start with RIFF....WEBP
-	if (
-		buffer.length < 12 ||
-		buffer[0] !== 0x52 ||
-		buffer[1] !== 0x49 ||
-		buffer[2] !== 0x46 ||
-		buffer[3] !== 0x46 ||
-		buffer[8] !== 0x57 ||
-		buffer[9] !== 0x45 ||
-		buffer[10] !== 0x42 ||
-		buffer[11] !== 0x50
-	) {
-		return false
-	}
-
-	// Parse chunks starting after RIFF header (12 bytes)
-	let offset = 12
-	while (offset < buffer.length - 8) {
-		const chunkFourCC = buffer.toString('ascii', offset, offset + 4)
-		const chunkSize = buffer.readUInt32LE(offset + 4)
-
-		if (chunkFourCC === 'VP8X') {
-			// VP8X extended header, check animation flag (bit 1 at offset+8)
-			const flagsOffset = offset + 8
-			if (flagsOffset < buffer.length) {
-				const flags = buffer[flagsOffset]!
-				if (flags & 0x02) {
-					return true
-				}
-			}
-		} else if (chunkFourCC === 'ANIM' || chunkFourCC === 'ANMF') {
-			// ANIM or ANMF chunks indicate animation
-			return true
-		}
-
-		// Move to next chunk (chunk size + 8 bytes header, padded to even)
-		offset += 8 + chunkSize + (chunkSize % 2)
-	}
-
-	return false
-}
-
-/**
- * Checks if a buffer is a WebP file
- */
-function isWebPBuffer(buffer: Buffer): boolean {
-	return (
-		buffer.length >= 12 &&
-		buffer[0] === 0x52 &&
-		buffer[1] === 0x49 &&
-		buffer[2] === 0x46 &&
-		buffer[3] === 0x46 &&
-		buffer[8] === 0x57 &&
-		buffer[9] === 0x45 &&
-		buffer[10] === 0x42 &&
-		buffer[11] === 0x50
-	)
 }
 
 async function prepareStickerPackMessage(

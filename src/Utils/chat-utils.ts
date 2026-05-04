@@ -85,7 +85,9 @@ export const makeLtHashGenerator = ({ indexValueMap, hash }: Pick<LTHashState, '
 			const prevOp = indexValueMap[indexMacBase64]
 			if (operation === proto.SyncdMutation.SyncdOperation.REMOVE) {
 				if (!prevOp) {
-					// WA Web does not throw here — log warning and skip
+					// WA Web does not throw here — it logs a warning and skips the subtract.
+					// The missing REMOVE will cause an LTHash mismatch, which is handled
+					// by the MAC validation layer (snapshot recovery or retry).
 					return
 				}
 
@@ -130,6 +132,34 @@ const generatePatchMac = (
 
 export const newLTHashState = (): LTHashState => ({ version: 0, hash: Buffer.alloc(128), indexValueMap: {} })
 
+export const ensureLTHashStateVersion = (state: LTHashState): LTHashState => {
+	if (typeof state.version !== 'number' || isNaN(state.version)) {
+		state.version = 0
+	}
+
+	return state
+}
+
+export const MAX_SYNC_ATTEMPTS = 2
+
+/**
+ * Check if an error is a missing app state sync key.
+ * WA Web treats these as "Blocked" (waits for key arrival), not fatal.
+ * In Baileys we retry with a snapshot which may use a different key.
+ */
+export const isMissingKeyError = (error: any): boolean => {
+	return error?.data?.isMissingKey === true
+}
+
+/**
+ * Determines if an app state sync error is unrecoverable.
+ * TypeError indicates a WASM crash; otherwise we give up after MAX_SYNC_ATTEMPTS.
+ * Missing keys are NOT checked here — they are handled separately as "Blocked".
+ */
+export const isAppStateSyncIrrecoverable = (error: any, attempts: number): boolean => {
+	return attempts >= MAX_SYNC_ATTEMPTS || error?.name === 'TypeError'
+}
+
 export const encodeSyncdPatch = async (
 	{ type, index, syncAction, apiVersion, operation }: WAPatchCreate,
 	myAppStateKeyId: string,
@@ -138,7 +168,7 @@ export const encodeSyncdPatch = async (
 ) => {
 	const key = !!myAppStateKeyId ? await getAppStateSyncKey(myAppStateKeyId) : undefined
 	if (!key) {
-		throw new Boom(`myAppStateKey ("${myAppStateKeyId}") not present`, { statusCode: 404 })
+		throw new Boom(`myAppStateKey ("${myAppStateKeyId}") not present`, { data: { isMissingKey: true } })
 	}
 
 	const encKeyId = Buffer.from(myAppStateKeyId, 'base64')
@@ -259,8 +289,7 @@ export const decodeSyncdMutations = async (
 		const keyEnc = await getAppStateSyncKey(base64Key)
 		if (!keyEnc) {
 			throw new Boom(`failed to find key "${base64Key}" to decode mutation`, {
-				statusCode: 404,
-				data: { msgMutations }
+				data: { isMissingKey: true, msgMutations }
 			})
 		}
 
@@ -282,7 +311,7 @@ export const decodeSyncdPatch = async (
 		const base64Key = Buffer.from(msg.keyId!.id!).toString('base64')
 		const mainKeyObj = await getAppStateSyncKey(base64Key)
 		if (!mainKeyObj) {
-			throw new Boom(`failed to find key "${base64Key}" to decode patch`, { statusCode: 404, data: { msg } })
+			throw new Boom(`failed to find key "${base64Key}" to decode patch`, { data: { isMissingKey: true, msg } })
 		}
 
 		const mainKey = mutationKeys(mainKeyObj.keyData!)
@@ -404,7 +433,7 @@ export const decodeSyncdSnapshot = async (
 		const base64Key = Buffer.from(snapshot.keyId!.id!).toString('base64')
 		const keyEnc = await getAppStateSyncKey(base64Key)
 		if (!keyEnc) {
-			throw new Boom(`failed to find key "${base64Key}" to decode mutation`)
+			throw new Boom(`failed to find key "${base64Key}" to decode mutation`, { data: { isMissingKey: true } })
 		}
 
 		const result = mutationKeys(keyEnc.keyData!)
@@ -472,7 +501,7 @@ export const decodePatches = async (
 			const base64Key = Buffer.from(keyId!.id!).toString('base64')
 			const keyEnc = await getAppStateSyncKey(base64Key)
 			if (!keyEnc) {
-				throw new Boom(`failed to find key "${base64Key}" to decode mutation`)
+				throw new Boom(`failed to find key "${base64Key}" to decode mutation`, { data: { isMissingKey: true } })
 			}
 
 			const result = mutationKeys(keyEnc.keyData!)
@@ -973,21 +1002,4 @@ export const processSyncAction = (
 		const chatLastMsgTimestamp = Number(chat?.lastMessageRecvTimestamp || 0)
 		return lastMsgTimestamp >= chatLastMsgTimestamp
 	}
-}
-
-export const ensureLTHashStateVersion = (state: import('../Types').LTHashState): import('../Types').LTHashState => {
-	if (typeof state.version !== 'number' || isNaN(state.version)) {
-		state.version = 0
-	}
-	return state
-}
-
-export const MAX_SYNC_ATTEMPTS = 2
-
-export const isMissingKeyError = (err: unknown): boolean => {
-	return err instanceof Error && err.message?.includes('missing keys')
-}
-
-export const isAppStateSyncIrrecoverable = (err: unknown): boolean => {
-	return err instanceof Error && (err.message?.includes('irrecoverable') || (err as any)?.statusCode === 406)
 }

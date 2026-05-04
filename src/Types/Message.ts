@@ -19,7 +19,9 @@ export type WAContactMessage = proto.Message.IContactMessage
 export type WAContactsArrayMessage = proto.Message.IContactsArrayMessage
 export type WAMessageKey = proto.IMessageKey & {
 	remoteJidAlt?: string
+	remoteJidUsername?: string
 	participantAlt?: string
+	participantUsername?: string
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
@@ -39,22 +41,6 @@ import type { ILogger } from '../Utils/logger'
 export type WAMediaPayloadURL = { url: URL | string }
 export type WAMediaPayloadStream = { stream: Readable }
 export type WAMediaUpload = Buffer | WAMediaPayloadStream | WAMediaPayloadURL
-
-export type Sticker = {
-	data: WAMediaUpload
-	emojis?: string[]
-	accessibilityLabel?: string
-}
-
-export type StickerPack = {
-	stickers: Sticker[]
-	cover: WAMediaUpload
-	name: string
-	publisher: string
-	description?: string
-	packId?: string
-}
-
 /** Set of message types that are supported by the library */
 export type MessageType = keyof proto.Message
 
@@ -129,6 +115,8 @@ export interface WAUrlInfo {
 type Mentionable = {
 	/** list of jids that are mentioned in the accompanying text */
 	mentions?: string[]
+	/** mention all */
+	mentionAll?: boolean
 }
 type Contextable = {
 	/** add contextInfo to the message */
@@ -168,6 +156,13 @@ export type EventMessageOptions = {
 	messageSecret?: Uint8Array<ArrayBufferLike>
 }
 
+export type AlbumMessageOptions = {
+	/** Number of images expected in the album */
+	expectedImageCount?: number
+	/** Number of videos expected in the album */
+	expectedVideoCount?: number
+}
+
 type SharePhoneNumber = {
 	sharePhoneNumber: boolean
 }
@@ -176,50 +171,45 @@ type RequestPhoneNumber = {
 	requestPhoneNumber: boolean
 }
 
-export type AnyMediaMessageContent =
-	| ((
-			| ({
-					image: WAMediaUpload
-					caption?: string
-					jpegThumbnail?: string
-			  } & Mentionable &
-					Contextable &
-					WithDimensions)
-			| ({
-					video: WAMediaUpload
-					caption?: string
-					gifPlayback?: boolean
-					jpegThumbnail?: string
-					/** if set to true, will send as a `video note` */
-					ptv?: boolean
-			  } & Mentionable &
-					Contextable &
-					WithDimensions)
-			| {
-					audio: WAMediaUpload
-					/** if set to true, will send as a `voice note` */
-					ptt?: boolean
-					/** optionally tell the duration of the audio */
-					seconds?: number
-			  }
-			| ({
-					sticker: WAMediaUpload
-					isAnimated?: boolean
-			  } & WithDimensions)
-			| ({
-					document: WAMediaUpload
-					mimetype: string
-					fileName?: string
-					caption?: string
-			  } & Contextable)
-	  ) & { mimetype?: string } & Editable & {
-				/** key of the parent albumMessage to associate this media with */
-				albumParentKey?: WAMessageKey
-			})
+export type AnyMediaMessageContent = (
 	| ({
-			album: AlbumMessageOptions
-	  } & Contextable &
-			Mentionable)
+			image: WAMediaUpload
+			caption?: string
+			jpegThumbnail?: string
+	  } & Mentionable &
+			Contextable &
+			WithDimensions)
+	| ({
+			video: WAMediaUpload
+			caption?: string
+			gifPlayback?: boolean
+			jpegThumbnail?: string
+			/** if set to true, will send as a `video note` */
+			ptv?: boolean
+	  } & Mentionable &
+			Contextable &
+			WithDimensions)
+	| {
+			audio: WAMediaUpload
+			/** if set to true, will send as a `voice note` */
+			ptt?: boolean
+			/** optionally tell the duration of the audio */
+			seconds?: number
+	  }
+	| ({
+			sticker: WAMediaUpload
+			isAnimated?: boolean
+	  } & WithDimensions)
+	| ({
+			document: WAMediaUpload
+			mimetype: string
+			fileName?: string
+			caption?: string
+	  } & Contextable)
+) & { mimetype?: string } & Editable & {
+		/** key of the parent albumMessage to associate this media with */
+		albumParentKey?: WAMessageKey
+	}
 
 export type ButtonReplyInfo = {
 	displayText: string
@@ -247,15 +237,17 @@ export type AnyRegularMessageContent = (
 			Contextable &
 			Editable)
 	| AnyMediaMessageContent
-	| {
-			stickerPack: StickerPack
-	  }
 	| { event: EventMessageOptions }
 	| ({
 			poll: PollMessageOptions
 	  } & Mentionable &
 			Contextable &
 			Editable)
+	| ({
+			album: AlbumMessageOptions
+	  } & Contextable &
+			Mentionable)
+	| ({ stickerPack: StickerPack } & Contextable)
 	| {
 			contacts: {
 				displayName?: string
@@ -399,9 +391,18 @@ export type WAMessageCursor = { before: WAMessageKey | undefined } | { after: WA
 export type MessageUserReceiptUpdate = { key: WAMessageKey; receipt: MessageUserReceipt }
 
 export type MediaDecryptionKeyInfo = {
-	iv: Buffer
-	cipherKey: Buffer
-	macKey?: Buffer
+	iv: Uint8Array
+	cipherKey: Uint8Array
+	macKey?: Uint8Array
 }
 
 export type MinimalMessage = Pick<WAMessage, 'key' | 'messageTimestamp'>
+
+export type StickerPack = {
+	stickers: Sticker[]
+	cover: WAMediaUpload
+	name: string
+	publisher: string
+	description?: string
+	packId?: string
+}
