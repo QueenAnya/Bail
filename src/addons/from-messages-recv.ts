@@ -10,8 +10,8 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import type { WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
 import { encodeSignedDeviceIdentity } from '../Utils'
-import { isJidGroup, jidEncode } from '../WABinary'
 import type { BinaryNode } from '../WABinary'
+import { isJidGroup, jidEncode } from '../WABinary'
 
 export type CallHandlerDeps = {
 	authState: any
