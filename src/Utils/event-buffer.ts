@@ -604,12 +604,11 @@ function consolidateEvents(data: BufferedEventData) {
 			chats: Object.values(data.historySets.chats),
 			messages: Object.values(data.historySets.messages),
 			contacts: Object.values(data.historySets.contacts),
+			pastParticipants: data.historySets.pastParticipants,
 			syncType: data.historySets.syncType,
-			chunkOrder: data.historySets.chunkOrder,
 			progress: data.historySets.progress,
 			isLatest: data.historySets.isLatest,
-			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId,
-			pastParticipants: data.historySets.pastParticipants
+			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId
 		}
 	}
 

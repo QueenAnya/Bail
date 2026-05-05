@@ -100,6 +100,7 @@ export interface NewsletterMetadata {
 	}
 }
 
+/** Legacy query IDs used by newsletterFetchAllParticipating */
 export enum QueryIdd {
 	METADATA = '6620195908089573',
 	GETSUBSCRIBED = '6388546374527196',
@@ -116,24 +117,3 @@ export enum QueryIdd {
 	DEMOTE = '6551828931592903',
 	SUBSCRIBED = '6388546374527196'
 }
-
-export const MexOperations = {
-	PROMOTE: 'NotificationNewsletterAdminPromote',
-	DEMOTE: 'NotificationNewsletterAdminDemote',
-	UPDATE: 'NotificationNewsletterUpdate'
-}
-
-export const MexUpdatesOperations = {
-	OWNER_COMMUNITY: 'NotificationCommunityOwnerUpdate',
-	GROUP_MEMBER_LINK: 'NotificationGroupMemberLinkPropertyUpdate',
-	GROUP_LIMIT_SHARING: 'NotificationGroupLimitSharingPropertyUpdate'
-} as const
-
-export type MexUpdatesOperation = (typeof MexUpdatesOperations)[keyof typeof MexUpdatesOperations]
-
-export const XWAPathsMexUpdates = {
-	GROUP_SHARING_CHANGE: 'xwa2_notify_group_on_prop_change',
-	COMMUNITY_OWNER_CHANGE: 'xwa2_notify_group_on_participants_roles_change'
-} as const
-
-export type XWAPathMexUpdate = (typeof XWAPathsMexUpdates)[keyof typeof XWAPathsMexUpdates]
