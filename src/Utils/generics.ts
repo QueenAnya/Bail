@@ -1,7 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-const baileysVersion = [2, 3000, 1033846690]
+const baileysVersion = [2, 3000, 1033105955]
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -13,6 +13,7 @@ import type {
 import { DisconnectReason } from '../Types'
 import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
+import type { ILogger } from './logger'
 
 export const BufferJSON = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,16 +48,16 @@ export const BufferJSON = {
 export const getKeyAuthor = (key: WAMessageKey | undefined | null, meId = 'me') =>
 	(key?.fromMe ? meId : key?.participantAlt || key?.remoteJidAlt || key?.participant || key?.remoteJid) || ''
 
-export const isStringNullOrEmpty = (value: string | null | undefined): value is null | undefined | '' =>
-	// eslint-disable-next-line eqeqeq
-	value == null || value === ''
-
 export const writeRandomPadMax16 = (msg: Uint8Array) => {
 	const pad = randomBytes(1)
 	const padLength = (pad[0]! & 0x0f) + 1
 
 	return Buffer.concat([msg, Buffer.alloc(padLength, padLength)])
 }
+
+export const isStringNullOrEmpty = (value: string | null | undefined): value is null | undefined | '' =>
+	// eslint-disable-next-line eqeqeq
+	value == null || value === ''
 
 export const unpadRandomMax16 = (e: Uint8Array | Buffer) => {
 	const t = new Uint8Array(e)
@@ -100,7 +101,8 @@ export const toNumber = (t: Long | number | null | undefined): number =>
 	typeof t === 'object' && t ? ('toNumber' in t ? t.toNumber() : (t as Long).low) : t || 0
 
 /** unix timestamp of a date in seconds */
-export const unixTimestampSeconds = (date: Date = new Date()) => Math.floor(date.getTime() / 1000)
+export const unixTimestampSeconds = (d: Date | number | string = Date.now()): number =>
+	Math.floor((d instanceof Date ? d.getTime() : Number(d) || Date.now()) / 1000)
 
 export type DebouncedTimeout = ReturnType<typeof debouncedTimeout>
 
@@ -195,11 +197,11 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 14)
+	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '4NY4W3B' + randomBytes(14).toString('hex').toUpperCase()
+export const generateMessageID = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -231,12 +233,94 @@ export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEve
 
 export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWaitForEvent(ev, 'connection.update')
 
+export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
+	ev.on('connection.update', async ({ qr }) => {
+		if (qr) {
+			const QR = await import('qrcode-terminal')
+				.then(m => m.default || m)
+				.catch(() => {
+					//console.error('QR code terminal not added as dependency')
+					logger.error('QR code terminal not added as dependency — run: npm install qrcode-terminal')
+				})
+			QR?.generate(qr, { small: true })
+		}
+	})
+}
+
 /**
  * utility that fetches latest baileys version from the master branch.
  * Use to ensure your WA connection is always on the latest version
  */
+
 export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
+	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
+	try {
+		const response = await fetch(URL, {
+			dispatcher: options.dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+		}
+
+		const result = await response.json()
+
+		const version = result.versions[result.versions.length - 1].version.split('.')
+		const version2 = version[2].replace('-alpha', '')
+		return {
+			version: [+version[0], +version[1], +version2],
+			isLatest: true
+		}
+	} catch (error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
 	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
+	try {
+		const response = await fetch(URL, {
+			dispatcher: options.dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+		}
+
+		const text = await response.text()
+		// Extract version from line 7 (const version = [...])
+		const lines = text.split('\n')
+		const versionLine = lines[6] // Line 7 (0-indexed)
+		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
+
+		if (versionMatch) {
+			const version = [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion
+
+			return {
+				version,
+				isLatest: true
+			}
+		} else {
+			throw new Error('Could not parse version from Defaults/index.ts')
+		}
+	} catch (error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
+
+export const fetchAlphaWaWebVersion = async (options: RequestInit = {}) => {
+	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
 	try {
 		const response = await fetch(URL, {
 			dispatcher: options.dispatcher,
@@ -300,6 +384,8 @@ export const fetchLatestWaWebVersion = async (options: RequestInit = {}) => {
 		const data = await response.text()
 
 		const regex = /\\?"client_revision\\?":\s*(\d+)/
+		//const regexx = /\\?"server_revision\\?":\s*(\d+)/
+
 		const match = data.match(regex)
 
 		if (!match?.[1]) {
@@ -396,6 +482,15 @@ export const getCallStatusFromNode = ({ tag, attrs }: BinaryNode) => {
 			break
 		case 'accept':
 			status = 'accept'
+			break
+		case 'preaccept':
+			status = 'preaccept'
+			break
+		case 'transport':
+			status = 'transport'
+			break
+		case 'relaylatency':
+			status = 'relaylatency'
 			break
 		default:
 			status = 'ringing'
