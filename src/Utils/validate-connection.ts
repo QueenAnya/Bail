@@ -20,9 +20,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		platform: config.browser[1].toLocaleLowerCase().includes('android')
-			? proto.ClientPayload.UserAgent.Platform.ANDROID
-			: proto.ClientPayload.UserAgent.Platform.WEB,
+		platform: proto.ClientPayload.UserAgent.Platform.WEB,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
@@ -60,9 +58,7 @@ const getClientPayload = (config: SocketConfig) => {
 		userAgent: getUserAgent(config)
 	}
 
-	if (!config.browser[1].toLocaleLowerCase().includes('android')) {
-		payload.webInfo = getWebInfo(config)
-	}
+	payload.webInfo = getWebInfo(config)
 
 	return payload
 }
@@ -83,10 +79,6 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
-	if (platformType === 'ANDROID') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE
-	}
-
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME

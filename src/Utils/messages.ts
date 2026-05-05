@@ -1,5 +1,6 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
+import { zip } from 'fflate'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
@@ -20,6 +21,7 @@ import type {
 	MessageGenerationOptionsFromContent,
 	MessageUserReceipt,
 	MessageWithContextInfo,
+	StickerPack,
 	WAMediaUpload,
 	WAMessage,
 	WAMessageContent,
@@ -37,8 +39,11 @@ import {
 	generateThumbnail,
 	getAudioDuration,
 	getAudioWaveform,
+	getImageProcessingLibrary,
 	getRawMediaUploadData,
-	type MediaDownloadOptions
+	getStream,
+	type MediaDownloadOptions,
+	toBuffer
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
 
@@ -156,7 +161,7 @@ export const prepareWAMessageMedia = async (
 	}
 
 	if (!uploadData.mimetype) {
-		uploadData.mimetype = MIMETYPE_MAP[mediaType]
+		uploadData.mimetype = MIMETYPE_MAP[options.mediaTypeOverride || mediaType]
 	}
 
 	if (cacheableKey) {
@@ -223,8 +228,7 @@ export const prepareWAMessageMedia = async (
 	const requiresDurationComputation = mediaType === 'audio' && typeof uploadData.seconds === 'undefined'
 	const requiresThumbnailComputation =
 		(mediaType === 'image' || mediaType === 'video') && typeof uploadData['jpegThumbnail'] === 'undefined'
-	const requiresWaveformProcessing =
-		mediaType === 'audio' && uploadData.ptt === true && typeof uploadData.waveform === 'undefined'
+	const requiresWaveformProcessing = mediaType === 'audio' && uploadData.ptt === true
 	const requiresAudioBackground = options.backgroundColor && mediaType === 'audio' && uploadData.ptt === true
 	const requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation
 	const { mediaKey, encFilePath, originalFilePath, fileEncSha256, fileSha256, fileLength } = await encryptedStream(
@@ -487,6 +491,8 @@ export const generateWAMessageContent = async (
 				}
 			}
 		}
+	} else if ('stickerPack' in message) {
+		m = await prepareStickerPackMessage(message.stickerPack, options)
 	} else if (hasNonNullishProperty(message, 'pin')) {
 		m.pinInChatMessage = {}
 		m.messageContextInfo = {}
@@ -586,19 +592,96 @@ export const generateWAMessageContent = async (
 				m.pollCreationMessage = pollCreationMessage
 			}
 		}
-	} else if ('stickerPack' in message) {
-		m = await prepareStickerPackMessage(message.stickerPack, options)
-	} else if (hasNonNullishProperty(message, 'album')) {
-		m.albumMessage = {
-			expectedImageCount: message.album.expectedImageCount,
-			expectedVideoCount: message.album.expectedVideoCount
-		}
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER
 		}
 	} else if (hasNonNullishProperty(message, 'requestPhoneNumber')) {
 		m.requestPhoneNumberMessage = {}
+	} else if (hasNonNullishProperty(message, 'album')) {
+		const imageMessages = (message as any).album.filter((item: any) => 'image' in item)
+		const videoMessages = (message as any).album.filter((item: any) => 'video' in item)
+		m.albumMessage = proto.Message.AlbumMessage.fromObject({
+			expectedImageCount: imageMessages.length,
+			expectedVideoCount: videoMessages.length
+		})
+	} else if (hasNonNullishProperty(message, 'richResponse')) {
+		const DEFAULT_BOT_JID = '867051314767696@bot'
+		const { text, code, language = 'javascript', botJid = DEFAULT_BOT_JID } = (message as any).richResponse
+		const { tokenizeCode } = await import('./message-composer')
+		const sections: any[] = []
+		if (text) {
+			sections.push({
+				view_model: {
+					primitive: { text, __typename: 'GenAIMarkdownTextUXPrimitive' },
+					__typename: 'GenAISingleLayoutViewModel'
+				}
+			})
+		}
+		if (code) {
+			sections.push({
+				view_model: {
+					primitive: {
+						language,
+						code_blocks: tokenizeCode(String(code), language),
+						__typename: 'GenAICodeUXPrimitive'
+					},
+					__typename: 'GenAISingleLayoutViewModel'
+				}
+			})
+		}
+		if (sections.length === 0) throw new Error('richResponse requires at least one of text or code')
+		const { randomBytes, randomUUID } = await import('crypto')
+		return proto.Message.fromObject({
+			messageContextInfo: {
+				deviceListMetadata: {},
+				deviceListMetadataVersion: 2,
+				messageSecret: randomBytes(32)
+			},
+			botForwardedMessage: {
+				message: {
+					richResponseMessage: {
+						submessages: [],
+						messageType: 1,
+						unifiedResponse: { data: Buffer.from(JSON.stringify({ response_id: randomUUID(), sections })) },
+						contextInfo: {
+							forwardingScore: 2,
+							isForwarded: true,
+							forwardedAiBotMessageInfo: { botJid },
+							botMessageSharingInfo: { botEntryPointOrigin: 1, forwardScore: 2 }
+						}
+					}
+				}
+			}
+		})
+	} else if (hasNonNullishProperty(message, 'interactiveMessage')) {
+		m.interactiveMessage = proto.Message.InteractiveMessage.fromObject((message as any).interactiveMessage)
+		m.interactiveMessage!.contextInfo = {
+			...((message as any).interactiveMessage?.contextInfo || (message as any).contextInfo || {}),
+			...buildMentionContextInfo(message)
+		}
+	} else if (hasNonNullishProperty(message, 'buttonsMessage')) {
+		m.buttonsMessage = proto.Message.ButtonsMessage.fromObject((message as any).buttonsMessage)
+		m.buttonsMessage!.contextInfo = {
+			...((message as any).buttonsMessage?.contextInfo || (message as any).contextInfo || {}),
+			...buildMentionContextInfo(message)
+		}
+	} else if (hasNonNullishProperty(message, 'listMessage')) {
+		m.listMessage = proto.Message.ListMessage.fromObject((message as any).listMessage)
+		m.listMessage!.contextInfo = {
+			...((message as any).listMessage?.contextInfo || (message as any).contextInfo || {}),
+			...buildMentionContextInfo(message)
+		}
+	} else if (hasNonNullishProperty(message, 'templateMessage')) {
+		m.templateMessage = proto.Message.TemplateMessage.fromObject((message as any).templateMessage)
+		m.templateMessage!.contextInfo = {
+			...((message as any).templateMessage?.contextInfo || (message as any).contextInfo || {}),
+			...buildMentionContextInfo(message)
+		}
+	} else if (hasNonNullishProperty(message, 'viewOnceMessage')) {
+		m.viewOnceMessage = proto.Message.fromObject((message as any).viewOnceMessage)
+	} else if (hasNonNullishProperty(message, 'viewOnceMessageV2')) {
+		m.viewOnceMessageV2 = proto.Message.fromObject((message as any).viewOnceMessageV2)
 	} else if (hasNonNullishProperty(message, 'limitSharing')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.LIMIT_SHARING,
@@ -617,25 +700,14 @@ export const generateWAMessageContent = async (
 		m = { viewOnceMessage: { message: m } }
 	}
 
-	if (
-		(hasOptionalProperty(message, 'mentions') && message.mentions?.length) ||
-		(hasOptionalProperty(message, 'mentionAll') && message.mentionAll)
-	) {
+	if (hasOptionalProperty(message, 'mentions') && message.mentions?.length) {
 		const messageType = Object.keys(m)[0]! as Extract<keyof proto.IMessage, MessageWithContextInfo>
 		const key = m[messageType]
-		if (key && 'contextInfo' in key) {
-			key.contextInfo = key.contextInfo || {}
-			if (message.mentions?.length) {
-				key.contextInfo.mentionedJid = message.mentions
-			}
-
-			if (message.mentionAll) {
-				key.contextInfo.nonJidMentions = 1
-			}
+		if ('contextInfo' in key! && !!key.contextInfo) {
+			key.contextInfo.mentionedJid = message.mentions
 		} else if (key!) {
 			key.contextInfo = {
-				mentionedJid: message.mentions,
-				nonJidMentions: message.mentionAll ? 1 : 0
+				mentionedJid: message.mentions
 			}
 		}
 	}
@@ -658,16 +730,6 @@ export const generateWAMessageContent = async (
 			key.contextInfo = { ...key.contextInfo, ...message.contextInfo }
 		} else if (key!) {
 			key.contextInfo = message.contextInfo
-		}
-	}
-
-	if (hasOptionalProperty(message, 'albumParentKey') && !!message.albumParentKey) {
-		m.messageContextInfo = {
-			...m.messageContextInfo,
-			messageAssociation: {
-				associationType: WAProto.MessageAssociation.AssociationType.MEDIA_ALBUM,
-				parentMessageKey: message.albumParentKey
-			}
 		}
 	}
 
@@ -1125,6 +1187,70 @@ export const assertMediaContent = (content: proto.IMessage | null | undefined) =
 	return mediaContent
 }
 
+/**
+ * Checks if a WebP buffer is animated by looking for VP8X chunk with animation flag
+ * or ANIM/ANMF chunks
+ */
+function isAnimatedWebP(buffer: Buffer): boolean {
+	// WebP must start with RIFF....WEBP
+	if (
+		buffer.length < 12 ||
+		buffer[0] !== 0x52 ||
+		buffer[1] !== 0x49 ||
+		buffer[2] !== 0x46 ||
+		buffer[3] !== 0x46 ||
+		buffer[8] !== 0x57 ||
+		buffer[9] !== 0x45 ||
+		buffer[10] !== 0x42 ||
+		buffer[11] !== 0x50
+	) {
+		return false
+	}
+
+	// Parse chunks starting after RIFF header (12 bytes)
+	let offset = 12
+	while (offset < buffer.length - 8) {
+		const chunkFourCC = buffer.toString('ascii', offset, offset + 4)
+		const chunkSize = buffer.readUInt32LE(offset + 4)
+
+		if (chunkFourCC === 'VP8X') {
+			// VP8X extended header, check animation flag (bit 1 at offset+8)
+			const flagsOffset = offset + 8
+			if (flagsOffset < buffer.length) {
+				const flags = buffer[flagsOffset]!
+				if (flags & 0x02) {
+					return true
+				}
+			}
+		} else if (chunkFourCC === 'ANIM' || chunkFourCC === 'ANMF') {
+			// ANIM or ANMF chunks indicate animation
+			return true
+		}
+
+		// Move to next chunk (chunk size + 8 bytes header, padded to even)
+		offset += 8 + chunkSize + (chunkSize % 2)
+	}
+
+	return false
+}
+
+/**
+ * Checks if a buffer is a WebP file
+ */
+function isWebPBuffer(buffer: Buffer): boolean {
+	return (
+		buffer.length >= 12 &&
+		buffer[0] === 0x52 &&
+		buffer[1] === 0x49 &&
+		buffer[2] === 0x46 &&
+		buffer[3] === 0x46 &&
+		buffer[8] === 0x57 &&
+		buffer[9] === 0x45 &&
+		buffer[10] === 0x42 &&
+		buffer[11] === 0x50
+	)
+}
+
 async function prepareStickerPackMessage(
 	stickerPack: StickerPack,
 	options: MessageContentGenerationOptions
@@ -1294,4 +1420,65 @@ async function prepareStickerPackMessage(
 	}
 
 	return { stickerPackMessage }
+}
+
+export type AlbumItem = ({ image: WAMediaUpload } | { video: WAMediaUpload }) & {
+	caption?: string
+	viewOnce?: boolean
+	[key: string]: any
+}
+
+export const prepareAlbumMessageContent = async (
+	jid: string,
+	albums: AlbumItem[],
+	options: {
+		userJid: string
+		suki: {
+			relayMessage: (jid: string, message: any, opts: any) => Promise<void>
+			waUploadToServer: (encFilePath: any, opts: any) => Promise<any>
+		}
+		[key: string]: any
+	}
+): Promise<any[]> => {
+	const albumMsg = generateWAMessageFromContent(
+		jid,
+		{
+			albumMessage: {
+				expectedImageCount: albums.filter(item => 'image' in item).length,
+				expectedVideoCount: albums.filter(item => 'video' in item).length
+			}
+		},
+		options
+	)
+
+	await options.suki.relayMessage(jid, albumMsg.message, { messageId: albumMsg.key.id })
+
+	const messages: any[] = []
+	const { isJidNewsletter } = await import('../WABinary')
+	const { randomBytes } = await import('crypto')
+
+	for (const media of albums) {
+		const mediaMsg = await generateWAMessage(jid, media as any, {
+			...options,
+			userJid: options.userJid,
+			upload: async (encFilePath: any, opts: any) => {
+				const up = await options.suki.waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
+				return up
+			}
+		})
+
+		if (mediaMsg) {
+			mediaMsg.message!.messageContextInfo = {
+				messageSecret: randomBytes(32),
+				messageAssociation: {
+					associationType: 1,
+					parentMessageKey: albumMsg.key
+				}
+			}
+		}
+
+		messages.push(mediaMsg)
+	}
+
+	return messages
 }

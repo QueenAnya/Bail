@@ -15,7 +15,6 @@ import type {
 import {
 	aggregateMessageKeysNotFromMe,
 	assertMediaContent,
-	assertMeId,
 	bindWaitForEvent,
 	decryptMediaRetryData,
 	encodeNewsletterMessage,
@@ -38,14 +37,6 @@ import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
 import {
-	buildMergedTcTokenIndexWrite,
-	isTcTokenExpired,
-	resolveIssuanceJid,
-	resolveTcTokenJid,
-	shouldSendNewTcToken,
-	storeTcTokensFromIqResult
-} from '../Utils/tc-token-utils'
-import {
 	areJidsSameUser,
 	type BinaryNode,
 	type BinaryNodeAttributes,
@@ -54,16 +45,13 @@ import {
 	getBinaryNodeChildren,
 	isHostedLidUser,
 	isHostedPnUser,
-	isJidBot,
 	isJidGroup,
-	isJidMetaAI,
 	isLidUser,
 	isPnUser,
 	jidDecode,
 	jidEncode,
 	jidNormalizedUser,
 	type JidWithDevice,
-	PSA_WID,
 	S_WHATSAPP_NET
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
@@ -93,15 +81,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		groupMetadata,
 		groupToggleEphemeral
 	} = sock
-
-	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
-
-	/**
-	 * Set of tctoken storage JIDs with a fire-and-forget `issuePrivacyTokens` IQ in flight.
-	 * Prevents duplicate IQs from rapid back-to-back sends before `senderTimestamp` persists.
-	 * Entries are always removed in `.finally()`, so the set is bounded by concurrency.
-	 */
-	const inFlightTcTokenIssuance = new Set<string>()
 
 	const userDevicesCache =
 		config.userDevicesCache ||
@@ -631,10 +610,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			additionalNodes,
 			useUserDevicesCache,
 			useCachedGroupMetadata,
-			statusJidList
-		}: MessageRelayOptions
+			statusJidList,
+			AI = false
+		}: MessageRelayOptions & { AI?: boolean }
 	) => {
-		const meId = assertMeId(authState.creds)
+		const meId = authState.creds.me!.id
 		const meLid = authState.creds.me?.lid
 		const isRetryResend = Boolean(participant?.jid)
 		let shouldIncludeDeviceIdentity = isRetryResend
@@ -642,6 +622,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		const { user, server } = jidDecode(jid)!
 		const isGroup = server === 'g.us'
+		const isPrivate = server === 's.whatsapp.net'
 		const isStatus = jid === statusJid
 		const isLid = server === 'lid'
 		const isNewsletter = server === 'newsletter'
@@ -1034,38 +1015,35 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
-			// WA Web never attaches tctoken to peer (AppStateSync) messages — server rejects with 479
-			const isPeerMessage = additionalAttributes?.['category'] === 'peer'
-			const is1on1Send = !isGroup && !isRetryResend && !isStatus && !isNewsletter && !isPeerMessage
+			const contactTcTokenData =
+				!isGroup && !isRetryResend && !isStatus ? await authState.keys.get('tctoken', [destinationJid]) : {}
 
-			// Resolve destination to LID for tctoken storage — matches Signal session key pattern
-			const tcTokenJid = is1on1Send ? await resolveTcTokenJid(destinationJid, getLIDForPN) : destinationJid
-			const contactTcTokenData = is1on1Send ? await authState.keys.get('tctoken', [tcTokenJid]) : {}
-			const existingTokenEntry = contactTcTokenData[tcTokenJid]
-			let tcTokenBuffer = existingTokenEntry?.token
+			const tcTokenBuffer = contactTcTokenData[destinationJid]?.token
 
-			// Treat expired tokens the same as missing — clear from cache
-			if (tcTokenBuffer?.length && isTcTokenExpired(existingTokenEntry?.timestamp)) {
-				logger.debug({ jid: destinationJid, timestamp: existingTokenEntry?.timestamp }, 'tctoken expired, clearing')
-				tcTokenBuffer = undefined
-				// Preserve senderTimestamp so the fire-and-forget issuance dedupe survives cleanup.
-				const cleared =
-					existingTokenEntry?.senderTimestamp !== undefined
-						? { token: Buffer.alloc(0), senderTimestamp: existingTokenEntry.senderTimestamp }
-						: null
-				try {
-					await authState.keys.set({ tctoken: { [tcTokenJid]: cleared } })
-				} catch (err: any) {
-					logger.debug({ jid: destinationJid, err: err?.message }, 'failed to persist tctoken expiry cleanup')
-				}
-			}
-
-			if (tcTokenBuffer?.length && sock.serverProps.privacyTokenOn1to1) {
+			if (tcTokenBuffer) {
 				;(stanza.content as BinaryNode[]).push({
 					tag: 'tctoken',
 					attrs: {},
 					content: tcTokenBuffer
 				})
+			}
+
+			if (AI && isPrivate) {
+				const filteredBizBot = additionalNodes?.find(n => (n as BinaryNode).tag === 'bot')
+				if (!filteredBizBot) {
+					;(stanza.content as BinaryNode[]).push({ tag: 'bot', attrs: { biz_bot: '1' } })
+				}
+			}
+
+			const buttonType = getButtonType(message)
+			if (buttonType) {
+				const buttonArgsNode = getButtonArgs(message)
+				if (buttonArgsNode) {
+					const existingBiz = (stanza.content as BinaryNode[]).find(n => (n as BinaryNode).tag === 'biz')
+					if (!existingBiz) {
+						;(stanza.content as BinaryNode[]).push(buttonArgsNode)
+					}
+				}
 			}
 
 			if (additionalNodes && additionalNodes.length > 0) {
@@ -1075,52 +1053,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
 
 			await sendNode(stanza)
-
-			// Fire-and-forget: issue our token to the contact AFTER message send.
-			// WA Web skips protocol messages and PSA/bot contacts (TcTokenChatAction: isRegularUser)
-			const isProtocolMsg = !!normalizeMessageContent(message)?.protocolMessage
-			const isBotOrPSA = destinationJid === PSA_WID || isJidBot(destinationJid) || isJidMetaAI(destinationJid)
-			if (
-				is1on1Send &&
-				!isProtocolMsg &&
-				!isBotOrPSA &&
-				shouldSendNewTcToken(existingTokenEntry?.senderTimestamp) &&
-				!inFlightTcTokenIssuance.has(tcTokenJid)
-			) {
-				inFlightTcTokenIssuance.add(tcTokenJid)
-				const issueTimestamp = unixTimestampSeconds()
-				const getPNForLID = signalRepository.lidMapping.getPNForLID.bind(signalRepository.lidMapping)
-				resolveIssuanceJid(destinationJid, sock.serverProps.lidTrustedTokenIssueToLid, getLIDForPN, getPNForLID)
-					.then(issueJid => issuePrivacyTokens([issueJid], issueTimestamp))
-					.then(async result => {
-						await storeTcTokensFromIqResult({
-							result,
-							fallbackJid: tcTokenJid,
-							keys: authState.keys,
-							getLIDForPN
-						})
-
-						const currentData = await authState.keys.get('tctoken', [tcTokenJid])
-						const currentEntry = currentData[tcTokenJid]
-						const indexWrite = await buildMergedTcTokenIndexWrite(authState.keys, [tcTokenJid])
-						await authState.keys.set({
-							tctoken: {
-								[tcTokenJid]: {
-									token: Buffer.alloc(0),
-									...currentEntry,
-									senderTimestamp: issueTimestamp
-								},
-								...indexWrite
-							}
-						})
-					})
-					.catch(err => {
-						logger.debug({ jid: destinationJid, err: err?.message }, 'fire-and-forget tctoken issuance failed')
-					})
-					.finally(() => {
-						inFlightTcTokenIssuance.delete(tcTokenJid)
-					})
-			}
 
 			// Add message to retry cache if enabled
 			if (messageRetryManager && !participant) {
@@ -1176,6 +1108,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return 'livelocation'
 		} else if (message.stickerMessage) {
 			return 'sticker'
+		} else if (message.stickerPackMessage) {
+			return 'sticker_pack'
 		} else if (message.listMessage) {
 			return 'list'
 		} else if (message.listResponseMessage) {
@@ -1195,8 +1129,82 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		return ''
 	}
 
-	const issuePrivacyTokens = async (jids: string[], timestamp?: number) => {
-		const t = (timestamp ?? unixTimestampSeconds()).toString()
+	const getButtonType = (message: proto.IMessage): string | undefined => {
+		if (message.listMessage) return 'list'
+		else if (message.buttonsMessage) return 'buttons'
+		else if (message.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+		else if (message.interactiveMessage?.carouselMessage) return 'native_flow'
+		else if (message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage) return 'native_flow'
+		else if (message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage) return 'native_flow'
+	}
+
+	const getButtonArgs = (message: proto.IMessage): BinaryNode | undefined => {
+		const nativeFlow =
+			message.interactiveMessage?.nativeFlowMessage ||
+			message.viewOnceMessage?.message?.interactiveMessage?.nativeFlowMessage
+		const carouselMessage =
+			message.interactiveMessage?.carouselMessage ||
+			message.viewOnceMessage?.message?.interactiveMessage?.carouselMessage
+		const firstButtonName =
+			(nativeFlow as any)?.buttons?.[0]?.name ||
+			(carouselMessage as any)?.cards?.[0]?.nativeFlowMessage?.buttons?.[0]?.name
+		const nativeFlowSpecials = [
+			'mpm',
+			'cta_catalog',
+			'send_location',
+			'call_permission_request',
+			'wa_payment_transaction_details',
+			'automated_greeting_message_view_catalog'
+		]
+		const ts = unixTimestampSeconds().toString()
+
+		if (nativeFlow && (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info')) {
+			return {
+				tag: 'biz',
+				attrs: { native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName }
+			}
+		} else if (nativeFlow && nativeFlowSpecials.includes(firstButtonName)) {
+			return {
+				tag: 'biz',
+				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
+				content: [
+					{
+						tag: 'interactive',
+						attrs: { type: 'native_flow', v: '1' },
+						content: [{ tag: 'native_flow', attrs: { v: '2', name: firstButtonName } }]
+					},
+					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				]
+			}
+		} else if (nativeFlow || carouselMessage || message.buttonsMessage) {
+			return {
+				tag: 'biz',
+				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
+				content: [
+					{
+						tag: 'interactive',
+						attrs: { type: 'native_flow', v: '1' },
+						content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+					},
+					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				]
+			}
+		} else if (message.listMessage) {
+			return {
+				tag: 'biz',
+				attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts },
+				content: [
+					{ tag: 'list', attrs: { v: '2', type: 'product_list' } },
+					{ tag: 'quality_control', attrs: { source_type: 'third_party' } }
+				]
+			}
+		} else {
+			return { tag: 'biz', attrs: { actual_actors: '2', host_storage: '2', privacy_mode_ts: ts } }
+		}
+	}
+
+	const getPrivacyTokens = async (jids: string[]) => {
+		const t = unixTimestampSeconds().toString()
 		const result = await query({
 			tag: 'iq',
 			attrs: {
@@ -1229,7 +1237,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 	return {
 		...sock,
-		issuePrivacyTokens,
+		getPrivacyTokens,
+		getButtonType,
+		getButtonArgs,
 		assertSessions,
 		relayMessage,
 		sendReceipt,
@@ -1247,7 +1257,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			const content = assertMediaContent(message.message)
 			const mediaKey = content.mediaKey!
 			const meId = authState.creds.me!.id
-			const node = encryptMediaRetryRequest(message.key, mediaKey, meId)
+			const node = await encryptMediaRetryRequest(message.key, mediaKey, meId)
 
 			let error: Error | undefined = undefined
 			await Promise.all([
@@ -1259,7 +1269,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							error = result.error
 						} else {
 							try {
-								const media = decryptMediaRetryData(result.media!, mediaKey, result.key.id!)
+								const media = await decryptMediaRetryData(result.media!, mediaKey, result.key.id!)
 								if (media.result !== proto.MediaRetryNotification.ResultType.SUCCESS) {
 									const resultStr = proto.MediaRetryNotification.ResultType[media.result!]
 									throw new Boom(`Media re-upload failed by device (${resultStr})`, {
@@ -1369,7 +1379,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes,
 					statusJidList: options.statusJidList,
-					additionalNodes
+					additionalNodes,
+					AI: (options as any).ai
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {

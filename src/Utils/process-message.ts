@@ -371,7 +371,7 @@ const processMessage = async (
 					ev.emit('messaging-history.set', {
 						...data,
 						isLatest: histNotification.syncType !== proto.HistorySync.HistorySyncType.ON_DEMAND ? isLatest : undefined,
-						chunkOrder: histNotification.chunkOrder,
+						pastParticipants: data.pastParticipants,
 						peerDataRequestSessionId: histNotification.peerDataRequestSessionId
 					})
 				}
@@ -594,7 +594,6 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername!,
 				participants,
 				action
 			})
@@ -604,8 +603,7 @@ const processMessage = async (
 					id: jid,
 					...update,
 					author: message.key.participant ?? undefined,
-					authorPn: message.key.participantAlt,
-					authorUsername: message.key.participantUsername
+					authorPn: message.key.participantAlt
 				}
 			])
 		}
@@ -615,7 +613,6 @@ const processMessage = async (
 				id: jid,
 				author: message.key.participant!,
 				authorPn: message.key.participantAlt!,
-				authorUsername: message.key.participantUsername!,
 				participant: participant.lid,
 				participantPn: participant.pn,
 				action,

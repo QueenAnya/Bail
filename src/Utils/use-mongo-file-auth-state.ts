@@ -1,21 +1,18 @@
 import { proto } from '../../WAProto/index.js'
-import type { AuthenticationCreds, AuthenticationState, SignalDataTypeMap } from '../Types'
-import { initAuthCreds } from './auth-utils'
+import type { AuthenticationState } from '../Types'
 import { BufferJSON } from './generics'
-
-type MongoCollection = {
-	findOne(filter: object): Promise<any>
-	updateOne(filter: object, update: object, options?: object): Promise<any>
-	deleteOne(filter: object): Promise<any>
-}
+import { initAuthCreds } from './auth-utils'
 
 /**
- * MongoDB auth state — stores Baileys credentials in a MongoDB collection.
- * Pass a MongoDB collection instance (e.g. from mongoose or native driver).
+ * MongoDB authentication state adapter for Baileys.
+ * Pass a MongoDB collection object (with updateOne, findOne, deleteOne).
  */
 export const useMongoFileAuthState = async (
-	collection: MongoCollection
-): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
+	collection: any
+): Promise<{
+	state: AuthenticationState
+	saveCreds: () => Promise<void>
+}> => {
 	const writeData = (data: any, id: string) => {
 		const informationToStore = JSON.parse(JSON.stringify(data, BufferJSON.replacer))
 		return collection.updateOne({ _id: id }, { $set: { ...informationToStore } }, { upsert: true })
@@ -26,46 +23,46 @@ export const useMongoFileAuthState = async (
 			const data = JSON.stringify(await collection.findOne({ _id: id }))
 			return JSON.parse(data, BufferJSON.reviver)
 		} catch (err) {
-			return null
+			console.log(err)
 		}
 	}
 
 	const removeData = async (id: string) => {
 		try {
 			await collection.deleteOne({ _id: id })
-		} catch {}
+		} catch (err) {
+			console.log('error', err)
+		}
 	}
 
-	const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds()
+	const creds = (await readData('creds')) || initAuthCreds()
 
 	return {
 		state: {
 			creds,
 			keys: {
-				get: async (type, ids) => {
-					const data: { [_: string]: SignalDataTypeMap[typeof type] } = {}
+				get: async (type: string, ids: string[]) => {
+					const data: any = {}
 					await Promise.all(
 						ids.map(async id => {
 							let value = await readData(`${type}-${id}`)
-							if (type === 'app-state-sync-key' && value) {
-								value = proto.Message.AppStateSyncKeyData.fromObject(value)
+							if (type === 'app-state-sync-key') {
+								value = proto.Message.AppStateSyncKeyData.fromObject(data)
 							}
-
 							data[id] = value
 						})
 					)
 					return data
 				},
-				set: async data => {
-					const tasks: Promise<void>[] = []
-					for (const category of Object.keys(data) as (keyof SignalDataTypeMap)[]) {
-						for (const id of Object.keys(data[category]!)) {
-							const value = (data[category] as any)[id]
+				set: async (data: any) => {
+					const tasks: Promise<any>[] = []
+					for (const category of Object.keys(data)) {
+						for (const id of Object.keys(data[category])) {
+							const value = data[category][id]
 							const key = `${category}-${id}`
 							tasks.push(value ? writeData(value, key) : removeData(key))
 						}
 					}
-
 					await Promise.all(tasks)
 				}
 			}

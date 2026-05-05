@@ -14,7 +14,7 @@ import type {
 import type { Label } from './Label'
 import type { LabelAssociation } from './LabelAssociation'
 import type { MessageUpsertType, MessageUserReceiptUpdate, WAMessage, WAMessageKey, WAMessageUpdate } from './Message'
-import type { ConnectionState, NewChatMessageCapInfo } from './State'
+import type { ConnectionState } from './State'
 
 // TODO: refactor this mess
 export type BaileysEventMap = {
@@ -31,7 +31,7 @@ export type BaileysEventMap = {
 		isLatest?: boolean
 		progress?: number | null
 		syncType?: proto.HistorySync.HistorySyncType | null
-		chunkOrder?: number | null
+		pastParticipants?: proto.IPastParticipants[] | null
 		peerDataRequestSessionId?: string | null
 	}
 	/** signals history sync milestones (completion or stall) per sync type */
@@ -48,7 +48,6 @@ export type BaileysEventMap = {
 	}
 	/** upsert chats */
 	'chats.upsert': Chat[]
-	'past-participants.upsert': proto.IPastParticipants[]
 	/** update the given chats */
 	'chats.update': ChatUpdate[]
 	'lid-mapping.update': LIDMapping
@@ -81,16 +80,13 @@ export type BaileysEventMap = {
 		id: string
 		author: string
 		authorPn?: string
-		authorUsername?: string
 		participants: GroupParticipant[]
-		pastParticipants?: proto.IPastParticipants[] | null
 		action: ParticipantAction
 	}
 	'group.join-request': {
 		id: string
 		author: string
 		authorPn?: string
-		authorUsername?: string
 		participant: string
 		participantPn?: string
 		action: RequestJoinAction
@@ -110,8 +106,6 @@ export type BaileysEventMap = {
 
 	/** Receive an update on a call, including when the call was received, rejected, accepted */
 	call: WACallEvent[]
-
-	'message-capping.update': NewChatMessageCapInfo
 	'labels.edit': Label
 	'labels.association': { association: LabelAssociation; type: 'add' | 'remove' }
 
@@ -153,7 +147,7 @@ export type BufferedEventData = {
 		isLatest: boolean
 		progress?: number | null
 		syncType?: proto.HistorySync.HistorySyncType
-		chunkOrder?: number | null
+		pastParticipants?: proto.IPastParticipants[]
 		peerDataRequestSessionId?: string
 	}
 	chatUpserts: { [jid: string]: Chat }
