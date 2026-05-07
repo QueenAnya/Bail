@@ -62,15 +62,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 
 	return {
 		...sock,
-		newsletterFetchAllParticipating: async () => {
-			return await genericExecuteWMexQuery(
-				{},
-				QueryIdd.GETSUBSCRIBED,
-				XWAPaths.xwa2_newsletter_subscribed,
-				query,
-				generateMessageTag
-			)
-		},
 		newsletterCreate: async (name: string, description?: string): Promise<NewsletterMetadata> => {
 			const variables = {
 				input: {
@@ -87,6 +78,16 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		},
 
 		newsletterUpdate,
+
+		newsletterFetchAllParticipating: async () => {
+			return await genericExecuteWMexQuery(
+				{},
+				QueryIdd.GETSUBSCRIBED,
+				XWAPaths.xwa2_newsletter_subscribed,
+				query,
+				generateMessageTag
+			)
+		},
 
 		newsletterSubscribers: async (jid: string) => {
 			return executeWMexQuery<{ subscribers: number }>(

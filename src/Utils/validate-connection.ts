@@ -21,6 +21,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			tertiary: config.version[2]
 		},
 		platform: proto.ClientPayload.UserAgent.Platform.WEB,
+		//platform: proto.ClientPayload.UserAgent.Platform.MACOS,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
@@ -80,10 +81,12 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
+	// 'ANDROID' is not directly in PlatformType enum — map to ANDROID_PHONE
 	if (platformType === 'ANDROID') {
 		return proto.DeviceProps.PlatformType.ANDROID_PHONE
 	}
 
+	// 'IOS' is not directly in PlatformType enum — map to IOS_PHONE
 	if (platformType === 'IOS') {
 		return proto.DeviceProps.PlatformType.IOS_PHONE
 	}
