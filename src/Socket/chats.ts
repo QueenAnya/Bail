@@ -1,6 +1,5 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
-import Long from 'long'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -16,7 +15,6 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
-	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -54,12 +52,12 @@ import {
 	type BinaryNode,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
-	isHostedLidUser,
-	isHostedPnUser,
 	isLidUser,
 	isPnUser,
 	jidDecode,
 	jidNormalizedUser,
+	isHostedLidUser,
+	isHostedPnUser,
 	reduceBinaryNodeToDictionary,
 	S_WHATSAPP_NET
 } from '../WABinary'
@@ -1189,13 +1187,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
-	 * Clear a message from chat (delete for me)
-	 */
-	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
-		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
-	}
-
-	/**
 	 * queries need to be fired on connection open
 	 * help ensure parity with WA Web
 	 * */
@@ -1504,8 +1495,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		getBusinessProfile,
 		resyncAppState,
 		chatModify,
-		clearMessage,
-		deleteChat: clearMessage,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,

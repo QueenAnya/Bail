@@ -32,7 +32,6 @@ const extractPnFromMessages = (messages: proto.IHistorySyncMsg[]): string | unde
 
 export const downloadHistory = async (msg: proto.Message.IHistorySyncNotification, options: RequestInit) => {
 	const stream = await downloadContentFromMessage(msg, 'md-msg-hist', { options })
-
 	// Pipe decrypted stream directly through zlib inflate
 	// This avoids allocating an intermediate buffer for the compressed data
 	const inflater = createInflate()
@@ -50,6 +49,7 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 	const contacts: Contact[] = []
 	const chats: Chat[] = []
 	const lidPnMappings: LIDMapping[] = []
+	const pastParticipants: proto.IPastParticipants[] = []
 
 	logger?.trace({ progress: item.progress }, 'processing history of type ' + item.syncType?.toString())
 
@@ -69,9 +69,9 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 				contacts.push({
 					id: chat.id!,
 					name: chat.displayName || chat.name || chat.username || undefined,
+					username: chat.username || undefined,
 					lid: chat.lidJid || chat.accountLid || undefined,
-					phoneNumber: chat.pnJid || undefined,
-					username: chat.username || undefined
+					phoneNumber: chat.pnJid || undefined
 				})
 
 				const chatId = chat.id!
@@ -120,6 +120,13 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 				chats.push(chat)
 			}
 
+			// Collect past participants from this sync chunk
+			if (item.pastParticipants?.length) {
+				for (const pp of item.pastParticipants) {
+					pastParticipants.push(pp)
+				}
+			}
+
 			break
 		case proto.HistorySync.HistorySyncType.PUSH_NAME:
 			for (const c of item.pushnames!) {
@@ -134,9 +141,9 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 		contacts,
 		messages,
 		lidPnMappings,
+		pastParticipants,
 		syncType: item.syncType,
-		progress: item.progress,
-		pastParticipants: item.pastParticipants
+		progress: item.progress
 	}
 }
 

@@ -243,6 +243,7 @@ const makeBufferData = (): BufferedEventData => {
 			chats: {},
 			messages: {},
 			contacts: {},
+			pastParticipants: [],
 			isLatest: false,
 			empty: true
 		},
@@ -314,6 +315,8 @@ function append<E extends BufferableEvent>(
 			data.historySets.chunkOrder = eventData.chunkOrder
 			data.historySets.peerDataRequestSessionId = eventData.peerDataRequestSessionId
 			data.historySets.isLatest = eventData.isLatest || data.historySets.isLatest
+
+			// Accumulate past participants from each history sync chunk
 			if (eventData.pastParticipants?.length) {
 				data.historySets.pastParticipants = [
 					...(data.historySets.pastParticipants || []),
@@ -604,12 +607,12 @@ function consolidateEvents(data: BufferedEventData) {
 			chats: Object.values(data.historySets.chats),
 			messages: Object.values(data.historySets.messages),
 			contacts: Object.values(data.historySets.contacts),
+			pastParticipants: data.historySets.pastParticipants || [],
 			syncType: data.historySets.syncType,
-			chunkOrder: data.historySets.chunkOrder,
 			progress: data.historySets.progress,
 			isLatest: data.historySets.isLatest,
-			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId,
-			pastParticipants: data.historySets.pastParticipants
+			chunkOrder: data.historySets.chunkOrder,
+			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId
 		}
 	}
 

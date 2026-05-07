@@ -10,13 +10,7 @@ import { join } from 'path'
 import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
-import {
-	DEFAULT_ORIGIN,
-	MEDIA_HKDF_KEY_MAPPING,
-	MEDIA_PATH_MAP,
-	type MediaType,
-	NEWSLETTER_MEDIA_PATH_MAP
-} from '../Defaults'
+import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP, type MediaType } from '../Defaults'
 import type {
 	BaileysEventMap,
 	DownloadableMessage,
@@ -336,14 +330,12 @@ export async function generateThumbnail(
 	mediaType: 'video' | 'image',
 	options: {
 		logger?: ILogger
-		hdMode?: boolean
 	}
 ) {
 	let thumbnail: string | undefined
 	let originalImageDimensions: { width: number; height: number } | undefined
-	const hdMode = options.hdMode === true
 	if (mediaType === 'image') {
-		const { buffer, original } = await extractImageThumb(file, hdMode ? 320 : undefined)
+		const { buffer, original } = await extractImageThumb(file)
 		thumbnail = buffer.toString('base64')
 		if (original.width && original.height) {
 			originalImageDimensions = {
@@ -352,10 +344,9 @@ export async function generateThumbnail(
 			}
 		}
 	} else if (mediaType === 'video') {
-		const thumbSize = hdMode ? { width: 320, height: 180 } : { width: 32, height: 32 }
 		const imgFilename = join(getTmpFilesDirectory(), generateMessageIDV2() + '.jpg')
 		try {
-			await extractVideoThumb(file, imgFilename, '00:00:00', thumbSize)
+			await extractVideoThumb(file, imgFilename, '00:00:00', { width: 32, height: 32 })
 			const buff = await fs.readFile(imgFilename)
 			thumbnail = buff.toString('base64')
 
@@ -389,20 +380,43 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
-	/** Optional mediaKey to reuse (required for sticker pack thumbnail to match ZIP encryption) */
-	mediaKey?: Buffer | Uint8Array
+	/** optional pre-supplied mediaKey — used by sticker packs to share key between zip and thumbnail */
+	mediaKey?: Buffer
+}
+
+/**
+ * Returns true if the given buffer contains a valid WebP file (starts with RIFF…WEBP magic bytes).
+ */
+export const isWebPBuffer = (buffer: Buffer): boolean =>
+	buffer.length > 12 &&
+	buffer.slice(0, 4).toString('ascii') === 'RIFF' &&
+	buffer.slice(8, 12).toString('ascii') === 'WEBP'
+
+/**
+ * Returns true if the given WebP buffer contains an animation (ANIM chunk present).
+ * Only call this after verifying isWebPBuffer.
+ */
+export const isAnimatedWebP = (buffer: Buffer): boolean => {
+	// Scan for 'ANIM' chunk marker within the first 64 KB
+	const searchEnd = Math.min(buffer.length - 4, 65536)
+	for (let i = 12; i < searchEnd; i++) {
+		if (buffer[i] === 0x41 && buffer[i + 1] === 0x4e && buffer[i + 2] === 0x49 && buffer[i + 3] === 0x4d) {
+			return true
+		}
+	}
+	return false
 }
 
 export const encryptedStream = async (
 	media: WAMediaUpload,
 	mediaType: MediaType,
-	{ logger, saveOriginalFileIfRequired, opts, mediaKey: providedMediaKey }: EncryptedStreamOptions = {}
+	{ logger, saveOriginalFileIfRequired, opts }: EncryptedStreamOptions = {}
 ) => {
 	const { stream, type } = await getStream(media, opts)
 
 	logger?.debug('fetched media stream')
 
-	const mediaKey = providedMediaKey ? Buffer.from(providedMediaKey) : Crypto.randomBytes(32)
+	const mediaKey = Crypto.randomBytes(32)
 	const { cipherKey, iv, macKey } = await getMediaKeys(mediaKey, mediaType)
 
 	const encFilePath = join(getTmpFilesDirectory(), mediaType + generateMessageIDV2() + '-enc')
@@ -677,10 +691,6 @@ type MediaUploadResult = {
 	meta_hmac?: string
 	ts?: number
 	fbid?: number
-	thumbnail_info?: {
-		thumbnail_sha256?: string
-		thumbnail_direct_path?: string
-	}
 }
 
 export type UploadParams = {
@@ -825,21 +835,11 @@ export const getWAUploadToServer = (
 	{ customUploadHosts, fetchAgent, logger, options }: SocketConfig,
 	refreshMediaConn: (force: boolean) => Promise<MediaConnInfo>
 ): WAMediaUploadFunction => {
-	return async (filePath, { mediaType, fileEncSha256B64, timeoutMs, newsletter }) => {
+	return async (filePath, { mediaType, fileEncSha256B64, timeoutMs }) => {
 		// send a query JSON to obtain the url & auth token to upload our media
 		let uploadInfo = await refreshMediaConn(false)
 
-		let urls:
-			| {
-					mediaUrl: string
-					directPath: string
-					meta_hmac?: string
-					ts?: number
-					fbid?: number
-					thumbnailDirectPath?: string
-					thumbnailSha256?: string
-			  }
-			| undefined
+		let urls: { mediaUrl: string; directPath: string; meta_hmac?: string; ts?: number; fbid?: number } | undefined
 		const hosts = [...customUploadHosts, ...uploadInfo.hosts]
 
 		fileEncSha256B64 = encodeBase64EncodedStringForUpload(fileEncSha256B64)
@@ -861,12 +861,7 @@ export const getWAUploadToServer = (
 			logger.debug(`uploading to "${hostname}"`)
 
 			const auth = encodeURIComponent(uploadInfo.auth)
-			// Use newsletter-specific path when uploading for a newsletter/channel
-			const mediaPath = (newsletter ? NEWSLETTER_MEDIA_PATH_MAP[mediaType] : undefined) || MEDIA_PATH_MAP[mediaType]
-			let url = `https://${hostname}${mediaPath}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
-			if (newsletter) {
-				url += '&server_thumb_gen=1'
-			}
+			const url = `https://${hostname}${MEDIA_PATH_MAP[mediaType]}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
 
 			let result: MediaUploadResult | undefined
 			try {
@@ -883,13 +878,11 @@ export const getWAUploadToServer = (
 
 				if (result?.url || result?.direct_path) {
 					urls = {
-						mediaUrl: result.url || result.direct_path!,
+						mediaUrl: result.url!,
 						directPath: result.direct_path!,
 						meta_hmac: result.meta_hmac,
 						fbid: result.fbid,
-						ts: result.ts,
-						thumbnailDirectPath: result.thumbnail_info?.thumbnail_direct_path,
-						thumbnailSha256: result.thumbnail_info?.thumbnail_sha256
+						ts: result.ts
 					}
 					break
 				} else {
@@ -1005,11 +998,12 @@ export const decryptMediaRetryData = (
 	return proto.MediaRetryNotification.decode(plaintext)
 }
 
-const MEDIA_RETRY_STATUS_MAP: Record<number, number> = {
+export const getStatusCodeForMediaRetry = (code: number) =>
+	MEDIA_RETRY_STATUS_MAP[code as proto.MediaRetryNotification.ResultType]
+
+const MEDIA_RETRY_STATUS_MAP = {
 	[proto.MediaRetryNotification.ResultType.SUCCESS]: 200,
 	[proto.MediaRetryNotification.ResultType.DECRYPTION_ERROR]: 412,
 	[proto.MediaRetryNotification.ResultType.NOT_FOUND]: 404,
 	[proto.MediaRetryNotification.ResultType.GENERAL_ERROR]: 418
-}
-
-export const getStatusCodeForMediaRetry = (code: number) => MEDIA_RETRY_STATUS_MAP[code]
+} as const

@@ -7,7 +7,9 @@ export * from './Defaults/index'
 export * from './WABinary/index'
 export * from './WAM/index'
 export * from './WAUSync/index'
-export * from './addons/index'
+
+/** Extra features: interactive messages, store, auto-reply, scheduling, etc. */
+export * as addons from './addons/index'
 
 export type WASocket = ReturnType<typeof makeWASocket>
 export { makeWASocket }

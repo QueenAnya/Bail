@@ -1,4 +1,5 @@
 import type { WABrowserDescription } from '../Types'
+import { isAndroidBrowser } from './browser-utils'
 
 export enum CompanionWebClientType {
 	UNKNOWN = 0,
@@ -41,5 +42,13 @@ export const buildPairingQRData = (
 	advB64: string,
 	browser: WABrowserDescription
 ): string => {
-	return [ref, noiseKeyB64, identityKeyB64, advB64, getCompanionPlatformId(browser)].join(',')
+	// PR10: For Android companion sessions, use Chrome platform ID in the QR code.
+	// Using ANDROID_PHONE causes a silent timeout during QR scanning on WA app.
+	const effectiveBrowser: WABrowserDescription = isAndroidBrowser(browser)
+		? [browser[0], 'Chrome', browser[2]]
+		: browser
+	return (
+		'https://wa.me/settings/linked_devices#' +
+		[ref, noiseKeyB64, identityKeyB64, advB64, getCompanionPlatformId(effectiveBrowser)].join(',')
+	)
 }

@@ -12,8 +12,12 @@ import { type BinaryNode, getBinaryNodeChild, jidDecode, S_WHATSAPP_NET } from '
 import { Curve, hmacSign } from './crypto'
 import { encodeBigEndian } from './generics'
 import { createSignalIdentity } from './signal'
+import { isAndroidBrowser } from './browser-utils'
 
 const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
+	// WEB platform causes 405 errors on some WA server paths;
+	// MACOS is stable for both regular and Android companion sessions.
+	// (SMB_ANDROID would break pairing code flow)
 	return {
 		appVersion: {
 			primary: config.version[0],
@@ -21,7 +25,6 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			tertiary: config.version[2]
 		},
 		platform: proto.ClientPayload.UserAgent.Platform.WEB,
-		//platform: proto.ClientPayload.UserAgent.Platform.MACOS,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
@@ -36,8 +39,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 
 const PLATFORM_MAP = {
 	'Mac OS': proto.ClientPayload.WebInfo.WebSubPlatform.DARWIN,
-	Windows: proto.ClientPayload.WebInfo.WebSubPlatform.WIN32,
-	Android: proto.ClientPayload.WebInfo.WebSubPlatform.WIN_HYBRID
+	Windows: proto.ClientPayload.WebInfo.WebSubPlatform.WIN32
 }
 
 const getWebInfo = (config: SocketConfig): proto.ClientPayload.IWebInfo => {
@@ -60,7 +62,11 @@ const getClientPayload = (config: SocketConfig) => {
 		userAgent: getUserAgent(config)
 	}
 
-	payload.webInfo = getWebInfo(config)
+	// Android companion sessions do not send webInfo — the server expects
+	// a platform=ANDROID registration path instead.
+	if (!isAndroidBrowser(config.browser)) {
+		payload.webInfo = getWebInfo(config)
+	}
 
 	return payload
 }
@@ -81,16 +87,6 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
-	// 'ANDROID' is not directly in PlatformType enum — map to ANDROID_PHONE
-	if (platformType === 'ANDROID') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE
-	}
-
-	// 'IOS' is not directly in PlatformType enum — map to IOS_PHONE
-	if (platformType === 'IOS') {
-		return proto.DeviceProps.PlatformType.IOS_PHONE
-	}
-
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME

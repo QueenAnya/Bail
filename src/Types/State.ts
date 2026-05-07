@@ -41,6 +41,7 @@ export type ConnectionState = {
 	 * */
 	isOnline?: boolean
 
+	/** reachout timelock restriction state (for business accounts) */
 	reachoutTimeLock?: ReachoutTimelockState
 }
 

@@ -20,6 +20,7 @@ import {
 	addTransactionCapability,
 	aesEncryptCTR,
 	bindWaitForConnectionUpdate,
+	buildPairingQRData,
 	bytesToCrockford,
 	configureSuccessfulPairing,
 	Curve,
@@ -31,15 +32,14 @@ import {
 	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
+	getPlatformDisplayName,
+	isAndroidBrowser,
 	makeEventBuffer,
 	makeNoiseHandler,
-	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
-import { getPlatformDisplayName } from '../Utils/browser-utils'
-import { buildPairingQRData } from '../Utils/companion-reg-client-utils'
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -86,14 +86,12 @@ export const makeSocket = (config: SocketConfig) => {
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
 
-	/**
 	if (printQRInTerminal) {
 		logger.warn(
 			{},
 			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
 		)
 	}
-	*/
 
 	const syncDisabled =
 		PROCESSABLE_HISTORY_TYPES.map(syncType => config.shouldSyncHistoryMessage({ syncType })).filter(x => x === false)
@@ -317,12 +315,14 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
+		// Separate query for LID JIDs — uses LIDProtocol, not ContactProtocol
+		const lidQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				logger?.warn('LIDs are not supported with onWhatsApp')
-				continue
+				// LID JIDs: query via LIDProtocol to resolve their existence
+				lidQuery.withUser(new USyncUser().withLid(jid))
 			} else {
 				if (!contactEnabled) {
 					contactEnabled = true
@@ -334,15 +334,31 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		if (usyncQuery.users.length === 0) {
-			return [] // return early without forcing an empty query
+		const output: { jid: string; exists: boolean; lid?: string }[] = []
+
+		// Execute PN query
+		if (usyncQuery.users.length > 0) {
+			const results = await executeUSyncQuery(usyncQuery)
+			if (results) {
+				const mapped = results.list
+					.filter(a => !!a.contact)
+					.map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
+				output.push(...mapped)
+			}
 		}
 
-		const results = await executeUSyncQuery(usyncQuery)
-
-		if (results) {
-			return results.list.filter(a => !!a.contact).map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
+		// Execute LID query
+		if (lidQuery.users.length > 0) {
+			const lidResults = await executeUSyncQuery(lidQuery)
+			if (lidResults) {
+				const mapped = lidResults.list
+					.filter(a => !!a.lid)
+					.map(({ lid, id }) => ({ jid: id, exists: true, lid: lid as string }))
+				output.push(...mapped)
+			}
 		}
+
+		return output
 	}
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
@@ -382,13 +398,6 @@ export const makeSocket = (config: SocketConfig) => {
 	let keepAliveReq: NodeJS.Timeout
 	let qrTimer: NodeJS.Timeout
 	let closed = false
-
-	// Pairing code state — tracks whether pair-device has been received
-	// and queues requestPairingCode calls that arrive before it
-	let pairingReady = false
-	let pairingInProgress = false
-	let pendingPairingResolve: (() => void) | undefined
-	let pendingPairingReject: ((err: Error) => void) | undefined
 
 	/** log & process any unexpected errors */
 	const onUnexpectedError = (err: Error | Boom, msg: string) => {
@@ -643,21 +652,6 @@ export const makeSocket = (config: SocketConfig) => {
 		clearInterval(keepAliveReq)
 		clearTimeout(qrTimer)
 
-		// If a pairing is pending, reject it so the caller doesn't hang indefinitely
-		if (pendingPairingReject) {
-			pendingPairingReject(
-				error ||
-					new Boom('Connection closed before pairing completed', {
-						statusCode: DisconnectReason.connectionClosed
-					})
-			)
-			pendingPairingResolve = undefined
-			pendingPairingReject = undefined
-		}
-
-		pairingReady = false
-		pairingInProgress = false
-
 		ws.removeAllListeners('close')
 		ws.removeAllListeners('open')
 		ws.removeAllListeners('message')
@@ -772,8 +766,7 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
-	// Internal: send the actual pairing IQ to WA servers
-	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
+	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
 
 		if (customPairingCode && customPairingCode?.length !== 8) {
@@ -782,19 +775,12 @@ export const makeSocket = (config: SocketConfig) => {
 
 		authState.creds.pairingCode = pairingCode
 
-		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
-		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the pairing
-		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
-		// companion_platform_display must also be a canonical OS name; custom brand names (e.g.
-		// "Zapper") belong in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked
-		// Devices.
-		const rawPlatformId = parseInt(getCompanionPlatformId(browser))
-		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
-		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : browser[1] // 'Firefox'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : browser[0] // 'Windows'
-
-		await query({
+		authState.creds.me = {
+			id: jidEncode(phoneNumber, 's.whatsapp.net'),
+			name: '~'
+		}
+		ev.emit('creds.update', authState.creds)
+		await sendNode({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
@@ -806,8 +792,9 @@ export const makeSocket = (config: SocketConfig) => {
 				{
 					tag: 'link_code_companion_reg',
 					attrs: {
-						jid,
+						jid: authState.creds.me.id,
 						stage: 'companion_hello',
+
 						should_show_push_notification: 'true'
 					},
 					content: [
@@ -824,12 +811,13 @@ export const makeSocket = (config: SocketConfig) => {
 						{
 							tag: 'companion_platform_id',
 							attrs: {},
-							content: pairingPlatformId
+							// PR10: Android companion must use Chrome platform ID — ANDROID_PHONE causes silent fail
+							content: getCompanionPlatformId(isAndroidBrowser(browser) ? [browser[0], 'Chrome', browser[2]] : browser)
 						},
 						{
 							tag: 'companion_platform_display',
 							attrs: {},
-							content: `${pairingPlatformName} (${pairingPlatformHost})`
+							content: `${getPlatformDisplayName(browser[1])} (${browser[0]})`
 						},
 						{
 							tag: 'link_code_pairing_nonce',
@@ -840,46 +828,7 @@ export const makeSocket = (config: SocketConfig) => {
 				}
 			]
 		})
-
-		authState.creds.me = { id: jid, name: '~' }
-		ev.emit('creds.update', authState.creds)
-
 		return authState.creds.pairingCode
-	}
-
-	// Public: requestPairingCode queues the request if pair-device hasn't been
-	// received yet (race condition fix — calling too early caused silent timeout)
-	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
-		if (pairingInProgress) {
-			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
-		}
-
-		pairingInProgress = true
-
-		if (pairingReady) {
-			try {
-				return await sendPairingIQ(phoneNumber, customPairingCode)
-			} finally {
-				pairingInProgress = false
-			}
-		}
-
-		logger.debug('pairing not ready yet, queuing request until pair-device is received')
-		return new Promise<string>((resolve, reject) => {
-			pendingPairingResolve = () => {
-				sendPairingIQ(phoneNumber, customPairingCode)
-					.then(resolve)
-					.catch(reject)
-					.finally(() => {
-						pairingInProgress = false
-					})
-			}
-
-			pendingPairingReject = (err: Error) => {
-				pairingInProgress = false
-				reject(err)
-			}
-		})
 	}
 
 	async function generatePairingKey() {
@@ -965,16 +914,6 @@ export const makeSocket = (config: SocketConfig) => {
 		}
 
 		genPairQR()
-
-		// Mark pairing as ready and flush any queued requestPairingCode call
-		pairingReady = true
-		if (pendingPairingResolve) {
-			logger.debug('pair-device received, flushing queued pairing request')
-			const resolve = pendingPairingResolve
-			pendingPairingResolve = undefined
-			pendingPairingReject = undefined
-			resolve()
-		}
 	})
 	// device paired for the first time
 	// if device pairs successfully, the server asks to restart the connection
@@ -1177,10 +1116,6 @@ export const makeSocket = (config: SocketConfig) => {
 		} catch (error) {
 			logger.debug({ error }, 'failed to send unified_session telemetry')
 		}
-	}
-
-	if (printQRInTerminal) {
-		printQRIfNecessaryListener(ev, logger)
 	}
 
 	return {

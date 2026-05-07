@@ -31,9 +31,9 @@ export type BaileysEventMap = {
 		isLatest?: boolean
 		progress?: number | null
 		syncType?: proto.HistorySync.HistorySyncType | null
+		chunkOrder?: number | null
 		peerDataRequestSessionId?: string | null
 		pastParticipants?: proto.IPastParticipants[] | null
-		chunkOrder?: number | null
 	}
 	/** signals history sync milestones (completion or stall) per sync type */
 	'messaging-history.status': {
@@ -112,6 +112,9 @@ export type BaileysEventMap = {
 	'labels.edit': Label
 	'labels.association': { association: LabelAssociation; type: 'add' | 'remove' }
 
+	/** message capping info update for business accounts */
+	'message-capping.update': NewChatMessageCapInfo
+
 	/** Newsletter-related events */
 	'newsletter.reaction': {
 		id: string
@@ -121,8 +124,6 @@ export type BaileysEventMap = {
 	'newsletter.view': { id: string; server_id: string; count: number }
 	'newsletter-participants.update': { id: string; author: string; user: string; new_role: string; action: string }
 	'newsletter-settings.update': { id: string; update: any }
-
-	'message-capping.update': NewChatMessageCapInfo
 
 	/** Settings and actions sync events */
 	'chats.lock': { id: string; locked: boolean }
@@ -148,13 +149,13 @@ export type BufferedEventData = {
 		chats: { [jid: string]: Chat }
 		contacts: { [jid: string]: Contact }
 		messages: { [uqId: string]: WAMessage }
+		pastParticipants: proto.IPastParticipants[]
 		empty: boolean
 		isLatest: boolean
 		progress?: number | null
 		syncType?: proto.HistorySync.HistorySyncType
 		chunkOrder?: number | null
 		peerDataRequestSessionId?: string
-		pastParticipants?: proto.IPastParticipants[]
 	}
 	chatUpserts: { [jid: string]: Chat }
 	chatUpdates: { [jid: string]: ChatUpdate }
