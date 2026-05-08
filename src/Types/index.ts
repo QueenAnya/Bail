@@ -21,6 +21,13 @@ export type BrowsersMap = {
 	macOS(browser: string): [string, string, string]
 	baileys(browser: string): [string, string, string]
 	windows(browser: string): [string, string, string]
+	linux(browser: string): [string, string, string]
+	solaris(browser: string): [string, string, string]
+	chromeOS(browser: string): [string, string, string]
+	/** iOS companion (iPhone) */
+	iOS(browser: string): [string, string, string]
+	/** KaiOS companion */
+	kaiOS(browser: string): [string, string, string]
 	appropriate(browser: string): [string, string, string]
 	/** Android companion browser (apiLevel = Android API level string, e.g. '34') */
 	android(apiLevel: string): [string, string, string]

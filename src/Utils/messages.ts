@@ -883,7 +883,7 @@ export const getDevice = (id: string) =>
 				? 'android'
 				: /^(3F|.{18}$)/.test(id)
 					? 'desktop'
-					: 'unknown'
+					: 'baileys'
 
 /** Upserts a receipt in the message */
 export const updateMessageWithReceipt = (msg: Pick<WAMessage, 'userReceipt'>, receipt: MessageUserReceipt) => {

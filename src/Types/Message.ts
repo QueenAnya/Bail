@@ -350,6 +350,11 @@ export type MessageRelayOptions = MinimalRelayOptions & {
 	useUserDevicesCache?: boolean
 	/** jid list of participants for status@broadcast */
 	statusJidList?: string[]
+	/**
+	 * If true, adds a Meta AI <bot biz_bot="1"> node so the message renders with an AI icon.
+	 * Only effective for private chats.
+	 */
+	ai?: boolean
 }
 
 export type MiscMessageGenerationOptions = MinimalRelayOptions & {
@@ -369,6 +374,12 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
+	/**
+	 * If true, adds a Meta AI <bot biz_bot="1"> node to the message stanza.
+	 * This makes the message appear with the AI icon in WhatsApp.
+	 * Only effective for private (non-group) chats.
+	 */
+	ai?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string

@@ -21,6 +21,13 @@ export const Browsers: BrowsersMap = {
 	macOS: browser => ['Mac OS', browser, '14.4.1'],
 	baileys: browser => ['Baileys', browser, '6.5.0'],
 	windows: browser => ['Windows', browser, '10.0.22631'],
+	linux: browser => ['Linux', browser, '6.5'],
+	solaris: browser => ['Solaris', browser, '11'],
+	chromeOS: browser => ['Chrome OS', browser, '117.0.5938.132'],
+	/** iOS companion — registers as iPhone companion */
+	iOS: browser => ['iOS', browser, '18.2'],
+	/** KaiOS companion */
+	kaiOS: browser => ['KaiOS', browser, '3.1'],
 	/** The appropriate browser based on your OS & release */
 	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()],
 	/**

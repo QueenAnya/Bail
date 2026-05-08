@@ -69,7 +69,9 @@ import {
 	type JidWithDevice,
 	PSA_WID,
 	S_WHATSAPP_NET,
-	STORIES_JID
+	STORIES_JID,
+	getBinaryFilteredButtons,
+	getBinaryFilteredBizBot
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
@@ -1082,8 +1084,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			// ── Button / interactive biz node ─────────────────────────────────────
 			// Build and inject the <biz> node that WhatsApp requires for buttons,
 			// lists, native-flow, and carousel messages to render correctly.
+			// Only inject if no biz/interactive/buttons node already present.
 			const buttonMsgType = getButtonType(message)
-			if (buttonMsgType) {
+			if (buttonMsgType && !getBinaryFilteredButtons(stanza.content as BinaryNode[])) {
 				const bizNode = getButtonArgs(message)
 				if (bizNode) {
 					;(stanza.content as BinaryNode[]).push(bizNode)
@@ -1091,9 +1094,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			// ── AI icon (Meta AI biz_bot) ─────────────────────────────────────────
-			// When the caller sets ai=true and the chat is a private DM, inject the
-			// <bot biz_bot="1"> node so the message renders with the AI icon.
-			if (ai && isPrivate) {
+			// When ai=true and the chat is a private DM, inject <bot biz_bot="1">.
+			// Guard against duplicate injection if additionalNodes already has it.
+			if (ai && isPrivate && !getBinaryFilteredBizBot(stanza.content as BinaryNode[])) {
 				;(stanza.content as BinaryNode[]).push({
 					tag: 'bot',
 					attrs: { biz_bot: '1' }
@@ -1785,7 +1788,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes,
 					statusJidList: options.statusJidList,
-					additionalNodes
+					additionalNodes,
+					ai: options.ai
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {

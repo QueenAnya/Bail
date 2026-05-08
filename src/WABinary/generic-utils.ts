@@ -139,3 +139,26 @@ export function binaryNodeToString(node: BinaryNode | BinaryNode['content'], i =
 
 	return tag + content
 }
+
+/**
+ * Returns true if the given additionalNodes array already contains a biz/interactive/buttons/list
+ * node — used to avoid double-injecting the <biz> node in relayMessage.
+ */
+export const getBinaryFilteredButtons = (nodeContent: BinaryNode[] | undefined): boolean => {
+	if (!Array.isArray(nodeContent)) return false
+	return nodeContent.some(
+		a =>
+			['native_flow'].includes((a?.content as BinaryNode[])?.[0]?.content?.[0]?.tag ?? '') ||
+			['interactive', 'buttons', 'list'].includes((a?.content as BinaryNode[])?.[0]?.tag ?? '') ||
+			['hsm', 'biz'].includes(a?.tag)
+	)
+}
+
+/**
+ * Returns true if the given additionalNodes array already contains a <bot biz_bot="1"> node.
+ * Used to avoid double-injecting the AI icon node in relayMessage.
+ */
+export const getBinaryFilteredBizBot = (nodeContent: BinaryNode[] | undefined): boolean => {
+	if (!Array.isArray(nodeContent)) return false
+	return nodeContent.some(b => b?.tag === 'bot' && b?.attrs?.biz_bot === '1')
+}

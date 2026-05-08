@@ -43,6 +43,9 @@ export * from './auto-reply'
 export * from './use-single-file-auth-state'
 export * from './use-mongo-file-auth-state'
 
+// ── Event capture / replay ────────────────────────────────────────────────────
+export * from './baileys-event-stream'
+
 // ── MEX operation constants ───────────────────────────────────────────────────
 export * from './MexUpdates'
 
@@ -50,3 +53,4 @@ export * from './MexUpdates'
 export * from './Store/make-ordered-dictionary'
 export * from './Store/object-repository'
 export * from './Store/make-in-memory-store'
+export * from './Store/make-cache-manager-store'
