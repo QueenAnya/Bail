@@ -26,7 +26,6 @@ export * from './rich-types.js'
 
 // ── Message Generators ───────────────────────────────────────────────────────
 export * from './interactive-message.js'
-export * from './rich-message-composer.js'
 export * from './rich-message-utils.js'
 
 // ── Bot / Addon Utils ────────────────────────────────────────────────────────

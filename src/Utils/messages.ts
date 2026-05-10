@@ -1,9 +1,12 @@
-import { zip } from 'fflate'
+import { LIBRARY_NAME, DONATE_URL, zip } from 'fflate'
+
+const CONCURRENCY_LIMIT = 10
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
+import { AssociationType, ButtonHeaderType, ButtonType, CarouselCardType, ListType } from '../Types/Message.js'
 import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
@@ -394,6 +397,97 @@ function hasOptionalProperty<T, K extends PropertyKey>(obj: T, key: K): obj is W
 	return typeof obj === 'object' && obj !== null && key in obj && (obj as any)[key] !== null
 }
 
+// ── Interactive message helpers (itsliaaa/Lia@Changes 30-01-26 → 12-03-26) ──
+
+export const hasValidAlbumMedia = (message: Record<string, any>) => message.imageMessage || message.videoMessage
+
+export const hasValidInteractiveHeader = (message: Record<string, any>) =>
+	message.imageMessage ||
+	message.videoMessage ||
+	message.documentMessage ||
+	message.productMessage ||
+	message.locationMessage
+
+export const hasValidCarouselHeader = (message: Record<string, any>) =>
+	message.imageMessage || message.videoMessage || message.productMessage
+
+const prepareNativeFlowButtons = (message: Record<string, any>) => {
+	const buttons = message.nativeFlow
+	const isButtonsFieldArray = Array.isArray(buttons)
+	const correctedField = isButtonsFieldArray ? buttons : buttons?.buttons || []
+	const messageParamsJson: Record<string, any> = {}
+
+	if (message.offerText) {
+		messageParamsJson.limited_time_offer = {
+			text: message.offerText || LIBRARY_NAME,
+			url: message.offerUrl || DONATE_URL,
+			copy_code: message.offerCode,
+			expiration_time: message.offerExpiration
+		}
+	}
+	if (message.optionText) {
+		messageParamsJson.bottom_sheet = {
+			in_thread_buttons_limit: 1,
+			divider_indices: Array.from({ length: correctedField.length }, (_: any, i: number) => i),
+			list_title: message.optionTitle || '📄 Select Options',
+			button_title: message.optionText
+		}
+	}
+
+	return {
+		buttons: correctedField.map((button: any) => {
+			const buttonText = button.text || button.buttonText
+			const buttonIcon = button.icon?.toUpperCase()
+			if (button.id)
+				return {
+					name: 'quick_reply',
+					buttonParamsJson: JSON.stringify({ display_text: buttonText || '👉🏻 Click', id: button.id, icon: buttonIcon })
+				}
+			if (button.copy)
+				return {
+					name: 'cta_copy',
+					buttonParamsJson: JSON.stringify({
+						display_text: buttonText || '📋 Copy',
+						copy_code: button.copy,
+						icon: buttonIcon
+					})
+				}
+			if (button.url)
+				return {
+					name: 'cta_url',
+					buttonParamsJson: JSON.stringify({
+						display_text: buttonText || '🌐 Visit',
+						url: button.url,
+						merchant_url: button.url,
+						webview_interaction: button.useWebview,
+						icon: buttonIcon
+					})
+				}
+			if (button.call)
+				return {
+					name: 'cta_call',
+					buttonParamsJson: JSON.stringify({
+						display_text: buttonText || '📞 Call',
+						phone_number: button.call,
+						icon: buttonIcon
+					})
+				}
+			if (button.sections)
+				return {
+					name: 'single_select',
+					buttonParamsJson: JSON.stringify({
+						title: buttonText || '📋 Select',
+						sections: button.sections,
+						icon: buttonIcon
+					})
+				}
+			return button
+		}),
+		messageParamsJson: JSON.stringify(messageParamsJson),
+		messageVersion: 3
+	}
+}
+
 export const generateWAMessageContent = async (
 	message: AnyMessageContent,
 	options: MessageContentGenerationOptions
@@ -611,6 +705,159 @@ export const generateWAMessageContent = async (
 		}
 	} else {
 		m = await prepareWAMessageMedia(message, options)
+	}
+
+	// ── Interactive Messages (itsliaaa/Lia@Changes 30-01-26 → 12-03-26) ──────
+
+	if (hasNonNullishProperty(message, 'buttons')) {
+		const buttonsMessage: Record<string, any> = {
+			buttons: (message as any).buttons.map((button: any) => {
+				const buttonText = button.text || button.buttonText
+				if (button.sections != null) {
+					return {
+						nativeFlowInfo: {
+							name: 'single_select',
+							paramsJson: JSON.stringify({ title: buttonText, sections: button.sections })
+						},
+						type: ButtonType.NATIVE_FLOW
+					}
+				} else if (button.name != null) {
+					return { nativeFlowInfo: { name: button.name, paramsJson: button.paramsJson }, type: ButtonType.NATIVE_FLOW }
+				}
+				return {
+					buttonId: button.id || button.buttonId,
+					buttonText: typeof buttonText === 'string' ? { displayText: buttonText } : buttonText,
+					type: button.type || ButtonType.RESPONSE
+				}
+			})
+		}
+		if (hasOptionalProperty(message, 'text')) {
+			buttonsMessage.contentText = (message as any).text
+			buttonsMessage.headerType = ButtonHeaderType.EMPTY
+		} else {
+			if (hasOptionalProperty(message, 'caption')) buttonsMessage.contentText = (message as any).caption
+			const type = (Object.keys(m)[0] || '').replace('Message', '').toUpperCase()
+			buttonsMessage.headerType = (ButtonHeaderType as any)[type]
+			Object.assign(buttonsMessage, m)
+		}
+		if (hasOptionalProperty(message, 'footer')) buttonsMessage.footerText = (message as any).footer
+		m = { buttonsMessage }
+	} else if (hasNonNullishProperty(message, 'sections')) {
+		m = {
+			listMessage: {
+				sections: (message as any).sections,
+				buttonText: (message as any).buttonText,
+				title: (message as any).title,
+				footerText: (message as any).footer,
+				description: (message as any).text,
+				listType: ListType.SINGLE_SELECT
+			}
+		}
+	} else if (hasNonNullishProperty(message, 'templateButtons')) {
+		const hydratedTemplate: Record<string, any> = {
+			hydratedButtons: (message as any).templateButtons.map((button: any, i: number) => {
+				const buttonText = button.text || button.buttonText
+				if (button.id != null)
+					return { index: i, quickReplyButton: { displayText: buttonText || '👉🏻 Click', id: button.id } }
+				if (button.url != null)
+					return { index: i, urlButton: { displayText: buttonText || '🌐 Visit', url: button.url } }
+				if (button.call != null)
+					return { index: i, callButton: { displayText: buttonText || '📞 Call', phoneNumber: button.call } }
+				button.index = button.index || i
+				return button
+			})
+		}
+		if (hasOptionalProperty(message, 'text')) {
+			hydratedTemplate.hydratedContentText = (message as any).text
+		} else {
+			if (hasOptionalProperty(message, 'caption')) {
+				hydratedTemplate.hydratedTitleText = (message as any).title
+				hydratedTemplate.hydratedContentText = (message as any).caption
+			}
+			Object.assign(hydratedTemplate, m)
+		}
+		if (hasOptionalProperty(message, 'footer')) hydratedTemplate.hydratedFooterText = (message as any).footer
+		hydratedTemplate.templateId = (message as any).id || 'template-' + Date.now()
+		m = { templateMessage: { hydratedFourRowTemplate: hydratedTemplate, hydratedTemplate } }
+	} else if (hasNonNullishProperty(message, 'nativeFlow')) {
+		const interactiveMessage: Record<string, any> = { nativeFlowMessage: prepareNativeFlowButtons(message as any) }
+		if (hasOptionalProperty(message, 'bizJid'))
+			interactiveMessage.collectionMessage = {
+				bizJid: (message as any).bizJid,
+				id: (message as any).id,
+				messageVersion: 1
+			}
+		else if (hasOptionalProperty(message, 'shopSurface'))
+			interactiveMessage.shopStorefrontMessage = {
+				surface: (message as any).shopSurface,
+				id: (message as any).id,
+				messageVersion: 1
+			}
+		if (hasOptionalProperty(message, 'text')) {
+			interactiveMessage.body = { text: (message as any).text }
+		} else {
+			if (hasOptionalProperty(message, 'caption')) {
+				const isValidHeader = hasValidInteractiveHeader(m)
+				if (!isValidHeader) throw new Boom('Invalid media type for interactive message header', { statusCode: 400 })
+				interactiveMessage.header = {
+					title: (message as any).title || '',
+					subtitle: (message as any).subtitle || '',
+					hasMediaAttachment: isValidHeader
+				}
+				interactiveMessage.body = { text: (message as any).caption }
+			}
+			if (hasOptionalProperty(message, 'thumbnail') && !!(message as any).thumbnail)
+				interactiveMessage.jpegThumbnail = (message as any).thumbnail
+			Object.assign(interactiveMessage.header || {}, m)
+		}
+		if (hasOptionalProperty(message, 'audioFooter')) {
+			const { audioMessage } = await prepareWAMessageMedia({ audio: (message as any).audioFooter }, options)
+			interactiveMessage.footer = { audioMessage, hasMediaAttachment: true }
+		} else if (hasOptionalProperty(message, 'footer')) {
+			interactiveMessage.footer = { text: (message as any).footer }
+		}
+		m = { interactiveMessage }
+	} else if (hasNonNullishProperty(message, 'cards')) {
+		const interactiveMessage: Record<string, any> = {
+			carouselMessage: {
+				cards: await Promise.all(
+					(message as any).cards.map(async (card: any) => {
+						let carouselHeader: Record<string, any> = {}
+						carouselHeader = await prepareWAMessageMedia(card, options).catch(() => ({}))
+						const isValidHeader = hasValidCarouselHeader(carouselHeader)
+						if (!isValidHeader) throw new Boom('Invalid media type for carousel card', { statusCode: 400 })
+						const carouselCard: Record<string, any> = {
+							nativeFlowMessage: prepareNativeFlowButtons(card.nativeFlow ? card : [])
+						}
+						if (hasOptionalProperty(card, 'text')) {
+							carouselCard.body = { text: card.text }
+						} else {
+							if (hasOptionalProperty(card, 'caption')) {
+								carouselCard.header = {
+									title: card.title || '',
+									subtitle: card.subtitle || '',
+									hasMediaAttachment: isValidHeader
+								}
+								carouselCard.body = { text: card.caption }
+							}
+							if (hasOptionalProperty(card, 'thumbnail') && !!card.thumbnail)
+								carouselCard.jpegThumbnail = card.thumbnail
+							Object.assign(carouselCard.header || {}, carouselHeader)
+						}
+						if (hasOptionalProperty(card, 'audioFooter')) {
+							const { audioMessage } = await prepareWAMessageMedia({ audio: card.audioFooter }, options)
+							carouselCard.footer = { audioMessage, hasMediaAttachment: true }
+						} else if (hasOptionalProperty(card, 'footer')) carouselCard.footer = { text: card.footer }
+						return carouselCard
+					})
+				),
+				carouselCardType: CarouselCardType.UNKNOWN,
+				messageVersion: 1
+			}
+		}
+		if (hasOptionalProperty(message, 'text')) interactiveMessage.body = { text: (message as any).text }
+		if (hasOptionalProperty(message, 'footer')) interactiveMessage.footer = { text: (message as any).footer }
+		m = { interactiveMessage }
 	}
 
 	if ('stickerPack' in message) {
@@ -1190,112 +1437,135 @@ function isWebPBuffer(buffer: Buffer): boolean {
 }
 
 async function prepareStickerPackMessage(
-	stickerPack: StickerPack,
+	message: StickerPack,
 	options: MessageContentGenerationOptions
-): Promise<proto.IMessage> {
-	const { stickers, name, publisher, packId, description } = stickerPack
+): Promise<proto.Message.IStickerPackMessage> {
+	const {
+		cover,
+		stickers = [],
+		name = '📦 Sticker Pack',
+		publisher = 'GitHub: itsliaaa',
+		description = '🏷️ itsliaaa/baileys'
+	} = message
 
-	if (stickers.length > 60) {
-		throw new Boom('Sticker pack exceeds the maximum limit of 60 stickers', { statusCode: 400 })
+	if (stickers.length > 60) throw new Boom('Sticker pack exceeds the maximum limit of 60 stickers', { statusCode: 400 })
+	if (stickers.length === 0) throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
+	if (!cover) throw new Boom('Sticker pack must contain a cover', { statusCode: 400 })
+
+	const logger = options.logger
+
+	// Caching — skip re-upload if same URLs used (itsliaaa/Lia@Changes 01-02-26)
+	let cacheableKey: string | false = false
+	if (stickers.length && options.mediaCache) {
+		const urls: string[] = []
+		for (const s of stickers) {
+			const d = s.data as any
+			if (d?.url) urls.push(d.url)
+		}
+		if (urls.length > 0) cacheableKey = 'sticker:' + urls.join('@')
 	}
-
-	if (stickers.length === 0) {
-		throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
+	if (cacheableKey) {
+		const cached = await options.mediaCache!.get<Buffer>(cacheableKey)
+		if (cached) {
+			logger?.debug({ cacheableKey }, 'got media cache hit')
+			return (proto.Message as any).StickerPackMessage.decode(cached)
+		}
 	}
-
-	const stickerPackIdValue = packId || generateMessageIDV2()
 
 	const lib = await getImageProcessingLibrary()
+	const hasSharp = 'sharp' in lib && !!(lib as any).sharp?.default
+	const hasImage = 'image' in lib && !!(lib as any).image?.Transformer
+	const hasJimp = 'jimp' in lib && !!(lib as any).jimp?.Jimp
+	if (!hasSharp && !hasImage)
+		throw new Boom('No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP.')
+
+	const stickerPackIdValue = generateMessageIDV2()
 	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
-	const stickerPromises = stickers.map(async (s, i) => {
-		const { stream } = await getStream(s.data)
-		const buffer = await toBuffer(stream)
+	const stickerMetadata: any[] = new Array(stickers.length)
 
-		let webpBuffer: Buffer
-		let isAnimated = false
-		const isWebP = isWebPBuffer(buffer)
-
-		if (isWebP) {
-			webpBuffer = buffer
-			isAnimated = isAnimatedWebP(buffer)
-		} else if ('sharp' in lib && lib.sharp) {
-			webpBuffer = await lib.sharp.default(buffer).webp().toBuffer()
-			isAnimated = false
-		} else {
-			throw new Boom(
-				'No image processing library (sharp) available for converting sticker to WebP. Either install sharp or provide stickers in WebP format.'
+	// Process stickers with concurrency limit (itsliaaa/Lia@Changes 21-04-26)
+	for (let i = 0; i < stickers.length; i += CONCURRENCY_LIMIT) {
+		const promises: Promise<void>[] = []
+		const chunkEnd = Math.min(i + CONCURRENCY_LIMIT, stickers.length)
+		for (let j = i; j < chunkEnd; j++) {
+			promises.push(
+				(async (index: number) => {
+					const sticker = stickers[index]!
+					const { stream } = await getStream(sticker.data)
+					const buffer = await toBuffer(stream)
+					let webpBuffer: Buffer
+					let isAnimated = false
+					if (isWebPBuffer(buffer)) {
+						webpBuffer = buffer
+						isAnimated = isAnimatedWebP(buffer)
+					} else if (hasSharp) {
+						webpBuffer = await (lib as any).sharp
+							.default(buffer)
+							.resize(512, 512, { fit: 'inside' })
+							.webp({ quality: 80 })
+							.toBuffer()
+					} else {
+						webpBuffer = await new (lib as any).image.Transformer(buffer).resize(512, 512).webp(80)
+					}
+					if (webpBuffer.length > 1024 * 1024)
+						throw new Boom(`Sticker at index ${index} exceeds the 1MB size limit`, { statusCode: 400 })
+					const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')
+					const fileName = `${hash}.webp`
+					stickerData[fileName] = [new Uint8Array(webpBuffer), { level: 0 }]
+					stickerMetadata[index] = {
+						fileName,
+						mimetype: 'image/webp',
+						isAnimated,
+						emojis: sticker.emojis || ['✨'],
+						accessibilityLabel: sticker.accessibilityLabel || '‎'
+					}
+				})(j)
 			)
 		}
-
-		if (webpBuffer.length > 1024 * 1024) {
-			throw new Boom(`Sticker at index ${i} exceeds the 1MB size limit`, { statusCode: 400 })
-		}
-
-		const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')
-		const fileName = `${hash}.webp`
-		stickerData[fileName] = [new Uint8Array(webpBuffer), { level: 0 as 0 }]
-		return {
-			fileName,
-			mimetype: 'image/webp',
-			isAnimated,
-			emojis: s.emojis || [],
-			accessibilityLabel: s.accessibilityLabel
-		}
-	})
-
-	const stickerMetadata = await Promise.all(stickerPromises)
-
-	const trayIconFileName = `${stickerPackIdValue}.webp`
-	const { stream: coverStream } = await getStream(stickerPack.cover)
-	const coverBuffer = await toBuffer(coverStream)
-
-	let coverWebpBuffer: Buffer
-	const isCoverWebP = isWebPBuffer(coverBuffer)
-
-	if (isCoverWebP) {
-		coverWebpBuffer = coverBuffer
-	} else if ('sharp' in lib && lib.sharp) {
-		coverWebpBuffer = await lib.sharp.default(coverBuffer).webp().toBuffer()
-	} else {
-		throw new Boom(
-			'No image processing library (sharp) available for converting cover to WebP. Either install sharp or provide cover in WebP format.'
-		)
+		await Promise.all(promises)
 	}
 
-	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 as 0 }]
+	// Cover image
+	const trayIconFileName = `${stickerPackIdValue}.webp`
+	const { stream: coverStream } = await getStream(cover)
+	const coverBuffer = await toBuffer(coverStream)
+	let coverWebpBuffer: Buffer
+	if (isWebPBuffer(coverBuffer)) {
+		coverWebpBuffer = coverBuffer
+	} else if (hasSharp) {
+		coverWebpBuffer = await (lib as any).sharp
+			.default(coverBuffer)
+			.resize(512, 512, { fit: 'inside' })
+			.webp({ quality: 80 })
+			.toBuffer()
+	} else {
+		coverWebpBuffer = await new (lib as any).image.Transformer(coverBuffer).resize(512, 512).webp(80)
+	}
+	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 }]
 
 	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
-		zip(stickerData, (err, data) => {
-			if (err) {
-				reject(err)
-			} else {
-				resolve(Buffer.from(data))
-			}
+		zip(stickerData, (err, data) => (err ? reject(err) : resolve(Buffer.from(data))))
+	})
+
+	const stickerPackUpload = await encryptedStream(zipBuffer, 'sticker-pack', { logger, opts: options.options })
+	let stickerPackUploadResult: any
+	try {
+		stickerPackUploadResult = await options.upload(stickerPackUpload.encFilePath, {
+			fileEncSha256B64: stickerPackUpload.fileEncSha256.toString('base64'),
+			mediaType: 'sticker-pack',
+			timeoutMs: options.mediaUploadTimeoutMs
 		})
-	})
+	} finally {
+		fs.unlink(stickerPackUpload.encFilePath).catch(() => logger?.warn('failed to remove tmp sticker-pack file'))
+	}
 
-	const stickerPackSize = zipBuffer.length
-
-	const stickerPackUpload = await encryptedStream(zipBuffer, 'sticker-pack', {
-		logger: options.logger,
-		opts: options.options
-	})
-
-	const stickerPackUploadResult = await options.upload(stickerPackUpload.encFilePath, {
-		fileEncSha256B64: stickerPackUpload.fileEncSha256.toString('base64'),
-		mediaType: 'sticker-pack',
-		timeoutMs: options.mediaUploadTimeoutMs
-	})
-
-	await fs.unlink(stickerPackUpload.encFilePath)
-
-	const stickerPackMessage: proto.Message.IStickerPackMessage = {
-		name: name,
-		publisher: publisher,
+	const obj: any = {
+		name,
+		publisher,
 		stickerPackId: stickerPackIdValue,
 		packDescription: description,
-		stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
-		stickerPackSize: stickerPackSize,
+		stickerPackOrigin: (proto.Message as any).StickerPackMessage.StickerPackOrigin.USER_CREATED,
+		stickerPackSize: zipBuffer.length,
 		stickers: stickerMetadata,
 		fileSha256: stickerPackUpload.fileSha256,
 		fileEncSha256: stickerPackUpload.fileEncSha256,
@@ -1303,50 +1573,52 @@ async function prepareStickerPackMessage(
 		directPath: stickerPackUploadResult.directPath,
 		fileLength: stickerPackUpload.fileLength,
 		mediaKeyTimestamp: unixTimestampSeconds(),
-		trayIconFileName: trayIconFileName
+		trayIconFileName
 	}
 
 	try {
 		let thumbnailBuffer: Buffer
+		if (hasSharp) thumbnailBuffer = await (lib as any).sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
+		else if (hasImage) thumbnailBuffer = await new (lib as any).image.Transformer(coverBuffer).resize(252, 252).jpeg()
+		else if (hasJimp) {
+			const j = await (lib as any).jimp.Jimp.read(coverBuffer)
+			thumbnailBuffer = await j.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
+		} else throw new Error('No image processing library for thumbnail')
 
-		if ('sharp' in lib && lib.sharp) {
-			thumbnailBuffer = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
-		} else if ('jimp' in lib && lib.jimp) {
-			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
-			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
-		} else {
-			throw new Error('No image processing library available for thumbnail generation')
-		}
+		if (!thumbnailBuffer! || thumbnailBuffer!.length === 0) throw new Error('Empty thumbnail buffer')
 
-		if (!thumbnailBuffer || thumbnailBuffer.length === 0) {
-			throw new Error('Failed to generate thumbnail buffer')
-		}
-
-		const thumbUpload = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack', {
-			logger: options.logger,
+		const thumbUpload = await encryptedStream(thumbnailBuffer!, 'thumbnail-sticker-pack', {
+			logger,
 			opts: options.options,
 			mediaKey: stickerPackUpload.mediaKey
 		})
+		let thumbUploadResult: any
+		try {
+			thumbUploadResult = await options.upload(thumbUpload.encFilePath, {
+				fileEncSha256B64: thumbUpload.fileEncSha256.toString('base64'),
+				mediaType: 'thumbnail-sticker-pack',
+				timeoutMs: options.mediaUploadTimeoutMs
+			})
+		} finally {
+			fs.unlink(thumbUpload.encFilePath).catch(() => logger?.warn('failed to remove tmp thumbnail file'))
+		}
 
-		const thumbUploadResult = await options.upload(thumbUpload.encFilePath, {
-			fileEncSha256B64: thumbUpload.fileEncSha256.toString('base64'),
-			mediaType: 'thumbnail-sticker-pack',
-			timeoutMs: options.mediaUploadTimeoutMs
-		})
-
-		await fs.unlink(thumbUpload.encFilePath)
-
-		Object.assign(stickerPackMessage, {
+		Object.assign(obj, {
 			thumbnailDirectPath: thumbUploadResult.directPath,
 			thumbnailSha256: thumbUpload.fileSha256,
 			thumbnailEncSha256: thumbUpload.fileEncSha256,
 			thumbnailHeight: 252,
 			thumbnailWidth: 252,
-			imageDataHash: sha256(thumbnailBuffer).toString('base64')
+			imageDataHash: sha256(thumbnailBuffer!).toString('base64')
 		})
-	} catch (e) {
-		options.logger?.warn?.(`Thumbnail generation failed: ${e}`)
+	} catch (error) {
+		logger?.warn(`Thumbnail generation failed: ${error}`)
 	}
 
-	return { stickerPackMessage }
+	if (cacheableKey) {
+		logger?.debug({ cacheableKey }, 'set cache (background)')
+		options.mediaCache!.set(cacheableKey, (proto.Message as any).StickerPackMessage.encode(obj).finish())
+	}
+
+	return (proto.Message as any).StickerPackMessage.fromObject(obj)
 }

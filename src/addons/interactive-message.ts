@@ -1,231 +1,294 @@
 /**
- * Interactive / Button Message Generators
- * Source: @innovatorssoft/baileys interactive-message.js
+ * Interactive / Button Message Integration
+ * Source: @itsliaaa/baileys messages.js (Lia@Changes 30-01-26 → 12-03-26)
+ *
+ * These types extend AnyMessageContent — use directly in sock.sendMessage():
+ *
+ * @example
+ * // Classic Buttons
+ * sock.sendMessage(jid, { text: 'Choose:', buttons: [{ id: 'y', text: 'Yes' }, { id: 'n', text: 'No' }] })
+ *
+ * // List / Sections
+ * sock.sendMessage(jid, { title: 'Menu', buttonText: 'Open', sections: [{ title: 'Options', rows: [{ id: '1', title: 'Item' }] }] })
+ *
+ * // Native Flow (URL / copy / call / quick_reply)
+ * sock.sendMessage(jid, { text: 'Click:', nativeFlow: { buttons: [{ url: 'https://...', text: 'Visit' }, { id: 'ok', text: 'OK' }] } })
+ *
+ * // Carousel / Cards
+ * sock.sendMessage(jid, { text: 'Cards:', cards: [{ image: ..., caption: 'Card 1', nativeFlow: { buttons: [...] } }] })
+ *
+ * // Template Buttons
+ * sock.sendMessage(jid, { text: 'Pick:', templateButtons: [{ id: 'ok', text: 'OK' }, { url: 'https://...', text: 'Visit' }] })
  */
-import { proto } from '../../WAProto/index.js'
-import { prepareWAMessageMedia } from '../Utils/messages-media.js'
-import type { MediaGenerationOptions } from '../Types/index.js'
 import type { WAMediaUpload } from '../Types/Message.js'
 
-export type ButtonItem = { buttonId?: string; displayText: string }
-export type ButtonSectionRow = { rowId: string; title: string; description?: string }
-export type ButtonSection = { title: string; rows: ButtonSectionRow[] }
-export type NativeFlowButton = { name: string; buttonParamsJson: string }
-export type NativeFlowOptions = {
-	footer?: string
-	header?: { title?: string; subtitle?: string; hasMediaAttachment?: boolean }
-}
-export type InteractiveButtonContent = {
-	body: string
-	footer?: string
-	buttons: ButtonItem[]
-	headerImage?: WAMediaUpload
-	headerVideo?: WAMediaUpload
-	headerDocument?: WAMediaUpload & { filename?: string }
-	title?: string
-}
-export type ListMessageContent = {
+// ── Button types ─────────────────────────────────────────────────────────────
+
+/** A single button in a buttonsMessage */
+export type WAButton =
+	| { id: string; text?: string; buttonText?: string; type?: number }
+	| { name: string; paramsJson: string; text?: string }
+	| { sections: WASingleSelectSection[]; text?: string; buttonText?: string }
+
+/** A row inside a list section */
+export type WASectionRow = {
+	id: string
 	title: string
 	description?: string
-	buttonText: string
-	footer?: string
-	sections: ButtonSection[]
 }
-export type TemplateButtonItem = {
-	index: number
-	quickReplyButton?: { displayText: string; id: string }
-	urlButton?: { displayText: string; url: string }
-	callButton?: { displayText: string; phoneNumber: string }
+
+/** A section in a listMessage */
+export type WAButtonSection = {
+	title: string
+	rows: WASectionRow[]
 }
-export type TemplateMessageContent = {
-	body: string
-	footer?: string
+
+/** Shorthand for single_select sections inside buttons array */
+export type WASingleSelectSection = {
+	title: string
+	rows: WASectionRow[]
+}
+
+/** A native flow button — supports id, url, copy, call, sections */
+export type WANativeFlowButton =
+	| { id: string; text?: string; icon?: string }
+	| { url: string; text?: string; icon?: string; useWebview?: boolean }
+	| { copy: string; text?: string; icon?: string }
+	| { call: string; text?: string; icon?: string }
+	| { sections: WASingleSelectSection[]; text?: string; icon?: string }
+
+/** nativeFlow message options */
+export type WANativeFlow = {
+	buttons: WANativeFlowButton[]
+	offerText?: string
+	offerUrl?: string
+	offerCode?: string
+	offerExpiration?: number
+	optionText?: string
+	optionTitle?: string
+}
+
+/** A template button (hydrated) */
+export type WATemplateButton =
+	| { id: string; text?: string; buttonText?: string; index?: number }
+	| { url: string; text?: string; buttonText?: string; index?: number }
+	| { call: string; text?: string; buttonText?: string; index?: number }
+
+/** A carousel card */
+export type WACarouselCard = {
+	image?: WAMediaUpload
+	video?: WAMediaUpload
+	product?: any
+	caption?: string
+	text?: string
 	title?: string
-	buttons: TemplateButtonItem[]
-	headerImage?: WAMediaUpload
-	headerVideo?: WAMediaUpload
-	headerLocation?: { latitude: number; longitude: number; name?: string; address?: string }
-}
-export type UrlButton = { displayText: string; url: string; merchantUrl?: string }
-export type QuickReplyButton = { displayText: string; id: string }
-export type CombinedButton =
-	| { type: 'url'; displayText: string; url: string }
-	| { type: 'reply'; displayText: string; id: string }
-	| { type: 'copy'; displayText: string; copyCode: string }
-	| { type: 'call'; displayText: string; phoneNumber: string }
-
-export const generateInteractiveButtonMessage = async (
-	content: InteractiveButtonContent,
-	options?: MediaGenerationOptions
-): Promise<proto.IMessage> => {
-	const buttons = content.buttons.map((btn, idx) => ({
-		buttonId: btn.buttonId || `btn-${idx}`,
-		buttonText: { displayText: btn.displayText },
-		type: proto.Message.ButtonsMessage.Button.Type.RESPONSE,
-		nativeFlowInfo: undefined
-	}))
-	const buttonsMessage: proto.Message.IButtonsMessage = {
-		contentText: content.body,
-		footerText: content.footer,
-		buttons,
-		headerType: proto.Message.ButtonsMessage.HeaderType.EMPTY
-	}
-	if (content.headerImage && options) {
-		const media = await prepareWAMessageMedia({ image: content.headerImage }, options)
-		buttonsMessage.imageMessage = media.imageMessage
-		buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.IMAGE
-	} else if (content.headerVideo && options) {
-		const media = await prepareWAMessageMedia({ video: content.headerVideo }, options)
-		buttonsMessage.videoMessage = media.videoMessage
-		buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.VIDEO
-	} else if (content.headerDocument && options) {
-		const media = await prepareWAMessageMedia(
-			{ document: content.headerDocument, mimetype: 'application/pdf', fileName: content.headerDocument.filename },
-			options
-		)
-		buttonsMessage.documentMessage = media.documentMessage
-		buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.DOCUMENT
-	} else if (content.title) {
-		buttonsMessage.text = content.title
-		buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.TEXT
-	}
-	return { buttonsMessage }
+	subtitle?: string
+	footer?: string
+	audioFooter?: WAMediaUpload
+	thumbnail?: Buffer
+	nativeFlow?: WANativeFlow
 }
 
-export const generateInteractiveListMessage = (content: ListMessageContent): proto.IMessage => ({
-	listMessage: {
-		title: content.title,
-		description: content.description || '',
-		buttonText: content.buttonText,
-		footerText: content.footer || '',
-		listType: proto.Message.ListMessage.ListType.SINGLE_SELECT,
-		sections: content.sections.map(s => ({
-			title: s.title,
-			rows: s.rows.map(r => ({ rowId: r.rowId, title: r.title, description: r.description || '' }))
-		}))
+// ── Extended AnyMessageContent fields ────────────────────────────────────────
+// These are the keys that itsliaaa added to generateWAMessageContent().
+// They work directly in sock.sendMessage() when integrated.
+
+/**
+ * Extended send options added by itsliaaa/baileys.
+ * Use these in the content object passed to sock.sendMessage().
+ */
+export type InteractiveMessageContent = {
+	/** Classic buttons (buttonsMessage) — simple id/text pairs */
+	buttons?: WAButton[]
+
+	/** List message sections */
+	sections?: WAButtonSection[]
+	buttonText?: string
+	title?: string
+	description?: string
+
+	/** Hydrated template buttons */
+	templateButtons?: WATemplateButton[]
+	id?: string
+
+	/** Native flow interactive message */
+	nativeFlow?: WANativeFlow | WANativeFlowButton[]
+
+	/** Carousel / cards message */
+	cards?: WACarouselCard[]
+
+	/** Optional: shop surface ID for shop message */
+	shopSurface?: number
+
+	/** Optional: bizJid for collection message */
+	bizJid?: string
+
+	/** Optional: audio footer for interactive message */
+	audioFooter?: WAMediaUpload
+
+	/** Optional: jpeg thumbnail for interactive message header */
+	thumbnail?: Buffer
+}
+
+// ── Payment Message Types ─────────────────────────────────────────────────────
+
+export type WAPaymentOptions = {
+	/** Request payment from a JID */
+	requestPaymentFrom?: string
+	currencyCode?: string
+	amount?: number
+}
+
+export type WAInvoiceOptions = {
+	invoiceNote?: string
+}
+
+// ── Extra sendMessage content flags (itsliaaa) ────────────────────────────────
+
+export type ExtraMessageFlags = {
+	/** Show Meta AI icon on message */
+	ai?: boolean
+
+	/** Mention all group participants (nonJidMentions = 1) */
+	mentionAll?: boolean
+
+	/** Wrap in ephemeral message */
+	ephemeral?: boolean
+
+	/** Group status message (contextInfo.isGroupStatus) */
+	groupStatus?: boolean
+
+	/** Wrap in spoiler */
+	spoiler?: boolean
+
+	/** Wrap in viewOnce */
+	viewOnce?: boolean
+
+	/** Wrap in viewOnceMessageV2 */
+	viewOnceV2?: boolean
+
+	/** Wrap in viewOnceMessageV2Extension */
+	viewOnceV2Extension?: boolean
+
+	/** Render interactiveMessage as templateMessage */
+	interactiveAsTemplate?: boolean
+
+	/** Secure meta service label */
+	secureMetaServiceLabel?: boolean
+
+	/** Raw message — build manually */
+	raw?: boolean
+
+	/** External ad reply (simplified) */
+	externalAdReply?: {
+		title?: string
+		body?: string
+		thumbnail?: Buffer
+		url?: string
+		mediaType?: number
+		largeThumbnail?: boolean
 	}
+}
+
+// ── Convenience builders (for manual use outside sendMessage) ─────────────────
+
+/** Build a native flow buttons array for quick_reply buttons */
+export const buildQuickReplyButtons = (items: { id: string; text: string; icon?: string }[]): WANativeFlowButton[] =>
+	items.map(i => ({ id: i.id, text: i.text, icon: i.icon }))
+
+/** Build URL buttons for native flow */
+export const buildUrlButtons = (
+	items: { url: string; text: string; icon?: string; useWebview?: boolean }[]
+): WANativeFlowButton[] => items.map(i => ({ url: i.url, text: i.text, icon: i.icon, useWebview: i.useWebview }))
+
+/** Build copy-code buttons for native flow */
+export const buildCopyCodeButtons = (items: { copy: string; text: string; icon?: string }[]): WANativeFlowButton[] =>
+	items.map(i => ({ copy: i.copy, text: i.text, icon: i.icon }))
+
+/** Build call buttons for native flow */
+export const buildCallButtons = (items: { call: string; text: string; icon?: string }[]): WANativeFlowButton[] =>
+	items.map(i => ({ call: i.call, text: i.text, icon: i.icon }))
+
+/** Build single_select sections shortcut inside native flow */
+export const buildSingleSelectButton = (text: string, sections: WASingleSelectSection[]): WANativeFlowButton => ({
+	sections,
+	text
 })
 
-export const generateTemplateMessage = async (
-	content: TemplateMessageContent,
-	options?: MediaGenerationOptions
-): Promise<proto.IMessage> => {
-	const hydratedButtons = content.buttons.map(btn => {
-		const h: proto.IHydratedTemplateButton = { index: btn.index }
-		if (btn.quickReplyButton)
-			h.quickReplyButton = { displayText: btn.quickReplyButton.displayText, id: btn.quickReplyButton.id }
-		else if (btn.urlButton) h.urlButton = { displayText: btn.urlButton.displayText, url: btn.urlButton.url }
-		else if (btn.callButton)
-			h.callButton = { displayText: btn.callButton.displayText, phoneNumber: btn.callButton.phoneNumber }
-		return h
-	})
-	const hydratedTemplate: proto.Message.IHydratedFourRowTemplate = {
-		hydratedContentText: content.body,
-		hydratedFooterText: content.footer,
-		hydratedButtons
-	}
-	if (content.title) hydratedTemplate.hydratedTitleText = content.title
-	if (content.headerImage && options) {
-		const m = await prepareWAMessageMedia({ image: content.headerImage }, options)
-		hydratedTemplate.imageMessage = m.imageMessage
-	} else if (content.headerVideo && options) {
-		const m = await prepareWAMessageMedia({ video: content.headerVideo }, options)
-		hydratedTemplate.videoMessage = m.videoMessage
-	} else if (content.headerLocation) {
-		hydratedTemplate.locationMessage = {
-			degreesLatitude: content.headerLocation.latitude,
-			degreesLongitude: content.headerLocation.longitude,
-			name: content.headerLocation.name,
-			address: content.headerLocation.address
-		}
-	}
-	return { templateMessage: { hydratedTemplate } }
-}
-
-export const generateNativeFlowMessage = (
+/**
+ * Full native flow content builder — shortcut for sock.sendMessage()
+ * @example
+ * sock.sendMessage(jid, buildNativeFlowContent('Pick:', [
+ *   { id: 'ok', text: '✅ OK' },
+ *   { url: 'https://...', text: '🌐 Visit' }
+ * ], { footer: 'Powered by Baileys' }))
+ */
+export const buildNativeFlowContent = (
 	body: string,
-	buttons: NativeFlowButton[],
-	options?: NativeFlowOptions
-): proto.IMessage => ({
-	interactiveMessage: {
-		body: { text: body },
-		footer: options?.footer ? { text: options.footer } : undefined,
-		header: options?.header
-			? {
-					title: options.header.title,
-					subtitle: options.header.subtitle,
-					hasMediaAttachment: options.header.hasMediaAttachment || false
-				}
-			: undefined,
-		nativeFlowMessage: {
-			buttons: buttons.map(btn => ({ name: btn.name, buttonParamsJson: btn.buttonParamsJson })),
-			messageParamsJson: ''
-		}
-	}
+	buttons: WANativeFlowButton[],
+	extra?: { footer?: string; title?: string; subtitle?: string }
+) => ({
+	text: body,
+	nativeFlow: { buttons },
+	footer: extra?.footer,
+	title: extra?.title,
+	subtitle: extra?.subtitle
 })
 
-export const generateCopyCodeButton = (
+/**
+ * Classic buttons content builder
+ * @example
+ * sock.sendMessage(jid, buildButtonsContent('Choose:', [
+ *   { id: 'y', text: 'Yes' },
+ *   { id: 'n', text: 'No' }
+ * ]))
+ */
+export const buildButtonsContent = (
 	body: string,
-	copyCode: string,
-	displayText = 'Copy Code',
-	options?: NativeFlowOptions
-): proto.IMessage =>
-	generateNativeFlowMessage(
-		body,
-		[{ name: 'cta_copy', buttonParamsJson: JSON.stringify({ display_text: displayText, copy_code: copyCode }) }],
-		options
-	)
+	buttons: Array<{ id: string; text: string }>,
+	extra?: { footer?: string }
+) => ({
+	text: body,
+	buttons: buttons.map(b => ({ id: b.id, text: b.text })),
+	footer: extra?.footer
+})
 
-export const generateUrlButtonMessage = (
-	body: string,
-	buttons: UrlButton[],
-	options?: { footer?: string; title?: string }
-): proto.IMessage =>
-	generateNativeFlowMessage(
-		body,
-		buttons.map(btn => ({
-			name: 'cta_url',
-			buttonParamsJson: JSON.stringify({ display_text: btn.displayText, url: btn.url, merchant_url: btn.merchantUrl })
-		})),
-		{ footer: options?.footer, header: options?.title ? { title: options.title } : undefined }
-	)
+/**
+ * List message content builder
+ * @example
+ * sock.sendMessage(jid, buildListContent('Menu', 'Open', [
+ *   { title: 'Category', rows: [{ id: '1', title: 'Item', description: 'Details' }] }
+ * ]))
+ */
+export const buildListContent = (
+	title: string,
+	buttonText: string,
+	sections: WAButtonSection[],
+	extra?: { text?: string; footer?: string }
+) => ({
+	title,
+	buttonText,
+	sections,
+	text: extra?.text,
+	footer: extra?.footer
+})
 
-export const generateQuickReplyButtons = (
+/**
+ * Template buttons content builder
+ * @example
+ * sock.sendMessage(jid, buildTemplateContent('Pick:', [
+ *   { id: 'ok', text: 'OK' },
+ *   { url: 'https://...', text: 'Visit' },
+ *   { call: '+62...', text: 'Call' }
+ * ]))
+ */
+export const buildTemplateContent = (
 	body: string,
-	buttons: QuickReplyButton[],
-	options?: { footer?: string; title?: string }
-): proto.IMessage =>
-	generateNativeFlowMessage(
-		body,
-		buttons.map(btn => ({
-			name: 'quick_reply',
-			buttonParamsJson: JSON.stringify({ display_text: btn.displayText, id: btn.id })
-		})),
-		{ footer: options?.footer, header: options?.title ? { title: options.title } : undefined }
-	)
-
-export const generateCombinedButtons = (
-	body: string,
-	buttons: CombinedButton[],
-	options?: { footer?: string; title?: string }
-): proto.IMessage => {
-	const nativeButtons = buttons.map(btn => {
-		if (btn.type === 'url')
-			return { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: btn.displayText, url: btn.url }) }
-		if (btn.type === 'reply')
-			return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: btn.displayText, id: btn.id }) }
-		if (btn.type === 'copy')
-			return {
-				name: 'cta_copy',
-				buttonParamsJson: JSON.stringify({ display_text: btn.displayText, copy_code: btn.copyCode })
-			}
-		return {
-			name: 'cta_call',
-			buttonParamsJson: JSON.stringify({ display_text: btn.displayText, phone_number: btn.phoneNumber })
-		}
-	})
-	return generateNativeFlowMessage(body, nativeButtons, {
-		footer: options?.footer,
-		header: options?.title ? { title: options.title } : undefined
-	})
-}
+	buttons: WATemplateButton[],
+	extra?: { footer?: string; title?: string }
+) => ({
+	text: body,
+	templateButtons: buttons,
+	footer: extra?.footer,
+	title: extra?.title
+})

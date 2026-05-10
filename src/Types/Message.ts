@@ -1,6 +1,5 @@
 import type { Readable } from 'stream'
 import type { URL } from 'url'
-import { proto } from '../../WAProto/index.js'
 import type { MediaType } from '../Defaults'
 import type { BinaryNode } from '../WABinary'
 import type { GroupMetadata } from './GroupMetadata'
@@ -399,3 +398,21 @@ export type MediaDecryptionKeyInfo = {
 }
 
 export type MinimalMessage = Pick<WAMessage, 'key' | 'messageTimestamp'>
+
+// ── Proto enum aliases (itsliaaa/Lia@Changes 03-02-26) ───────────────────────
+// Convenient shorthand for proto.Message.* enums
+import { proto } from '../../WAProto/index.js'
+
+export const AssociationType = proto.MessageAssociation.AssociationType
+export const ButtonHeaderType = proto.Message.ButtonsMessage.HeaderType
+export const ButtonType = proto.Message.ButtonsMessage.Button.Type
+export const CarouselCardType = proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType
+export const ListType = proto.Message.ListMessage.ListType
+export const ProtocolType = proto.Message.ProtocolMessage.Type
+export const WAMessageStubType = proto.WebMessageInfo.StubType
+export const WAMessageStatus = proto.WebMessageInfo.Status
+
+export enum WAMessageAddressingMode {
+	PN = 'pn',
+	LID = 'lid'
+}
