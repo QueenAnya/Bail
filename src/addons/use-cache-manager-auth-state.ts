@@ -33,7 +33,7 @@ export const useCacheManagerAuthState = async (
 	const readData = async (file: string): Promise<unknown> => {
 		try {
 			const data = await store.get(defaultKey(file))
-			return data ? JSON.parse(data, BufferJSON.reviver) : null
+			return (data as any) ? JSON.parse(data, BufferJSON.reviver) : null
 		} catch {
 			return null
 		}
@@ -62,7 +62,7 @@ export const useCacheManagerAuthState = async (
 			creds,
 			keys: {
 				get: async (type: string, ids: string[]) => {
-					const data: Record<string, unknown> = {}
+					const data: Record<string, any> = {}
 					await Promise.all(
 						ids.map(async id => {
 							let value = await readData(`${type}-${id}`)
@@ -72,7 +72,7 @@ export const useCacheManagerAuthState = async (
 							data[id] = value
 						})
 					)
-					return data
+					return data as any
 				},
 				set: async (data: Record<string, Record<string, unknown>>) => {
 					const tasks: Promise<any>[] = []

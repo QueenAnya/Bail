@@ -51,7 +51,7 @@ export const useMongoAuthState = async (
 			creds,
 			keys: {
 				get: async (type: string, ids: string[]) => {
-					const data: Record<string, unknown> = {}
+					const data: Record<string, any> = {}
 					await Promise.all(
 						ids.map(async id => {
 							let value = await readData(`${type}-${id}`)
@@ -61,7 +61,7 @@ export const useMongoAuthState = async (
 							data[id] = value
 						})
 					)
-					return data
+					return data as any
 				},
 				set: async (data: Record<string, Record<string, unknown>>) => {
 					const tasks: Promise<any>[] = []

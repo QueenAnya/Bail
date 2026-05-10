@@ -136,7 +136,7 @@ export const useSingleFileAuthState = async (
 			creds,
 			keys: {
 				get: (type: string, ids: string[]) => {
-					const data: Record<string, unknown> = {}
+					const data: Record<string, any> = {}
 					for (const id of ids) {
 						const keyName = type + id
 						let value = cache.get(keyName)
@@ -149,7 +149,7 @@ export const useSingleFileAuthState = async (
 						}
 						data[id] = value
 					}
-					return data
+					return data as any
 				},
 				set: (data: Record<string, Record<string, unknown>>) => {
 					for (const category in data) {

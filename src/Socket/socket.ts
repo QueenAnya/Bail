@@ -62,6 +62,7 @@ import { BinaryInfo } from '../WAM/BinaryInfo.js'
 import { USyncQuery, USyncUser } from '../WAUSync/'
 import { WebSocketClient } from './Client'
 import { executeWMexQuery } from './mex.js'
+import { isAndroidBrowser, getPlatformId, getPlatformDisplayName } from '../Utils/browser-utils.js'
 
 /**
  * Connects to WA servers and performs:

@@ -58,7 +58,7 @@ export class MessageStore {
 
 	storeMessage(message: proto.IWebMessageInfo) {
 		const chatId = message.key.remoteJid
-		if (!chatId || !message.key.id) return
+		if (!chatId || !message.key?.id) return
 		let chatMessages = this.store.get(chatId)
 		if (!chatMessages) {
 			chatMessages = new Map()
@@ -68,7 +68,7 @@ export class MessageStore {
 			const oldest = chatMessages.keys().next().value
 			if (oldest) chatMessages.delete(oldest)
 		}
-		chatMessages.set(message.key.id, { message, storedAt: Date.now(), isDeleted: false })
+		chatMessages.set(message.key!.id!, { message, storedAt: Date.now(), isDeleted: false })
 	}
 
 	storeMessages(messages: proto.IWebMessageInfo[]) {
@@ -83,7 +83,7 @@ export class MessageStore {
 		return this.getMessage(key)?.message
 	}
 
-	markAsDeleted(key: proto.IMessageKey, deletedBy?: string): DeletedMessageInfo | null {
+	markAsDeleted(key: proto.IMessageKey, deletedBy?: string | null): DeletedMessageInfo | null {
 		const stored = this.getMessage(key)
 		if (!stored) return null
 		const now = Date.now()

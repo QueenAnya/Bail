@@ -1366,7 +1366,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const bundle = extractE2ESessionFromRetryReceipt(receiptNode)
 		if (bundle) {
 			try {
-				await signalRepository.injectE2ESession({ jid: participant, session: bundle })
+				await signalRepository.injectE2ESession({ jid: participant, session: bundle as any })
 				injectedFromBundle = true
 				logger.debug({ participant, retryCount }, 'injected session from retry receipt key bundle')
 			} catch (error) {

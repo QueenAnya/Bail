@@ -147,7 +147,7 @@ export class AutoReplyHandler {
 			c.documentMessage?.caption ||
 			''
 		if (!text) return false
-		const jid = message.key.remoteJid
+		const jid = message.key?.remoteJid
 		if (!jid || !this.checkGlobalCooldown(jid)) return false
 
 		const sortedRules = Array.from(this.rules.values())
@@ -167,7 +167,7 @@ export class AutoReplyHandler {
 					await new Promise(r => setTimeout(r, this.options.typingDuration))
 					await this.sendPresence(jid, 'paused')
 				}
-				await this.sendMessage(jid, response, rule.quoted ? { quoted: message } : undefined)
+				await this.sendMessage(jid, response, rule.quoted ? { quoted: message as any } : undefined)
 				if (rule.cooldown) this.setCooldown(rule.id, jid, rule.cooldown)
 				this.options.onReply(rule, message, response)
 				matched = true

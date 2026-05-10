@@ -48,11 +48,11 @@ export const parseJid = (jid: string): ParsedJid | null => {
 		server: decoded.server,
 		device: decoded.device || 0,
 		agent: 0,
-		isLid: !!(isLidUser(jid) || isHostedLidUser(jid)),
-		isPn: !!(isPnUser(jid) || isHostedPnUser(jid)),
-		isHosted: jid.includes('@hosted') || isHostedLidUser(jid) || isHostedPnUser(jid),
-		isGroup: jid.endsWith('@g.us'),
-		isNewsletter: jid.endsWith('@newsletter'),
+		isLid: Boolean(isLidUser(jid) || isHostedLidUser(jid)),
+		isPn: Boolean(isPnUser(jid) || isHostedPnUser(jid)),
+		isHosted: Boolean(jid.includes('@hosted') || isHostedLidUser(jid) || isHostedPnUser(jid)),
+		isGroup: Boolean(jid.endsWith('@g.us')),
+		isNewsletter: Boolean(jid.endsWith('@newsletter')),
 		normalizedUser: jidNormalizedUser(jid)
 	}
 }

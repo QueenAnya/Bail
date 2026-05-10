@@ -4,7 +4,7 @@
  */
 import { proto } from '../../WAProto/index.js'
 
-export type MessageType =
+export type SearchMessageType =
 	| 'text'
 	| 'image'
 	| 'video'
@@ -26,7 +26,7 @@ export type SearchOptions = {
 	toDate?: Date
 	fromSender?: string
 	fromMe?: boolean
-	messageTypes?: MessageType[]
+	messageTypes?: SearchMessageType[]
 	caseSensitive?: boolean
 	limit?: number
 }
@@ -49,7 +49,7 @@ export const extractMessageText = (message: proto.IWebMessageInfo): string => {
 	)
 }
 
-const getMessageType = (message: proto.IWebMessageInfo): MessageType => {
+const getMessageType = (message: proto.IWebMessageInfo): SearchMessageType => {
 	const c = message.message
 	if (!c) return 'other'
 	if (c.conversation || c.extendedTextMessage) return 'text'
@@ -87,13 +87,13 @@ export const searchMessages = (
 	const results: SearchResult[] = []
 	const searchQuery = options.caseSensitive ? query : query.toLowerCase()
 	for (const message of messages) {
-		if (options.jid && message.key.remoteJid !== options.jid) continue
+		if (options.jid && message.key?.remoteJid !== options.jid) continue
 		const ts = message.messageTimestamp
 		const msgTime = ts ? new Date(typeof ts === 'number' ? ts * 1000 : Number(ts) * 1000) : null
 		if (options.fromDate && msgTime && msgTime < options.fromDate) continue
 		if (options.toDate && msgTime && msgTime > options.toDate) continue
-		if (options.fromSender && message.key.participant !== options.fromSender) continue
-		if (options.fromMe !== undefined && message.key.fromMe !== options.fromMe) continue
+		if (options.fromSender && message.key?.participant !== options.fromSender) continue
+		if (options.fromMe !== undefined && message.key?.fromMe !== options.fromMe) continue
 		if (options.messageTypes?.length && !options.messageTypes.includes(getMessageType(message))) continue
 		const text = extractMessageText(message)
 		if (!text) continue
@@ -119,9 +119,9 @@ export const searchMessagesRegex = (
 ): SearchResult[] => {
 	const results: SearchResult[] = []
 	for (const message of messages) {
-		if (options.jid && message.key.remoteJid !== options.jid) continue
-		if (options.fromSender && message.key.participant !== options.fromSender) continue
-		if (options.fromMe !== undefined && message.key.fromMe !== options.fromMe) continue
+		if (options.jid && message.key?.remoteJid !== options.jid) continue
+		if (options.fromSender && message.key?.participant !== options.fromSender) continue
+		if (options.fromMe !== undefined && message.key?.fromMe !== options.fromMe) continue
 		if (options.messageTypes?.length && !options.messageTypes.includes(getMessageType(message))) continue
 		const text = extractMessageText(message)
 		if (!text) continue
@@ -138,7 +138,7 @@ export class MessageSearchManager {
 
 	addMessages(messages: proto.IWebMessageInfo[]) {
 		for (const msg of messages) {
-			const id = msg.key.id
+			const id = msg.key?.id
 			if (id && !this.messageIndex.has(id)) {
 				this.messages.push(msg)
 				this.messageIndex.set(id, msg)
@@ -147,7 +147,7 @@ export class MessageSearchManager {
 	}
 	removeMessages(ids: string[]) {
 		const idSet = new Set(ids)
-		this.messages = this.messages.filter(m => !idSet.has(m.key.id || ''))
+		this.messages = this.messages.filter(m => !idSet.has(m.key?.id || ''))
 		for (const id of ids) this.messageIndex.delete(id)
 	}
 	clear() {
@@ -164,10 +164,10 @@ export class MessageSearchManager {
 		return searchMessagesRegex(this.messages, pattern, options)
 	}
 	getByJid(jid: string) {
-		return this.messages.filter(m => m.key.remoteJid === jid)
+		return this.messages.filter(m => m.key?.remoteJid === jid)
 	}
 	getBySender(sender: string) {
-		return this.messages.filter(m => m.key.participant === sender || m.key.remoteJid === sender)
+		return this.messages.filter(m => m.key?.participant === sender || m.key?.remoteJid === sender)
 	}
 	getByType(type: MessageType) {
 		return this.messages.filter(m => getMessageType(m) === type)

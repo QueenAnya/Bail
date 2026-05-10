@@ -3,7 +3,9 @@
  * Source: @innovatorssoft/baileys status-posting.js
  */
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, WASocket } from '../Types/index.js'
+import type { AnyMessageContent } from '../Types/index.js'
+import type makeWASocket from '../Socket/index.js'
+type WASocket = ReturnType<typeof makeWASocket>
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
 

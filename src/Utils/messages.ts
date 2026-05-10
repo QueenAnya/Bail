@@ -1,12 +1,18 @@
-import { LIBRARY_NAME, DONATE_URL, zip } from 'fflate'
-
+import { zip } from 'fflate'
 const CONCURRENCY_LIMIT = 10
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
-import { AssociationType, ButtonHeaderType, ButtonType, CarouselCardType, ListType } from '../Types/Message.js'
+import {
+	AssociationType,
+	ButtonHeaderType,
+	ButtonType,
+	CarouselCardType,
+	ListType,
+	StickerPack
+} from '../Types/Message.js'
 import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
@@ -43,6 +49,7 @@ import {
 	getAudioWaveform,
 	getRawMediaUploadData,
 	getStream,
+	getImageProcessingLibrary,
 	type MediaDownloadOptions,
 	toBuffer
 } from './messages-media'
@@ -419,8 +426,8 @@ const prepareNativeFlowButtons = (message: Record<string, any>) => {
 
 	if (message.offerText) {
 		messageParamsJson.limited_time_offer = {
-			text: message.offerText || LIBRARY_NAME,
-			url: message.offerUrl || DONATE_URL,
+			text: message.offerText || '@whiskeysockets/baileys',
+			url: message.offerUrl || 'https://saweria.co/itsliaaa',
 			copy_code: message.offerCode,
 			expiration_time: message.offerExpiration
 		}
@@ -800,7 +807,7 @@ export const generateWAMessageContent = async (
 				const isValidHeader = hasValidInteractiveHeader(m)
 				if (!isValidHeader) throw new Boom('Invalid media type for interactive message header', { statusCode: 400 })
 				interactiveMessage.header = {
-					title: (message as any).title || '',
+					title: ((message as any).title || '') as string,
 					subtitle: (message as any).subtitle || '',
 					hasMediaAttachment: isValidHeader
 				}
@@ -834,20 +841,20 @@ export const generateWAMessageContent = async (
 						} else {
 							if (hasOptionalProperty(card, 'caption')) {
 								carouselCard.header = {
-									title: card.title || '',
-									subtitle: card.subtitle || '',
+									title: (card as any).title || '',
+									subtitle: (card as any).subtitle || '',
 									hasMediaAttachment: isValidHeader
 								}
-								carouselCard.body = { text: card.caption }
+								carouselCard.body = { text: (card as any).caption }
 							}
-							if (hasOptionalProperty(card, 'thumbnail') && !!card.thumbnail)
-								carouselCard.jpegThumbnail = card.thumbnail
+							if (hasOptionalProperty(card, 'thumbnail') && !!(card as any).thumbnail)
+								carouselCard.jpegThumbnail = (card as any).thumbnail
 							Object.assign(carouselCard.header || {}, carouselHeader)
 						}
 						if (hasOptionalProperty(card, 'audioFooter')) {
 							const { audioMessage } = await prepareWAMessageMedia({ audio: card.audioFooter }, options)
 							carouselCard.footer = { audioMessage, hasMediaAttachment: true }
-						} else if (hasOptionalProperty(card, 'footer')) carouselCard.footer = { text: card.footer }
+						} else if (hasOptionalProperty(card, 'footer')) carouselCard.footer = { text: (card as any).footer }
 						return carouselCard
 					})
 				),
@@ -1439,7 +1446,7 @@ function isWebPBuffer(buffer: Buffer): boolean {
 async function prepareStickerPackMessage(
 	message: StickerPack,
 	options: MessageContentGenerationOptions
-): Promise<proto.Message.IStickerPackMessage> {
+): Promise<proto.IMessage> {
 	const {
 		cover,
 		stickers = [],
@@ -1589,8 +1596,7 @@ async function prepareStickerPackMessage(
 
 		const thumbUpload = await encryptedStream(thumbnailBuffer!, 'thumbnail-sticker-pack', {
 			logger,
-			opts: options.options,
-			mediaKey: stickerPackUpload.mediaKey
+			opts: options.options
 		})
 		let thumbUploadResult: any
 		try {
@@ -1620,5 +1626,5 @@ async function prepareStickerPackMessage(
 		options.mediaCache!.set(cacheableKey, (proto.Message as any).StickerPackMessage.encode(obj).finish())
 	}
 
-	return (proto.Message as any).StickerPackMessage.fromObject(obj)
+	return { stickerPackMessage: (proto.Message as any).StickerPackMessage.fromObject(obj) }
 }

@@ -1,32 +1,17 @@
 /**
- * Rich Message Type Enums
- * Source: @itsliaaa/baileys RichType + @innovatorssoft/baileys message-composer
+ * Rich Message Type Aliases — map to proto.AIRichResponseSubMessageType values
+ * Using actual proto enum values to ensure type compatibility
  */
+import { proto } from '../../WAProto/index.js'
 
-export enum CodeHighlightType {
-	DEFAULT = 0,
-	KEYWORD = 1,
-	METHOD = 2,
-	STRING = 3,
-	NUMBER = 4,
-	COMMENT = 5
-}
+// ── Re-export proto enums as friendly aliases ──────────────────────────────
+export const RichSubMessageType = proto.AIRichResponseSubMessageType
+export type RichSubMessageType = proto.AIRichResponseSubMessageType
 
-export enum RichSubMessageType {
-	UNKNOWN = 0,
-	GRID_IMAGE = 1,
-	TEXT = 2,
-	INLINE_IMAGE = 3,
-	TABLE = 4,
-	CODE = 5,
-	DYNAMIC = 6,
-	MAP = 7,
-	LATEX = 8,
-	CONTENT_ITEMS = 9
-}
+export const CodeHighlightType = proto.AIRichResponseCodeMetadata.AIRichResponseCodeHighlightType
+export type CodeHighlightType = proto.AIRichResponseCodeMetadata.AIRichResponseCodeHighlightType
 
-// ── Language keyword sets for syntax highlighting ────────────────────────────
-
+// ── Language keyword sets for tokenizer ────────────────────────────────────
 export const JS_KEYWORDS = new Set([
 	'import',
 	'export',

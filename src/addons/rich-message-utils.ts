@@ -7,6 +7,7 @@
  * WA clients need to render tables, code blocks, LaTeX, etc.
  */
 import { getRandomValues, randomBytes, randomUUID } from 'crypto'
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { proto } from '../../WAProto/index.js'
 import { BOT_RENDERING_CONFIG_METADATA, DONATE_URL } from '../Defaults/index.js'
 import { unixTimestampSeconds } from '../Utils/generics.js'
@@ -48,7 +49,7 @@ export const tokenizeCode = (code: string, language = 'javascript') => {
 export const toUnified = (submessages: proto.IAIRichResponseSubMessage[]) => ({
 	response_id: randomUUID(),
 	sections: submessages.map(submessage => {
-		switch (submessage.messageType) {
+		switch (submessage.messageType as number) {
 			case RichSubMessageType.CODE: {
 				const cm = submessage.codeMetadata!
 				return {
