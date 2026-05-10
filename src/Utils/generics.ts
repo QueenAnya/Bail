@@ -179,21 +179,9 @@ export async function promiseTimeout<T>(
 
 // inspired from whatsmeow code
 // https://github.com/tulir/whatsmeow/blob/64bc969fbe78d31ae0dd443b8d4c80a5d026d07a/send.go#L42
-//
-// uuid — optional label embedded in the ID so callers can recognise the
-//         message type from key.id (e.g. 'text', 'img', 'quoted').
-//         Allowed chars: A-Z 0-9 #  (other chars stripped).  Max 8 chars.
-//         Defaults to 'QA3#69' when not supplied.
 export const MSG_ID_PREFIX = '4NY4W3B'
-export const MSG_ID_DEFAULT_UUID = 'QA3#69'
 
-const sanitizeUuid = (uuid: string): string =>
-	uuid
-		.toUpperCase()
-		.replace(/[^A-Z0-9#]/g, '')
-		.substring(0, 8)
-
-export const generateMessageIDV2 = (userId?: string, uuid?: string): string => {
+export const generateMessageIDV2 = (userId?: string): string => {
 	const data = Buffer.alloc(8 + 20 + 16)
 	data.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000)))
 
@@ -209,22 +197,26 @@ export const generateMessageIDV2 = (userId?: string, uuid?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	const label = sanitizeUuid(uuid || MSG_ID_DEFAULT_UUID)
-	const rand = hash
-		.toString('hex')
-		.toUpperCase()
-		.substring(0, 18 - label.length)
-	return MSG_ID_PREFIX + label + rand
+	return MSG_ID_PREFIX + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = (uuid?: string): string => {
-	const label = sanitizeUuid(uuid || MSG_ID_DEFAULT_UUID)
-	const rand = randomBytes(18)
-		.toString('hex')
-		.toUpperCase()
-		.substring(0, 18 - label.length)
-	return MSG_ID_PREFIX + label + rand
+export const generateMessageID = (): string => MSG_ID_PREFIX + randomBytes(18).toString('hex').toUpperCase()
+
+/**
+ * Generates a uuid field value for key.uuid
+ * Format: (userUuid || 'qa3#69') padded/trimmed to exactly 11 chars
+ * Padding uses random alphanumeric chars
+ */
+export const generateKeyUuid = (userUuid?: string): string => {
+	const TOTAL_LENGTH = 11
+	const base = (userUuid || 'qa3#69').substring(0, TOTAL_LENGTH)
+	if (base.length === TOTAL_LENGTH) return base
+	const pad = randomBytes(TOTAL_LENGTH)
+		.toString('base64')
+		.replace(/[^A-Z0-9]/gi, '')
+		.substring(0, TOTAL_LENGTH - base.length)
+	return base + pad
 }
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {

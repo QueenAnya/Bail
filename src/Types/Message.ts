@@ -344,11 +344,17 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	/** if it is broadcast */
 	broadcast?: boolean
 	/**
-	 * Optional label embedded in key.id so callers can identify the message.
-	 * Allowed chars: A-Z 0-9 # (others stripped), max 8 chars, auto-uppercased.
-	 * Defaults to 'QA3#69' when not supplied.
-	 * @example { uuid: 'text' } → key.id = '4NY4W3BTEXT...'
-	 * @example { uuid: 'img' }  → key.id = '4NY4W3BIMG...'
+	 * Optional identifier added as key.uuid on the returned WAMessage.
+	 * Value = (content.uuid || options.uuid || 'qa3#69') + random chars, total exactly 11 chars.
+	 * The key.id field is NOT modified — it stays as standard '4NY4W3B...' format.
+	 *
+	 * @example
+	 * sock.sendMessage(jid, { text: 'Hi' }, { uuid: 'text' })
+	 * // → key.id   = '4NY4W3B118751AAD4EDF59842'  (unchanged)
+	 * // → key.uuid = 'textA3K9Z2M' (11 chars)
+	 *
+	 * sock.sendMessage(jid, { text: 'Hi' })
+	 * // → key.uuid = 'qa3#69A3K9Z' (11 chars, default)
 	 */
 	uuid?: string
 }

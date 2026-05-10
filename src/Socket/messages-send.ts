@@ -25,6 +25,7 @@ import {
 	encryptMediaRetryRequest,
 	extractDeviceJids,
 	generateMessageIDV2,
+	generateKeyUuid,
 	generateParticipantHashV2,
 	generateWAMessage,
 	getStatusCodeForMediaRetry,
@@ -1372,10 +1373,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					upload: waUploadToServer,
 					mediaCache: config.mediaCache,
 					options: config.options,
-					// Use options.uuid to embed a label in key.id (default: 'QA3#69')
-					messageId: options.messageId || generateMessageIDV2(sock.user?.id, options.uuid),
+					messageId: options.messageId || generateMessageIDV2(sock.user?.id),
 					...options
 				})
+				// Attach uuid to key — 11-char identifier for caller tracking
+				const _uuidSource = (content as any).uuid || options.uuid
+				;(fullMsg.key as any).uuid = generateKeyUuid(_uuidSource)
+
 				const isEventMsg = 'event' in content && !!content.event
 				const isDeleteMsg = 'delete' in content && !!content.delete
 				const isEditMsg = 'edit' in content && !!content.edit
