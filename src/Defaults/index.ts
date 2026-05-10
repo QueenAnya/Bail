@@ -1,3 +1,18 @@
+export const BOT_RENDERING_CONFIG_METADATA = {
+	forceRenderingConfig: true,
+	botRenderingToken: 1,
+	rendererVersion: 1
+}
+
+export const DONATE_URL = 'https://saweria.co/itsliaaa'
+
+export const BIZ_BOT_SUPPORT_PAYLOAD = JSON.stringify({
+	bot_type: 'AI',
+	supported_features: ['rich_response', 'code_block', 'table', 'latex']
+})
+
+export const LIBRARY_NAME = '@whiskeysockets/baileys-merged'
+
 import { proto } from '../../WAProto/index.js'
 import { makeLibSignalRepository } from '../Signal/libsignal'
 import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'

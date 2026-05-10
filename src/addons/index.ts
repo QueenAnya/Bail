@@ -1,56 +1,47 @@
 /**
- * Addons — Extra features ported from innovatorssoft/Baileys
+ * Baileys Addons — complete feature layer
  *
- * Import what you need:
- *   import { generateInteractiveButtonMessage } from '@whiskeysockets/baileys/addons'
- *   import { makeInMemoryStore } from '@whiskeysockets/baileys/addons/Store'
+ * Ported from @innovatorssoft/baileys (v7.4.3) and @itsliaaa/baileys (v0.3.0-rc.10)
+ * into WhiskeySockets/Baileys (rc10) as a clean, tree-shakeable ESM addon layer.
+ *
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │  Interactive / Button Messages                                  │
+ * │  Rich Response / Meta AI Messages (with correct Buffer inject)  │
+ * │  Anti-Delete / Message Store                                    │
+ * │  Auto-Reply System                                              │
+ * │  Message Scheduler                                              │
+ * │  Message Templates                                              │
+ * │  Message Search                                                 │
+ * │  vCard / Contact Card Generator                                 │
+ * │  JID / LID Plotting Utilities                                   │
+ * │  Status / Broadcast Helpers                                     │
+ * │  Chat Control (TypingIndicator, PinnedMessages, ReadReceipts)   │
+ * │  Baileys Event Stream (capture & replay)                        │
+ * │  Auth States (SingleFile, MongoDB, CacheManager)                │
+ * └─────────────────────────────────────────────────────────────────┘
  */
 
-// ── Interactive / Button message generators ───────────────────────────────────
-export * from './interactive-message'
+// ── Types & Enums ────────────────────────────────────────────────────────────
+export * from './rich-types.js'
 
-// ── Rich Response / Meta AI message composer ─────────────────────────────────
-export * from './message-composer'
+// ── Message Generators ───────────────────────────────────────────────────────
+export * from './interactive-message.js'
+export * from './rich-message-composer.js'
+export * from './rich-message-utils.js'
 
-// ── vCard / Contact card generator & parser ───────────────────────────────────
-export * from './vcard'
+// ── Bot / Addon Utils ────────────────────────────────────────────────────────
+export * from './anti-delete.js'
+export * from './auto-reply.js'
+export * from './scheduling.js'
+export * from './templates.js'
+export * from './message-search.js'
+export * from './vcard.js'
+export * from './jid-plotting.js'
+export * from './status-helpers.js'
+export * from './chat-control.js'
+export * from './baileys-event-stream.js'
 
-// ── Message template manager ──────────────────────────────────────────────────
-export * from './templates'
-
-// ── Status posting helpers ────────────────────────────────────────────────────
-export * from './status-posting'
-
-// ── Anti-delete / message store ───────────────────────────────────────────────
-export * from './anti-delete'
-
-// ── JID / LID plotting utilities ──────────────────────────────────────────────
-export * from './jid-plotting'
-
-// ── Message scheduling ────────────────────────────────────────────────────────
-export * from './scheduling'
-
-// ── Message search utilities ──────────────────────────────────────────────────
-export * from './message-search'
-
-// ── Chat control: TypingIndicator, PinnedMessages, ReadReceipts ───────────────
-export * from './chat-control'
-
-// ── Auto-reply system ─────────────────────────────────────────────────────────
-export * from './auto-reply'
-
-// ── Auth states ───────────────────────────────────────────────────────────────
-export * from './use-single-file-auth-state'
-export * from './use-mongo-file-auth-state'
-
-// ── Event capture / replay ────────────────────────────────────────────────────
-export * from './baileys-event-stream'
-
-// ── MEX operation constants ───────────────────────────────────────────────────
-export * from './MexUpdates'
-
-// ── Store ─────────────────────────────────────────────────────────────────────
-export * from './Store/make-ordered-dictionary'
-export * from './Store/object-repository'
-export * from './Store/make-in-memory-store'
-export * from './Store/make-cache-manager-store'
+// ── Auth States ───────────────────────────────────────────────────────────────
+export * from './use-single-file-auth-state.js'
+export * from './use-mongo-auth-state.js'
+export * from './use-cache-manager-auth-state.js'

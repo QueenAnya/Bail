@@ -1,9 +1,8 @@
 /**
  * Message Search Utilities
- * Ported from innovatorssoft/Baileys
+ * Source: @innovatorssoft/baileys message-search.js
  */
-
-import type { WAMessage } from '../Types'
+import { proto } from '../../WAProto/index.js'
 
 export type MessageType =
 	| 'text'
@@ -15,43 +14,42 @@ export type MessageType =
 	| 'location'
 	| 'contact'
 	| 'other'
-
-export interface SearchOptions {
+export type SearchResult = {
+	message: proto.IWebMessageInfo
+	matchedText: string
+	matchPosition: number
+	relevanceScore: number
+}
+export type SearchOptions = {
 	jid?: string
 	fromDate?: Date
 	toDate?: Date
 	fromSender?: string
 	fromMe?: boolean
 	messageTypes?: MessageType[]
-	limit?: number
 	caseSensitive?: boolean
+	limit?: number
 }
 
-export interface SearchResult {
-	message: WAMessage
-	matchedText: string
-	matchPosition: number
-	relevanceScore: number
-}
-
-/** Extract the plain text from any message type */
-export const extractMessageText = (message: WAMessage): string => {
+export const extractMessageText = (message: proto.IWebMessageInfo): string => {
 	const c = message.message
 	if (!c) return ''
-	if (c.conversation) return c.conversation
-	if (c.extendedTextMessage?.text) return c.extendedTextMessage.text
-	if (c.imageMessage?.caption) return c.imageMessage.caption
-	if (c.videoMessage?.caption) return c.videoMessage.caption
-	if (c.documentMessage?.caption) return c.documentMessage.caption
-	if (c.documentMessage?.fileName) return c.documentMessage.fileName
-	if (c.locationMessage?.name) return c.locationMessage.name
-	if (c.locationMessage?.address) return c.locationMessage.address
-	if (c.contactMessage?.displayName) return c.contactMessage.displayName
-	if (c.pollCreationMessage?.name) return c.pollCreationMessage.name
-	return ''
+	return (
+		c.conversation ||
+		c.extendedTextMessage?.text ||
+		c.imageMessage?.caption ||
+		c.videoMessage?.caption ||
+		c.documentMessage?.caption ||
+		c.documentMessage?.fileName ||
+		c.locationMessage?.name ||
+		c.locationMessage?.address ||
+		c.contactMessage?.displayName ||
+		c.pollCreationMessage?.name ||
+		''
+	)
 }
 
-const getMessageType = (message: WAMessage): MessageType => {
+const getMessageType = (message: proto.IWebMessageInfo): MessageType => {
 	const c = message.message
 	if (!c) return 'other'
 	if (c.conversation || c.extendedTextMessage) return 'text'
@@ -65,51 +63,42 @@ const getMessageType = (message: WAMessage): MessageType => {
 	return 'other'
 }
 
-const toMs = (ts: number | Long | null | undefined): number => {
-	if (!ts) return 0
-	const n = typeof ts === 'number' ? ts : Number(ts)
-	return n * 1000
-}
-
 const calculateRelevance = (query: string, text: string, position: number): number => {
 	let score = 100
 	if (text.toLowerCase() === query.toLowerCase()) score += 50
 	score -= Math.min(position / 10, 20)
-	const lower = text.toLowerCase()
-	const lq = query.toLowerCase()
-	const wordBoundary =
+	const lq = query.toLowerCase(),
+		lt = text.toLowerCase()
+	if (
 		position === 0 ||
-		lower[position - 1] === ' ' ||
-		lower[position + lq.length] === ' ' ||
+		lt[position - 1] === ' ' ||
+		lt[position + lq.length] === ' ' ||
 		position + lq.length === text.length
-	if (wordBoundary) score += 20
+	)
+		score += 20
 	return Math.max(score, 0)
 }
 
-/** Search messages by substring query */
-export const searchMessages = (messages: WAMessage[], query: string, options: SearchOptions = {}): SearchResult[] => {
+export const searchMessages = (
+	messages: proto.IWebMessageInfo[],
+	query: string,
+	options: SearchOptions = {}
+): SearchResult[] => {
 	const results: SearchResult[] = []
 	const searchQuery = options.caseSensitive ? query : query.toLowerCase()
-
 	for (const message of messages) {
 		if (options.jid && message.key.remoteJid !== options.jid) continue
-
-		const ts = toMs(message.messageTimestamp as number)
-		if (options.fromDate && ts && ts < options.fromDate.getTime()) continue
-		if (options.toDate && ts && ts > options.toDate.getTime()) continue
+		const ts = message.messageTimestamp
+		const msgTime = ts ? new Date(typeof ts === 'number' ? ts * 1000 : Number(ts) * 1000) : null
+		if (options.fromDate && msgTime && msgTime < options.fromDate) continue
+		if (options.toDate && msgTime && msgTime > options.toDate) continue
 		if (options.fromSender && message.key.participant !== options.fromSender) continue
 		if (options.fromMe !== undefined && message.key.fromMe !== options.fromMe) continue
-
-		if (options.messageTypes?.length) {
-			if (!options.messageTypes.includes(getMessageType(message))) continue
-		}
-
+		if (options.messageTypes?.length && !options.messageTypes.includes(getMessageType(message))) continue
 		const text = extractMessageText(message)
 		if (!text) continue
-
 		const searchText = options.caseSensitive ? text : text.toLowerCase()
 		const position = searchText.indexOf(searchQuery)
-
 		if (position !== -1) {
 			results.push({
 				message,
@@ -118,50 +107,36 @@ export const searchMessages = (messages: WAMessage[], query: string, options: Se
 				relevanceScore: calculateRelevance(query, text, position)
 			})
 		}
-
 		if (options.limit && results.length >= options.limit) break
 	}
-
 	return results.sort((a, b) => b.relevanceScore - a.relevanceScore)
 }
 
-/** Search messages by regex pattern */
 export const searchMessagesRegex = (
-	messages: WAMessage[],
+	messages: proto.IWebMessageInfo[],
 	pattern: RegExp,
 	options: Omit<SearchOptions, 'caseSensitive' | 'fromDate' | 'toDate'> = {}
 ): SearchResult[] => {
 	const results: SearchResult[] = []
-
 	for (const message of messages) {
 		if (options.jid && message.key.remoteJid !== options.jid) continue
 		if (options.fromSender && message.key.participant !== options.fromSender) continue
 		if (options.fromMe !== undefined && message.key.fromMe !== options.fromMe) continue
-
-		if (options.messageTypes?.length) {
-			if (!options.messageTypes.includes(getMessageType(message))) continue
-		}
-
+		if (options.messageTypes?.length && !options.messageTypes.includes(getMessageType(message))) continue
 		const text = extractMessageText(message)
 		if (!text) continue
-
 		const match = text.match(pattern)
-		if (match) {
-			results.push({ message, matchedText: match[0], matchPosition: match.index || 0, relevanceScore: 100 })
-		}
-
+		if (match) results.push({ message, matchedText: match[0], matchPosition: match.index || 0, relevanceScore: 100 })
 		if (options.limit && results.length >= options.limit) break
 	}
-
 	return results
 }
 
-/** In-memory message index with search capabilities */
 export class MessageSearchManager {
-	private messages: WAMessage[] = []
-	private messageIndex = new Map<string, WAMessage>()
+	private messages: proto.IWebMessageInfo[] = []
+	private messageIndex = new Map<string, proto.IWebMessageInfo>()
 
-	addMessages(messages: WAMessage[]): void {
+	addMessages(messages: proto.IWebMessageInfo[]) {
 		for (const msg of messages) {
 			const id = msg.key.id
 			if (id && !this.messageIndex.has(id)) {
@@ -170,49 +145,36 @@ export class MessageSearchManager {
 			}
 		}
 	}
-
-	removeMessages(messageIds: string[]): void {
-		const idSet = new Set(messageIds)
+	removeMessages(ids: string[]) {
+		const idSet = new Set(ids)
 		this.messages = this.messages.filter(m => !idSet.has(m.key.id || ''))
-		for (const id of messageIds) this.messageIndex.delete(id)
+		for (const id of ids) this.messageIndex.delete(id)
 	}
-
-	clear(): void {
+	clear() {
 		this.messages = []
 		this.messageIndex.clear()
 	}
-
-	get count(): number {
+	get count() {
 		return this.messages.length
 	}
-
-	search(query: string, options?: SearchOptions): SearchResult[] {
+	search(query: string, options?: SearchOptions) {
 		return searchMessages(this.messages, query, options)
 	}
-
-	searchRegex(pattern: RegExp, options?: Omit<SearchOptions, 'caseSensitive' | 'fromDate' | 'toDate'>): SearchResult[] {
+	searchRegex(pattern: RegExp, options?: Omit<SearchOptions, 'caseSensitive' | 'fromDate' | 'toDate'>) {
 		return searchMessagesRegex(this.messages, pattern, options)
 	}
-
-	getByJid(jid: string): WAMessage[] {
+	getByJid(jid: string) {
 		return this.messages.filter(m => m.key.remoteJid === jid)
 	}
-
-	getBySender(sender: string): WAMessage[] {
+	getBySender(sender: string) {
 		return this.messages.filter(m => m.key.participant === sender || m.key.remoteJid === sender)
 	}
-
-	getByType(type: MessageType): WAMessage[] {
+	getByType(type: MessageType) {
 		return this.messages.filter(m => getMessageType(m) === type)
 	}
-
-	getById(id: string): WAMessage | undefined {
+	getById(id: string) {
 		return this.messageIndex.get(id)
 	}
 }
 
-/** Factory — create a new MessageSearchManager */
-export const createMessageSearch = (): MessageSearchManager => new MessageSearchManager()
-
-// Long type shim — protobufjs Long can be number | { toNumber: () => number }
-type Long = { toNumber(): number }
+export const createMessageSearch = () => new MessageSearchManager()

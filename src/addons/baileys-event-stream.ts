@@ -1,47 +1,46 @@
 /**
- * Baileys Event Stream — capture & replay events to/from a file.
- * Ported from innovatorssoft/Baileys.
+ * Baileys Event Stream — capture and replay socket events to/from a file
+ * Source: @innovatorssoft/baileys baileys-event-stream.js
  */
-
-import EventEmitter from 'events'
-import { createReadStream } from 'fs'
+import { EventEmitter } from 'events'
+import { createReadStream, createWriteStream } from 'fs'
 import { writeFile } from 'fs/promises'
 import { createInterface } from 'readline'
-import type { BaileysEventEmitter } from '../Types'
-import { delay } from '../Utils/generics'
-import { makeMutex } from '../Utils/make-mutex'
+import { makeMutex } from '../Utils/make-mutex.js'
+import type { BaileysEventEmitter } from '../Types/index.js'
 
 /**
- * Monkey-patches the event emitter to append every emitted event as a
- * JSON line to `filename`. Useful for debugging and replaying sessions.
+ * Monkey-patches a BaileysEventEmitter to append every emitted event as a
+ * JSON line to `filename`.  Call once after `makeWASocket()` returns.
  */
 export const captureEventStream = (ev: BaileysEventEmitter, filename: string): void => {
-	const oldEmit = ev.emit.bind(ev)
+	const originalEmit = ev.emit.bind(ev)
 	const writeMutex = makeMutex()
 
-	// @ts-ignore — intentional monkey-patch
-	ev.emit = function (...args: Parameters<typeof oldEmit>) {
+	// @ts-expect-error — we're intentionally overriding the typed emit signature
+	ev.emit = (...args: [string, ...any[]]) => {
 		const [event, data] = args
 		const content = JSON.stringify({ timestamp: Date.now(), event, data }) + '\n'
-		const result = oldEmit(...args)
-		writeMutex.mutex(async () => {
+		const result = originalEmit(event as any, data)
+		writeMutex(async () => {
 			await writeFile(filename, content, { flag: 'a' })
 		})
 		return result
 	}
 }
 
-export interface EventStreamResult {
-	ev: EventEmitter
-	task: Promise<void>
-}
-
 /**
- * Reads a captured event stream file and re-emits every event.
- * @param filename  Path to the captured event file.
- * @param delayIntervalMs  Optional delay (ms) between events — useful for slow replay.
+ * Reads a captured event stream file line-by-line and re-emits each event
+ * from a fresh EventEmitter.  Useful for testing or replay without a live WA
+ * connection.
+ *
+ * @param filename      - Path to the .jsonl file produced by `captureEventStream`
+ * @param delayIntervalMs - Optional delay between events (ms)
  */
-export const readAndEmitEventStream = (filename: string, delayIntervalMs = 0): EventStreamResult => {
+export const readAndEmitEventStream = (
+	filename: string,
+	delayIntervalMs = 0
+): { ev: EventEmitter; task: Promise<void> } => {
 	const ev = new EventEmitter()
 
 	const fireEvents = async () => {
@@ -49,11 +48,10 @@ export const readAndEmitEventStream = (filename: string, delayIntervalMs = 0): E
 		const rl = createInterface({ input: fileStream, crlfDelay: Infinity })
 
 		for await (const line of rl) {
-			if (line) {
-				const { event, data } = JSON.parse(line)
-				ev.emit(event, data)
-				if (delayIntervalMs) await delay(delayIntervalMs)
-			}
+			if (!line) continue
+			const { event, data } = JSON.parse(line) as { event: string; data: unknown }
+			ev.emit(event, data)
+			if (delayIntervalMs) await new Promise(r => setTimeout(r, delayIntervalMs))
 		}
 
 		fileStream.destroy()
