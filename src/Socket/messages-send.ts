@@ -1372,7 +1372,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					upload: waUploadToServer,
 					mediaCache: config.mediaCache,
 					options: config.options,
-					messageId: generateMessageIDV2(sock.user?.id),
+					// Use options.uuid to embed a label in key.id (default: 'QA3#69')
+					messageId: options.messageId || generateMessageIDV2(sock.user?.id, options.uuid),
 					...options
 				})
 				const isEventMsg = 'event' in content && !!content.event

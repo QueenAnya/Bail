@@ -343,6 +343,14 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
+	/**
+	 * Optional label embedded in key.id so callers can identify the message.
+	 * Allowed chars: A-Z 0-9 # (others stripped), max 8 chars, auto-uppercased.
+	 * Defaults to 'QA3#69' when not supplied.
+	 * @example { uuid: 'text' } → key.id = '4NY4W3BTEXT...'
+	 * @example { uuid: 'img' }  → key.id = '4NY4W3BIMG...'
+	 */
+	uuid?: string
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
