@@ -9,7 +9,7 @@ export * from './Events'
 export * from './Product'
 export * from './Call'
 export * from './Signal'
-export * from './Newsletter'
+export * from './Mex'
 
 import type { AuthenticationState } from './Auth'
 import type { SocketConfig } from './Socket'
@@ -21,16 +21,9 @@ export type BrowsersMap = {
 	macOS(browser: string): [string, string, string]
 	baileys(browser: string): [string, string, string]
 	windows(browser: string): [string, string, string]
-	linux(browser: string): [string, string, string]
-	solaris(browser: string): [string, string, string]
-	chromeOS(browser: string): [string, string, string]
-	/** iOS companion (iPhone) */
-	iOS(browser: string): [string, string, string]
-	/** KaiOS companion */
-	kaiOS(browser: string): [string, string, string]
-	appropriate(browser: string): [string, string, string]
-	/** Android companion browser (apiLevel = Android API level string, e.g. '34') */
+	/** Android companion device. apiLevel is the Android API level e.g. '14' */
 	android(apiLevel: string): [string, string, string]
+	appropriate(browser: string): [string, string, string]
 }
 
 export enum DisconnectReason {
@@ -74,3 +67,4 @@ export type WABusinessProfile = {
 }
 
 export type CurveKeyPair = { private: Uint8Array; public: Uint8Array }
+export * from './Newsletter'

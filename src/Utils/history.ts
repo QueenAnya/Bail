@@ -49,7 +49,6 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 	const contacts: Contact[] = []
 	const chats: Chat[] = []
 	const lidPnMappings: LIDMapping[] = []
-	const pastParticipants: proto.IPastParticipants[] = []
 
 	logger?.trace({ progress: item.progress }, 'processing history of type ' + item.syncType?.toString())
 
@@ -120,13 +119,6 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 				chats.push(chat)
 			}
 
-			// Collect past participants from this sync chunk
-			if (item.pastParticipants?.length) {
-				for (const pp of item.pastParticipants) {
-					pastParticipants.push(pp)
-				}
-			}
-
 			break
 		case proto.HistorySync.HistorySyncType.PUSH_NAME:
 			for (const c of item.pushnames!) {
@@ -141,7 +133,7 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 		contacts,
 		messages,
 		lidPnMappings,
-		pastParticipants,
+		pastParticipants: item.pastParticipants,
 		syncType: item.syncType,
 		progress: item.progress
 	}

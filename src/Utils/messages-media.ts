@@ -31,7 +31,7 @@ import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-export const getImageProcessingLibrary = async () => {
+const getImageProcessingLibrary = async () => {
 	//@ts-ignore
 	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
@@ -380,31 +380,6 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
-	/** optional pre-supplied mediaKey — used by sticker packs to share key between zip and thumbnail */
-	mediaKey?: Buffer
-}
-
-/**
- * Returns true if the given buffer contains a valid WebP file (starts with RIFF…WEBP magic bytes).
- */
-export const isWebPBuffer = (buffer: Buffer): boolean =>
-	buffer.length > 12 &&
-	buffer.slice(0, 4).toString('ascii') === 'RIFF' &&
-	buffer.slice(8, 12).toString('ascii') === 'WEBP'
-
-/**
- * Returns true if the given WebP buffer contains an animation (ANIM chunk present).
- * Only call this after verifying isWebPBuffer.
- */
-export const isAnimatedWebP = (buffer: Buffer): boolean => {
-	// Scan for 'ANIM' chunk marker within the first 64 KB
-	const searchEnd = Math.min(buffer.length - 4, 65536)
-	for (let i = 12; i < searchEnd; i++) {
-		if (buffer[i] === 0x41 && buffer[i + 1] === 0x4e && buffer[i + 2] === 0x49 && buffer[i + 3] === 0x4d) {
-			return true
-		}
-	}
-	return false
 }
 
 export const encryptedStream = async (
@@ -525,7 +500,8 @@ export const encryptedStream = async (
 	}
 }
 
-const DEF_HOST = 'mmg.whatsapp.net'
+export const DEF_MEDIA_HOST = 'mmg.whatsapp.net'
+
 const AES_CHUNK_SIZE = 16
 
 const toSmallestChunkSize = (num: number) => {
@@ -536,17 +512,31 @@ export type MediaDownloadOptions = {
 	startByte?: number
 	endByte?: number
 	options?: RequestInit
+	/** Optional media host override; falls back to DEF_MEDIA_HOST when not provided. */
+	host?: string
 }
 
-export const getUrlFromDirectPath = (directPath: string) => `https://${DEF_HOST}${directPath}`
+export const getUrlFromDirectPath = (directPath: string, host: string = DEF_MEDIA_HOST) =>
+	`https://${host}${directPath}`
+
+const extractHost = (url: string | null | undefined): string | undefined => {
+	if (!url) return undefined
+	try {
+		return new URL(url).host
+	} catch {
+		return undefined
+	}
+}
 
 export const downloadContentFromMessage = async (
 	{ mediaKey, directPath, url }: DownloadableMessage,
 	type: MediaType,
 	opts: MediaDownloadOptions = {}
 ) => {
-	const isValidMediaUrl = url?.startsWith('https://mmg.whatsapp.net/')
-	const downloadUrl = isValidMediaUrl ? url : getUrlFromDirectPath(directPath!)
+	// Fallback host: explicit opt > host parsed from `url` > DEF_MEDIA_HOST.
+	// Lets us honor a non-default host carried by the proto without forcing callers to thread it through.
+	const fallbackHost = opts.host ?? extractHost(url)
+	const downloadUrl = directPath ? getUrlFromDirectPath(directPath, fallbackHost) : url
 	if (!downloadUrl) {
 		throw new Boom('No valid media URL or directPath present in message', { statusCode: 400 })
 	}

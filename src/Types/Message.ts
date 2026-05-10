@@ -171,30 +171,6 @@ type RequestPhoneNumber = {
 	requestPhoneNumber: boolean
 }
 
-export type Sticker = {
-	/** the sticker image data */
-	data: WAMediaUpload
-	/** emoji associated with this sticker */
-	emojis?: string[]
-	/** accessibility label for this sticker */
-	accessibilityLabel?: string
-}
-
-export type StickerPack = {
-	/** list of stickers in this pack */
-	stickers: Sticker[]
-	/** cover/tray image for the sticker pack */
-	cover: WAMediaUpload
-	/** name of the sticker pack */
-	name: string
-	/** publisher name */
-	publisher: string
-	/** optional description */
-	description?: string
-	/** optional unique pack ID; auto-generated if omitted */
-	packId?: string
-}
-
 export type AnyMediaMessageContent = (
 	| ({
 			image: WAMediaUpload
@@ -267,6 +243,9 @@ export type AnyRegularMessageContent = (
 	  } & Mentionable &
 			Contextable &
 			Editable)
+	| {
+			stickerPack: StickerPack
+	  }
 	| ({
 			album: AlbumMessageOptions
 	  } & Contextable &
@@ -307,10 +286,6 @@ export type AnyRegularMessageContent = (
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
-	| {
-			/** send a sticker pack */
-			stickerPack: StickerPack
-	  }
 ) &
 	ViewOnce
 
@@ -350,11 +325,6 @@ export type MessageRelayOptions = MinimalRelayOptions & {
 	useUserDevicesCache?: boolean
 	/** jid list of participants for status@broadcast */
 	statusJidList?: string[]
-	/**
-	 * If true, adds a Meta AI <bot biz_bot="1"> node so the message renders with an AI icon.
-	 * Only effective for private chats.
-	 */
-	ai?: boolean
 }
 
 export type MiscMessageGenerationOptions = MinimalRelayOptions & {
@@ -374,12 +344,6 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
-	/**
-	 * If true, adds a Meta AI <bot biz_bot="1"> node to the message stanza.
-	 * This makes the message appear with the AI icon in WhatsApp.
-	 * Only effective for private (non-group) chats.
-	 */
-	ai?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string

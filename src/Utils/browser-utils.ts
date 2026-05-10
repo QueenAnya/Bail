@@ -1,6 +1,6 @@
 import { platform, release } from 'os'
 import { proto } from '../../WAProto/index.js'
-import type { BrowsersMap, WABrowserDescription } from '../Types'
+import type { BrowsersMap } from '../Types'
 
 const PLATFORM_MAP = {
 	aix: 'AIX',
@@ -21,44 +21,39 @@ export const Browsers: BrowsersMap = {
 	macOS: browser => ['Mac OS', browser, '14.4.1'],
 	baileys: browser => ['Baileys', browser, '6.5.0'],
 	windows: browser => ['Windows', browser, '10.0.22631'],
-	linux: browser => ['Linux', browser, '6.5'],
-	solaris: browser => ['Solaris', browser, '11'],
-	chromeOS: browser => ['Chrome OS', browser, '117.0.5938.132'],
-	/** iOS companion — registers as iPhone companion */
-	iOS: browser => ['iOS', browser, '18.2'],
-	/** KaiOS companion */
-	kaiOS: browser => ['KaiOS', browser, '3.1'],
+	/** Android companion device. apiLevel is the Android API level e.g. '14' */
+	android: (apiLevel: string) => [apiLevel, 'Android', ''],
 	/** The appropriate browser based on your OS & release */
-	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()],
-	/**
-	 * Android browser preset — registers as an Android phone companion.
-	 * @param apiLevel  Android API level string (e.g. '34')
-	 */
-	android: (apiLevel: string) => [apiLevel, 'Android', '']
+	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()]
+}
+
+/**
+ * Checks if the browser tuple represents an Android companion device.
+ * @param browser - Browser tuple [os, platform, version]
+ * @returns True if platform is 'Android' (case-insensitive)
+ */
+export const isAndroidBrowser = (browser: [string, string, string]): boolean => {
+	return browser[1]?.toUpperCase() === 'ANDROID'
 }
 
 export const getPlatformId = (browser: string) => {
-	const upper = browser.toUpperCase()
-	// Map Android string explicitly since the enum key may differ
-	if (upper === 'ANDROID') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE.toString()
+	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
+	if (platformType !== undefined) {
+		return platformType.toString()
 	}
-	const platformType = proto.DeviceProps.PlatformType[upper as any]
-	return platformType ? platformType.toString() : '1' //chrome
+
+	// 'ANDROID' is not in the PlatformType enum — map to ANDROID_PHONE
+	if (browser.toUpperCase() === 'ANDROID') {
+		const androidPhone = proto.DeviceProps.PlatformType['ANDROID_PHONE' as any]
+		if (androidPhone !== undefined) {
+			return androidPhone.toString()
+		}
+	}
+
+	return proto.DeviceProps.PlatformType.CHROME.toString()
 }
 
-/**
- * Returns a human-readable browser name for pairing display.
- * Falls back to 'Chrome' for unknown browser strings.
- */
-export const getPlatformDisplayName = (browser: string): string => {
-	const upper = browser.toUpperCase()
-	const platformType = proto.DeviceProps.PlatformType[upper as any]
-	return platformType !== undefined ? browser : 'Chrome'
+export const getPlatformDisplayName = (browser: string) => {
+	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
+	return platformType ? browser : 'Chrome'
 }
-
-/**
- * Returns true if the given browser tuple was created via Browsers.android().
- * Used to detect Android sessions and adjust registration behaviour.
- */
-export const isAndroidBrowser = (browser: WABrowserDescription): boolean => browser[1]?.toUpperCase() === 'ANDROID'

@@ -1,6 +1,6 @@
+import { zip } from 'fflate'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
-import { zip } from 'fflate'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
@@ -21,7 +21,6 @@ import type {
 	MessageGenerationOptionsFromContent,
 	MessageUserReceipt,
 	MessageWithContextInfo,
-	StickerPack,
 	WAMediaUpload,
 	WAMessage,
 	WAMessageContent,
@@ -39,13 +38,10 @@ import {
 	generateThumbnail,
 	getAudioDuration,
 	getAudioWaveform,
-	getImageProcessingLibrary,
 	getRawMediaUploadData,
 	getStream,
-	isAnimatedWebP,
-	isWebPBuffer,
-	toBuffer,
-	type MediaDownloadOptions
+	type MediaDownloadOptions,
+	toBuffer
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
 
@@ -163,7 +159,7 @@ export const prepareWAMessageMedia = async (
 	}
 
 	if (!uploadData.mimetype) {
-		uploadData.mimetype = MIMETYPE_MAP[mediaType]
+		uploadData.mimetype = MIMETYPE_MAP[options.mediaTypeOverride || mediaType]
 	}
 
 	if (cacheableKey) {
@@ -230,8 +226,7 @@ export const prepareWAMessageMedia = async (
 	const requiresDurationComputation = mediaType === 'audio' && typeof uploadData.seconds === 'undefined'
 	const requiresThumbnailComputation =
 		(mediaType === 'image' || mediaType === 'video') && typeof uploadData['jpegThumbnail'] === 'undefined'
-	const requiresWaveformProcessing =
-		mediaType === 'audio' && uploadData.ptt === true && typeof uploadData.waveform === 'undefined'
+	const requiresWaveformProcessing = mediaType === 'audio' && uploadData.ptt === true
 	const requiresAudioBackground = options.backgroundColor && mediaType === 'audio' && uploadData.ptt === true
 	const requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation
 	const { mediaKey, encFilePath, originalFilePath, fileEncSha256, fileSha256, fileLength } = await encryptedStream(
@@ -598,8 +593,6 @@ export const generateWAMessageContent = async (
 			expectedImageCount: message.album.expectedImageCount,
 			expectedVideoCount: message.album.expectedVideoCount
 		}
-	} else if ('stickerPack' in message && message.stickerPack) {
-		m = await prepareStickerPackMessage(message.stickerPack, options)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER
@@ -618,6 +611,10 @@ export const generateWAMessageContent = async (
 		}
 	} else {
 		m = await prepareWAMessageMedia(message, options)
+	}
+
+	if ('stickerPack' in message) {
+		m = await prepareStickerPackMessage(message.stickerPack, options)
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
@@ -883,7 +880,7 @@ export const getDevice = (id: string) =>
 				? 'android'
 				: /^(3F|.{18}$)/.test(id)
 					? 'desktop'
-					: 'baileys'
+					: 'unknown'
 
 /** Upserts a receipt in the message */
 export const updateMessageWithReceipt = (msg: Pick<WAMessage, 'userReceipt'>, receipt: MessageUserReceipt) => {
@@ -1133,12 +1130,65 @@ export const assertMediaContent = (content: proto.IMessage | null | undefined) =
 }
 
 /**
- * Builds a stickerPackMessage proto by:
- *  1. Converting each sticker + cover to WebP (via sharp if available)
- *  2. ZIP-packing them with fflate
- *  3. Encrypting + uploading the zip
- *  4. Generating a thumbnail (252×252) and uploading it separately
+ * Checks if a WebP buffer is animated by looking for VP8X chunk with animation flag
+ * or ANIM/ANMF chunks
  */
+function isAnimatedWebP(buffer: Buffer): boolean {
+	// WebP must start with RIFF....WEBP
+	if (
+		buffer.length < 12 ||
+		buffer[0] !== 0x52 ||
+		buffer[1] !== 0x49 ||
+		buffer[2] !== 0x46 ||
+		buffer[3] !== 0x46 ||
+		buffer[8] !== 0x57 ||
+		buffer[9] !== 0x45 ||
+		buffer[10] !== 0x42 ||
+		buffer[11] !== 0x50
+	) {
+		return false
+	}
+
+	// Parse chunks starting after RIFF header (12 bytes)
+	let offset = 12
+	while (offset < buffer.length - 8) {
+		const chunkFourCC = buffer.toString('ascii', offset, offset + 4)
+		const chunkSize = buffer.readUInt32LE(offset + 4)
+
+		if (chunkFourCC === 'VP8X') {
+			// VP8X extended header, check animation flag (bit 1 at offset+8)
+			const flagsOffset = offset + 8
+			if (flagsOffset < buffer.length) {
+				const flags = buffer[flagsOffset]!
+				if (flags & 0x02) {
+					return true
+				}
+			}
+		} else if (chunkFourCC === 'ANIM' || chunkFourCC === 'ANMF') {
+			return true
+		}
+
+		// Move to next chunk (chunk size + 8 bytes header, padded to even)
+		offset += 8 + chunkSize + (chunkSize % 2)
+	}
+
+	return false
+}
+
+function isWebPBuffer(buffer: Buffer): boolean {
+	return (
+		buffer.length >= 12 &&
+		buffer[0] === 0x52 &&
+		buffer[1] === 0x49 &&
+		buffer[2] === 0x46 &&
+		buffer[3] === 0x46 &&
+		buffer[8] === 0x57 &&
+		buffer[9] === 0x45 &&
+		buffer[10] === 0x42 &&
+		buffer[11] === 0x50
+	)
+}
+
 async function prepareStickerPackMessage(
 	stickerPack: StickerPack,
 	options: MessageContentGenerationOptions
@@ -1157,7 +1207,6 @@ async function prepareStickerPackMessage(
 
 	const lib = await getImageProcessingLibrary()
 	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
-
 	const stickerPromises = stickers.map(async (s, i) => {
 		const { stream } = await getStream(s.data)
 		const buffer = await toBuffer(stream)
@@ -1174,7 +1223,7 @@ async function prepareStickerPackMessage(
 			isAnimated = false
 		} else {
 			throw new Boom(
-				'No image processing library (sharp) available for sticker conversion. Either install sharp or provide stickers in WebP format.'
+				'No image processing library (sharp) available for converting sticker to WebP. Either install sharp or provide stickers in WebP format.'
 			)
 		}
 
@@ -1196,25 +1245,25 @@ async function prepareStickerPackMessage(
 
 	const stickerMetadata = await Promise.all(stickerPromises)
 
-	// Cover / tray icon
 	const trayIconFileName = `${stickerPackIdValue}.webp`
 	const { stream: coverStream } = await getStream(stickerPack.cover)
 	const coverBuffer = await toBuffer(coverStream)
 
 	let coverWebpBuffer: Buffer
-	if (isWebPBuffer(coverBuffer)) {
+	const isCoverWebP = isWebPBuffer(coverBuffer)
+
+	if (isCoverWebP) {
 		coverWebpBuffer = coverBuffer
 	} else if ('sharp' in lib && lib.sharp) {
 		coverWebpBuffer = await lib.sharp.default(coverBuffer).webp().toBuffer()
 	} else {
 		throw new Boom(
-			'No image processing library (sharp) available for cover conversion. Either install sharp or provide cover in WebP format.'
+			'No image processing library (sharp) available for converting cover to WebP. Either install sharp or provide cover in WebP format.'
 		)
 	}
 
 	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 as 0 }]
 
-	// Compress all stickers + cover into one ZIP
 	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
 		zip(stickerData, (err, data) => {
 			if (err) {
@@ -1241,12 +1290,12 @@ async function prepareStickerPackMessage(
 	await fs.unlink(stickerPackUpload.encFilePath)
 
 	const stickerPackMessage: proto.Message.IStickerPackMessage = {
-		name,
-		publisher,
+		name: name,
+		publisher: publisher,
 		stickerPackId: stickerPackIdValue,
 		packDescription: description,
 		stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
-		stickerPackSize,
+		stickerPackSize: stickerPackSize,
 		stickers: stickerMetadata,
 		fileSha256: stickerPackUpload.fileSha256,
 		fileEncSha256: stickerPackUpload.fileEncSha256,
@@ -1254,10 +1303,9 @@ async function prepareStickerPackMessage(
 		directPath: stickerPackUploadResult.directPath,
 		fileLength: stickerPackUpload.fileLength,
 		mediaKeyTimestamp: unixTimestampSeconds(),
-		trayIconFileName
+		trayIconFileName: trayIconFileName
 	}
 
-	// Thumbnail — 252×252 JPEG of the cover
 	try {
 		let thumbnailBuffer: Buffer
 
@@ -1276,7 +1324,8 @@ async function prepareStickerPackMessage(
 
 		const thumbUpload = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack', {
 			logger: options.logger,
-			opts: options.options
+			opts: options.options,
+			mediaKey: stickerPackUpload.mediaKey
 		})
 
 		const thumbUploadResult = await options.upload(thumbUpload.encFilePath, {
@@ -1296,7 +1345,7 @@ async function prepareStickerPackMessage(
 			imageDataHash: sha256(thumbnailBuffer).toString('base64')
 		})
 	} catch (e) {
-		options.logger?.warn?.(`Thumbnail generation failed for sticker pack: ${e}`)
+		options.logger?.warn?.(`Thumbnail generation failed: ${e}`)
 	}
 
 	return { stickerPackMessage }

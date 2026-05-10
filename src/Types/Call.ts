@@ -24,7 +24,6 @@ export type WACallEvent = {
 }
 
 export type WAInitiateCallOptions = {
-	/** if true, initiates a video call instead of audio */
 	isVideo?: boolean
 }
 

@@ -14,8 +14,15 @@ import {
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
-import type { LIDMapping, SocketConfig } from '../Types'
-import { DisconnectReason } from '../Types'
+import {
+	type LIDMapping,
+	type NewChatMessageCapInfo,
+	QueryIds,
+	ReachoutTimelockEnforcementType,
+	type ReachoutTimelockState,
+	type SocketConfig
+} from '../Types'
+import { DisconnectReason, XWAPaths } from '../Types'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,
@@ -32,8 +39,6 @@ import {
 	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
-	getPlatformDisplayName,
-	isAndroidBrowser,
 	makeEventBuffer,
 	makeNoiseHandler,
 	promiseTimeout,
@@ -56,6 +61,7 @@ import {
 import { BinaryInfo } from '../WAM/BinaryInfo.js'
 import { USyncQuery, USyncUser } from '../WAUSync/'
 import { WebSocketClient } from './Client'
+import { executeWMexQuery } from './mex.js'
 
 /**
  * Connects to WA servers and performs:
@@ -315,13 +321,12 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
-		// Separate query for LID JIDs — uses LIDProtocol, not ContactProtocol
 		const lidQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				// LID JIDs: query via LIDProtocol to resolve their existence
+				// LIDs are queried via separate LID protocol query
 				lidQuery.withUser(new USyncUser().withLid(jid))
 			} else {
 				if (!contactEnabled) {
@@ -334,9 +339,8 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		const output: { jid: string; exists: boolean; lid?: string }[] = []
+		const output: { jid: string; exists: boolean }[] = []
 
-		// Execute PN query
 		if (usyncQuery.users.length > 0) {
 			const results = await executeUSyncQuery(usyncQuery)
 			if (results) {
@@ -347,7 +351,6 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		// Execute LID query
 		if (lidQuery.users.length > 0) {
 			const lidResults = await executeUSyncQuery(lidQuery)
 			if (lidResults) {
@@ -398,6 +401,13 @@ export const makeSocket = (config: SocketConfig) => {
 	let keepAliveReq: NodeJS.Timeout
 	let qrTimer: NodeJS.Timeout
 	let closed = false
+
+	const socketEndHandlers: Array<(error: Error | undefined) => void | Promise<void>> = []
+
+	let pairingReady = false
+	let pairingInProgress = false
+	let pendingPairingResolve: (() => void) | undefined
+	let pendingPairingReject: ((err: Error) => void) | undefined
 
 	/** log & process any unexpected errors */
 	const onUnexpectedError = (err: Error | Boom, msg: string) => {
@@ -489,7 +499,7 @@ export const makeSocket = (config: SocketConfig) => {
 		return +countChild.attrs.value!
 	}
 
-	// Pre-key upload state management
+	// WAWeb has no time throttle here; the server drives uploads via PreKeyLow notifications.
 	let uploadPreKeysPromise: Promise<void> | null = null
 	let lastUploadTime = 0
 
@@ -504,13 +514,13 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		// Prevent multiple concurrent uploads
 		if (uploadPreKeysPromise) {
 			logger.debug('Pre-key upload already in progress, waiting for completion')
 			await uploadPreKeysPromise
+			return
 		}
 
-		const uploadLogic = async () => {
+		const uploadLogic = async (retryCount: number): Promise<void> => {
 			logger.info({ count, retryCount }, 'uploading pre-keys')
 
 			// Generate and save pre-keys atomically (prevents ID collisions on retry)
@@ -519,7 +529,7 @@ export const makeSocket = (config: SocketConfig) => {
 				const { update, node } = await getNextPreKeysNode({ creds, keys }, count)
 				// Update credentials immediately to prevent duplicate IDs on retry
 				ev.emit('creds.update', update)
-				return node // Only return node since update is already used
+				return node
 			}, creds?.me?.id || 'upload-pre-keys')
 
 			// Upload to server (outside transaction, can fail without affecting local keys)
@@ -530,12 +540,12 @@ export const makeSocket = (config: SocketConfig) => {
 			} catch (uploadError) {
 				logger.error({ uploadError: (uploadError as Error).toString(), count }, 'Failed to upload pre-keys to server')
 
-				// Exponential backoff retry (max 3 retries)
+				// Recurse into uploadLogic; calling uploadPreKeys would await its own in-flight promise.
 				if (retryCount < 3) {
 					const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000)
 					logger.info(`Retrying pre-key upload in ${backoffDelay}ms`)
 					await new Promise(resolve => setTimeout(resolve, backoffDelay))
-					return uploadPreKeys(count, retryCount + 1)
+					return uploadLogic(retryCount + 1)
 				}
 
 				throw uploadError
@@ -544,7 +554,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 		// Add timeout protection
 		uploadPreKeysPromise = Promise.race([
-			uploadLogic(),
+			uploadLogic(0),
 			new Promise<void>((_, reject) =>
 				setTimeout(() => reject(new Boom('Pre-key upload timeout', { statusCode: 408 })), UPLOAD_TIMEOUT)
 			)
@@ -656,10 +666,20 @@ export const makeSocket = (config: SocketConfig) => {
 		ws.removeAllListeners('open')
 		ws.removeAllListeners('message')
 
+		signalRepository.close?.()
+
 		if (!ws.isClosed && !ws.isClosing) {
 			try {
 				await ws.close()
 			} catch {}
+		}
+
+		for (const handler of socketEndHandlers) {
+			try {
+				await handler(error)
+			} catch (err) {
+				logger.error({ err }, 'error in socket end handler')
+			}
 		}
 
 		ev.emit('connection.update', {
@@ -670,6 +690,7 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		})
 		ev.removeAllListeners('connection.update')
+		ev.destroy()
 	}
 
 	const waitForSocketOpen = async () => {
@@ -766,7 +787,7 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
-	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
+	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
 
 		if (customPairingCode && customPairingCode?.length !== 8) {
@@ -775,12 +796,18 @@ export const makeSocket = (config: SocketConfig) => {
 
 		authState.creds.pairingCode = pairingCode
 
-		authState.creds.me = {
-			id: jidEncode(phoneNumber, 's.whatsapp.net'),
-			name: '~'
-		}
-		ev.emit('creds.update', authState.creds)
-		await sendNode({
+		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
+		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the
+		// pairing IQ. DESKTOP (7) and other non-browser types are rejected with 400.
+		// companion_platform_display must use a canonical OS name; custom brand names belong
+		// in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked Devices.
+		const rawPlatformId = parseInt(getPlatformId(browser[1]))
+		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
+		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
+		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
+		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
+
+		await query({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
@@ -792,9 +819,8 @@ export const makeSocket = (config: SocketConfig) => {
 				{
 					tag: 'link_code_companion_reg',
 					attrs: {
-						jid: authState.creds.me.id,
+						jid,
 						stage: 'companion_hello',
-
 						should_show_push_notification: 'true'
 					},
 					content: [
@@ -811,13 +837,12 @@ export const makeSocket = (config: SocketConfig) => {
 						{
 							tag: 'companion_platform_id',
 							attrs: {},
-							// PR10: Android companion must use Chrome platform ID — ANDROID_PHONE causes silent fail
-							content: getCompanionPlatformId(isAndroidBrowser(browser) ? [browser[0], 'Chrome', browser[2]] : browser)
+							content: pairingPlatformId
 						},
 						{
 							tag: 'companion_platform_display',
 							attrs: {},
-							content: `${getPlatformDisplayName(browser[1])} (${browser[0]})`
+							content: `${pairingPlatformName} (${pairingPlatformHost})`
 						},
 						{
 							tag: 'link_code_pairing_nonce',
@@ -828,7 +853,44 @@ export const makeSocket = (config: SocketConfig) => {
 				}
 			]
 		})
+
+		authState.creds.me = { id: jid, name: '~' }
+		ev.emit('creds.update', authState.creds)
+
 		return authState.creds.pairingCode
+	}
+
+	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
+		if (pairingInProgress) {
+			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
+		}
+
+		pairingInProgress = true
+
+		if (pairingReady) {
+			try {
+				return await sendPairingIQ(phoneNumber, customPairingCode)
+			} finally {
+				pairingInProgress = false
+			}
+		}
+
+		logger.debug('pairing not ready yet, queuing request until pair-device is received')
+		return new Promise<string>((resolve, reject) => {
+			pendingPairingResolve = () => {
+				sendPairingIQ(phoneNumber, customPairingCode)
+					.then(resolve)
+					.catch(reject)
+					.finally(() => {
+						pairingInProgress = false
+					})
+			}
+
+			pendingPairingReject = (err: Error) => {
+				pairingInProgress = false
+				reject(err)
+			}
+		})
 	}
 
 	async function generatePairingKey() {
@@ -885,6 +947,15 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 		await sendNode(iq)
+
+		pairingReady = true
+		if (pendingPairingResolve) {
+			logger.debug('pair-device received, flushing queued pairing request')
+			const resolve = pendingPairingResolve
+			pendingPairingResolve = undefined
+			pendingPairingReject = undefined
+			resolve()
+		}
 
 		const pairDeviceNode = getBinaryNodeChild(stanza, 'pair-device')
 		const refNodes = getBinaryNodeChildren(pairDeviceNode, 'ref')
@@ -1118,6 +1189,46 @@ export const makeSocket = (config: SocketConfig) => {
 		}
 	}
 
+	const registerSocketEndHandler = (handler: (error: Error | undefined) => void | Promise<void>) => {
+		socketEndHandlers.push(handler)
+	}
+
+	/**
+	 * Fetches your account's standing when it comes to restrictions.
+	 * @returns Returns the state of the restrictions.
+	 */
+	const fetchAccountReachoutTimelock = async () => {
+		const queryResult = await executeWMexQuery<{
+			is_active?: boolean
+			time_enforcement_ends?: string
+			enforcement_type: ReachoutTimelockEnforcementType
+		}>({}, QueryIds.REACHOUT_TIMELOCK, XWAPaths.xwa2_fetch_account_reachout_timelock, query, generateMessageTag)
+		const result: ReachoutTimelockState = {
+			isActive: !!queryResult?.is_active,
+			timeEnforcementEnds:
+				queryResult?.time_enforcement_ends && queryResult?.time_enforcement_ends !== '0'
+					? new Date(parseInt(queryResult.time_enforcement_ends, 10) * 1000)
+					: undefined,
+			enforcementType: queryResult?.enforcement_type ?? ReachoutTimelockEnforcementType.DEFAULT
+		}
+		ev.emit('connection.update', { reachoutTimeLock: result })
+		return result
+	}
+
+	/**
+	 * Fetches your account's new chat limits.
+	 * @returns Returns the quota and the usage.
+	 */
+	const fetchNewChatMessageCap = async () => {
+		return executeWMexQuery<NewChatMessageCapInfo>(
+			{ input: { type: 'INDIVIDUAL_NEW_CHAT_MSG' } },
+			QueryIds.MESSAGE_CAPPING_INFO,
+			XWAPaths.xwa2_message_capping_info,
+			query,
+			generateMessageTag
+		)
+	}
+
 	return {
 		type: 'md' as 'md',
 		ws,
@@ -1135,6 +1246,7 @@ export const makeSocket = (config: SocketConfig) => {
 		sendNode,
 		logout,
 		end,
+		registerSocketEndHandler,
 		onUnexpectedError,
 		uploadPreKeys,
 		uploadPreKeysToServerIfRequired,
@@ -1148,7 +1260,9 @@ export const makeSocket = (config: SocketConfig) => {
 		waitForConnectionUpdate: bindWaitForConnectionUpdate(ev),
 		sendWAMBuffer,
 		executeUSyncQuery,
-		onWhatsApp
+		onWhatsApp,
+		fetchAccountReachoutTimelock,
+		fetchNewChatMessageCap
 	}
 }
 

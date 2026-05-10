@@ -126,9 +126,3 @@ export const transferDevice = (fromJid: string, toJid: string) => {
 	const { server, user } = jidDecode(toJid)!
 	return jidEncode(user, server, deviceId)
 }
-
-/**
- * Returns true for regular WhatsApp user JIDs (@s.whatsapp.net).
- * Alias for isPnUser — added for innovatorssoft addon compatibility.
- */
-export const isJidUser = (jid: string | undefined): boolean => !!jid?.endsWith('@s.whatsapp.net')

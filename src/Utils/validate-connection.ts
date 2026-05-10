@@ -15,16 +15,15 @@ import { createSignalIdentity } from './signal'
 import { isAndroidBrowser } from './browser-utils'
 
 const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
-	// WEB platform causes 405 errors on some WA server paths;
-	// MACOS is stable for both regular and Android companion sessions.
-	// (SMB_ANDROID would break pairing code flow)
 	return {
 		appVersion: {
 			primary: config.version[0],
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		platform: proto.ClientPayload.UserAgent.Platform.WEB,
+		platform: isAndroidBrowser(config.browser)
+			? proto.ClientPayload.UserAgent.Platform.ANDROID
+			: proto.ClientPayload.UserAgent.Platform.WEB,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
@@ -62,10 +61,13 @@ const getClientPayload = (config: SocketConfig) => {
 		userAgent: getUserAgent(config)
 	}
 
-	// Android companion sessions do not send webInfo — the server expects
-	// a platform=ANDROID registration path instead.
+	// Android companion devices don't send webInfo
 	if (!isAndroidBrowser(config.browser)) {
 		payload.webInfo = getWebInfo(config)
+	}
+
+	if (config.pushName) {
+		payload.pushName = config.pushName
 	}
 
 	return payload
