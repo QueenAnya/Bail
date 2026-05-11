@@ -33,7 +33,7 @@ export const useCacheManagerAuthState = async (
 	const readData = async (file: string): Promise<unknown> => {
 		try {
 			const data = await store.get(defaultKey(file))
-			return (data as any) ? JSON.parse(data, BufferJSON.reviver) : null
+			return data != null ? JSON.parse(data!, BufferJSON.reviver) : null
 		} catch {
 			return null
 		}

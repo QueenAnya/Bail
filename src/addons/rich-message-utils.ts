@@ -56,10 +56,7 @@ export const toUnified = (submessages: proto.IAIRichResponseSubMessage[]) => ({
 					view_model: {
 						primitive: {
 							language: cm.codeLanguage,
-							code_blocks: (cm.codeBlocks || []).map((b: any) => ({
-								content: b.codeContent,
-								type: CodeHighlightType[b.highlightType]
-							})),
+							code_blocks: (cm.codeBlocks || []).map((b: any) => ({ content: b.codeContent, type: b.highlightType })),
 							__typename: 'GenAICodeUXPrimitive'
 						},
 						__typename: 'GenAISingleLayoutViewModel'
@@ -164,8 +161,8 @@ export const wrapToBotForwardedMessage = (richResponseMessage: proto.IAIRichResp
 					}
 				]
 			},
-			botRenderingConfigMetadata: BOT_RENDERING_CONFIG_METADATA
-		}
+			...(BOT_RENDERING_CONFIG_METADATA as any)
+		} as any
 	},
 	botForwardedMessage: { message: { richResponseMessage } }
 })

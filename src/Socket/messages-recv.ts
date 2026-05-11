@@ -54,7 +54,8 @@ import {
 	xmppSignedPreKey
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
-import { makeOfflineNodeProcessor, type MessageType } from '../Utils/offline-node-processor'
+import { makeOfflineNodeProcessor } from '../Utils/offline-node-processor'
+import type { OfflineMessageType as MessageType } from '../Utils/offline-node-processor'
 import { buildAckStanza } from '../Utils/stanza-ack'
 import {
 	buildMergedTcTokenIndexWrite,
@@ -1948,7 +1949,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
-	const offlineNodeProcessor = makeOfflineNodeProcessor(
+	const nodeProcessor = makeOfflineNodeProcessor(
 		new Map<MessageType, (node: BinaryNode) => Promise<void>>([
 			['message', handleMessage],
 			['call', handleCall],
@@ -1989,7 +1990,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const isOffline = !!node.attrs.offline
 
 		if (isOffline) {
-			offlineNodeProcessor.enqueue(type, node)
+			nodeProcessor.enqueue(type, node)
 		} else {
 			await processNodeWithBuffer(node, identifier, exec)
 		}

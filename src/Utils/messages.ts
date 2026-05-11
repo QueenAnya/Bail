@@ -11,7 +11,7 @@ import {
 	ButtonType,
 	CarouselCardType,
 	ListType,
-	StickerPack
+	type StickerPack
 } from '../Types/Message.js'
 import {
 	CALL_AUDIO_PREFIX,
@@ -442,7 +442,7 @@ const prepareNativeFlowButtons = (message: Record<string, any>) => {
 	}
 
 	return {
-		buttons: correctedField.map((button: any) => {
+		buttons: correctedField.map((button: Record<string, any>) => {
 			const buttonText = button.text || button.buttonText
 			const buttonIcon = button.icon?.toUpperCase()
 			if (button.id)
@@ -711,14 +711,14 @@ export const generateWAMessageContent = async (
 			}
 		}
 	} else {
-		m = await prepareWAMessageMedia(message, options)
+		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}
 
 	// ── Interactive Messages (itsliaaa/Lia@Changes 30-01-26 → 12-03-26) ──────
 
 	if (hasNonNullishProperty(message, 'buttons')) {
 		const buttonsMessage: Record<string, any> = {
-			buttons: (message as any).buttons.map((button: any) => {
+			buttons: (message as any).buttons.map((button: Record<string, any>) => {
 				const buttonText = button.text || button.buttonText
 				if (button.sections != null) {
 					return {
@@ -1551,7 +1551,7 @@ async function prepareStickerPackMessage(
 	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 }]
 
 	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
-		zip(stickerData, (err, data) => (err ? reject(err) : resolve(Buffer.from(data))))
+		zip(stickerData, (err: Error | null, data: Uint8Array) => (err ? reject(err) : resolve(Buffer.from(data))))
 	})
 
 	const stickerPackUpload = await encryptedStream(zipBuffer, 'sticker-pack', { logger, opts: options.options })

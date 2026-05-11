@@ -169,7 +169,7 @@ export class MessageSearchManager {
 	getBySender(sender: string) {
 		return this.messages.filter(m => m.key?.participant === sender || m.key?.remoteJid === sender)
 	}
-	getByType(type: MessageType) {
+	getByType(type: SearchMessageType) {
 		return this.messages.filter(m => getMessageType(m) === type)
 	}
 	getById(id: string) {

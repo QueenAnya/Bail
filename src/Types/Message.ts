@@ -4,6 +4,7 @@ import type { MediaType } from '../Defaults'
 import type { BinaryNode } from '../WABinary'
 import type { GroupMetadata } from './GroupMetadata'
 import type { CacheStore } from './Socket'
+import { proto } from '../../WAProto/index.js'
 
 // export the WAMessage Prototypes
 export { proto as WAProto }
@@ -34,19 +35,28 @@ export type WAGenericMediaMessage =
 	| proto.Message.IAudioMessage
 	| proto.Message.IDocumentMessage
 	| proto.Message.IStickerMessage
-export const WAMessageStubType = proto.WebMessageInfo.StubType
-export const WAMessageStatus = proto.WebMessageInfo.Status
 import type { ILogger } from '../Utils/logger'
 export type WAMediaPayloadURL = { url: URL | string }
 export type WAMediaPayloadStream = { stream: Readable }
 export type WAMediaUpload = Buffer | WAMediaPayloadStream | WAMediaPayloadURL
+
+export type Sticker = {
+	data: WAMediaUpload
+	emojis?: string[]
+	accessibilityLabel?: string
+}
+
+export type StickerPack = {
+	stickers: Sticker[]
+	cover: WAMediaUpload
+	name: string
+	publisher: string
+	description?: string
+	packId?: string
+}
+
 /** Set of message types that are supported by the library */
 export type MessageType = keyof proto.Message
-
-export enum WAMessageAddressingMode {
-	PN = 'pn',
-	LID = 'lid'
-}
 
 export type MessageWithContextInfo =
 	| 'imageMessage'
@@ -412,3 +422,18 @@ export type MediaDecryptionKeyInfo = {
 }
 
 export type MinimalMessage = Pick<WAMessage, 'key' | 'messageTimestamp'>
+
+// ── Proto enum aliases ────────────────────────────────────────────────────────
+export const AssociationType = proto.MessageAssociation.AssociationType
+export const ButtonHeaderType = proto.Message.ButtonsMessage.HeaderType
+export const ButtonType = proto.Message.ButtonsMessage.Button.Type
+export const CarouselCardType = proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType
+export const ListType = proto.Message.ListMessage.ListType
+export const ProtocolType = proto.Message.ProtocolMessage.Type
+export const WAMessageStubType = proto.WebMessageInfo.StubType
+export const WAMessageStatus = proto.WebMessageInfo.Status
+
+export enum WAMessageAddressingMode {
+	PN = 'pn',
+	LID = 'lid'
+}

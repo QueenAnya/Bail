@@ -13,8 +13,7 @@ export {
 	generateUnifiedResponseContent,
 	generateRichMessageContent,
 	buildBotForwardedMessage,
-	buildRichContextInfo,
-	tokenizeCode as tokenizeCodeComposer
+	buildRichContextInfo
 } from '../addons/rich-message-composer.js'
 
 export type {

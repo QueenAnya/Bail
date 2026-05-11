@@ -1,17 +1,40 @@
 /**
- * Rich Message Type Aliases — map to proto.AIRichResponseSubMessageType values
- * Using actual proto enum values to ensure type compatibility
+ * Rich Message Type Enums — friendly name mappings over proto enum values
  */
 import { proto } from '../../WAProto/index.js'
 
-// ── Re-export proto enums as friendly aliases ──────────────────────────────
-export const RichSubMessageType = proto.AIRichResponseSubMessageType
-export type RichSubMessageType = proto.AIRichResponseSubMessageType
+const RST = proto.AIRichResponseSubMessageType
+const CHT = proto.AIRichResponseCodeMetadata.AIRichResponseCodeHighlightType
 
-export const CodeHighlightType = proto.AIRichResponseCodeMetadata.AIRichResponseCodeHighlightType
-export type CodeHighlightType = proto.AIRichResponseCodeMetadata.AIRichResponseCodeHighlightType
+/** Friendly aliases for proto.AIRichResponseSubMessageType */
+export const RichSubMessageType = {
+	UNKNOWN: RST.AI_RICH_RESPONSE_UNKNOWN as number,
+	GRID_IMAGE: RST.AI_RICH_RESPONSE_GRID_IMAGE as number,
+	TEXT: RST.AI_RICH_RESPONSE_TEXT as number,
+	INLINE_IMAGE: RST.AI_RICH_RESPONSE_INLINE_IMAGE as number,
+	TABLE: RST.AI_RICH_RESPONSE_TABLE as number,
+	CODE: RST.AI_RICH_RESPONSE_CODE as number,
+	DYNAMIC: RST.AI_RICH_RESPONSE_DYNAMIC as number,
+	MAP: RST.AI_RICH_RESPONSE_MAP as number,
+	LATEX: RST.AI_RICH_RESPONSE_LATEX as number,
+	CONTENT_ITEMS: RST.AI_RICH_RESPONSE_CONTENT_ITEMS as number
+} as const
 
-// ── Language keyword sets for tokenizer ────────────────────────────────────
+export type RichSubMessageType = (typeof RichSubMessageType)[keyof typeof RichSubMessageType]
+
+/** Friendly aliases for proto.AIRichResponseCodeMetadata.AIRichResponseCodeHighlightType */
+export const CodeHighlightType = {
+	DEFAULT: CHT.AI_RICH_RESPONSE_CODE_HIGHLIGHT_DEFAULT as number,
+	KEYWORD: CHT.AI_RICH_RESPONSE_CODE_HIGHLIGHT_KEYWORD as number,
+	METHOD: CHT.AI_RICH_RESPONSE_CODE_HIGHLIGHT_METHOD as number,
+	STRING: CHT.AI_RICH_RESPONSE_CODE_HIGHLIGHT_STRING as number,
+	NUMBER: CHT.AI_RICH_RESPONSE_CODE_HIGHLIGHT_NUMBER as number,
+	COMMENT: CHT.AI_RICH_RESPONSE_CODE_HIGHLIGHT_COMMENT as number
+} as const
+
+export type CodeHighlightType = (typeof CodeHighlightType)[keyof typeof CodeHighlightType]
+
+// ── Language keyword sets for tokenizer ───────────────────────────────────
 export const JS_KEYWORDS = new Set([
 	'import',
 	'export',
@@ -62,7 +85,6 @@ export const JS_KEYWORDS = new Set([
 	'debugger',
 	'with'
 ])
-
 export const PYTHON_KEYWORDS = new Set([
 	'import',
 	'from',
@@ -102,7 +124,6 @@ export const PYTHON_KEYWORDS = new Set([
 	'self',
 	'print'
 ])
-
 export const LANGUAGE_KEYWORDS: Record<string, Set<string>> = {
 	javascript: JS_KEYWORDS,
 	typescript: JS_KEYWORDS,
