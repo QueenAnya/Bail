@@ -28,18 +28,11 @@
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 
-// ── Types & Enums (rc10) ──────────────────────────────────────────────────
-export * from './rich-types.js'
-
 // ── Button Sender (anya) ──────────────────────────────────────────────────
 export * from './button-sender.js'
 
 // ── Interactive / Button Message Generators ───────────────────────────────
 export * from './interactive-message.js'
-
-// ── Rich Message Composer + Utils (rc10) ──────────────────────────────────
-export * from './rich-message-composer.js'
-export * from './rich-message-utils.js'
 
 // ── Rich Response / Meta AI (anya/innov.) ─────────────────────────────────
 export * from './rich-response.js'
@@ -79,9 +72,6 @@ export * from './jid-plot.js'
 
 // ── Status Posting + Mentions (anya) ─────────────────────────────────────
 export * from './status-posting.js'
-
-// ── Status Helpers (rc10) ────────────────────────────────────────────────
-export * from './status-helpers.js'
 
 // ── Chat Control (rc10) ───────────────────────────────────────────────────
 export * from './chat-control.js'

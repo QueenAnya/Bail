@@ -380,6 +380,8 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
+	/** optional fixed mediaKey — used by stickerpack thumbnail to share the same key as the pack */
+	mediaKey?: Buffer
 }
 
 export const encryptedStream = async (

@@ -1498,7 +1498,7 @@ async function prepareStickerPackMessage(
 			promises.push(
 				(async (index: number) => {
 					const sticker = stickers[index]!
-					const { stream } = await getStream(sticker.data)
+					const { stream } = await getStream(sticker.data ?? sticker.sticker)
 					const buffer = await toBuffer(stream)
 					let webpBuffer: Buffer
 					let isAnimated = false
