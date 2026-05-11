@@ -1,7 +1,7 @@
 {
-  "name": "@queenanya/bail",
+  "name": "@queenanya/baileys",
   "type": "module",
-  "version": "1.0.0-beta.0",
+  "version": "9.5.5-beta.2",
   "description": "A WebSockets library for interacting with WhatsApp Web",
   "keywords": [
     "whatsapp",
