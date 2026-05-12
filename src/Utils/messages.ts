@@ -710,7 +710,7 @@ export const generateWAMessageContent = async (
 				initiatedByMe: true
 			}
 		}
-	} else {
+	} else if (!('stickerPack' in message)) {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}
 
