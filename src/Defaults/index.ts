@@ -153,15 +153,6 @@ export type MediaType = keyof typeof MEDIA_HKDF_KEY_MAPPING
 
 export const MEDIA_KEYS = Object.keys(MEDIA_PATH_MAP) as MediaType[]
 
-export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
-	image: '/newsletter/newsletter-image',
-	video: '/newsletter/newsletter-video',
-	document: '/newsletter/newsletter-document',
-	audio: '/newsletter/newsletter-audio',
-	sticker: '/newsletter/newsletter-image',
-	'thumbnail-link': '/newsletter/newsletter-image'
-}
-
 /** 120s timeout for history sync stall detection, same as WA Web's handleChunkProgress / restartPausedTimer (g = 120) */
 export const HISTORY_SYNC_PAUSED_TIMEOUT_MS = 120_000
 
@@ -177,4 +168,13 @@ export const TimeMs = {
 	Hour: 60 * 60 * 1000,
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
+}
+
+export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
+	image: '/newsletter/newsletter-image',
+	video: '/newsletter/newsletter-video',
+	document: '/newsletter/newsletter-document',
+	audio: '/newsletter/newsletter-audio',
+	sticker: '/newsletter/newsletter-image',
+	'thumbnail-link': '/newsletter/newsletter-image'
 }

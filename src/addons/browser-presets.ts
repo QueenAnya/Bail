@@ -20,7 +20,8 @@ export const androidBrowserPreset = (browser: string): [string, string, string] 
  * used in the companion_platform_display field of the pairing IQ.
  * Falls back to 'Chrome' for unknown / custom browser names.
  */
-export const getPlatformDisplayName = (browser: string): string => {
+// getPlatformDisplayName already in browser-utils
+const _getPlatformDisplayName = (browser: string): string => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
 	return platformType ? browser : 'Chrome'
 }

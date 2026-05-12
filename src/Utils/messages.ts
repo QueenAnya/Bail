@@ -710,7 +710,7 @@ export const generateWAMessageContent = async (
 				initiatedByMe: true
 			}
 		}
-	} else if (!('stickerPack' in message)) {
+	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}
 
@@ -1498,7 +1498,7 @@ async function prepareStickerPackMessage(
 			promises.push(
 				(async (index: number) => {
 					const sticker = stickers[index]!
-					const { stream } = await getStream(sticker.data ?? sticker.sticker)
+					const { stream } = await getStream(sticker.data)
 					const buffer = await toBuffer(stream)
 					let webpBuffer: Buffer
 					let isAnimated = false
