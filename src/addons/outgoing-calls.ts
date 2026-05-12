@@ -1,4 +1,3 @@
-import type { WAInitiateCallOptions, WAInitiateCallResult } from '../Types/Call.js'
 /**
  * addon: outgoing-calls
  * Source patch: Baileys-feature-outgoing-calls
@@ -19,7 +18,10 @@ import { getBinaryNodeChild } from '../WABinary'
 const generateMessageTag = (): string =>
 	Math.random().toString(36).slice(2, 8).toUpperCase() + Date.now().toString(36).toUpperCase()
 
-// Types imported from '../Types/Call.js'
+// WAInitiateCallOptions, WAInitiateCallResult, WACallUpdateType live in src/Types/Call.ts
+// Importing from there to avoid duplicate export conflicts
+import type { WACallUpdateType, WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
+export type { WACallUpdateType, WAInitiateCallOptions, WAInitiateCallResult }
 
 // ── createCallLink ─────────────────────────────────────────────────────────────
 /**
