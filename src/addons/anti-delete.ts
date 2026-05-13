@@ -1,5 +1,5 @@
 import { proto } from '../../WAProto/index.js'
-import type { WAMessage, WAMessageKey } from '../Types'
+import type { WAMessage, WAMessageKey } from '../Types/index.js'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

@@ -54,6 +54,12 @@ import {
 	toBuffer
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
+import {
+	buildAdminInviteMessage,
+	buildCallMessage,
+	buildPaymentInviteMessage,
+	buildStickerPackMessage
+} from '../addons/from-messages.js'
 
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
@@ -615,6 +621,29 @@ export const generateWAMessageContent = async (
 					type: proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT
 				}
 				break
+			case 'list':
+				m.listResponseMessage = {
+					title: message.buttonReply.title,
+					description: message.buttonReply.description,
+					singleSelectReply: {
+						selectedRowId: message.buttonReply.rowId
+					},
+					listType: proto.Message.ListResponseMessage.ListType.SINGLE_SELECT
+				}
+				break
+			case 'interactive':
+				m.interactiveResponseMessage = {
+					body: {
+						text: message.buttonReply.displayText,
+						format: proto.Message.InteractiveResponseMessage.Body.Format.EXTENSIONS_1
+					},
+					nativeFlowResponseMessage: {
+						name: message.buttonReply.nativeFlows?.name,
+						paramsJson: message.buttonReply.nativeFlows?.paramsJson,
+						version: message.buttonReply.nativeFlows?.version
+					}
+				}
+				break
 		}
 	} else if (hasOptionalProperty(message, 'ptv') && message.ptv) {
 		const { videoMessage } = await prepareWAMessageMedia({ video: message.video }, options)
@@ -668,7 +697,14 @@ export const generateWAMessageContent = async (
 
 		m.messageContextInfo = {
 			// encKey
-			messageSecret: message.poll.messageSecret || randomBytes(32)
+			// messageSecret must NOT be set for newsletter polls —
+			// newsletters handle encryption differently and a secret causes send failures
+			...((!options.jid || !isJidNewsletter(options.jid)) && {
+				messageSecret: (() => {
+					const providedSecret = message.poll.messageSecret
+					return providedSecret instanceof Uint8Array && providedSecret.length === 32 ? providedSecret : randomBytes(32)
+				})()
+			})
 		}
 
 		const pollCreationMessage = {
@@ -700,6 +736,32 @@ export const generateWAMessageContent = async (
 		}
 	} else if (hasNonNullishProperty(message, 'requestPhoneNumber')) {
 		m.requestPhoneNumberMessage = {}
+	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
+		// addons/from-messages.ts → buildAdminInviteMessage
+		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
+			(message as any).adminInvite,
+			(message as any).contextInfo,
+			options
+		)
+	} else if ('order' in message && !!(message as any).order) {
+		// order → OrderMessage (from addons)
+		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
+	} else if ('keep' in message && !!(message as any).keep) {
+		// keep → KeepInChatMessage (from addons)
+		const k = (message as any).keep
+		m.keepInChatMessage = {
+			key: k.key,
+			keepType: k.type ?? 1,
+			timestampMs: k.time ?? Date.now()
+		}
+	} else if ('call' in message && !!(message as any).call) {
+		// addons/from-messages.ts → buildCallMessage
+		m.scheduledCallCreationMessage = buildCallMessage((message as any).call)
+	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
+		// addons/from-messages.ts → buildPaymentInviteMessage
+		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
+	} else if ('productList' in message && !!(message as any).productList) {
+		// productList handled below after this block — just skip media
 	} else if (hasNonNullishProperty(message, 'limitSharing')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.LIMIT_SHARING,
@@ -710,7 +772,7 @@ export const generateWAMessageContent = async (
 				initiatedByMe: true
 			}
 		}
-	} else if (!('stickerPack' in message)) {
+	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}
 
@@ -1498,7 +1560,7 @@ async function prepareStickerPackMessage(
 			promises.push(
 				(async (index: number) => {
 					const sticker = stickers[index]!
-					const { stream } = await getStream(sticker.data ?? sticker.sticker)
+					const { stream } = await getStream(sticker.data)
 					const buffer = await toBuffer(stream)
 					let webpBuffer: Buffer
 					let isAnimated = false

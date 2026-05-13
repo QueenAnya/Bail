@@ -39,6 +39,15 @@ import {
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
+import { execSendStatusMentions } from '../addons/from-messages-send.js'
+import {
+	getBinaryFilteredBizBot,
+	getBinaryFilteredButtons,
+	getButtonArgs,
+	getButtonType,
+	getMediaType,
+	getMessageType
+} from '../addons/message-utils.js'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,
@@ -456,9 +465,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		logger.debug({ jids }, 'assertSessions call with jids')
 
 		for (const jid of uniqueJids) {
-			if (!force) {
+			// Check peerSessionsCache and validate sessions using libsignal loadSession
+			const signalId = signalRepository.jidToSignalProtocolAddress(jid)
+			const cachedSession = peerSessionsCache.get(signalId)
+			if (cachedSession !== undefined) {
+				if (cachedSession && !force) {
+					continue // Session exists in cache
+				}
+			} else {
 				const sessionValidation = await signalRepository.validateSession(jid)
-				if (sessionValidation.exists) {
+				const hasSession = sessionValidation.exists
+				peerSessionsCache.set(signalId, hasSession)
+				if (hasSession && !force) {
 					continue
 				}
 			}
@@ -635,18 +653,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			additionalNodes,
 			useUserDevicesCache,
 			useCachedGroupMetadata,
-			statusJidList
-		}: MessageRelayOptions
+			statusJidList,
+			AI = false
+		}: MessageRelayOptions & { AI?: boolean }
 	) => {
 		const meId = assertMeId(authState.creds)
 		const meLid = authState.creds.me?.lid
 		const isRetryResend = Boolean(participant?.jid)
 		let shouldIncludeDeviceIdentity = isRetryResend
+		let didPushAdditional = false
 		const statusJid = 'status@broadcast'
 
 		const { user, server } = jidDecode(jid)!
 		const isGroup = server === 'g.us'
 		const isStatus = jid === statusJid
+		const isPrivate = server === 's.whatsapp.net'
 		const isLid = server === 'lid'
 		const isNewsletter = server === 'newsletter'
 		const isGroupOrStatus = isGroup || isStatus
@@ -655,6 +676,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		msgId = msgId || generateMessageIDV2(meId)
 		useUserDevicesCache = useUserDevicesCache !== false
 		useCachedGroupMetadata = useCachedGroupMetadata !== false && !isStatus
+
+		// normalizeMessageContent BEFORE transaction — exact addons pattern
+		const messages = normalizeMessageContent(message) || message
+		const buttonType = getButtonType(messages)
+		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
 
 		const participants: BinaryNode[] = []
 		const destinationJid = !isStatus ? finalJid : statusJid
@@ -1163,7 +1189,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		return msgId
 	}
 
-	const getMessageType = (message: proto.IMessage) => {
+	// NOTE: getMessageType and getMediaType are imported from addons/message-utils.ts
+	// The following _local variants are kept for internal rc10 reporting logic only
+	const _getMessageTypeLocal = (message: proto.IMessage) => {
 		const normalizedMessage = normalizeMessageContent(message)
 		if (!normalizedMessage) return 'text'
 
@@ -1184,14 +1212,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return 'event'
 		}
 
-		if (getMediaType(normalizedMessage) !== '') {
+		if (_getMediaTypeLocal(normalizedMessage) !== '') {
 			return 'media'
 		}
 
 		return 'text'
 	}
 
-	const getMediaType = (message: proto.IMessage) => {
+	const _getMediaTypeLocal = (message: proto.IMessage) => {
 		if (message.imageMessage) {
 			return 'image'
 		} else if (message.videoMessage) {

@@ -669,6 +669,21 @@ export const makeSocket = (config: SocketConfig) => {
 
 		signalRepository.close?.()
 
+		// If a pairing is pending, reject it so the caller doesn't hang indefinitely
+		if (pendingPairingReject) {
+			pendingPairingReject(
+				error ||
+					new Boom('Connection closed before pairing completed', {
+						statusCode: DisconnectReason.connectionClosed
+					})
+			)
+			pendingPairingResolve = undefined
+			pendingPairingReject = undefined
+		}
+
+		pairingReady = false
+		pairingInProgress = false
+
 		if (!ws.isClosed && !ws.isClosing) {
 			try {
 				await ws.close()

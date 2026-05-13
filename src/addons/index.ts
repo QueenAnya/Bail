@@ -1,101 +1,69 @@
 /**
- * Baileys Addons — Complete Merged Layer
+ * Baileys Addons — complete feature layer
  *
- * Base: WhiskeySockets/Baileys rc10 (May 2026)
- * Merged with: anya-bail / Queen-Anya (May 2026)
+ * Ported from @innovatorssoft/baileys (v7.4.3), @itsliaaa/baileys (v0.3.0-rc.10),
+ * and @queenanya/baileys (v9.6.0) into WhiskeySockets/Baileys (rc10)
+ * as a clean, tree-shakeable ESM addon layer.
  *
- * ┌─────────────────────────────────────────────────────────────────────────┐
- * │  Button Sender          → sendButtons, sendInteractiveMessage, ...      │
- * │  Interactive Messages   → generateInteractiveButtonMessage, ...         │
- * │  Rich Message Composer  → (rc10 rich layer)                             │
- * │  Rich Response          → sendTable, sendList, sendCodeBlock, ...       │
- * │  Anti-Delete / Store    → MessageStore, createAntiDeleteHandler, ...    │
- * │  Auto-Reply System      → AutoReplyHandler, createAutoReply             │
- * │  Message Scheduler      → createMessageScheduler / MessageScheduler     │
- * │  Message Templates      → TemplateManager, renderTemplate, ...          │
- * │  Message Search         → searchMessages, createMessageSearch, ...      │
- * │  Message Utils          → getButtonArgs, getButtonType, getMediaType    │
- * │  Message Composer       → rich/bot/meta AI message builders             │
- * │  vCard / Contact Cards  → generateVCard, createContactCard, ...         │
- * │  JID / LID Plotting     → parseJid, plotJid, JidPlot, buildJidPlot      │
- * │  Status Posting         → createTextStatus, sendStatusMentions, ...     │
- * │  Status Helpers         → (rc10 status helpers)                         │
- * │  Chat Control           → TypingIndicator, PinnedMessages, ...          │
- * │  Call Handler           → initiateCall, acceptCall, muteCall, ...       │
- * │  Baileys Event Stream   → capture & replay events                       │
- * │  Auth States            → SingleFile, MongoDB, CacheManager             │
- * │  From src/ re-exports   → chats, messages-recv/send, messages           │
- * └─────────────────────────────────────────────────────────────────────────┘
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │  Interactive / Button / List / Template Messages               │
+ * │  Rich Response / Meta AI Messages (with correct Buffer inject) │
+ * │  Button Sender (sendButtons, sendInteractiveMessage, etc.)     │
+ * │  Status Posting (createTextStatus, createImageStatus, etc.)    │
+ * │  From-Messages Builders (album, stickerPack, call, etc.)       │
+ * │  Message Utils (getButtonArgs, getButtonType, getMediaType)    │
+ * │  Call Handler (initiateCall, acceptCall, muteCall, etc.)       │
+ * │  Anti-Delete / Message Store                                   │
+ * │  Auto-Reply System                                             │
+ * │  Message Scheduler                                             │
+ * │  Message Templates                                             │
+ * │  Message Search                                                │
+ * │  vCard / Contact Card Generator                               │
+ * │  JID / LID Plotting Utilities                                  │
+ * │  Status / Broadcast Helpers                                    │
+ * │  Chat Control (TypingIndicator, PinnedMessages, ReadReceipts)  │
+ * │  Baileys Event Stream (capture & replay)                       │
+ * │  Auth States (SingleFile, MongoDB, CacheManager)               │
+ * └─────────────────────────────────────────────────────────────────┘
  */
 
-// ── Button Sender (anya) ──────────────────────────────────────────────────
-export * from './button-sender.js'
+// ── Types & Enums ────────────────────────────────────────────────────────────
+export * from './rich-types.js'
 
-// ── Interactive / Button Message Generators ───────────────────────────────
+// ── Message Generators ───────────────────────────────────────────────────────
 export * from './interactive-message.js'
-
-// ── Rich Response / Meta AI (anya/innov.) ─────────────────────────────────
-export * from './rich-response.js'
-
-// ── Anti-Delete / Message Store ───────────────────────────────────────────
-export * from './anti-delete.js'
-
-// ── Auto-Reply System ─────────────────────────────────────────────────────
-export * from './auto-reply.js'
-
-// ── Message Scheduler (anya) ──────────────────────────────────────────────
-export * from './scheduling.js'
-
-// ── Message Scheduler (innov.) ────────────────────────────────────────────
-export * from './message-scheduler.js'
-
-// ── Message Templates ─────────────────────────────────────────────────────
-export * from './templates.js'
-
-// ── Message Search ────────────────────────────────────────────────────────
-export * from './message-search.js'
-
-// ── Message Utils + WS Extras + Socket Extras (anya) ─────────────────────
-export * from './message-utils.js'
-
-// ── Message Composer (anya) ───────────────────────────────────────────────
-export * from './message-composer.js'
-
-// ── vCard / Contact Cards ─────────────────────────────────────────────────
-export * from './vcard.js'
-
-// ── JID Plotting (anya) ───────────────────────────────────────────────────
-export * from './jid-plotting.js'
-
-// ── JID Plot (innov.) ─────────────────────────────────────────────────────
-export * from './jid-plot.js'
-
-// ── Status Posting + Mentions (anya) ─────────────────────────────────────
-export * from './status-posting.js'
-
-// ── Chat Control (rc10) ───────────────────────────────────────────────────
-export * from './chat-control.js'
-
-// ── Call Handler (anya/innov.) ────────────────────────────────────────────
-export * from './call-handler.js'
-
-// ── Outgoing Calls (anya) ─────────────────────────────────────────────────
-export * from './outgoing-calls.js'
-
-// ── Baileys Event Stream (rc10) ───────────────────────────────────────────
-export * from './baileys-event-stream.js'
-
-// ── From src/ re-exports (anya originals) ────────────────────────────────
-export * from './from-chats.js'
-export * from './from-messages-recv.js'
-export * from './from-messages-send.js'
+export * from './rich-message-composer.js'
+export * from './rich-message-utils.js'
 export * from './from-messages.js'
 
-// ── Auth States ───────────────────────────────────────────────────────────
+// ── Button / Interactive Senders ─────────────────────────────────────────────
+export * from './button-sender.js'
+export * from './message-utils.js'
+
+// ── Status Posting ────────────────────────────────────────────────────────────
+export * from './status-posting.js'
+
+// ── Call Handler ──────────────────────────────────────────────────────────────
+export * from './call-handler.js'
+
+// ── Messaging Hooks (internal use — not re-exported to avoid circular deps) ───
+// export * from './from-messages-send.js'   // used by messages-send.ts directly
+// export * from './from-messages-recv.ts'   // used by messages-recv.ts directly
+// export * from './from-chats.ts'           // used by chats.ts directly
+
+// ── Bot / Addon Utils ────────────────────────────────────────────────────────
+export * from './anti-delete.js'
+export * from './auto-reply.js'
+export * from './scheduling.js'
+export * from './templates.js'
+export * from './message-search.js'
+export * from './vcard.js'
+export * from './jid-plotting.js'
+export * from './status-helpers.js'
+export * from './chat-control.js'
+export * from './baileys-event-stream.js'
+
+// ── Auth States ───────────────────────────────────────────────────────────────
 export * from './use-single-file-auth-state.js'
 export * from './use-mongo-auth-state.js'
 export * from './use-cache-manager-auth-state.js'
-
-// ── Auth State re-exports from src/Utils (anya canonical) ─────────────────
-export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state.js'
-export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state.js'

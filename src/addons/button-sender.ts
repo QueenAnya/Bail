@@ -47,6 +47,7 @@ import { isJidGroup } from '../WABinary/jid-utils.js'
 import type { BinaryNode } from '../WABinary/types.js'
 import { getButtonArgs, getButtonType } from './message-utils.js'
 // Re-export so callers can import these from button-sender directly (matches button-helper API)
+export { getButtonType, getButtonArgs }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -320,27 +321,27 @@ export function buildInteractiveButtons(buttons: AnyRawButton[] = []): NativeSen
 		const btn = b as Record<string, unknown>
 
 		// 1. Already native shape
-		if (btn['name'] && btn['buttonParamsJson']) return b as NativeSendButton
+		if (btn.name && btn.buttonParamsJson) return b as NativeSendButton
 
 		// 2. Legacy quick-reply
-		if (btn['id'] || btn['text'] || btn['displayText']) {
+		if (btn.id || btn.text || btn.displayText) {
 			return {
 				name: 'quick_reply',
 				buttonParamsJson: JSON.stringify({
-					display_text: (btn['text'] ?? btn['displayText'] ?? `Button ${i + 1}`) as string,
-					id: (btn['id'] ?? `quick_${i + 1}`) as string
+					display_text: btn.text ?? btn.displayText ?? `Button ${i + 1}`,
+					id: btn.id ?? `quick_${i + 1}`
 				})
 			}
 		}
 
 		// 3. Old Baileys shape
-		const oldBt = btn['buttonText'] as Record<string, unknown> | undefined
-		if (btn['buttonId'] && oldBt?.['displayText']) {
+		const oldBt = btn.buttonText as Record<string, unknown> | undefined
+		if (btn.buttonId && oldBt?.displayText) {
 			return {
 				name: 'quick_reply',
 				buttonParamsJson: JSON.stringify({
-					display_text: oldBt['displayText'] as string,
-					id: btn['buttonId'] as string
+					display_text: oldBt.displayText as string,
+					id: btn.buttonId as string
 				})
 			}
 		}
@@ -380,12 +381,12 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 			return b
 		}
 
-		if (btn['name'] && btn['buttonParamsJson']) {
-			if (typeof btn['buttonParamsJson'] !== 'string') {
+		if (btn.name && btn.buttonParamsJson) {
+			if (typeof btn.buttonParamsJson !== 'string') {
 				errors.push(`button[${idx}] buttonParamsJson must be string`)
 			} else {
 				try {
-					JSON.parse(btn['buttonParamsJson'])
+					JSON.parse(btn.buttonParamsJson)
 				} catch (e: unknown) {
 					errors.push(`button[${idx}] buttonParamsJson is not valid JSON: ${(e as Error).message}`)
 				}
@@ -394,9 +395,9 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 			return b
 		}
 
-		if (btn['id'] || btn['text'] || btn['displayText']) return b
-		const oldBt = btn['buttonText'] as Record<string, unknown> | undefined
-		if (btn['buttonId'] && oldBt?.['displayText']) return b
+		if (btn.id || btn.text || btn.displayText) return b
+		const oldBt = btn.buttonText as Record<string, unknown> | undefined
+		if (btn.buttonId && oldBt?.displayText) return b
 		warnings.push(`button[${idx}] unrecognized shape; passing through unchanged`)
 		return b
 	})
@@ -431,28 +432,28 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 				return
 			}
 
-			if (b['id'] && b['text']) {
-				if (typeof b['id'] !== 'string' || typeof b['text'] !== 'string') {
+			if (b.id && b.text) {
+				if (typeof b.id !== 'string' || typeof b.text !== 'string') {
 					errors.push(`button[${i}] legacy quick reply id/text must be strings`)
 				}
 
 				return
 			}
 
-			if (b['name'] && b['buttonParamsJson']) {
-				if (!SEND_BUTTONS_ALLOWED_COMPLEX.has(b['name'] as string)) {
+			if (b.name && b.buttonParamsJson) {
+				if (!SEND_BUTTONS_ALLOWED_COMPLEX.has(b.name as string)) {
 					errors.push(
-						`button[${i}] name '${b['name']}' not allowed in sendButtons (allowed: ${[...SEND_BUTTONS_ALLOWED_COMPLEX].join(', ')})`
+						`button[${i}] name '${b.name}' not allowed in sendButtons (allowed: ${[...SEND_BUTTONS_ALLOWED_COMPLEX].join(', ')})`
 					)
 					return
 				}
 
-				if (typeof b['buttonParamsJson'] !== 'string') {
+				if (typeof b.buttonParamsJson !== 'string') {
 					errors.push(`button[${i}] buttonParamsJson must be string`)
 					return
 				}
 
-				parseButtonParamsInternal(b['name'] as string, b['buttonParamsJson'], errors, warnings, i)
+				parseButtonParamsInternal(b.name as string, b.buttonParamsJson, errors, warnings, i)
 				return
 			}
 
@@ -691,7 +692,9 @@ export async function sendInteractiveMessage(
 			context: 'sendInteractiveMessage.validateInteractiveMessageContent',
 			errors: cErr,
 			warnings: cWarn,
-			example: convertToInteractiveMessage(EXAMPLE_PAYLOADS.sendInteractiveMessage)
+			example: convertToInteractiveMessage(
+				EXAMPLE_PAYLOADS.sendInteractiveMessage as unknown as Record<string, unknown>
+			)
 		})
 	}
 
@@ -699,7 +702,7 @@ export async function sendInteractiveMessage(
 
 	// Step 3 — build WAMessage (uses internal @queenanya/baileys helpers directly)
 	const userJid: string = sock.authState?.creds?.me?.id ?? sock.user?.id ?? ''
-	const fullMsg = generateWAMessageFromContent(jid, convertedContent, {
+	const fullMsg = generateWAMessageFromContent(jid, convertedContent as WAMessageContent, {
 		userJid,
 		messageId: generateMessageIDV2(userJid),
 		timestamp: new Date()
@@ -844,8 +847,8 @@ export async function sendInteractiveMessageV2(
 			}
 
 			content.document = fileBuffer
-			content.fileName = content.fileName ?? fileName
-			content.mimetype = content.mimetype ?? mimeType
+			content.fileName = (content.fileName as string | undefined) ?? fileName
+			content.mimetype = (content.mimetype as string | undefined) ?? mimeType
 		} catch (e) {
 			console.warn('[button-sender] ⚠️ Failed to build dummy document:', e)
 		}

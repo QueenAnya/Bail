@@ -13,7 +13,6 @@ import type {
 import { DisconnectReason } from '../Types'
 import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
-import type { ILogger } from './logger'
 
 export const BufferJSON = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -499,18 +498,4 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
-}
-
-export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
-	ev.on('connection.update', async ({ qr }) => {
-		if (qr) {
-			try {
-				// eslint-disable-next-line @typescript-eslint/no-var-requires
-				const QRTerminal = await import('qrcode-terminal' as string).then((m: any) => m.default || m)
-				QRTerminal?.generate?.(qr, { small: true })
-			} catch {
-				logger.debug('qrcode-terminal not installed — run: npm install qrcode-terminal')
-			}
-		}
-	})
 }

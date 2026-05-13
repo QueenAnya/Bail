@@ -57,6 +57,7 @@ import { makeMutex } from '../Utils/make-mutex'
 import { makeOfflineNodeProcessor } from '../Utils/offline-node-processor'
 import type { OfflineMessageType as MessageType } from '../Utils/offline-node-processor'
 import { buildAckStanza } from '../Utils/stanza-ack'
+import { makeCallHandlers } from '../addons/from-messages-recv.js'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,
@@ -156,6 +157,18 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			stdTTL: DEFAULT_CACHE_TTLS.CALL_OFFER, // 5 mins
 			useClones: false
 		})
+
+	// Wire up the full call handler suite from addons/from-messages-recv.ts
+	const callHandlers = makeCallHandlers({
+		authState,
+		query,
+		sendNode,
+		generateMessageTag,
+		getUSyncDevices,
+		assertSessions,
+		createParticipantNodes,
+		callOfferCache
+	})
 
 	// Debounce identity-change session refreshes per JID to avoid bursts
 	const identityAssertDebounce = new NodeCache<boolean>({ stdTTL: 5, useClones: false })
@@ -2166,11 +2179,12 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	return {
 		...sock,
 		sendMessageAck,
-
 		sendRetryRequest,
 		rejectCall,
 		fetchMessageHistory,
 		requestPlaceholderResend,
-		messageRetryManager
+		messageRetryManager,
+		// Full call handler suite from addons/from-messages-recv.ts
+		...callHandlers
 	}
 }

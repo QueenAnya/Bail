@@ -8,10 +8,10 @@
 
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
-import type { WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
-import { encodeSignedDeviceIdentity } from '../Utils'
-import type { BinaryNode } from '../WABinary'
-import { isJidGroup, jidEncode } from '../WABinary'
+import type { WACallEvent, WAInitiateCallOptions, WAInitiateCallResult } from '../Types/index.js'
+import { encodeSignedDeviceIdentity } from '../Utils/index.js'
+import type { BinaryNode } from '../WABinary/index.js'
+import { isJidGroup, jidEncode } from '../WABinary/index.js'
 
 export type CallHandlerDeps = {
 	authState: any
@@ -140,7 +140,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 			isVideo,
 			isGroup,
 			groupJid: isGroup ? jid : undefined
-		} as any)
+		} as WACallEvent)
 
 		return { callId, to: jid, isVideo }
 	}

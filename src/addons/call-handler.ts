@@ -16,9 +16,9 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import type { SocketConfig } from '../Types'
-import { encodeSignedDeviceIdentity } from '../Utils'
-import { isJidGroup, jidEncode } from '../WABinary'
+import type { SocketConfig, WACallEvent } from '../Types/index.js'
+import { encodeSignedDeviceIdentity } from '../Utils/index.js'
+import { isJidGroup, jidEncode } from '../WABinary/index.js'
 
 // =====================================================
 // CONTEXT TYPES
@@ -223,7 +223,7 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 			isVideo,
 			isGroup,
 			groupJid: isGroup ? jid : undefined
-		} as any)
+		} as WACallEvent)
 
 		return { callId, to: jid, isVideo }
 	}

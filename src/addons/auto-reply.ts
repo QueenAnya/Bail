@@ -1,5 +1,5 @@
-import type { WAMessage } from '../Types'
-import type { AnyMessageContent } from '../Types'
+import type { WAMessage } from '../Types/index.js'
+import type { AnyMessageContent } from '../Types/index.js'
 
 export interface AutoReplyRule {
 	id?: string
@@ -66,7 +66,7 @@ export class AutoReplyHandler {
 		}
 		if (!fullRule.keywords && !fullRule.pattern && !fullRule.exactMatch)
 			throw new Error('Rule must have keywords, pattern, or exactMatch')
-		this.rules.set(fullRule.id, fullRule)
+		this.rules.set(fullRule.id, fullRule as AutoReplyRule & { id: string })
 		return fullRule
 	}
 

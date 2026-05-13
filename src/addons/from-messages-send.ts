@@ -6,10 +6,10 @@
  * Imported back into makeMessagesSocket.
  */
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, WAMessage } from '../Types'
-import { delay } from '../Utils/generics'
-import { generateWAMessage, generateWAMessageFromContent } from '../Utils/messages'
-import { isJidGroup, jidNormalizedUser } from '../WABinary'
+import type { AnyMessageContent, WAMessage } from '../Types/index.js'
+import { delay } from '../Utils/generics.js'
+import { generateWAMessage, generateWAMessageFromContent } from '../Utils/messages.js'
+import { isJidGroup, jidNormalizedUser } from '../WABinary/index.js'
 
 const STORIES_JID = 'status@broadcast'
 
