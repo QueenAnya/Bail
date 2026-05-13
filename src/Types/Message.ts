@@ -285,6 +285,16 @@ export type ButtonReplyInfo = {
 	displayText: string
 	id: string
 	index: number
+	/** for type:'list' replies */
+	title?: string
+	description?: string
+	rowId?: string
+	/** for type:'interactive' native-flow replies */
+	nativeFlows?: {
+		name?: string
+		paramsJson?: string
+		version?: number
+	}
 }
 
 export type GroupInviteInfo = {

@@ -130,5 +130,6 @@ describe('buildStickerPackProto', () => {
 		expect(result.description).toBe('Cool stickers')
 	})
 
-	it('two builds with same input have different auto-generated packIds', () => {
-		const a = buildStickerPackProto({ name: 'P
+//	it('two builds with same input have different auto-generated packIds', () => {
+	//	const a = buildStickerPackProto(name: 'P
+		

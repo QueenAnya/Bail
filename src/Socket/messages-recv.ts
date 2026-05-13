@@ -137,7 +137,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		registerSocketEndHandler,
 		issuePrivacyTokens,
 		fetchAccountReachoutTimelock,
-		placeholderResendCache
+		placeholderResendCache,
+		generateMessageTag,
+		getUSyncDevices,
+		createParticipantNodes
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
@@ -2185,6 +2188,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		requestPlaceholderResend,
 		messageRetryManager,
 		// Full call handler suite from addons/from-messages-recv.ts
-		...callHandlers
+		// Note: rejectCall is already defined above — omit it from callHandlers spread
+		...(() => {
+			const { rejectCall: _ignoreRejectCall, ...rest } = callHandlers
+			return rest
+		})()
 	}
 }

@@ -42,6 +42,7 @@ export * from './message-utils.js'
 
 // ── Status Posting ────────────────────────────────────────────────────────────
 export * from './status-posting.js'
+// status-helpers.js is superseded by status-posting.js (anya superset — same exports + makeStatusMentionsAddon)
 
 // ── Call Handler ──────────────────────────────────────────────────────────────
 export * from './call-handler.js'
@@ -59,7 +60,6 @@ export * from './templates.js'
 export * from './message-search.js'
 export * from './vcard.js'
 export * from './jid-plotting.js'
-export * from './status-helpers.js'
 export * from './chat-control.js'
 export * from './baileys-event-stream.js'
 
