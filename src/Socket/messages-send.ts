@@ -18,7 +18,6 @@ import {
 	assertMeId,
 	bindWaitForEvent,
 	decryptMediaRetryData,
-	DEF_MEDIA_HOST,
 	encodeNewsletterMessage,
 	encodeSignedDeviceIdentity,
 	encodeWAMessage,
@@ -29,6 +28,7 @@ import {
 	generateParticipantHashV2,
 	generateWAMessage,
 	getStatusCodeForMediaRetry,
+	DEF_MEDIA_HOST,
 	getUrlFromDirectPath,
 	getWAUploadToServer,
 	MessageRetryManager,
@@ -1347,7 +1347,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 								}
 
 								content.directPath = media.directPath
-								content.url = getUrlFromDirectPath(content.directPath!, mediaHost)
+								content.url = mediaHost
+									? `https://${mediaHost}${content.directPath}`
+									: getUrlFromDirectPath(content.directPath!)
 
 								logger.debug({ directPath: media.directPath, key: result.key }, 'media update successful')
 							} catch (err: any) {

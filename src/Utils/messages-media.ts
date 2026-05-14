@@ -14,9 +14,9 @@ import {
 	DEFAULT_ORIGIN,
 	MEDIA_HKDF_KEY_MAPPING,
 	MEDIA_PATH_MAP,
-	NEWSLETTER_MEDIA_PATH_MAP,
-	type MediaType
-} from '../Defaults'
+	type MediaType,
+	NEWSLETTER_MEDIA_PATH_MAP
+} from '../Defaults/index.js'
 import type {
 	BaileysEventMap,
 	DownloadableMessage,
@@ -29,11 +29,11 @@ import type {
 	WAMediaUploadFunction,
 	WAMessageContent,
 	WAMessageKey
-} from '../Types'
-import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary'
-import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto'
-import { generateMessageIDV2 } from './generics'
-import type { ILogger } from './logger'
+} from '../Types/index.js'
+import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary/index.js'
+import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto.js'
+import { generateMessageIDV2 } from './generics.js'
+import type { ILogger } from './logger.js'
 
 const getTmpFilesDirectory = () => tmpdir()
 
@@ -341,8 +341,9 @@ export async function generateThumbnail(
 ) {
 	let thumbnail: string | undefined
 	let originalImageDimensions: { width: number; height: number } | undefined
+	const hdMode = options.hdMode === true
 	if (mediaType === 'image') {
-		const { buffer, original } = await extractImageThumb(file)
+		const { buffer, original } = await extractImageThumb(file, hdMode ? 320 : undefined)
 		thumbnail = buffer.toString('base64')
 		if (original.width && original.height) {
 			originalImageDimensions = {
@@ -351,10 +352,10 @@ export async function generateThumbnail(
 			}
 		}
 	} else if (mediaType === 'video') {
-		const thumbSize = options.hdMode ? { width: 320, height: 180 } : { width: 32, height: 32 }
+		const thumbSize = hdMode ? { width: 320, height: 180 } : { width: 32, height: 32 }
 		const imgFilename = join(getTmpFilesDirectory(), generateMessageIDV2() + '.jpg')
 		try {
-			await extractVideoThumb(file, imgFilename, '00:00:00', { width: 32, height: 32 })
+			await extractVideoThumb(file, imgFilename, '00:00:00', thumbSize)
 			const buff = await fs.readFile(imgFilename)
 			thumbnail = buff.toString('base64')
 
@@ -388,7 +389,7 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
-	/** Optional mediaKey to reuse (e.g. for sticker pack thumbnail) */
+	/** Optional mediaKey to reuse (required for sticker pack thumbnail to match ZIP encryption) */
 	mediaKey?: Buffer | Uint8Array
 }
 
@@ -511,7 +512,7 @@ export const encryptedStream = async (
 }
 
 export const DEF_MEDIA_HOST = 'mmg.whatsapp.net'
-
+const DEF_HOST = DEF_MEDIA_HOST
 const AES_CHUNK_SIZE = 16
 
 const toSmallestChunkSize = (num: number) => {
@@ -522,31 +523,17 @@ export type MediaDownloadOptions = {
 	startByte?: number
 	endByte?: number
 	options?: RequestInit
-	/** Optional media host override; falls back to DEF_MEDIA_HOST when not provided. */
-	host?: string
 }
 
-export const getUrlFromDirectPath = (directPath: string, host: string = DEF_MEDIA_HOST) =>
-	`https://${host}${directPath}`
-
-const extractHost = (url: string | null | undefined): string | undefined => {
-	if (!url) return undefined
-	try {
-		return new URL(url).host
-	} catch {
-		return undefined
-	}
-}
+export const getUrlFromDirectPath = (directPath: string) => `https://${DEF_HOST}${directPath}`
 
 export const downloadContentFromMessage = async (
 	{ mediaKey, directPath, url }: DownloadableMessage,
 	type: MediaType,
 	opts: MediaDownloadOptions = {}
 ) => {
-	// Fallback host: explicit opt > host parsed from `url` > DEF_MEDIA_HOST.
-	// Lets us honor a non-default host carried by the proto without forcing callers to thread it through.
-	const fallbackHost = opts.host ?? extractHost(url)
-	const downloadUrl = directPath ? getUrlFromDirectPath(directPath, fallbackHost) : url
+	const isValidMediaUrl = url?.startsWith('https://mmg.whatsapp.net/')
+	const downloadUrl = isValidMediaUrl ? url : getUrlFromDirectPath(directPath!)
 	if (!downloadUrl) {
 		throw new Boom('No valid media URL or directPath present in message', { statusCode: 400 })
 	}
@@ -622,7 +609,7 @@ export const downloadEncryptedContent = async (
 
 	const output = new Transform({
 		transform(chunk, _, callback) {
-			let data = remainingBytes.length ? Buffer.concat([remainingBytes, chunk]) : chunk
+			let data = Buffer.concat([remainingBytes, chunk])
 
 			const decryptLength = toSmallestChunkSize(data.length)
 			remainingBytes = data.slice(decryptLength)
@@ -875,8 +862,12 @@ export const getWAUploadToServer = (
 			logger.debug(`uploading to "${hostname}"`)
 
 			const auth = encodeURIComponent(uploadInfo.auth)
+			// Use newsletter-specific path when uploading for a newsletter/channel
 			const mediaPath = (newsletter ? NEWSLETTER_MEDIA_PATH_MAP[mediaType] : undefined) || MEDIA_PATH_MAP[mediaType]
-			const url = `https://${hostname}${mediaPath}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}${newsletter ? '&server_thumb_gen=1' : ''}`
+			let url = `https://${hostname}${mediaPath}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
+			if (newsletter) {
+				url += '&server_thumb_gen=1'
+			}
 
 			let result: MediaUploadResult | undefined
 			try {

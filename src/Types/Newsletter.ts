@@ -2,29 +2,45 @@ export enum XWAPaths {
 	xwa2_newsletter_create = 'xwa2_newsletter_create',
 	xwa2_newsletter_subscribers = 'xwa2_newsletter_subscribers',
 	xwa2_newsletter_subscribed = 'xwa2_newsletter_subscribed',
-	xwa2_newsletter_update = 'xwa2_newsletter_update',
-	xwa2_newsletter_admin = 'xwa2_newsletter_admin',
+	xwa2_newsletter_view = 'xwa2_newsletter_view',
+	xwa2_newsletter_metadata = 'xwa2_newsletter',
+	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin',
 	xwa2_newsletter_mute_v2 = 'xwa2_newsletter_mute_v2',
 	xwa2_newsletter_unmute_v2 = 'xwa2_newsletter_unmute_v2',
+	xwa2_newsletter_follow = 'xwa2_newsletter_follow',
 	xwa2_newsletter_unfollow = 'xwa2_newsletter_unfollow',
 	xwa2_newsletter_change_owner = 'xwa2_newsletter_change_owner',
 	xwa2_newsletter_demote = 'xwa2_newsletter_demote',
 	xwa2_newsletter_delete_v2 = 'xwa2_newsletter_delete_v2',
+	PROMOTE = 'xwa2_notify_newsletter_admin_promote',
+	DEMOTE = 'xwa2_notify_newsletter_admin_demote',
+	ADMIN_COUNT = 'xwa2_newsletter_admin',
+	CREATE = 'xwa2_newsletter_create',
+	NEWSLETTER = 'xwa2_newsletter',
+	SUBSCRIBED = 'xwa2_newsletter_subscribed',
+	METADATA_UPDATE = 'xwa2_notify_newsletter_on_metadata_update',
 	xwa2_newsletter_join = 'xwa2_newsletter_join',
 	xwa2_newsletter_leave = 'xwa2_newsletter_leave',
-	xwa2_newsletter = 'xwa2_newsletter',
-	xwa2_newsletter_metadata = 'xwa2_newsletter_metadata',
-	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin_count',
 	xwa2_fetch_account_reachout_timelock = 'xwa2_fetch_account_reachout_timelock',
 	xwa2_message_capping_info = 'xwa2_message_capping_info'
 }
-
 export enum QueryIdd {
-	PROMOTE = '6083263253998476',
+	METADATA = '6620195908089573',
+	GETSUBSCRIBED = '6388546374527196',
+	CREATE = '6996806640408138',
+	UNMUTE = '7337137176362961',
+	MUTE = '25151904754424642',
+	FOLLOW = '7871414976211147',
+	UNFOLLOW = '7238632346214362',
+	UPDATE = '7150902998257522',
+	JOB_MUTATION = '7150902998257522',
+	ADMIN_COUNT = '7130823597031706',
+	CHANGE_OWNER = '7341777602580933',
+	DELETE = '8316537688363079',
 	DEMOTE = '6551828931592903',
-	GETSUBSCRIBED = '6388546374527196'
+	SUBSCRIBED = '6388546374527196',
+	PROMOTE = '6083263253998476'
 }
-
 export enum QueryIds {
 	CREATE = '8823471724422422',
 	UPDATE_METADATA = '24250201037901610',
@@ -42,36 +58,29 @@ export enum QueryIds {
 	MESSAGE_CAPPING_INFO = '9926658870510685',
 	DELETE = '30062808666639665'
 }
-
 export const MexOperations = {
 	PROMOTE: 'NotificationNewsletterAdminPromote',
 	DEMOTE: 'NotificationNewsletterAdminDemote',
+	UPDATE: 'NotificationNewsletterUpdate',
 	DELETE: 'NotificationNewsletterDelete'
 }
-
 export const MexUpdatesOperations = {
 	OWNER_COMMUNITY: 'NotificationCommunityOwnerUpdate',
 	GROUP_MEMBER_LINK: 'NotificationGroupMemberLinkPropertyUpdate',
 	GROUP_LIMIT_SHARING: 'NotificationGroupLimitSharingPropertyUpdate'
 } as const
-
 export type MexUpdatesOperation = (typeof MexUpdatesOperations)[keyof typeof MexUpdatesOperations]
-
 export const XWAPathsMexUpdates = {
 	GROUP_SHARING_CHANGE: 'xwa2_notify_group_on_prop_change',
 	COMMUNITY_OWNER_CHANGE: 'xwa2_notify_group_on_participants_roles_change'
 } as const
-
 export type XWAPathMexUpdate = (typeof XWAPathsMexUpdates)[keyof typeof XWAPathsMexUpdates]
-
 export type NewsletterUpdate = {
 	name?: string
 	description?: string
 	picture?: string
 }
-
 export type NewsletterViewRole = 'ADMIN' | 'GUEST' | 'OWNER' | 'SUBSCRIBER'
-
 export interface NewsletterCreateResponse {
 	id: string
 	state: { type: string }
@@ -91,7 +100,6 @@ export interface NewsletterCreateResponse {
 		role: NewsletterViewRole
 	}
 }
-
 export interface NewsletterMetadata {
 	id: string
 	owner?: string
@@ -109,4 +117,9 @@ export interface NewsletterMetadata {
 	verification?: 'VERIFIED' | 'UNVERIFIED'
 	reaction_codes?: { code: string; count: number }[]
 	mute_state?: 'ON' | 'OFF'
+	thread_metadata?: {
+		creation_time?: number
+		name?: string
+		description?: string
+	}
 }
