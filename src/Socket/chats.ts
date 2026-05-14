@@ -1520,6 +1520,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			chatModify({ delete: key, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid),
 		clearChat: (jid: string, key: any, timeStamp: number | any) =>
 			chatModify({ delete: key, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid),
+		deleteChat,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,
