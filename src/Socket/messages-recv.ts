@@ -57,7 +57,7 @@ import {
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import { makeOfflineNodeProcessor } from '../Utils/offline-node-processor'
-import type { OfflineMessageType as MessageType } from '../Utils/offline-node-processor'
+import type { MessageType } from '../Utils/offline-node-processor'
 import { buildAckStanza } from '../Utils/stanza-ack'
 import { makeCallHandlers } from '../addons/from-messages-recv.js'
 import {

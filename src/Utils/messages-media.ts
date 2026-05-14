@@ -22,7 +22,7 @@ import type {
 	DownloadableMessage,
 	MediaConnInfo,
 	MediaDecryptionKeyInfo,
-	MessageType,
+	messageType,
 	SocketConfig,
 	WAGenericMediaMessage,
 	WAMediaUpload,
@@ -664,7 +664,7 @@ export const downloadEncryptedContent = async (
 
 export function extensionForMediaMessage(message: WAMessageContent) {
 	const getExtension = (mimetype: string) => mimetype.split(';')[0]?.split('/')[1]
-	const type = Object.keys(message)[0] as Exclude<MessageType, 'toJSON'>
+	const type = Object.keys(message)[0] as Exclude<messageType, 'toJSON'>
 	let extension: string
 	if (type === 'locationMessage' || type === 'liveLocationMessage' || type === 'productMessage') {
 		extension = '.jpeg'
