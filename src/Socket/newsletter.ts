@@ -112,12 +112,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		},
 
 		newsletterFollow: (jid: string) => {
-			return executeWMexQuery(
-				{ newsletter_id: jid },
-				QueryIds.FOLLOW,
-				QueryIds.FOLLOW,
-				XWAPaths.xwa2_newsletter_join_v2
-			)
+			return executeWMexQuery({ newsletter_id: jid }, QueryIds.FOLLOW, XWAPaths.xwa2_newsletter_join_v2)
 		},
 
 		newsletterUnfollow: (jid: string) => {
