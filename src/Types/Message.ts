@@ -56,7 +56,7 @@ export type StickerPack = {
 }
 
 /** Set of message types that are supported by the library */
-export type messageType = keyof proto.Message
+export type MessageType = keyof proto.Message
 
 export type MessageWithContextInfo =
 	| 'imageMessage'

@@ -13,7 +13,7 @@ import type {
 import { DisconnectReason } from '../Types'
 import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
-import type { ILogger } from './logger'
+import type { ILogger } from './logger.js'
 
 export const BufferJSON = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -180,6 +180,8 @@ export async function promiseTimeout<T>(
 
 // inspired from whatsmeow code
 // https://github.com/tulir/whatsmeow/blob/64bc969fbe78d31ae0dd443b8d4c80a5d026d07a/send.go#L42
+export const MSG_ID_PREFIX = '4NY4W3B'
+
 export const generateMessageIDV2 = (userId?: string): string => {
 	const data = Buffer.alloc(8 + 20 + 16)
 	data.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000)))
@@ -195,12 +197,12 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	const random = randomBytes(16)
 	random.copy(data, 28)
 
-	const hash = createHash('sha256').update(data).digest('hex').toUpperCase()
-	return '4NY4W3B' + hash.substring(0, 15)
+	const hash = createHash('sha256').update(data).digest()
+	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '4NY4W3B' + randomBytes(8).toString('hex').toUpperCase().substring(0, 15)
+export const generateMessageID = (): string => MSG_ID_PREFIX + randomBytes(18).toString('hex').toUpperCase()
 
 /**
  * Generates a uuid field value for key.uuid

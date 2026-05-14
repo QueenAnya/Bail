@@ -1,6 +1,6 @@
 import { platform, release } from 'os'
 import { proto } from '../../WAProto/index.js'
-import type { BrowsersMap } from '../Types/index'
+import type { BrowsersMap } from '../Types/index.js'
 
 const PLATFORM_MAP: Record<string, string> = {
 	aix: 'AIX',
