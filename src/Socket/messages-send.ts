@@ -1461,6 +1461,23 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
+		},
+
+		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
+			return execSendStatusMentions(content, jids, {
+				meId: authState.creds.me!.id,
+				logger,
+				groupMetadata: sock.groupMetadata,
+				cachedGroupMetadata: config.cachedGroupMetadata,
+				relayMessage,
+				waUploadToServer,
+				getUrlInfo,
+				config,
+				linkPreviewImageThumbnailWidth,
+				generateHighQualityLinkPreview,
+				httpRequestOptions
+			})
 		}
 	}
 }
