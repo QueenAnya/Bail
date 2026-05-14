@@ -762,6 +762,8 @@ export const generateWAMessageContent = async (
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
+	} else if ('productList' in message && !!(message as any).productList) {
+		// already handled below as a standalone block
 	} else if (hasNonNullishProperty(message, 'limitSharing')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.LIMIT_SHARING,

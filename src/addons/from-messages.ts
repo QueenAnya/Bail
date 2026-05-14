@@ -298,8 +298,8 @@ export async function buildStickerPackMessage(
 
 	const thumbEncrypted = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack' as any, {
 		logger: options.logger,
-		opts: options.options
-		// Note: rc10 encryptedStream generates its own mediaKey — thumbnail uses separate key
+		opts: options.options,
+		mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement
 	})
 
 	const thumbResult = await options.upload(thumbEncrypted.encFilePath, {

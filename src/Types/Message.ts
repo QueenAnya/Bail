@@ -211,6 +211,11 @@ export type PollMessageOptions = {
 	/** 32 byte message secret to encrypt poll selections */
 	messageSecret?: Uint8Array
 	toAnnouncementGroup?: boolean
+	/**
+	 * Poll content type — used for newsletter polls meta node.
+	 * 1 = TEXT (default), 2 = IMAGE
+	 */
+	pollContentType?: 1 | 2
 }
 
 export type EventMessageOptions = {
@@ -258,6 +263,12 @@ export type AnyMediaMessageContent = (
 			ptv?: boolean
 	  } & Mentionable &
 			Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable &
+			HDable &
 			WithDimensions)
 	| {
 			audio: WAMediaUpload
@@ -325,6 +336,14 @@ export type Carousel = {
 
 export type ProductListEntry = {
 	productId: string
+}
+
+export type StickerPackSticker = {
+	sticker: WAMediaUpload
+	emojis?: string[]
+	accessibilityLabel?: string
+	isAnimated?: boolean
+	isLottie?: boolean
 }
 
 export type ProductListSection = {

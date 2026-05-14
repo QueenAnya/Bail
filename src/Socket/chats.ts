@@ -1,4 +1,5 @@
 import NodeCache from '@cacheable/node-cache'
+import Long from 'long'
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
@@ -15,6 +16,7 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
+	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -1507,6 +1509,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		getBusinessProfile,
 		resyncAppState,
 		chatModify,
+		clearMessage: (jid: string, key: any, timeStamp: number | any) =>
+			chatModify({ delete: key, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid),
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,

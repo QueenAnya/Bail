@@ -13,6 +13,7 @@ import type {
 import { DisconnectReason } from '../Types'
 import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
+import type { ILogger } from './logger.js'
 
 export const BufferJSON = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -197,7 +198,7 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return MSG_ID_PREFIX + hash.toString('hex').toUpperCase().substring(0, 18)
+	return '4NY4W3B' + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
@@ -248,6 +249,46 @@ export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEve
 }
 
 export const bindWaitForConnectionUpdate = (ev: BaileysEventEmitter) => bindWaitForEvent(ev, 'connection.update')
+
+export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
+	ev.on('connection.update', async ({ qr }) => {
+		if (qr) {
+			const QR = await (import('qrcode-terminal' as string) as Promise<any>)
+				.then((m: any) => m.default || m)
+				.catch(() => {
+					logger.error('QR code terminal not added as dependency — run: npm install qrcode-terminal')
+				})
+			QR?.generate(qr, { small: true })
+		}
+	})
+}
+
+export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
+	const URL2 = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
+	try {
+		const response = await fetch(URL2, {
+			dispatcher: (options as any).dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+		}
+		const result = await response.json()
+		const version = result.versions[result.versions.length - 1].version.split('.')
+		const version2 = version[2].replace('-alpha', '')
+		return {
+			version: [+version[0], +version[1], +version2] as WAVersion,
+			isLatest: true
+		}
+	} catch (error) {
+		return {
+			version: baileysVersion as WAVersion,
+			isLatest: false,
+			error
+		}
+	}
+}
 
 /**
  * utility that fetches latest baileys version from the master branch.
@@ -498,4 +539,31 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
+}
+
+export const fetchAlphaWaWebVersion = async (options: RequestInit = {}) => {
+	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
+	try {
+		const response = await fetch(URL, {
+			dispatcher: (options as any).dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+		}
+		const text = await response.text()
+		const lines = text.split('\n')
+		const versionLine = lines[6]
+		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
+		if (versionMatch) {
+			return {
+				version: [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion,
+				isLatest: true
+			}
+		}
+		throw new Error('Could not parse version')
+	} catch (error) {
+		return { version: baileysVersion as WAVersion, isLatest: false, error }
+	}
 }

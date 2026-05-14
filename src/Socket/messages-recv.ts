@@ -18,6 +18,8 @@ import type {
 	NewChatMessageCapInfo,
 	SocketConfig,
 	WACallEvent,
+	WAInitiateCallOptions,
+	WAInitiateCallResult,
 	WAMessage,
 	WAMessageKey,
 	WAPatchName
@@ -78,6 +80,7 @@ import {
 	getBinaryNodeChildString,
 	getBinaryNodeChildUInt,
 	isJidGroup,
+	jidEncode,
 	isJidNewsletter,
 	isJidStatusBroadcast,
 	isLidUser,
@@ -244,7 +247,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		return sendPeerDataOperationMessage(pdoMessage)
 	}
 
-	const handleMexNotification = async (node: BinaryNode) => {
+	const handleMexNewsletterNotification = async (node: BinaryNode) => {
 		const updateNode = getBinaryNodeChild(node, 'update')
 
 		if (updateNode) {
@@ -1060,7 +1063,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				await handleNewsletterNotification(node)
 				break
 			case 'mex':
-				await handleMexNotification(node)
+				await handleMexNewsletterNotification(node)
 				break
 			case 'w:gp2':
 				// TODO: HANDLE PARTICIPANT_PN

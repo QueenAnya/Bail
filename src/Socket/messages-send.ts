@@ -41,6 +41,7 @@ import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
 import { execSendStatusMentions } from '../addons/from-messages-send.js'
 import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils.js'
+import { getBinaryFilteredBizBot, getBinaryFilteredButtons } from '../WABinary/index.js'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,
@@ -424,6 +425,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	 * Update Member Label
 	 */
 	const updateMemberLabel = (jid: string, memberLabel: string) => {
+		if (!isJidGroup(jid)) {
+			throw new Error('Jid must a group jid!')
+		}
+
 		return relayMessage(
 			jid,
 			{
@@ -705,7 +710,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
-			const mediaType = getMediaType(message)
+			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
 			}
@@ -715,7 +720,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
 				binaryNodeContent.push({
 					tag: 'plaintext',
-					attrs: {},
+					attrs: mediaType ? { mediatype: mediaType } : {},
 					content: bytes
 				})
 				const stanza: BinaryNode = {
@@ -733,7 +738,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
-			if (normalizeMessageContent(message)?.pinInChatMessage || normalizeMessageContent(message)?.reactionMessage) {
+			if (
+				messages.pinInChatMessage ||
+				messages.keepInChatMessage ||
+				messages.reactionMessage ||
+				messages.protocolMessage?.editedMessage
+			) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
 			}
 

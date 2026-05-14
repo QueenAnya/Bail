@@ -1,17 +1,30 @@
 export enum XWAPaths {
 	xwa2_newsletter_create = 'xwa2_newsletter_create',
 	xwa2_newsletter_subscribers = 'xwa2_newsletter_subscribers',
-	xwa2_newsletter_view = 'xwa2_newsletter_view',
-	xwa2_newsletter_metadata = 'xwa2_newsletter',
-	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin',
+	xwa2_newsletter_subscribed = 'xwa2_newsletter_subscribed',
+	xwa2_newsletter_update = 'xwa2_newsletter_update',
+	xwa2_newsletter_admin = 'xwa2_newsletter_admin',
 	xwa2_newsletter_mute_v2 = 'xwa2_newsletter_mute_v2',
 	xwa2_newsletter_unmute_v2 = 'xwa2_newsletter_unmute_v2',
-	xwa2_newsletter_follow = 'xwa2_newsletter_follow',
 	xwa2_newsletter_unfollow = 'xwa2_newsletter_unfollow',
 	xwa2_newsletter_change_owner = 'xwa2_newsletter_change_owner',
 	xwa2_newsletter_demote = 'xwa2_newsletter_demote',
-	xwa2_newsletter_delete_v2 = 'xwa2_newsletter_delete_v2'
+	xwa2_newsletter_delete_v2 = 'xwa2_newsletter_delete_v2',
+	xwa2_newsletter_join = 'xwa2_newsletter_join',
+	xwa2_newsletter_leave = 'xwa2_newsletter_leave',
+	xwa2_newsletter = 'xwa2_newsletter',
+	xwa2_newsletter_metadata = 'xwa2_newsletter_metadata',
+	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin_count',
+	xwa2_fetch_account_reachout_timelock = 'xwa2_fetch_account_reachout_timelock',
+	xwa2_message_capping_info = 'xwa2_message_capping_info'
 }
+
+export enum QueryIdd {
+	PROMOTE = '6083263253998476',
+	DEMOTE = '6551828931592903',
+	GETSUBSCRIBED = '6388546374527196'
+}
+
 export enum QueryIds {
 	CREATE = '8823471724422422',
 	UPDATE_METADATA = '24250201037901610',
@@ -19,57 +32,66 @@ export enum QueryIds {
 	SUBSCRIBERS = '9783111038412085',
 	FOLLOW = '7871414976211147',
 	UNFOLLOW = '7238632346214362',
+	GETSUBSCRIBED = '6388546374527196',
 	MUTE = '29766401636284406',
 	UNMUTE = '9864994326891137',
 	ADMIN_COUNT = '7130823597031706',
 	CHANGE_OWNER = '7341777602580933',
 	DEMOTE = '6551828931592903',
+	REACHOUT_TIMELOCK = '7022535474456922',
+	MESSAGE_CAPPING_INFO = '9926658870510685',
 	DELETE = '30062808666639665'
 }
+
+export const MexOperations = {
+	PROMOTE: 'NotificationNewsletterAdminPromote',
+	DEMOTE: 'NotificationNewsletterAdminDemote',
+	DELETE: 'NotificationNewsletterDelete'
+}
+
+export const MexUpdatesOperations = {
+	OWNER_COMMUNITY: 'NotificationCommunityOwnerUpdate',
+	GROUP_MEMBER_LINK: 'NotificationGroupMemberLinkPropertyUpdate',
+	GROUP_LIMIT_SHARING: 'NotificationGroupLimitSharingPropertyUpdate'
+} as const
+
+export type MexUpdatesOperation = (typeof MexUpdatesOperations)[keyof typeof MexUpdatesOperations]
+
+export const XWAPathsMexUpdates = {
+	GROUP_SHARING_CHANGE: 'xwa2_notify_group_on_prop_change',
+	COMMUNITY_OWNER_CHANGE: 'xwa2_notify_group_on_participants_roles_change'
+} as const
+
+export type XWAPathMexUpdate = (typeof XWAPathsMexUpdates)[keyof typeof XWAPathsMexUpdates]
+
 export type NewsletterUpdate = {
 	name?: string
 	description?: string
 	picture?: string
 }
-export interface NewsletterCreateResponse {
-	id: string
-	state: { type: string }
-	thread_metadata: {
-		creation_time: string
-		description: { id: string; text: string; update_time: string }
-		handle: string | null
-		invite: string
-		name: { id: string; text: string; update_time: string }
-		picture: { direct_path: string; id: string; type: string }
-		preview: { direct_path: string; id: string; type: string }
-		subscribers_count: string
-		verification: 'VERIFIED' | 'UNVERIFIED'
-	}
-	viewer_metadata: {
-		mute: 'ON' | 'OFF'
-		role: NewsletterViewRole
-	}
-}
-export interface NewsletterCreateResponse {
-	id: string
-	state: { type: string }
-	thread_metadata: {
-		creation_time: string
-		description: { id: string; text: string; update_time: string }
-		handle: string | null
-		invite: string
-		name: { id: string; text: string; update_time: string }
-		picture: { direct_path: string; id: string; type: string }
-		preview: { direct_path: string; id: string; type: string }
-		subscribers_count: string
-		verification: 'VERIFIED' | 'UNVERIFIED'
-	}
-	viewer_metadata: {
-		mute: 'ON' | 'OFF'
-		role: NewsletterViewRole
-	}
-}
+
 export type NewsletterViewRole = 'ADMIN' | 'GUEST' | 'OWNER' | 'SUBSCRIBER'
+
+export interface NewsletterCreateResponse {
+	id: string
+	state: { type: string }
+	thread_metadata: {
+		creation_time: string
+		description: { id: string; text: string; update_time: string }
+		handle: string | null
+		invite: string
+		name: { id: string; text: string; update_time: string }
+		picture: { direct_path: string; id: string; type: string }
+		preview: { direct_path: string; id: string; type: string }
+		subscribers_count: string
+		verification: 'VERIFIED' | 'UNVERIFIED'
+	}
+	viewer_metadata: {
+		mute: 'ON' | 'OFF'
+		role: NewsletterViewRole
+	}
+}
+
 export interface NewsletterMetadata {
 	id: string
 	owner?: string
@@ -85,14 +107,6 @@ export interface NewsletterMetadata {
 		id?: string
 	}
 	verification?: 'VERIFIED' | 'UNVERIFIED'
-	reaction_codes?: {
-		code: string
-		count: number
-	}[]
+	reaction_codes?: { code: string; count: number }[]
 	mute_state?: 'ON' | 'OFF'
-	thread_metadata?: {
-		creation_time?: number
-		name?: string
-		description?: string
-	}
 }

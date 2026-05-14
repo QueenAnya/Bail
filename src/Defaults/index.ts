@@ -75,7 +75,7 @@ export const DEFAULT_CACHE_TTLS = {
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.macOS('Chrome'),
+	browser: Browsers.iOS('Chrome'),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,
@@ -123,6 +123,15 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	'md-app-state': '',
 	'md-msg-hist': '/mms/md-app-state',
 	'biz-cover-photo': '/pps/biz-cover-photo'
+}
+
+export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
+	image: '/newsletter/newsletter-image',
+	video: '/newsletter/newsletter-video',
+	document: '/newsletter/newsletter-document',
+	audio: '/newsletter/newsletter-audio',
+	sticker: '/newsletter/newsletter-image',
+	'thumbnail-link': '/newsletter/newsletter-image'
 }
 
 export const MEDIA_HKDF_KEY_MAPPING = {
