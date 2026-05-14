@@ -6,6 +6,7 @@ export enum XWAPaths {
 	xwa2_newsletter_admin = 'xwa2_newsletter_admin',
 	xwa2_newsletter_mute_v2 = 'xwa2_newsletter_mute_v2',
 	xwa2_newsletter_unmute_v2 = 'xwa2_newsletter_unmute_v2',
+	xwa2_newsletter_follow = 'xwa2_newsletter_follow',
 	xwa2_newsletter_unfollow = 'xwa2_newsletter_unfollow',
 	xwa2_newsletter_change_owner = 'xwa2_newsletter_change_owner',
 	xwa2_newsletter_demote = 'xwa2_newsletter_demote',
@@ -16,7 +17,8 @@ export enum XWAPaths {
 	xwa2_newsletter_metadata = 'xwa2_newsletter_metadata',
 	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin_count',
 	xwa2_fetch_account_reachout_timelock = 'xwa2_fetch_account_reachout_timelock',
-	xwa2_message_capping_info = 'xwa2_message_capping_info'
+	xwa2_message_capping_info = 'xwa2_message_capping_info',
+	xwa2_newsletter_view = 'xwa2_newsletter_view'
 }
 
 export enum QueryIdd {
@@ -70,8 +72,6 @@ export type NewsletterUpdate = {
 	picture?: string
 }
 
-export type NewsletterViewRole = 'ADMIN' | 'GUEST' | 'OWNER' | 'SUBSCRIBER'
-
 export interface NewsletterCreateResponse {
 	id: string
 	state: { type: string }
@@ -92,6 +92,8 @@ export interface NewsletterCreateResponse {
 	}
 }
 
+export type NewsletterViewRole = 'ADMIN' | 'GUEST' | 'OWNER' | 'SUBSCRIBER'
+
 export interface NewsletterMetadata {
 	id: string
 	owner?: string
@@ -109,4 +111,9 @@ export interface NewsletterMetadata {
 	verification?: 'VERIFIED' | 'UNVERIFIED'
 	reaction_codes?: { code: string; count: number }[]
 	mute_state?: 'ON' | 'OFF'
+	thread_metadata?: {
+		creation_time?: number
+		name?: string
+		description?: string
+	}
 }
