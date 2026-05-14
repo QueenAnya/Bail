@@ -180,8 +180,6 @@ export async function promiseTimeout<T>(
 
 // inspired from whatsmeow code
 // https://github.com/tulir/whatsmeow/blob/64bc969fbe78d31ae0dd443b8d4c80a5d026d07a/send.go#L42
-import { randomBytes, createHash } from 'crypto'
-
 export const generateMessageIDV2 = (userId?: string): string => {
 	const data = Buffer.alloc(8 + 20 + 16)
 	data.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000)))
