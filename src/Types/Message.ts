@@ -253,6 +253,12 @@ export type AnyMediaMessageContent = (
 			jpegThumbnail?: string
 	  } & Mentionable &
 			Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable &
+			HDable &
 			WithDimensions)
 	| ({
 			video: WAMediaUpload
@@ -286,8 +292,13 @@ export type AnyMediaMessageContent = (
 			mimetype: string
 			fileName?: string
 			caption?: string
-	  } & Contextable)
-) & { mimetype?: string } & Editable & {
+	  } & Contextable &
+			Buttonable &
+			Templatable &
+			Interactiveable &
+			Shopable &
+			Collectionable)
+) & { mimetype?: string } & Editable {
 		/** key of the parent albumMessage to associate this media with */
 		albumParentKey?: WAMessageKey
 	}
@@ -457,6 +468,15 @@ export type AnyRegularMessageContent = (
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
+	| {
+			/** Album message — sends multiple images/videos as a grouped album */
+			album: Array<{
+				image?: WAMediaUpload
+				video?: WAMediaUpload
+				caption?: string
+			}>
+	  }
+	| { stickerPack: StickerPack }
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { paymentInvite: PaymentInviteInfo }
