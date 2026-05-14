@@ -559,13 +559,25 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	// ── Call handlers ─────────────────────────────────────────────────
 
 	const rejectCall = async (callId: string, callFrom: string) => {
-		await query({
+		const stanza: BinaryNode = {
 			tag: 'call',
-			attrs: { from: authState.creds.me!.id, to: callFrom },
+			attrs: {
+				from: authState.creds.me!.id,
+				to: callFrom
+			},
 			content: [
-				{ tag: 'reject', attrs: { 'call-id': callId, 'call-creator': callFrom, count: '0' }, content: undefined }
+				{
+					tag: 'reject',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callFrom,
+						count: '0'
+					},
+					content: undefined
+				}
 			]
-		})
+		}
+		await query(stanza)
 	}
 
 	const offerCall = async (toJid: string, isVideo = false) => {
