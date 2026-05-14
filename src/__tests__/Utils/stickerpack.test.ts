@@ -35,9 +35,16 @@ jest.mock('../../Utils/messages', () => {
 			logger?: unknown
 		}
 	) => {
-		const { cover, stickers = [], name = '📦 Sticker Pack', publisher = 'GitHub: itsliaaa', description = '🏷️ itsliaaa/baileys' } = message
+		const {
+			cover,
+			stickers = [],
+			name = '📦 Sticker Pack',
+			publisher = 'GitHub: itsliaaa',
+			description = '🏷️ itsliaaa/baileys'
+		} = message
 
-		if (stickers.length > 60) throw new Boom('Sticker pack exceeds the maximum limit of 60 stickers', { statusCode: 400 })
+		if (stickers.length > 60)
+			throw new Boom('Sticker pack exceeds the maximum limit of 60 stickers', { statusCode: 400 })
 		if (stickers.length === 0) throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
 		if (!cover) throw new Boom('Sticker pack must contain a cover', { statusCode: 400 })
 
@@ -130,6 +137,6 @@ describe('buildStickerPackProto', () => {
 		expect(result.description).toBe('Cool stickers')
 	})
 
-//	it('two builds with same input have different auto-generated packIds', () => {
+	//	it('two builds with same input have different auto-generated packIds', () => {
 	//	const a = buildStickerPackProto(name: 'P
-		
+})
