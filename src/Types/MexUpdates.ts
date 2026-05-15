@@ -1,4 +1,4 @@
-export const enum MexUpdatesOperations {
+export const enum MexUpdatesOperationsEnum {
 	OWNER_COMMUNITY = 'NotificationCommunityOwnerUpdate',
 	GROUP_LIMIT_SHARING = 'NotificationGroupLimitSharingPropertyUpdate'
 }

@@ -1,4 +1,4 @@
-import type { WAMessage } from '../Types'
+import type { WAMessage } from '../Types/index.js'
 
 export interface SearchOptions {
 	caseSensitive?: boolean

@@ -14,20 +14,12 @@ import {
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
-import {
-	type LIDMapping,
-	type NewChatMessageCapInfo,
-	QueryIds,
-	ReachoutTimelockEnforcementType,
-	type ReachoutTimelockState,
-	type SocketConfig
-} from '../Types'
-import { DisconnectReason, XWAPaths } from '../Types'
+import type { LIDMapping, NewChatMessageCapInfo, ReachoutTimelockState, SocketConfig } from '../Types'
+import { DisconnectReason, QueryIds, ReachoutTimelockEnforcementType, XWAPaths } from '../Types'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,
 	bindWaitForConnectionUpdate,
-	buildPairingQRData,
 	bytesToCrockford,
 	configureSuccessfulPairing,
 	Curve,
@@ -36,15 +28,18 @@ import {
 	generateMdTagPrefix,
 	generateRegistrationNode,
 	getCodeFromWSError,
-	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
 	makeEventBuffer,
 	makeNoiseHandler,
+	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
+import { isAndroidBrowser, getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils.js'
+import { buildPairingQRData, getCompanionPlatformId } from '../Utils/companion-reg-client-utils.js'
+
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -60,9 +55,8 @@ import {
 } from '../WABinary'
 import { BinaryInfo } from '../WAM/BinaryInfo.js'
 import { USyncQuery, USyncUser } from '../WAUSync/'
-import { WebSocketClient } from './Client'
 import { executeWMexQuery } from './mex.js'
-import { isAndroidBrowser, getPlatformId, getPlatformDisplayName } from '../Utils/browser-utils.js'
+import { WebSocketClient } from './Client'
 
 /**
  * Connects to WA servers and performs:
@@ -93,12 +87,14 @@ export const makeSocket = (config: SocketConfig) => {
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
 
+	/**
 	if (printQRInTerminal) {
 		logger.warn(
 			{},
 			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
 		)
 	}
+	*/
 
 	const syncDisabled =
 		PROCESSABLE_HISTORY_TYPES.map(syncType => config.shouldSyncHistoryMessage({ syncType })).filter(x => x === false)
@@ -329,6 +325,7 @@ export const makeSocket = (config: SocketConfig) => {
 			if (isLidUser(jid)) {
 				// LIDs are queried via separate LID protocol query
 				lidQuery.withUser(new USyncUser().withLid(jid))
+				continue
 			} else {
 				if (!contactEnabled) {
 					contactEnabled = true
@@ -521,7 +518,7 @@ export const makeSocket = (config: SocketConfig) => {
 			return
 		}
 
-		const uploadLogic = async (retryCount: number): Promise<void> => {
+		const uploadLogic = async (retryCount: number = 0): Promise<void> => {
 			logger.info({ count, retryCount }, 'uploading pre-keys')
 
 			// Generate and save pre-keys atomically (prevents ID collisions on retry)

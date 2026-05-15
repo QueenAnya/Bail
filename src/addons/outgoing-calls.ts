@@ -12,15 +12,15 @@
  * are implemented here as standalone helpers that require a `sendNode` / `query` ref.
  */
 
-import type { BinaryNode } from '../WABinary'
-import { getBinaryNodeChild } from '../WABinary'
+import type { BinaryNode } from '../WABinary/index.js'
+import { getBinaryNodeChild } from '../WABinary/index.js'
 // generateMessageTag is a socket-layer util; we inline a compatible version here
 const generateMessageTag = (): string =>
 	Math.random().toString(36).slice(2, 8).toUpperCase() + Date.now().toString(36).toUpperCase()
 
 // WAInitiateCallOptions, WAInitiateCallResult, WACallUpdateType live in src/Types/Call.ts
 // Importing from there to avoid duplicate export conflicts
-import type { WACallUpdateType, WAInitiateCallOptions, WAInitiateCallResult } from '../Types'
+import type { WACallUpdateType, WAInitiateCallOptions, WAInitiateCallResult } from '../Types/index.js'
 export type { WACallUpdateType, WAInitiateCallOptions, WAInitiateCallResult }
 
 // ── createCallLink ─────────────────────────────────────────────────────────────

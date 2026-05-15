@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent } from '../Types'
+import type { AnyMessageContent } from '../Types/index.js'
 
 export type StatusType = 'text' | 'image' | 'video' | 'audio'
 

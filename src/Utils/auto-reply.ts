@@ -1,4 +1,4 @@
-import type { AnyMessageContent, WAMessage } from '../Types'
+import type { AnyMessageContent, WAMessage } from '../Types/index.js'
 import { randomBytes } from 'crypto'
 
 export interface AutoReplyRule {

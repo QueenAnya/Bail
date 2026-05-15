@@ -1,5 +1,5 @@
 import { proto } from '../../WAProto/index.js'
-import type { AuthenticationCreds, AuthenticationState, SignalDataTypeMap } from '../Types/index'
+import type { AuthenticationCreds, AuthenticationState, SignalDataTypeMap } from '../Types/index.js'
 import { initAuthCreds } from './auth-utils'
 import { BufferJSON } from './generics'
 

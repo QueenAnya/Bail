@@ -18,7 +18,6 @@ import {
 	assertMeId,
 	bindWaitForEvent,
 	decryptMediaRetryData,
-	DEF_MEDIA_HOST,
 	encodeNewsletterMessage,
 	encodeSignedDeviceIdentity,
 	encodeWAMessage,
@@ -29,6 +28,7 @@ import {
 	generateParticipantHashV2,
 	generateWAMessage,
 	getStatusCodeForMediaRetry,
+	DEF_MEDIA_HOST,
 	getUrlFromDirectPath,
 	getWAUploadToServer,
 	MessageRetryManager,
@@ -40,8 +40,8 @@ import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
 import { execSendStatusMentions } from '../addons/from-messages-send.js'
-import { /* getButtonArgs, */ getButtonType, getMediaType, getMessageType } from '../addons/message-utils.js'
-// import { getBinaryFilteredBizBot, getBinaryFilteredButtons } from '../WABinary/index.js'
+import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils.js'
+import { getBinaryFilteredBizBot, getBinaryFilteredButtons } from '../WABinary/index.js'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,
@@ -1347,7 +1347,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 								}
 
 								content.directPath = media.directPath
-								content.url = getUrlFromDirectPath(content.directPath!, mediaHost)
+								content.url = mediaHost
+									? `https://${mediaHost}${content.directPath}`
+									: getUrlFromDirectPath(content.directPath!)
 
 								logger.debug({ directPath: media.directPath, key: result.key }, 'media update successful')
 							} catch (err: any) {
@@ -1461,23 +1463,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
-		},
-
-		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
-		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
-			return execSendStatusMentions(content, jids, {
-				meId: authState.creds.me!.id,
-				logger,
-				groupMetadata: sock.groupMetadata,
-				cachedGroupMetadata: config.cachedGroupMetadata,
-				relayMessage,
-				waUploadToServer,
-				getUrlInfo,
-				config,
-				linkPreviewImageThumbnailWidth,
-				generateHighQualityLinkPreview,
-				httpRequestOptions
-			})
 		}
 	}
 }

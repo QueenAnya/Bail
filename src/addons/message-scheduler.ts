@@ -3,7 +3,7 @@
  * Schedule messages to be sent at a specific time or after a delay
  */
 
-import type { AnyMessageContent, MiscMessageGenerationOptions } from '../Types'
+import type { AnyMessageContent, MiscMessageGenerationOptions } from '../Types/index.js'
 
 export type ScheduledMessageJob = {
 	/** Unique job ID */
