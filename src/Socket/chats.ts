@@ -1187,6 +1187,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
+	 * Clear a message from chat (delete for me)
+	 */
+	const deleteChat = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
+	}
+
+	/**
 	 * queries need to be fired on connection open
 	 * help ensure parity with WA Web
 	 * */
@@ -1511,6 +1518,9 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		chatModify,
 		clearMessage: (jid: string, key: any, timeStamp: number | any) =>
 			chatModify({ delete: key, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid),
+		clearChat: (jid: string, key: any, timeStamp: number | any) =>
+			chatModify({ delete: key, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid),
+		deleteChat,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,

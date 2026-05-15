@@ -1,130 +1,147 @@
-/**
- * Chat Control Utilities — TypingIndicator, PinnedMessagesManager, ReadReceiptController
- * Source: @innovatorssoft/baileys chat-control.js
- */
-export type PresenceType = 'composing' | 'recording' | 'paused'
-export type TypingOptions = { duration?: number; autoPause?: boolean }
+export const DISAPPEARING_DURATIONS = {
+	OFF: 0,
+	HOURS_24: 86400,
+	DAYS_7: 604800,
+	DAYS_90: 7776000
+} as const
 
-export const DISAPPEARING_DURATIONS = { OFF: 0, HOURS_24: 86400, DAYS_7: 604800, DAYS_90: 7776000 } as const
+export interface TypingOptions {
+	duration?: number
+	autoPause?: boolean
+}
 
 export class TypingIndicator {
-	private intervals = new Map<string, ReturnType<typeof setTimeout>>()
-	private sendPresence: (jid: string, presence: PresenceType) => Promise<void>
+	private timers = new Map<string, NodeJS.Timeout>()
+	private sendPresence: (jid: string, presence: 'composing' | 'paused' | 'recording') => Promise<void>
 
-	constructor(sendPresence: (jid: string, presence: PresenceType) => Promise<void>) {
+	constructor(sendPresence: (jid: string, presence: 'composing' | 'paused' | 'recording') => Promise<void>) {
 		this.sendPresence = sendPresence
 	}
 
 	async startTyping(jid: string, options: TypingOptions = {}) {
-		this.stopTyping(jid)
+		const { duration = 5000, autoPause = true } = options
+		this.clearTimer(jid)
 		await this.sendPresence(jid, 'composing')
-		if (options.autoPause !== false && options.duration) {
-			this.intervals.set(
+		if (autoPause)
+			this.timers.set(
 				jid,
-				setTimeout(() => this.stopTyping(jid), options.duration)
+				setTimeout(() => this.sendPresence(jid, 'paused'), duration)
 			)
-		}
 	}
 
 	async startRecording(jid: string, options: TypingOptions = {}) {
-		this.stopTyping(jid)
+		const { duration = 5000, autoPause = true } = options
+		this.clearTimer(jid)
 		await this.sendPresence(jid, 'recording')
-		if (options.autoPause !== false && options.duration) {
-			this.intervals.set(
+		if (autoPause)
+			this.timers.set(
 				jid,
-				setTimeout(() => this.stopTyping(jid), options.duration)
+				setTimeout(() => this.sendPresence(jid, 'paused'), duration)
 			)
-		}
 	}
 
 	async stopTyping(jid: string) {
-		const existing = this.intervals.get(jid)
-		if (existing) {
-			clearTimeout(existing)
-			this.intervals.delete(jid)
-		}
-		try {
-			await this.sendPresence(jid, 'paused')
-		} catch {}
+		this.clearTimer(jid)
+		await this.sendPresence(jid, 'paused')
 	}
 
 	async stopAll() {
-		for (const [jid] of this.intervals) await this.stopTyping(jid)
+		for (const jid of this.timers.keys()) await this.stopTyping(jid)
 	}
 
 	async simulateTyping<T>(jid: string, duration: number, callback: () => Promise<T>): Promise<T> {
-		await this.startTyping(jid)
-		await new Promise(r => setTimeout(r, duration))
-		await this.stopTyping(jid)
-		return callback()
+		await this.sendPresence(jid, 'composing')
+		try {
+			await new Promise(r => setTimeout(r, duration))
+			return await callback()
+		} finally {
+			await this.sendPresence(jid, 'paused').catch(() => {})
+		}
+	}
+
+	private clearTimer(jid: string) {
+		const t = this.timers.get(jid)
+		if (t) {
+			clearTimeout(t)
+			this.timers.delete(jid)
+		}
 	}
 }
 
-export type PinnedMessage = { messageId: string; jid: string; pinnedAt: Date; pinnedBy?: string; expiresAt?: Date }
+export interface PinnedMessage {
+	messageId: string
+	jid: string
+	pinnedAt: Date
+	pinnedBy?: string
+	expiresAt?: Date
+}
 
 export class PinnedMessagesManager {
-	private pinnedMessages = new Map<string, PinnedMessage[]>()
+	private pins = new Map<string, PinnedMessage[]>()
 
 	pin(jid: string, messageId: string, pinnedBy?: string, expiresAt?: Date): PinnedMessage {
-		const pinned: PinnedMessage = { messageId, jid, pinnedAt: new Date(), pinnedBy, expiresAt }
-		const existing = this.pinnedMessages.get(jid) || []
-		const filtered = existing.filter(p => p.messageId !== messageId)
-		filtered.push(pinned)
-		this.pinnedMessages.set(jid, filtered)
-		return pinned
+		const pin: PinnedMessage = { messageId, jid, pinnedAt: new Date(), pinnedBy, expiresAt }
+		const existing = this.pins.get(jid) || []
+		existing.push(pin)
+		this.pins.set(jid, existing)
+		return pin
 	}
 
 	unpin(jid: string, messageId: string): boolean {
-		const existing = this.pinnedMessages.get(jid)
-		if (!existing) return false
-		const filtered = existing.filter(p => p.messageId !== messageId)
-		if (filtered.length === existing.length) return false
-		this.pinnedMessages.set(jid, filtered)
+		const pins = this.pins.get(jid)
+		if (!pins) return false
+		const idx = pins.findIndex(p => p.messageId === messageId)
+		if (idx === -1) return false
+		pins.splice(idx, 1)
 		return true
 	}
 
-	getPinned(jid: string) {
-		return this.pinnedMessages.get(jid) || []
+	getPinned(jid: string): PinnedMessage[] {
+		return this.pins.get(jid) || []
 	}
-	isPinned(jid: string, messageId: string) {
-		return (this.pinnedMessages.get(jid) || []).some(p => p.messageId === messageId)
+	isPinned(jid: string, messageId: string): boolean {
+		return this.getPinned(jid).some(p => p.messageId === messageId)
 	}
 	clearPins(jid: string) {
-		this.pinnedMessages.delete(jid)
+		this.pins.delete(jid)
 	}
-
 	clearExpired(): number {
-		let cleared = 0
-		const now = Date.now()
-		for (const [jid, pins] of this.pinnedMessages) {
-			const valid = pins.filter(p => !p.expiresAt || p.expiresAt.getTime() > now)
-			if (valid.length < pins.length) {
-				cleared += pins.length - valid.length
-				this.pinnedMessages.set(jid, valid)
-			}
+		let count = 0
+		const now = new Date()
+		for (const [jid, pins] of this.pins.entries()) {
+			const before = pins.length
+			const filtered = pins.filter(p => !p.expiresAt || p.expiresAt > now)
+			this.pins.set(jid, filtered)
+			count += before - filtered.length
 		}
-		return cleared
+		return count
 	}
 }
 
-export type ReadReceiptControllerConfig = { enabled?: boolean; readDelay?: number; excludeJids?: string[] }
-export type ReadReceiptFn = (jid: string, participant: string | undefined | null, messageIds: string[]) => Promise<void>
+export interface ReadReceiptConfig {
+	enabled: boolean
+	autoRead?: boolean
+	readDelay?: number
+	excludeJids?: string[]
+}
 
-export const createTypingIndicator = (sendPresence: (jid: string, presence: PresenceType) => Promise<void>) =>
-	new TypingIndicator(sendPresence)
-export const createPinnedMessagesManager = () => new PinnedMessagesManager()
+export const createTypingIndicator = (
+	sendPresence: (jid: string, presence: 'composing' | 'paused' | 'recording') => Promise<void>
+): TypingIndicator => new TypingIndicator(sendPresence)
+
+export const createPinnedMessagesManager = (): PinnedMessagesManager => new PinnedMessagesManager()
 
 export const createReadReceiptController = (
-	sendReadReceipt: ReadReceiptFn,
-	config: ReadReceiptControllerConfig = { enabled: true }
+	sendReadReceipt: (jid: string, participant: string | undefined, messageIds: string[]) => Promise<void>,
+	config: ReadReceiptConfig = { enabled: true }
 ) => {
-	let cfg = { enabled: true, ...config }
+	let cfg = { ...config }
 	return {
-		setConfig(c: ReadReceiptControllerConfig) {
-			cfg = { ...cfg, ...c }
+		setConfig(newConfig: Partial<ReadReceiptConfig>) {
+			cfg = { ...cfg, ...newConfig }
 		},
-		getConfig() {
-			return { ...cfg }
+		getConfig(): ReadReceiptConfig {
+			return cfg
 		},
 		enable() {
 			cfg.enabled = true
@@ -132,16 +149,16 @@ export const createReadReceiptController = (
 		disable() {
 			cfg.enabled = false
 		},
-		isEnabled() {
+		isEnabled(): boolean {
 			return cfg.enabled
 		},
-		async markRead(jid: string, participant: string | undefined | null, messageIds: string[]) {
+		async markRead(jid: string, participant: string | undefined, messageIds: string[]) {
 			if (!cfg.enabled) return
 			if (cfg.excludeJids?.includes(jid)) return
 			if (cfg.readDelay) await new Promise(r => setTimeout(r, cfg.readDelay))
 			await sendReadReceipt(jid, participant, messageIds)
 		},
-		async forceMarkRead(jid: string, participant: string | undefined | null, messageIds: string[]) {
+		async forceMarkRead(jid: string, participant: string | undefined, messageIds: string[]) {
 			await sendReadReceipt(jid, participant, messageIds)
 		}
 	}

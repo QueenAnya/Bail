@@ -1,14 +1,5 @@
-import type { WAMessage } from '../Types/index.js'
-import type { AnyMessageContent } from '../Types/index.js'
-
-export interface SchedulerOptions {
-	maxQueue?: number
-	checkInterval?: number
-	onSent?: (scheduled: ScheduledMessage, message?: WAMessage) => void
-	onFailed?: (scheduled: ScheduledMessage, error: Error) => void
-}
-
-export type ScheduledMessageStatus = 'pending' | 'sent' | 'failed' | 'cancelled'
+import type { AnyMessageContent, WAMessage } from '../Types'
+import { randomBytes } from 'crypto'
 
 export interface ScheduledMessage {
 	id: string
@@ -16,21 +7,27 @@ export interface ScheduledMessage {
 	content: AnyMessageContent
 	scheduledTime: Date
 	createdAt: Date
-	status: ScheduledMessageStatus
-	messageId?: string
+	status: 'pending' | 'sent' | 'failed' | 'cancelled'
 	error?: string
+	messageId?: string
 }
+
+export interface SchedulerOptions {
+	maxQueue?: number
+	checkInterval?: number
+	onSent?: (scheduled: ScheduledMessage, message: WAMessage) => void
+	onFailed?: (scheduled: ScheduledMessage, error: Error) => void
+}
+
+export type SendMessageFunction = (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>
 
 export class MessageScheduler {
 	private queue = new Map<string, ScheduledMessage>()
-	private timer: ReturnType<typeof setInterval> | null = null
-	private sendMessage: (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>
+	private timer: NodeJS.Timeout | null = null
+	private sendMessage: SendMessageFunction
 	private options: Required<SchedulerOptions>
 
-	constructor(
-		sendMessage: (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>,
-		options: SchedulerOptions = {}
-	) {
+	constructor(sendMessage: SendMessageFunction, options: SchedulerOptions = {}) {
 		this.sendMessage = sendMessage
 		this.options = {
 			maxQueue: options.maxQueue ?? 1000,
@@ -40,94 +37,13 @@ export class MessageScheduler {
 		}
 	}
 
-	private generateId() {
-		return `sched_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+	private generateId(): string {
+		return `sched_${Date.now()}_${randomBytes(3).toString('hex')}`
 	}
 
-	schedule(jid: string, content: AnyMessageContent, scheduledTime: Date): ScheduledMessage {
-		if (this.queue.size >= this.options.maxQueue)
-			throw new Error(`Maximum queue size (${this.options.maxQueue}) reached`)
-		if (scheduledTime.getTime() <= Date.now()) throw new Error('Scheduled time must be in the future')
-		const scheduled: ScheduledMessage = {
-			id: this.generateId(),
-			jid,
-			content,
-			scheduledTime,
-			createdAt: new Date(),
-			status: 'pending'
-		}
-		this.queue.set(scheduled.id, scheduled)
-		this.ensureTimerRunning()
-		return scheduled
-	}
-
-	scheduleDelay(jid: string, content: AnyMessageContent, delayMs: number): ScheduledMessage {
-		return this.schedule(jid, content, new Date(Date.now() + delayMs))
-	}
-
-	cancel(id: string): boolean {
-		const s = this.queue.get(id)
-		if (s?.status === 'pending') {
-			s.status = 'cancelled'
-			this.queue.delete(id)
-			return true
-		}
-
-		return false
-	}
-
-	cancelForJid(jid: string): number {
-		let cancelled = 0
-		for (const [id, s] of this.queue) {
-			if (s.jid === jid && s.status === 'pending') {
-				s.status = 'cancelled'
-				this.queue.delete(id)
-				cancelled++
-			}
-		}
-
-		return cancelled
-	}
-
-	getPending(): ScheduledMessage[] {
-		return Array.from(this.queue.values()).filter(s => s.status === 'pending')
-	}
-
-	get(id: string) {
-		return this.queue.get(id)
-	}
-
-	clearAll(): number {
-		const count = this.queue.size
-		this.queue.clear()
-		this.stopTimer()
-		return count
-	}
-
-	private async processQueue() {
-		const now = Date.now()
-		for (const [id, s] of this.queue) {
-			if (s.status !== 'pending') continue
-			if (s.scheduledTime.getTime() > now) continue
-			try {
-				const message = await this.sendMessage(s.jid, s.content)
-				s.status = 'sent'
-				s.messageId = message?.key?.id ?? undefined
-				this.options.onSent(s, message)
-			} catch (error: any) {
-				s.status = 'failed'
-				s.error = error.message
-				this.options.onFailed(s, error)
-			}
-
-			this.queue.delete(id)
-		}
-
-		if (this.queue.size === 0) this.stopTimer()
-	}
-
-	private ensureTimerRunning() {
-		if (!this.timer) this.timer = setInterval(() => this.processQueue(), this.options.checkInterval)
+	private startTimer() {
+		if (this.timer) return
+		this.timer = setInterval(() => this.tick(), this.options.checkInterval)
 	}
 
 	private stopTimer() {
@@ -137,16 +53,86 @@ export class MessageScheduler {
 		}
 	}
 
+	private async tick() {
+		const now = Date.now()
+		const due = [...this.queue.values()].filter(m => m.status === 'pending' && m.scheduledTime.getTime() <= now)
+		for (const entry of due) {
+			try {
+				const msg = await this.sendMessage(entry.jid, entry.content)
+				entry.status = 'sent'
+				entry.messageId = (msg as any)?.key?.id
+				this.options.onSent(entry, msg!)
+			} catch (err: any) {
+				entry.status = 'failed'
+				entry.error = err.message
+				this.options.onFailed(entry, err)
+			}
+		}
+		if ([...this.queue.values()].every(m => m.status !== 'pending')) this.stopTimer()
+	}
+
+	schedule(jid: string, content: AnyMessageContent, scheduledTime: Date): ScheduledMessage {
+		if (scheduledTime.getTime() <= Date.now()) throw new Error('scheduledTime must be in the future')
+		if (this.getPending().length >= this.options.maxQueue) throw new Error('Queue is full')
+		const entry: ScheduledMessage = {
+			id: this.generateId(),
+			jid,
+			content,
+			scheduledTime,
+			createdAt: new Date(),
+			status: 'pending'
+		}
+		this.queue.set(entry.id, entry)
+		this.startTimer()
+		return entry
+	}
+
+	scheduleDelay(jid: string, content: AnyMessageContent, delayMs: number): ScheduledMessage {
+		return this.schedule(jid, content, new Date(Date.now() + delayMs))
+	}
+
+	cancel(id: string): boolean {
+		const entry = this.queue.get(id)
+		if (!entry || entry.status !== 'pending') return false
+		entry.status = 'cancelled'
+		return true
+	}
+
+	cancelForJid(jid: string): number {
+		let count = 0
+		for (const entry of this.queue.values()) {
+			if (entry.jid === jid && entry.status === 'pending') {
+				entry.status = 'cancelled'
+				count++
+			}
+		}
+		return count
+	}
+
+	getPending(): ScheduledMessage[] {
+		return [...this.queue.values()].filter(m => m.status === 'pending')
+	}
+
+	get(id: string): ScheduledMessage | undefined {
+		return this.queue.get(id)
+	}
+
+	clearAll(): number {
+		const count = this.getPending().length
+		this.queue.clear()
+		this.stopTimer()
+		return count
+	}
+
 	stop() {
 		this.stopTimer()
 	}
-
 	start() {
-		if (this.queue.size > 0) this.ensureTimerRunning()
+		if (this.getPending().length > 0) this.startTimer()
 	}
 }
 
 export const createMessageScheduler = (
-	sendMessage: (jid: string, content: AnyMessageContent) => Promise<WAMessage | undefined>,
+	sendMessage: SendMessageFunction,
 	options?: SchedulerOptions
-) => new MessageScheduler(sendMessage, options)
+): MessageScheduler => new MessageScheduler(sendMessage, options)

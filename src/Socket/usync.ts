@@ -1,8 +1,8 @@
 import { Boom } from '@hapi/boom'
-import { S_WHATSAPP_NET } from '../WABinary/index.js'
-import type { SocketConfig } from '../Types/index.js'
-import type { USyncQuery, USyncUser } from '../WAUSync/index.js'
-import { makeSocket } from './socket.js'
+import { S_WHATSAPP_NET } from '../WABinary'
+import type { SocketConfig } from '../Types'
+import type { USyncQuery, USyncUser } from '../WAUSync'
+import { makeSocket } from './socket'
 
 export const makeUSyncSocket = (config: SocketConfig) => {
 	const sock = makeSocket(config)
