@@ -1,15 +1,25 @@
-import type { WAMessage } from '../Types'
+import type { WAMessage } from '../Types/index.js'
+
+export type SearchMessageType =
+	| 'text'
+	| 'image'
+	| 'video'
+	| 'document'
+	| 'audio'
+	| 'sticker'
+	| 'location'
+	| 'contact'
+	| 'other'
 
 export interface SearchOptions {
-	caseSensitive?: boolean
 	jid?: string
 	fromDate?: Date
 	toDate?: Date
-	limit?: number
-	messageTypes?: ('text' | 'image' | 'video' | 'document' | 'audio' | 'sticker' | 'location' | 'contact')[]
-	includeCaption?: boolean
 	fromSender?: string
 	fromMe?: boolean
+	messageTypes?: SearchMessageType[]
+	limit?: number
+	caseSensitive?: boolean
 }
 
 export interface SearchResult {
@@ -17,6 +27,20 @@ export interface SearchResult {
 	matchedText: string
 	matchPosition: number
 	relevanceScore: number
+}
+
+/** Options for regex-based message search */
+export interface RegexSearchOptions {
+	/** Filter by chat JID */
+	jid?: string
+	/** Filter by sender JID */
+	fromSender?: string
+	/** Filter by fromMe flag */
+	fromMe?: boolean
+	/** Filter by message types */
+	messageTypes?: SearchMessageType[]
+	/** Max number of results */
+	limit?: number
 }
 
 export const extractMessageText = (message: WAMessage): string => {
@@ -35,39 +59,65 @@ export const extractMessageText = (message: WAMessage): string => {
 	return ''
 }
 
-const getMessageType = (message: WAMessage): string => {
+const getMessageType = (message: WAMessage): SearchMessageType => {
 	const c = message.message
-	if (!c) return 'unknown'
+	if (!c) return 'other'
 	if (c.conversation || c.extendedTextMessage) return 'text'
 	if (c.imageMessage) return 'image'
 	if (c.videoMessage) return 'video'
 	if (c.documentMessage) return 'document'
 	if (c.audioMessage) return 'audio'
 	if (c.stickerMessage) return 'sticker'
-	if (c.locationMessage) return 'location'
+	if (c.locationMessage || c.liveLocationMessage) return 'location'
 	if (c.contactMessage || c.contactsArrayMessage) return 'contact'
-	return 'unknown'
+	return 'other'
+}
+
+export const calculateRelevance = (query: string, text: string, position: number): number => {
+	let score = 100
+	if (text.toLowerCase() === query.toLowerCase()) score += 50
+	score -= Math.min(position / 10, 20)
+	const lt = text.toLowerCase(),
+		lq = query.toLowerCase()
+	if (
+		position === 0 ||
+		lt[position - 1] === ' ' ||
+		lt[position + lq.length] === ' ' ||
+		position + lq.length === text.length
+	)
+		score += 20
+	return Math.max(score, 0)
 }
 
 export const searchMessages = (messages: WAMessage[], query: string, options: SearchOptions = {}): SearchResult[] => {
-	const { caseSensitive = false, jid, fromDate, toDate, limit, messageTypes, fromSender, fromMe } = options
-	const q = caseSensitive ? query : query.toLowerCase()
 	const results: SearchResult[] = []
+	const sq = options.caseSensitive ? query : query.toLowerCase()
+	for (const message of messages) {
+		if (options.jid && message.key.remoteJid !== options.jid) continue
+		const ts = message.messageTimestamp
+		const mt = ts ? new Date((typeof ts === 'number' ? ts : Number(ts)) * 1000) : null
+		if (options.fromDate && mt && mt < options.fromDate) continue
+		if (options.toDate && mt && mt > options.toDate) continue
+		if (options.fromSender && message.key.participant !== options.fromSender) continue
+		if (options.fromMe !== undefined && message.key.fromMe !== options.fromMe) continue
+		if (options.messageTypes?.length) {
+			if (!options.messageTypes.includes(getMessageType(message))) continue
+		}
 
-	for (const msg of messages) {
-		if (jid && msg.key.remoteJid !== jid) continue
-		if (fromMe !== undefined && msg.key.fromMe !== fromMe) continue
-		if (fromSender && msg.key.participant !== fromSender && msg.key.remoteJid !== fromSender) continue
-		if (fromDate && msg.messageTimestamp && Number(msg.messageTimestamp) * 1000 < fromDate.getTime()) continue
-		if (toDate && msg.messageTimestamp && Number(msg.messageTimestamp) * 1000 > toDate.getTime()) continue
-		const msgType = getMessageType(msg)
-		if (messageTypes && !messageTypes.includes(msgType as any)) continue
-		const text = extractMessageText(msg)
-		const searchText = caseSensitive ? text : text.toLowerCase()
-		const pos = searchText.indexOf(q)
-		if (pos === -1) continue
-		results.push({ message: msg, matchedText: text, matchPosition: pos, relevanceScore: 1 - pos / text.length })
-		if (limit && results.length >= limit) break
+		const text = extractMessageText(message)
+		if (!text) continue
+		const st = options.caseSensitive ? text : text.toLowerCase()
+		const pos = st.indexOf(sq)
+		if (pos !== -1) {
+			results.push({
+				message,
+				matchedText: text.substring(Math.max(0, pos - 20), Math.min(text.length, pos + query.length + 20)),
+				matchPosition: pos,
+				relevanceScore: calculateRelevance(query, text, pos)
+			})
+		}
+
+		if (options.limit && results.length >= options.limit) break
 	}
 
 	return results.sort((a, b) => b.relevanceScore - a.relevanceScore)
@@ -76,22 +126,24 @@ export const searchMessages = (messages: WAMessage[], query: string, options: Se
 export const searchMessagesRegex = (
 	messages: WAMessage[],
 	pattern: RegExp,
-	options: Omit<SearchOptions, 'caseSensitive'> = {}
+	options: RegexSearchOptions = {}
 ): SearchResult[] => {
 	const results: SearchResult[] = []
-	const { jid, fromMe, fromSender, fromDate, toDate, limit } = options
-	for (const msg of messages) {
-		if (jid && msg.key.remoteJid !== jid) continue
-		if (fromMe !== undefined && msg.key.fromMe !== fromMe) continue
-		if (fromSender && msg.key.participant !== fromSender && msg.key.remoteJid !== fromSender) continue
-		if (fromDate && msg.messageTimestamp && Number(msg.messageTimestamp) * 1000 < fromDate.getTime()) continue
-		if (toDate && msg.messageTimestamp && Number(msg.messageTimestamp) * 1000 > toDate.getTime()) continue
-		const text = extractMessageText(msg)
+	for (const message of messages) {
+		if (options.jid && message.key.remoteJid !== options.jid) continue
+		if (options.fromSender && message.key.participant !== options.fromSender) continue
+		if (options.fromMe !== undefined && message.key.fromMe !== options.fromMe) continue
+		if (options.messageTypes?.length) {
+			if (!options.messageTypes.includes(getMessageType(message))) continue
+		}
+
+		const text = extractMessageText(message)
+		if (!text) continue
 		const match = text.match(pattern)
-		if (!match) continue
-		results.push({ message: msg, matchedText: text, matchPosition: match.index || 0, relevanceScore: 1 })
-		if (limit && results.length >= limit) break
+		if (match) results.push({ message, matchedText: match[0], matchPosition: match.index ?? 0, relevanceScore: 100 })
+		if (options.limit && results.length >= options.limit) break
 	}
+
 	return results
 }
 
@@ -101,8 +153,8 @@ export class MessageSearchManager {
 
 	addMessages(messages: WAMessage[]) {
 		for (const msg of messages) {
-			const id = msg.key.id!
-			if (!this.messageIndex.has(id)) {
+			const id = msg.key.id
+			if (id && !this.messageIndex.has(id)) {
 				this.messages.push(msg)
 				this.messageIndex.set(id, msg)
 			}
@@ -110,8 +162,8 @@ export class MessageSearchManager {
 	}
 
 	removeMessages(messageIds: string[]) {
-		const ids = new Set(messageIds)
-		this.messages = this.messages.filter(m => !ids.has(m.key.id!))
+		const idSet = new Set(messageIds)
+		this.messages = this.messages.filter(m => !idSet.has(m.key.id || ''))
 		for (const id of messageIds) this.messageIndex.delete(id)
 	}
 
@@ -122,24 +174,24 @@ export class MessageSearchManager {
 	get count() {
 		return this.messages.length
 	}
-	search(query: string, options?: SearchOptions): SearchResult[] {
+	search(query: string, options?: SearchOptions) {
 		return searchMessages(this.messages, query, options)
 	}
-	searchRegex(pattern: RegExp, options?: Omit<SearchOptions, 'caseSensitive'>): SearchResult[] {
+	searchRegex(pattern: RegExp, options?: RegexSearchOptions) {
 		return searchMessagesRegex(this.messages, pattern, options)
 	}
-	getByJid(jid: string): WAMessage[] {
+	getByJid(jid: string) {
 		return this.messages.filter(m => m.key.remoteJid === jid)
 	}
-	getBySender(sender: string): WAMessage[] {
+	getBySender(sender: string) {
 		return this.messages.filter(m => m.key.participant === sender || m.key.remoteJid === sender)
 	}
-	getByType(type: string): WAMessage[] {
+	getByType(type: SearchMessageType) {
 		return this.messages.filter(m => getMessageType(m) === type)
 	}
-	getById(id: string): WAMessage | undefined {
+	getById(id: string) {
 		return this.messageIndex.get(id)
 	}
 }
 
-export const createMessageSearch = (): MessageSearchManager => new MessageSearchManager()
+export const createMessageSearch = () => new MessageSearchManager()

@@ -1,6 +1,6 @@
 import { platform, release } from 'os'
 import { proto } from '../../WAProto/index.js'
-import type { BrowsersMap } from '../Types/index'
+import type { BrowsersMap } from '../Types/index.js'
 
 const PLATFORM_MAP: Record<string, string> = {
 	aix: 'AIX',
@@ -113,4 +113,13 @@ export const getPlatformId = (browser: string) => {
 export const getPlatformDisplayName = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
 	return platformType !== undefined ? browser : 'Chrome'
+}
+
+/**
+ * Returns the proto PlatformType for companion (QR/pairing) registration.
+ * Used in buildPairingQRData to set the correct platform in device props.
+ */
+export const getCompanionPlatformIdFromName = (browser: string): proto.DeviceProps.PlatformType => {
+	const key = browser.toUpperCase() as keyof typeof proto.DeviceProps.PlatformType
+	return proto.DeviceProps.PlatformType[key] ?? proto.DeviceProps.PlatformType.CHROME
 }

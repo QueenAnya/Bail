@@ -4,7 +4,7 @@
  * sendLatexInlineImage, sendRichMessage, captureUnifiedResponse, sendUnifiedResponse
  */
 
-import type { AnyMessageContent, MiscMessageGenerationOptions } from '../Types/index.js'
+import type { AnyMessageContent, MiscMessageGenerationOptions } from '../Types'
 
 type SendFn = (jid: string, content: AnyMessageContent, options?: MiscMessageGenerationOptions) => Promise<any>
 

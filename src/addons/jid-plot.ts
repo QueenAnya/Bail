@@ -4,7 +4,7 @@
  * Useful for resolving JIDs in groups that use LID addressing
  */
 
-import { isLidUser, isPnUser, jidDecode, jidEncode } from '../WABinary/index.js'
+import { isLidUser, isPnUser, jidDecode, jidEncode } from '../WABinary'
 
 export type JidPlotEntry = {
 	pnJid: string

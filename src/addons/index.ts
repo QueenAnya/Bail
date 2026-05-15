@@ -85,14 +85,3 @@ export * from './call-handler.js'
 // ── Auth State — re-exported from src/Utils (canonical location) ───────────
 export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
 export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'
-
-// ── New addons from user merged ─────────────────────────────────────────────
-export * from './browser-presets.js'
-export * from './lid-support.js'
-export * from './message-composer.js'
-export * from './message-scheduler.js'
-export * from './outgoing-calls.js'
-export * from './pairing-fix.js'
-export * from './past-participants.js'
-export * from './rich-response.js'
-export * from './stickerpack.js'
