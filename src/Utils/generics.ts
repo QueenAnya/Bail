@@ -9,11 +9,11 @@ import type {
 	WACallUpdateType,
 	WAMessageKey,
 	WAVersion
-} from '../Types/index.js'
-import { DisconnectReason } from '../Types/index.js'
-import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary/index.js'
+} from '../Types/index'
+import { DisconnectReason } from '../Types/index'
+import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary/index'
 import { sha256 } from './crypto'
-import type { ILogger } from './logger.js'
+import type { ILogger } from './logger'
 
 export const BufferJSON = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -390,7 +390,7 @@ export const fetchLatestWaWebVersion = async (options: RequestInit = {}) => {
 
 		const headers = { ...defaultHeaders, ...options.headers }
 
-		const response = await fetch('https://web.whatsapp.com/sw.js', {
+		const response = await fetch('https://web.whatsapp.com/sw', {
 			...options,
 			method: 'GET',
 			headers

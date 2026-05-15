@@ -39,9 +39,9 @@ import {
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
-import { execSendStatusMentions } from '../addons/from-messages-send.js'
-import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils.js'
-import { getBinaryFilteredBizBot, getBinaryFilteredButtons } from '../WABinary/index.js'
+import { execSendStatusMentions } from '../addons/from-messages-send'
+import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
+import { getBinaryFilteredBizBot, getBinaryFilteredButtons } from '../WABinary/index'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,

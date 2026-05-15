@@ -9,9 +9,9 @@
 import { getRandomValues, randomBytes, randomUUID } from 'crypto'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { proto } from '../../WAProto/index.js'
-import { BOT_RENDERING_CONFIG_METADATA, DONATE_URL } from '../Defaults/index.js'
-import { unixTimestampSeconds } from '../Utils/generics.js'
-import { CodeHighlightType, RichSubMessageType, LANGUAGE_KEYWORDS } from './rich-types.js'
+import { BOT_RENDERING_CONFIG_METADATA, DONATE_URL } from '../Defaults/index'
+import { unixTimestampSeconds } from '../Utils/generics'
+import { CodeHighlightType, RichSubMessageType, LANGUAGE_KEYWORDS } from './rich-types'
 
 export type { CodeHighlightType, RichSubMessageType }
 

@@ -40,12 +40,12 @@
  *   })
  */
 
-import type { MessageRelayOptions, WAMessageContent } from '../Types/Message.js'
-import { generateMessageIDV2 } from '../Utils/generics.js'
-import { generateWAMessageFromContent, normalizeMessageContent } from '../Utils/messages.js'
-import { isJidGroup } from '../WABinary/jid-utils.js'
-import type { BinaryNode } from '../WABinary/types.js'
-import { getButtonArgs, getButtonType } from './message-utils.js'
+import type { MessageRelayOptions, WAMessageContent } from '../Types/Message'
+import { generateMessageIDV2 } from '../Utils/generics'
+import { generateWAMessageFromContent, normalizeMessageContent } from '../Utils/messages'
+import { isJidGroup } from '../WABinary/jid-utils'
+import type { BinaryNode } from '../WABinary/types'
+import { getButtonArgs, getButtonType } from './message-utils'
 // Re-export so callers can import these from button-sender directly (matches button-helper API)
 export { getButtonType, getButtonArgs }
 

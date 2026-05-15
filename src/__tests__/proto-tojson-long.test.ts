@@ -1,5 +1,5 @@
 import Long from 'long'
-import '../index.js'
+import '../index'
 import { proto } from '../../WAProto/index.js'
 
 describe('proto serialization', () => {

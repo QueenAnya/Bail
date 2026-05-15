@@ -1,21 +1,21 @@
 export interface TemplateVariable {
 	name: string
 	defaultValue?: string
-	required: boolean
+	required?: boolean
 }
-
 export interface MessageTemplate {
 	id: string
 	name: string
-	content: string
 	description?: string
-	category?: string
+	content: string
 	variables: TemplateVariable[]
+	category?: string
 	createdAt: Date
 	updatedAt: Date
 }
-
-export type TemplateData = Record<string, string | number | undefined | null>
+export interface TemplateData {
+	[key: string]: string | number | undefined
+}
 
 export class TemplateManager {
 	private templates = new Map<string, MessageTemplate>()
@@ -33,142 +33,116 @@ export class TemplateManager {
 			const name = match[1]
 			if (!name || seen.has(name)) continue
 			seen.add(name)
-			variables.push({ name, defaultValue: match[2], required: !match[2] })
+			variables.push({ name, defaultValue: match[2] })
 		}
-
 		return variables
 	}
 
 	create(options: {
-		id?: string
 		name: string
 		content: string
 		description?: string
 		category?: string
+		id?: string
 	}): MessageTemplate {
-		const template: MessageTemplate = {
-			id: options.id ?? this.generateId(),
+		const id = options.id || this.generateId()
+		const now = new Date()
+		const tpl: MessageTemplate = {
+			id,
 			name: options.name,
 			content: options.content,
 			description: options.description,
 			category: options.category,
 			variables: this.extractVariables(options.content),
-			createdAt: new Date(),
-			updatedAt: new Date()
+			createdAt: now,
+			updatedAt: now
 		}
-		this.templates.set(template.id, template)
-		return template
+		this.templates.set(id, tpl)
+		return tpl
 	}
 
-	get(id: string) {
+	get(id: string): MessageTemplate | undefined {
 		return this.templates.get(id)
 	}
-	getByName(name: string) {
-		return Array.from(this.templates.values()).find(t => t.name === name)
+	getByName(name: string): MessageTemplate | undefined {
+		return [...this.templates.values()].find(t => t.name === name)
 	}
-	getAll() {
-		return Array.from(this.templates.values())
+	getAll(): MessageTemplate[] {
+		return [...this.templates.values()]
 	}
-	getByCategory(category: string) {
-		return Array.from(this.templates.values()).filter(t => t.category === category)
-	}
-
-	update(id: string, updates: Partial<MessageTemplate>): MessageTemplate | undefined {
-		const template = this.templates.get(id)
-		if (!template) return undefined
-		if (updates.content) updates.variables = this.extractVariables(updates.content)
-		const updated = { ...template, ...updates, updatedAt: new Date() }
-		this.templates.set(id, updated)
-		return updated
+	getByCategory(category: string): MessageTemplate[] {
+		return [...this.templates.values()].filter(t => t.category === category)
 	}
 
-	delete(id: string) {
+	update(id: string, updates: Partial<Omit<MessageTemplate, 'id' | 'createdAt'>>): MessageTemplate | undefined {
+		const tpl = this.templates.get(id)
+		if (!tpl) return undefined
+		Object.assign(tpl, updates, { updatedAt: new Date() })
+		if (updates.content) tpl.variables = this.extractVariables(tpl.content)
+		return tpl
+	}
+
+	delete(id: string): boolean {
 		return this.templates.delete(id)
 	}
 
 	renderContent(content: string, data: TemplateData = {}): string {
-		return content.replace(/\{\{(\w+)(?::([^}]*))?\}\}/g, (match, name, defaultValue) => {
-			const value = data[name]
-			if (value !== undefined && value !== null) return String(value)
-			if (defaultValue !== undefined) return defaultValue
-			return match
+		return content.replace(/\{\{(\w+)(?::([^}]*))?\}\}/g, (_, name, defaultVal) => {
+			const val = data[name]
+			if (val !== undefined) return String(val)
+			if (defaultVal !== undefined) return defaultVal
+			return `{{${name}}}`
 		})
 	}
 
-	render(id: string, data: TemplateData = {}): string {
-		const template = this.templates.get(id)
-		if (!template) throw new Error(`Template not found: ${id}`)
-		return this.renderContent(template.content, data)
+	render(id: string, data?: TemplateData): string {
+		const tpl = this.templates.get(id)
+		if (!tpl) throw new Error(`Template not found: ${id}`)
+		return this.renderContent(tpl.content, data)
 	}
 
 	validate(id: string, data: TemplateData): { valid: boolean; missing: string[] } {
-		const template = this.templates.get(id)
-		if (!template) throw new Error(`Template not found: ${id}`)
-		const missing = template.variables.filter(v => v.required && !(v.name in data)).map(v => v.name)
+		const tpl = this.templates.get(id)
+		if (!tpl) return { valid: false, missing: [] }
+		const missing = tpl.variables.filter(v => v.required && data[v.name] === undefined).map(v => v.name)
 		return { valid: missing.length === 0, missing }
 	}
 
 	export(): string {
-		return JSON.stringify(Array.from(this.templates.values()), null, 2)
+		return JSON.stringify([...this.templates.values()], null, 2)
 	}
 
 	import(json: string, overwrite = false): number {
-		const templates = JSON.parse(json)
-		let imported = 0
-		for (const t of templates) {
-			if (!overwrite && this.templates.has(t.id)) continue
-			this.templates.set(t.id, { ...t, createdAt: new Date(t.createdAt), updatedAt: new Date(t.updatedAt) })
-			imported++
+		const items: MessageTemplate[] = JSON.parse(json)
+		let count = 0
+		for (const tpl of items) {
+			if (!overwrite && this.templates.has(tpl.id)) continue
+			this.templates.set(tpl.id, { ...tpl, createdAt: new Date(tpl.createdAt), updatedAt: new Date(tpl.updatedAt) })
+			count++
 		}
-
-		return imported
+		return count
 	}
 }
 
-export const PRESET_TEMPLATES = {
-	ORDER_CONFIRMATION: {
-		name: 'Order Confirmation',
-		category: 'order',
-		content: `✅ *Order Confirmed!*\n\nOrder ID: #{{orderId}}\nCustomer: {{customerName}}\nDate: {{orderDate}}\n\n📦 *Items:*\n{{items}}\n\n💰 *Total: {{total}}*\n\nThank you! 🙏`
-	},
-	WELCOME: {
-		name: 'Welcome Message',
-		category: 'greeting',
-		content: `👋 *Welcome, {{name}}!*\n\nThank you for joining {{companyName:us}}!\nNeed help? Reply to this message!`
-	},
-	REMINDER: {
+export const PRESET_TEMPLATES: Record<string, Omit<MessageTemplate, 'id' | 'createdAt' | 'updatedAt' | 'variables'>> = {
+	greeting: { name: 'Greeting', content: 'Hello {{name}}! Welcome to {{company}}.', category: 'onboarding' },
+	reminder: {
 		name: 'Reminder',
-		category: 'notification',
-		content: `⏰ *Reminder*\n\nHi {{name}},\n\n📋 {{subject}}\n📅 Date: {{date}}\n🕐 Time: {{time}}\n📍 Location: {{location:TBD}}`
+		content: 'Hi {{name}}, this is a reminder for {{event}} on {{date}}.',
+		category: 'notifications'
 	},
-	SUPPORT_TICKET: {
-		name: 'Support Ticket',
-		category: 'support',
-		content: `🎫 *Support Ticket Created*\n\nTicket #: {{ticketId}}\nSubject: {{subject}}\n\nHi {{name}},\n\nWe received your request! Response time: {{responseTime:24 hours}} 🙏`
-	},
-	BIRTHDAY: {
-		name: 'Birthday Wishes',
-		category: 'greeting',
-		content: `🎂 *Happy Birthday, {{name}}!* 🎉\n\nWishing you a wonderful day!\n\n🎁 Use code: {{code}} for {{discount:10}}% off! 🥳`
-	}
+	farewell: { name: 'Farewell', content: 'Goodbye {{name}}! Thank you for being with us.', category: 'general' }
 }
 
-export const createTemplateManager = (includePresets = true): TemplateManager => {
+export const createTemplateManager = (includePresets = false): TemplateManager => {
 	const manager = new TemplateManager()
 	if (includePresets) {
-		for (const [key, template] of Object.entries(PRESET_TEMPLATES)) {
-			manager.create({ ...template, id: key.toLowerCase() })
+		for (const [, preset] of Object.entries(PRESET_TEMPLATES)) {
+			manager.create(preset as any)
 		}
 	}
-
 	return manager
 }
 
-export const renderTemplate = (content: string, data: TemplateData = {}): string => {
-	return content.replace(/\{\{(\w+)(?::([^}]*))?\}\}/g, (match, name, defaultValue) => {
-		const value = data[name]
-		if (value !== undefined && value !== null) return String(value)
-		if (defaultValue !== undefined) return defaultValue
-		return match
-	})
-}
+export const renderTemplate = (content: string, data?: TemplateData): string =>
+	new TemplateManager().renderContent(content, data)

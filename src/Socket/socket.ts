@@ -37,8 +37,8 @@ import {
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
-import { isAndroidBrowser, getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils.js'
-import { buildPairingQRData, getCompanionPlatformId } from '../Utils/companion-reg-client-utils.js'
+import { isAndroidBrowser, getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
+import { buildPairingQRData, getCompanionPlatformId } from '../Utils/companion-reg-client-utils'
 
 import {
 	assertNodeErrorFree,
@@ -53,9 +53,9 @@ import {
 	jidEncode,
 	S_WHATSAPP_NET
 } from '../WABinary'
-import { BinaryInfo } from '../WAM/BinaryInfo.js'
+import { BinaryInfo } from '../WAM/BinaryInfo'
 import { USyncQuery, USyncUser } from '../WAUSync/'
-import { executeWMexQuery } from './mex.js'
+import { executeWMexQuery } from './mex'
 import { WebSocketClient } from './Client'
 
 /**

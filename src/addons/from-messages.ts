@@ -10,17 +10,17 @@ import { zipSync } from 'fflate'
 import { promises as fs } from 'fs'
 import { gunzipSync, gzipSync } from 'zlib'
 import { proto } from '../../WAProto/index.js'
-import type { MessageContentGenerationOptions } from '../Types/index.js'
-import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, StickerPack } from '../Types/Message.js'
-import { sha256 } from '../Utils/crypto.js'
-import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics.js'
+import type { MessageContentGenerationOptions } from '../Types/index'
+import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, StickerPack } from '../Types/Message'
+import { sha256 } from '../Utils/crypto'
+import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
 import {
 	encryptedStream,
 	generateThumbnail,
 	getImageProcessingLibrary,
 	getStream,
 	toBuffer
-} from '../Utils/messages-media.js'
+} from '../Utils/messages-media'
 
 // ── adminInvite → newsletterAdminInviteMessage ─────────────────────────────
 

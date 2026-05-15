@@ -6,7 +6,7 @@
  * These are imported back into makeChatsSocket.
  */
 import Long from 'long'
-import type { ChatModification, WAMessageKey } from '../Types/index.js'
+import type { ChatModification, WAMessageKey } from '../Types/index'
 
 /**
  * Build the ChatModification object for clearing/deleting a message (for me)

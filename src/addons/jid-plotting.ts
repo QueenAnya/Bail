@@ -1,5 +1,5 @@
-import type { AuthenticationState, WAMessage } from '../Types/index.js'
-import { isHostedLidUser, isHostedPnUser, isLidUser, jidDecode, jidNormalizedUser } from '../WABinary/index.js'
+import type { AuthenticationState, WAMessage } from '../Types/index'
+import { isHostedLidUser, isHostedPnUser, isLidUser, jidDecode, jidNormalizedUser } from '../WABinary/index'
 
 export interface JidInfo {
 	jid: string

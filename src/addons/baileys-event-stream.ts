@@ -6,7 +6,7 @@ import { EventEmitter } from 'events'
 import { createReadStream } from 'fs'
 import { writeFile } from 'fs/promises'
 import { createInterface } from 'readline'
-import type { BaileysEventEmitter } from '../Types/index.js'
+import type { BaileysEventEmitter } from '../Types/index'
 
 let _writeQueue = Promise.resolve()
 const enqueue = (fn: () => Promise<void>) => {

@@ -4,9 +4,9 @@
  * Original by: amiruldev, adjusted by @irull2nd
  */
 import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils.js'
-import { BufferJSON } from '../Utils/generics.js'
-import type { AuthenticationState } from '../Types/index.js'
+import { initAuthCreds } from '../Utils/auth-utils'
+import { BufferJSON } from '../Utils/generics'
+import type { AuthenticationState } from '../Types/index'
 
 /** Minimal MongoDB Collection interface — compatible with mongoose and native driver */
 export type MongoCollection = {

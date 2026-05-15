@@ -22,5 +22,5 @@ export * from './stanza-ack'
 export * from './offline-node-processor'
 
 // interactive-message.ts is exported via addons/index.ts → do not re-export here to avoid duplicates
-export * from './use-single-file-auth-state.js'
-export * from './use-mongo-file-auth-state.js'
+export * from './use-single-file-auth-state'
+export * from './use-mongo-file-auth-state'

@@ -1,5 +1,5 @@
-import type { WAMessage } from '../Types/index.js'
-import type { AnyMessageContent } from '../Types/index.js'
+import type { WAMessage } from '../Types/index'
+import type { AnyMessageContent } from '../Types/index'
 
 export interface AutoReplyRule {
 	id?: string

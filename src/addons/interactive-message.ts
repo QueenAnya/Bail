@@ -1,6 +1,6 @@
 import { proto } from '../../WAProto/index.js'
-import type { MediaGenerationOptions, WAMediaUpload } from '../Types/index.js'
-import { prepareWAMessageMedia } from '../Utils/messages.js'
+import type { MediaGenerationOptions, WAMediaUpload } from '../Types/index'
+import { prepareWAMessageMedia } from '../Utils/messages'
 
 // ─── Input Types ───────────────────────────────────────────────────────────────
 

@@ -16,7 +16,7 @@ import {
 	MEDIA_PATH_MAP,
 	type MediaType,
 	NEWSLETTER_MEDIA_PATH_MAP
-} from '../Defaults/index.js'
+} from '../Defaults/index'
 import type {
 	BaileysEventMap,
 	DownloadableMessage,
@@ -29,11 +29,11 @@ import type {
 	WAMediaUploadFunction,
 	WAMessageContent,
 	WAMessageKey
-} from '../Types/index.js'
-import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary/index.js'
-import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto.js'
-import { generateMessageIDV2 } from './generics.js'
-import type { ILogger } from './logger.js'
+} from '../Types/index'
+import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary/index'
+import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto'
+import { generateMessageIDV2 } from './generics'
+import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
@@ -800,7 +800,7 @@ const uploadWithFetch = async ({
  *
  * ## Why we have two upload implementations:
  *
- * Node.js's native `fetch` (powered by undici) has a known bug where it buffers
+ * Node's native `fetch` (powered by undici) has a known bug where it buffers
  * the entire request body in memory before sending, even when using streams.
  * This causes memory issues with large files (e.g., 1GB file = 1GB+ memory usage).
  * See: https://github.com/nodejs/undici/issues/4058

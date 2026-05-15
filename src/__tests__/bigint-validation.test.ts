@@ -1,5 +1,5 @@
 import Long from 'long'
-import $protobuf from 'protobufjs/minimal.js'
+import $protobuf from 'protobufjs/minimal'
 
 const $util = $protobuf.util
 

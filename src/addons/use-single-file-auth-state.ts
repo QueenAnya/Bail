@@ -3,11 +3,11 @@
  * Source: @itsliaaa/baileys use-single-file-auth-state.js (Lia@Changes 22-04-26)
  */
 import { readFile, rename, stat, writeFile } from 'fs/promises'
-import { DEFAULT_CACHE_TTLS } from '../Defaults/index.js'
+import { DEFAULT_CACHE_TTLS } from '../Defaults/index'
 import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils.js'
-import { BufferJSON } from '../Utils/generics.js'
-import type { AuthenticationState } from '../Types/index.js'
+import { initAuthCreds } from '../Utils/auth-utils'
+import { BufferJSON } from '../Utils/generics'
+import type { AuthenticationState } from '../Types/index'
 
 const FLUSH_TIMEOUT_MS = 3000
 

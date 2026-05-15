@@ -12,7 +12,7 @@
  */
 
 // Re-export Sticker and StickerPack from Types for convenience
-export type { Sticker, StickerPack } from '../Types/index.js'
+export type { Sticker, StickerPack } from '../Types/index'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

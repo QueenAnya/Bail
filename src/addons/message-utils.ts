@@ -6,23 +6,17 @@ import type {
 	WAMediaUpload,
 	WAMediaUploadFunction,
 	WAMessage
-} from '../Types/index.js'
-import { QueryIds, XWAPaths } from '../Types/index.js'
+} from '../Types/index'
+import { QueryIds, XWAPaths } from '../Types/index'
 import {
 	generateWAMessage,
 	generateWAMessageFromContent,
 	getUrlFromDirectPath,
 	normalizeMessageContent,
 	unixTimestampSeconds
-} from '../Utils/index.js'
-import type { BinaryNode } from '../WABinary/index.js'
-import {
-	getBinaryNodeChild,
-	isJidGroup,
-	isJidNewsletter,
-	jidNormalizedUser,
-	S_WHATSAPP_NET
-} from '../WABinary/index.js'
+} from '../Utils/index'
+import type { BinaryNode } from '../WABinary/index'
+import { getBinaryNodeChild, isJidGroup, isJidNewsletter, jidNormalizedUser, S_WHATSAPP_NET } from '../WABinary/index'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — Message Type Detection
