@@ -1,3 +1,17 @@
+export type ParsedJid = {
+	jid: string
+	user: string
+	server: string
+	device: number
+	agent: number
+	isLid: boolean
+	isPn: boolean
+	isHosted: boolean
+	isGroup: boolean
+	isNewsletter: boolean
+	normalizedUser: string
+}
+
 import type { AuthenticationState, WAMessage } from '../Types/index.js'
 import { isHostedLidUser, isHostedPnUser, isLidUser, jidDecode, jidNormalizedUser } from '../WABinary/index.js'
 

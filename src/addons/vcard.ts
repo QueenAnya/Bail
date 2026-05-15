@@ -1,3 +1,27 @@
+export type VCardPhone = { number: string; type?: string; label?: string }
+export type VCardEmail = { email: string; type?: string }
+export type VCardUrl = { url: string; type?: string }
+export type VCardAddress = {
+	street?: string
+	city?: string
+	state?: string
+	postalCode?: string
+	country?: string
+	type?: string
+}
+export type VCardContact = {
+	fullName: string
+	displayName?: string
+	organization?: string
+	title?: string
+	phones?: VCardPhone[]
+	emails?: VCardEmail[]
+	urls?: VCardUrl[]
+	addresses?: VCardAddress[]
+	birthday?: string
+	note?: string
+}
+
 export interface ContactPhone {
 	number: string
 	type?: string

@@ -172,3 +172,5 @@ export const renderTemplate = (content: string, data: TemplateData = {}): string
 		return match
 	})
 }
+
+export type TemplateUpdateData = Partial<Omit<MessageTemplate, 'id' | 'createdAt' | 'variables'>>
