@@ -1,30 +1,20 @@
 export enum XWAPaths {
 	xwa2_newsletter_create = 'xwa2_newsletter_create',
 	xwa2_newsletter_subscribers = 'xwa2_newsletter_subscribers',
-	xwa2_newsletter_subscribed = 'xwa2_newsletter_subscribed',
-	xwa2_newsletter_update = 'xwa2_newsletter_update',
-	xwa2_newsletter_admin = 'xwa2_newsletter_admin',
+	xwa2_newsletter_view = 'xwa2_newsletter_view',
+	xwa2_newsletter_metadata = 'xwa2_newsletter',
+	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin',
 	xwa2_newsletter_mute_v2 = 'xwa2_newsletter_mute_v2',
 	xwa2_newsletter_unmute_v2 = 'xwa2_newsletter_unmute_v2',
 	xwa2_newsletter_follow = 'xwa2_newsletter_follow',
 	xwa2_newsletter_unfollow = 'xwa2_newsletter_unfollow',
+	xwa2_newsletter_join_v2 = 'xwa2_newsletter_join_v2',
+	xwa2_newsletter_leave_v2 = 'xwa2_newsletter_leave_v2',
 	xwa2_newsletter_change_owner = 'xwa2_newsletter_change_owner',
 	xwa2_newsletter_demote = 'xwa2_newsletter_demote',
 	xwa2_newsletter_delete_v2 = 'xwa2_newsletter_delete_v2',
-	xwa2_newsletter_join_v2 = 'xwa2_newsletter_join_v2',
-	xwa2_newsletter_leave_v2 = 'xwa2_newsletter_leave_v2',
-	xwa2_newsletter = 'xwa2_newsletter',
-	xwa2_newsletter_metadata = 'xwa2_newsletter_metadata',
-	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin_count',
 	xwa2_fetch_account_reachout_timelock = 'xwa2_fetch_account_reachout_timelock',
-	xwa2_message_capping_info = 'xwa2_message_capping_info',
-	xwa2_newsletter_view = 'xwa2_newsletter_view'
-}
-
-export enum QueryIdd {
-	PROMOTE = '6083263253998476',
-	DEMOTE = '6551828931592903',
-	GETSUBSCRIBED = '6388546374527196'
+	xwa2_message_capping_info = 'xwa2_message_capping_info'
 }
 
 export enum QueryIds {
@@ -34,7 +24,6 @@ export enum QueryIds {
 	SUBSCRIBERS = '9783111038412085',
 	FOLLOW = '24404358912487870',
 	UNFOLLOW = '9767147403369991',
-	GETSUBSCRIBED = '6388546374527196',
 	MUTE = '29766401636284406',
 	UNMUTE = '9864994326891137',
 	ADMIN_COUNT = '7130823597031706',
@@ -44,7 +33,6 @@ export enum QueryIds {
 	REACHOUT_TIMELOCK = '23983697327930364',
 	MESSAGE_CAPPING_INFO = '24503548349331633'
 }
-
 export type NewsletterUpdate = {
 	name?: string
 	description?: string

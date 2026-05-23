@@ -126,7 +126,3 @@ export const transferDevice = (fromJid: string, toJid: string) => {
 	const { server, user } = jidDecode(toJid)!
 	return jidEncode(user, server, deviceId)
 }
-
-export const LID = '@lid'
-export const G_US = '@g.us'
-export const C_US = '@g.us'

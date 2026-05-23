@@ -1,10 +1,10 @@
 import type { Readable } from 'stream'
 import type { URL } from 'url'
+import { proto } from '../../WAProto/index.js'
 import type { MediaType } from '../Defaults'
 import type { BinaryNode } from '../WABinary'
 import type { GroupMetadata } from './GroupMetadata'
 import type { CacheStore } from './Socket'
-import { proto } from '../../WAProto/index.js'
 
 // export the WAMessage Prototypes
 export { proto as WAProto }
@@ -35,28 +35,19 @@ export type WAGenericMediaMessage =
 	| proto.Message.IAudioMessage
 	| proto.Message.IDocumentMessage
 	| proto.Message.IStickerMessage
+export const WAMessageStubType = proto.WebMessageInfo.StubType
+export const WAMessageStatus = proto.WebMessageInfo.Status
 import type { ILogger } from '../Utils/logger'
 export type WAMediaPayloadURL = { url: URL | string }
 export type WAMediaPayloadStream = { stream: Readable }
 export type WAMediaUpload = Buffer | WAMediaPayloadStream | WAMediaPayloadURL
-
-export type Sticker = {
-	data: WAMediaUpload
-	emojis?: string[]
-	accessibilityLabel?: string
-}
-
-export type StickerPack = {
-	stickers: Sticker[]
-	cover: WAMediaUpload
-	name: string
-	publisher: string
-	description?: string
-	packId?: string
-}
-
 /** Set of message types that are supported by the library */
-export type messageType = keyof proto.Message
+export type MessageType = keyof proto.Message
+
+export enum WAMessageAddressingMode {
+	PN = 'pn',
+	LID = 'lid'
+}
 
 export type MessageWithContextInfo =
 	| 'imageMessage'
@@ -143,67 +134,6 @@ type WithDimensions = {
 	height?: number
 }
 
-/** Send image/video at HD quality */
-type HDable = {
-	hd?: boolean
-}
-
-/** Attach classic buttons (up to 3) to a text or media message */
-type Buttonable = {
-	buttons?: proto.Message.ButtonsMessage.IButton[]
-}
-
-/** Attach template buttons (quickReply / url / call) to a message */
-type Templatable = {
-	templateButtons?: proto.IHydratedTemplateButton[]
-	footer?: string
-}
-
-/** Attach native-flow interactive buttons to a message */
-type Interactiveable = {
-	interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
-	title?: string
-	subtitle?: string
-	footer?: string
-	hasMediaAttachment?: boolean
-}
-
-/** Attach a single-select list to a text message */
-type Listable = {
-	sections?: proto.Message.ListMessage.ISection[]
-	/** Title shown above the list */
-	title?: string
-	/** Label on the button that opens the list (required) */
-	buttonText?: string
-	footer?: string
-}
-
-/** Attach a WhatsApp Shop storefront to a message */
-type Shopable = {
-	shop?: proto.Message.InteractiveMessage.IShopMessage
-	title?: string
-	subtitle?: string
-	footer?: string
-	hasMediaAttachment?: boolean
-}
-
-/** Attach a WhatsApp Collection to a message */
-type Collectionable = {
-	collection?: proto.Message.InteractiveMessage.ICollectionMessage
-	title?: string
-	subtitle?: string
-	footer?: string
-	hasMediaAttachment?: boolean
-}
-
-/** Attach a carousel of cards to a message */
-type Cardsable = {
-	cards?: Carousel[]
-	title?: string
-	subtitle?: string
-	footer?: string
-}
-
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -211,11 +141,6 @@ export type PollMessageOptions = {
 	/** 32 byte message secret to encrypt poll selections */
 	messageSecret?: Uint8Array
 	toAnnouncementGroup?: boolean
-	/**
-	 * Poll content type — used for newsletter polls meta node.
-	 * 1 = TEXT (default), 2 = IMAGE
-	 */
-	pollContentType?: 1 | 2
 }
 
 export type EventMessageOptions = {
@@ -263,12 +188,6 @@ export type AnyMediaMessageContent = (
 			ptv?: boolean
 	  } & Mentionable &
 			Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable &
-			HDable &
 			WithDimensions)
 	| {
 			audio: WAMediaUpload
@@ -296,16 +215,6 @@ export type ButtonReplyInfo = {
 	displayText: string
 	id: string
 	index: number
-	/** for type:'list' replies */
-	title?: string
-	description?: string
-	rowId?: string
-	/** for type:'interactive' native-flow replies */
-	nativeFlows?: {
-		name?: string
-		paramsJson?: string
-		version?: number
-	}
 }
 
 export type GroupInviteInfo = {
@@ -320,69 +229,12 @@ export type WASendableProduct = Omit<proto.Message.ProductMessage.IProductSnapsh
 	productImage: WAMediaUpload
 }
 
-/** One card / slide in a carousel message */
-export type Carousel = {
-	image?: WAMediaUpload
-	video?: WAMediaUpload
-	document?: WAMediaUpload
-	mimetype?: string
-	fileName?: string
-	product?: WASendableProduct
-	title?: string
-	body?: string
-	footer?: string
-	buttons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
-}
-
-export type ProductListEntry = {
-	productId: string
-}
-
-export type StickerPackSticker = {
-	sticker: WAMediaUpload
-	emojis?: string[]
-	accessibilityLabel?: string
-	isAnimated?: boolean
-	isLottie?: boolean
-}
-
-export type ProductListSection = {
-	title: string
-	products: ProductListEntry[]
-}
-
-export type AdminInviteInfo = {
-	jid: string
-	name: string
-	caption?: string
-	expiration?: number
-}
-
-export type CallCreationInfo = {
-	name?: string
-	time?: number
-	type?: number
-}
-
-export type PaymentInviteInfo = {
-	type?: number
-	expiry?: number
-}
-
 export type AnyRegularMessageContent = (
 	| ({
 			text: string
 			linkPreview?: WAUrlInfo | null
 	  } & Mentionable &
 			Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable &
-			Cardsable &
-			Listable &
-			HDable &
 			Editable)
 	| AnyMediaMessageContent
 	| { event: EventMessageOptions }
@@ -390,18 +242,7 @@ export type AnyRegularMessageContent = (
 			poll: PollMessageOptions
 	  } & Mentionable &
 			Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable &
-			Cardsable &
-			Listable &
-			HDable &
 			Editable)
-	| {
-			stickerPack: StickerPack
-	  }
 	| ({
 			album: AlbumMessageOptions
 	  } & Contextable &
@@ -418,7 +259,7 @@ export type AnyRegularMessageContent = (
 	| { react: proto.Message.IReactionMessage }
 	| {
 			buttonReply: ButtonReplyInfo
-			type: 'template' | 'plain' | 'list' | 'interactive'
+			type: 'template' | 'plain'
 	  }
 	| {
 			groupInvite: GroupInviteInfo
@@ -439,29 +280,26 @@ export type AnyRegularMessageContent = (
 			businessOwnerJid?: string
 			body?: string
 			footer?: string
-			/** attach interactive buttons to a product message */
-			interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
-			title?: string
-			subtitle?: string
-			hasMediaAttachment?: boolean
-	  }
-	| {
-			/** productList — renders as a List Message with products */
-			productList: ProductListSection[]
-			text?: string
-			title?: string
-			buttonText?: string
-			footer?: string
-			businessOwnerJid?: string
-			thumbnail?: WAMediaUpload | string
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
-	| { adminInvite: AdminInviteInfo }
-	| { call: CallCreationInfo }
-	| { paymentInvite: PaymentInviteInfo }
 ) &
 	ViewOnce
+
+export type Sticker = {
+	data: WAMediaUpload
+	emojis?: string[]
+	accessibilityLabel?: string
+}
+
+export type StickerPack = {
+	stickers: Sticker[]
+	cover: WAMediaUpload
+	name: string
+	publisher: string
+	description?: string
+	packId?: string
+}
 
 export type AnyMessageContent =
 	| AnyRegularMessageContent
@@ -478,16 +316,6 @@ export type AnyMessageContent =
 	  }
 	| {
 			limitSharing: boolean
-	  }
-	| {
-			/**
-			 * Send as a group status (story visible to group members).
-			 * Set to `true` to wrap the message in groupStatusMessageV2.
-			 * The jid should be a group JID (e.g. `120363xxxxxxxx@g.us`).
-			 * @example
-			 * await sock.sendMessage('120363xxx@g.us', { text: 'Hello group!', groupStatus: true })
-			 */
-			groupStatus: boolean
 	  }
 
 export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
@@ -528,45 +356,15 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
-	/**
-	 * Optional identifier added as key.uuid on the returned WAMessage.
-	 * Value = (content.uuid || options.uuid || 'qa3#69') + random chars, total exactly 11 chars.
-	 * The key.id field is NOT modified — it stays as standard '4NY4W3B...' format.
-	 *
-	 * @example
-	 * sock.sendMessage(jid, { text: 'Hi' }, { uuid: 'text' })
-	 * // → key.id   = '4NY4W3B118751AAD4EDF59842'  (unchanged)
-	 * // → key.uuid = 'textA3K9Z2M' (11 chars)
-	 *
-	 * sock.sendMessage(jid, { text: 'Hi' })
-	 * // → key.uuid = 'qa3#69A3K9Z' (11 chars, default)
-	 */
-	uuid?: string
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
 }
 
-export type WAMediaUploadFunctionOpts = {
-	fileEncSha256B64: string
-	mediaType: MediaType
-	newsletter?: boolean
-	timeoutMs?: number
-}
-
 export type WAMediaUploadFunction = (
 	encFilePath: string,
-	opts: WAMediaUploadFunctionOpts
-) => Promise<{
-	mediaUrl: string
-	directPath: string
-	thumbnailDirectPath?: string
-	thumbnailSha256?: string
-	handle?: string
-	meta_hmac?: string
-	ts?: number
-	fbid?: number
-}>
+	opts: { fileEncSha256B64: string; mediaType: MediaType; timeoutMs?: number }
+) => Promise<{ mediaUrl: string; directPath: string; meta_hmac?: string; ts?: number; fbid?: number }>
 
 export type MediaGenerationOptions = {
 	logger?: ILogger
@@ -602,7 +400,10 @@ export type MessageUserReceipt = proto.IUserReceipt
 
 export type WAMessageUpdate = { update: Partial<WAMessage>; key: WAMessageKey }
 
-export type WAMessageCursor = { before: WAMessageKey | undefined } | { after: WAMessageKey | undefined }
+export type WAMessageCursor =
+	| { before: WAMessageKey | undefined }
+	| { after: WAMessageKey | undefined }
+	| { stickerPack: StickerPack }
 
 export type MessageUserReceiptUpdate = { key: WAMessageKey; receipt: MessageUserReceipt }
 
@@ -613,18 +414,3 @@ export type MediaDecryptionKeyInfo = {
 }
 
 export type MinimalMessage = Pick<WAMessage, 'key' | 'messageTimestamp'>
-
-// ── Proto enum aliases ────────────────────────────────────────────────────────
-export const AssociationType = proto.MessageAssociation.AssociationType
-export const ButtonHeaderType = proto.Message.ButtonsMessage.HeaderType
-export const ButtonType = proto.Message.ButtonsMessage.Button.Type
-export const CarouselCardType = proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType
-export const ListType = proto.Message.ListMessage.ListType
-export const ProtocolType = proto.Message.ProtocolMessage.Type
-export const WAMessageStubType = proto.WebMessageInfo.StubType
-export const WAMessageStatus = proto.WebMessageInfo.Status
-
-export enum WAMessageAddressingMode {
-	PN = 'pn',
-	LID = 'lid'
-}

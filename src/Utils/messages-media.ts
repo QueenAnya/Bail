@@ -10,13 +10,7 @@ import { join } from 'path'
 import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
-import {
-	DEFAULT_ORIGIN,
-	MEDIA_HKDF_KEY_MAPPING,
-	MEDIA_PATH_MAP,
-	type MediaType,
-	NEWSLETTER_MEDIA_PATH_MAP
-} from '../Defaults/index'
+import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP, type MediaType } from '../Defaults'
 import type {
 	BaileysEventMap,
 	DownloadableMessage,
@@ -29,15 +23,15 @@ import type {
 	WAMediaUploadFunction,
 	WAMessageContent,
 	WAMessageKey
-} from '../Types/index'
-import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary/index'
+} from '../Types'
+import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary'
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto'
 import { generateMessageIDV2 } from './generics'
 import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-export const getImageProcessingLibrary = async () => {
+const getImageProcessingLibrary = async () => {
 	//@ts-ignore
 	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
@@ -336,14 +330,12 @@ export async function generateThumbnail(
 	mediaType: 'video' | 'image',
 	options: {
 		logger?: ILogger
-		hdMode?: boolean
 	}
 ) {
 	let thumbnail: string | undefined
 	let originalImageDimensions: { width: number; height: number } | undefined
-	const hdMode = options.hdMode === true
 	if (mediaType === 'image') {
-		const { buffer, original } = await extractImageThumb(file, hdMode ? 320 : undefined)
+		const { buffer, original } = await extractImageThumb(file)
 		thumbnail = buffer.toString('base64')
 		if (original.width && original.height) {
 			originalImageDimensions = {
@@ -352,10 +344,9 @@ export async function generateThumbnail(
 			}
 		}
 	} else if (mediaType === 'video') {
-		const thumbSize = hdMode ? { width: 320, height: 180 } : { width: 32, height: 32 }
 		const imgFilename = join(getTmpFilesDirectory(), generateMessageIDV2() + '.jpg')
 		try {
-			await extractVideoThumb(file, imgFilename, '00:00:00', thumbSize)
+			await extractVideoThumb(file, imgFilename, '00:00:00', { width: 32, height: 32 })
 			const buff = await fs.readFile(imgFilename)
 			thumbnail = buff.toString('base64')
 
@@ -389,20 +380,18 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
-	/** Optional mediaKey to reuse (required for sticker pack thumbnail to match ZIP encryption) */
-	mediaKey?: Buffer | Uint8Array
 }
 
 export const encryptedStream = async (
 	media: WAMediaUpload,
 	mediaType: MediaType,
-	{ logger, saveOriginalFileIfRequired, opts, mediaKey: providedMediaKey }: EncryptedStreamOptions = {}
+	{ logger, saveOriginalFileIfRequired, opts }: EncryptedStreamOptions = {}
 ) => {
 	const { stream, type } = await getStream(media, opts)
 
 	logger?.debug('fetched media stream')
 
-	const mediaKey = providedMediaKey ? Buffer.from(providedMediaKey) : Crypto.randomBytes(32)
+	const mediaKey = Crypto.randomBytes(32)
 	const { cipherKey, iv, macKey } = await getMediaKeys(mediaKey, mediaType)
 
 	const encFilePath = join(getTmpFilesDirectory(), mediaType + generateMessageIDV2() + '-enc')
@@ -512,7 +501,7 @@ export const encryptedStream = async (
 }
 
 export const DEF_MEDIA_HOST = 'mmg.whatsapp.net'
-const DEF_HOST = DEF_MEDIA_HOST
+
 const AES_CHUNK_SIZE = 16
 
 const toSmallestChunkSize = (num: number) => {
@@ -523,17 +512,31 @@ export type MediaDownloadOptions = {
 	startByte?: number
 	endByte?: number
 	options?: RequestInit
+	/** Optional media host override; falls back to DEF_MEDIA_HOST when not provided. */
+	host?: string
 }
 
-export const getUrlFromDirectPath = (directPath: string) => `https://${DEF_HOST}${directPath}`
+export const getUrlFromDirectPath = (directPath: string, host: string = DEF_MEDIA_HOST) =>
+	`https://${host}${directPath}`
+
+const extractHost = (url: string | null | undefined): string | undefined => {
+	if (!url) return undefined
+	try {
+		return new URL(url).host
+	} catch {
+		return undefined
+	}
+}
 
 export const downloadContentFromMessage = async (
 	{ mediaKey, directPath, url }: DownloadableMessage,
 	type: MediaType,
 	opts: MediaDownloadOptions = {}
 ) => {
-	const isValidMediaUrl = url?.startsWith('https://mmg.whatsapp.net/')
-	const downloadUrl = isValidMediaUrl ? url : getUrlFromDirectPath(directPath!)
+	// Fallback host: explicit opt > host parsed from `url` > DEF_MEDIA_HOST.
+	// Lets us honor a non-default host carried by the proto without forcing callers to thread it through.
+	const fallbackHost = opts.host ?? extractHost(url)
+	const downloadUrl = directPath ? getUrlFromDirectPath(directPath, fallbackHost) : url
 	if (!downloadUrl) {
 		throw new Boom('No valid media URL or directPath present in message', { statusCode: 400 })
 	}
@@ -609,7 +612,7 @@ export const downloadEncryptedContent = async (
 
 	const output = new Transform({
 		transform(chunk, _, callback) {
-			let data = Buffer.concat([remainingBytes, chunk])
+			let data = remainingBytes.length ? Buffer.concat([remainingBytes, chunk]) : chunk
 
 			const decryptLength = toSmallestChunkSize(data.length)
 			remainingBytes = data.slice(decryptLength)
@@ -678,10 +681,6 @@ type MediaUploadResult = {
 	meta_hmac?: string
 	ts?: number
 	fbid?: number
-	thumbnail_info?: {
-		thumbnail_sha256?: string
-		thumbnail_direct_path?: string
-	}
 }
 
 export type UploadParams = {
@@ -778,9 +777,11 @@ const uploadWithFetch = async ({
 	// Convert Node.js Readable to Web ReadableStream
 	const nodeStream = createReadStream(filePath)
 	const webStream = Readable.toWeb(nodeStream) as ReadableStream
+	// Native fetch only accepts Undici-style dispatchers, not generic https Agents.
+	const dispatcher = typeof (agent as { dispatch?: unknown } | undefined)?.dispatch === 'function' ? agent : undefined
 
 	const response = await fetch(url, {
-		dispatcher: agent,
+		...(dispatcher ? { dispatcher } : {}),
 		method: 'POST',
 		body: webStream,
 		headers,
@@ -800,7 +801,7 @@ const uploadWithFetch = async ({
  *
  * ## Why we have two upload implementations:
  *
- * Node's native `fetch` (powered by undici) has a known bug where it buffers
+ * Node.js's native `fetch` (powered by undici) has a known bug where it buffers
  * the entire request body in memory before sending, even when using streams.
  * This causes memory issues with large files (e.g., 1GB file = 1GB+ memory usage).
  * See: https://github.com/nodejs/undici/issues/4058
@@ -826,21 +827,11 @@ export const getWAUploadToServer = (
 	{ customUploadHosts, fetchAgent, logger, options }: SocketConfig,
 	refreshMediaConn: (force: boolean) => Promise<MediaConnInfo>
 ): WAMediaUploadFunction => {
-	return async (filePath, { mediaType, fileEncSha256B64, timeoutMs, newsletter }) => {
+	return async (filePath, { mediaType, fileEncSha256B64, timeoutMs }) => {
 		// send a query JSON to obtain the url & auth token to upload our media
 		let uploadInfo = await refreshMediaConn(false)
 
-		let urls:
-			| {
-					mediaUrl: string
-					directPath: string
-					meta_hmac?: string
-					ts?: number
-					fbid?: number
-					thumbnailDirectPath?: string
-					thumbnailSha256?: string
-			  }
-			| undefined
+		let urls: { mediaUrl: string; directPath: string; meta_hmac?: string; ts?: number; fbid?: number } | undefined
 		const hosts = [...customUploadHosts, ...uploadInfo.hosts]
 
 		fileEncSha256B64 = encodeBase64EncodedStringForUpload(fileEncSha256B64)
@@ -862,12 +853,7 @@ export const getWAUploadToServer = (
 			logger.debug(`uploading to "${hostname}"`)
 
 			const auth = encodeURIComponent(uploadInfo.auth)
-			// Use newsletter-specific path when uploading for a newsletter/channel
-			const mediaPath = (newsletter ? NEWSLETTER_MEDIA_PATH_MAP[mediaType] : undefined) || MEDIA_PATH_MAP[mediaType]
-			let url = `https://${hostname}${mediaPath}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
-			if (newsletter) {
-				url += '&server_thumb_gen=1'
-			}
+			const url = `https://${hostname}${MEDIA_PATH_MAP[mediaType]}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
 
 			let result: MediaUploadResult | undefined
 			try {
@@ -884,13 +870,11 @@ export const getWAUploadToServer = (
 
 				if (result?.url || result?.direct_path) {
 					urls = {
-						mediaUrl: result.url || result.direct_path!,
+						mediaUrl: result.url!,
 						directPath: result.direct_path!,
 						meta_hmac: result.meta_hmac,
 						fbid: result.fbid,
-						ts: result.ts,
-						thumbnailDirectPath: result.thumbnail_info?.thumbnail_direct_path,
-						thumbnailSha256: result.thumbnail_info?.thumbnail_sha256
+						ts: result.ts
 					}
 					break
 				} else {

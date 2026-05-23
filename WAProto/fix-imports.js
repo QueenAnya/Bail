@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { exit } from 'process';
 
-const filePath = './index'
+const filePath = './index.js'
 
 try {
   let content = readFileSync(filePath, 'utf8')

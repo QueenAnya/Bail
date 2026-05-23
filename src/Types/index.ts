@@ -10,7 +10,6 @@ export * from './Product'
 export * from './Call'
 export * from './Signal'
 export * from './Mex'
-export * from './MexUpdates'
 
 import type { AuthenticationState } from './Auth'
 import type { SocketConfig } from './Socket'
@@ -22,16 +21,9 @@ export type BrowsersMap = {
 	macOS(browser: string): [string, string, string]
 	baileys(browser: string): [string, string, string]
 	windows(browser: string): [string, string, string]
-	linux(browser: string): [string, string, string]
-	iOS(browser: string): [string, string, string]
-	android(browser: string): [string, string, string]
-	/** Android companion device. apiLevel is the Android API level (e.g. '14') */
-	androidCompanion(apiLevel: string): [string, string, string]
-	kaiOS(browser: string): [string, string, string]
-	chromeOS(browser: string): [string, string, string]
-	/** Fully custom browser tuple */
-	custom(platform: string, browser: string, version: string): [string, string, string]
 	appropriate(browser: string): [string, string, string]
+	/** Android companion device preset — apiLevel is the Android API level, e.g. '14' */
+	android(apiLevel: string): [string, string, string]
 }
 
 export enum DisconnectReason {

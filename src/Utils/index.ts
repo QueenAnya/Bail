@@ -19,8 +19,3 @@ export * from './browser-utils'
 export * from './companion-reg-client-utils'
 export * from './identity-change-handler'
 export * from './stanza-ack'
-export * from './offline-node-processor'
-
-// interactive-message.ts is exported via addons/index.ts → do not re-export here to avoid duplicates
-export * from './use-single-file-auth-state'
-export * from './use-mongo-file-auth-state'

@@ -8,18 +8,25 @@ import {
 	DEF_TAG_PREFIX,
 	INITIAL_PREKEY_COUNT,
 	MIN_PREKEY_COUNT,
-	MIN_UPLOAD_INTERVAL,
 	NOISE_WA_HEADER,
 	PROCESSABLE_HISTORY_TYPES,
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
-import type { LIDMapping, NewChatMessageCapInfo, ReachoutTimelockState, SocketConfig } from '../Types'
-import { DisconnectReason, QueryIds, ReachoutTimelockEnforcementType, XWAPaths } from '../Types'
+import {
+	type LIDMapping,
+	type NewChatMessageCapInfo,
+	QueryIds,
+	ReachoutTimelockEnforcementType,
+	type ReachoutTimelockState,
+	type SocketConfig
+} from '../Types'
+import { DisconnectReason, XWAPaths } from '../Types'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,
 	bindWaitForConnectionUpdate,
+	buildPairingQRData,
 	bytesToCrockford,
 	configureSuccessfulPairing,
 	Curve,
@@ -28,18 +35,15 @@ import {
 	generateMdTagPrefix,
 	generateRegistrationNode,
 	getCodeFromWSError,
+	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
 	makeEventBuffer,
 	makeNoiseHandler,
-	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
-import { isAndroidBrowser, getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
-import { buildPairingQRData, getCompanionPlatformId } from '../Utils/companion-reg-client-utils'
-
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -53,10 +57,10 @@ import {
 	jidEncode,
 	S_WHATSAPP_NET
 } from '../WABinary'
-import { BinaryInfo } from '../WAM/BinaryInfo'
+import { BinaryInfo } from '../WAM/BinaryInfo.js'
 import { USyncQuery, USyncUser } from '../WAUSync/'
-import { executeWMexQuery } from './mex'
 import { WebSocketClient } from './Client'
+import { executeWMexQuery } from './mex.js'
 
 /**
  * Connects to WA servers and performs:
@@ -87,14 +91,12 @@ export const makeSocket = (config: SocketConfig) => {
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
 
-	/**
 	if (printQRInTerminal) {
 		logger.warn(
 			{},
 			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
 		)
 	}
-	*/
 
 	const syncDisabled =
 		PROCESSABLE_HISTORY_TYPES.map(syncType => config.shouldSyncHistoryMessage({ syncType })).filter(x => x === false)
@@ -318,14 +320,19 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
-		const lidQuery = new USyncQuery().withLIDProtocol()
+		let lidQuery = new USyncQuery().withLIDProtocol().withContext('background')
 
 		let contactEnabled = false
+		let lidEnabled = false
+
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				// LIDs are queried via separate LID protocol query
-				lidQuery.withUser(new USyncUser().withLid(jid))
-				continue
+				// LID users go through the LID protocol query
+				if (!lidEnabled) {
+					lidEnabled = true
+				}
+
+				lidQuery.withUser(new USyncUser().withId(jid))
 			} else {
 				if (!contactEnabled) {
 					contactEnabled = true
@@ -337,29 +344,35 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		const output: { jid: string; exists: boolean }[] = []
+		const results: { jid: string; exists: boolean; lid?: string }[] = []
 
+		// Execute PN query
 		if (usyncQuery.users.length > 0) {
-			const results = await executeUSyncQuery(usyncQuery)
-			if (results) {
-				const mapped = results.list
-					.filter(a => !!a.contact)
-					.map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
-				output.push(...mapped)
+			const pnResults = await executeUSyncQuery(usyncQuery)
+			if (pnResults) {
+				for (const { contact, id } of pnResults.list) {
+					if (contact) {
+						results.push({ jid: id, exists: true })
+					}
+				}
 			}
 		}
 
+		// Execute LID query
 		if (lidQuery.users.length > 0) {
 			const lidResults = await executeUSyncQuery(lidQuery)
 			if (lidResults) {
-				const mapped = lidResults.list
-					.filter(a => !!a.lid)
-					.map(({ lid, id }) => ({ jid: id, exists: true, lid: lid as string }))
-				output.push(...mapped)
+				for (const { lid, id } of lidResults.list) {
+					results.push({ jid: id, exists: true, lid: lid as string | undefined })
+				}
 			}
 		}
 
-		return output
+		if (results.length === 0 && usyncQuery.users.length === 0 && lidQuery.users.length === 0) {
+			return []
+		}
+
+		return results
 	}
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
@@ -401,11 +414,6 @@ export const makeSocket = (config: SocketConfig) => {
 	let closed = false
 
 	const socketEndHandlers: Array<(error: Error | undefined) => void | Promise<void>> = []
-
-	let pairingReady = false
-	let pairingInProgress = false
-	let pendingPairingResolve: (() => void) | undefined
-	let pendingPairingReject: ((err: Error) => void) | undefined
 
 	/** log & process any unexpected errors */
 	const onUnexpectedError = (err: Error | Boom, msg: string) => {
@@ -499,26 +507,16 @@ export const makeSocket = (config: SocketConfig) => {
 
 	// WAWeb has no time throttle here; the server drives uploads via PreKeyLow notifications.
 	let uploadPreKeysPromise: Promise<void> | null = null
-	let lastUploadTime = 0
 
 	/** generates and uploads a set of pre-keys to the server */
-	const uploadPreKeys = async (count = MIN_PREKEY_COUNT, retryCount = 0) => {
-		// Check minimum interval (except for retries)
-		if (retryCount === 0) {
-			const timeSinceLastUpload = Date.now() - lastUploadTime
-			if (timeSinceLastUpload < MIN_UPLOAD_INTERVAL) {
-				logger.debug(`Skipping upload, only ${timeSinceLastUpload}ms since last upload`)
-				return
-			}
-		}
-
+	const uploadPreKeys = async (count = MIN_PREKEY_COUNT) => {
 		if (uploadPreKeysPromise) {
 			logger.debug('Pre-key upload already in progress, waiting for completion')
 			await uploadPreKeysPromise
 			return
 		}
 
-		const uploadLogic = async (retryCount: number = 0): Promise<void> => {
+		const uploadLogic = async (retryCount: number): Promise<void> => {
 			logger.info({ count, retryCount }, 'uploading pre-keys')
 
 			// Generate and save pre-keys atomically (prevents ID collisions on retry)
@@ -534,7 +532,6 @@ export const makeSocket = (config: SocketConfig) => {
 			try {
 				await query(node)
 				logger.info({ count }, 'uploaded pre-keys successfully')
-				lastUploadTime = Date.now()
 			} catch (uploadError) {
 				logger.error({ uploadError: (uploadError as Error).toString(), count }, 'Failed to upload pre-keys to server')
 
@@ -666,21 +663,6 @@ export const makeSocket = (config: SocketConfig) => {
 
 		signalRepository.close?.()
 
-		// If a pairing is pending, reject it so the caller doesn't hang indefinitely
-		if (pendingPairingReject) {
-			pendingPairingReject(
-				error ||
-					new Boom('Connection closed before pairing completed', {
-						statusCode: DisconnectReason.connectionClosed
-					})
-			)
-			pendingPairingResolve = undefined
-			pendingPairingReject = undefined
-		}
-
-		pairingReady = false
-		pairingInProgress = false
-
 		if (!ws.isClosed && !ws.isClosing) {
 			try {
 				await ws.close()
@@ -800,27 +782,17 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
-	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
-		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
+	let pairingReady = false
+	let pendingPairingResolve: ((code: string) => void) | undefined
+	let pendingPairingReject: ((err: Error) => void) | undefined
 
-		if (customPairingCode && customPairingCode?.length !== 8) {
-			throw new Error('Custom pairing code must be exactly 8 chars')
+	const sendPairingIQ = async (phoneNumber: string, pairingCode: string): Promise<string> => {
+		authState.creds.me = {
+			id: jidEncode(phoneNumber, 's.whatsapp.net'),
+			name: '~'
 		}
-
-		authState.creds.pairingCode = pairingCode
-
-		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
-		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the
-		// pairing IQ. DESKTOP (7) and other non-browser types are rejected with 400.
-		// companion_platform_display must use a canonical OS name; custom brand names belong
-		// in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked Devices.
-		const rawPlatformId = parseInt(getPlatformId(browser[1]))
-		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
-		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
-
-		await query({
+		ev.emit('creds.update', authState.creds)
+		await sendNode({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
@@ -832,7 +804,7 @@ export const makeSocket = (config: SocketConfig) => {
 				{
 					tag: 'link_code_companion_reg',
 					attrs: {
-						jid,
+						jid: authState.creds.me.id,
 						stage: 'companion_hello',
 						should_show_push_notification: 'true'
 					},
@@ -850,12 +822,12 @@ export const makeSocket = (config: SocketConfig) => {
 						{
 							tag: 'companion_platform_id',
 							attrs: {},
-							content: pairingPlatformId
+							content: getCompanionPlatformId(browser)
 						},
 						{
 							tag: 'companion_platform_display',
 							attrs: {},
-							content: `${pairingPlatformName} (${pairingPlatformHost})`
+							content: `${browser[1]} (${browser[0]})`
 						},
 						{
 							tag: 'link_code_pairing_nonce',
@@ -866,44 +838,28 @@ export const makeSocket = (config: SocketConfig) => {
 				}
 			]
 		})
-
-		authState.creds.me = { id: jid, name: '~' }
-		ev.emit('creds.update', authState.creds)
-
-		return authState.creds.pairingCode
+		return pairingCode
 	}
 
 	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
-		if (pairingInProgress) {
-			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
+		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
+
+		if (customPairingCode && customPairingCode?.length !== 8) {
+			throw new Error('Custom pairing code must be exactly 8 chars')
 		}
 
-		pairingInProgress = true
+		authState.creds.pairingCode = pairingCode
 
-		if (pairingReady) {
-			try {
-				return await sendPairingIQ(phoneNumber, customPairingCode)
-			} finally {
-				pairingInProgress = false
-			}
+		// If pair-device event has not yet arrived, queue the IQ send
+		// to avoid a race condition where the IQ is sent before WA is ready
+		if (!pairingReady) {
+			await new Promise<void>((resolve, reject) => {
+				pendingPairingResolve = () => resolve()
+				pendingPairingReject = reject
+			})
 		}
 
-		logger.debug('pairing not ready yet, queuing request until pair-device is received')
-		return new Promise<string>((resolve, reject) => {
-			pendingPairingResolve = () => {
-				sendPairingIQ(phoneNumber, customPairingCode)
-					.then(resolve)
-					.catch(reject)
-					.finally(() => {
-						pairingInProgress = false
-					})
-			}
-
-			pendingPairingReject = (err: Error) => {
-				pairingInProgress = false
-				reject(err)
-			}
-		})
+		return sendPairingIQ(phoneNumber, pairingCode)
 	}
 
 	async function generatePairingKey() {
@@ -961,13 +917,12 @@ export const makeSocket = (config: SocketConfig) => {
 		}
 		await sendNode(iq)
 
+		// Signal that the pairing IQ can now be sent
 		pairingReady = true
 		if (pendingPairingResolve) {
-			logger.debug('pair-device received, flushing queued pairing request')
-			const resolve = pendingPairingResolve
+			pendingPairingResolve()
 			pendingPairingResolve = undefined
 			pendingPairingReject = undefined
-			resolve()
 		}
 
 		const pairDeviceNode = getBinaryNodeChild(stanza, 'pair-device')
