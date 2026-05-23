@@ -1206,9 +1206,9 @@ export async function prepareStickerPackMessage(
 	}
 
 	const stickerPackIdValue = packId || generateMessageIDV2()
+
 	const lib = await getImageProcessingLibrary()
 	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
-
 	const stickerPromises = stickers.map(async (s, i) => {
 		const { stream } = await getStream(s.data)
 		const buffer = await toBuffer(stream)
@@ -1218,15 +1218,17 @@ export async function prepareStickerPackMessage(
 		const isWebP = isWebPBuffer(buffer)
 
 		if (isWebP) {
+			// Already WebP - preserve original to keep exif metadata and animation
 			webpBuffer = buffer
 			isAnimated = isAnimatedWebP(buffer)
 		} else if ('sharp' in lib && lib.sharp) {
+			// Convert to WebP, preserving metadata
 			webpBuffer = await lib.sharp.default(buffer).webp().toBuffer()
+			// Non-WebP inputs converted to WebP are not animated
 			isAnimated = false
 		} else {
 			throw new Boom(
-				'No image processing library (sharp) available for converting sticker to WebP. ' +
-					'Either install sharp or provide stickers in WebP format.'
+				'No image processing library (sharp) available for converting sticker to WebP. Either install sharp or provide stickers in WebP format.'
 			)
 		}
 
@@ -1248,23 +1250,26 @@ export async function prepareStickerPackMessage(
 
 	const stickerMetadata = await Promise.all(stickerPromises)
 
-	// Process cover/tray icon
+	// Process and add cover/tray icon to the ZIP
 	const trayIconFileName = `${stickerPackIdValue}.webp`
 	const { stream: coverStream } = await getStream(stickerPack.cover)
 	const coverBuffer = await toBuffer(coverStream)
 
 	let coverWebpBuffer: Buffer
-	if (isWebPBuffer(coverBuffer)) {
+	const isCoverWebP = isWebPBuffer(coverBuffer)
+
+	if (isCoverWebP) {
+		// Already WebP - preserve original to keep exif metadata
 		coverWebpBuffer = coverBuffer
 	} else if ('sharp' in lib && lib.sharp) {
 		coverWebpBuffer = await lib.sharp.default(coverBuffer).webp().toBuffer()
 	} else {
 		throw new Boom(
-			'No image processing library (sharp) available for converting cover to WebP. ' +
-				'Either install sharp or provide cover in WebP format.'
+			'No image processing library (sharp) available for converting cover to WebP. Either install sharp or provide cover in WebP format.'
 		)
 	}
 
+	// Add cover to ZIP data
 	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 as 0 }]
 
 	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
@@ -1276,6 +1281,8 @@ export async function prepareStickerPackMessage(
 			}
 		})
 	})
+
+	const stickerPackSize = zipBuffer.length
 
 	const stickerPackUpload = await encryptedStream(zipBuffer, 'sticker-pack', {
 		logger: options.logger,
@@ -1290,36 +1297,65 @@ export async function prepareStickerPackMessage(
 
 	await fs.unlink(stickerPackUpload.encFilePath)
 
-	// Generate thumbnail from cover
-	let jpegThumbnail: Buffer | undefined
-	try {
-		if ('sharp' in lib && lib.sharp) {
-			jpegThumbnail = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
-		} else if ('jimp' in lib && lib.jimp) {
-			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
-			jpegThumbnail = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
-		}
-	} catch (err) {
-		options.logger?.warn({ err }, 'failed to generate sticker pack thumbnail')
+	const stickerPackMessage: proto.Message.IStickerPackMessage = {
+		name: name,
+		publisher: publisher,
+		stickerPackId: stickerPackIdValue,
+		packDescription: description,
+		stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
+		stickerPackSize: stickerPackSize,
+		stickers: stickerMetadata,
+		fileSha256: stickerPackUpload.fileSha256,
+		fileEncSha256: stickerPackUpload.fileEncSha256,
+		mediaKey: stickerPackUpload.mediaKey,
+		directPath: stickerPackUploadResult.directPath,
+		fileLength: stickerPackUpload.fileLength,
+		mediaKeyTimestamp: unixTimestampSeconds(),
+		trayIconFileName: trayIconFileName
 	}
 
-	return {
-		stickerPackMessage: {
-			name,
-			publisher,
-			stickerPackId: stickerPackIdValue,
-			packDescription: description,
-			stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
-			stickerPackSize: zipBuffer.length,
-			stickers: stickerMetadata,
-			fileSha256: stickerPackUpload.fileSha256,
-			fileEncSha256: stickerPackUpload.fileEncSha256,
-			mediaKey: stickerPackUpload.mediaKey,
-			directPath: stickerPackUploadResult.directPath,
-			fileLength: stickerPackUpload.fileLength,
-			mediaKeyTimestamp: unixTimestampSeconds(),
-			trayIconFileName,
-			...(jpegThumbnail ? { jpegThumbnail } : {})
+	try {
+		// Reuse the cover buffer we already processed for thumbnail generation
+		let thumbnailBuffer: Buffer
+
+		if ('sharp' in lib && lib.sharp) {
+			thumbnailBuffer = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
+		} else if ('jimp' in lib && lib.jimp) {
+			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
+			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
+		} else {
+			throw new Error('No image processing library available for thumbnail generation')
 		}
+
+		if (!thumbnailBuffer || thumbnailBuffer.length === 0) {
+			throw new Error('Failed to generate thumbnail buffer')
+		}
+
+		const thumbUpload = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack', {
+			logger: options.logger,
+			opts: options.options,
+			mediaKey: stickerPackUpload.mediaKey
+		})
+
+		const thumbUploadResult = await options.upload(thumbUpload.encFilePath, {
+			fileEncSha256B64: thumbUpload.fileEncSha256.toString('base64'),
+			mediaType: 'thumbnail-sticker-pack',
+			timeoutMs: options.mediaUploadTimeoutMs
+		})
+
+		await fs.unlink(thumbUpload.encFilePath)
+
+		Object.assign(stickerPackMessage, {
+			thumbnailDirectPath: thumbUploadResult.directPath,
+			thumbnailSha256: thumbUpload.fileSha256,
+			thumbnailEncSha256: thumbUpload.fileEncSha256,
+			thumbnailHeight: 252,
+			thumbnailWidth: 252,
+			imageDataHash: sha256(thumbnailBuffer).toString('base64')
+		})
+	} catch (e) {
+		options.logger?.warn?.(`Thumbnail generation failed: ${e}`)
 	}
+
+	return { stickerPackMessage }
 }

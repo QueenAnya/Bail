@@ -1,4 +1,4 @@
-import { getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
+import { getPlatformDisplayName, getPlatformId, isAndroidBrowser } from '../Utils/browser-utils'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { URL } from 'url'
@@ -803,11 +803,21 @@ export const makeSocket = (config: SocketConfig) => {
 		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
 		// companion_platform_display must also be a canonical OS name; custom brand names belong
 		// in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked Devices.
+		// Pair code companion_platform_id must be Chrome (1) when using the Android
+		// browser preset. ANDROID_PHONE (16) causes silent timeout, UWP (21) causes
+		// rejection. Only Chrome (1–6) works for pair code via the web protocol.
+		// The device still appears as "Android" in Linked Devices because
+		// DeviceProps.platformType=ANDROID_PHONE is set in the registration node.
+		const isAndroid = isAndroidBrowser(browser)
 		const rawPlatformId = parseInt(getPlatformId(browser[1]))
-		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
-		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
+		const isBrowserPlatform = !isAndroid && rawPlatformId >= 1 && rawPlatformId <= 6
+		const pairingPlatformId = isAndroid ? getPlatformId('Chrome') : (isBrowserPlatform ? rawPlatformId : 1).toString()
+		const pairingPlatformName = isAndroid ? 'Chrome' : isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
+		const pairingPlatformHost = isAndroid
+			? 'Mac OS'
+			: browser[0] === 'Mac OS' || browser[0] === 'Windows'
+				? browser[0]
+				: 'Mac OS'
 
 		await query({
 			tag: 'iq',
