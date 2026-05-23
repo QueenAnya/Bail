@@ -407,3 +407,88 @@ export const generateRichMessageContent = (
 	message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
 	messageId: generateMessageID()
 })
+
+// ─── Inline Entities Message ──────────────────────────────────────────────────
+
+export interface InlineEntity {
+	key: string
+	metadata: {
+		reference_id?: number
+		reference_url?: string
+		reference_title?: string
+		reference_display_name?: string
+		sources?: any[]
+		__typename?: string
+		[key: string]: any
+	}
+}
+
+/**
+ * Generate a rich text message with inline citation entities.
+ * Inline entities appear as superscript numbers linking to sources.
+ *
+ * @example
+ * const msg = generateInlineEntityMessage(
+ *   'WhatsApp was founded in 2009 {{SS_0}}¹{{/SS_0}}',
+ *   [{ key: 'SS_0', metadata: { reference_url: 'https://example.com', reference_title: 'Source', reference_display_name: 'Example' } }]
+ * )
+ */
+export const generateInlineEntityMessage = (
+	text: string,
+	entities: InlineEntity[],
+	quoted?: any
+): { message: proto.IMessage; messageId: string } => {
+	const submessages: RichSubmessage[] = [
+		{
+			messageType: RichSubMessageType.TEXT,
+			messageText: text,
+			inlineEntities: entities.map(e => ({
+				key: e.key,
+				metadata: {
+					__typename: 'GenAISearchCitationItem',
+					...e.metadata
+				}
+			}))
+		}
+	]
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+		messageId: generateMessageID()
+	}
+}
+
+/**
+ * Shorthand: build a single citation link inline entity.
+ * @example
+ * const msg = buildCitationMessage(
+ *   'Some fact',
+ *   'https://example.com',
+ *   'Source Title',
+ *   'Source Name'
+ * )
+ */
+export const buildCitationMessage = (
+	text: string,
+	url: string,
+	title?: string,
+	displayName?: string,
+	quoted?: any
+): { message: proto.IMessage; messageId: string } => {
+	const key = 'SS_0'
+	return generateInlineEntityMessage(
+		`${text} {{${key}}}¹{{/${key}}} `,
+		[
+			{
+				key,
+				metadata: {
+					reference_id: 1,
+					reference_url: url,
+					reference_title: title ?? 'Source',
+					reference_display_name: displayName ?? 'Source',
+					__typename: 'GenAISearchCitationItem'
+				}
+			}
+		],
+		quoted
+	)
+}
