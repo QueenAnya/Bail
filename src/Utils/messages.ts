@@ -914,6 +914,75 @@ export const generateWAMessageContent = async (
 		}
 	}
 
+	// ── Simplified externalAdReply — no manual contextInfo needed ───────────
+	// Pass { externalAdReply: { title, body, thumbnail, url, mediaType, largeThumbnail } }
+	if (hasOptionalProperty(message, 'externalAdReply') && !!(message as any).externalAdReply) {
+		const msgType = Object.keys(m)[0] as string
+		const msgBody = (m as any)[msgType]
+		const content = (message as any).externalAdReply as Record<string, any>
+		if ('thumbnail' in content && !Buffer.isBuffer(content.thumbnail)) {
+			throw new Boom('externalAdReply thumbnail must be a Buffer', { statusCode: 400 })
+		}
+		if (!content.url || typeof content.url !== 'string') {
+			content.url = 'https://github.com/WhiskeySockets/Baileys'
+		}
+		const adReply = {
+			...content,
+			body: content.body,
+			mediaType: content.mediaType ?? 1,
+			mediaUrl: content.url,
+			renderLargerThumbnail: content.largeThumbnail,
+			sourceUrl: content.url,
+			thumbnail: content.thumbnail,
+			thumbnailUrl: content.url + '?update=' + Date.now(),
+			title: content.title ?? 'Baileys'
+		}
+		delete adReply.subTitle
+		delete adReply.largeThumbnail
+		delete adReply.url
+		if (msgBody && 'contextInfo' in msgBody && msgBody.contextInfo) {
+			msgBody.contextInfo.externalAdReply = { ...msgBody.contextInfo.externalAdReply, ...adReply }
+		} else if (msgBody) {
+			msgBody.contextInfo = { externalAdReply: adReply }
+		}
+	}
+
+	// ── mentionAll — auto-mention all group participants ─────────────────────
+	if (hasOptionalProperty(message, 'mentionAll') && (message as any).mentionAll) {
+		const msgType = Object.keys(m)[0] as string
+		const msgBody = (m as any)[msgType]
+		if (msgBody && 'contextInfo' in msgBody) {
+			msgBody.contextInfo = msgBody.contextInfo ?? {}
+			msgBody.contextInfo.mentionedJid = msgBody.contextInfo.mentionedJid ?? []
+			// Bot sends mentions — actual JIDs injected at relay time when cachedGroupMetadata is available
+			if (!(msgBody.contextInfo.mentionedJid as string[]).length) {
+				msgBody.contextInfo.mentionedJid = (message as any).mentions ?? []
+			}
+		}
+	}
+
+	// ── secureMetaServiceLabel — secure meta service label ───────────────────
+	if (hasOptionalProperty(message, 'secureMetaServiceLabel') && (message as any).secureMetaServiceLabel) {
+		const msgType = Object.keys(m)[0] as string
+		const msgBody = (m as any)[msgType]
+		if (msgBody && 'contextInfo' in msgBody) {
+			msgBody.contextInfo = msgBody.contextInfo ?? {}
+			msgBody.contextInfo.secureMessageInteractivityStatus = 1
+		}
+	}
+
+	// ── spoiler — wrap message into spoilerMessage ────────────────────────────
+	if (hasOptionalProperty(message, 'spoiler') && !!(message as any).spoiler) {
+		const msgType = Object.keys(m)[0] as string
+		const msgBody = (m as any)[msgType]
+		if (msgBody && 'contextInfo' in msgBody && msgBody.contextInfo) {
+			msgBody.contextInfo.isSpoiler = true
+		} else if (msgBody) {
+			msgBody.contextInfo = { isSpoiler: true }
+		}
+		m = { spoilerMessage: { message: m } }
+	}
+
 	// AI icon — adds Meta AI animated badge to the message bubble
 	if (hasOptionalProperty(message, 'ai') && (message as any).ai) {
 		const botJid = (message as any).aiBotJid ?? '867051314767696@bot'
@@ -970,7 +1039,8 @@ export const generateWAMessageFromContent = (
 
 		// if a participant is quoted, then it must be a group
 		// hence, remoteJid of group must also be entered
-		if (jid !== quoted.key.remoteJid) {
+		// newsletters do not support remoteJid in contextInfo — skip it
+		if (jid !== quoted.key.remoteJid && !isJidNewsletter(jid)) {
 			contextInfo.remoteJid = quoted.key.remoteJid
 		}
 

@@ -160,3 +160,13 @@ export const CALL_AUDIO_PREFIX = 'https://call.whatsapp.com/voice/'
 export const LIBRARY_NAME = 'Baileys'
 /** Fallback URL used in offer/ad reply fields when none is provided */
 export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'
+
+/** Media upload paths for WhatsApp Newsletter (channel) media */
+export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
+	image: '/newsletter/newsletter-image',
+	video: '/newsletter/newsletter-video',
+	document: '/newsletter/newsletter-document',
+	audio: '/newsletter/newsletter-audio',
+	sticker: '/newsletter/newsletter-image',
+	'thumbnail-link': '/newsletter/newsletter-thumbnail-link'
+}

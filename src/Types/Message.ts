@@ -481,6 +481,51 @@ export type WAMessageCursor =
 	| { paymentInviteServiceType: number }
 	// ─── Status mentions ─────────────────────────────────────────────────────
 	| { statusMentionMessage?: boolean; [key: string]: any }
+	// ─── Additional flags ────────────────────────────────────────────────────
+	| {
+			externalAdReply?: {
+				title?: string
+				body?: string
+				mediaType?: number
+				url: string
+				thumbnail?: Buffer
+				largeThumbnail?: boolean
+				[key: string]: any
+			}
+			[key: string]: any
+	  }
+	| { secureMetaServiceLabel?: boolean; [key: string]: any }
+	| { spoiler?: boolean; [key: string]: any }
+	| { mentionAll?: boolean; mentions?: string[]; [key: string]: any }
+	| { clearChat?: boolean }
+	| { isHD?: boolean; [key: string]: any }
+	| { shopSurface?: number; id?: string; [key: string]: any }
+	| { bizJid?: string; id?: string; [key: string]: any }
+	| { requestPaymentFrom?: string; [key: string]: any }
+	| { invoiceNote?: string; [key: string]: any }
+	| { orderText?: string; thumbnail?: Buffer; [key: string]: any }
+	| {
+			adminInvite?: {
+				inviteCode: string
+				inviteExpiration?: number
+				jid: string
+				subject: string
+				text?: string
+				caption?: string
+				thumbnail?: Buffer
+			}
+	  }
+	| {
+			groupInvite?: {
+				inviteCode: string
+				inviteExpiration?: number
+				jid: string
+				subject: string
+				text?: string
+				caption?: string
+				thumbnail?: Buffer
+			}
+	  }
 	| { externalAdReply?: ExternalAdReplyContent; [key: string]: any }
 
 export type MessageUserReceiptUpdate = { key: WAMessageKey; receipt: MessageUserReceipt }
