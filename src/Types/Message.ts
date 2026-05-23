@@ -408,9 +408,9 @@ export type WAMessageCursor =
 export type MessageUserReceiptUpdate = { key: WAMessageKey; receipt: MessageUserReceipt }
 
 export type MediaDecryptionKeyInfo = {
-	iv: Uint8Array
-	cipherKey: Uint8Array
-	macKey?: Uint8Array
+	iv: Buffer
+	cipherKey: Buffer
+	macKey?: Buffer
 }
 
 export type MinimalMessage = Pick<WAMessage, 'key' | 'messageTimestamp'>

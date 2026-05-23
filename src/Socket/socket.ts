@@ -1,3 +1,4 @@
+import { getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { URL } from 'url'
@@ -320,19 +321,12 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
-		let lidQuery = new USyncQuery().withLIDProtocol().withContext('background')
+		const lidQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
-		let lidEnabled = false
-
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				// LID users go through the LID protocol query
-				if (!lidEnabled) {
-					lidEnabled = true
-				}
-
-				lidQuery.withUser(new USyncUser().withId(jid))
+				lidQuery.withUser(new USyncUser().withLid(jid))
 			} else {
 				if (!contactEnabled) {
 					contactEnabled = true
@@ -344,35 +338,29 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		const results: { jid: string; exists: boolean; lid?: string }[] = []
+		const output: { jid: string; exists: boolean }[] = []
 
-		// Execute PN query
 		if (usyncQuery.users.length > 0) {
-			const pnResults = await executeUSyncQuery(usyncQuery)
-			if (pnResults) {
-				for (const { contact, id } of pnResults.list) {
-					if (contact) {
-						results.push({ jid: id, exists: true })
-					}
-				}
+			const results = await executeUSyncQuery(usyncQuery)
+			if (results) {
+				const mapped = results.list
+					.filter(a => !!a.contact)
+					.map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
+				output.push(...mapped)
 			}
 		}
 
-		// Execute LID query
 		if (lidQuery.users.length > 0) {
 			const lidResults = await executeUSyncQuery(lidQuery)
 			if (lidResults) {
-				for (const { lid, id } of lidResults.list) {
-					results.push({ jid: id, exists: true, lid: lid as string | undefined })
-				}
+				const mapped = lidResults.list
+					.filter(a => !!a.lid)
+					.map(({ lid, id }) => ({ jid: id, exists: true, lid: lid as string }))
+				output.push(...mapped)
 			}
 		}
 
-		if (results.length === 0 && usyncQuery.users.length === 0 && lidQuery.users.length === 0) {
-			return []
-		}
-
-		return results
+		return output
 	}
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
@@ -657,6 +645,20 @@ export const makeSocket = (config: SocketConfig) => {
 		clearInterval(keepAliveReq)
 		clearTimeout(qrTimer)
 
+		if (pendingPairingReject) {
+			pendingPairingReject(
+				error ||
+					new Boom('Connection closed before pairing completed', {
+						statusCode: DisconnectReason.connectionClosed
+					})
+			)
+			pendingPairingResolve = undefined
+			pendingPairingReject = undefined
+		}
+
+		pairingReady = false
+		pairingInProgress = false
+
 		ws.removeAllListeners('close')
 		ws.removeAllListeners('open')
 		ws.removeAllListeners('message')
@@ -783,16 +785,31 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	let pairingReady = false
-	let pendingPairingResolve: ((code: string) => void) | undefined
+	let pairingInProgress = false
+	let pendingPairingResolve: (() => void) | undefined
 	let pendingPairingReject: ((err: Error) => void) | undefined
 
-	const sendPairingIQ = async (phoneNumber: string, pairingCode: string): Promise<string> => {
-		authState.creds.me = {
-			id: jidEncode(phoneNumber, 's.whatsapp.net'),
-			name: '~'
+	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
+		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
+
+		if (customPairingCode && customPairingCode?.length !== 8) {
+			throw new Error('Custom pairing code must be exactly 8 chars')
 		}
-		ev.emit('creds.update', authState.creds)
-		await sendNode({
+
+		authState.creds.pairingCode = pairingCode
+
+		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
+		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the pairing
+		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
+		// companion_platform_display must also be a canonical OS name; custom brand names belong
+		// in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked Devices.
+		const rawPlatformId = parseInt(getPlatformId(browser[1]))
+		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
+		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
+		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
+		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
+
+		await query({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
@@ -804,7 +821,7 @@ export const makeSocket = (config: SocketConfig) => {
 				{
 					tag: 'link_code_companion_reg',
 					attrs: {
-						jid: authState.creds.me.id,
+						jid,
 						stage: 'companion_hello',
 						should_show_push_notification: 'true'
 					},
@@ -822,12 +839,12 @@ export const makeSocket = (config: SocketConfig) => {
 						{
 							tag: 'companion_platform_id',
 							attrs: {},
-							content: getCompanionPlatformId(browser)
+							content: pairingPlatformId
 						},
 						{
 							tag: 'companion_platform_display',
 							attrs: {},
-							content: `${browser[1]} (${browser[0]})`
+							content: `${pairingPlatformName} (${pairingPlatformHost})`
 						},
 						{
 							tag: 'link_code_pairing_nonce',
@@ -838,28 +855,43 @@ export const makeSocket = (config: SocketConfig) => {
 				}
 			]
 		})
+
+		authState.creds.me = { id: jid, name: '~' }
+		ev.emit('creds.update', authState.creds)
 		return pairingCode
 	}
 
 	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
-		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
-
-		if (customPairingCode && customPairingCode?.length !== 8) {
-			throw new Error('Custom pairing code must be exactly 8 chars')
+		if (pairingInProgress) {
+			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
 		}
 
-		authState.creds.pairingCode = pairingCode
+		pairingInProgress = true
 
-		// If pair-device event has not yet arrived, queue the IQ send
-		// to avoid a race condition where the IQ is sent before WA is ready
-		if (!pairingReady) {
-			await new Promise<void>((resolve, reject) => {
-				pendingPairingResolve = () => resolve()
-				pendingPairingReject = reject
-			})
+		if (pairingReady) {
+			try {
+				return await sendPairingIQ(phoneNumber, customPairingCode)
+			} finally {
+				pairingInProgress = false
+			}
 		}
 
-		return sendPairingIQ(phoneNumber, pairingCode)
+		logger.debug('pairing not ready yet, queuing request until pair-device is received')
+		return new Promise<string>((resolve, reject) => {
+			pendingPairingResolve = () => {
+				sendPairingIQ(phoneNumber, customPairingCode)
+					.then(resolve)
+					.catch(reject)
+					.finally(() => {
+						pairingInProgress = false
+					})
+			}
+
+			pendingPairingReject = (err: Error) => {
+				pairingInProgress = false
+				reject(err)
+			}
+		})
 	}
 
 	async function generatePairingKey() {
@@ -917,12 +949,13 @@ export const makeSocket = (config: SocketConfig) => {
 		}
 		await sendNode(iq)
 
-		// Signal that the pairing IQ can now be sent
 		pairingReady = true
 		if (pendingPairingResolve) {
-			pendingPairingResolve()
+			logger.debug('pair-device received, flushing queued pairing request')
+			const resolve = pendingPairingResolve
 			pendingPairingResolve = undefined
 			pendingPairingReject = undefined
+			resolve()
 		}
 
 		const pairDeviceNode = getBinaryNodeChild(stanza, 'pair-device')

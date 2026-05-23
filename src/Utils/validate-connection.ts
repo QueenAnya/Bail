@@ -83,6 +83,11 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
+	// 'ANDROID' is not in PlatformType enum — map to ANDROID_PHONE
+	if (platformType === 'ANDROID') {
+		return proto.DeviceProps.PlatformType.ANDROID_PHONE
+	}
+
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME

@@ -593,8 +593,8 @@ export const generateWAMessageContent = async (
 			expectedImageCount: message.album.expectedImageCount,
 			expectedVideoCount: message.album.expectedVideoCount
 		}
-	} else if (hasNonNullishProperty(message, 'stickerPack')) {
-		return prepareStickerPackMessage((message as any).stickerPack, options)
+	} else if ('stickerPack' in message) {
+		m = await prepareStickerPackMessage((message as any).stickerPack, options)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER

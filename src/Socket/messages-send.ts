@@ -1211,7 +1211,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		} else if (message.groupInviteMessage) {
 			return 'url'
 		} else if (message.stickerPackMessage) {
-			return 'sticker-pack'
+			return 'sticker_pack'
 		}
 
 		return ''
