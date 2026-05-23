@@ -153,3 +153,10 @@ export const TimeMs = {
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
 }
+
+export const CALL_VIDEO_PREFIX = 'https://call.whatsapp.com/video/'
+export const CALL_AUDIO_PREFIX = 'https://call.whatsapp.com/voice/'
+/** Library name shown in fallback texts */
+export const LIBRARY_NAME = 'Baileys'
+/** Fallback URL used in offer/ad reply fields when none is provided */
+export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'

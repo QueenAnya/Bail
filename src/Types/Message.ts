@@ -404,6 +404,69 @@ export type WAMessageCursor =
 	| { before: WAMessageKey | undefined }
 	| { after: WAMessageKey | undefined }
 	| { stickerPack: StickerPack }
+	// ─── Interactive / Button / NativeFlow / Carousel ───────────────────
+	| {
+			/** Old-style buttons (buttonsMessage) — also accepts nativeFlow button types */
+			buttons: NativeFlowButton[]
+			text?: string
+			caption?: string
+			title?: string
+			footer?: string
+	  }
+	| {
+			/** List message (single-select sections) */
+			sections: proto.Message.ListMessage.ISection[]
+			buttonText?: string
+			title?: string
+			text?: string
+			footer?: string
+	  }
+	| {
+			/** Template message (hydratedFourRowTemplate) */
+			templateButtons: Array<{
+				id?: string
+				url?: string
+				call?: string
+				text?: string
+				buttonText?: string
+				index?: number
+				quickReplyButton?: { displayText: string; id: string }
+				urlButton?: { displayText: string; url: string }
+				callButton?: { displayText: string; phoneNumber: string }
+			}>
+			text?: string
+			caption?: string
+			title?: string
+			footer?: string
+			id?: string
+	  }
+	| ({
+			/** Native-flow interactiveMessage */
+			nativeFlow: NativeFlowMessageOptions | NativeFlowButton[]
+	  } & NativeFlowMessageOptions & {
+				text?: string
+				caption?: string
+				title?: string
+				subtitle?: string
+				thumbnail?: Buffer
+				footer?: string
+				audioFooter?: WAMediaUpload
+			})
+	| {
+			/** Carousel (carouselMessage) — array of cards with media + buttons */
+			cards: CarouselCard[]
+			text?: string
+			footer?: string
+	  }
+	// ─── Message wrapper flags ────────────────────────────────────────────
+	| { mentionAll?: boolean; [key: string]: any }
+	| { groupStatus?: boolean; [key: string]: any }
+	| { interactiveAsTemplate?: boolean; [key: string]: any }
+	| { ephemeral?: boolean; [key: string]: any }
+	| { spoiler?: boolean; [key: string]: any }
+	| { raw?: boolean; [key: string]: any }
+	| { ai?: boolean; aiBotJid?: string; aiBizJid?: string; [key: string]: any }
+	| { externalAdReply?: ExternalAdReplyContent; [key: string]: any }
 
 export type MessageUserReceiptUpdate = { key: WAMessageKey; receipt: MessageUserReceipt }
 
@@ -414,3 +477,91 @@ export type MediaDecryptionKeyInfo = {
 }
 
 export type MinimalMessage = Pick<WAMessage, 'key' | 'messageTimestamp'>
+
+// ─────────────────────────────────────────────────────────
+// Interactive / Button / NativeFlow / Carousel Types (from @itsliaaa/baileys)
+// ─────────────────────────────────────────────────────────
+
+/** A single native-flow button inside nativeFlow / cards */
+export type NativeFlowButton = {
+	/** Quick reply button — sends id back as message */
+	id?: string
+	/** Copy-to-clipboard button */
+	copy?: string
+	/** URL open button */
+	url?: string
+	/** Phone call button */
+	call?: string
+	/** Single-select list shortcut (opens a section picker) */
+	sections?: proto.Message.ListMessage.ISection[]
+	/** Raw native-flow button (pass name + paramsJson directly) */
+	name?: string
+	paramsJson?: string
+	/** Display text (overrides default) */
+	text?: string
+	buttonText?: string
+	/** Optional button icon name (e.g. 'LINK', 'PHONE') */
+	icon?: string
+	/** Open URL inside an in-app webview */
+	useWebview?: boolean
+}
+
+/** Options passed to the nativeFlow interactiveMessage builder */
+export type NativeFlowMessageOptions = {
+	/** Button array */
+	buttons?: NativeFlowButton[]
+	/** Limited-time offer strip */
+	offerText?: string
+	offerUrl?: string
+	offerCode?: string
+	offerExpiration?: number
+	/** Bottom-sheet option list */
+	optionText?: string
+	optionTitle?: string
+	/** WA Business collection JID */
+	bizJid?: string
+	id?: string
+	/** WA Business shop storefront surface */
+	shopSurface?: number
+}
+
+/** A single card in a carousel message */
+export type CarouselCard = {
+	image?: WAMediaUpload
+	video?: WAMediaUpload
+	/** product shortcut — triggers productMessage header */
+	product?: {
+		productId: string
+		catalogId: string
+		body?: string
+		footer?: string
+	}
+	nativeFlow?: NativeFlowMessageOptions | NativeFlowButton[]
+	text?: string
+	caption?: string
+	title?: string
+	subtitle?: string
+	thumbnail?: Buffer
+	footer?: string
+	audioFooter?: WAMediaUpload
+}
+
+/** externalAdReply shortcut — attach ad reply without building contextInfo manually */
+export type ExternalAdReplyContent = {
+	title?: string
+	body?: string
+	mediaType?: number
+	url: string
+	thumbnail?: Buffer
+	largeThumbnail?: boolean
+}
+
+// ─── AI icon / bot message flags ─────────────────────────────────────────────
+export interface AIMessageOptions {
+	/** Show the Meta AI animated icon on the message bubble */
+	ai?: boolean
+	/** Bot JID to attribute the message to (defaults to Meta AI bot JID) */
+	aiBotJid?: string
+	/** Business card JID shown with AI badge */
+	aiBizJid?: string
+}

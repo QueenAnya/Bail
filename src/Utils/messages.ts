@@ -680,6 +680,20 @@ export const generateWAMessageContent = async (
 		}
 	}
 
+	// AI icon — adds Meta AI animated badge to the message bubble
+	if (hasOptionalProperty(message, 'ai') && (message as any).ai) {
+		const botJid = (message as any).aiBotJid ?? '867051314767696@bot'
+		m.messageContextInfo = {
+			...m.messageContextInfo,
+			botMessageSharingInfo: { botJid, botType: 1, botMessageSecret: Buffer.alloc(0) }
+		}
+		m.contextInfo = {
+			...(m.contextInfo ?? {}),
+			forwardedAiBotMessageInfo: { botJid },
+			forwardOrigin: 4
+		}
+	}
+
 	return WAProto.Message.create(m)
 }
 

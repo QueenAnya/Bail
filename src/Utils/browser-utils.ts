@@ -24,8 +24,16 @@ export const Browsers: BrowsersMap = {
 	/** The appropriate browser based on your OS & release */
 	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()],
 	/** Android companion device. apiLevel is the Android API level (e.g. '14') */
-	android: (apiLevel: string) => [apiLevel, 'Android', ''] as [string, string, string]
+	android: (apiLevel: string) => [apiLevel, 'Android', ''] as [string, string, string],
+	/** KaiOS companion device. kaiosVersion is the KaiOS version (e.g. '2.5') */
+	kaiOS: (kaiosVersion: string) => [kaiosVersion, 'KaiOS', ''] as [string, string, string]
 }
+
+/**
+ * Checks if the browser tuple represents a KaiOS companion device.
+ * @param browser - Browser tuple [os, platform, version]
+ */
+export const isKaiosBrowser = (browser: [string, string, string]): boolean => browser[1]?.toUpperCase() === 'KAIOS'
 
 /**
  * Checks if the browser tuple represents an Android companion device.

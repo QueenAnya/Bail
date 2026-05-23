@@ -1,4 +1,4 @@
-import { getPlatformDisplayName, getPlatformId, isAndroidBrowser } from '../Utils/browser-utils'
+import { getPlatformDisplayName, getPlatformId, isAndroidBrowser, isKaiosBrowser } from '../Utils/browser-utils'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { URL } from 'url'
@@ -808,7 +808,7 @@ export const makeSocket = (config: SocketConfig) => {
 		// rejection. Only Chrome (1–6) works for pair code via the web protocol.
 		// The device still appears as "Android" in Linked Devices because
 		// DeviceProps.platformType=ANDROID_PHONE is set in the registration node.
-		const isAndroid = isAndroidBrowser(browser)
+		const isAndroid = isAndroidBrowser(browser) || isKaiosBrowser(browser)
 		const rawPlatformId = parseInt(getPlatformId(browser[1]))
 		const isBrowserPlatform = !isAndroid && rawPlatformId >= 1 && rawPlatformId <= 6
 		const pairingPlatformId = isAndroid ? getPlatformId('Chrome') : (isBrowserPlatform ? rawPlatformId : 1).toString()

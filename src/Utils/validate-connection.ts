@@ -88,6 +88,11 @@ const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 		return proto.DeviceProps.PlatformType.ANDROID_PHONE
 	}
 
+	// 'KAIOS' is not in PlatformType enum — map to ANDROID_PHONE (closest mobile web type)
+	if (platformType === 'KAIOS') {
+		return proto.DeviceProps.PlatformType.ANDROID_PHONE
+	}
+
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME

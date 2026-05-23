@@ -1,243 +1,351 @@
 /**
- * Rich Response Utilities
- * sendTable, sendList, sendCodeBlock, sendLatex, sendLatexImage,
- * sendLatexInlineImage, sendRichMessage, captureUnifiedResponse, sendUnifiedResponse
+ * Rich Response System (botForwardedMessage / AI-style messages)
+ *
+ * Builds richResponseMessage payloads that render as WhatsApp AI bot messages:
+ * — Code blocks with syntax highlighting
+ * — LaTeX expressions
+ * — Tables
+ * — Inline text with entities (citation links)
+ * — Reel/content-item carousels
+ *
+ * Source: @itsliaaa/baileys (rich-message-utils.js) — most complete,
+ * with unifiedResponse.data Buffer encoding for proper rendering.
  */
 
-import type { AnyMessageContent, MiscMessageGenerationOptions } from '../Types'
+import { randomBytes, randomUUID } from 'crypto'
+import { proto } from '../../WAProto/index.js'
+import { unixTimestampSeconds } from '../Utils/generics.js'
+import { tokenizeCode } from './message-composer.js'
+import type { CodeBlockToken } from './message-composer.js'
 
-type SendFn = (jid: string, content: AnyMessageContent, options?: MiscMessageGenerationOptions) => Promise<any>
+// ─── Sub-message type enum ────────────────────────────────────────────────────
 
-// ─── Table ────────────────────────────────────────────────────────────────────
-
-/**
- * Format a 2D array as a plain-text table and send it.
- * @example sendTable(sock.sendMessage, jid, [['Name','Age'],['Alice','30']])
- */
-export const sendTable = async (
-	sendMessage: SendFn,
-	jid: string,
-	rows: string[][],
-	opts?: { title?: string; headerRow?: boolean } & MiscMessageGenerationOptions
-): Promise<void> => {
-	const hasHeader = opts?.headerRow !== false
-	const colWidths =
-		rows[0]?.map((_: string, ci: number) => Math.max(...rows.map((r: string[]) => (r[ci] ?? '').length))) ?? []
-	const divider = colWidths.map((w: number) => '─'.repeat(w + 2)).join('┼')
-
-	const formatted = rows.map((row: string[], ri: number) => {
-		const line = row.map((cell: string, ci: number) => (cell ?? '').padEnd(colWidths[ci] ?? 0)).join(' │ ')
-		if (hasHeader && ri === 0) return `┌${divider}┐\n│ ${line} │\n├${divider}┤`
-		return `│ ${line} │`
-	})
-
-	formatted.push(`└${divider}┘`)
-
-	const tableText = (opts?.title ? `*${opts.title}*\n` : '') + '```\n' + formatted.join('\n') + '\n```'
-	await sendMessage(jid, { text: tableText }, opts)
+export enum RichSubMessageType {
+	TEXT = 0,
+	CODE = 1,
+	CONTENT_ITEMS = 2,
+	LATEX = 3,
+	TABLE = 4
 }
 
-// ─── List ─────────────────────────────────────────────────────────────────────
+// ─── Input types ──────────────────────────────────────────────────────────────
 
-/**
- * Format an array of items as a numbered or bulleted list and send it.
- */
-export const sendList = async (
-	sendMessage: SendFn,
-	jid: string,
-	items: string[],
-	opts?: { title?: string; ordered?: boolean } & MiscMessageGenerationOptions
-): Promise<void> => {
-	const { title, ordered = false } = opts ?? {}
-	const lines = items.map((item: string, i: number) => (ordered ? `${i + 1}. ${item}` : `• ${item}`))
-	const text = (title ? `*${title}*\n` : '') + lines.join('\n')
-	await sendMessage(jid, { text }, opts)
+export interface RichTextSubmessage {
+	text: string
+	inlineEntities?: any[]
+}
+export interface RichCodeSubmessage {
+	code: CodeBlockToken[]
+	language?: string
+}
+export interface RichTableSubmessage {
+	table: Array<{ isHeading?: boolean; items: string[] }>
+	title?: string
+}
+export interface RichLatexSubmessage {
+	expressions: Array<{
+		latexExpression: string
+		url?: string
+		width?: number
+		height?: number
+		fontHeight?: number
+	}>
+	text?: string
+}
+export interface RichReelItem {
+	videoUrl: string
+	thumbnailUrl: string
+	title: string
+	creator?: string
+	profileIconUrl?: string
+	likesCount?: number
+	sharesCount?: number
+	viewCount?: number
+	reelSource?: string
+	isVerified?: boolean
+}
+export interface RichContentItemsSubmessage {
+	items: RichReelItem[]
 }
 
-// ─── Code Block ───────────────────────────────────────────────────────────────
+export type RichSubmessage =
+	| { messageType: RichSubMessageType.TEXT; messageText: string; inlineEntities?: any[] }
+	| { messageType: RichSubMessageType.CODE; codeMetadata: { codeLanguage: string; codeBlocks: CodeBlockToken[] } }
+	| {
+			messageType: RichSubMessageType.TABLE
+			tableMetadata: { title?: string; rows: Array<{ isHeading?: boolean; items: string[] }> }
+	  }
+	| { messageType: RichSubMessageType.LATEX; latexMetadata: { text?: string; expressions: any[] } }
+	| {
+			messageType: RichSubMessageType.CONTENT_ITEMS
+			contentItemsMetadata: { itemsMetadata: any[]; contentType?: number }
+	  }
 
-/**
- * Send a code block (wrapped in triple backticks).
- * language is a hint for syntax highlighting in clients that support it.
- */
-export const sendCodeBlock = async (
-	sendMessage: SendFn,
-	jid: string,
-	code: string,
-	opts?: { language?: string; title?: string } & MiscMessageGenerationOptions
-): Promise<void> => {
-	const { language = '', title } = opts ?? {}
-	const block = '```' + language + '\n' + code + '\n```'
-	const text = (title ? `*${title}*\n` : '') + block
-	await sendMessage(jid, { text }, opts)
-}
+// ─── unifiedResponse builder ──────────────────────────────────────────────────
 
-// ─── LaTeX ────────────────────────────────────────────────────────────────────
-
-/**
- * Send a LaTeX expression as raw text (wrapped in backticks).
- * Note: WhatsApp does not natively render LaTeX. This sends the raw expression.
- */
-export const sendLatex = async (
-	sendMessage: SendFn,
-	jid: string,
-	expression: string,
-	opts?: MiscMessageGenerationOptions
-): Promise<void> => {
-	await sendMessage(jid, { text: '`' + expression + '`' }, opts)
-}
-
-/**
- * Render a LaTeX expression to a PNG image via an external API (e.g. quicklatex.com)
- * and send it as an image message.
- */
-export const sendLatexImage = async (
-	sendMessage: SendFn,
-	jid: string,
-	expression: string,
-	opts?: { caption?: string } & MiscMessageGenerationOptions
-): Promise<void> => {
-	// Uses QuickLaTeX render API — no API key required for simple expressions
-	const encodedFormula = encodeURIComponent(
-		`\\documentclass{standalone}\\begin{document}\\Large $${expression}$\\end{document}`
-	)
-	const apiUrl = `https://quicklatex.com/latex3.f?formula=${encodedFormula}&fsize=50px&fcolor=000000&bcolor=ffffff`
-	const { caption, ...sendOpts } = opts ?? {}
-
-	const resp = await fetch(apiUrl)
-	const text = await resp.text()
-	// Response format: "0\n<imageUrl>\n<width> <height>"
-	const lines = text.trim().split('\n')
-	if (lines[0] !== '0') throw new Error('LaTeX render failed: ' + text)
-	const imageUrl = lines[1]!.trim()
-
-	await sendMessage(jid, { image: { url: imageUrl }, caption }, sendOpts)
-}
-
-/**
- * Render a LaTeX expression to PNG and send it inline (as image with expression as caption).
- */
-export const sendLatexInlineImage = async (
-	sendMessage: SendFn,
-	jid: string,
-	expression: string,
-	opts?: MiscMessageGenerationOptions
-): Promise<void> => {
-	await sendLatexImage(sendMessage, jid, expression, { ...opts, caption: expression })
-}
-
-// ─── Rich Message ──────────────────────────────────────────────────────────────
-
-type RichTextTable = { rows: string[][]; headerRow?: boolean; title?: string }
-type RichTextList = { items: string[]; ordered?: boolean; title?: string }
-type CodeBlockOptions = { code: string; language?: string }
-type LatexOptions = { expression: string }
-type RichMessageOptions = {
-	parts: (
-		| { type: 'text'; text: string }
-		| { type: 'table'; table: RichTextTable }
-		| { type: 'list'; list: RichTextList }
-		| { type: 'code'; code: CodeBlockOptions }
-		| { type: 'latex'; latex: LatexOptions }
-	)[]
-	caption?: string
-}
-
-const renderTable = (table: RichTextTable): string => {
-	const rows = table.rows
-	if (!rows.length) return ''
-	const hasHeader = table.headerRow !== false
-	const colWidths = rows[0]!.map((_, ci) => Math.max(...rows.map(r => (r[ci] ?? '').length)))
-	const divider = colWidths.map((w: number) => '─'.repeat(w + 2)).join('┼')
-	const lines = rows.map((row, ri) => {
-		const line = row.map((cell, ci) => (cell ?? '').padEnd(colWidths[ci] ?? 0)).join(' │ ')
-		if (hasHeader && ri === 0) return `┌${divider}┐\n│ ${line} │\n├${divider}┤`
-		return `│ ${line} │`
-	})
-	lines.push(`└${divider}┘`)
-	return (table.title ? `*${table.title}*\n` : '') + '```\n' + lines.join('\n') + '\n```'
-}
-
-const renderList = (list: RichTextList): string => {
-	const lines = list.items.map((item, i) => (list.ordered ? `${i + 1}. ${item}` : `• ${item}`))
-	return (list.title ? `*${list.title}*\n` : '') + lines.join('\n')
-}
-
-const renderCode = (code: CodeBlockOptions): string => '```' + (code.language ?? '') + '\n' + code.code + '\n```'
-
-const renderLatex = (latex: LatexOptions): string => '`' + latex.expression + '`'
-
-/**
- * Send a rich message composed of mixed content parts (text, table, list, code, latex).
- */
-export const sendRichMessage = async (
-	sendMessage: SendFn,
-	jid: string,
-	rich: RichMessageOptions,
-	opts?: MiscMessageGenerationOptions
-): Promise<void> => {
-	const parts = rich.parts.map((part: any) => {
-		switch (part.type) {
-			case 'text':
-				return part.text
-			case 'table':
-				return renderTable(part.table)
-			case 'list':
-				return renderList(part.list)
-			case 'code':
-				return renderCode(part.code)
-			case 'latex':
-				return renderLatex(part.latex)
+export const toUnifiedResponse = (submessages: RichSubmessage[]) => ({
+	response_id: randomUUID(),
+	sections: submessages.map(sm => {
+		switch (sm.messageType) {
+			case RichSubMessageType.CODE:
+				return {
+					view_model: {
+						primitive: {
+							language: sm.codeMetadata.codeLanguage,
+							code_blocks: sm.codeMetadata.codeBlocks.map(b => ({
+								content: b.codeContent,
+								type: b.highlightType.toString()
+							})),
+							__typename: 'GenAICodeUXPrimitive'
+						},
+						__typename: 'GenAISingleLayoutViewModel'
+					}
+				}
+			case RichSubMessageType.TABLE:
+				return {
+					view_model: {
+						primitive: {
+							title: sm.tableMetadata.title,
+							rows: sm.tableMetadata.rows.map(r => ({ is_header: r.isHeading, cells: r.items, markdown_cells: [] })),
+							__typename: 'GenATableUXPrimitive'
+						},
+						__typename: 'GenAISingleLayoutViewModel'
+					}
+				}
+			case RichSubMessageType.LATEX: {
+				const expr = sm.latexMetadata.expressions[0]
+				const item = {
+					latex_expression: expr?.latexExpression,
+					font_height: expr?.fontHeight,
+					padding: 15,
+					latex_image: { url: expr?.url, width: expr?.width ?? 388, height: expr?.height ?? 160 }
+				}
+				return {
+					view_model: {
+						primitive: { ...item, item, __typename: 'GenAILatexUXPrimitive' },
+						__typename: 'GenAISingleLayoutViewModel'
+					}
+				}
+			}
+			case RichSubMessageType.CONTENT_ITEMS:
+				return {
+					view_model: {
+						primitives: sm.contentItemsMetadata.itemsMetadata.map((meta: any) => {
+							const r = meta.reelItem ?? meta
+							return {
+								reels_url: r.videoUrl,
+								thumbnail_url: r.thumbnailUrl,
+								creator: r.creator ?? 'Baileys',
+								avatar_url: r.profileIconUrl,
+								reels_title: r.title,
+								likes_count: r.likesCount ?? 0,
+								shares_count: r.sharesCount ?? 0,
+								view_count: r.viewCount ?? 0,
+								reel_source: r.reelSource ?? 'IG',
+								is_verified: r.isVerified ?? false,
+								__typename: 'GenAIReelPrimitive'
+							}
+						}),
+						__typename: 'GenAIHScrollLayoutViewModel'
+					}
+				}
+			case RichSubMessageType.TEXT:
 			default:
-				return ''
+				return {
+					view_model: {
+						primitive: {
+							text: sm.messageText,
+							inline_entities: sm.inlineEntities ?? [],
+							__typename: 'GenAIMarkdownTextUXPrimitive'
+						},
+						__typename: 'GenAISingleLayoutViewModel'
+					}
+				}
 		}
 	})
-	const text = parts.join('\n\n') + (rich.caption ? '\n\n' + rich.caption : '')
-	await sendMessage(jid, { text }, opts)
+})
+
+// ─── Wrapper builder ──────────────────────────────────────────────────────────
+
+const genCertificate = (length = 700) => {
+	const cert = new Uint8Array(length)
+	cert[0] = 48
+	cert[1] = 130
+	cert.set(randomBytes(length - 2), 2)
+	return cert
 }
 
-// ─── Unified Response ──────────────────────────────────────────────────────────
-
-export type UnifiedResponseEntry = {
-	jid: string
-	content: AnyMessageContent
-	options?: MiscMessageGenerationOptions
+const genSignature = () => {
+	const sig = new Uint8Array(64)
+	sig.set(randomBytes(64))
+	return sig
 }
 
-let capturedResponses: UnifiedResponseEntry[] = []
+export const wrapToBotForwardedMessage = (richResponseMessage: any): proto.IMessage => ({
+	messageContextInfo: {
+		botMetadata: {
+			pluginMetadata: {},
+			verificationMetadata: {
+				proofs: [
+					{
+						certificateChain: [genCertificate(684), genCertificate(892)],
+						version: 1,
+						useCase: 1,
+						signature: genSignature()
+					}
+				]
+			},
+			botRenderingConfigMetadata: { renderingPayload: randomBytes(32) }
+		}
+	},
+	botForwardedMessage: {
+		message: { richResponseMessage }
+	}
+})
+
+// ─── High-level prepareRichResponseMessage ────────────────────────────────────
+
+export interface RichResponseInput {
+	/** Pre-built array of submessages (full control) */
+	richResponse?: Array<{
+		text?: string
+		inlineEntities?: any[]
+		code?: CodeBlockToken[]
+		language?: string
+		expressions?: any[]
+		items?: RichReelItem[]
+		table?: Array<{ isHeading?: boolean; items: string[] }>
+		title?: string
+	}>
+	/** Shortcut: plain text header */
+	headerText?: string
+	/** Shortcut: plain text body */
+	contentText?: string
+	/** Shortcut: code block */
+	code?: string
+	language?: string
+	/** Shortcut: LaTeX expressions */
+	expressions?: any[]
+	text?: string
+	/** Shortcut: reel/content items carousel */
+	items?: RichReelItem[]
+	/** Shortcut: citation links */
+	links?: Array<{ text: string; url?: string; title?: string; displayName?: string; sources?: any[] }>
+	/** Shortcut: table */
+	table?: string[][]
+	title?: string
+	noHeading?: boolean
+	/** Plain text footer */
+	footerText?: string
+}
 
 /**
- * Capture a response without immediately sending it.
- * Useful for building batched sends.
+ * Build and return a complete botForwardedMessage with rich content.
+ * Handles text, code blocks, LaTeX, tables, reel carousels, and citation links.
  */
-export const captureUnifiedResponse = (
-	jid: string,
-	content: AnyMessageContent,
-	options?: MiscMessageGenerationOptions
-): UnifiedResponseEntry => {
-	const entry: UnifiedResponseEntry = { jid, content, options }
-	capturedResponses.push(entry)
-	return entry
-}
+export const prepareRichResponseMessage = (content: RichResponseInput): proto.IMessage => {
+	let submessages: RichSubmessage[] = []
 
-/**
- * Send all captured unified responses and clear the capture buffer.
- * Returns the results in order.
- */
-export const sendUnifiedResponse = async (sendMessage: SendFn): Promise<any[]> => {
-	const toSend = [...capturedResponses]
-	capturedResponses = []
-	return Promise.all(toSend.map(e => sendMessage(e.jid, e.content, e.options)))
-}
+	if (Array.isArray(content.richResponse)) {
+		submessages = content.richResponse.map((sm): RichSubmessage => {
+			if (sm.text)
+				return { messageType: RichSubMessageType.TEXT, messageText: sm.text, inlineEntities: sm.inlineEntities }
+			if (sm.code)
+				return {
+					messageType: RichSubMessageType.CODE,
+					codeMetadata: { codeLanguage: sm.language ?? 'javascript', codeBlocks: sm.code }
+				}
+			if (sm.expressions)
+				return { messageType: RichSubMessageType.LATEX, latexMetadata: { expressions: sm.expressions } }
+			if (sm.items)
+				return {
+					messageType: RichSubMessageType.CONTENT_ITEMS,
+					contentItemsMetadata: { itemsMetadata: sm.items.map(i => ({ reelItem: i })) }
+				}
+			if (sm.table) return { messageType: RichSubMessageType.TABLE, tableMetadata: { title: sm.title, rows: sm.table } }
+			return sm as any
+		})
+	} else {
+		if (content.headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: content.headerText })
+		if (content.contentText)
+			submessages.push({ messageType: RichSubMessageType.TEXT, messageText: content.contentText })
 
-/**
- * Clear captured responses without sending them
- */
-export const clearCapturedResponses = (): void => {
-	capturedResponses = []
-}
+		if (content.code) {
+			const lang = content.language ?? 'javascript'
+			submessages.push({
+				messageType: RichSubMessageType.CODE,
+				codeMetadata: { codeLanguage: lang, codeBlocks: tokenizeCode(content.code, lang) }
+			})
+		} else if (content.expressions) {
+			submessages.push({
+				messageType: RichSubMessageType.LATEX,
+				latexMetadata: { text: content.text, expressions: content.expressions }
+			})
+		} else if (content.items) {
+			submessages.push({
+				messageType: RichSubMessageType.CONTENT_ITEMS,
+				contentItemsMetadata: {
+					itemsMetadata: content.items.map(item => ({ reelItem: item })),
+					contentType: 1
+				}
+			})
+		} else if (content.links) {
+			content.links.forEach((link, i) => {
+				const prefix = `SS_${i}`
+				const url = link.url ?? 'https://github.com/WhiskeySockets/Baileys'
+				const sources = link.sources?.map(s => ({
+					source_type: 'THIRD_PARTY',
+					source_display_name: s.displayName ?? link.displayName ?? 'Baileys',
+					source_subtitle: s.subtitle ?? '',
+					source_url: s.url ?? url
+				}))
+				submessages.push({
+					messageType: RichSubMessageType.TEXT,
+					messageText: `${link.text} {{${prefix}}}¹{{/${prefix}}} `,
+					inlineEntities: [
+						{
+							key: prefix,
+							metadata: {
+								reference_id: i + 1,
+								reference_url: url,
+								reference_title: link.title ?? 'Source',
+								reference_display_name: link.displayName ?? 'Baileys',
+								sources: sources ?? [],
+								__typename: 'GenAISearchCitationItem'
+							}
+						}
+					]
+				})
+			})
+		} else if (content.table) {
+			submessages.push({
+				messageType: RichSubMessageType.TABLE,
+				tableMetadata: {
+					title: content.title,
+					rows: content.table.map((items, idx) => ({
+						isHeading: !content.noHeading && idx === 0,
+						items
+					}))
+				}
+			})
+		}
 
-/**
- * Get current captured responses without clearing
- */
-export const getCapturedResponses = (): UnifiedResponseEntry[] => [...capturedResponses]
+		if (content.footerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: content.footerText })
+	}
+
+	const unified = toUnifiedResponse(submessages)
+	const message = wrapToBotForwardedMessage({
+		submessages: [],
+		messageType: proto.AIRichResponseMessageType.AI_RICH_RESPONSE_TYPE_STANDARD,
+		unifiedResponse: { data: Buffer.from(JSON.stringify(unified), 'utf-8') },
+		contextInfo: {
+			isForwarded: true,
+			forwardingScore: 1,
+			forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
+			forwardOrigin: 4,
+			botMessageSharingInfo: { forwardScore: 1 }
+		}
+	})
+
+	return message
+}

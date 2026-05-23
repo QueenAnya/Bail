@@ -201,6 +201,18 @@ export const generateMessageIDV2 = (userId?: string): string => {
 // generate a random ID to attach to a message
 export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
 
+/**
+ * ANYA-fork message ID generator — uses the 4NY4W3B prefix.
+ * Swap in place of generateMessageID if you want ANYA-branded message IDs.
+ *
+ * @example
+ * // In makeWASocket config:
+ * generateHighQualityLinkPreview: true,
+ * // and override generateMessageID:
+ * import { generateAnyaMessageID } from '@whiskeysockets/baileys'
+ */
+export const generateAnyaMessageID = () => '4NY4W3B' + randomBytes(16).toString('hex').toUpperCase()
+
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
 		let listener: (item: BaileysEventMap[T]) => void

@@ -11,3 +11,6 @@ export * from './WAUSync/index'
 export type WASocket = ReturnType<typeof makeWASocket>
 export { makeWASocket }
 export default makeWASocket
+
+// ─── Addons (interactive, rich-response, status, templates) ────────────────
+export * from './addons/index.js'
