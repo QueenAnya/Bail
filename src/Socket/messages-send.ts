@@ -1260,6 +1260,101 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 	})
 
+	/**
+	 * Send a status (story) visible only to mentioned JIDs (individuals + groups).
+	 * Groups are automatically expanded to their members.
+	 */
+	const sendStatusMentions = async (
+		jids: string[],
+		cntnt: AnyMessageContent,
+		opts: MiscMessageGenerationOptions = {}
+	) => {
+		const userJid = authState.creds.me!.id
+		const { delayMs = 1500 } = opts as any
+
+		const allUsers = new Set<string>()
+		for (const id of jids) {
+			if (isJidGroup(id)) {
+				try {
+					const meta = config.cachedGroupMetadata ? await config.cachedGroupMetadata(id) : await groupMetadata(id)
+					if (meta) {
+						for (const p of meta.participants) {
+							if (!allUsers.has(p.id)) allUsers.add(p.id)
+						}
+					}
+				} catch (e) {
+					logger.error({ err: e, id }, 'statusMentions: failed to get group metadata')
+				}
+			} else if (!allUsers.has(id)) {
+				allUsers.add(id)
+			}
+		}
+
+		const fullMsg = await generateWAMessage('status@broadcast', cntnt, {
+			logger,
+			userJid,
+			upload: waUploadToServer,
+			mediaCache: config.mediaCache,
+			options: config.options,
+			...opts,
+			messageId: generateMessageIDV2(userJid)
+		})
+
+		await relayMessage('status@broadcast', fullMsg.message!, {
+			messageId: fullMsg.key.id!,
+			statusJidList: Array.from(allUsers),
+			additionalNodes: [
+				{
+					tag: 'meta',
+					attrs: {},
+					content: [
+						{
+							tag: 'mentioned_users',
+							attrs: {},
+							content: jids.map(id => ({ tag: 'to', attrs: { jid: id }, content: undefined }))
+						}
+					]
+				}
+			]
+		})
+
+		if (config.emitOwnEvents) {
+			process.nextTick(async () => {
+				await messageMutex.mutex(() => upsertMessage(fullMsg, 'append'))
+			})
+		}
+
+		for (const id of jids) {
+			const isGroup = isJidGroup(id)
+			const sendType = isGroup ? 'groupStatusMentionMessage' : 'statusMentionMessage'
+			const mentionMsg = generateWAMessageFromContent(
+				id,
+				{
+					messageContextInfo: { messageSecret: randomBytes(32) },
+					[sendType]: { message: { protocolMessage: { key: fullMsg.key, type: 25 } } }
+				},
+				{ userJid }
+			)
+			await relayMessage(id, mentionMsg.message!, {
+				additionalNodes: [
+					{
+						tag: 'meta',
+						attrs: isGroup ? { is_group_status_mention: 'true' } : { is_status_mention: 'true' },
+						content: undefined
+					}
+				]
+			})
+			if (config.emitOwnEvents) {
+				process.nextTick(async () => {
+					await messageMutex.mutex(() => upsertMessage(mentionMsg, 'append'))
+				})
+			}
+			await delay(delayMs)
+		}
+
+		return fullMsg
+	}
+
 	return {
 		...sock,
 		userDevicesCache,
@@ -1279,6 +1374,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		createParticipantNodes,
 		getUSyncDevices,
 		messageRetryManager,
+		sendStatusMentions,
 		updateMemberLabel,
 		updateMediaMessage: async (message: WAMessage) => {
 			const content = assertMediaContent(message.message)

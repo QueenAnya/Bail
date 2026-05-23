@@ -466,6 +466,21 @@ export type WAMessageCursor =
 	| { spoiler?: boolean; [key: string]: any }
 	| { raw?: boolean; [key: string]: any }
 	| { ai?: boolean; aiBotJid?: string; aiBizJid?: string; [key: string]: any }
+	// ─── Message wrapper flags ───────────────────────────────────────────────
+	| { viewOnce?: boolean; [key: string]: any }
+	| { viewOnceV2?: boolean; [key: string]: any }
+	| { viewOnceV2Extension?: boolean; [key: string]: any }
+	| { ptv?: boolean; video: WAMediaUpload; [key: string]: any }
+	| { interactiveAsTemplate?: boolean; id?: string; [key: string]: any }
+	| { disappearingMessagesInChat?: boolean | number; [key: string]: any }
+	| { groupStatus?: boolean; groupStatusParticipant?: string; [key: string]: any }
+	// ─── Reply/response message types ────────────────────────────────────────
+	| { buttonReply: { id: string; displayText: string; type?: 'plain' | 'template'; index?: number } }
+	| { listReply: { id: string; title?: string; description?: string } }
+	// ─── Payment ─────────────────────────────────────────────────────────────
+	| { paymentInviteServiceType: number }
+	// ─── Status mentions ─────────────────────────────────────────────────────
+	| { statusMentionMessage?: boolean; [key: string]: any }
 	| { externalAdReply?: ExternalAdReplyContent; [key: string]: any }
 
 export type MessageUserReceiptUpdate = { key: WAMessageKey; receipt: MessageUserReceipt }

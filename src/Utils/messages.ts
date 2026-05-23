@@ -680,6 +680,95 @@ export const generateWAMessageContent = async (
 		}
 	}
 
+	// ── PTV (picture-in-picture) video message ───────────────────────────────
+	if (hasOptionalProperty(message, 'ptv') && (message as any).ptv) {
+		const { videoMessage } = await prepareWAMessageMedia({ video: (message as any).video }, options)
+		m.ptvMessage = videoMessage
+	}
+
+	// ── Buttons reply (user tapped a button) ────────────────────────────────
+	if (hasNonNullishProperty(message, 'buttonReply')) {
+		const br = (message as any).buttonReply
+		switch (br.type ?? 'plain') {
+			case 'template':
+				m.templateButtonReplyMessage = {
+					selectedId: br.id,
+					selectedDisplayText: br.displayText,
+					index: br.index ?? 0
+				}
+				break
+			default:
+				m.buttonsResponseMessage = {
+					selectedButtonId: br.id,
+					selectedDisplayText: br.displayText,
+					type: proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT
+				}
+		}
+	}
+
+	// ── List reply (user selected a list row) ───────────────────────────────
+	if (hasNonNullishProperty(message, 'listReply')) {
+		const lr = (message as any).listReply
+		m.listResponseMessage = {
+			description: lr.description,
+			listType: proto.Message.ListResponseMessage.ListType.SINGLE_SELECT,
+			singleSelectReply: { selectedRowId: lr.id },
+			title: lr.title
+		}
+	}
+
+	// ── Payment invite message ────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'paymentInviteServiceType')) {
+		m.paymentInviteMessage = {
+			expiryTimestamp: Date.now(),
+			serviceType: (message as any).paymentInviteServiceType
+		}
+	}
+
+	// ── Disappearing messages setting ─────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'disappearingMessagesInChat')) {
+		const raw = (message as any).disappearingMessagesInChat
+		const exp = typeof raw === 'boolean' ? (raw ? WA_DEFAULT_EPHEMERAL : 0) : raw
+		m = prepareDisappearingMessageSettingContent(exp)
+	}
+
+	// ── ViewOnce / ViewOnceV2 / ViewOnceV2Extension wrappers ──────────────────
+	if (hasOptionalProperty(message, 'viewOnce') && (message as any).viewOnce) {
+		m = { viewOnceMessage: { message: m } }
+	} else if (hasOptionalProperty(message, 'viewOnceV2') && (message as any).viewOnceV2) {
+		m = { viewOnceMessageV2: { message: m } }
+	} else if (hasOptionalProperty(message, 'viewOnceV2Extension') && (message as any).viewOnceV2Extension) {
+		m = { viewOnceMessageV2Extension: { message: m } }
+	}
+
+	// ── interactiveAsTemplate — wrap interactiveMessage into templateMessage ──
+	if (hasOptionalProperty(message, 'interactiveAsTemplate') && (message as any).interactiveAsTemplate) {
+		if (!m.interactiveMessage) {
+			throw new Boom('interactiveAsTemplate requires an interactive message', { statusCode: 400 })
+		}
+		m = {
+			templateMessage: {
+				interactiveMessageTemplate: m.interactiveMessage,
+				templateId: (message as any).id || 'template-' + Date.now()
+			}
+		}
+	}
+
+	// ── Ephemeral / disappearing wrapper ─────────────────────────────────────
+	if (hasOptionalProperty(message, 'ephemeral') && (message as any).ephemeral) {
+		m = { ephemeralMessage: { message: m } }
+	}
+
+	// ── Group status v2 ──────────────────────────────────────────────────────
+	if (hasOptionalProperty(message, 'groupStatus') && (message as any).groupStatus) {
+		m.messageContextInfo = {
+			...(m.messageContextInfo ?? {}),
+			GroupStatusData: {
+				participant: (message as any).groupStatusParticipant
+			}
+		}
+	}
+
 	// AI icon — adds Meta AI animated badge to the message bubble
 	if (hasOptionalProperty(message, 'ai') && (message as any).ai) {
 		const botJid = (message as any).aiBotJid ?? '867051314767696@bot'

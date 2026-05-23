@@ -461,3 +461,155 @@ export const generateCombinedButtons = (
 		header: options?.title ? { title: options.title } : undefined
 	})
 }
+
+// ─── Shop / Collection / PAY / PIX / Product List builders ───────────────────
+
+/**
+ * Generate a WA Business Collection message (shows biz product catalog inline).
+ * Requires a bizJid (business account JID) and at least one nativeFlow button.
+ */
+export const generateCollectionMessage = (
+	body: string,
+	bizJid: string,
+	buttons: NativeFlowButton[],
+	options?: { footer?: string; id?: string }
+): proto.IMessage => ({
+	interactiveMessage: {
+		body: { text: body },
+		footer: options?.footer ? { text: options.footer } : undefined,
+		header: { hasMediaAttachment: false },
+		nativeFlowMessage: buildNativeFlowMessage({ buttons }),
+		collectionMessage: {
+			bizJid,
+			id: options?.id ?? `col_${Date.now()}`,
+			messageVersion: 1
+		}
+	}
+})
+
+/**
+ * Generate a WA Business Shop message (opens storefront surface).
+ * surface: 1 = catalog, 2 = order, 3 = product
+ */
+export const generateShopMessage = (
+	body: string,
+	surface: number,
+	buttons: NativeFlowButton[],
+	options?: { footer?: string; id?: string }
+): proto.IMessage => ({
+	interactiveMessage: {
+		body: { text: body },
+		footer: options?.footer ? { text: options.footer } : undefined,
+		header: { hasMediaAttachment: false },
+		nativeFlowMessage: buildNativeFlowMessage({ buttons }),
+		shopStorefrontMessage: {
+			surface,
+			id: options?.id ?? `shop_${Date.now()}`,
+			messageVersion: 1
+		}
+	}
+})
+
+/**
+ * Generate a native-flow PAY button message (payment flow).
+ * Builds a cta_url button pointing to payment URL.
+ */
+export const generatePayButtonMessage = (
+	body: string,
+	paymentUrl: string,
+	options?: {
+		displayText?: string
+		footer?: string
+		title?: string
+	}
+): proto.IMessage =>
+	generateNativeFlowMessage(
+		body,
+		[
+			{
+				name: 'cta_url',
+				buttonParamsJson: JSON.stringify({
+					display_text: options?.displayText ?? '💳 Pay Now',
+					url: paymentUrl,
+					merchant_url: paymentUrl
+				})
+			}
+		],
+		{ footer: options?.footer, header: options?.title ? { title: options.title } : undefined }
+	)
+
+/**
+ * Generate a native-flow PIX button message (Brazilian instant payment).
+ */
+export const generatePixButtonMessage = (
+	body: string,
+	pixKey: string,
+	options?: {
+		displayText?: string
+		footer?: string
+		amount?: number
+		description?: string
+	}
+): proto.IMessage =>
+	generateNativeFlowMessage(
+		body,
+		[
+			{
+				name: 'cta_copy',
+				buttonParamsJson: JSON.stringify({
+					display_text: options?.displayText ?? '🔑 Copy PIX Key',
+					copy_code: pixKey
+				})
+			}
+		],
+		{
+			footer: options?.footer
+				? `${options.footer}${options.amount ? ` • R$ ${options.amount.toFixed(2)}` : ''}`
+				: options?.amount
+					? `Value: R$ ${options.amount.toFixed(2)}`
+					: undefined
+		}
+	)
+
+/**
+ * Generate an interactive product list message.
+ * Each section can contain product items — renders as a selectable product catalog.
+ */
+export const generateProductListMessage = (
+	body: string,
+	sections: Array<{
+		title: string
+		products: Array<{
+			productId: string
+			catalogId: string
+			title?: string
+			description?: string
+			price?: number
+			currencyCode?: string
+			thumbnail?: Buffer
+		}>
+	}>,
+	options?: { footer?: string; title?: string; buttonText?: string }
+): proto.IMessage => {
+	const listSections = sections.map(sec => ({
+		title: sec.title,
+		rows: sec.products.map((p, i) => ({
+			rowId: p.productId,
+			title: p.title ?? `Product ${i + 1}`,
+			description: [p.description, p.price !== undefined ? `${p.currencyCode ?? '$'} ${p.price.toFixed(2)}` : undefined]
+				.filter(Boolean)
+				.join(' — ')
+		}))
+	}))
+
+	return {
+		listMessage: {
+			title: options?.title ?? body,
+			description: body,
+			buttonText: options?.buttonText ?? '🛍️ View Products',
+			footerText: options?.footer ?? '',
+			listType: proto.Message.ListMessage.ListType.PRODUCT_LIST,
+			sections: listSections
+		}
+	}
+}
