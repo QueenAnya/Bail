@@ -769,6 +769,151 @@ export const generateWAMessageContent = async (
 		}
 	}
 
+	// ── Order message ────────────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'orderText')) {
+		if (!Buffer.isBuffer((message as any).thumbnail)) {
+			throw new Boom('Must provide thumbnail Buffer in order message', { statusCode: 400 })
+		}
+		const orderMsg = { ...(message as any) }
+		delete orderMsg.orderText
+		m.orderMessage = {
+			itemCount: 1,
+			messageVersion: 1,
+			orderTitle: 'Order',
+			status: proto.Message.OrderMessage.OrderStatus.INQUIRY,
+			surface: proto.Message.OrderMessage.OrderSurface.CATALOG,
+			token: generateMessageIDV2(authState?.creds?.me?.id),
+			totalAmount1000: 1000,
+			totalCurrencyCode: 'USD',
+			...orderMsg,
+			message: (message as any).orderText
+		}
+	}
+
+	// ── Payment message (request payment from JID) ────────────────────────────
+	if (hasNonNullishProperty(message, 'requestPaymentFrom')) {
+		const rm = { ...(message as any) }
+		delete rm.requestPaymentFrom
+		if (!m.extendedTextMessage && !m.stickerMessage) {
+			throw new Boom('Payment note must be extendedText or sticker', { statusCode: 400 })
+		}
+		m = {
+			requestPaymentMessage: {
+				amount: { currencyCode: 'USD', offset: 1000, value: 1000 },
+				amount1000: 1000,
+				currencyCodeIso4217: 'USD',
+				expiryTimestamp: Date.now(),
+				noteMessage: m,
+				requestFrom: (message as any).requestPaymentFrom,
+				...rm
+			}
+		}
+	}
+
+	// ── Invoice message ──────────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'invoiceNote')) {
+		const attachment = (m as any).imageMessage || (m as any).documentMessage
+		const mkeys = Object.keys(m)
+		const type = mkeys[0]?.replace('Message', '').toUpperCase()
+		if (!attachment || !type) throw new Boom('Invoice needs image or document', { statusCode: 400 })
+		const { directPath, fileEncSha256, fileSha256, jpegThumbnail, mediaKey, mediaKeyTimestamp, mimetype } = attachment
+		m = {
+			invoiceMessage: {
+				attachmentType: proto.Message.InvoiceMessage.AttachmentType[type === 'DOCUMENT' ? 'PDF' : 'IMAGE'],
+				note: (message as any).invoiceNote,
+				attachmentDirectPath: directPath,
+				attachmentFileEncSha256: fileEncSha256,
+				attachmentFileSha256: fileSha256,
+				attachmentJpegThumbnail: jpegThumbnail,
+				attachmentMediaKey: mediaKey,
+				attachmentMediaKeyTimestamp: mediaKeyTimestamp,
+				attachmentMimetype: mimetype,
+				token: generateMessageIDV2(authState?.creds?.me?.id)
+			}
+		}
+	}
+
+	// ── Admin invite message ─────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'adminInvite')) {
+		const ai = (message as any).adminInvite
+		m.groupInviteMessage = {
+			inviteCode: ai.inviteCode,
+			inviteExpiration: ai.inviteExpiration,
+			groupJid: ai.jid,
+			groupName: ai.subject,
+			caption: ai.text ?? ai.caption,
+			jpegThumbnail: ai.thumbnail,
+			groupType: proto.Message.GroupInviteMessage.GroupType.DEFAULT
+		}
+	}
+
+	// ── Group invite message ─────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'groupInvite')) {
+		const gi = (message as any).groupInvite
+		m.groupInviteMessage = {
+			inviteCode: gi.inviteCode,
+			inviteExpiration: gi.inviteExpiration,
+			groupJid: gi.jid,
+			groupName: gi.subject,
+			caption: gi.text ?? gi.caption,
+			jpegThumbnail: gi.thumbnail
+		}
+	}
+
+	// ── Clear / delete chat message ──────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'clearChat')) {
+		m = {
+			protocolMessage: {
+				type: proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION,
+				clearChatMessage: { messageTimestamp: Date.now() }
+			}
+		}
+	}
+
+	// ── ViewOnceMessageV2 wrapper ────────────────────────────────────────────
+	if (hasOptionalProperty(message, 'viewOnceV2') && (message as any).viewOnceV2) {
+		m = { viewOnceMessageV2: { message: m } }
+		delete (message as any).viewOnceV2
+	}
+
+	// ── ViewOnceV2Extension wrapper ──────────────────────────────────────────
+	if (hasOptionalProperty(message, 'viewOnceV2Extension') && (message as any).viewOnceV2Extension) {
+		m = { viewOnceMessageV2Extension: { message: m } }
+		delete (message as any).viewOnceV2Extension
+	}
+
+	// ── HD Image / HD Video flag ─────────────────────────────────────────────
+	// Sets HD flag on image/video mediaMessage — WA uses this for full-res delivery
+	if (hasOptionalProperty(message, 'isHD') && (message as any).isHD) {
+		const mediaMsg = m.imageMessage ?? m.videoMessage
+		if (mediaMsg) {
+			;(mediaMsg as any).isHD = true
+			;(mediaMsg as any).messageVersion = 2
+		}
+	}
+
+	// ── Shop / Storefront message (nativeFlow + shopStorefrontMessage) ────────
+	if (hasOptionalProperty(message, 'shopSurface') && (message as any).shopSurface !== undefined) {
+		if (m.interactiveMessage) {
+			;(m.interactiveMessage as any).shopStorefrontMessage = {
+				surface: (message as any).shopSurface,
+				id: (message as any).id,
+				messageVersion: 1
+			}
+		}
+	}
+
+	// ── Collection message (nativeFlow + bizJid) ─────────────────────────────
+	if (hasOptionalProperty(message, 'bizJid') && (message as any).bizJid) {
+		if (m.interactiveMessage) {
+			;(m.interactiveMessage as any).collectionMessage = {
+				bizJid: (message as any).bizJid,
+				id: (message as any).id,
+				messageVersion: 1
+			}
+		}
+	}
+
 	// AI icon — adds Meta AI animated badge to the message bubble
 	if (hasOptionalProperty(message, 'ai') && (message as any).ai) {
 		const botJid = (message as any).aiBotJid ?? '867051314767696@bot'

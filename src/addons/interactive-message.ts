@@ -613,3 +613,100 @@ export const generateProductListMessage = (
 		}
 	}
 }
+
+// ─── PAY / PIX Payment flow buttons (Brazil specific) ────────────────────────
+
+/** Build a PAY (WhatsApp Pay) native-flow interactive message */
+export const generatePaymentButton = (
+	body: string,
+	options: {
+		amount: number
+		currency?: string
+		merchant?: string
+		referenceId?: string
+		footer?: string
+		title?: string
+	}
+): WAMessageContent =>
+	generateNativeFlowMessage(
+		body,
+		[
+			{
+				name: 'payment_info',
+				buttonParamsJson: JSON.stringify({
+					currency: options.currency ?? 'BRL',
+					amount: String(options.amount),
+					merchant_jid: options.merchant ?? '',
+					reference_id: options.referenceId ?? `ref_${Date.now()}`
+				})
+			}
+		],
+		{ footer: options.footer, header: options.title ? { title: options.title } : undefined }
+	)
+
+/** Build a PIX payment native-flow interactive message */
+export const generatePixButton = (
+	body: string,
+	options: {
+		pixKey: string
+		amount: number
+		name?: string
+		description?: string
+		footer?: string
+		title?: string
+	}
+): WAMessageContent =>
+	generateNativeFlowMessage(
+		body,
+		[
+			{
+				name: 'pix_key',
+				buttonParamsJson: JSON.stringify({
+					pix_key: options.pixKey,
+					amount: String(options.amount),
+					name: options.name ?? '',
+					description: options.description ?? ''
+				})
+			}
+		],
+		{ footer: options.footer, header: options.title ? { title: options.title } : undefined }
+	)
+
+/** Build a product list interactive message (single-select rows with products) */
+export const generateProductListMessage = (
+	body: string,
+	products: Array<{
+		id: string
+		title: string
+		description?: string
+		price?: number
+		currency?: string
+	}>,
+	options?: {
+		buttonText?: string
+		footer?: string
+		title?: string
+	}
+): WAMessageContent => {
+	const sections = [
+		{
+			title: options?.title ?? 'Products',
+			rows: products.map(p => ({
+				rowId: p.id,
+				title: p.title,
+				description: p.description ?? (p.price ? `${p.currency ?? 'USD'} ${p.price}` : '')
+			}))
+		}
+	]
+
+	return generateNativeFlowMessage(
+		body,
+		[
+			{
+				name: 'single_select',
+				buttonParamsJson: JSON.stringify({ title: options?.buttonText ?? '🛒 Browse', sections })
+			}
+		],
+		{ footer: options?.footer }
+	)
+}
