@@ -1,19 +1,17 @@
-/**
- * Auto-Reply System
- * Source: @innovatorssoft/baileys (auto-reply.js) — converted to TypeScript
- */
-
-import type { WAMessage } from '../Types/index.js'
+import type { WAMessage } from '../Types/index'
+import type { AnyMessageContent } from '../Types/index'
 
 export interface AutoReplyRule {
 	id?: string
 	keywords?: string[]
 	pattern?: RegExp
 	exactMatch?: string
-	response: any | ((msg: WAMessage, match: RegExpMatchArray | string[]) => Promise<any> | any)
+	response:
+		| AnyMessageContent
+		| ((message: WAMessage, match: RegExpMatchArray | string[]) => Promise<AnyMessageContent> | AnyMessageContent)
+	cooldown?: number
 	priority?: number
 	active?: boolean
-	cooldown?: number
 	groupsOnly?: boolean
 	privateOnly?: boolean
 	allowedJids?: string[]
@@ -26,25 +24,25 @@ export interface AutoReplyOptions {
 	simulateTyping?: boolean
 	typingDuration?: number
 	multiMatch?: boolean
-	onReply?: (rule: AutoReplyRule, msg: WAMessage, response: any) => void
-	onError?: (err: Error, rule: AutoReplyRule, msg: WAMessage) => void
+	onReply?: (rule: AutoReplyRule, message: WAMessage, response: AnyMessageContent) => void
+	onError?: (error: Error, rule: AutoReplyRule, message: WAMessage) => void
 }
 
 export class AutoReplyHandler {
-	private rules = new Map<string, Required<AutoReplyRule>>()
+	private rules = new Map<string, AutoReplyRule & { id: string }>()
 	private cooldowns = new Map<string, number>()
-	private globalCd = new Map<string, number>()
-	private sendFn: (jid: string, content: any, opts?: any) => Promise<WAMessage | undefined>
-	private presenceFn?: (jid: string, presence: string) => Promise<void>
+	private globalCooldown = new Map<string, number>()
+	private sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>
+	private sendPresence?: (jid: string, presence: string) => Promise<void>
 	private options: Required<AutoReplyOptions>
 
 	constructor(
-		sendFn: (jid: string, content: any, opts?: any) => Promise<WAMessage | undefined>,
-		presenceFn?: (jid: string, presence: string) => Promise<void>,
+		sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>,
+		sendPresence?: (jid: string, presence: string) => Promise<void>,
 		options: AutoReplyOptions = {}
 	) {
-		this.sendFn = sendFn
-		this.presenceFn = presenceFn
+		this.sendMessage = sendMessage
+		this.sendPresence = sendPresence
 		this.options = {
 			globalCooldown: options.globalCooldown ?? 1000,
 			simulateTyping: options.simulateTyping ?? false,
@@ -55,19 +53,21 @@ export class AutoReplyHandler {
 		}
 	}
 
-	private genId = () => `ar_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+	private generateId() {
+		return `ar_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+	}
 
-	addRule(rule: AutoReplyRule): Required<AutoReplyRule> {
-		if (!rule.keywords && !rule.pattern && !rule.exactMatch)
-			throw new Error('Rule needs keywords, pattern, or exactMatch')
-		const full = {
+	addRule(rule: AutoReplyRule) {
+		const fullRule = {
 			...rule,
-			id: rule.id ?? this.genId(),
+			id: rule.id ?? this.generateId(),
 			active: rule.active ?? true,
 			priority: rule.priority ?? 0
-		} as Required<AutoReplyRule>
-		this.rules.set(full.id, full)
-		return full
+		}
+		if (!fullRule.keywords && !fullRule.pattern && !fullRule.exactMatch)
+			throw new Error('Rule must have keywords, pattern, or exactMatch')
+		this.rules.set(fullRule.id, fullRule as AutoReplyRule & { id: string })
+		return fullRule
 	}
 
 	removeRule(id: string) {
@@ -79,12 +79,13 @@ export class AutoReplyHandler {
 	getRule(id: string) {
 		return this.rules.get(id)
 	}
-	setRuleActive(id: string, v: boolean) {
+	setRuleActive(id: string, active: boolean) {
 		const r = this.rules.get(id)
 		if (r) {
-			r.active = v
+			r.active = active
 			return true
 		}
+
 		return false
 	}
 	clearRules() {
@@ -94,28 +95,29 @@ export class AutoReplyHandler {
 	private checkCooldown(ruleId: string, jid: string) {
 		return Date.now() - (this.cooldowns.get(`${ruleId}:${jid}`) ?? 0) > 0
 	}
-	private checkGlobalCd(jid: string) {
-		return Date.now() - (this.globalCd.get(jid) ?? 0) > this.options.globalCooldown
-	}
-	private setCooldown(ruleId: string, jid: string, ms: number) {
-		this.cooldowns.set(`${ruleId}:${jid}`, Date.now() + ms)
-		this.globalCd.set(jid, Date.now())
+
+	private checkGlobalCooldown(jid: string) {
+		return Date.now() - (this.globalCooldown.get(jid) ?? 0) > this.options.globalCooldown
 	}
 
-	private matchRule(text: string, rule: Required<AutoReplyRule>): RegExpMatchArray | string[] | null {
+	private setCooldown(ruleId: string, jid: string, cooldown: number) {
+		this.cooldowns.set(`${ruleId}:${jid}`, Date.now() + cooldown)
+		this.globalCooldown.set(jid, Date.now())
+	}
+
+	private matchRule(text: string, rule: AutoReplyRule) {
 		if (!rule.active) return null
-		if (rule.exactMatch && text.toLowerCase() === rule.exactMatch.toLowerCase()) return [text]
+		if (text.toLowerCase() === rule.exactMatch?.toLowerCase()) return [text]
 		if (rule.keywords?.length) {
-			const lo = text.toLowerCase()
-			for (const kw of rule.keywords) {
-				if (lo.includes(kw.toLowerCase())) return [kw]
-			}
+			const lower = text.toLowerCase()
+			for (const kw of rule.keywords) if (lower.includes(kw.toLowerCase())) return [kw]
 		}
+
 		if (rule.pattern) return text.match(rule.pattern)
 		return null
 	}
 
-	private isAllowed(jid: string, rule: Required<AutoReplyRule>) {
+	private isJidAllowed(jid: string, rule: AutoReplyRule) {
 		const isGroup = jid.endsWith('@g.us')
 		if (jid.endsWith('@newsletter')) return false
 		if (rule.groupsOnly && !isGroup) return false
@@ -129,48 +131,53 @@ export class AutoReplyHandler {
 		const content = message.message
 		if (!content) return false
 		const text =
-			content.conversation ??
-			content.extendedTextMessage?.text ??
-			content.imageMessage?.caption ??
-			content.videoMessage?.caption ??
+			content.conversation ||
+			content.extendedTextMessage?.text ||
+			content.imageMessage?.caption ||
+			content.videoMessage?.caption ||
+			content.documentMessage?.caption ||
 			''
 		if (!text) return false
 		const jid = message.key.remoteJid
-		if (!jid || !this.checkGlobalCd(jid)) return false
+		if (!jid || !this.checkGlobalCooldown(jid)) return false
 
-		const sorted = Array.from(this.rules.values())
+		const sortedRules = Array.from(this.rules.values())
 			.filter(r => r.active)
 			.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))
-		let matched = false
 
-		for (const rule of sorted) {
-			if (!this.isAllowed(jid, rule)) continue
+		let matched = false
+		for (const rule of sortedRules) {
+			if (!this.isJidAllowed(jid, rule)) continue
 			if (rule.cooldown && !this.checkCooldown(rule.id, jid)) continue
 			const match = this.matchRule(text, rule)
 			if (!match) continue
-
 			try {
-				const response = typeof rule.response === 'function' ? await rule.response(message, match) : rule.response
-				if (this.options.simulateTyping && this.presenceFn) {
-					await this.presenceFn(jid, 'composing')
+				let response: AnyMessageContent
+				if (typeof rule.response === 'function') response = await rule.response(message, match)
+				else response = rule.response
+
+				if (this.options.simulateTyping && this.sendPresence) {
+					await this.sendPresence(jid, 'composing')
 					await new Promise(r => setTimeout(r, this.options.typingDuration))
-					await this.presenceFn(jid, 'paused')
+					await this.sendPresence(jid, 'paused')
 				}
-				await this.sendFn(jid, response, rule.quoted ? { quoted: message } : undefined)
+
+				await this.sendMessage(jid, response, rule.quoted ? { quoted: message } : undefined)
 				if (rule.cooldown) this.setCooldown(rule.id, jid, rule.cooldown)
 				this.options.onReply(rule, message, response)
 				matched = true
 				if (!this.options.multiMatch) break
-			} catch (err: any) {
-				this.options.onError(err, rule, message)
+			} catch (error: any) {
+				this.options.onError(error, rule, message)
 			}
 		}
+
 		return matched
 	}
 }
 
 export const createAutoReply = (
-	sendFn: (jid: string, content: any, opts?: any) => Promise<WAMessage | undefined>,
-	presenceFn?: (jid: string, presence: string) => Promise<void>,
+	sendMessage: (jid: string, content: AnyMessageContent, options?: any) => Promise<any>,
+	sendPresence?: (jid: string, presence: string) => Promise<void>,
 	options?: AutoReplyOptions
-) => new AutoReplyHandler(sendFn, presenceFn, options)
+) => new AutoReplyHandler(sendMessage, sendPresence, options)

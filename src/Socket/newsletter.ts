@@ -101,6 +101,16 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 			return parseNewsletterMetadata(result)
 		},
 
+		newsletterFetchAllParticipating: async () => {
+			return await genericExecuteWMexQuery(
+				{},
+				QueryIds.GETSUBSCRIBED,
+				XWAPaths.xwa2_newsletter_subscribed,
+				query,
+				generateMessageTag
+			)
+		},
+
 		newsletterFollow: (jid: string) => {
 			return executeWMexQuery({ newsletter_id: jid }, QueryIds.FOLLOW, XWAPaths.xwa2_newsletter_join_v2)
 		},

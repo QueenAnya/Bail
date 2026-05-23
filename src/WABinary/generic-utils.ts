@@ -139,3 +139,21 @@ export function binaryNodeToString(node: BinaryNode | BinaryNode['content'], i =
 
 	return tag + content
 }
+
+export const getBinaryFilteredButtons = (nodeContent: BinaryNode | BinaryNode['content']): boolean => {
+	if (!Array.isArray(nodeContent)) return false
+	return (nodeContent as BinaryNode[]).some(a => {
+		const first = Array.isArray(a?.content) ? (a.content as BinaryNode[])[0] : undefined
+		const grand = Array.isArray(first?.content) ? (first!.content as BinaryNode[])[0] : undefined
+		return (
+			(typeof grand?.tag === 'string' && ['native_flow'].includes(grand.tag)) ||
+			(typeof first?.tag === 'string' && ['interactive', 'buttons', 'list'].includes(first.tag)) ||
+			['hsm', 'biz'].includes(a?.tag)
+		)
+	})
+}
+
+export const getBinaryFilteredBizBot = (nodeContent: BinaryNode | BinaryNode['content']): boolean => {
+	if (!Array.isArray(nodeContent)) return false
+	return (nodeContent as BinaryNode[]).some(b => b?.tag === 'bot' && b?.attrs?.biz_bot === '1')
+}

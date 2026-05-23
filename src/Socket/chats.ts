@@ -1,4 +1,5 @@
 import NodeCache from '@cacheable/node-cache'
+import Long from 'long'
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
@@ -15,6 +16,7 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
+	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -26,7 +28,7 @@ import type {
 	WAReadReceiptsValue
 } from '../Types'
 import { ALL_WA_PATCH_NAMES } from '../Types'
-import type { QuickReplyAction } from '../Types/Bussines.js'
+import type { QuickReplyAction } from '../Types/Bussines'
 import type { LabelActionBody } from '../Types/Label'
 import { SyncState } from '../Types/State'
 import {
@@ -62,7 +64,7 @@ import {
 	S_WHATSAPP_NET
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
-import { makeSocket } from './socket.js'
+import { makeSocket } from './socket'
 
 export const makeChatsSocket = (config: SocketConfig) => {
 	const {
@@ -874,8 +876,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		if (tag === 'presence') {
 			presence = {
 				lastKnownPresence: attrs.type === 'unavailable' ? 'unavailable' : 'available',
-				lastSeen: attrs.last && attrs.last !== 'deny' ? +attrs.last : undefined,
-				groupOnlineCount: attrs.count ? +attrs.count : undefined
+				lastSeen: attrs.last && attrs.last !== 'deny' ? +attrs.last : undefined
 			}
 		} else if (Array.isArray(content)) {
 			const [firstChild] = content
@@ -1183,6 +1184,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			},
 			''
 		)
+	}
+
+	/**
+	 * Clear a message from chat (delete for me)
+	 */
+	const deleteChat = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
 	}
 
 	/**
@@ -1508,6 +1516,11 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		getBusinessProfile,
 		resyncAppState,
 		chatModify,
+		clearMessage: (jid: string, key: any, timeStamp: number | any) =>
+			chatModify({ delete: key, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid),
+		clearChat: (jid: string, key: any, timeStamp: number | any) =>
+			chatModify({ delete: key, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid),
+		deleteChat,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,

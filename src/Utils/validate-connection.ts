@@ -12,6 +12,7 @@ import { type BinaryNode, getBinaryNodeChild, jidDecode, S_WHATSAPP_NET } from '
 import { Curve, hmacSign } from './crypto'
 import { encodeBigEndian } from './generics'
 import { createSignalIdentity } from './signal'
+import { isAndroidBrowser } from './browser-utils'
 
 const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 	return {
@@ -20,11 +21,9 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		// Always use MACOS platform for UserAgent — we connect via web protocol
-		// (WA\x06\x03) so the server expects a web-compatible identity.
-		// Using WEB causes 405 errors; using SMB_ANDROID breaks pair code.
-		// Android identity is only set in DeviceProps (registration node).
-		platform: proto.ClientPayload.UserAgent.Platform.MACOS,
+		platform: isAndroidBrowser(config.browser)
+			? proto.ClientPayload.UserAgent.Platform.ANDROID
+			: proto.ClientPayload.UserAgent.Platform.WEB,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
@@ -39,7 +38,8 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 
 const PLATFORM_MAP = {
 	'Mac OS': proto.ClientPayload.WebInfo.WebSubPlatform.DARWIN,
-	Windows: proto.ClientPayload.WebInfo.WebSubPlatform.WIN32
+	Windows: proto.ClientPayload.WebInfo.WebSubPlatform.WIN32,
+	Android: proto.ClientPayload.WebInfo.WebSubPlatform.WIN_HYBRID
 }
 
 const getWebInfo = (config: SocketConfig): proto.ClientPayload.IWebInfo => {
@@ -62,7 +62,14 @@ const getClientPayload = (config: SocketConfig) => {
 		userAgent: getUserAgent(config)
 	}
 
-	payload.webInfo = getWebInfo(config)
+	// Android companion devices don't send webInfo
+	if (!isAndroidBrowser(config.browser)) {
+		payload.webInfo = getWebInfo(config)
+	}
+
+	if (config.pushName) {
+		payload.pushName = config.pushName
+	}
 
 	return payload
 }
@@ -83,16 +90,6 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
-	// 'ANDROID' is not in PlatformType enum — map to ANDROID_PHONE
-	if (platformType === 'ANDROID') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE
-	}
-
-	// 'KAIOS' is not in PlatformType enum — map to ANDROID_PHONE (closest mobile web type)
-	if (platformType === 'KAIOS') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE
-	}
-
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME

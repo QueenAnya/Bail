@@ -12,7 +12,6 @@ export type WASocket = ReturnType<typeof makeWASocket>
 export { makeWASocket }
 export default makeWASocket
 
-// ─── Addons (interactive, rich-response, status, templates) ────────────────
-export * from './addons/index.js'
-export { useSingleFileAuthState } from './Utils/use-single-file-auth-state.js'
-export { makeInMemoryStore, waChatKey, waMessageID } from './Utils/make-in-memory-store.js'
+// ── Addons layer (interactive messages, rich responses, bot utilities) ─────
+// Addons layer
+export * from './addons/index'

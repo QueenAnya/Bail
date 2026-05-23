@@ -1,3 +1,18 @@
+export const BOT_RENDERING_CONFIG_METADATA = {
+	forceRenderingConfig: true,
+	botRenderingToken: 1,
+	rendererVersion: 1
+}
+
+export const DONATE_URL = 'https://saweria.co/itsliaaa'
+
+export const BIZ_BOT_SUPPORT_PAYLOAD = JSON.stringify({
+	bot_type: 'AI',
+	supported_features: ['rich_response', 'code_block', 'table', 'latex']
+})
+
+export const LIBRARY_NAME = '@whiskeysockets/baileys-merged'
+
 import { proto } from '../../WAProto/index.js'
 import { makeLibSignalRepository } from '../Signal/libsignal'
 import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'
@@ -60,7 +75,7 @@ export const DEFAULT_CACHE_TTLS = {
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.macOS('Chrome'),
+	browser: Browsers.iOS('Chrome'),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,
@@ -102,12 +117,21 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	audio: '/mms/audio',
 	sticker: '/mms/image',
 	'thumbnail-link': '/mms/image',
+	'sticker-pack': '/mms/sticker-pack',
+	'thumbnail-sticker-pack': '/mms/thumbnail-sticker-pack',
 	'product-catalog-image': '/product/image',
 	'md-app-state': '',
 	'md-msg-hist': '/mms/md-app-state',
-	'biz-cover-photo': '/pps/biz-cover-photo',
-	'sticker-pack': '/mms/sticker-pack',
-	'thumbnail-sticker-pack': '/mms/thumbnail-sticker-pack'
+	'biz-cover-photo': '/pps/biz-cover-photo'
+}
+
+export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
+	image: '/newsletter/newsletter-image',
+	video: '/newsletter/newsletter-video',
+	document: '/newsletter/newsletter-document',
+	audio: '/newsletter/newsletter-audio',
+	sticker: '/newsletter/newsletter-image',
+	'thumbnail-link': '/newsletter/newsletter-image'
 }
 
 export const MEDIA_HKDF_KEY_MAPPING = {
@@ -119,6 +143,8 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	product: 'Image',
 	ptt: 'Audio',
 	sticker: 'Image',
+	'sticker-pack': 'Sticker Pack',
+	'thumbnail-sticker-pack': 'Sticker Pack Thumbnail',
 	video: 'Video',
 	'thumbnail-document': 'Document Thumbnail',
 	'thumbnail-image': 'Image Thumbnail',
@@ -129,9 +155,7 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	'product-catalog-image': '',
 	'payment-bg-image': 'Payment Background',
 	ptv: 'Video',
-	'biz-cover-photo': 'Image',
-	'sticker-pack': 'Sticker Pack',
-	'thumbnail-sticker-pack': 'Sticker Pack Thumbnail'
+	'biz-cover-photo': 'Image'
 }
 
 export type MediaType = keyof typeof MEDIA_HKDF_KEY_MAPPING
@@ -141,6 +165,7 @@ export const MEDIA_KEYS = Object.keys(MEDIA_PATH_MAP) as MediaType[]
 /** 120s timeout for history sync stall detection, same as WA Web's handleChunkProgress / restartPausedTimer (g = 120) */
 export const HISTORY_SYNC_PAUSED_TIMEOUT_MS = 120_000
 
+export const MIN_UPLOAD_INTERVAL = 5000 // 5 seconds minimum between uploads
 export const MIN_PREKEY_COUNT = 5
 
 export const INITIAL_PREKEY_COUNT = 812
@@ -152,21 +177,4 @@ export const TimeMs = {
 	Hour: 60 * 60 * 1000,
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
-}
-
-export const CALL_VIDEO_PREFIX = 'https://call.whatsapp.com/video/'
-export const CALL_AUDIO_PREFIX = 'https://call.whatsapp.com/voice/'
-/** Library name shown in fallback texts */
-export const LIBRARY_NAME = 'Baileys'
-/** Fallback URL used in offer/ad reply fields when none is provided */
-export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'
-
-/** Media upload paths for WhatsApp Newsletter (channel) media */
-export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
-	image: '/newsletter/newsletter-image',
-	video: '/newsletter/newsletter-video',
-	document: '/newsletter/newsletter-document',
-	audio: '/newsletter/newsletter-audio',
-	sticker: '/newsletter/newsletter-image',
-	'thumbnail-link': '/newsletter/newsletter-thumbnail-link'
 }

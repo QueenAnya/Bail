@@ -18,16 +18,17 @@ import {
 	assertMeId,
 	bindWaitForEvent,
 	decryptMediaRetryData,
-	DEF_MEDIA_HOST,
 	encodeNewsletterMessage,
 	encodeSignedDeviceIdentity,
 	encodeWAMessage,
 	encryptMediaRetryRequest,
 	extractDeviceJids,
 	generateMessageIDV2,
+	generateKeyUuid,
 	generateParticipantHashV2,
 	generateWAMessage,
 	getStatusCodeForMediaRetry,
+	DEF_MEDIA_HOST,
 	getUrlFromDirectPath,
 	getWAUploadToServer,
 	MessageRetryManager,
@@ -38,6 +39,9 @@ import {
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
+import { execSendStatusMentions } from '../addons/from-messages-send'
+import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
+import { getBinaryFilteredBizBot, getBinaryFilteredButtons } from '../WABinary/index'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,
@@ -113,6 +117,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		})
 	/** Serializes writes to userDevicesCache across USync refresh and device-notification handling. */
 	const devicesMutex = makeMutex()
+
+	const peerSessionsCache = new NodeCache<boolean>({
+		stdTTL: DEFAULT_CACHE_TTLS.USER_DEVICES,
+		useClones: false
+	})
 
 	// Initialize message retry manager if enabled
 	const messageRetryManager = enableRecentMessageCache ? new MessageRetryManager(logger, maxMsgRetryCount) : null
@@ -416,6 +425,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	 * Update Member Label
 	 */
 	const updateMemberLabel = (jid: string, memberLabel: string) => {
+		if (!isJidGroup(jid)) {
+			throw new Error('Jid must a group jid!')
+		}
+
 		return relayMessage(
 			jid,
 			{
@@ -450,9 +463,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		logger.debug({ jids }, 'assertSessions call with jids')
 
 		for (const jid of uniqueJids) {
-			if (!force) {
+			// Check peerSessionsCache and validate sessions using libsignal loadSession
+			const signalId = signalRepository.jidToSignalProtocolAddress(jid)
+			const cachedSession = peerSessionsCache.get(signalId)
+			if (cachedSession !== undefined) {
+				if (cachedSession && !force) {
+					continue // Session exists in cache
+				}
+			} else {
 				const sessionValidation = await signalRepository.validateSession(jid)
-				if (sessionValidation.exists) {
+				const hasSession = sessionValidation.exists
+				peerSessionsCache.set(signalId, hasSession)
+				if (hasSession && !force) {
 					continue
 				}
 			}
@@ -493,6 +515,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			})
 			await parseAndInjectE2ESessions(result, signalRepository)
 			didFetchNewSession = true
+
+			// Cache fetched sessions
+			for (const wireJid of wireJids) {
+				const signalId = signalRepository.jidToSignalProtocolAddress(wireJid)
+				peerSessionsCache.set(signalId, true)
+			}
 		}
 
 		return didFetchNewSession
@@ -623,18 +651,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			additionalNodes,
 			useUserDevicesCache,
 			useCachedGroupMetadata,
-			statusJidList
-		}: MessageRelayOptions
+			statusJidList,
+			AI = false
+		}: MessageRelayOptions & { AI?: boolean }
 	) => {
 		const meId = assertMeId(authState.creds)
 		const meLid = authState.creds.me?.lid
 		const isRetryResend = Boolean(participant?.jid)
 		let shouldIncludeDeviceIdentity = isRetryResend
+		let didPushAdditional = false
 		const statusJid = 'status@broadcast'
 
 		const { user, server } = jidDecode(jid)!
 		const isGroup = server === 'g.us'
 		const isStatus = jid === statusJid
+		const isPrivate = server === 's.whatsapp.net'
 		const isLid = server === 'lid'
 		const isNewsletter = server === 'newsletter'
 		const isGroupOrStatus = isGroup || isStatus
@@ -643,6 +674,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		msgId = msgId || generateMessageIDV2(meId)
 		useUserDevicesCache = useUserDevicesCache !== false
 		useCachedGroupMetadata = useCachedGroupMetadata !== false && !isStatus
+
+		// normalizeMessageContent BEFORE transaction — exact addons pattern
+		const messages = normalizeMessageContent(message) || message
+		const buttonType = getButtonType(messages)
+		const pollMessage = messages.pollCreationMessage || messages.pollCreationMessageV2 || messages.pollCreationMessageV3
 
 		const participants: BinaryNode[] = []
 		const destinationJid = !isStatus ? finalJid : statusJid
@@ -674,7 +710,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		await authState.keys.transaction(async () => {
-			const mediaType = getMediaType(message)
+			const mediaType = getMediaType(messages)
 			if (mediaType) {
 				extraAttrs['mediatype'] = mediaType
 			}
@@ -684,7 +720,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
 				binaryNodeContent.push({
 					tag: 'plaintext',
-					attrs: {},
+					attrs: mediaType ? { mediatype: mediaType } : {},
 					content: bytes
 				})
 				const stanza: BinaryNode = {
@@ -702,7 +738,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
-			if (normalizeMessageContent(message)?.pinInChatMessage || normalizeMessageContent(message)?.reactionMessage) {
+			if (
+				messages.pinInChatMessage ||
+				messages.keepInChatMessage ||
+				messages.reactionMessage ||
+				messages.protocolMessage?.editedMessage
+			) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
 			}
 
@@ -1151,7 +1192,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		return msgId
 	}
 
-	const getMessageType = (message: proto.IMessage) => {
+	// NOTE: getMessageType and getMediaType are imported from addons/message-utils.ts
+	// The following _local variants are kept for internal rc10 reporting logic only
+	const _getMessageTypeLocal = (message: proto.IMessage) => {
 		const normalizedMessage = normalizeMessageContent(message)
 		if (!normalizedMessage) return 'text'
 
@@ -1172,14 +1215,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return 'event'
 		}
 
-		if (getMediaType(normalizedMessage) !== '') {
+		if (_getMediaTypeLocal(normalizedMessage) !== '') {
 			return 'media'
 		}
 
 		return 'text'
 	}
 
-	const getMediaType = (message: proto.IMessage) => {
+	const _getMediaTypeLocal = (message: proto.IMessage) => {
 		if (message.imageMessage) {
 			return 'image'
 		} else if (message.videoMessage) {
@@ -1210,8 +1253,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return 'native_flow_response'
 		} else if (message.groupInviteMessage) {
 			return 'url'
-		} else if (message.stickerPackMessage) {
-			return 'sticker_pack'
 		}
 
 		return ''
@@ -1260,101 +1301,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 	})
 
-	/**
-	 * Send a status (story) visible only to mentioned JIDs (individuals + groups).
-	 * Groups are automatically expanded to their members.
-	 */
-	const sendStatusMentions = async (
-		jids: string[],
-		cntnt: AnyMessageContent,
-		opts: MiscMessageGenerationOptions = {}
-	) => {
-		const userJid = authState.creds.me!.id
-		const { delayMs = 1500 } = opts as any
-
-		const allUsers = new Set<string>()
-		for (const id of jids) {
-			if (isJidGroup(id)) {
-				try {
-					const meta = config.cachedGroupMetadata ? await config.cachedGroupMetadata(id) : await groupMetadata(id)
-					if (meta) {
-						for (const p of meta.participants) {
-							if (!allUsers.has(p.id)) allUsers.add(p.id)
-						}
-					}
-				} catch (e) {
-					logger.error({ err: e, id }, 'statusMentions: failed to get group metadata')
-				}
-			} else if (!allUsers.has(id)) {
-				allUsers.add(id)
-			}
-		}
-
-		const fullMsg = await generateWAMessage('status@broadcast', cntnt, {
-			logger,
-			userJid,
-			upload: waUploadToServer,
-			mediaCache: config.mediaCache,
-			options: config.options,
-			...opts,
-			messageId: generateMessageIDV2(userJid)
-		})
-
-		await relayMessage('status@broadcast', fullMsg.message!, {
-			messageId: fullMsg.key.id!,
-			statusJidList: Array.from(allUsers),
-			additionalNodes: [
-				{
-					tag: 'meta',
-					attrs: {},
-					content: [
-						{
-							tag: 'mentioned_users',
-							attrs: {},
-							content: jids.map(id => ({ tag: 'to', attrs: { jid: id }, content: undefined }))
-						}
-					]
-				}
-			]
-		})
-
-		if (config.emitOwnEvents) {
-			process.nextTick(async () => {
-				await messageMutex.mutex(() => upsertMessage(fullMsg, 'append'))
-			})
-		}
-
-		for (const id of jids) {
-			const isGroup = isJidGroup(id)
-			const sendType = isGroup ? 'groupStatusMentionMessage' : 'statusMentionMessage'
-			const mentionMsg = generateWAMessageFromContent(
-				id,
-				{
-					messageContextInfo: { messageSecret: randomBytes(32) },
-					[sendType]: { message: { protocolMessage: { key: fullMsg.key, type: 25 } } }
-				},
-				{ userJid }
-			)
-			await relayMessage(id, mentionMsg.message!, {
-				additionalNodes: [
-					{
-						tag: 'meta',
-						attrs: isGroup ? { is_group_status_mention: 'true' } : { is_status_mention: 'true' },
-						content: undefined
-					}
-				]
-			})
-			if (config.emitOwnEvents) {
-				process.nextTick(async () => {
-					await messageMutex.mutex(() => upsertMessage(mentionMsg, 'append'))
-				})
-			}
-			await delay(delayMs)
-		}
-
-		return fullMsg
-	}
-
 	return {
 		...sock,
 		userDevicesCache,
@@ -1374,7 +1320,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		createParticipantNodes,
 		getUSyncDevices,
 		messageRetryManager,
-		sendStatusMentions,
 		updateMemberLabel,
 		updateMediaMessage: async (message: WAMessage) => {
 			const content = assertMediaContent(message.message)
@@ -1402,7 +1347,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 								}
 
 								content.directPath = media.directPath
-								content.url = getUrlFromDirectPath(content.directPath!, mediaHost)
+								content.url = mediaHost
+									? `https://${mediaHost}${content.directPath}`
+									: getUrlFromDirectPath(content.directPath!)
 
 								logger.debug({ directPath: media.directPath, key: result.key }, 'media update successful')
 							} catch (err: any) {
@@ -1459,9 +1406,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					upload: waUploadToServer,
 					mediaCache: config.mediaCache,
 					options: config.options,
-					messageId: generateMessageIDV2(sock.user?.id),
+					messageId: options.messageId || generateMessageIDV2(sock.user?.id),
 					...options
 				})
+				// Attach uuid to key — 11-char identifier for caller tracking
+				const _uuidSource = (content as any).uuid || options.uuid
+				;(fullMsg.key as any).uuid = generateKeyUuid(_uuidSource)
+
 				const isEventMsg = 'event' in content && !!content.event
 				const isDeleteMsg = 'delete' in content && !!content.delete
 				const isEditMsg = 'edit' in content && !!content.edit
@@ -1512,6 +1463,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
+		},
+		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
+			return execSendStatusMentions(content, jids, {
+				meId: authState.creds.me!.id,
+				logger,
+				groupMetadata: sock.groupMetadata,
+				cachedGroupMetadata: config.cachedGroupMetadata,
+				relayMessage,
+				waUploadToServer,
+				getUrlInfo,
+				config,
+				linkPreviewImageThumbnailWidth,
+				generateHighQualityLinkPreview,
+				httpRequestOptions
+			})
 		}
 	}
 }
