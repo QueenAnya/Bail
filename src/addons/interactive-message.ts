@@ -710,3 +710,56 @@ export const generateProductListMessage = (
 		{ footer: options?.footer }
 	)
 }
+
+// ─── Buttons Reply Message (user tapped a classic button) ────────────────────
+
+/**
+ * Build a buttons-reply message (buttonsResponseMessage) — sent when
+ * the user taps one of the classic iOS/Android buttons.
+ *
+ * @example
+ * await sock.sendMessage(jid, generateButtonReplyMessage('btn_1', 'Yes'))
+ */
+export const generateButtonReplyMessage = (
+	buttonId: string,
+	displayText: string,
+	options?: { quotedMessageId?: string; participantJid?: string }
+): WAMessageContent => ({
+	buttonsResponseMessage: {
+		selectedButtonId: buttonId,
+		selectedDisplayText: displayText,
+		type: proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT,
+		contextInfo: options?.quotedMessageId
+			? { stanzaId: options.quotedMessageId, participant: options.participantJid }
+			: undefined
+	}
+})
+
+/**
+ * Build a list-reply message (listResponseMessage) — sent when
+ * the user selects a row from a list message.
+ */
+export const generateListReplyMessage = (rowId: string, title?: string, description?: string): WAMessageContent => ({
+	listResponseMessage: {
+		singleSelectReply: { selectedRowId: rowId },
+		title,
+		description,
+		listType: proto.Message.ListResponseMessage.ListType.SINGLE_SELECT
+	}
+})
+
+/**
+ * Build a template-button reply message — sent when
+ * the user taps one of the template buttons.
+ */
+export const generateTemplateButtonReplyMessage = (
+	selectedId: string,
+	selectedDisplayText: string,
+	index: number = 0
+): WAMessageContent => ({
+	templateButtonReplyMessage: {
+		selectedId,
+		selectedDisplayText,
+		index
+	}
+})
