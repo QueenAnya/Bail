@@ -30,8 +30,12 @@ const extractPnFromMessages = (messages: proto.IHistorySyncMsg[]): string | unde
 	return undefined
 }
 
-export const downloadHistory = async (msg: proto.Message.IHistorySyncNotification, options: RequestInit) => {
-	const stream = await downloadContentFromMessage(msg, 'md-msg-hist', { options })
+export const downloadHistory = async (
+	msg: proto.Message.IHistorySyncNotification,
+	options: RequestInit,
+	host?: string
+) => {
+	const stream = await downloadContentFromMessage(msg, 'md-msg-hist', { options, host })
 	// Pipe decrypted stream directly through zlib inflate
 	// This avoids allocating an intermediate buffer for the compressed data
 	const inflater = createInflate()
@@ -135,21 +139,21 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 		lidPnMappings,
 		pastParticipants: item.pastParticipants,
 		syncType: item.syncType,
-		progress: item.progress,
-		chunkOrder: item.chunkOrder ?? undefined
+		progress: item.progress
 	}
 }
 
 export const downloadAndProcessHistorySyncNotification = async (
 	msg: proto.Message.IHistorySyncNotification,
 	options: RequestInit,
-	logger?: ILogger
+	logger?: ILogger,
+	host?: string
 ) => {
 	let historyMsg: proto.HistorySync
 	if (msg.initialHistBootstrapInlinePayload) {
 		historyMsg = proto.HistorySync.decode(await inflatePromise(msg.initialHistBootstrapInlinePayload))
 	} else {
-		historyMsg = await downloadHistory(msg, options)
+		historyMsg = await downloadHistory(msg, options, host)
 	}
 
 	return processHistoryMessage(historyMsg, logger)

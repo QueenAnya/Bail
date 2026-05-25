@@ -16,3 +16,8 @@ export default makeWASocket
 export * from './addons/index.js'
 export { useSingleFileAuthState } from './Utils/use-single-file-auth-state.js'
 export { makeInMemoryStore, waChatKey, waMessageID } from './Utils/make-in-memory-store.js'
+export { makeLockManager } from './Utils/lock-manager.js'
+export { useSqliteAuthState } from './Utils/use-sqlite-auth-state.js'
+export { migrateAuthState } from './Utils/migrate-auth-state.js'
+export { runDetached } from './Utils/generics.js'
+export { AuthFileCorruptError } from './Utils/use-multi-file-auth-state.js'

@@ -1,4 +1,5 @@
 import { Boom } from '@hapi/boom'
+import type Long from 'long'
 import { createHash, randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 const baileysVersion = [2, 3000, 1035194821]
@@ -492,4 +493,22 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
+}
+
+/**
+ * Schedule async work to run detached (fire-and-forget) but always log rejections.
+ * Replaces ad-hoc `void (async () => {...})()` patterns that silently swallowed errors.
+ */
+export function runDetached(
+	work: () => Promise<unknown>,
+	logger: { warn?: (obj: unknown, msg?: string) => void; error?: (obj: unknown, msg?: string) => void },
+	context: Record<string, unknown> = {}
+): void {
+	// Defer entire body (including sync prologue) to microtask queue.
+	// This also folds synchronous throws into the same rejection-handling path.
+	Promise.resolve()
+		.then(work)
+		.catch((err: unknown) => {
+			logger.error?.({ ...context, err }, 'runDetached: detached work rejected')
+		})
 }

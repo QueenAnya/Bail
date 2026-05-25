@@ -1,9 +1,16 @@
+import { makeMutex } from '../Utils/make-mutex'
 import { getPlatformDisplayName, getPlatformId, isAndroidBrowser, isKaiosBrowser } from '../Utils/browser-utils'
+import { makeMutex } from '../Utils/make-mutex'
 import { Boom } from '@hapi/boom'
+import { makeMutex } from '../Utils/make-mutex'
 import { randomBytes } from 'crypto'
+import { makeMutex } from '../Utils/make-mutex'
 import { URL } from 'url'
+import { makeMutex } from '../Utils/make-mutex'
 import { promisify } from 'util'
+import { makeMutex } from '../Utils/make-mutex'
 import { proto } from '../../WAProto/index.js'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	DEF_CALLBACK_PREFIX,
 	DEF_TAG_PREFIX,
@@ -14,6 +21,7 @@ import {
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	type LIDMapping,
 	type NewChatMessageCapInfo,
@@ -22,7 +30,9 @@ import {
 	type ReachoutTimelockState,
 	type SocketConfig
 } from '../Types'
+import { makeMutex } from '../Utils/make-mutex'
 import { DisconnectReason, XWAPaths } from '../Types'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,
@@ -45,6 +55,7 @@ import {
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -58,9 +69,13 @@ import {
 	jidEncode,
 	S_WHATSAPP_NET
 } from '../WABinary'
+import { makeMutex } from '../Utils/make-mutex'
 import { BinaryInfo } from '../WAM/BinaryInfo.js'
+import { makeMutex } from '../Utils/make-mutex'
 import { USyncQuery, USyncUser } from '../WAUSync/'
+import { makeMutex } from '../Utils/make-mutex'
 import { WebSocketClient } from './Client'
+import { makeMutex } from '../Utils/make-mutex'
 import { executeWMexQuery } from './mex.js'
 
 /**
@@ -165,12 +180,36 @@ export const makeSocket = (config: SocketConfig) => {
 	 * @param msgId the message tag to await
 	 * @param timeoutMs timeout after which the promise will reject
 	 */
-	const waitForMessage = async <T>(msgId: string, timeoutMs = defaultQueryTimeoutMs) => {
+	const inFlightQueryTags = new Set<string>()
+
+	/**
+	 * Wait for a message with a certain tag to be received.
+	 * Stage 8 (M9): throws QueryTimeoutError on timeout; warns on duplicate stanza.
+	 */
+	const waitForMessage = async <T>(msgId: string, timeoutMs = defaultQueryTimeoutMs): Promise<T> => {
+		if (inFlightQueryTags.has(msgId)) {
+			// Should not happen under normal use — throw so caller learns immediately
+			// and can choose a different tag; callers can branch on statusCode 409.
+			throw new Boom('duplicate in-flight query tag', {
+				statusCode: 409,
+				data: { msgId }
+			})
+		}
+
+		inFlightQueryTags.add(msgId)
+
 		let onRecv: ((data: T) => void) | undefined
 		let onErr: ((err: Error) => void) | undefined
+		let resolvedOnce = false
 		try {
 			const result = await promiseTimeout<T>(timeoutMs, (resolve, reject) => {
 				onRecv = data => {
+					if (resolvedOnce) {
+						// Server emitted a second stanza for the same tag — drop it.
+						logger?.warn?.({ msgId }, 'duplicate response for in-flight query tag (later response dropped)')
+						return
+					}
+					resolvedOnce = true
 					resolve(data)
 				}
 
@@ -191,14 +230,16 @@ export const makeSocket = (config: SocketConfig) => {
 			})
 			return result
 		} catch (error) {
-			// Catch timeout and return undefined instead of throwing
 			if (error instanceof Boom && error.output?.statusCode === DisconnectReason.timedOut) {
 				logger?.warn?.({ msgId }, 'timed out waiting for message')
-				return undefined
+				throw new Boom(`Timed out waiting for response to query ${msgId}`, {
+					statusCode: DisconnectReason.timedOut,
+					data: { msgId, timeoutMs }
+				})
 			}
-
 			throw error
 		} finally {
+			inFlightQueryTags.delete(msgId)
 			if (onRecv) ws.off(`TAG:${msgId}`, onRecv)
 			if (onErr) {
 				ws.off('close', onErr)

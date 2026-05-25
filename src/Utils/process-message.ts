@@ -1,3 +1,4 @@
+import { makeLockManager } from './lock-manager.js'
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import type {
@@ -116,6 +117,8 @@ async function storeTcTokensFromHistorySync(
 }
 
 /** Cleans a received message to further processing */
+const processedMessageLocks = makeLockManager()
+
 export const cleanMessage = (message: WAMessage, meId: string, meLid: string) => {
 	// ensure remoteJid and participant doesn't have device or agent in it
 	if (isHostedPnUser(message.key.remoteJid!) || isHostedLidUser(message.key.remoteJid!)) {

@@ -39,7 +39,7 @@ import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
 import {
-	buildMergedTcTokenIndexWrite,
+	commitTcTokenWithIndex,
 	isTcTokenExpired,
 	resolveIssuanceJid,
 	resolveTcTokenJid,
@@ -1505,9 +1505,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					additionalNodes
 				})
 				if (config.emitOwnEvents) {
-					process.nextTick(async () => {
-						await messageMutex.mutex(() => upsertMessage(fullMsg, 'append'))
-					})
+					process.nextTick(() =>
+						runDetached(
+							() => messageMutex.mutex(fullMsg.key.remoteJid ?? '__no-chat__', () => upsertMessage(fullMsg, 'append')),
+							logger,
+							{ op: 'emitOwnEvents.upsertMessage', msgId: fullMsg.key.id }
+						)
+					)
 				}
 
 				return fullMsg

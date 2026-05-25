@@ -55,11 +55,11 @@ import {
 	xmppPreKey,
 	xmppSignedPreKey
 } from '../Utils'
-import { makeMutex } from '../Utils/make-mutex'
+import { makeLockManager } from '../Utils/lock-manager'
 import { makeOfflineNodeProcessor, type MessageType } from '../Utils/offline-node-processor'
 import { buildAckStanza } from '../Utils/stanza-ack'
 import {
-	buildMergedTcTokenIndexWrite,
+	commitTcTokenWithIndex,
 	isTcTokenExpired,
 	readTcTokenIndex,
 	resolveIssuanceJid,
@@ -142,8 +142,22 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
 
-	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
-	const retryMutex = makeMutex()
+	const lidMigrationLocks = makeLockManager()
+	const retryLocks = makeLockManager()
+	const placeholderResendLocks = makeLockManager()
+	const retryLockRef = (msgId: string, participant: string) => ({
+		namespace: 'msg-retry',
+		id: `${msgId}:${participant}`
+	})
+
+	const incrementRetryAndGet = async (msgId: string, participant: string): Promise<number> => {
+		return retryLocks.withLock(retryLockRef(msgId, participant), async () => {
+			const key = `${msgId}:${participant}`
+			const next = ((await msgRetryCache.get<number>(key)) ?? 0) + 1
+			await msgRetryCache.set(key, next)
+			return next
+		})
+	}
 
 	const msgRetryCache =
 		config.msgRetryCounterCache ||
