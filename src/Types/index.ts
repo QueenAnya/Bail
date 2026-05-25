@@ -10,7 +10,6 @@ export * from './Product'
 export * from './Call'
 export * from './Signal'
 export * from './Mex'
-export * from './MexUpdates'
 
 import type { AuthenticationState } from './Auth'
 import type { SocketConfig } from './Socket'
@@ -22,16 +21,11 @@ export type BrowsersMap = {
 	macOS(browser: string): [string, string, string]
 	baileys(browser: string): [string, string, string]
 	windows(browser: string): [string, string, string]
-	linux(browser: string): [string, string, string]
-	iOS(browser: string): [string, string, string]
-	android(browser: string): [string, string, string]
-	/** Android companion device. apiLevel is the Android API level (e.g. '14') */
-	androidCompanion(apiLevel: string): [string, string, string]
-	kaiOS(browser: string): [string, string, string]
-	chromeOS(browser: string): [string, string, string]
-	/** Fully custom browser tuple */
-	custom(platform: string, browser: string, version: string): [string, string, string]
 	appropriate(browser: string): [string, string, string]
+	/** Android companion device preset — apiLevel is the Android API level, e.g. '14' */
+	android(apiLevel: string): [string, string, string]
+	/** KaiOS companion device preset — kaiosVersion is the KaiOS version, e.g. '2.5' */
+	kaiOS(kaiosVersion: string): [string, string, string]
 }
 
 export enum DisconnectReason {
@@ -75,3 +69,10 @@ export type WABusinessProfile = {
 }
 
 export type CurveKeyPair = { private: Uint8Array; public: Uint8Array }
+import { proto } from '../../WAProto/index.js'
+
+// Interactive message type re-exports (convenience)
+export const ButtonHeaderType = proto.Message.ButtonsMessage.HeaderType
+export const ButtonType = proto.Message.ButtonsMessage.Button.Type
+export const CarouselCardType = proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType
+export const ListType = proto.Message.ListMessage.ListType

@@ -6,7 +6,7 @@ import type { Chat, Contact, LIDMapping, WAMessage } from '../Types'
 import { WAMessageStubType } from '../Types'
 import { isHostedLidUser, isHostedPnUser, isLidUser, isPnUser } from '../WABinary'
 import { toNumber } from './generics'
-import type { ILogger } from './logger'
+import type { ILogger } from './logger.js'
 import { normalizeMessageContent } from './messages'
 import { downloadContentFromMessage } from './messages-media'
 
@@ -135,7 +135,8 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 		lidPnMappings,
 		pastParticipants: item.pastParticipants,
 		syncType: item.syncType,
-		progress: item.progress
+		progress: item.progress,
+		chunkOrder: item.chunkOrder ?? undefined
 	}
 }
 

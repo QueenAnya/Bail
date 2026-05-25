@@ -1,3 +1,4 @@
+import { getPlatformDisplayName, getPlatformId, isAndroidBrowser, isKaiosBrowser } from '../Utils/browser-utils'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { URL } from 'url'
@@ -8,18 +9,25 @@ import {
 	DEF_TAG_PREFIX,
 	INITIAL_PREKEY_COUNT,
 	MIN_PREKEY_COUNT,
-	MIN_UPLOAD_INTERVAL,
 	NOISE_WA_HEADER,
 	PROCESSABLE_HISTORY_TYPES,
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
-import type { LIDMapping, NewChatMessageCapInfo, ReachoutTimelockState, SocketConfig } from '../Types'
-import { DisconnectReason, QueryIds, ReachoutTimelockEnforcementType, XWAPaths } from '../Types'
+import {
+	type LIDMapping,
+	type NewChatMessageCapInfo,
+	QueryIds,
+	ReachoutTimelockEnforcementType,
+	type ReachoutTimelockState,
+	type SocketConfig
+} from '../Types'
+import { DisconnectReason, XWAPaths } from '../Types'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,
 	bindWaitForConnectionUpdate,
+	buildPairingQRData,
 	bytesToCrockford,
 	configureSuccessfulPairing,
 	Curve,
@@ -28,18 +36,15 @@ import {
 	generateMdTagPrefix,
 	generateRegistrationNode,
 	getCodeFromWSError,
+	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
 	makeEventBuffer,
 	makeNoiseHandler,
-	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
-import { isAndroidBrowser, getPlatformDisplayName, getPlatformId } from '../Utils/browser-utils'
-import { buildPairingQRData, getCompanionPlatformId } from '../Utils/companion-reg-client-utils'
-
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -53,10 +58,10 @@ import {
 	jidEncode,
 	S_WHATSAPP_NET
 } from '../WABinary'
-import { BinaryInfo } from '../WAM/BinaryInfo'
+import { BinaryInfo } from '../WAM/BinaryInfo.js'
 import { USyncQuery, USyncUser } from '../WAUSync/'
-import { executeWMexQuery } from './mex'
 import { WebSocketClient } from './Client'
+import { executeWMexQuery } from './mex.js'
 
 /**
  * Connects to WA servers and performs:
@@ -87,14 +92,12 @@ export const makeSocket = (config: SocketConfig) => {
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
 
-	/**
 	if (printQRInTerminal) {
 		logger.warn(
 			{},
 			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
 		)
 	}
-	*/
 
 	const syncDisabled =
 		PROCESSABLE_HISTORY_TYPES.map(syncType => config.shouldSyncHistoryMessage({ syncType })).filter(x => x === false)
@@ -323,9 +326,7 @@ export const makeSocket = (config: SocketConfig) => {
 		let contactEnabled = false
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				// LIDs are queried via separate LID protocol query
 				lidQuery.withUser(new USyncUser().withLid(jid))
-				continue
 			} else {
 				if (!contactEnabled) {
 					contactEnabled = true
@@ -401,11 +402,6 @@ export const makeSocket = (config: SocketConfig) => {
 	let closed = false
 
 	const socketEndHandlers: Array<(error: Error | undefined) => void | Promise<void>> = []
-
-	let pairingReady = false
-	let pairingInProgress = false
-	let pendingPairingResolve: (() => void) | undefined
-	let pendingPairingReject: ((err: Error) => void) | undefined
 
 	/** log & process any unexpected errors */
 	const onUnexpectedError = (err: Error | Boom, msg: string) => {
@@ -499,26 +495,16 @@ export const makeSocket = (config: SocketConfig) => {
 
 	// WAWeb has no time throttle here; the server drives uploads via PreKeyLow notifications.
 	let uploadPreKeysPromise: Promise<void> | null = null
-	let lastUploadTime = 0
 
 	/** generates and uploads a set of pre-keys to the server */
-	const uploadPreKeys = async (count = MIN_PREKEY_COUNT, retryCount = 0) => {
-		// Check minimum interval (except for retries)
-		if (retryCount === 0) {
-			const timeSinceLastUpload = Date.now() - lastUploadTime
-			if (timeSinceLastUpload < MIN_UPLOAD_INTERVAL) {
-				logger.debug(`Skipping upload, only ${timeSinceLastUpload}ms since last upload`)
-				return
-			}
-		}
-
+	const uploadPreKeys = async (count = MIN_PREKEY_COUNT) => {
 		if (uploadPreKeysPromise) {
 			logger.debug('Pre-key upload already in progress, waiting for completion')
 			await uploadPreKeysPromise
 			return
 		}
 
-		const uploadLogic = async (retryCount: number = 0): Promise<void> => {
+		const uploadLogic = async (retryCount: number): Promise<void> => {
 			logger.info({ count, retryCount }, 'uploading pre-keys')
 
 			// Generate and save pre-keys atomically (prevents ID collisions on retry)
@@ -534,7 +520,6 @@ export const makeSocket = (config: SocketConfig) => {
 			try {
 				await query(node)
 				logger.info({ count }, 'uploaded pre-keys successfully')
-				lastUploadTime = Date.now()
 			} catch (uploadError) {
 				logger.error({ uploadError: (uploadError as Error).toString(), count }, 'Failed to upload pre-keys to server')
 
@@ -660,13 +645,6 @@ export const makeSocket = (config: SocketConfig) => {
 		clearInterval(keepAliveReq)
 		clearTimeout(qrTimer)
 
-		ws.removeAllListeners('close')
-		ws.removeAllListeners('open')
-		ws.removeAllListeners('message')
-
-		signalRepository.close?.()
-
-		// If a pairing is pending, reject it so the caller doesn't hang indefinitely
 		if (pendingPairingReject) {
 			pendingPairingReject(
 				error ||
@@ -680,6 +658,12 @@ export const makeSocket = (config: SocketConfig) => {
 
 		pairingReady = false
 		pairingInProgress = false
+
+		ws.removeAllListeners('close')
+		ws.removeAllListeners('open')
+		ws.removeAllListeners('message')
+
+		signalRepository.close?.()
 
 		if (!ws.isClosed && !ws.isClosing) {
 			try {
@@ -800,6 +784,11 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
+	let pairingReady = false
+	let pairingInProgress = false
+	let pendingPairingResolve: (() => void) | undefined
+	let pendingPairingReject: ((err: Error) => void) | undefined
+
 	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
 
@@ -810,15 +799,25 @@ export const makeSocket = (config: SocketConfig) => {
 		authState.creds.pairingCode = pairingCode
 
 		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
-		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the
-		// pairing IQ. DESKTOP (7) and other non-browser types are rejected with 400.
-		// companion_platform_display must use a canonical OS name; custom brand names belong
+		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the pairing
+		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
+		// companion_platform_display must also be a canonical OS name; custom brand names belong
 		// in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked Devices.
+		// Pair code companion_platform_id must be Chrome (1) when using the Android
+		// browser preset. ANDROID_PHONE (16) causes silent timeout, UWP (21) causes
+		// rejection. Only Chrome (1–6) works for pair code via the web protocol.
+		// The device still appears as "Android" in Linked Devices because
+		// DeviceProps.platformType=ANDROID_PHONE is set in the registration node.
+		const isAndroid = isAndroidBrowser(browser) || isKaiosBrowser(browser)
 		const rawPlatformId = parseInt(getPlatformId(browser[1]))
-		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
-		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
+		const isBrowserPlatform = !isAndroid && rawPlatformId >= 1 && rawPlatformId <= 6
+		const pairingPlatformId = isAndroid ? getPlatformId('Chrome') : (isBrowserPlatform ? rawPlatformId : 1).toString()
+		const pairingPlatformName = isAndroid ? 'Chrome' : isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
+		const pairingPlatformHost = isAndroid
+			? 'Mac OS'
+			: browser[0] === 'Mac OS' || browser[0] === 'Windows'
+				? browser[0]
+				: 'Mac OS'
 
 		await query({
 			tag: 'iq',
@@ -869,8 +868,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 		authState.creds.me = { id: jid, name: '~' }
 		ev.emit('creds.update', authState.creds)
-
-		return authState.creds.pairingCode
+		return pairingCode
 	}
 
 	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {

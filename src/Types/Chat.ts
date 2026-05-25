@@ -1,6 +1,6 @@
 import type { proto } from '../../WAProto/index.js'
 import type { AccountSettings } from './Auth'
-import type { QuickReplyAction } from './Bussines'
+import type { QuickReplyAction } from './Bussines.js'
 import type { BufferedEventData } from './Events'
 import type { LabelActionBody } from './Label'
 import type { ChatLabelAssociationActionBody } from './LabelAssociation'
@@ -36,6 +36,7 @@ export type WAPatchName = (typeof ALL_WA_PATCH_NAMES)[number]
 export interface PresenceData {
 	lastKnownPresence: WAPresence
 	lastSeen?: number
+	groupOnlineCount?: number
 }
 
 export type BotListInfo = {
