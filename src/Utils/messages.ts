@@ -31,9 +31,8 @@ import type {
 import { WAMessageStatus, WAProto } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
-import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
+import { generateKeyUuid, generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
 import type { ILogger } from './logger'
-import {
 	downloadContentFromMessage,
 	encryptedStream,
 	generateThumbnail,
@@ -461,7 +460,6 @@ export const generateWAMessageContent = async (
 		}
 	} else if (hasNonNullishProperty(message, 'forward')) {
 		m = generateForwardMessageContent(message.forward, message.force)
-	} else if (hasNonNullishProperty(message, 'disappearingMessagesInChat')) {
 		const exp =
 			typeof message.disappearingMessagesInChat === 'boolean'
 				? message.disappearingMessagesInChat
@@ -469,7 +467,6 @@ export const generateWAMessageContent = async (
 					: 0
 				: message.disappearingMessagesInChat
 		m = prepareDisappearingMessageSettingContent(exp)
-	} else if (hasNonNullishProperty(message, 'groupInvite')) {
 		m.groupInviteMessage = {}
 		m.groupInviteMessage.inviteCode = message.groupInvite.inviteCode
 		m.groupInviteMessage.inviteExpiration = message.groupInvite.inviteExpiration
@@ -498,7 +495,6 @@ export const generateWAMessageContent = async (
 		m.pinInChatMessage.senderTimestampMs = Date.now()
 
 		m.messageContextInfo.messageAddOnDurationInSecs = message.type === 1 ? message.time || 86400 : 0
-	} else if (hasNonNullishProperty(message, 'buttonReply')) {
 		switch (message.type) {
 			case 'template':
 				m.templateButtonReplyMessage = {
@@ -515,7 +511,6 @@ export const generateWAMessageContent = async (
 				}
 				break
 		}
-	} else if (hasOptionalProperty(message, 'ptv') && message.ptv) {
 		const { videoMessage } = await prepareWAMessageMedia({ video: message.video }, options)
 		m.ptvMessage = videoMessage
 	} else if (hasNonNullishProperty(message, 'product')) {
@@ -527,7 +522,6 @@ export const generateWAMessageContent = async (
 				productImage: imageMessage
 			}
 		})
-	} else if (hasNonNullishProperty(message, 'listReply')) {
 		m.listResponseMessage = { ...message.listReply }
 	} else if (hasNonNullishProperty(message, 'event')) {
 		m.eventMessage = {}
@@ -615,9 +609,6 @@ export const generateWAMessageContent = async (
 		m = await prepareWAMessageMedia(message, options)
 	}
 
-	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
-		m = { viewOnceMessage: { message: m } }
-	}
 
 	if (
 		(hasOptionalProperty(message, 'mentions') && message.mentions?.length) ||
@@ -680,6 +671,7 @@ export const generateWAMessageContent = async (
 		}
 	}
 
+
 	// ── PTV (picture-in-picture) video message ───────────────────────────────
 	if (hasOptionalProperty(message, 'ptv') && (message as any).ptv) {
 		const { videoMessage } = await prepareWAMessageMedia({ video: (message as any).video }, options)
@@ -692,16 +684,16 @@ export const generateWAMessageContent = async (
 		switch (br.type ?? 'plain') {
 			case 'template':
 				m.templateButtonReplyMessage = {
-					selectedId: br.id,
+					selectedId:          br.id,
 					selectedDisplayText: br.displayText,
-					index: br.index ?? 0
+					index:               br.index ?? 0
 				}
 				break
 			default:
 				m.buttonsResponseMessage = {
-					selectedButtonId: br.id,
+					selectedButtonId:    br.id,
 					selectedDisplayText: br.displayText,
-					type: proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT
+					type:                proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT
 				}
 		}
 	}
@@ -710,10 +702,10 @@ export const generateWAMessageContent = async (
 	if (hasNonNullishProperty(message, 'listReply')) {
 		const lr = (message as any).listReply
 		m.listResponseMessage = {
-			description: lr.description,
-			listType: proto.Message.ListResponseMessage.ListType.SINGLE_SELECT,
-			singleSelectReply: { selectedRowId: lr.id },
-			title: lr.title
+			description:         lr.description,
+			listType:            proto.Message.ListResponseMessage.ListType.SINGLE_SELECT,
+			singleSelectReply:   { selectedRowId: lr.id },
+			title:               lr.title
 		}
 	}
 
@@ -721,25 +713,20 @@ export const generateWAMessageContent = async (
 	if (hasNonNullishProperty(message, 'paymentInviteServiceType')) {
 		m.paymentInviteMessage = {
 			expiryTimestamp: Date.now(),
-			serviceType: (message as any).paymentInviteServiceType
+			serviceType:     (message as any).paymentInviteServiceType
 		}
 	}
 
 	// ── Disappearing messages setting ─────────────────────────────────────────
 	if (hasNonNullishProperty(message, 'disappearingMessagesInChat')) {
 		const raw = (message as any).disappearingMessagesInChat
-		const exp = typeof raw === 'boolean' ? (raw ? WA_DEFAULT_EPHEMERAL : 0) : raw
+		const exp = typeof raw === 'boolean'
+			? (raw ? WA_DEFAULT_EPHEMERAL : 0)
+			: raw
 		m = prepareDisappearingMessageSettingContent(exp)
 	}
 
-	// ── ViewOnce / ViewOnceV2 / ViewOnceV2Extension wrappers ──────────────────
-	if (hasOptionalProperty(message, 'viewOnce') && (message as any).viewOnce) {
-		m = { viewOnceMessage: { message: m } }
-	} else if (hasOptionalProperty(message, 'viewOnceV2') && (message as any).viewOnceV2) {
-		m = { viewOnceMessageV2: { message: m } }
-	} else if (hasOptionalProperty(message, 'viewOnceV2Extension') && (message as any).viewOnceV2Extension) {
-		m = { viewOnceMessageV2Extension: { message: m } }
-	}
+
 
 	// ── interactiveAsTemplate — wrap interactiveMessage into templateMessage ──
 	if (hasOptionalProperty(message, 'interactiveAsTemplate') && (message as any).interactiveAsTemplate) {
@@ -769,6 +756,7 @@ export const generateWAMessageContent = async (
 		}
 	}
 
+
 	// ── Order message ────────────────────────────────────────────────────────
 	if (hasNonNullishProperty(message, 'orderText')) {
 		if (!Buffer.isBuffer((message as any).thumbnail)) {
@@ -777,16 +765,16 @@ export const generateWAMessageContent = async (
 		const orderMsg = { ...(message as any) }
 		delete orderMsg.orderText
 		m.orderMessage = {
-			itemCount: 1,
-			messageVersion: 1,
-			orderTitle: 'Order',
-			status: proto.Message.OrderMessage.OrderStatus.INQUIRY,
-			surface: proto.Message.OrderMessage.OrderSurface.CATALOG,
-			token: generateMessageIDV2(authState?.creds?.me?.id),
-			totalAmount1000: 1000,
+			itemCount:         1,
+			messageVersion:    1,
+			orderTitle:        'Order',
+			status:            proto.Message.OrderMessage.OrderStatus.INQUIRY,
+			surface:           proto.Message.OrderMessage.OrderSurface.CATALOG,
+			token:             generateMessageIDV2(authState?.creds?.me?.id),
+			totalAmount1000:   1000,
 			totalCurrencyCode: 'USD',
 			...orderMsg,
-			message: (message as any).orderText
+			message:           (message as any).orderText
 		}
 	}
 
@@ -799,13 +787,13 @@ export const generateWAMessageContent = async (
 		}
 		m = {
 			requestPaymentMessage: {
-				amount: { currencyCode: 'USD', offset: 1000, value: 1000 },
-				amount1000: 1000,
+				amount:             { currencyCode: 'USD', offset: 1000, value: 1000 },
+				amount1000:         1000,
 				currencyCodeIso4217: 'USD',
-				expiryTimestamp: Date.now(),
-				noteMessage: m,
-				requestFrom: (message as any).requestPaymentFrom,
-				...rm
+				expiryTimestamp:    Date.now(),
+				noteMessage:        m,
+				requestFrom:        (message as any).requestPaymentFrom,
+				...rm,
 			}
 		}
 	}
@@ -814,36 +802,34 @@ export const generateWAMessageContent = async (
 	if (hasNonNullishProperty(message, 'invoiceNote')) {
 		const attachment = (m as any).imageMessage || (m as any).documentMessage
 		const mkeys = Object.keys(m)
-		const type = mkeys[0]?.replace('Message', '').toUpperCase()
+		const type  = mkeys[0]?.replace('Message', '').toUpperCase()
 		if (!attachment || !type) throw new Boom('Invoice needs image or document', { statusCode: 400 })
 		const { directPath, fileEncSha256, fileSha256, jpegThumbnail, mediaKey, mediaKeyTimestamp, mimetype } = attachment
-		m = {
-			invoiceMessage: {
-				attachmentType: proto.Message.InvoiceMessage.AttachmentType[type === 'DOCUMENT' ? 'PDF' : 'IMAGE'],
-				note: (message as any).invoiceNote,
-				attachmentDirectPath: directPath,
-				attachmentFileEncSha256: fileEncSha256,
-				attachmentFileSha256: fileSha256,
-				attachmentJpegThumbnail: jpegThumbnail,
-				attachmentMediaKey: mediaKey,
-				attachmentMediaKeyTimestamp: mediaKeyTimestamp,
-				attachmentMimetype: mimetype,
-				token: generateMessageIDV2(authState?.creds?.me?.id)
-			}
-		}
+		m = { invoiceMessage: {
+			attachmentType:              proto.Message.InvoiceMessage.AttachmentType[type === 'DOCUMENT' ? 'PDF' : 'IMAGE'],
+			note:                        (message as any).invoiceNote,
+			attachmentDirectPath:        directPath,
+			attachmentFileEncSha256:     fileEncSha256,
+			attachmentFileSha256:        fileSha256,
+			attachmentJpegThumbnail:     jpegThumbnail,
+			attachmentMediaKey:          mediaKey,
+			attachmentMediaKeyTimestamp: mediaKeyTimestamp,
+			attachmentMimetype:          mimetype,
+			token:                       generateMessageIDV2(authState?.creds?.me?.id),
+		}}
 	}
 
 	// ── Admin invite message ─────────────────────────────────────────────────
 	if (hasNonNullishProperty(message, 'adminInvite')) {
 		const ai = (message as any).adminInvite
 		m.groupInviteMessage = {
-			inviteCode: ai.inviteCode,
+			inviteCode:       ai.inviteCode,
 			inviteExpiration: ai.inviteExpiration,
-			groupJid: ai.jid,
-			groupName: ai.subject,
-			caption: ai.text ?? ai.caption,
-			jpegThumbnail: ai.thumbnail,
-			groupType: proto.Message.GroupInviteMessage.GroupType.DEFAULT
+			groupJid:         ai.jid,
+			groupName:        ai.subject,
+			caption:          ai.text ?? ai.caption,
+			jpegThumbnail:    ai.thumbnail,
+			groupType:        proto.Message.GroupInviteMessage.GroupType.DEFAULT,
 		}
 	}
 
@@ -851,12 +837,12 @@ export const generateWAMessageContent = async (
 	if (hasNonNullishProperty(message, 'groupInvite')) {
 		const gi = (message as any).groupInvite
 		m.groupInviteMessage = {
-			inviteCode: gi.inviteCode,
+			inviteCode:       gi.inviteCode,
 			inviteExpiration: gi.inviteExpiration,
-			groupJid: gi.jid,
-			groupName: gi.subject,
-			caption: gi.text ?? gi.caption,
-			jpegThumbnail: gi.thumbnail
+			groupJid:         gi.jid,
+			groupName:        gi.subject,
+			caption:          gi.text ?? gi.caption,
+			jpegThumbnail:    gi.thumbnail,
 		}
 	}
 
@@ -864,8 +850,8 @@ export const generateWAMessageContent = async (
 	if (hasNonNullishProperty(message, 'clearChat')) {
 		m = {
 			protocolMessage: {
-				type: proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION,
-				clearChatMessage: { messageTimestamp: Date.now() }
+				type:                             proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION,
+				clearChatMessage:                 { messageTimestamp: Date.now() },
 			}
 		}
 	}
@@ -896,8 +882,8 @@ export const generateWAMessageContent = async (
 	if (hasOptionalProperty(message, 'shopSurface') && (message as any).shopSurface !== undefined) {
 		if (m.interactiveMessage) {
 			;(m.interactiveMessage as any).shopStorefrontMessage = {
-				surface: (message as any).shopSurface,
-				id: (message as any).id,
+				surface:        (message as any).shopSurface,
+				id:             (message as any).id,
 				messageVersion: 1
 			}
 		}
@@ -907,19 +893,20 @@ export const generateWAMessageContent = async (
 	if (hasOptionalProperty(message, 'bizJid') && (message as any).bizJid) {
 		if (m.interactiveMessage) {
 			;(m.interactiveMessage as any).collectionMessage = {
-				bizJid: (message as any).bizJid,
-				id: (message as any).id,
+				bizJid:         (message as any).bizJid,
+				id:             (message as any).id,
 				messageVersion: 1
 			}
 		}
 	}
 
+
 	// ── Simplified externalAdReply — no manual contextInfo needed ───────────
 	// Pass { externalAdReply: { title, body, thumbnail, url, mediaType, largeThumbnail } }
 	if (hasOptionalProperty(message, 'externalAdReply') && !!(message as any).externalAdReply) {
-		const msgType = Object.keys(m)[0] as string
-		const msgBody = (m as any)[msgType]
-		const content = (message as any).externalAdReply as Record<string, any>
+		const msgType  = Object.keys(m)[0] as string
+		const msgBody  = (m as any)[msgType]
+		const content  = (message as any).externalAdReply as Record<string, any>
 		if ('thumbnail' in content && !Buffer.isBuffer(content.thumbnail)) {
 			throw new Boom('externalAdReply thumbnail must be a Buffer', { statusCode: 400 })
 		}
@@ -928,14 +915,14 @@ export const generateWAMessageContent = async (
 		}
 		const adReply = {
 			...content,
-			body: content.body,
-			mediaType: content.mediaType ?? 1,
-			mediaUrl: content.url,
+			body:                  content.body,
+			mediaType:             content.mediaType ?? 1,
+			mediaUrl:              content.url,
 			renderLargerThumbnail: content.largeThumbnail,
-			sourceUrl: content.url,
-			thumbnail: content.thumbnail,
-			thumbnailUrl: content.url + '?update=' + Date.now(),
-			title: content.title ?? 'Baileys'
+			sourceUrl:             content.url,
+			thumbnail:             content.thumbnail,
+			thumbnailUrl:          content.url + '?update=' + Date.now(),
+			title:                 content.title ?? 'Baileys',
 		}
 		delete adReply.subTitle
 		delete adReply.largeThumbnail
@@ -988,12 +975,12 @@ export const generateWAMessageContent = async (
 		const botJid = (message as any).aiBotJid ?? '867051314767696@bot'
 		m.messageContextInfo = {
 			...m.messageContextInfo,
-			botMessageSharingInfo: { botJid, botType: 1, botMessageSecret: Buffer.alloc(0) }
+			botMessageSharingInfo: { botJid, botType: 1, botMessageSecret: Buffer.alloc(0) },
 		}
 		m.contextInfo = {
 			...(m.contextInfo ?? {}),
 			forwardedAiBotMessageInfo: { botJid },
-			forwardOrigin: 4
+			forwardOrigin: 4,
 		}
 	}
 
@@ -1070,11 +1057,15 @@ export const generateWAMessageFromContent = (
 
 	message = WAProto.Message.create(message)
 
+	// Resolve uuid: content.uuid → options.uuid → default 'qa3#69' + random (15 chars)
+	const _keyUuid = generateKeyUuid((content as any)?.uuid ?? (options as any)?.uuid)
+
 	const messageJSON = {
 		key: {
 			remoteJid: jid,
 			fromMe: true,
-			id: options?.messageId || generateMessageIDV2()
+			id: options?.messageId || generateMessageIDV2(),
+			uuid: _keyUuid
 		},
 		message: message,
 		messageTimestamp: timestamp,
@@ -1677,3 +1668,4 @@ export async function prepareStickerPackMessage(
 
 	return { stickerPackMessage }
 }
+

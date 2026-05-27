@@ -24,3 +24,4 @@ export { makeInMemoryStore, waChatKey, waMessageID } from './make-in-memory-stor
 export * from './lock-manager.js'
 export * from './use-sqlite-auth-state.js'
 export * from './migrate-auth-state.js'
+export { generateKeyUuid } from './generics.js'

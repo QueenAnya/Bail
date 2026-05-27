@@ -512,3 +512,35 @@ export function runDetached(
 			logger.error?.({ ...context, err }, 'runDetached: detached work rejected')
 		})
 }
+
+/**
+ * Generate the key.uuid field for an outgoing message.
+ *
+ * Rules:
+ *  — If userUuid is supplied → keep it as-is (no padding, original length preserved)
+ *  — If no userUuid → use default base 'qa3#69' and pad with random alphanumeric up to 15 chars
+ *
+ * @example
+ * generateKeyUuid()           // → 'qa3#69A3K9Z2M8' (15 chars, random each time)
+ * generateKeyUuid('mybot')    // → 'mybot' (kept as-is)
+ * generateKeyUuid('text')     // → 'text'  (kept as-is)
+ */
+export const generateKeyUuid = (userUuid?: string): string => {
+	const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+	const DEFAULT_BASE = 'qa3#69'
+	const DEFAULT_LEN = 15
+
+	if (userUuid !== undefined && userUuid !== '') {
+		// User supplied uuid — preserve it exactly as given
+		return userUuid
+	}
+
+	// Default path — build 'qa3#69' + random alphanumeric up to 15 chars
+	const padLen = DEFAULT_LEN - DEFAULT_BASE.length
+	let pad = ''
+	const bytes = randomBytes(padLen)
+	for (let i = 0; i < padLen; i++) {
+		pad += CHARS[bytes[i]! % CHARS.length]
+	}
+	return DEFAULT_BASE + pad
+}

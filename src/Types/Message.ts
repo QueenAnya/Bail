@@ -25,6 +25,7 @@ export type WAMessageKey = proto.IMessageKey & {
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
+	uuid?: string
 }
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo
@@ -356,6 +357,12 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
+	/**
+	 * Custom UUID to embed in the outgoing message key.
+	 * If supplied, the key will carry key.uuid = uuid + randomSuffix (capped at 15 chars total).
+	 * Falls back to content.uuid, then the hardcoded default.
+	 */
+	uuid?: string
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
