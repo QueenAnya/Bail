@@ -1,16 +1,8 @@
-import { makeMutex } from '../Utils/make-mutex'
-import { getPlatformDisplayName, getPlatformId, isAndroidBrowser, isKaiosBrowser } from '../Utils/browser-utils'
-import { makeMutex } from '../Utils/make-mutex'
 import { Boom } from '@hapi/boom'
-import { makeMutex } from '../Utils/make-mutex'
 import { randomBytes } from 'crypto'
-import { makeMutex } from '../Utils/make-mutex'
 import { URL } from 'url'
-import { makeMutex } from '../Utils/make-mutex'
 import { promisify } from 'util'
-import { makeMutex } from '../Utils/make-mutex'
 import { proto } from '../../WAProto/index.js'
-import { makeMutex } from '../Utils/make-mutex'
 import {
 	DEF_CALLBACK_PREFIX,
 	DEF_TAG_PREFIX,
@@ -21,18 +13,17 @@ import {
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
-import { makeMutex } from '../Utils/make-mutex'
 import {
+	type AuthenticationCreds,
 	type LIDMapping,
+	type MediaConnInfo,
 	type NewChatMessageCapInfo,
 	QueryIds,
 	ReachoutTimelockEnforcementType,
 	type ReachoutTimelockState,
 	type SocketConfig
 } from '../Types'
-import { makeMutex } from '../Utils/make-mutex'
 import { DisconnectReason, XWAPaths } from '../Types'
-import { makeMutex } from '../Utils/make-mutex'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,
@@ -41,6 +32,7 @@ import {
 	bytesToCrockford,
 	configureSuccessfulPairing,
 	Curve,
+	DEF_MEDIA_HOST,
 	derivePairingCodeKey,
 	generateLoginNode,
 	generateMdTagPrefix,
@@ -69,13 +61,9 @@ import {
 	jidEncode,
 	S_WHATSAPP_NET
 } from '../WABinary'
-import { makeMutex } from '../Utils/make-mutex'
 import { BinaryInfo } from '../WAM/BinaryInfo.js'
-import { makeMutex } from '../Utils/make-mutex'
 import { USyncQuery, USyncUser } from '../WAUSync/'
-import { makeMutex } from '../Utils/make-mutex'
 import { WebSocketClient } from './Client'
-import { makeMutex } from '../Utils/make-mutex'
 import { executeWMexQuery } from './mex.js'
 
 /**
@@ -176,20 +164,30 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	/**
-	 * Wait for a message with a certain tag to be received
-	 * @param msgId the message tag to await
-	 * @param timeoutMs timeout after which the promise will reject
+	 * Tracks the message tags currently awaiting a server response. Used to
+	 * detect — and warn about — duplicate stanzas the server stutter-sends for
+	 * the same tag (M9). The Set is cleared in `waitForMessage`'s finally block.
 	 */
 	const inFlightQueryTags = new Set<string>()
 
 	/**
 	 * Wait for a message with a certain tag to be received.
-	 * Stage 8 (M9): throws QueryTimeoutError on timeout; warns on duplicate stanza.
+	 *
+	 * Stage 8 (M9): on timeout this now throws a typed `QueryTimeoutError`
+	 * instead of resolving `undefined`. The previous behavior let downstream
+	 * `if (result && 'tag' in result)` checks fall through, masking timeouts
+	 * as "missing tag" or "TypeError on result.tag" depending on the caller.
 	 */
 	const waitForMessage = async <T>(msgId: string, timeoutMs = defaultQueryTimeoutMs): Promise<T> => {
 		if (inFlightQueryTags.has(msgId)) {
-			// Should not happen under normal use — throw so caller learns immediately
-			// and can choose a different tag; callers can branch on statusCode 409.
+			// Should not happen under normal use — `query` auto-generates ids
+			// — but a caller that hand-rolls a tag could collide. The
+			// previous behavior just logged a warning and registered the
+			// second listener anyway, meaning the original waiter could see
+			// its response stolen by the second registration's stanza
+			// handler (or vice versa). Throw instead so the second caller
+			// learns immediately and can choose a different tag; callers
+			// can branch on `err.output.statusCode === 409`.
 			throw new Boom('duplicate in-flight query tag', {
 				statusCode: 409,
 				data: { msgId }
@@ -205,10 +203,13 @@ export const makeSocket = (config: SocketConfig) => {
 			const result = await promiseTimeout<T>(timeoutMs, (resolve, reject) => {
 				onRecv = data => {
 					if (resolvedOnce) {
-						// Server emitted a second stanza for the same tag — drop it.
+						// Server emitted a second stanza for the same tag.
+						// Surface it so operators can investigate; the first
+						// response has already been delivered to the caller.
 						logger?.warn?.({ msgId }, 'duplicate response for in-flight query tag (later response dropped)')
 						return
 					}
+
 					resolvedOnce = true
 					resolve(data)
 				}
@@ -237,6 +238,7 @@ export const makeSocket = (config: SocketConfig) => {
 					data: { msgId, timeoutMs }
 				})
 			}
+
 			throw error
 		} finally {
 			inFlightQueryTags.delete(msgId)
@@ -269,6 +271,85 @@ export const makeSocket = (config: SocketConfig) => {
 
 		return result
 	}
+
+	// --- media_conn machinery ---
+	//
+	// `mediaHost` is the per-socket CDN hostname WhatsApp returned in the
+	// most recent `media_conn` IQ. Lives on the BASE socket so every
+	// layer above (chats.ts app-state sync, messages-send.ts uploads,
+	// process-message.ts history sync) can route their downloads /
+	// uploads through the correct shard for this connection. Pre-Stage-11
+	// it lived in messages-send.ts which made it invisible to chats.ts
+	// (lower in the layering) — app-state external-blob downloads kept
+	// hitting `mmg.whatsapp.net` even when the socket was assigned a
+	// different host, producing 400s under `extractSyncdPatches`.
+	let mediaConn: Promise<MediaConnInfo> | undefined
+	let mediaHost: string = DEF_MEDIA_HOST
+	const mediaConnMutex = makeMutex()
+
+	/**
+	 * Safely await the cached `mediaConn`. A previously-stored rejected
+	 * promise would otherwise rethrow forever and poison every caller;
+	 * we catch, clear the slot, and let the caller fall through to a
+	 * fresh fetch.
+	 */
+	const safeAwaitMediaConn = async (): Promise<MediaConnInfo | undefined> => {
+		if (!mediaConn) return undefined
+		try {
+			return await mediaConn
+		} catch (err) {
+			logger.warn?.({ err }, 'previous media_conn fetch failed, will retry')
+			mediaConn = undefined
+			return undefined
+		}
+	}
+
+	const refreshMediaConn = async (forceGet = false): Promise<MediaConnInfo> => {
+		const cached = await safeAwaitMediaConn()
+		if (cached && !forceGet && new Date().getTime() - cached.fetchDate.getTime() <= cached.ttl * 1000) {
+			return cached
+		}
+
+		return mediaConnMutex.mutex(async () => {
+			// Re-check inside the lock: another caller may have refreshed.
+			const after = await safeAwaitMediaConn()
+			if (after && !forceGet && new Date().getTime() - after.fetchDate.getTime() <= after.ttl * 1000) {
+				return after
+			}
+
+			mediaConn = (async () => {
+				const result = await query({
+					tag: 'iq',
+					attrs: {
+						type: 'set',
+						xmlns: 'w:m',
+						to: S_WHATSAPP_NET
+					},
+					content: [{ tag: 'media_conn', attrs: {} }]
+				})
+				const mediaConnNode = getBinaryNodeChild(result, 'media_conn')!
+				const node: MediaConnInfo = {
+					hosts: getBinaryNodeChildren(mediaConnNode, 'host').map(({ attrs }) => ({
+						hostname: attrs.hostname!,
+						maxContentLengthBytes: +attrs.maxContentLengthBytes!
+					})),
+					auth: mediaConnNode.attrs.auth!,
+					ttl: +mediaConnNode.attrs.ttl!,
+					fetchDate: new Date()
+				}
+				logger.debug('fetched media conn')
+				if (node.hosts[0]) {
+					mediaHost = node.hosts[0].hostname
+				}
+
+				return node
+			})()
+
+			return mediaConn
+		})
+	}
+
+	const getMediaHost = () => mediaHost
 
 	// Validate current key-bundle on server; on failure, trigger pre-key upload and rethrow
 	const digestKeyBundle = async (): Promise<void> => {
@@ -362,12 +443,12 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
-		const lidQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				lidQuery.withUser(new USyncUser().withLid(jid))
+				logger?.warn('LIDs are not supported with onWhatsApp')
+				continue
 			} else {
 				if (!contactEnabled) {
 					contactEnabled = true
@@ -379,29 +460,15 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		const output: { jid: string; exists: boolean }[] = []
-
-		if (usyncQuery.users.length > 0) {
-			const results = await executeUSyncQuery(usyncQuery)
-			if (results) {
-				const mapped = results.list
-					.filter(a => !!a.contact)
-					.map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
-				output.push(...mapped)
-			}
+		if (usyncQuery.users.length === 0) {
+			return [] // return early without forcing an empty query
 		}
 
-		if (lidQuery.users.length > 0) {
-			const lidResults = await executeUSyncQuery(lidQuery)
-			if (lidResults) {
-				const mapped = lidResults.list
-					.filter(a => !!a.lid)
-					.map(({ lid, id }) => ({ jid: id, exists: true, lid: lid as string }))
-				output.push(...mapped)
-			}
-		}
+		const results = await executeUSyncQuery(usyncQuery)
 
-		return output
+		if (results) {
+			return results.list.filter(a => !!a.contact).map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
+		}
 	}
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
@@ -545,26 +612,54 @@ export const makeSocket = (config: SocketConfig) => {
 			return
 		}
 
+		// Generate ONCE (outside the retry loop): pre-keys are persisted to
+		// the store, and `nextPreKeyId` advances so a parallel call doesn't
+		// reuse the id range. `firstUnuploadedPreKeyId` is HELD BACK in
+		// `commitUpdate` and only emitted after the server confirms — so a
+		// permanent upload failure leaves the local store carrying the
+		// generated keys ready for the next attempt (instead of marking
+		// them as "uploaded" prematurely and orphaning them).
+		let pendingNode: BinaryNode | undefined
+		let pendingCommit: Partial<AuthenticationCreds> | undefined
+
 		const uploadLogic = async (retryCount: number): Promise<void> => {
 			logger.info({ count, retryCount }, 'uploading pre-keys')
 
-			// Generate and save pre-keys atomically (prevents ID collisions on retry)
-			const node = await keys.transaction(async () => {
-				logger.debug({ requestedCount: count }, 'generating pre-keys with requested count')
-				const { update, node } = await getNextPreKeysNode({ creds, keys }, count)
-				// Update credentials immediately to prevent duplicate IDs on retry
-				ev.emit('creds.update', update)
-				return node
-			}, creds?.me?.id || 'upload-pre-keys')
+			if (!pendingNode) {
+				const generated = await keys.transaction(async () => {
+					logger.debug({ requestedCount: count }, 'generating pre-keys with requested count')
+					const { allocUpdate, commitUpdate, node } = await getNextPreKeysNode({ creds, keys }, count)
+					// Allocation half: commit immediately so parallel generation
+					// never collides on the same id range.
+					ev.emit('creds.update', allocUpdate)
+					return { node, commitUpdate }
+				}, creds?.me?.id || 'upload-pre-keys')
+				pendingNode = generated.node
+				pendingCommit = generated.commitUpdate
+			}
 
-			// Upload to server (outside transaction, can fail without affecting local keys)
+			// Bail out before the network call if the socket is gone — the
+			// next reconnect will run uploadPreKeysToServerIfRequired and
+			// retry naturally.
+			if (!ws.isOpen) {
+				throw new Boom('socket closed mid-upload, deferring to reconnect', {
+					statusCode: DisconnectReason.connectionClosed
+				})
+			}
+
 			try {
-				await query(node)
+				await query(pendingNode)
 				logger.info({ count }, 'uploaded pre-keys successfully')
+				// Commit half: advance firstUnuploadedPreKeyId NOW that the
+				// server has the keys.
+				if (pendingCommit) ev.emit('creds.update', pendingCommit)
 			} catch (uploadError) {
 				logger.error({ uploadError: (uploadError as Error).toString(), count }, 'Failed to upload pre-keys to server')
 
 				// Recurse into uploadLogic; calling uploadPreKeys would await its own in-flight promise.
+				// `pendingNode` + `pendingCommit` are preserved so the retry
+				// uses the SAME node (same key range) — the keys are already
+				// in the store; the server just hasn't acknowledged them.
 				if (retryCount < 3) {
 					const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000)
 					logger.info(`Retrying pre-key upload in ${backoffDelay}ms`)
@@ -572,6 +667,9 @@ export const makeSocket = (config: SocketConfig) => {
 					return uploadLogic(retryCount + 1)
 				}
 
+				// Permanent failure: leave `firstUnuploadedPreKeyId` UNCHANGED so
+				// the next uploadPreKeysToServerIfRequired call re-attempts
+				// these same keys instead of skipping past them.
 				throw uploadError
 			}
 		}
@@ -685,20 +783,6 @@ export const makeSocket = (config: SocketConfig) => {
 
 		clearInterval(keepAliveReq)
 		clearTimeout(qrTimer)
-
-		if (pendingPairingReject) {
-			pendingPairingReject(
-				error ||
-					new Boom('Connection closed before pairing completed', {
-						statusCode: DisconnectReason.connectionClosed
-					})
-			)
-			pendingPairingResolve = undefined
-			pendingPairingReject = undefined
-		}
-
-		pairingReady = false
-		pairingInProgress = false
 
 		ws.removeAllListeners('close')
 		ws.removeAllListeners('open')
@@ -825,12 +909,7 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
-	let pairingReady = false
-	let pairingInProgress = false
-	let pendingPairingResolve: (() => void) | undefined
-	let pendingPairingReject: ((err: Error) => void) | undefined
-
-	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
+	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
 
 		if (customPairingCode && customPairingCode?.length !== 8) {
@@ -839,28 +918,12 @@ export const makeSocket = (config: SocketConfig) => {
 
 		authState.creds.pairingCode = pairingCode
 
-		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
-		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the pairing
-		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
-		// companion_platform_display must also be a canonical OS name; custom brand names belong
-		// in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked Devices.
-		// Pair code companion_platform_id must be Chrome (1) when using the Android
-		// browser preset. ANDROID_PHONE (16) causes silent timeout, UWP (21) causes
-		// rejection. Only Chrome (1–6) works for pair code via the web protocol.
-		// The device still appears as "Android" in Linked Devices because
-		// DeviceProps.platformType=ANDROID_PHONE is set in the registration node.
-		const isAndroid = isAndroidBrowser(browser) || isKaiosBrowser(browser)
-		const rawPlatformId = parseInt(getPlatformId(browser[1]))
-		const isBrowserPlatform = !isAndroid && rawPlatformId >= 1 && rawPlatformId <= 6
-		const pairingPlatformId = isAndroid ? getPlatformId('Chrome') : (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isAndroid ? 'Chrome' : isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
-		const pairingPlatformHost = isAndroid
-			? 'Mac OS'
-			: browser[0] === 'Mac OS' || browser[0] === 'Windows'
-				? browser[0]
-				: 'Mac OS'
-
-		await query({
+		authState.creds.me = {
+			id: jidEncode(phoneNumber, 's.whatsapp.net'),
+			name: '~'
+		}
+		ev.emit('creds.update', authState.creds)
+		await sendNode({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
@@ -872,8 +935,9 @@ export const makeSocket = (config: SocketConfig) => {
 				{
 					tag: 'link_code_companion_reg',
 					attrs: {
-						jid,
+						jid: authState.creds.me.id,
 						stage: 'companion_hello',
+
 						should_show_push_notification: 'true'
 					},
 					content: [
@@ -890,12 +954,12 @@ export const makeSocket = (config: SocketConfig) => {
 						{
 							tag: 'companion_platform_id',
 							attrs: {},
-							content: pairingPlatformId
+							content: getCompanionPlatformId(browser)
 						},
 						{
 							tag: 'companion_platform_display',
 							attrs: {},
-							content: `${pairingPlatformName} (${pairingPlatformHost})`
+							content: `${browser[1]} (${browser[0]})`
 						},
 						{
 							tag: 'link_code_pairing_nonce',
@@ -906,43 +970,7 @@ export const makeSocket = (config: SocketConfig) => {
 				}
 			]
 		})
-
-		authState.creds.me = { id: jid, name: '~' }
-		ev.emit('creds.update', authState.creds)
-		return pairingCode
-	}
-
-	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
-		if (pairingInProgress) {
-			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
-		}
-
-		pairingInProgress = true
-
-		if (pairingReady) {
-			try {
-				return await sendPairingIQ(phoneNumber, customPairingCode)
-			} finally {
-				pairingInProgress = false
-			}
-		}
-
-		logger.debug('pairing not ready yet, queuing request until pair-device is received')
-		return new Promise<string>((resolve, reject) => {
-			pendingPairingResolve = () => {
-				sendPairingIQ(phoneNumber, customPairingCode)
-					.then(resolve)
-					.catch(reject)
-					.finally(() => {
-						pairingInProgress = false
-					})
-			}
-
-			pendingPairingReject = (err: Error) => {
-				pairingInProgress = false
-				reject(err)
-			}
-		})
+		return authState.creds.pairingCode
 	}
 
 	async function generatePairingKey() {
@@ -999,15 +1027,6 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 		await sendNode(iq)
-
-		pairingReady = true
-		if (pendingPairingResolve) {
-			logger.debug('pair-device received, flushing queued pairing request')
-			const resolve = pendingPairingResolve
-			pendingPairingResolve = undefined
-			pendingPairingReject = undefined
-			resolve()
-		}
 
 		const pairDeviceNode = getBinaryNodeChild(stanza, 'pair-device')
 		const refNodes = getBinaryNodeChildren(pairDeviceNode, 'ref')
@@ -1073,6 +1092,23 @@ export const makeSocket = (config: SocketConfig) => {
 				await digestKeyBundle()
 			} catch (e) {
 				logger.warn({ e }, 'failed to run digest after login')
+			}
+
+			// Pre-fetch the media_conn host once the socket is ready so
+			// later downloads (app-state external blobs, history sync,
+			// media messages) hit the CDN shard WhatsApp assigned this
+			// connection instead of the hardcoded `mmg.whatsapp.net`
+			// fallback. The result is cached + TTL-managed inside
+			// `refreshMediaConn` itself, so subsequent calls are no-ops
+			// until the TTL expires. Failure here is non-fatal — uploads
+			// already re-fetch on demand, and downloads fall back to
+			// `DEF_MEDIA_HOST` (so we end up where we were before this
+			// fix), just with a structured warning the operator can
+			// alert on.
+			try {
+				await refreshMediaConn()
+			} catch (err) {
+				logger.warn({ err }, 'failed to pre-fetch media_conn on socket open')
 			}
 		} catch (err) {
 			logger.warn({ err }, 'failed to send initial passive iq')
@@ -1304,6 +1340,11 @@ export const makeSocket = (config: SocketConfig) => {
 		uploadPreKeysToServerIfRequired,
 		digestKeyBundle,
 		rotateSignedPreKey,
+		// Media routing (Stage 11): per-socket `media_conn`-derived host so
+		// any layer above can route its downloads / uploads through the
+		// shard WhatsApp assigned this connection.
+		refreshMediaConn,
+		getMediaHost,
 		requestPairingCode,
 		updateServerTimeOffset,
 		sendUnifiedSession,

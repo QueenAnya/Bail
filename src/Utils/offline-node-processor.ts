@@ -1,9 +1,9 @@
 import type { BinaryNode } from '../WABinary'
 
-export type MessageType = 'message' | 'call' | 'receipt' | 'notification'
+export type OfflineMessageType = 'message' | 'call' | 'receipt' | 'notification'
 
 type OfflineNode = {
-	type: MessageType
+	type: OfflineMessageType
 	node: BinaryNode
 }
 
@@ -20,14 +20,14 @@ export type OfflineNodeProcessorDeps = {
  * - Catches handler errors to prevent the processing loop from crashing
  */
 export function makeOfflineNodeProcessor(
-	nodeProcessorMap: Map<MessageType, (node: BinaryNode) => Promise<void>>,
+	nodeProcessorMap: Map<OfflineMessageType, (node: BinaryNode) => Promise<void>>,
 	deps: OfflineNodeProcessorDeps,
 	batchSize = 10
 ) {
 	const nodes: OfflineNode[] = []
 	let isProcessing = false
 
-	const enqueue = (type: MessageType, node: BinaryNode) => {
+	const enqueue = (type: OfflineMessageType, node: BinaryNode) => {
 		nodes.push({ type, node })
 
 		if (isProcessing) {

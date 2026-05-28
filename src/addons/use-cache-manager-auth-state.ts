@@ -3,9 +3,9 @@
  * Source: @innovatorssoft/baileys make-cache-manager-store.js
  */
 import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils'
-import { BufferJSON } from '../Utils/generics'
-import type { AuthenticationState } from '../Types/index'
+import { initAuthCreds } from '../Utils/auth-utils.js'
+import { BufferJSON } from '../Utils/generics.js'
+import type { AuthenticationState } from '../Types/index.js'
 
 /** Minimal interface compatible with any cache-manager v5 store */
 export type CacheManagerStore = {

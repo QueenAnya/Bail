@@ -12,6 +12,6 @@ export {
 	captureUnifiedResponse,
 	generateUnifiedResponseContent,
 	generateRichMessageContent
-} from '../addons/rich-message-composer'
+} from '../addons/rich-message-composer.js'
 
-export type { RichLatexExpression as LatexExpression } from '../addons/rich-message-composer'
+export type { RichLatexExpression as LatexExpression } from '../addons/rich-message-composer.js'

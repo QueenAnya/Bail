@@ -3,8 +3,8 @@
  * Source: @innovatorssoft/baileys message-composer.js
  */
 import { proto } from '../../WAProto/index.js'
-import { generateMessageID } from '../Utils/generics'
-import { CodeHighlightType, RichSubMessageType, LANGUAGE_KEYWORDS } from './rich-types'
+import { generateMessageID } from '../Utils/generics.js'
+import { CodeHighlightType, RichSubMessageType, LANGUAGE_KEYWORDS } from './rich-types.js'
 
 export type { CodeHighlightType, RichSubMessageType }
 export type RichLatexExpression = {

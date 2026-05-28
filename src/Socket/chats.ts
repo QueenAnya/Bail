@@ -105,21 +105,35 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	let syncState: SyncState = SyncState.Connecting
 
-	/** Per-chat keyed mutex — same-chat messages serialize; different chats process in parallel */
+	/**
+	 * Per-chat mutex around message decrypt + downstream side effects.
+	 * Stage 10: switched from a global `makeMutex()` to a keyed mutex
+	 * keyed on `remoteJid` so messages for different chats can decrypt
+	 * and project to events in parallel; same-chat messages stay
+	 * strictly serialized (the order-within-a-chat contract the original
+	 * mutex was protecting). Same-chat ordering is still required:
+	 * `messageRetryManager.addRecentMessage`, the per-chat history
+	 * append, and the downstream signal-layer side effects all assume
+	 * sequential application per chat.
+	 */
 	const messageMutex = makeKeyedMutex()
 
-	/**
-	 * Idempotency cache for processMessage (M8). TTL 10 min covers retry windows.
-	 */
-	const processedMessageCache: CacheStore = new NodeCache<boolean>({
-		stdTTL: 10 * 60,
-		useClones: false
-	}) as CacheStore
-
-	/** Per-chat keyed receipt mutex */
+	/** Per-chat mutex around receipt processing. Same rationale as `messageMutex`. */
 	const receiptMutex = makeKeyedMutex()
 
-	/** Per-WAPatchName keyed mutex — different collections apply patches in parallel */
+	/**
+	 * Per-`WAPatchName` app-state patch mutex (Stage 10 — closes the
+	 * deferred per-collection finding). Was a single global
+	 * `makeMutex()` that serialized every `appPatch` call across every
+	 * collection (`critical_block`, `regular`, `regular_low`,
+	 * `regular_high`, `critical_unblock_low`). Switched to a keyed
+	 * mutex on the patch name so two collections can apply patches in
+	 * parallel; same-collection patches still strictly serialize
+	 * because their LTHash version chain requires sequential
+	 * application (`encodeSyncdPatch` reserves the next version off
+	 * the read state and a concurrent patch on the same collection
+	 * must wait).
+	 */
 	const appStatePatchMutex = makeKeyedMutex()
 
 	/** this mutex ensures that notifications are processed in order */
@@ -145,6 +159,17 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
 			useClones: false
 		}) as CacheStore)
+
+	/**
+	 * Idempotency cache for `processMessage` (M8 — Stage 8). TTL of 10 minutes
+	 * covers typical retry/redelivery windows without keeping entries forever.
+	 * Stored as `boolean` so the value's meaningless — presence alone signals
+	 * "already processed".
+	 */
+	const processedMessageCache: CacheStore = new NodeCache<boolean>({
+		stdTTL: 10 * 60,
+		useClones: false
+	}) as CacheStore
 
 	/** helper function to fetch the given app state sync key */
 	const getAppStateSyncKey = async (keyId: string) => {
@@ -641,7 +666,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					})
 
 					// extract from binary node
-					const decoded = await extractSyncdPatches(result, config?.options)
+					// Stage 11: route the external-blob download (for collections too
+					// large to inline) through the socket's `media_conn` host so the
+					// app-state sync hits the same shard as the upload path.
+					const decoded = await extractSyncdPatches(result, config?.options, getMediaHost())
 					for (const key in decoded) {
 						const name = key as WAPatchName
 						const { patches, hasMorePatches, snapshot } = decoded[name]
@@ -673,7 +701,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 									config.options,
 									initialVersionMap[name],
 									logger,
-									appStateMacVerification.patch
+									appStateMacVerification.patch,
+									getMediaHost()
 								)
 
 								await authState.keys.set({ 'app-state-sync-version': { [name]: newState } })
@@ -917,7 +946,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		let initial: LTHashState
 		let encodeResult: { patch: proto.ISyncdPatch; state: LTHashState }
 
-		await appStatePatchMutex.mutex(async () => {
+		await appStatePatchMutex.mutex(name, async () => {
 			await authState.keys.transaction(async () => {
 				logger.debug({ patch: patchCreate }, 'applying app patch')
 
@@ -975,7 +1004,9 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				getAppStateSyncKey,
 				config.options,
 				undefined,
-				logger
+				logger,
+				undefined,
+				getMediaHost()
 			)
 			for (const key in mutationMap) {
 				onMutation(mutationMap[key]!)
@@ -1320,12 +1351,16 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				signalRepository,
 				shouldProcessHistoryMsg,
 				placeholderResendCache,
+				processedMessageCache,
 				ev,
 				creds: authState.creds,
 				keyStore: authState.keys,
 				logger,
 				options: config.options,
-				getMessage
+				getMessage,
+				// Stage 11: thread the per-socket media-CDN host into
+				// history-sync downloads inside processMessage.
+				getMediaHost
 			})
 		])
 
@@ -1475,6 +1510,16 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 		if (!config.placeholderResendCache && placeholderResendCache.close) {
 			placeholderResendCache.close()
+		}
+
+		// `processedMessageCache` is always owned by this socket (we
+		// construct it locally; no config override accepts it), so close
+		// its NodeCache timers on teardown to avoid a leak across
+		// disconnect / reconnect cycles. Without this, every reconnect
+		// would allocate a new NodeCache with its own `setInterval`-based
+		// TTL sweeper and the old one would keep running forever.
+		if (processedMessageCache.close) {
+			processedMessageCache.close()
 		}
 
 		syncState = SyncState.Connecting

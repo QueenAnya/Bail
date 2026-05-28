@@ -20,11 +20,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		// Always use MACOS platform for UserAgent — we connect via web protocol
-		// (WA\x06\x03) so the server expects a web-compatible identity.
-		// Using WEB causes 405 errors; using SMB_ANDROID breaks pair code.
-		// Android identity is only set in DeviceProps (registration node).
-		platform: proto.ClientPayload.UserAgent.Platform.MACOS,
+		platform: proto.ClientPayload.UserAgent.Platform.WEB,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
@@ -64,6 +60,10 @@ const getClientPayload = (config: SocketConfig) => {
 
 	payload.webInfo = getWebInfo(config)
 
+	if (config.pushName) {
+		payload.pushName = config.pushName
+	}
+
 	return payload
 }
 
@@ -83,16 +83,6 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
-	// 'ANDROID' is not in PlatformType enum — map to ANDROID_PHONE
-	if (platformType === 'ANDROID') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE
-	}
-
-	// 'KAIOS' is not in PlatformType enum — map to ANDROID_PHONE (closest mobile web type)
-	if (platformType === 'KAIOS') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE
-	}
-
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME

@@ -1,127 +1,90 @@
+// @ts-nocheck
+/* eslint-disable */
 /**
- * Rich Message Utils — correct botForwardedMessage with unifiedResponse.data Buffer injection
- * Source: @itsliaaa/baileys rich-message-utils.js (Lia@Changes 09-04-26)
+ * Lia@Changes 09-04-26
+ * Source: @itsliaaa/baileys v0.3.12
+ * Adds support for tables and code blocks with richResponseMessage (wrapped inside botForwardedMessage).
  *
- * This is the CORRECT implementation for iOS/Android rendering of Meta AI rich messages.
- * The key difference: injects unifiedResponse.data as a Buffer (ArrayBufferLike) which
- * WA clients need to render tables, code blocks, LaTeX, etc.
+ * If you use or copy this code, please credit my name or project. AND DO NOT CHANGE THIS NOTE
+ * @itsliaaa/baileys
  */
-import { getRandomValues, randomBytes, randomUUID } from 'crypto'
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { getRandomValues, randomUUID, randomBytes } from 'crypto'
+import { DONATE_URL, LEXER_REGEX } from '../Defaults/index.js'
+import { LANGUAGE_KEYWORDS } from '../WABinary/constants.js'
+import { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
 import { proto } from '../../WAProto/index.js'
-import { BOT_RENDERING_CONFIG_METADATA, DONATE_URL } from '../Defaults/index'
-import { unixTimestampSeconds } from '../Utils/generics'
-import { CodeHighlightType, RichSubMessageType, LANGUAGE_KEYWORDS } from './rich-types'
-
-export type { CodeHighlightType, RichSubMessageType }
-
-// ── Tokenizer (LEXER_REGEX approach from itsliaaa) ──────────────────────────
-
-const LEXER_REGEX =
-	/(\/\/[^\n]*|#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|([a-zA-Z_$][\w$]*(?=\s*\())|([a-zA-Z_$][\w$]*)|(\b\d+(?:\.\d+)?\b)|([^\w\s$"'`#/]+|\s+)/g
-
-export const tokenizeCode = (code: string, language = 'javascript') => {
-	const keywords = LANGUAGE_KEYWORDS[language] || new Set<string>()
-	const blocks: { highlightType: CodeHighlightType; codeContent: string }[] = []
+import { unixTimestampSeconds } from './generics.js'
+const NOOP = new Set([])
+export const tokenizeCode = (code, language = 'javascript') => {
+	const keywords = LANGUAGE_KEYWORDS[language] || NOOP
+	const blocks = []
 	LEXER_REGEX.lastIndex = 0
-	let match: RegExpExecArray | null
+	let match
 	while ((match = LEXER_REGEX.exec(code)) !== null) {
-		if (match[1]) blocks.push({ highlightType: CodeHighlightType.COMMENT, codeContent: match[1] })
-		else if (match[2]) blocks.push({ highlightType: CodeHighlightType.STRING, codeContent: match[2] })
-		else if (match[3])
+		if (match[1]) {
+			blocks.push({ highlightType: CodeHighlightType.COMMENT, codeContent: match[1] })
+		} else if (match[2]) {
+			blocks.push({ highlightType: CodeHighlightType.STRING, codeContent: match[2] })
+		} else if (match[3]) {
 			blocks.push({
 				highlightType: keywords.has(match[3]) ? CodeHighlightType.KEYWORD : CodeHighlightType.METHOD,
 				codeContent: match[3]
 			})
-		else if (match[4])
+		} else if (match[4]) {
 			blocks.push({
 				highlightType: keywords.has(match[4]) ? CodeHighlightType.KEYWORD : CodeHighlightType.DEFAULT,
 				codeContent: match[4]
 			})
-		else if (match[5]) blocks.push({ highlightType: CodeHighlightType.NUMBER, codeContent: match[5] })
-		else blocks.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: match[6] || match[0] })
+		} else if (match[5]) {
+			blocks.push({ highlightType: CodeHighlightType.NUMBER, codeContent: match[5] })
+		} else {
+			blocks.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: match[6] })
+		}
 	}
 	return blocks
 }
-
-// ── toUnified — builds JSON payload for unifiedResponse.data Buffer ──────────
-
-export const toUnified = (submessages: proto.IAIRichResponseSubMessage[]) => ({
+// Lia@Changes 09-04-26 --- Inject buffer into unifiedResponse.data to support proper rendering of rich messages (ex: tables and code blocks)
+export const toUnified = submessages => ({
 	response_id: randomUUID(),
-	sections: submessages.map(submessage => {
-		switch (submessage.messageType as number) {
-			case RichSubMessageType.CODE: {
-				const cm = submessage.codeMetadata!
+	sections: submessages.map((submessage, index) => {
+		switch (submessage.messageType) {
+			case RichSubMessageType.CODE:
+				const codeMetadata = submessage.codeMetadata
 				return {
 					view_model: {
 						primitive: {
-							language: cm.codeLanguage,
-							code_blocks: (cm.codeBlocks || []).map((b: any) => ({ content: b.codeContent, type: b.highlightType })),
+							language: codeMetadata.codeLanguage,
+							code_blocks: codeMetadata.codeBlocks.map(block => ({
+								content: block.codeContent,
+								type: CodeHighlightType[block.highlightType]
+							})),
 							__typename: 'GenAICodeUXPrimitive'
 						},
 						__typename: 'GenAISingleLayoutViewModel'
 					}
 				}
-			}
-			case RichSubMessageType.CONTENT_ITEMS: {
-				const items = submessage.contentItemsMetadata!.itemsMetadata || []
-				return {
-					view_model: {
-						primitives: items.map((item: any) => {
-							const r = item.reelItem
-							return {
-								reels_url: r.videoUrl,
-								thumbnail_url: r.thumbnailUrl,
-								creator: r.creator || '@itsliaaa/baileys',
-								avatar_url: r.profileIconUrl,
-								reels_title: r.title,
-								likes_count: r.likesCount || 0,
-								shares_count: r.sharesCount || 0,
-								view_count: r.viewCount || 0,
-								reel_source: r.reelSource || 'IG',
-								is_verified: r.isVerified || false,
-								__typename: 'GenAIReelPrimitive'
-							}
-						}),
-						__typename: 'GenAIHScrollLayoutViewModel'
-					}
-				}
-			}
-			case RichSubMessageType.LATEX: {
-				const lm = submessage.latexMetadata!
-				const expr = (lm.expressions || [])[0]
-				const item = {
-					latex_expression: expr?.latexExpression,
-					font_height: expr?.fontHeight,
-					padding: 15,
-					latex_image: { url: expr?.url, width: expr?.width || 388, height: expr?.height || 160 }
-				}
-				return {
-					view_model: {
-						primitive: { item, ...item, __typename: 'GenAILatexUXPrimitive' },
-						__typename: 'GenAISingleLayoutViewModel'
-					}
-				}
-			}
-			case RichSubMessageType.TABLE: {
-				const tm = submessage.tableMetadata!
+			case RichSubMessageType.TABLE:
+				const tableMetadata = submessage.tableMetadata
 				return {
 					view_model: {
 						primitive: {
-							title: tm.title,
-							rows: (tm.rows || []).map((r: any) => ({ is_header: r.isHeading, cells: r.items, markdown_cells: [] })),
+							title: tableMetadata.title,
+							rows: tableMetadata.rows.map(row => ({
+								is_header: row.isHeading,
+								cells: row.items,
+								markdown_cells: row.items.map(item => ({ text: item }))
+							})),
 							__typename: 'GenATableUXPrimitive'
 						},
 						__typename: 'GenAISingleLayoutViewModel'
 					}
 				}
-			}
 			case RichSubMessageType.TEXT:
 				return {
 					view_model: {
 						primitive: {
 							text: submessage.messageText,
-							inline_entities: (submessage as any).inlineEntities || [],
+							inline_entities: submessage.inlineEntities || [],
 							__typename: 'GenAIMarkdownTextUXPrimitive'
 						},
 						__typename: 'GenAISingleLayoutViewModel'
@@ -131,184 +94,79 @@ export const toUnified = (submessages: proto.IAIRichResponseSubMessage[]) => ({
 		return submessage
 	})
 })
-
-// ── Bot metadata helpers ──────────────────────────────────────────────────────
-
-export const botMetadataSignature = () => {
-	const s = new Uint8Array(64)
-	getRandomValues(s)
-	return s
-}
-export const botMetadataCertificate = (length = 700) => {
-	const c = new Uint8Array(length)
-	c[0] = 48
-	c[1] = 130
-	getRandomValues(c.subarray(2))
-	return c
-}
-
-export const wrapToBotForwardedMessage = (richResponseMessage: proto.IAIRichResponseMessage): proto.IMessage => ({
-	messageContextInfo: {
-		botMetadata: {
-			pluginMetadata: {},
-			verificationMetadata: {
-				proofs: [
-					{
-						certificateChain: [botMetadataCertificate(684), botMetadataCertificate(892)],
-						version: 1,
-						useCase: 1,
-						signature: botMetadataSignature()
-					}
-				]
-			},
-			...(BOT_RENDERING_CONFIG_METADATA as any)
-		} as any
-	},
-	botForwardedMessage: { message: { richResponseMessage } }
-})
-
-// ── buildAdditionalBotMetadataContext ────────────────────────────────────────
-
-export const buildAdditionalBotMetadataContext = (submessages: proto.IAIRichResponseSubMessage[]) => {
-	const sources: any[] = []
-	const mediaDetailsMetadataList: any[] = []
-	for (let i = 0; i < submessages.length; i++) {
-		const sm = submessages[i]!
-		if (sm.messageType === RichSubMessageType.CONTENT_ITEMS) {
-			const items = sm.contentItemsMetadata?.itemsMetadata || []
-			for (const item of items) {
-				const r = (item as any).reelItem
-				sources.push({
-					provider: 0,
-					thumbnailCdnUrl: r.thumbnailUrl,
-					sourceProviderUrl: r.videoUrl,
-					sourceQuery: '',
-					faviconCdnUrl: '',
-					citationNumber: i + 1,
-					sourceTitle: r.title
-				})
-				mediaDetailsMetadataList.push({
-					id: randomBytes(32).toString('hex'),
-					previewMedia: {
-						fileSha256: '',
-						mediaKey: '',
-						fileEncSha256: '',
-						directPath: '',
-						mediaKeyTimestamp: unixTimestampSeconds(),
-						mimetype: 'image/jpeg'
-					}
-				})
-			}
-		} else if (sm.messageType === RichSubMessageType.LATEX) {
-			for (const _expr of sm.latexMetadata?.expressions || []) {
-				mediaDetailsMetadataList.push({
-					id: randomBytes(32).toString('hex'),
-					previewMedia: {
-						fileSha256: '',
-						mediaKey: '',
-						fileEncSha256: '',
-						directPath: '',
-						mediaKeyTimestamp: unixTimestampSeconds(),
-						mimetype: 'image/jpeg'
-					}
-				})
-			}
-		}
-	}
-	return { sources, mediaDetailsMetadataList }
-}
-
-// ── prepareRichResponseMessage — main entry point ────────────────────────────
-
-export type RichResponseContent = {
-	code?: string
-	contentText?: string
-	expressions?: any[]
-	footerText?: string
-	headerText?: string
-	items?: any[]
-	language?: string
-	links?: Array<{
-		text: string
-		url?: string
-		title?: string
-		displayName?: string
-		sources?: Array<{ displayName?: string; subtitle?: string; url?: string }>
-	}>
-	noHeading?: boolean
-	richResponse?: any[]
-	table?: string[][]
-	text?: string
-	title?: string
-}
-
-export const prepareRichResponseMessage = (content: RichResponseContent): proto.IMessage => {
+export const prepareRichResponseMessage = content => {
 	const {
 		code,
 		contentText,
-		expressions,
+		disclaimerText,
 		footerText,
 		headerText,
-		items,
 		language,
 		links,
 		noHeading,
 		richResponse,
 		table,
-		text,
 		title
 	} = content
-	let submessages: proto.IAIRichResponseSubMessage[] = []
-
+	let submessages = []
 	if (Array.isArray(richResponse)) {
-		submessages = richResponse.map(sm => {
-			if (sm.text)
+		submessages = richResponse.map(submessage => {
+			if (submessage.text) {
 				return {
 					messageType: RichSubMessageType.TEXT,
-					messageText: sm.text,
-					...(sm.inlineEntities ? { inlineEntities: sm.inlineEntities } : {})
+					messageText: submessage.text,
+					inlineEntities: submessage.inlineEntities
 				}
-			if (sm.code)
+			} else if (submessage.code) {
 				return {
 					messageType: RichSubMessageType.CODE,
-					codeMetadata: { codeLanguage: sm.language, codeBlocks: sm.code }
+					codeMetadata: {
+						codeLanguage: submessage.language,
+						codeBlocks: submessage.code
+					}
 				}
-			if (sm.expressions)
-				return { messageType: RichSubMessageType.LATEX, latexMetadata: { text: sm.text, expressions: sm.expressions } }
-			if (sm.items)
-				return { messageType: RichSubMessageType.CONTENT_ITEMS, contentItemsMetadata: { itemsMetadata: sm.items } }
-			if (sm.table) return { messageType: RichSubMessageType.TABLE, tableMetadata: { title: sm.title, rows: sm.table } }
-			return sm
+			} else if (submessage.table) {
+				return {
+					messageType: RichSubMessageType.TABLE,
+					tableMetadata: {
+						title: submessage.title,
+						rows: submessage.table
+					}
+				}
+			}
+			return submessage
 		})
 	} else {
-		if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
-		if (contentText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: contentText })
-
+		if (headerText) {
+			submessages.push({
+				messageType: RichSubMessageType.TEXT,
+				messageText: headerText
+			})
+		}
+		if (contentText) {
+			submessages.push({
+				messageType: RichSubMessageType.TEXT,
+				messageText: contentText
+			})
+		}
 		if (code) {
-			const lang = language ?? 'javascript'
+			language ||= 'javascript'
 			submessages.push({
 				messageType: RichSubMessageType.CODE,
-				codeMetadata: { codeLanguage: lang, codeBlocks: tokenizeCode(code, lang) }
-			})
-		} else if (expressions) {
-			submessages.push({ messageType: RichSubMessageType.LATEX, latexMetadata: { text, expressions } })
-		} else if (items) {
-			submessages.push({
-				messageType: RichSubMessageType.CONTENT_ITEMS,
-				contentItemsMetadata: {
-					itemsMetadata: items.map(item => ({ reelItem: item })),
-					contentType: proto.AIRichResponseContentItemsMetadata.ContentType.CAROUSEL
+				codeMetadata: {
+					codeLanguage: language,
+					codeBlocks: tokenizeCode(code, language)
 				}
 			})
 		} else if (links) {
 			links.forEach((linkField, index) => {
 				const prefix = 'SS_' + index
 				const url = linkField.url || DONATE_URL
-				const sources = linkField.sources?.map(s => ({
+				const sources = linkField.sources?.map(sourceField => ({
 					source_type: 'THIRD_PARTY',
-					source_display_name: s.displayName || 'Donate',
-					source_subtitle: s.subtitle || 'Saweria',
-					source_url: s.url || url
+					source_display_name: sourceField.displayName || 'Donate',
+					source_subtitle: sourceField.subtitle || 'Saweria',
+					source_url: sourceField.url || url
 				}))
 				submessages.push({
 					messageType: RichSubMessageType.TEXT,
@@ -319,46 +177,89 @@ export const prepareRichResponseMessage = (content: RichResponseContent): proto.
 							metadata: {
 								reference_id: index + 1,
 								reference_url: url,
-								reference_title: linkField.title || 'Reference',
-								reference_display_name: linkField.displayName || 'Link',
+								reference_title: linkField.title || 'For Donation via Saweria',
+								reference_display_name: linkField.displayName || 'Donation',
 								sources: sources || [],
 								__typename: 'GenAISearchCitationItem'
 							}
 						}
 					]
-				} as any)
+				})
 			})
 		} else if (table) {
 			submessages.push({
 				messageType: RichSubMessageType.TABLE,
 				tableMetadata: {
 					title,
-					rows: table.map((row, index) => ({ isHeading: !noHeading && index === 0, items: row }))
+					rows: table.map((items, index) => ({
+						isHeading: !noHeading && index == 0,
+						items
+					}))
 				}
 			})
 		}
-
-		if (footerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footerText })
+		if (footerText) {
+			submessages.push({
+				messageType: RichSubMessageType.TEXT,
+				messageText: footerText
+			})
+		}
 	}
-
 	const unified = toUnified(submessages)
-	const message = wrapToBotForwardedMessage({
-		submessages: [],
+	const richResponseMessage = proto.AIRichResponseMessage.create({
+		submessages,
 		messageType: proto.AIRichResponseMessageType.AI_RICH_RESPONSE_TYPE_STANDARD,
-		unifiedResponse: { data: Buffer.from(JSON.stringify(unified), 'utf-8') },
+		unifiedResponse: {
+			data: Buffer.from(JSON.stringify(unified), 'utf-8') // Lia@Note 25-04-26 --- Expects "ArrayBufferLike"
+		},
 		contextInfo: {
 			isForwarded: true,
 			forwardingScore: 1,
 			forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
-			forwardOrigin: 4,
-			botMessageSharingInfo: { forwardScore: 1 }
+			forwardOrigin: 4
 		}
 	})
-
-	const { sources, mediaDetailsMetadataList } = buildAdditionalBotMetadataContext(submessages)
-	const botMetadata = (message as any).messageContextInfo.botMetadata
-	if (sources.length > 0) botMetadata.richResponseSourcesMetadata = { sources }
-	if (mediaDetailsMetadataList.length > 0) botMetadata.unifiedResponseMutation = { mediaDetailsMetadataList }
-
+	const message = wrapToBotForwardedMessage(richResponseMessage)
+	const botMetadata = message.messageContextInfo.botMetadata
+	// Lia@Note 13-05-26 --- Add disclaimer text on richResponseMessage
+	if (disclaimerText) {
+		botMetadata.messageDisclaimerText = disclaimerText
+	}
+	// Lia@Note 15-05-26 --- Add responseId from unified directly to botMetadata
+	botMetadata.botResponseId = unified.response_id
 	return message
 }
+// Lia@Note 17-04-26 --- signature and certificateChain for proofs[] field
+export const botMetadataSignature = () => {
+	const signature = new Uint8Array(64)
+	getRandomValues(signature)
+	return signature
+}
+export const botMetadataCertificate = (length = 685) => {
+	const certificate = new Uint8Array(length)
+	certificate[0] = 48
+	certificate[1] = 130
+	getRandomValues(certificate.subarray(2))
+	return certificate
+}
+export const wrapToBotForwardedMessage = richResponseMessage => ({
+	messageContextInfo: {
+		botMetadata: {
+			// Lia@Note 09-04-26 --- TODO: Fill verificationMetadata field
+			verificationMetadata: {
+				proofs: [
+					{
+						certificateChain: [botMetadataCertificate(), botMetadataCertificate(892)],
+						version: 1,
+						useCase: 1,
+						signature: botMetadataSignature()
+					}
+				]
+			}
+		}
+	},
+	botForwardedMessage: {
+		message: { richResponseMessage }
+	}
+})
+//# sourceMappingURL=rich-message-utils.js.map

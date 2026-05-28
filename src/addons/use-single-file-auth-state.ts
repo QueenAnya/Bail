@@ -2,12 +2,12 @@
  * Single-File Auth State with LRU cache + mutex
  * Source: @itsliaaa/baileys use-single-file-auth-state.js (Lia@Changes 22-04-26)
  */
-import { readFile, rename, stat, writeFile } from 'fs/promises'
-import { DEFAULT_CACHE_TTLS } from '../Defaults/index'
+import { readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { DEFAULT_CACHE_TTLS } from '../Defaults/index.js'
 import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils'
-import { BufferJSON } from '../Utils/generics'
-import type { AuthenticationState } from '../Types/index'
+import { initAuthCreds } from '../Utils/auth-utils.js'
+import { BufferJSON } from '../Utils/generics.js'
+import type { AuthenticationState } from '../Types/index.js'
 
 const FLUSH_TIMEOUT_MS = 3000
 

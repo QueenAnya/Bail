@@ -18,8 +18,6 @@ import type {
 	NewChatMessageCapInfo,
 	SocketConfig,
 	WACallEvent,
-	WAInitiateCallOptions,
-	WAInitiateCallResult,
 	WAMessage,
 	WAMessageKey,
 	WAPatchName
@@ -56,7 +54,8 @@ import {
 	xmppSignedPreKey
 } from '../Utils'
 import { makeLockManager } from '../Utils/lock-manager'
-import { makeOfflineNodeProcessor, type MessageType } from '../Utils/offline-node-processor'
+import { makeOfflineNodeProcessor } from '../Utils/offline-node-processor'
+import type { OfflineMessageType as MessageType } from '../Utils/offline-node-processor'
 import { buildAckStanza } from '../Utils/stanza-ack'
 import {
 	commitTcTokenWithIndex,
@@ -142,13 +141,37 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
 
+	/**
+	 * Per-(alt-jid) keyed lock for the pre-mutex LID-mapping & migration block
+	 * (H8). Two parallel inbound messages from the same alt-jid participant
+	 * previously both observed a null mapping, both called
+	 * `storeLIDPNMappings`, and both called `migrateSession`. The mutex below
+	 * serializes the "look up → store → migrate" sequence per participant so
+	 * exactly one migration fires per (genuinely-missing) mapping.
+	 */
 	const lidMigrationLocks = makeLockManager()
+
+	/**
+	 * Per-(msgId,participant) keyed lock for `msgRetryCache` read-modify-write
+	 * (H9). The cache is mutated by two call paths — `sendRetryRequest`
+	 * (formerly nested under `retryMutex` → `messageMutex`) and
+	 * `updateSendMessageAgainCount` (under `receiptMutex`). Without a shared
+	 * lock chain, the classic `await get → +1 → await set` sequence loses
+	 * increments. The lock below makes the increment atomic across paths.
+	 */
 	const retryLocks = makeLockManager()
-	const placeholderResendLocks = makeLockManager()
 	const retryLockRef = (msgId: string, participant: string) => ({
 		namespace: 'msg-retry',
 		id: `${msgId}:${participant}`
 	})
+	/**
+	 * Single-flight guard for `requestPlaceholderResend` (Stage 9). The cache-
+	 * based dedupe (\`get → set\`) had a race window: two concurrent calls for
+	 * the same message id could both observe the cache as empty and both
+	 * issue the placeholder resend. The lock collapses the get + set into
+	 * one critical section per id.
+	 */
+	const placeholderResendLocks = makeLockManager()
 
 	const incrementRetryAndGet = async (msgId: string, participant: string): Promise<number> => {
 		return retryLocks.withLock(retryLockRef(msgId, participant), async () => {
@@ -157,6 +180,24 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			await msgRetryCache.set(key, next)
 			return next
 		})
+	}
+
+	/** Extracted from the inbound dispatch (Stage 6) to keep the call-site nesting flat. */
+	const attemptRetryRequest = async (node: BinaryNode): Promise<void> => {
+		try {
+			if (!ws.isOpen) {
+				logger.debug({ node }, 'Connection closed, skipping retry')
+				return
+			}
+
+			const encNode = getBinaryNodeChild(node, 'enc')
+			await sendRetryRequest(node, !encNode)
+			if (retryRequestDelayMs) {
+				await delay(retryRequestDelayMs)
+			}
+		} catch (err) {
+			logger.error({ err }, 'Failed to send retry')
+		}
 	}
 
 	const msgRetryCache =
@@ -174,6 +215,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	// Debounce identity-change session refreshes per JID to avoid bursts
 	const identityAssertDebounce = new NodeCache<boolean>({ stdTTL: 5, useClones: false })
+	/** In-flight identity refreshes — see handleIdentityChange M11 guard. */
+	const inFlightIdentityRefreshes = new Set<string>()
 
 	let sendActiveReceipts = false
 
@@ -208,18 +251,40 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			throw new Boom('Not authenticated')
 		}
 
-		if (await placeholderResendCache.get(messageKey?.id!)) {
-			logger.debug({ messageKey }, 'already requested resend')
+		// Guard against an undefined `messageKey.id`. Without this, the lock
+		// would acquire on the empty-string id (serializing every
+		// id-less caller through a single bucket) and the cache get/set
+		// would hit `undefined` as a key. Up the call stack `messageKey`
+		// is non-optional so the `id` check is the only real concern.
+		if (!messageKey.id) {
+			logger.warn({ messageKey }, 'requestPlaceholderResend called with undefined message id')
 			return
-		} else {
-			// Store original message data so PDO response handler can preserve
-			// metadata (LID details, timestamps, etc.) that the phone may omit
-			await placeholderResendCache.set(messageKey?.id!, msgData || true)
 		}
+
+		const resendId = messageKey.id
+
+		// Stage 9: collapse the previous `get → set` cache-dedupe into one
+		// per-id critical section so two concurrent callers can't both
+		// observe an empty cache and both fire the resend.
+		const alreadyHandled = await placeholderResendLocks.withLock(
+			{ namespace: 'placeholder-resend', id: resendId },
+			async () => {
+				if (await placeholderResendCache.get(resendId)) {
+					logger.debug({ messageKey }, 'already requested resend')
+					return true
+				}
+
+				// Store original message data so PDO response handler can preserve
+				// metadata (LID details, timestamps, etc.) that the phone may omit
+				await placeholderResendCache.set(resendId, msgData || true)
+				return false
+			}
+		)
+		if (alreadyHandled) return
 
 		await delay(2000)
 
-		if (!(await placeholderResendCache.get(messageKey?.id!))) {
+		if (!(await placeholderResendCache.get(resendId))) {
 			logger.debug({ messageKey }, 'message received while resend requested')
 			return 'RESOLVED'
 		}
@@ -234,9 +299,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 
 		setTimeout(async () => {
-			if (await placeholderResendCache.get(messageKey?.id!)) {
+			if (await placeholderResendCache.get(resendId)) {
 				logger.debug({ messageKey }, 'PDO message without response after 8 seconds. Phone possibly offline')
-				await placeholderResendCache.del(messageKey?.id!)
+				await placeholderResendCache.del(resendId)
 			}
 		}, 8_000)
 
@@ -587,137 +652,51 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await query(stanza)
 	}
 
-	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
-		const meId = authState.creds.me?.id
-		if (!meId) {
-			throw new Boom('Not authenticated')
-		}
-
-		const callId = randomBytes(8).toString('hex')
-		const isVideo = !!options.isVideo
-		const isGroup = isJidGroup(jid)
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: {
-				id: generateMessageTag(),
-				from: meId,
-				to: jid,
-				t: String(unixTimestampSeconds()),
-				...(authState.creds.me?.name ? { notify: authState.creds.me.name } : {})
-			},
-			content: [
-				{
-					tag: 'offer',
-					attrs: {
-						'call-id': callId,
-						'call-creator': meId,
-						count: '0'
-					},
-					content: [
-						{
-							tag: isVideo ? 'video' : 'audio',
-							attrs: {}
-						},
-						{
-							tag: 'net',
-							attrs: {}
-						},
-						{
-							tag: 'encopt',
-							attrs: { key: randomBytes(8).toString('hex') }
-						},
-						{
-							tag: 'relaylatency',
-							attrs: {}
-						},
-						{
-							tag: 'te',
-							attrs: {}
-						}
-					]
-				}
-			]
-		}
-
-		await query(stanza)
-		await callOfferCache.set(callId, {
-			chatId: jid,
-			from: meId,
-			id: callId,
-			date: new Date(),
-			offline: false,
-			status: 'offer',
-			isVideo,
-			isGroup,
-			groupJid: isGroup ? jid : undefined
-		})
-
-		// TODO: implement ICE/DTLS-SRTP call media setup once full signaling requirements are mapped.
-		return { callId, to: jid, isVideo }
-	}
-
-	const cancelCall = async (callId: string, callTo: string) => {
-		const meId = authState.creds.me?.id
-		if (!meId) {
-			throw new Boom('Not authenticated')
-		}
-
-		const stanza: BinaryNode = {
-			tag: 'call',
-			attrs: {
-				from: meId,
-				to: callTo
-			},
-			content: [
-				{
-					tag: 'terminate',
-					attrs: {
-						'call-id': callId,
-						'call-creator': meId,
-						count: '0'
-					}
-				}
-			]
-		}
-
-		await query(stanza)
-		await callOfferCache.del(callId)
-	}
-
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
 		const { fullMessage } = decodeMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '')
 		const { key: msgKey } = fullMessage
 		const msgId = msgKey.id!
 
 		if (messageRetryManager) {
-			// Check if we've exceeded max retries using the new system
-			if (messageRetryManager.hasExceededMaxRetries(msgId)) {
-				logger.debug({ msgId }, 'reached retry limit with new retry manager, clearing')
+			// M12 fold: atomic check-and-increment. `tryIncrement` reads the
+			// counter and increments it in a single sync block, so a parallel
+			// invocation for the same msgId cannot both pass the limit check.
+			const attempt = messageRetryManager.tryIncrement(msgId)
+			if (!attempt.proceed) {
+				logger.debug({ msgId, count: attempt.count }, 'reached retry limit with new retry manager, clearing')
 				messageRetryManager.markRetryFailed(msgId)
 				return
 			}
 
-			// Increment retry count using new system
-			const retryCount = messageRetryManager.incrementRetryCount(msgId)
+			// Derive a stable participant once. `String(undefined)` would
+			// yield the literal `'undefined'`, collapsing every
+			// participant-less stanza into one cache + lock bucket and
+			// breaking the per-(msgId, participant) isolation the retry
+			// counter relies on. Fall back to remoteJid, then to the
+			// stanza-level `from` attribute, which are always present.
+			const retryParticipant = msgKey?.participant ?? msgKey?.remoteJid ?? node.attrs.from!
 
-			// Use the new retry count for the rest of the logic
-			const key = `${msgId}:${msgKey?.participant}`
-			await msgRetryCache.set(key, retryCount)
+			// Mirror the retry count to the durable cache via the shared lock.
+			await retryLocks.withLock(retryLockRef(msgId, retryParticipant), async () => {
+				const key = `${msgId}:${retryParticipant}`
+				await msgRetryCache.set(key, attempt.count)
+			})
 		} else {
-			// Fallback to old system
-			const key = `${msgId}:${msgKey?.participant}`
-			let retryCount = (await msgRetryCache.get<number>(key)) || 0
-			if (retryCount >= maxMsgRetryCount) {
-				logger.debug({ retryCount, msgId }, 'reached retry limit, clearing')
-				await msgRetryCache.del(key)
+			// Same stable-fallback rationale as the retry-manager branch above.
+			const retryParticipant = msgKey?.participant ?? msgKey?.remoteJid ?? node.attrs.from!
+
+			// Fallback to old system — atomic increment via the shared lock so
+			// `sendRetryRequest` and `updateSendMessageAgainCount` (which both
+			// touch `msgRetryCache`) cannot lose increments to each other.
+			const next = await incrementRetryAndGet(msgId, retryParticipant)
+			if (next > maxMsgRetryCount) {
+				logger.debug({ retryCount: next, msgId }, 'reached retry limit, clearing')
+				await msgRetryCache.del(`${msgId}:${retryParticipant}`)
 				return
 			}
-
-			retryCount += 1
-			await msgRetryCache.set(key, retryCount)
 		}
 
-		const key = `${msgId}:${msgKey?.participant}`
+		const key = `${msgId}:${msgKey?.participant ?? msgKey?.remoteJid ?? node.attrs.from}`
 		const retryCount = (await msgRetryCache.get<number>(key)) || 1
 
 		const { account, signedPreKey, signedIdentityKey: identityKey } = authState.creds
@@ -901,6 +880,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				validateSession: signalRepository.validateSession,
 				assertSessions,
 				debounceCache: identityAssertDebounce,
+				inFlightRefreshes: inFlightIdentityRefreshes,
 				logger,
 				onBeforeSessionRefresh: reissueTcTokenAfterIdentityChange
 			})
@@ -1344,10 +1324,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			tcTokenIndexTimer = undefined
 		}
 
-		// Merge with whatever is already persisted so we don't clobber writes from other
-		// paths (history sync, concurrent sessions on the same store).
-		const write = await buildMergedTcTokenIndexWrite(authState.keys, tcTokenKnownJids)
-		return authState.keys.set({ tctoken: write })
+		// Stage 10 (closure of deferred tc-token item): the read+write is
+		// wrapped in `transactWith` on the index record so a concurrent
+		// `commitTcTokenWithIndex` on the send path can't observe the same
+		// pre-merge state and clobber the merged additions.
+		await commitTcTokenWithIndex(authState.keys, tcTokenKnownJids)
 	}
 
 	function scheduleTcTokenIndexSave() {
@@ -1419,9 +1400,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	const updateSendMessageAgainCount = async (id: string, participant: string) => {
-		const key = `${id}:${participant}`
-		const newValue = ((await msgRetryCache.get<number>(key)) || 0) + 1
-		await msgRetryCache.set(key, newValue)
+		// H9: route through the shared retryLocks so this increment cannot
+		// race against the `sendRetryRequest` path's update to the same key.
+		await incrementRetryAndGet(id, participant)
 	}
 
 	const sendMessagesAgain = async (
@@ -1479,7 +1460,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const bundle = extractE2ESessionFromRetryReceipt(receiptNode)
 		if (bundle) {
 			try {
-				await signalRepository.injectE2ESession({ jid: participant, session: bundle })
+				await signalRepository.injectE2ESession({ jid: participant, session: bundle as any })
 				injectedFromBundle = true
 				logger.debug({ participant, retryCount }, 'injected session from retry receipt key bundle')
 			} catch (error) {
@@ -1598,7 +1579,13 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 		try {
 			await Promise.all([
-				receiptMutex.mutex(async () => {
+				// Per-chat receipt serialization (Stage 10): keyed on `remoteJid`
+				// so receipts for different chats process in parallel; same-chat
+				// receipts still serialize to preserve per-chat ordering.
+				// `remoteJid ?? '__no-chat__'` falls back to a sentinel so a
+				// receipt without a chat id (rare; defensive) doesn't try to
+				// acquire an empty-string key bucket.
+				receiptMutex.mutex(remoteJid ?? '__no-chat__', async () => {
 					const status = getStatusFromReceiptType(attrs.type)
 					if (
 						typeof status !== 'undefined' &&
@@ -1717,20 +1704,43 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			const alt = msg.key.participantAlt || msg.key.remoteJidAlt
 			// store new mappings we didn't have before
 			if (!!alt) {
-				const altServer = jidDecode(alt)?.server
-				const primaryJid = msg.key.participant || msg.key.remoteJid!
-				if (altServer === 'lid') {
-					if (!(await signalRepository.lidMapping.getPNForLID(alt))) {
-						await signalRepository.lidMapping.storeLIDPNMappings([{ lid: alt, pn: primaryJid }])
-						await signalRepository.migrateSession(primaryJid, alt)
+				// H8 fix: serialize the look-up → store → migrate sequence per
+				// alt-jid. Concurrent inbound messages from the same participant
+				// would otherwise each observe a null mapping and each fire the
+				// migration.
+				await lidMigrationLocks.withLock({ namespace: 'lid-migration', id: alt }, async () => {
+					const altServer = jidDecode(alt)?.server
+					const primaryJid = msg.key.participant || msg.key.remoteJid!
+					// Skip the store + migrate ONLY when the existing mapping
+					// already matches the incoming `primaryJid`. A bare
+					// existence check would freeze a stale mapping forever:
+					// if a PN previously mapped to one LID and a new message
+					// arrives announcing a different LID, we must reconcile
+					// rather than silently ignore the update. Equality with
+					// the incoming side is the correct idempotency guard.
+					if (altServer === 'lid') {
+						const existingPn = await signalRepository.lidMapping.getPNForLID(alt)
+						if (existingPn !== primaryJid) {
+							await signalRepository.lidMapping.storeLIDPNMappings([{ lid: alt, pn: primaryJid }])
+							await signalRepository.migrateSession(primaryJid, alt)
+						}
+					} else {
+						const existingLid = await signalRepository.lidMapping.getLIDForPN(alt)
+						if (existingLid !== primaryJid) {
+							await signalRepository.lidMapping.storeLIDPNMappings([{ lid: primaryJid, pn: alt }])
+							await signalRepository.migrateSession(alt, primaryJid)
+						}
 					}
-				} else {
-					await signalRepository.lidMapping.storeLIDPNMappings([{ lid: primaryJid, pn: alt }])
-					await signalRepository.migrateSession(alt, primaryJid)
-				}
+				})
 			}
 
-			await messageMutex.mutex(async () => {
+			// Per-chat decrypt + side-effect serialization (Stage 10): keyed
+			// on the message's remoteJid so two different chats' inbound
+			// messages decrypt in parallel. Same-chat messages still
+			// serialize so the per-chat history append, receipt projection,
+			// and signal-layer state stay consistent.
+			const messageChatKey = msg.key?.remoteJid ?? '__no-chat__'
+			await messageMutex.mutex(messageChatKey, async () => {
 				await decrypt()
 
 				if (msg.key?.remoteJid && msg.key?.id && msg.message && messageRetryManager) {
@@ -1823,25 +1833,22 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						logger.debug('[handleMessage] Attempting retry request for failed decryption')
 
 						// WAWeb only retry-receipts here; server emits PreKeyLow if prekeys run low.
-						await retryMutex.mutex(async () => {
-							try {
-								if (!ws.isOpen) {
-									logger.debug({ node }, 'Connection closed, skipping retry')
-									return
-								}
+						// Stage 6: dropped the formerly-wrapping `retryMutex`. It was nested
+						// inside the outer `messageMutex.mutex(...)` (line ~1659) which already
+						// serializes the inbound pipeline, so an extra mutex over the same
+						// critical section gave no additional ordering guarantee.
+						await attemptRetryRequest(node)
 
-								const encNode = getBinaryNodeChild(node, 'enc')
-								await sendRetryRequest(node, !encNode)
-								if (retryRequestDelayMs) {
-									await delay(retryRequestDelayMs)
-								}
-							} catch (err) {
-								logger.error({ err }, 'Failed to send retry')
-							}
-
-							acked = true
+						acked = true
+						// Skip the ack if the socket is no longer open. Without
+						// this guard, `sendMessageAck` would throw a
+						// `Connection Closed` Boom inside the receive pipeline,
+						// surfacing as an unhandled rejection that interrupts
+						// downstream message handling. The server already moved
+						// on; missing an ack on a closed socket is benign.
+						if (ws.isOpen) {
 							await sendMessageAck(node, NACK_REASONS.UnhandledError)
-						})
+						}
 					}
 				} else {
 					if (messageRetryManager && msg.key.id) {
@@ -2282,8 +2289,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		rejectCall,
 		fetchMessageHistory,
 		requestPlaceholderResend,
-		messageRetryManager,
-		initiateCall,
-		cancelCall
+		messageRetryManager
 	}
 }
