@@ -237,6 +237,8 @@ export interface RichResponseInput {
 	noHeading?: boolean
 	/** Plain text footer */
 	footerText?: string
+	/** Optional disclaimer text appended at the end */
+	disclaimerText?: string
 }
 
 /**
@@ -331,6 +333,8 @@ export const prepareRichResponseMessage = (content: RichResponseInput): proto.IM
 		}
 
 		if (content.footerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: content.footerText })
+		if (content.disclaimerText)
+			submessages.push({ messageType: RichSubMessageType.TEXT, messageText: content.disclaimerText })
 	}
 
 	const unified = toUnifiedResponse(submessages)

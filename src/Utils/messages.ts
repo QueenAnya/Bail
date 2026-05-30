@@ -1,3 +1,4 @@
+import { zip } from 'fflate'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
@@ -21,6 +22,7 @@ import type {
 	MessageUserReceipt,
 	MessageWithContextInfo,
 	WAMediaUpload,
+	StickerPack,
 	WAMessage,
 	WAMessageContent,
 	WAMessageKey,
@@ -29,9 +31,8 @@ import type {
 import { WAMessageStatus, WAProto } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
-import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
+import { generateKeyUuid, generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
 import type { ILogger } from './logger'
-import {
 	downloadContentFromMessage,
 	encryptedStream,
 	generateThumbnail,
@@ -459,7 +460,6 @@ export const generateWAMessageContent = async (
 		}
 	} else if (hasNonNullishProperty(message, 'forward')) {
 		m = generateForwardMessageContent(message.forward, message.force)
-	} else if (hasNonNullishProperty(message, 'disappearingMessagesInChat')) {
 		const exp =
 			typeof message.disappearingMessagesInChat === 'boolean'
 				? message.disappearingMessagesInChat
@@ -467,7 +467,6 @@ export const generateWAMessageContent = async (
 					: 0
 				: message.disappearingMessagesInChat
 		m = prepareDisappearingMessageSettingContent(exp)
-	} else if (hasNonNullishProperty(message, 'groupInvite')) {
 		m.groupInviteMessage = {}
 		m.groupInviteMessage.inviteCode = message.groupInvite.inviteCode
 		m.groupInviteMessage.inviteExpiration = message.groupInvite.inviteExpiration
@@ -496,7 +495,6 @@ export const generateWAMessageContent = async (
 		m.pinInChatMessage.senderTimestampMs = Date.now()
 
 		m.messageContextInfo.messageAddOnDurationInSecs = message.type === 1 ? message.time || 86400 : 0
-	} else if (hasNonNullishProperty(message, 'buttonReply')) {
 		switch (message.type) {
 			case 'template':
 				m.templateButtonReplyMessage = {
@@ -513,7 +511,6 @@ export const generateWAMessageContent = async (
 				}
 				break
 		}
-	} else if (hasOptionalProperty(message, 'ptv') && message.ptv) {
 		const { videoMessage } = await prepareWAMessageMedia({ video: message.video }, options)
 		m.ptvMessage = videoMessage
 	} else if (hasNonNullishProperty(message, 'product')) {
@@ -525,7 +522,6 @@ export const generateWAMessageContent = async (
 				productImage: imageMessage
 			}
 		})
-	} else if (hasNonNullishProperty(message, 'listReply')) {
 		m.listResponseMessage = { ...message.listReply }
 	} else if (hasNonNullishProperty(message, 'event')) {
 		m.eventMessage = {}
@@ -591,6 +587,8 @@ export const generateWAMessageContent = async (
 			expectedImageCount: message.album.expectedImageCount,
 			expectedVideoCount: message.album.expectedVideoCount
 		}
+	} else if ('stickerPack' in message) {
+		m = await prepareStickerPackMessage((message as any).stickerPack, options)
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
 			type: proto.Message.ProtocolMessage.Type.SHARE_PHONE_NUMBER
@@ -608,12 +606,9 @@ export const generateWAMessageContent = async (
 			}
 		}
 	} else {
-		m = await prepareWAMessageMedia(message as any, options)
+		m = await prepareWAMessageMedia(message, options)
 	}
 
-	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
-		m = { viewOnceMessage: { message: m } }
-	}
 
 	if (
 		(hasOptionalProperty(message, 'mentions') && message.mentions?.length) ||
@@ -676,48 +671,350 @@ export const generateWAMessageContent = async (
 		}
 	}
 
-	// externalAdReply shortcut (itsliaaa)
-	// Lia@Changes 31-01-26 --- Add direct externalAdReply access (no need to create contextInfo first)
 
-	if ((message as any).secureMetaServiceLabel) {
-		m.messageContextInfo = {
-			...m.messageContextInfo,
-			messageAddOnDurationInSecs: 0
+	// ── PTV (picture-in-picture) video message ───────────────────────────────
+	if (hasOptionalProperty(message, 'ptv') && (message as any).ptv) {
+		const { videoMessage } = await prepareWAMessageMedia({ video: (message as any).video }, options)
+		m.ptvMessage = videoMessage
+	}
+
+	// ── Buttons reply (user tapped a button) ────────────────────────────────
+	if (hasNonNullishProperty(message, 'buttonReply')) {
+		const br = (message as any).buttonReply
+		switch (br.type ?? 'plain') {
+			case 'template':
+				m.templateButtonReplyMessage = {
+					selectedId:          br.id,
+					selectedDisplayText: br.displayText,
+					index:               br.index ?? 0
+				}
+				break
+			default:
+				m.buttonsResponseMessage = {
+					selectedButtonId:    br.id,
+					selectedDisplayText: br.displayText,
+					type:                proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT
+				}
 		}
 	}
 
-	// interactiveAsTemplate (itsliaaa)
-	else if (hasNonNullishProperty(message, 'invoiceNote')) {
-		const attachment = m.imageMessage || m.documentMessage
-		const type = (Object.keys(m)[0] || '').replace('Message', '').toUpperCase()
-		const invoiceMessage = {
-			attachmentType: proto.Message.InvoiceMessage.AttachmentType[type === 'DOCUMENT' ? 'PDF' : 'IMAGE'],
-			note: (message as any)?.invoiceNote
+	// ── List reply (user selected a list row) ───────────────────────────────
+	if (hasNonNullishProperty(message, 'listReply')) {
+		const lr = (message as any).listReply
+		m.listResponseMessage = {
+			description:         lr.description,
+			listType:            proto.Message.ListResponseMessage.ListType.SINGLE_SELECT,
+			singleSelectReply:   { selectedRowId: lr.id },
+			title:               lr.title
 		}
-		if (attachment) {
-			const {
-				directPath,
-				fileEncSha256,
-				fileSha256,
-				jpegThumbnail = undefined,
-				mediaKey,
-				mediaKeyTimestamp,
-				mimetype
-			} = attachment
-			Object.assign(invoiceMessage, {
-				attachmentDirectPath: directPath,
-				attachmentFileEncSha256: fileEncSha256,
-				attachmentFileSha256: fileSha256,
-				attachmentJpegThumbnail: jpegThumbnail,
-				attachmentMediaKey: mediaKey,
-				attachmentMediaKeyTimestamp: mediaKeyTimestamp,
-				attachmentMimetype: mimetype,
-				token: generateMessageIDV2()
-			})
-		} else {
-			throw new Boom('Invalid media type for invoice message', { statusCode: 400 })
+	}
+
+	// ── Payment invite message ────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'paymentInviteServiceType')) {
+		m.paymentInviteMessage = {
+			expiryTimestamp: Date.now(),
+			serviceType:     (message as any).paymentInviteServiceType
 		}
-		m = { invoiceMessage }
+	}
+
+	// ── Disappearing messages setting ─────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'disappearingMessagesInChat')) {
+		const raw = (message as any).disappearingMessagesInChat
+		const exp = typeof raw === 'boolean'
+			? (raw ? WA_DEFAULT_EPHEMERAL : 0)
+			: raw
+		m = prepareDisappearingMessageSettingContent(exp)
+	}
+
+
+
+	// ── interactiveAsTemplate — wrap interactiveMessage into templateMessage ──
+	if (hasOptionalProperty(message, 'interactiveAsTemplate') && (message as any).interactiveAsTemplate) {
+		if (!m.interactiveMessage) {
+			throw new Boom('interactiveAsTemplate requires an interactive message', { statusCode: 400 })
+		}
+		m = {
+			templateMessage: {
+				interactiveMessageTemplate: m.interactiveMessage,
+				templateId: (message as any).id || 'template-' + Date.now()
+			}
+		}
+	}
+
+	// ── Ephemeral / disappearing wrapper ─────────────────────────────────────
+	if (hasOptionalProperty(message, 'ephemeral') && (message as any).ephemeral) {
+		m = { ephemeralMessage: { message: m } }
+	}
+
+	// ── Group status v2 ──────────────────────────────────────────────────────
+	if (hasOptionalProperty(message, 'groupStatus') && (message as any).groupStatus) {
+		m.messageContextInfo = {
+			...(m.messageContextInfo ?? {}),
+			GroupStatusData: {
+				participant: (message as any).groupStatusParticipant
+			}
+		}
+	}
+
+
+	// ── Order message ────────────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'orderText')) {
+		if (!Buffer.isBuffer((message as any).thumbnail)) {
+			throw new Boom('Must provide thumbnail Buffer in order message', { statusCode: 400 })
+		}
+		const orderMsg = { ...(message as any) }
+		delete orderMsg.orderText
+		m.orderMessage = {
+			itemCount:         1,
+			messageVersion:    1,
+			orderTitle:        'Order',
+			status:            proto.Message.OrderMessage.OrderStatus.INQUIRY,
+			surface:           proto.Message.OrderMessage.OrderSurface.CATALOG,
+			token:             generateMessageIDV2(authState?.creds?.me?.id),
+			totalAmount1000:   1000,
+			totalCurrencyCode: 'USD',
+			...orderMsg,
+			message:           (message as any).orderText
+		}
+	}
+
+	// ── Payment message (request payment from JID) ────────────────────────────
+	if (hasNonNullishProperty(message, 'requestPaymentFrom')) {
+		const rm = { ...(message as any) }
+		delete rm.requestPaymentFrom
+		if (!m.extendedTextMessage && !m.stickerMessage) {
+			throw new Boom('Payment note must be extendedText or sticker', { statusCode: 400 })
+		}
+		m = {
+			requestPaymentMessage: {
+				amount:             { currencyCode: 'USD', offset: 1000, value: 1000 },
+				amount1000:         1000,
+				currencyCodeIso4217: 'USD',
+				expiryTimestamp:    Date.now(),
+				noteMessage:        m,
+				requestFrom:        (message as any).requestPaymentFrom,
+				...rm,
+			}
+		}
+	}
+
+	// ── Invoice message ──────────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'invoiceNote')) {
+		const attachment = (m as any).imageMessage || (m as any).documentMessage
+		const mkeys = Object.keys(m)
+		const type  = mkeys[0]?.replace('Message', '').toUpperCase()
+		if (!attachment || !type) throw new Boom('Invoice needs image or document', { statusCode: 400 })
+		const { directPath, fileEncSha256, fileSha256, jpegThumbnail, mediaKey, mediaKeyTimestamp, mimetype } = attachment
+		m = { invoiceMessage: {
+			attachmentType:              proto.Message.InvoiceMessage.AttachmentType[type === 'DOCUMENT' ? 'PDF' : 'IMAGE'],
+			note:                        (message as any).invoiceNote,
+			attachmentDirectPath:        directPath,
+			attachmentFileEncSha256:     fileEncSha256,
+			attachmentFileSha256:        fileSha256,
+			attachmentJpegThumbnail:     jpegThumbnail,
+			attachmentMediaKey:          mediaKey,
+			attachmentMediaKeyTimestamp: mediaKeyTimestamp,
+			attachmentMimetype:          mimetype,
+			token:                       generateMessageIDV2(authState?.creds?.me?.id),
+		}}
+	}
+
+	// ── Admin invite message ─────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'adminInvite')) {
+		const ai = (message as any).adminInvite
+		m.groupInviteMessage = {
+			inviteCode:       ai.inviteCode,
+			inviteExpiration: ai.inviteExpiration,
+			groupJid:         ai.jid,
+			groupName:        ai.subject,
+			caption:          ai.text ?? ai.caption,
+			jpegThumbnail:    ai.thumbnail,
+			groupType:        proto.Message.GroupInviteMessage.GroupType.DEFAULT,
+		}
+	}
+
+	// ── Group invite message ─────────────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'groupInvite')) {
+		const gi = (message as any).groupInvite
+		m.groupInviteMessage = {
+			inviteCode:       gi.inviteCode,
+			inviteExpiration: gi.inviteExpiration,
+			groupJid:         gi.jid,
+			groupName:        gi.subject,
+			caption:          gi.text ?? gi.caption,
+			jpegThumbnail:    gi.thumbnail,
+		}
+	}
+
+	// ── Clear / delete chat message ──────────────────────────────────────────
+	if (hasNonNullishProperty(message, 'clearChat')) {
+		m = {
+			protocolMessage: {
+				type:                             proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION,
+				clearChatMessage:                 { messageTimestamp: Date.now() },
+			}
+		}
+	}
+
+	// ── ViewOnceMessageV2 wrapper ────────────────────────────────────────────
+	if (hasOptionalProperty(message, 'viewOnceV2') && (message as any).viewOnceV2) {
+		m = { viewOnceMessageV2: { message: m } }
+		delete (message as any).viewOnceV2
+	}
+
+	// ── ViewOnceV2Extension wrapper ──────────────────────────────────────────
+	if (hasOptionalProperty(message, 'viewOnceV2Extension') && (message as any).viewOnceV2Extension) {
+		m = { viewOnceMessageV2Extension: { message: m } }
+		delete (message as any).viewOnceV2Extension
+	}
+
+	// ── HD Image / HD Video flag ─────────────────────────────────────────────
+	// Sets HD flag on image/video mediaMessage — WA uses this for full-res delivery
+	if (hasOptionalProperty(message, 'isHD') && (message as any).isHD) {
+		const mediaMsg = m.imageMessage ?? m.videoMessage
+		if (mediaMsg) {
+			;(mediaMsg as any).isHD = true
+			;(mediaMsg as any).messageVersion = 2
+		}
+	}
+
+	// ── Shop / Storefront message (nativeFlow + shopStorefrontMessage) ────────
+	if (hasOptionalProperty(message, 'shopSurface') && (message as any).shopSurface !== undefined) {
+		if (m.interactiveMessage) {
+			;(m.interactiveMessage as any).shopStorefrontMessage = {
+				surface:        (message as any).shopSurface,
+				id:             (message as any).id,
+				messageVersion: 1
+			}
+		}
+	}
+
+	// ── Collection message (nativeFlow + bizJid) ─────────────────────────────
+	if (hasOptionalProperty(message, 'bizJid') && (message as any).bizJid) {
+		if (m.interactiveMessage) {
+			;(m.interactiveMessage as any).collectionMessage = {
+				bizJid:         (message as any).bizJid,
+				id:             (message as any).id,
+				messageVersion: 1
+			}
+		}
+	}
+
+
+	// ── Simplified externalAdReply — no manual contextInfo needed ───────────
+	// Pass { externalAdReply: { title, body, thumbnail, url, mediaType, largeThumbnail } }
+	if (hasOptionalProperty(message, 'externalAdReply') && !!(message as any).externalAdReply) {
+		const msgType  = Object.keys(m)[0] as string
+		const msgBody  = (m as any)[msgType]
+		const content  = (message as any).externalAdReply as Record<string, any>
+		if ('thumbnail' in content && !Buffer.isBuffer(content.thumbnail)) {
+			throw new Boom('externalAdReply thumbnail must be a Buffer', { statusCode: 400 })
+		}
+		if (!content.url || typeof content.url !== 'string') {
+			content.url = 'https://github.com/WhiskeySockets/Baileys'
+		}
+		const adReply = {
+			...content,
+			body:                  content.body,
+			mediaType:             content.mediaType ?? 1,
+			mediaUrl:              content.url,
+			renderLargerThumbnail: content.largeThumbnail,
+			sourceUrl:             content.url,
+			thumbnail:             content.thumbnail,
+			thumbnailUrl:          content.url + '?update=' + Date.now(),
+			title:                 content.title ?? 'Baileys',
+		}
+		delete adReply.subTitle
+		delete adReply.largeThumbnail
+		delete adReply.url
+		if (msgBody && 'contextInfo' in msgBody && msgBody.contextInfo) {
+			msgBody.contextInfo.externalAdReply = { ...msgBody.contextInfo.externalAdReply, ...adReply }
+		} else if (msgBody) {
+			msgBody.contextInfo = { externalAdReply: adReply }
+		}
+	}
+
+	// ── mentionAll — auto-mention all group participants ─────────────────────
+	if (hasOptionalProperty(message, 'mentionAll') && (message as any).mentionAll) {
+		const msgType = Object.keys(m)[0] as string
+		const msgBody = (m as any)[msgType]
+		if (msgBody && 'contextInfo' in msgBody) {
+			msgBody.contextInfo = msgBody.contextInfo ?? {}
+			msgBody.contextInfo.mentionedJid = msgBody.contextInfo.mentionedJid ?? []
+			// Bot sends mentions — actual JIDs injected at relay time when cachedGroupMetadata is available
+			if (!(msgBody.contextInfo.mentionedJid as string[]).length) {
+				msgBody.contextInfo.mentionedJid = (message as any).mentions ?? []
+			}
+		}
+	}
+
+	// ── secureMetaServiceLabel — secure meta service label ───────────────────
+	if (hasOptionalProperty(message, 'secureMetaServiceLabel') && (message as any).secureMetaServiceLabel) {
+		const msgType = Object.keys(m)[0] as string
+		const msgBody = (m as any)[msgType]
+		if (msgBody && 'contextInfo' in msgBody) {
+			msgBody.contextInfo = msgBody.contextInfo ?? {}
+			msgBody.contextInfo.secureMessageInteractivityStatus = 1
+		}
+	}
+
+	// ── spoiler — wrap message into spoilerMessage ────────────────────────────
+	if (hasOptionalProperty(message, 'spoiler') && !!(message as any).spoiler) {
+		const msgType = Object.keys(m)[0] as string
+		const msgBody = (m as any)[msgType]
+		if (msgBody && 'contextInfo' in msgBody && msgBody.contextInfo) {
+			msgBody.contextInfo.isSpoiler = true
+		} else if (msgBody) {
+			msgBody.contextInfo = { isSpoiler: true }
+		}
+		m = { spoilerMessage: { message: m } }
+	}
+
+
+	// ── Keep in Chat (🔖 Keep Chat) ──────────────────────────────────────────
+	// Usage: sock.sendMessage(jid, { keep: messageKey, type: 1 })
+	// type 1 = keep, type 0 = unkeep
+	if (hasNonNullishProperty(message, 'keep')) {
+		m.keepInChatMessage = {
+			key:         (message as any).keep,
+			keepType:    (message as any).type ?? 1,
+			timestampMs: Date.now()
+		}
+	}
+
+	// ── FlowReply (interactive flow response) ────────────────────────────────
+	if (hasNonNullishProperty(message, 'flowReply')) {
+		const fr = (message as any).flowReply
+		m.interactiveResponseMessage = {
+			body: {
+				format: proto.Message.InteractiveResponseMessage.Body.Format.DEFAULT,
+				text:   fr.text ?? ''
+			},
+			nativeFlowResponseMessage: {
+				name:       fr.name,
+				paramsJson: fr.paramsJson ?? '{}',
+				version:    fr.version ?? 1
+			}
+		}
+	}
+
+	// ── isLottie — wrap into lottieStickerMessage [Lia@Changes 16-05-26] ─────
+	if (hasOptionalProperty(message, 'isLottie') && !!(message as any).isLottie) {
+		m = { lottieStickerMessage: { message: m } }
+	}
+
+	// AI icon — adds Meta AI animated badge to the message bubble
+	if (hasOptionalProperty(message, 'ai') && (message as any).ai) {
+		const botJid = (message as any).aiBotJid ?? '867051314767696@bot'
+		m.messageContextInfo = {
+			...m.messageContextInfo,
+			botMessageSharingInfo: { botJid, botType: 1, botMessageSecret: Buffer.alloc(0) },
+		}
+		m.contextInfo = {
+			...(m.contextInfo ?? {}),
+			forwardedAiBotMessageInfo: { botJid },
+			forwardOrigin: 4,
+		}
 	}
 
 	return WAProto.Message.create(m)
@@ -762,7 +1059,8 @@ export const generateWAMessageFromContent = (
 
 		// if a participant is quoted, then it must be a group
 		// hence, remoteJid of group must also be entered
-		if (jid !== quoted.key.remoteJid) {
+		// newsletters do not support remoteJid in contextInfo — skip it
+		if (jid !== quoted.key.remoteJid && !isJidNewsletter(jid)) {
 			contextInfo.remoteJid = quoted.key.remoteJid
 		}
 
@@ -792,11 +1090,15 @@ export const generateWAMessageFromContent = (
 
 	message = WAProto.Message.create(message)
 
+	// Resolve uuid: content.uuid → options.uuid → default 'qa3#69' + random (15 chars)
+	const _keyUuid = generateKeyUuid((content as any)?.uuid ?? (options as any)?.uuid)
+
 	const messageJSON = {
 		key: {
 			remoteJid: jid,
 			fromMe: true,
-			id: options?.messageId || generateMessageIDV2()
+			id: options?.messageId || generateMessageIDV2(),
+			uuid: _keyUuid
 		},
 		message: message,
 		messageTimestamp: timestamp,
@@ -1166,3 +1468,237 @@ export const assertMediaContent = (content: proto.IMessage | null | undefined) =
 
 	return mediaContent
 }
+
+/**
+ * Checks if a WebP buffer is animated by looking for VP8X chunk with animation flag
+ * or ANIM/ANMF chunks
+ */
+function isAnimatedWebP(buffer: Buffer): boolean {
+	// WebP must start with RIFF....WEBP
+	if (
+		buffer.length < 12 ||
+		buffer[0] !== 0x52 ||
+		buffer[1] !== 0x49 ||
+		buffer[2] !== 0x46 ||
+		buffer[3] !== 0x46 ||
+		buffer[8] !== 0x57 ||
+		buffer[9] !== 0x45 ||
+		buffer[10] !== 0x42 ||
+		buffer[11] !== 0x50
+	) {
+		return false
+	}
+
+	// Parse chunks starting after RIFF header (12 bytes)
+	let offset = 12
+	while (offset < buffer.length - 8) {
+		const chunkFourCC = buffer.toString('ascii', offset, offset + 4)
+		const chunkSize = buffer.readUInt32LE(offset + 4)
+
+		if (chunkFourCC === 'VP8X') {
+			// VP8X extended header, check animation flag (bit 1 at offset+8)
+			const flagsOffset = offset + 8
+			if (flagsOffset < buffer.length) {
+				const flags = buffer[flagsOffset]!
+				if (flags & 0x02) {
+					return true
+				}
+			}
+		} else if (chunkFourCC === 'ANIM' || chunkFourCC === 'ANMF') {
+			// ANIM or ANMF chunks indicate animation
+			return true
+		}
+
+		// Move to next chunk (chunk size + 8 bytes header, padded to even)
+		offset += 8 + chunkSize + (chunkSize % 2)
+	}
+
+	return false
+}
+
+/**
+ * Checks if a buffer is a WebP file
+ */
+function isWebPBuffer(buffer: Buffer): boolean {
+	return (
+		buffer.length >= 12 &&
+		buffer[0] === 0x52 &&
+		buffer[1] === 0x49 &&
+		buffer[2] === 0x46 &&
+		buffer[3] === 0x46 &&
+		buffer[8] === 0x57 &&
+		buffer[9] === 0x45 &&
+		buffer[10] === 0x42 &&
+		buffer[11] === 0x50
+	)
+}
+
+export async function prepareStickerPackMessage(
+	stickerPack: StickerPack,
+	options: MessageContentGenerationOptions
+): Promise<proto.IMessage> {
+	const { stickers, name, publisher, packId, description } = stickerPack
+
+	if (stickers.length > 60) {
+		throw new Boom('Sticker pack exceeds the maximum limit of 60 stickers', { statusCode: 400 })
+	}
+
+	if (stickers.length === 0) {
+		throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
+	}
+
+	const stickerPackIdValue = packId || generateMessageIDV2()
+
+	const lib = await getImageProcessingLibrary()
+	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
+	const stickerPromises = stickers.map(async (s, i) => {
+		const { stream } = await getStream(s.data)
+		const buffer = await toBuffer(stream)
+
+		let webpBuffer: Buffer
+		let isAnimated = false
+		const isWebP = isWebPBuffer(buffer)
+
+		if (isWebP) {
+			// Already WebP - preserve original to keep exif metadata and animation
+			webpBuffer = buffer
+			isAnimated = isAnimatedWebP(buffer)
+		} else if ('sharp' in lib && lib.sharp) {
+			// Convert to WebP, preserving metadata
+			webpBuffer = await lib.sharp.default(buffer).webp().toBuffer()
+			// Non-WebP inputs converted to WebP are not animated
+			isAnimated = false
+		} else {
+			throw new Boom(
+				'No image processing library (sharp) available for converting sticker to WebP. Either install sharp or provide stickers in WebP format.'
+			)
+		}
+
+		if (webpBuffer.length > 1024 * 1024) {
+			throw new Boom(`Sticker at index ${i} exceeds the 1MB size limit`, { statusCode: 400 })
+		}
+
+		const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')
+		const fileName = `${hash}.webp`
+		stickerData[fileName] = [new Uint8Array(webpBuffer), { level: 0 as 0 }]
+		return {
+			fileName,
+			mimetype: 'image/webp',
+			isAnimated,
+			emojis: s.emojis || [],
+			accessibilityLabel: s.accessibilityLabel
+		}
+	})
+
+	const stickerMetadata = await Promise.all(stickerPromises)
+
+	// Process and add cover/tray icon to the ZIP
+	const trayIconFileName = `${stickerPackIdValue}.webp`
+	const { stream: coverStream } = await getStream(stickerPack.cover)
+	const coverBuffer = await toBuffer(coverStream)
+
+	let coverWebpBuffer: Buffer
+	const isCoverWebP = isWebPBuffer(coverBuffer)
+
+	if (isCoverWebP) {
+		// Already WebP - preserve original to keep exif metadata
+		coverWebpBuffer = coverBuffer
+	} else if ('sharp' in lib && lib.sharp) {
+		coverWebpBuffer = await lib.sharp.default(coverBuffer).webp().toBuffer()
+	} else {
+		throw new Boom(
+			'No image processing library (sharp) available for converting cover to WebP. Either install sharp or provide cover in WebP format.'
+		)
+	}
+
+	// Add cover to ZIP data
+	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 as 0 }]
+
+	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
+		zip(stickerData, (err, data) => {
+			if (err) {
+				reject(err)
+			} else {
+				resolve(Buffer.from(data))
+			}
+		})
+	})
+
+	const stickerPackSize = zipBuffer.length
+
+	const stickerPackUpload = await encryptedStream(zipBuffer, 'sticker-pack', {
+		logger: options.logger,
+		opts: options.options
+	})
+
+	const stickerPackUploadResult = await options.upload(stickerPackUpload.encFilePath, {
+		fileEncSha256B64: stickerPackUpload.fileEncSha256.toString('base64'),
+		mediaType: 'sticker-pack',
+		timeoutMs: options.mediaUploadTimeoutMs
+	})
+
+	await fs.unlink(stickerPackUpload.encFilePath)
+
+	const stickerPackMessage: proto.Message.IStickerPackMessage = {
+		name: name,
+		publisher: publisher,
+		stickerPackId: stickerPackIdValue,
+		packDescription: description,
+		stickerPackOrigin: WAProto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
+		stickerPackSize: stickerPackSize,
+		stickers: stickerMetadata,
+		fileSha256: stickerPackUpload.fileSha256,
+		fileEncSha256: stickerPackUpload.fileEncSha256,
+		mediaKey: stickerPackUpload.mediaKey,
+		directPath: stickerPackUploadResult.directPath,
+		fileLength: stickerPackUpload.fileLength,
+		mediaKeyTimestamp: unixTimestampSeconds(),
+		trayIconFileName: trayIconFileName
+	}
+
+	try {
+		// Reuse the cover buffer we already processed for thumbnail generation
+		let thumbnailBuffer: Buffer
+
+		if ('sharp' in lib && lib.sharp) {
+			thumbnailBuffer = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
+		} else if ('jimp' in lib && lib.jimp) {
+			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
+			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
+		} else {
+			throw new Error('No image processing library available for thumbnail generation')
+		}
+
+		if (!thumbnailBuffer || thumbnailBuffer.length === 0) {
+			throw new Error('Failed to generate thumbnail buffer')
+		}
+
+		const thumbUpload = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack', {
+			logger: options.logger,
+			opts: options.options,
+			mediaKey: stickerPackUpload.mediaKey
+		})
+
+		const thumbUploadResult = await options.upload(thumbUpload.encFilePath, {
+			fileEncSha256B64: thumbUpload.fileEncSha256.toString('base64'),
+			mediaType: 'thumbnail-sticker-pack',
+			timeoutMs: options.mediaUploadTimeoutMs
+		})
+
+		await fs.unlink(thumbUpload.encFilePath)
+
+		Object.assign(stickerPackMessage, {
+			thumbnailDirectPath: thumbUploadResult.directPath,
+			thumbnailSha256: thumbUpload.fileSha256,
+			thumbnailEncSha256: thumbUpload.fileEncSha256,
+			thumbnailHeight: 252,
+			thumbnailWidth: 252,
+			imageDataHash: sha256(thumbnailBuffer).toString('base64')
+		})
+	} catch (e) {
+		options.logger?.warn?.(`Thumbnail generation failed: ${e}`)
+	}
+
+	return { stickerPackMessage }
+}
+

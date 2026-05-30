@@ -1,0 +1,123 @@
+name: TESTING VERSION
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        type: string
+        description: 'Must be: patch, minor, major, pre* or <version>'
+        required: true
+        default: 'patch'
+
+permissions: write-all
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Fetching tags
+        run: git fetch --tags -f || true
+
+      - name: Get previous version
+        id: get_previous_version
+        run: |
+          git checkout HEAD~1 package.json || true
+          PREV_VERSION=$(node -p "require('./package.json').version")
+          git checkout HEAD package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          if [ "$(printf '%s\n' "$PREV_VERSION" "$CURRENT_VERSION" | sort -V | head -n1)" != "$CURRENT_VERSION" ] && [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "version_increased=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_increased=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if version is beta
+          if [[ "$CURRENT_VERSION" == *-beta* ]]; then
+            echo "is_beta=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log version changes
+        run: |
+          echo "Previous version: ${{ steps.get_previous_version.outputs.prev_version }}"
+          echo "Current version: ${{ steps.get_previous_version.outputs.current_version }}"
+          echo "Version increased: ${{ steps.get_previous_version.outputs.version_increased }}"
+          echo "Is beta version: ${{ steps.get_previous_version.outputs.is_beta }}"
+
+      - name: Setup Node
+        uses: actions/setup-node@v3.6.0
+        with:
+          node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Restore Yarn Cache
+        uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Dependencies
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish in NPM (as @queenanya/baileys in regular)
+        run: |
+          #CURRENT_VERSION=$(node -p "require('./package.json').version")
+          #NEW_VERSION="${CURRENT_VERSION}-${{ github.event.inputs.increment }}"
+          #echo "Publishing version: $NEW_VERSION"
+          npx json -I -f package.json -e "this.name='anya-bail'"
+           npx json -I -f package.json -e "this.version=" + ${{ github.event.inputs.increment }}
+          npm publish --access public
+          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Generate Changelog
+        id: generate_changelog
+        run: |
+          changelog=$(npm run changelog:last --silent)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "${changelog}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Make Package
+        run: npm pack
+
+      - name: Rename Pack
+        run: mv *.tgz baileys-anya.tgz
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ github.ref_name }}
+          body: ${{ steps.generate_changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            baileys-anya.tgz

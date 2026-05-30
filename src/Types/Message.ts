@@ -1,10 +1,10 @@
 import type { Readable } from 'stream'
 import type { URL } from 'url'
+import { proto } from '../../WAProto/index.js'
 import type { MediaType } from '../Defaults'
 import type { BinaryNode } from '../WABinary'
 import type { GroupMetadata } from './GroupMetadata'
 import type { CacheStore } from './Socket'
-import { proto } from '../../WAProto/index.js'
 
 // export the WAMessage Prototypes
 export { proto as WAProto }
@@ -25,6 +25,7 @@ export type WAMessageKey = proto.IMessageKey & {
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
+	uuid?: string
 }
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo
@@ -35,28 +36,19 @@ export type WAGenericMediaMessage =
 	| proto.Message.IAudioMessage
 	| proto.Message.IDocumentMessage
 	| proto.Message.IStickerMessage
+export const WAMessageStubType = proto.WebMessageInfo.StubType
+export const WAMessageStatus = proto.WebMessageInfo.Status
 import type { ILogger } from '../Utils/logger'
 export type WAMediaPayloadURL = { url: URL | string }
 export type WAMediaPayloadStream = { stream: Readable }
 export type WAMediaUpload = Buffer | WAMediaPayloadStream | WAMediaPayloadURL
-
-export type Sticker = {
-	data: WAMediaUpload
-	emojis?: string[]
-	accessibilityLabel?: string
-}
-
-export type StickerPack = {
-	stickers: Sticker[]
-	cover: WAMediaUpload
-	name: string
-	publisher: string
-	description?: string
-	packId?: string
-}
-
 /** Set of message types that are supported by the library */
 export type MessageType = keyof proto.Message
+
+export enum WAMessageAddressingMode {
+	PN = 'pn',
+	LID = 'lid'
+}
 
 export type MessageWithContextInfo =
 	| 'imageMessage'
@@ -252,9 +244,6 @@ export type AnyRegularMessageContent = (
 	  } & Mentionable &
 			Contextable &
 			Editable)
-	| {
-			stickerPack: StickerPack
-	  }
 	| ({
 			album: AlbumMessageOptions
 	  } & Contextable &
@@ -297,6 +286,21 @@ export type AnyRegularMessageContent = (
 	| RequestPhoneNumber
 ) &
 	ViewOnce
+
+export type Sticker = {
+	data: WAMediaUpload
+	emojis?: string[]
+	accessibilityLabel?: string
+}
+
+export type StickerPack = {
+	stickers: Sticker[]
+	cover: WAMediaUpload
+	name: string
+	publisher: string
+	description?: string
+	packId?: string
+}
 
 export type AnyMessageContent =
 	| AnyRegularMessageContent
@@ -354,17 +358,9 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	/** if it is broadcast */
 	broadcast?: boolean
 	/**
-	 * Optional identifier added as key.uuid on the returned WAMessage.
-	 * Value = (content.uuid || options.uuid || 'qa3#69') + random chars, total exactly 11 chars.
-	 * The key.id field is NOT modified — it stays as standard '4NY4W3B...' format.
-	 *
-	 * @example
-	 * sock.sendMessage(jid, { text: 'Hi' }, { uuid: 'text' })
-	 * // → key.id   = '4NY4W3B118751AAD4EDF59842'  (unchanged)
-	 * // → key.uuid = 'textA3K9Z2M' (11 chars)
-	 *
-	 * sock.sendMessage(jid, { text: 'Hi' })
-	 * // → key.uuid = 'qa3#69A3K9Z' (11 chars, default)
+	 * Custom UUID to embed in the outgoing message key.
+	 * If supplied, the key will carry key.uuid = uuid + randomSuffix (capped at 15 chars total).
+	 * Falls back to content.uuid, then the hardcoded default.
 	 */
 	uuid?: string
 }
@@ -411,29 +407,244 @@ export type MessageUserReceipt = proto.IUserReceipt
 
 export type WAMessageUpdate = { update: Partial<WAMessage>; key: WAMessageKey }
 
-export type WAMessageCursor = { before: WAMessageKey | undefined } | { after: WAMessageKey | undefined }
+export type WAMessageCursor =
+	| { before: WAMessageKey | undefined }
+	| { after: WAMessageKey | undefined }
+	| { stickerPack: StickerPack }
+	// ─── Interactive / Button / NativeFlow / Carousel ───────────────────
+	| {
+			/** Old-style buttons (buttonsMessage) — also accepts nativeFlow button types */
+			buttons: NativeFlowButton[]
+			text?: string
+			caption?: string
+			title?: string
+			footer?: string
+	  }
+	| {
+			/** List message (single-select sections) */
+			sections: proto.Message.ListMessage.ISection[]
+			buttonText?: string
+			title?: string
+			text?: string
+			footer?: string
+	  }
+	| {
+			/** Template message (hydratedFourRowTemplate) */
+			templateButtons: Array<{
+				id?: string
+				url?: string
+				call?: string
+				text?: string
+				buttonText?: string
+				index?: number
+				quickReplyButton?: { displayText: string; id: string }
+				urlButton?: { displayText: string; url: string }
+				callButton?: { displayText: string; phoneNumber: string }
+			}>
+			text?: string
+			caption?: string
+			title?: string
+			footer?: string
+			id?: string
+	  }
+	| ({
+			/** Native-flow interactiveMessage */
+			nativeFlow: NativeFlowMessageOptions | NativeFlowButton[]
+	  } & NativeFlowMessageOptions & {
+				text?: string
+				caption?: string
+				title?: string
+				subtitle?: string
+				thumbnail?: Buffer
+				footer?: string
+				audioFooter?: WAMediaUpload
+			})
+	| {
+			/** Carousel (carouselMessage) — array of cards with media + buttons */
+			cards: CarouselCard[]
+			text?: string
+			footer?: string
+	  }
+	// ─── Message wrapper flags ────────────────────────────────────────────
+	| { mentionAll?: boolean; [key: string]: any }
+	| { groupStatus?: boolean; [key: string]: any }
+	| { interactiveAsTemplate?: boolean; [key: string]: any }
+	| { ephemeral?: boolean; [key: string]: any }
+	| { spoiler?: boolean; [key: string]: any }
+	| { raw?: boolean; [key: string]: any }
+	| { ai?: boolean; aiBotJid?: string; aiBizJid?: string; [key: string]: any }
+	// ─── Message wrapper flags ───────────────────────────────────────────────
+	| { viewOnce?: boolean; [key: string]: any }
+	| { viewOnceV2?: boolean; [key: string]: any }
+	| { viewOnceV2Extension?: boolean; [key: string]: any }
+	| { ptv?: boolean; video: WAMediaUpload; [key: string]: any }
+	| { interactiveAsTemplate?: boolean; id?: string; [key: string]: any }
+	| { disappearingMessagesInChat?: boolean | number; [key: string]: any }
+	| { groupStatus?: boolean; groupStatusParticipant?: string; [key: string]: any }
+	// ─── Reply/response message types ────────────────────────────────────────
+	| { buttonReply: { id: string; displayText: string; type?: 'plain' | 'template'; index?: number } }
+	| { listReply: { id: string; title?: string; description?: string } }
+	// ─── Payment ─────────────────────────────────────────────────────────────
+	| { paymentInviteServiceType: number }
+	// ─── Status mentions ─────────────────────────────────────────────────────
+	| { statusMentionMessage?: boolean; [key: string]: any }
+	| { isLottie?: boolean; [key: string]: any }
+	| {
+			/** 🔖 Keep Chat — pin a message into keep-in-chat */
+			keep: proto.IMessageKey
+			/** 1 = keep, 0 = unkeep. Defaults to 1 */
+			type?: 0 | 1
+	  }
+	| {
+			/** Interactive flow reply (user responded to a flow) */
+			flowReply: {
+				name: string
+				paramsJson?: string
+				text?: string
+				version?: number
+			}
+	  }
+	// ─── Additional flags ────────────────────────────────────────────────────
+	| {
+			externalAdReply?: {
+				title?: string
+				body?: string
+				mediaType?: number
+				url: string
+				thumbnail?: Buffer
+				largeThumbnail?: boolean
+				[key: string]: any
+			}
+			[key: string]: any
+	  }
+	| { secureMetaServiceLabel?: boolean; [key: string]: any }
+	| { spoiler?: boolean; [key: string]: any }
+	| { mentionAll?: boolean; mentions?: string[]; [key: string]: any }
+	| { clearChat?: boolean }
+	| { isHD?: boolean; [key: string]: any }
+	| { shopSurface?: number; id?: string; [key: string]: any }
+	| { bizJid?: string; id?: string; [key: string]: any }
+	| { requestPaymentFrom?: string; [key: string]: any }
+	| { invoiceNote?: string; [key: string]: any }
+	| { orderText?: string; thumbnail?: Buffer; [key: string]: any }
+	| {
+			adminInvite?: {
+				inviteCode: string
+				inviteExpiration?: number
+				jid: string
+				subject: string
+				text?: string
+				caption?: string
+				thumbnail?: Buffer
+			}
+	  }
+	| {
+			groupInvite?: {
+				inviteCode: string
+				inviteExpiration?: number
+				jid: string
+				subject: string
+				text?: string
+				caption?: string
+				thumbnail?: Buffer
+			}
+	  }
+	| { externalAdReply?: ExternalAdReplyContent; [key: string]: any }
 
 export type MessageUserReceiptUpdate = { key: WAMessageKey; receipt: MessageUserReceipt }
 
 export type MediaDecryptionKeyInfo = {
-	iv: Uint8Array
-	cipherKey: Uint8Array
-	macKey?: Uint8Array
+	iv: Buffer
+	cipherKey: Buffer
+	macKey?: Buffer
 }
 
 export type MinimalMessage = Pick<WAMessage, 'key' | 'messageTimestamp'>
 
-// ── Proto enum aliases ────────────────────────────────────────────────────────
-export const AssociationType = proto.MessageAssociation.AssociationType
-export const ButtonHeaderType = proto.Message.ButtonsMessage.HeaderType
-export const ButtonType = proto.Message.ButtonsMessage.Button.Type
-export const CarouselCardType = proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType
-export const ListType = proto.Message.ListMessage.ListType
-export const ProtocolType = proto.Message.ProtocolMessage.Type
-export const WAMessageStubType = proto.WebMessageInfo.StubType
-export const WAMessageStatus = proto.WebMessageInfo.Status
+// ─────────────────────────────────────────────────────────
+// Interactive / Button / NativeFlow / Carousel Types (from @itsliaaa/baileys)
+// ─────────────────────────────────────────────────────────
 
-export enum WAMessageAddressingMode {
-	PN = 'pn',
-	LID = 'lid'
+/** A single native-flow button inside nativeFlow / cards */
+export type NativeFlowButton = {
+	/** Quick reply button — sends id back as message */
+	id?: string
+	/** Copy-to-clipboard button */
+	copy?: string
+	/** URL open button */
+	url?: string
+	/** Phone call button */
+	call?: string
+	/** Single-select list shortcut (opens a section picker) */
+	sections?: proto.Message.ListMessage.ISection[]
+	/** Raw native-flow button (pass name + paramsJson directly) */
+	name?: string
+	paramsJson?: string
+	/** Display text (overrides default) */
+	text?: string
+	buttonText?: string
+	/** Optional button icon name (e.g. 'LINK', 'PHONE') */
+	icon?: string
+	/** Open URL inside an in-app webview */
+	useWebview?: boolean
+}
+
+/** Options passed to the nativeFlow interactiveMessage builder */
+export type NativeFlowMessageOptions = {
+	/** Button array */
+	buttons?: NativeFlowButton[]
+	/** Limited-time offer strip */
+	offerText?: string
+	offerUrl?: string
+	offerCode?: string
+	offerExpiration?: number
+	/** Bottom-sheet option list */
+	optionText?: string
+	optionTitle?: string
+	/** WA Business collection JID */
+	bizJid?: string
+	id?: string
+	/** WA Business shop storefront surface */
+	shopSurface?: number
+}
+
+/** A single card in a carousel message */
+export type CarouselCard = {
+	image?: WAMediaUpload
+	video?: WAMediaUpload
+	/** product shortcut — triggers productMessage header */
+	product?: {
+		productId: string
+		catalogId: string
+		body?: string
+		footer?: string
+	}
+	nativeFlow?: NativeFlowMessageOptions | NativeFlowButton[]
+	text?: string
+	caption?: string
+	title?: string
+	subtitle?: string
+	thumbnail?: Buffer
+	footer?: string
+	audioFooter?: WAMediaUpload
+}
+
+/** externalAdReply shortcut — attach ad reply without building contextInfo manually */
+export type ExternalAdReplyContent = {
+	title?: string
+	body?: string
+	mediaType?: number
+	url: string
+	thumbnail?: Buffer
+	largeThumbnail?: boolean
+}
+
+// ─── AI icon / bot message flags ─────────────────────────────────────────────
+export interface AIMessageOptions {
+	/** Show the Meta AI animated icon on the message bubble */
+	ai?: boolean
+	/** Bot JID to attribute the message to (defaults to Meta AI bot JID) */
+	aiBotJid?: string
+	/** Business card JID shown with AI badge */
+	aiBizJid?: string
 }
