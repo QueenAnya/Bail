@@ -1,6 +1,6 @@
 import { Boom } from '@hapi/boom'
-import type Long from 'long'
 import { createHash, randomBytes } from 'crypto'
+import type Long from 'long'
 import { proto } from '../../WAProto/index.js'
 const baileysVersion = [2, 3000, 1035194821]
 import type {
@@ -201,18 +201,6 @@ export const generateMessageIDV2 = (userId?: string): string => {
 
 // generate a random ID to attach to a message
 export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
-
-/**
- * ANYA-fork message ID generator — uses the 4NY4W3B prefix.
- * Swap in place of generateMessageID if you want ANYA-branded message IDs.
- *
- * @example
- * // In makeWASocket config:
- * generateHighQualityLinkPreview: true,
- * // and override generateMessageID:
- * import { generateAnyaMessageID } from '@whiskeysockets/baileys'
- */
-export const generateAnyaMessageID = () => '4NY4W3B' + randomBytes(16).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -493,54 +481,4 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
-}
-
-/**
- * Schedule async work to run detached (fire-and-forget) but always log rejections.
- * Replaces ad-hoc `void (async () => {...})()` patterns that silently swallowed errors.
- */
-export function runDetached(
-	work: () => Promise<unknown>,
-	logger: { warn?: (obj: unknown, msg?: string) => void; error?: (obj: unknown, msg?: string) => void },
-	context: Record<string, unknown> = {}
-): void {
-	// Defer entire body (including sync prologue) to microtask queue.
-	// This also folds synchronous throws into the same rejection-handling path.
-	Promise.resolve()
-		.then(work)
-		.catch((err: unknown) => {
-			logger.error?.({ ...context, err }, 'runDetached: detached work rejected')
-		})
-}
-
-/**
- * Generate the key.uuid field for an outgoing message.
- *
- * Rules:
- *  — If userUuid is supplied → keep it as-is (no padding, original length preserved)
- *  — If no userUuid → use default base 'qa3#69' and pad with random alphanumeric up to 15 chars
- *
- * @example
- * generateKeyUuid()           // → 'qa3#69A3K9Z2M8' (15 chars, random each time)
- * generateKeyUuid('mybot')    // → 'mybot' (kept as-is)
- * generateKeyUuid('text')     // → 'text'  (kept as-is)
- */
-export const generateKeyUuid = (userUuid?: string): string => {
-	const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-	const DEFAULT_BASE = 'qa3#69'
-	const DEFAULT_LEN = 15
-
-	if (userUuid !== undefined && userUuid !== '') {
-		// User supplied uuid — preserve it exactly as given
-		return userUuid
-	}
-
-	// Default path — build 'qa3#69' + random alphanumeric up to 15 chars
-	const padLen = DEFAULT_LEN - DEFAULT_BASE.length
-	let pad = ''
-	const bytes = randomBytes(padLen)
-	for (let i = 0; i < padLen; i++) {
-		pad += CHARS[bytes[i]! % CHARS.length]
-	}
-	return DEFAULT_BASE + pad
 }

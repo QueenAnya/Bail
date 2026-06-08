@@ -1,177 +1,156 @@
 /**
- * LID & SenderPn Plotting Utilities untuk Baileys-Joss
+ * JID Plotting & LID/PN Bidirectional Mapping Utilities
  *
- * senderPn = nomor WA yang sedang digunakan (current session)
- * LID = Linked ID yang dipakai WhatsApp untuk identifikasi
+ * Source: @innovatorssoft/baileys (jid-plotting.js)
+ * Rewritten as clean TypeScript with full types and JSDoc.
  *
- * @module jid-plotting
+ * Handles parsing, display, normalization, and LID↔PN resolution
+ * for all WhatsApp JID formats (s.whatsapp.net, @g.us, @lid,
+ * @newsletter, @hosted, @hosted.lid).
  */
 
-import { jidDecode, jidEncode, jidNormalizedUser, isLidUser, S_WHATSAPP_NET, type FullJid } from '../WABinary'
-import type { AuthenticationCreds } from '../Types'
+import { isLidUser, jidDecode, jidNormalizedUser } from '../WABinary/index.js'
+import type { AuthenticationState } from '../Types/index.js'
+import type { WAMessage } from '../Types/index.js'
 
-// Helper functions missing in some Baileys versions
-const isPnUser = (jid: string | undefined) => jid?.endsWith('@s.whatsapp.net')
-const isHostedPnUser = (jid: string | undefined) => jid?.endsWith('@hosted')
-const isHostedLidUser = (jid: string | undefined) => jid?.endsWith('@hosted.lid')
+// ─── Internal helpers ─────────────────────────────────────────────────────────
 
-// =====================================================
-// TYPES
-// =====================================================
+const isPnUser = (jid?: string | null): boolean => !!jid?.endsWith('@s.whatsapp.net')
+const isHostedPn = (jid?: string | null): boolean => !!jid?.endsWith('@hosted')
+const isHostedLid = (jid?: string | null): boolean => !!jid?.endsWith('@hosted.lid')
 
-export interface JidInfo {
-	/** Full JID string */
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type ParsedJid = {
+	/** Original JID string */
 	jid: string
-	/** User part (phone number or LID) */
+	/** User part (phone number or LID hex string) */
 	user: string
-	/** Server/domain part */
+	/** Server part (e.g. s.whatsapp.net, g.us, lid) */
 	server: string
-	/** Device number (0 = primary) */
+	/** Device ID (default 0 for primary device) */
 	device: number
-	/** Agent (0 = user, 1 = agent) */
+	/** Agent ID */
 	agent: number
-	/** Is this a LID? */
 	isLid: boolean
-	/** Is this a phone number (PN)? */
 	isPn: boolean
-	/** Is this a hosted account? */
 	isHosted: boolean
-	/** Is this a group? */
 	isGroup: boolean
-	/** Is this a newsletter? */
 	isNewsletter: boolean
-	/** Normalized user (without device) */
+	/** Normalized JID without device/agent suffix */
 	normalizedUser: string
 }
 
-export interface PlottedJid {
-	/** Original JID yang diberikan */
-	original: string
-	/** Phone number JID */
-	pn?: string
-	/** LID */
-	lid?: string
-	/** Resolved (primary identifier) */
-	primary: string
-	/** Info lengkap */
-	info: JidInfo
-}
-
-export interface SenderPnInfo {
-	/** Phone number dengan @s.whatsapp.net */
+export type SenderPnInfo = {
+	/** Full phone JID e.g. `628123456789@s.whatsapp.net` */
 	phoneJid: string
-	/** Phone number tanpa domain */
+	/** Phone number without domain e.g. `628123456789` */
 	phoneNumber: string
-	/** LID jika tersedia */
+	/** LID if the session has one */
 	lid?: string
-	/** Device ID */
+	/** Primary device ID */
 	deviceId: number
-	/** Nama yang tersimpan di account */
+	/** Display name / push name */
 	pushName?: string
-	/** Platform (android/ios/web/etc) */
+	/** Platform string from creds */
 	platform?: string
 }
 
-// =====================================================
-// CORE FUNCTIONS
-// =====================================================
+export type PlottedJid = {
+	original: string
+	primary: string
+	info: ParsedJid | null
+	pn?: string
+	lid?: string
+}
+
+export type JidFormatOptions = {
+	/** Include device ID suffix (e.g. `:2`) */
+	showDevice?: boolean
+	/** Append type label (e.g. `(LID)`, `(Group)`) */
+	showType?: boolean
+}
+
+export type RemoteJidInfo = {
+	/** The chat's JID (group or individual) */
+	chatJid: string
+	/** The sender's JID */
+	senderJid: string
+}
+
+export type JidPlotter = {
+	plotToLid(pn: string): Promise<string | undefined>
+	plotToPn(lid: string): Promise<string | undefined>
+	plotBidirectional(jid: string): Promise<PlottedJid>
+}
+
+// ─── Core functions ────────────────────────────────────────────────────────────
 
 /**
- * Parse dan extract informasi lengkap dari JID
+ * Parse and extract full metadata from any JID format.
  */
-export const parseJid = (jid: string): JidInfo | null => {
+export const parseJid = (jid: string | null | undefined): ParsedJid | null => {
 	if (!jid) return null
-
 	const decoded = jidDecode(jid)
 	if (!decoded) return null
-
-	const isLidVal = isLidUser(jid) || isHostedLidUser(jid)
-	const isPnVal = isPnUser(jid) || isHostedPnUser(jid)
-	const isGroup = jid.endsWith('@g.us')
-	const isNewsletter = jid.endsWith('@newsletter')
-	const isHostedVal = jid.includes('@hosted') || isHostedLidUser(jid) || isHostedPnUser(jid)
 
 	return {
 		jid,
 		user: decoded.user,
 		server: decoded.server,
-		device: decoded.device || 0,
+		device: decoded.device ?? 0,
 		agent: 0,
-		isLid: !!isLidVal,
-		isPn: !!isPnVal,
-		isHosted: !!isHostedVal,
-		isGroup,
-		isNewsletter,
+		isLid: isLidUser(jid) || isHostedLid(jid),
+		isPn: isPnUser(jid) || isHostedPn(jid),
+		isHosted: jid.includes('@hosted') || isHostedLid(jid) || isHostedPn(jid),
+		isGroup: jid.endsWith('@g.us'),
+		isNewsletter: jid.endsWith('@newsletter'),
 		normalizedUser: jidNormalizedUser(jid)
 	}
 }
 
 /**
- * Get senderPn (current session phone number) dari AuthenticationCreds
+ * Extract phone/session information from `AuthenticationCreds`.
  */
-export const getSenderPn = (creds: AuthenticationCreds): SenderPnInfo | null => {
+export const getSenderPn = (creds: AuthenticationState['creds']): SenderPnInfo | null => {
 	if (!creds?.me?.id) return null
-
 	const decoded = jidDecode(creds.me.id)
 	if (!decoded) return null
-
 	const phoneNumber = decoded.user
-	const phoneJid = `${phoneNumber}@s.whatsapp.net`
-
 	return {
-		phoneJid,
+		phoneJid: `${phoneNumber}@s.whatsapp.net`,
 		phoneNumber,
-		lid: creds.me.lid || undefined,
-		deviceId: decoded.device || 0,
+		lid: creds.me.lid ?? undefined,
+		deviceId: decoded.device ?? 0,
 		pushName: creds.me.name,
-		platform: creds.platform
+		platform: (creds as Record<string, unknown>).platform as string | undefined
 	}
 }
 
-/**
- * Get current sender info dari authState
- * Ini function yang paling sering dipakai
- */
-export const getCurrentSenderInfo = (authState: { creds: AuthenticationCreds }): SenderPnInfo | null => {
-	return getSenderPn(authState.creds)
-}
+/** Convenience wrapper over `getSenderPn` that accepts `AuthenticationState`. */
+export const getCurrentSenderInfo = (authState: AuthenticationState): SenderPnInfo | null =>
+	getSenderPn(authState.creds)
 
 /**
- * Check apakah JID adalah diri sendiri (current sender)
+ * Check whether `jid` belongs to the current session's account (self-check).
+ * Compares both PN and LID forms.
  */
 export const isSelf = (jid: string, senderPn: SenderPnInfo): boolean => {
-	if (!jid || !senderPn) return false
-
-	const normalizedJid = jidNormalizedUser(jid)
-	const normalizedSelf = jidNormalizedUser(senderPn.phoneJid)
-
-	// Check phone number match
-	if (normalizedJid === normalizedSelf) return true
-
-	// Check LID match if available
-	if (senderPn.lid) {
-		const normalizedLid = jidNormalizedUser(senderPn.lid)
-		if (normalizedJid === normalizedLid) return true
-	}
-
+	if (!jid) return false
+	const normalized = jidNormalizedUser(jid)
+	if (normalized === jidNormalizedUser(senderPn.phoneJid)) return true
+	if (senderPn.lid && normalized === jidNormalizedUser(senderPn.lid)) return true
 	return false
 }
 
 /**
- * Plot JID - convert antara PN dan LID
- * Ini memerlukan LIDMappingStore untuk full functionality
+ * Plot a JID — build a {@link PlottedJid} result without resolving LID↔PN.
+ * Use {@link createJidPlotter} for bidirectional resolution.
  */
 export const plotJid = (jid: string): PlottedJid | null => {
 	const info = parseJid(jid)
 	if (!info) return null
-
-	const result: PlottedJid = {
-		original: jid,
-		primary: jid,
-		info
-	}
-
-	// Determine what type this is
+	const result: PlottedJid = { original: jid, primary: jid, info }
 	if (info.isPn) {
 		result.pn = info.normalizedUser
 		result.primary = info.normalizedUser
@@ -179,198 +158,141 @@ export const plotJid = (jid: string): PlottedJid | null => {
 		result.lid = info.normalizedUser
 		result.primary = info.normalizedUser
 	}
-
 	return result
 }
 
 /**
- * Normalize berbagai format nomor ke JID yang valid
+ * Normalize various phone number formats to a `@s.whatsapp.net` JID.
+ * Handles `+`, spaces, dashes, and already-formed JIDs.
  */
 export const normalizePhoneToJid = (phone: string): string => {
-	// Hapus karakter non-numeric kecuali @
-	let cleaned = phone.replace(/[^\d@]/g, '')
-
-	// Jika sudah ada domain, return as-is setelah normalize
-	if (phone.includes('@')) {
-		return jidNormalizedUser(phone)
-	}
-
-	// Tambah domain
+	if (phone.includes('@')) return jidNormalizedUser(phone)
+	const cleaned = phone.replace(/[^\d]/g, '')
 	return `${cleaned}@s.whatsapp.net`
 }
 
 /**
- * Extract phone number dari JID (tanpa domain)
+ * Extract the bare phone number (no `@` domain) from a PN JID.
+ * Returns `null` for non-PN JIDs.
  */
 export const extractPhoneNumber = (jid: string): string | null => {
 	const info = parseJid(jid)
-	if (!info || !info.isPn) return null
+	if (!info?.isPn) return null
 	return info.user
 }
 
 /**
- * Buat formatted display untuk JID
+ * Format a JID for human-readable display.
+ *
+ * @example
+ * formatJidDisplay('628123456789:2@s.whatsapp.net', { showDevice: true, showType: true })
+ * // → '628123456789:2 (PN)'
  */
-export const formatJidDisplay = (
-	jid: string,
-	options?: {
-		showDevice?: boolean
-		showType?: boolean
-	}
-): string => {
+export const formatJidDisplay = (jid: string, options: JidFormatOptions = {}): string => {
 	const info = parseJid(jid)
 	if (!info) return jid
-
 	let display = info.user
-
-	if (options?.showDevice && info.device > 0) {
-		display += `:${info.device}`
-	}
-
-	if (options?.showType) {
+	if (options.showDevice && info.device > 0) display += `:${info.device}`
+	if (options.showType) {
 		if (info.isLid) display += ' (LID)'
 		else if (info.isGroup) display += ' (Group)'
 		else if (info.isNewsletter) display += ' (Newsletter)'
 		else if (info.isPn) display += ' (PN)'
 	}
-
 	return display
 }
 
 /**
- * Compare dua JID apakah merujuk ke user yang sama
+ * Compare two JIDs — returns `true` if they refer to the same user
+ * (normalized, ignoring device suffix).
  */
 export const isSameUser = (jid1: string, jid2: string): boolean => {
-	const info1 = parseJid(jid1)
-	const info2 = parseJid(jid2)
-
-	if (!info1 || !info2) return false
-
-	// Normalize dan compare
-	return info1.normalizedUser === info2.normalizedUser
+	const a = parseJid(jid1)
+	const b = parseJid(jid2)
+	if (!a || !b) return false
+	return a.normalizedUser === b.normalizedUser
 }
 
 /**
- * Get all JID variants dari satu nomor
- * Useful untuk searching across different formats
+ * Return all common JID variants for a bare phone number.
+ * Useful for searching message history across device IDs.
  */
 export const getJidVariants = (phone: string): string[] => {
-	const cleaned = phone.replace(/[^\d]/g, '')
-
+	const n = phone.replace(/[^\d]/g, '')
 	return [
-		`${cleaned}@s.whatsapp.net`,
-		`${cleaned}:0@s.whatsapp.net`,
-		`${cleaned}@lid`,
-		// Dengan device IDs
-		`${cleaned}:1@s.whatsapp.net`,
-		`${cleaned}:2@s.whatsapp.net`
+		`${n}@s.whatsapp.net`,
+		`${n}:0@s.whatsapp.net`,
+		`${n}@lid`,
+		`${n}:1@s.whatsapp.net`,
+		`${n}:2@s.whatsapp.net`,
+		`${n}:3@s.whatsapp.net`
 	]
 }
 
 /**
- * Construct JID dengan device ID
+ * Construct a JID with an explicit device ID.
+ *
+ * @param user    - Phone number or LID user part
+ * @param device  - Device ID (0 = primary)
+ * @param server  - Domain (default `s.whatsapp.net`)
  */
-export const constructJidWithDevice = (user: string, device: number, server: string = 's.whatsapp.net'): string => {
-	if (device === 0) {
-		return `${user}@${server}`
-	}
-	return `${user}:${device}@${server}`
-}
+export const constructJidWithDevice = (user: string, device: number, server = 's.whatsapp.net'): string =>
+	device === 0 ? `${user}@${server}` : `${user}:${device}@${server}`
 
 /**
- * Helper untuk mendapatkan remoteJid yang benar dari message
- * Memperhitungkan group dan direct messages
+ * Extract the chat JID and sender JID from a WAMessage.
+ * For group messages the sender is `key.participant`; for DMs it's `key.remoteJid`.
  */
-export const getRemoteJidFromMessage = (msg: {
-	key: { remoteJid?: string; participant?: string }
-}): { chatJid: string; senderJid: string } | null => {
+export const getRemoteJidFromMessage = (msg: WAMessage | null | undefined): RemoteJidInfo | null => {
 	if (!msg?.key?.remoteJid) return null
-
 	const chatJid = msg.key.remoteJid
 	const isGroupMsg = chatJid.endsWith('@g.us')
-
-	// For group messages, sender is in participant
-	// For direct messages, sender is remoteJid
-	const senderJid = isGroupMsg ? msg.key.participant || chatJid : chatJid
-
+	const senderJid = isGroupMsg ? (msg.key.participant ?? chatJid) : chatJid
 	return { chatJid, senderJid }
 }
 
-// =====================================================
-// ADVANCED PLOTTING WITH MAPPING SUPPORT
-// =====================================================
+// ─── JidPlotter (async LID↔PN resolver) ──────────────────────────────────────
 
 /**
- * Interface untuk plotting dengan external mapping
- */
-export interface JidPlotterWithMapping {
-	plotToLid: (pn: string) => Promise<string | null>
-	plotToPn: (lid: string) => Promise<string | null>
-	plotBidirectional: (jid: string) => Promise<PlottedJid>
-}
-
-/**
- * Create plotter yang bisa resolve LID <-> PN
- * Membutuhkan getLIDForPN dan getPNForLID dari LIDMappingStore
+ * Create a bidirectional JID plotter that uses the socket's signal-repository
+ * LID mapping to resolve LID ↔ PN.
+ *
+ * @param getLIDForPN - `signalRepository.lidMapping.getLIDForPN.bind(…)`
+ * @param getPNForLID - `signalRepository.lidMapping.getPNForLID.bind(…)`
+ *
+ * @example
+ * const plotter = createJidPlotter(
+ *     sock.signalRepository.lidMapping.getLIDForPN.bind(sock.signalRepository.lidMapping),
+ *     sock.signalRepository.lidMapping.getPNForLID.bind(sock.signalRepository.lidMapping)
+ * )
+ *
+ * const result = await plotter.plotBidirectional('628123456789@s.whatsapp.net')
+ * console.log(result.lid) // '123456789abcdef@lid' or undefined
  */
 export const createJidPlotter = (
-	getLIDForPN: (pn: string) => Promise<string | null>,
-	getPNForLID: (lid: string) => Promise<string | null>
-): JidPlotterWithMapping => {
-	return {
-		plotToLid: async (pn: string) => {
-			return await getLIDForPN(pn)
-		},
+	getLIDForPN: (pn: string) => Promise<string | undefined>,
+	getPNForLID: (lid: string) => Promise<string | undefined>
+): JidPlotter => ({
+	plotToLid: pn => getLIDForPN(pn),
+	plotToPn: lid => getPNForLID(lid),
 
-		plotToPn: async (lid: string) => {
-			return await getPNForLID(lid)
-		},
+	plotBidirectional: async jid => {
+		const info = parseJid(jid)
+		if (!info) return { original: jid, primary: jid, info: null }
+		const result: PlottedJid = { original: jid, primary: jid, info }
 
-		plotBidirectional: async (jid: string) => {
-			const info = parseJid(jid)
-			if (!info) {
-				return {
-					original: jid,
-					primary: jid,
-					info: parseJid(jid)!
-				}
-			}
-
-			const result: PlottedJid = {
-				original: jid,
-				primary: jid,
-				info
-			}
-
-			if (info.isPn) {
-				result.pn = info.normalizedUser
-				const lid = await getLIDForPN(jid)
-				if (lid) result.lid = lid
-				result.primary = info.normalizedUser
-			} else if (info.isLid) {
-				result.lid = info.normalizedUser
-				const pn = await getPNForLID(jid)
-				if (pn) result.pn = pn
-				result.primary = result.pn || info.normalizedUser
-			}
-
-			return result
+		if (info.isPn) {
+			result.pn = info.normalizedUser
+			const lid = await getLIDForPN(jid)
+			if (lid) result.lid = lid
+			result.primary = info.normalizedUser
+		} else if (info.isLid) {
+			result.lid = info.normalizedUser
+			const pn = await getPNForLID(jid)
+			if (pn) result.pn = pn
+			result.primary = result.pn ?? info.normalizedUser
 		}
-	}
-}
 
-export default {
-	parseJid,
-	getSenderPn,
-	getCurrentSenderInfo,
-	isSelf,
-	plotJid,
-	normalizePhoneToJid,
-	extractPhoneNumber,
-	formatJidDisplay,
-	isSameUser,
-	getJidVariants,
-	constructJidWithDevice,
-	getRemoteJidFromMessage,
-	createJidPlotter
-}
+		return result
+	}
+})

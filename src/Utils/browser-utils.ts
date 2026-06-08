@@ -21,19 +21,11 @@ export const Browsers: BrowsersMap = {
 	macOS: browser => ['Mac OS', browser, '14.4.1'],
 	baileys: browser => ['Baileys', browser, '6.5.0'],
 	windows: browser => ['Windows', browser, '10.0.22631'],
-	/** The appropriate browser based on your OS & release */
-	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()],
 	/** Android companion device. apiLevel is the Android API level (e.g. '14') */
-	android: (apiLevel: string) => [apiLevel, 'Android', ''] as [string, string, string],
-	/** KaiOS companion device. kaiosVersion is the KaiOS version (e.g. '2.5') */
-	kaiOS: (kaiosVersion: string) => [kaiosVersion, 'KaiOS', ''] as [string, string, string]
+	android: (apiLevel: string) => [apiLevel, 'Android', ''],
+	/** The appropriate browser based on your OS & release */
+	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()]
 }
-
-/**
- * Checks if the browser tuple represents a KaiOS companion device.
- * @param browser - Browser tuple [os, platform, version]
- */
-export const isKaiosBrowser = (browser: [string, string, string]): boolean => browser[1]?.toUpperCase() === 'KAIOS'
 
 /**
  * Checks if the browser tuple represents an Android companion device.
@@ -46,22 +38,21 @@ export const isAndroidBrowser = (browser: [string, string, string]): boolean => 
 
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
-	if (platformType !== undefined) {
-		return platformType.toString()
-	}
-
-	// 'ANDROID' is not in the PlatformType enum — map to ANDROID_PHONE
-	if (browser.toUpperCase() === 'ANDROID') {
-		const androidPhone = proto.DeviceProps.PlatformType['ANDROID_PHONE' as any]
-		if (androidPhone !== undefined) {
-			return androidPhone.toString()
-		}
-	}
-
-	return '1' // Chrome
+	return (platformType || proto.DeviceProps.PlatformType.CHROME).toString()
 }
 
-export const getPlatformDisplayName = (browser: string) => {
-	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
-	return platformType ? browser : 'Chrome'
+/**
+ * Returns the display name for a given browser platform string.
+ * Falls back to 'Chrome' if not recognized.
+ */
+export const getPlatformDisplayName = (browser: string): string => {
+	const known: Record<string, string> = {
+		CHROME: 'Chrome',
+		EDGE: 'Edge',
+		FIREFOX: 'Firefox',
+		IE: 'IE',
+		OPERA: 'Opera',
+		SAFARI: 'Safari'
+	}
+	return known[browser.toUpperCase()] || browser
 }

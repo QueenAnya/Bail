@@ -45,7 +45,7 @@ import {
 	newLTHashState,
 	processSyncAction
 } from '../Utils'
-import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
+import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import { buildTcTokenFromJid } from '../Utils/tc-token-utils'
 import {
@@ -85,8 +85,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		signalRepository,
 		onUnexpectedError,
 		sendUnifiedSession,
-		registerSocketEndHandler,
-		getMediaHost
+		registerSocketEndHandler
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
@@ -105,22 +104,14 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	let syncState: SyncState = SyncState.Connecting
 
-	/** Per-chat keyed mutex — same-chat messages serialize; different chats process in parallel */
-	const messageMutex = makeKeyedMutex()
+	/** this mutex ensures that messages are processed in order */
+	const messageMutex = makeMutex()
 
-	/**
-	 * Idempotency cache for processMessage (M8). TTL 10 min covers retry windows.
-	 */
-	const processedMessageCache: CacheStore = new NodeCache<boolean>({
-		stdTTL: 10 * 60,
-		useClones: false
-	}) as CacheStore
+	/** this mutex ensures that receipts are processed in order */
+	const receiptMutex = makeMutex()
 
-	/** Per-chat keyed receipt mutex */
-	const receiptMutex = makeKeyedMutex()
-
-	/** Per-WAPatchName keyed mutex — different collections apply patches in parallel */
-	const appStatePatchMutex = makeKeyedMutex()
+	/** this mutex ensures that app state patches are processed in order */
+	const appStatePatchMutex = makeMutex()
 
 	/** this mutex ensures that notifications are processed in order */
 	const notificationMutex = makeMutex()
