@@ -555,6 +555,82 @@ export const generateWAMessageContent = async (
 		m.eventMessage.extraGuestsAllowed = message.event.extraGuestsAllowed
 		m.eventMessage.isScheduleCall = message.event.isScheduleCall ?? false
 		m.eventMessage.location = message.event.location
+	} else if (hasNonNullishProperty(message, 'pollResult')) {
+		// Poll result snapshot — shows vote counts without revealing individual voters
+		if (!Array.isArray((message as { pollResult: { values: [string, number][] } }).pollResult.values)) {
+			throw new Boom('Invalid pollResult values', { statusCode: 400 })
+		}
+
+		const { name, values } = (message as { pollResult: { name: string; values: [string, number][] } }).pollResult
+		const pollResultSnapshotMessage = {
+			name,
+			pollVotes: values.map(([optionName, optionVoteCount]) => ({ optionName, optionVoteCount }))
+		}
+		;(pollResultSnapshotMessage as Record<string, unknown>).contextInfo = {
+			...(message.contextInfo || {}),
+			...buildMentionContextInfo(message)
+		}
+		m.pollResultSnapshotMessage = pollResultSnapshotMessage
+	} else if (hasNonNullishProperty(message, 'call')) {
+		// Scheduled call creation message (call invite)
+		const callMsg = (message as { call: { name?: string; type?: number; time?: number } }).call
+		m.scheduledCallCreationMessage = {
+			title: callMsg.name || 'Call',
+			callType: callMsg.type || 1,
+			scheduledTimestampMs: callMsg.time || Date.now()
+		}
+		;(m.scheduledCallCreationMessage as Record<string, unknown>).contextInfo = {
+			...(message.contextInfo || {}),
+			...buildMentionContextInfo(message)
+		}
+	} else if (hasNonNullishProperty(message, 'payment')) {
+		// Payment request message
+		const payMsg = (
+			message as {
+				payment: {
+					note?: string
+					currency?: string
+					offset?: number
+					amount?: number
+					expiry?: number
+					from?: string
+					image?: { placeholderArgb?: string; textArgb?: string; subtextArgb?: string }
+				}
+			}
+		).payment
+		const requestPaymentMessage: Record<string, unknown> = {
+			amount: {
+				currencyCode: payMsg.currency || 'IDR',
+				offset: payMsg.offset || 0,
+				value: payMsg.amount || 999999999
+			},
+			expiryTimestamp: payMsg.expiry || 0,
+			amount1000: (payMsg.amount || 999999999) * 1000,
+			currencyCodeIso4217: payMsg.currency || 'IDR',
+			requestFrom: payMsg.from || '0@s.whatsapp.net',
+			noteMessage: {
+				extendedTextMessage: {
+					text: payMsg.note || '',
+					contextInfo: {
+						...(message.contextInfo || {}),
+						...buildMentionContextInfo(message)
+					}
+				}
+			},
+			background: {
+				placeholderArgb: payMsg.image?.placeholderArgb
+					? parseInt(payMsg.image.placeholderArgb.replace('#', ''), 16)
+					: 0xff000000,
+				textArgb: payMsg.image?.textArgb ? parseInt(payMsg.image.textArgb.replace('#', ''), 16) : 0xffffffff,
+				subtextArgb: payMsg.image?.subtextArgb ? parseInt(payMsg.image.subtextArgb.replace('#', ''), 16) : 0xffffffff,
+				type: 1
+			}
+		}
+		m.requestPaymentMessage = requestPaymentMessage
+	} else if (hasNonNullishProperty(message, 'raw')) {
+		// Raw proto message — pass through directly without any wrapping
+		// ⚠️ Use with caution — no validation is performed
+		m = (message as { raw: proto.IMessage }).raw
 	} else if (hasNonNullishProperty(message, 'poll')) {
 		message.poll.selectableCount ||= 0
 		message.poll.toAnnouncementGroup ||= false

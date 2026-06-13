@@ -1,5 +1,6 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
+import type Long from 'long'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -15,6 +16,7 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
+	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -1165,6 +1167,32 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
+	 * Clear / delete a specific message from a chat (for yourself only).
+	 * Equivalent to long-pressing a message and selecting "Delete for Me".
+	 *
+	 * @param jid          The JID of the chat containing the message.
+	 * @param key          The WAMessageKey of the message to clear.
+	 * @param timestamps   The messageTimestamp of the message (number or Long).
+	 *
+	 * @example
+	 * await sock.clearMessage(jid, msg.key, msg.messageTimestamp)
+	 */
+	const clearMessage = (jid: string, key: WAMessageKey, timestamps: number | Long | null | undefined) => {
+		return chatModify(
+			{
+				delete: true,
+				lastMessages: [
+					{
+						key,
+						messageTimestamp: timestamps
+					}
+				]
+			} as unknown as ChatModification,
+			jid
+		)
+	}
+
+	/**
 	 * Adds label for the message
 	 */
 	const addMessageLabel = (jid: string, messageId: string, labelId: string) => {
@@ -1552,6 +1580,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		addLabel,
 		addChatLabel,
 		removeChatLabel,
+		clearMessage,
 		addMessageLabel,
 		removeMessageLabel,
 		star,

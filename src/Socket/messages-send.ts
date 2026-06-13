@@ -631,7 +631,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			useUserDevicesCache,
 			useCachedGroupMetadata,
 			statusJidList,
-			addBizAttributes
+			addBizAttributes,
+			AI = false
 		}: MessageRelayOptions
 	) => {
 		const meId = assertMeId(authState.creds)
@@ -645,6 +646,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const isStatus = jid === statusJid
 		const isLid = server === 'lid'
 		const isNewsletter = server === 'newsletter'
+		const isPrivateChat = server === 's.whatsapp.net' || isLid
 		const isGroupOrStatus = isGroup || isStatus
 		const finalJid = jid
 
@@ -1112,6 +1114,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				;(stanza.content as BinaryNode[]).push(getBizBinaryNode(innerMessage))
 			}
 
+			// AI icon — inject bot node for private chats (IS behavior)
+			if (AI && isPrivateChat) {
+				const hasBotNode = (stanza.content as BinaryNode[]).some(n => n.tag === 'bot')
+				if (!hasBotNode) {
+					;(stanza.content as BinaryNode[]).push({ tag: 'bot', attrs: { biz_bot: '1' }, content: undefined })
+				}
+			}
+
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
 
 			await sendNode(stanza)
@@ -1550,7 +1560,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					additionalAttributes,
 					statusJidList: options.statusJidList,
 					additionalNodes,
-					addBizAttributes: isSecureMetaMsg
+					addBizAttributes: isSecureMetaMsg,
+					AI: !!(options as { ai?: boolean }).ai
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {

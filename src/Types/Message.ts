@@ -423,7 +423,41 @@ export type AnyRegularMessageContent = (
 	/** Inline rich AI response via botForwardedMessage */
 	Partial<{ richResponse: { text?: string; code?: string; language?: string; botJid?: string } }> &
 	/** hasMediaAttachment flag for interactive messages */
-	Partial<{ hasMediaAttachment: boolean }>
+	Partial<{ hasMediaAttachment: boolean }> &
+	/** Poll result snapshot — shows vote counts */
+	Partial<{
+		pollResult: {
+			name: string
+			values: [string, number][]
+		}
+	}> &
+	/** Scheduled call creation (call invite) message */
+	Partial<{
+		call: {
+			name?: string
+			/** 1 = audio, 2 = video */
+			type?: number
+			time?: number
+		}
+	}> &
+	/** Payment request message */
+	Partial<{
+		payment: {
+			note?: string
+			currency?: string
+			offset?: number
+			amount?: number
+			expiry?: number
+			from?: string
+			image?: {
+				placeholderArgb?: string
+				textArgb?: string
+				subtextArgb?: string
+			}
+		}
+	}> &
+	/** Raw proto message — pass through directly, no wrapping or validation */
+	Partial<{ raw: proto.IMessage }>
 
 export type AnyMessageContent =
 	| AnyRegularMessageContent
@@ -467,6 +501,8 @@ export type MessageRelayOptions = MinimalRelayOptions & {
 	statusJidList?: string[]
 	/** inject a biz binary node for secureMetaServiceLabel messages */
 	addBizAttributes?: boolean
+	/** AI icon relay flag — injects bot node in private chats */
+	AI?: boolean
 }
 
 export type MiscMessageGenerationOptions = MinimalRelayOptions & {
@@ -488,6 +524,8 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	broadcast?: boolean
 	/** delay in ms between sending messages (used by status broadcast) */
 	delayMs?: number
+	/** AI icon flag — injects bot node in private chats */
+	ai?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
