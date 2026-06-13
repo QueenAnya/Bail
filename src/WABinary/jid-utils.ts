@@ -97,6 +97,9 @@ export const isLidUser = (jid: string | undefined) => jid?.endsWith('@lid')
 export const isJidBroadcast = (jid: string | undefined) => jid?.endsWith('@broadcast')
 /** is the jid a group */
 export const isJidGroup = (jid: string | undefined) => jid?.endsWith('@g.us')
+
+/** Returns true for regular user JIDs (s.whatsapp.net or @c.us) */
+export const isJidUser = (jid: string | undefined) => jid?.endsWith('@s.whatsapp.net') || jid?.endsWith('@c.us')
 /** is the jid the status broadcast */
 export const isJidStatusBroadcast = (jid: string) => jid === 'status@broadcast'
 /** is the jid a newsletter */

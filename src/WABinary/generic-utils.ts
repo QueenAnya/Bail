@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto'
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { type BinaryNode } from './types'
@@ -139,3 +140,123 @@ export function binaryNodeToString(node: BinaryNode | BinaryNode['content'], i =
 
 	return tag + content
 }
+
+// ─── Biz Binary Node (IT/itsliaaa port) ──────────────────────────────────────
+
+const FLOWS_MAP: { [k: string]: boolean } = {
+	mpm: true,
+	cta_catalog: true,
+	send_location: true,
+	call_permission_request: true,
+	wa_payment_transaction_details: true,
+	automated_greeting_message_view_catalog: true
+}
+
+const DECISION_SOURCE_CONTENT: BinaryNode[] = [{ tag: 'decision_source', attrs: { value: 'df' }, content: undefined }]
+
+const LIST_TYPE_CONTENT: BinaryNode = {
+	tag: 'list',
+	attrs: { v: '2', type: 'product_list' },
+	content: undefined
+}
+
+const NATIVE_FLOW_ATTRIBUTE = { type: 'native_flow', v: '1' }
+
+const MIXED_NATIVE_FLOW: BinaryNode = {
+	tag: 'interactive',
+	attrs: NATIVE_FLOW_ATTRIBUTE,
+	content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' }, content: undefined }]
+}
+
+/**
+ * Build the correct `<biz>` binary node for a given message.
+ * Handles nativeFlow buttons, list messages, template/buttons messages,
+ * and payment-related flows (review_and_pay, payment_info).
+ *
+ * Used automatically by `relayMessage` when `shouldIncludeBizBinaryNode`
+ * returns true, and also when `addBizAttributes: true` is passed.
+ */
+export const getBizBinaryNode = (message: proto.IMessage): BinaryNode => {
+	const flowMsg = message.interactiveMessage?.nativeFlowMessage
+	const firstButtonName = (flowMsg?.buttons as any)?.[0]?.name as string | undefined
+
+	const qualityContent: BinaryNode = {
+		tag: 'quality_control',
+		attrs: {
+			decision_id: randomBytes(20).toString('hex'),
+			source_type: 'third_party'
+		},
+		content: DECISION_SOURCE_CONTENT
+	}
+
+	const bizAttributes = {
+		actual_actors: '2',
+		host_storage: '2',
+		privacy_mode_ts: `${Math.floor(Date.now() / 1000)}`
+	}
+
+	// Payment flows — review_and_pay / payment_info
+	if (firstButtonName === 'review_and_pay' || firstButtonName === 'payment_info') {
+		return {
+			tag: 'biz',
+			attrs: {
+				...bizAttributes,
+				native_flow_name: firstButtonName === 'review_and_pay' ? 'order_details' : firstButtonName
+			},
+			content: [qualityContent]
+		}
+	}
+
+	// Known native flow types (mpm, cta_catalog, etc.)
+	if (firstButtonName && FLOWS_MAP[firstButtonName]) {
+		return {
+			tag: 'biz',
+			attrs: bizAttributes,
+			content: [
+				{
+					tag: 'interactive',
+					attrs: NATIVE_FLOW_ATTRIBUTE,
+					content: [{ tag: 'native_flow', attrs: { v: '2', name: firstButtonName }, content: undefined }]
+				},
+				qualityContent
+			]
+		}
+	}
+
+	// Generic nativeFlow / buttonsMessage / templateMessage
+	if (flowMsg || message.buttonsMessage || message.templateMessage) {
+		return {
+			tag: 'biz',
+			attrs: bizAttributes,
+			content: [MIXED_NATIVE_FLOW, qualityContent]
+		}
+	}
+
+	// List message
+	if (message.listMessage) {
+		return {
+			tag: 'biz',
+			attrs: bizAttributes,
+			content: [LIST_TYPE_CONTENT, qualityContent]
+		}
+	}
+
+	// Default — secureMetaServiceLabel or unknown message type
+	return {
+		tag: 'biz',
+		attrs: bizAttributes,
+		content: [qualityContent]
+	}
+}
+
+/**
+ * Returns true if the message type requires a biz binary node to be injected
+ * into the WA stanza (buttons, list, template, nativeFlow interactive).
+ */
+export const shouldIncludeBizBinaryNode = (message: proto.IMessage): boolean =>
+	!!(
+		message.buttonsMessage ||
+		message.listMessage ||
+		message.templateMessage ||
+		message.interactiveMessage?.nativeFlowMessage
+	)

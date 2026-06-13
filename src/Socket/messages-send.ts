@@ -56,6 +56,8 @@ import {
 	type FullJid,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
+	getBizBinaryNode,
+	shouldIncludeBizBinaryNode,
 	isHostedLidUser,
 	isHostedPnUser,
 	isJidBot,
@@ -1100,16 +1102,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
 
-			if (addBizAttributes) {
-				;(stanza.content as BinaryNode[]).push({
-					tag: 'biz',
-					attrs: {
-						actual_actors: '2',
-						host_storage: '2',
-						privacy_mode_ts: String(Math.floor(Date.now() / 1000))
-					},
-					content: undefined
-				})
+			// Smart biz node — auto-inject for button/list/template/nativeFlow messages,
+			// or when secureMetaServiceLabel is explicitly requested via addBizAttributes.
+			const alreadyHasBizNode = !addBizAttributes && additionalNodes?.some(n => n.tag === 'biz')
+			if ((!alreadyHasBizNode && shouldIncludeBizBinaryNode(message)) || addBizAttributes) {
+				;(stanza.content as BinaryNode[]).push(getBizBinaryNode(message))
 			}
 
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
