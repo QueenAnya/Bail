@@ -1,40 +1,31 @@
 /**
- * vCard / Contact Card Generator
- *
- * Source: @innovatorssoft/baileys (vcard.js)
- * Rewritten as clean TypeScript with full types and JSDoc.
- *
- * Generate RFC-3.0 vCard strings and WhatsApp contactMessage / contactsArrayMessage content.
+ * vCard / Contact Card Helpers
+ * Source: @innovatorssoft/baileys (vcard.ts)
  */
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type VCardPhone = {
+export interface VCardPhone {
 	number: string
-	type?: 'CELL' | 'HOME' | 'WORK' | 'OTHER'
+	type?: string
 	label?: string
 }
-
-export type VCardEmail = {
+export interface VCardEmail {
 	email: string
-	type?: 'HOME' | 'WORK' | 'OTHER'
+	type?: string
 }
-
-export type VCardUrl = {
+export interface VCardUrl {
 	url: string
-	type?: 'HOME' | 'WORK' | 'OTHER'
+	type?: string
 }
-
-export type VCardAddress = {
+export interface VCardAddress {
 	street?: string
 	city?: string
 	state?: string
 	postalCode?: string
 	country?: string
-	type?: 'HOME' | 'WORK' | 'OTHER'
+	type?: string
 }
 
-export type VCardContact = {
+export interface VCardContact {
 	fullName: string
 	displayName?: string
 	organization?: string
@@ -47,151 +38,90 @@ export type VCardContact = {
 	note?: string
 }
 
-// ─── Internal helpers ─────────────────────────────────────────────────────────
+const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
 
-const escape = (s: string): string =>
-	s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+const fmtPhone = (p: string) => p.replace(/[^\d+]/g, '')
 
-const formatPhone = (phone: string): string => phone.replace(/[^\d+]/g, '')
-
-// ─── generateVCard ────────────────────────────────────────────────────────────
-
-/** Generate a vCard 3.0 string from a VCardContact. */
-export const generateVCard = (contact: VCardContact): string => {
-	const lines: string[] = []
-	lines.push('BEGIN:VCARD', 'VERSION:3.0')
-
-	const escapedName = escape(contact.fullName)
-	lines.push(`FN:${escapedName}`)
-
-	const parts = contact.fullName.split(' ')
+export const generateVCard = (c: VCardContact): string => {
+	const l: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${esc(c.fullName)}`]
+	const parts = c.fullName.split(' ')
 	if (parts.length >= 2) {
-		const last = escape(parts[parts.length - 1] ?? '')
-		const first = escape(parts.slice(0, -1).join(' '))
-		lines.push(`N:${last};${first};;;`)
+		const last = parts[parts.length - 1]!
+		l.push(`N:${esc(last)};${esc(parts.slice(0, -1).join(' '))};;;`)
 	} else {
-		lines.push(`N:${escapedName};;;;`)
+		l.push(`N:${esc(c.fullName)};;;;`)
 	}
-
-	if (contact.organization) lines.push(`ORG:${escape(contact.organization)}`)
-	if (contact.title) lines.push(`TITLE:${escape(contact.title)}`)
-
-	for (const phone of contact.phones ?? []) {
-		const t = phone.type ?? 'CELL'
-		const num = formatPhone(phone.number)
-		if (phone.label) {
-			lines.push(`TEL;type=${t};type=VOICE;X-ABLabel=${escape(phone.label)}:${num}`)
-		} else {
-			lines.push(`TEL;type=${t};type=VOICE:${num}`)
-		}
+	if (c.organization) l.push(`ORG:${esc(c.organization)}`)
+	if (c.title) l.push(`TITLE:${esc(c.title)}`)
+	for (const p of c.phones ?? []) {
+		const t = p.type ?? 'CELL'
+		l.push(
+			p.label
+				? `TEL;type=${t};type=VOICE;X-ABLabel=${esc(p.label)}:${fmtPhone(p.number)}`
+				: `TEL;type=${t};type=VOICE:${fmtPhone(p.number)}`
+		)
 	}
-
-	for (const email of contact.emails ?? []) {
-		lines.push(`EMAIL;type=${email.type ?? 'OTHER'}:${email.email}`)
+	for (const e of c.emails ?? []) l.push(`EMAIL;type=${e.type ?? 'OTHER'}:${e.email}`)
+	for (const u of c.urls ?? []) l.push(`URL;type=${u.type ?? 'OTHER'}:${u.url}`)
+	for (const a of c.addresses ?? []) {
+		const pts = ['', '', a.street ?? '', a.city ?? '', a.state ?? '', a.postalCode ?? '', a.country ?? ''].map(esc)
+		l.push(`ADR;type=${a.type ?? 'OTHER'}:${pts.join(';')}`)
 	}
-
-	for (const url of contact.urls ?? []) {
-		lines.push(`URL;type=${url.type ?? 'OTHER'}:${url.url}`)
-	}
-
-	for (const addr of contact.addresses ?? []) {
-		const parts2 = [
-			'',
-			'',
-			addr.street ?? '',
-			addr.city ?? '',
-			addr.state ?? '',
-			addr.postalCode ?? '',
-			addr.country ?? ''
-		].map(p => escape(p))
-		lines.push(`ADR;type=${addr.type ?? 'OTHER'}:${parts2.join(';')}`)
-	}
-
-	if (contact.birthday) lines.push(`BDAY:${contact.birthday}`)
-	if (contact.note) lines.push(`NOTE:${escape(contact.note)}`)
-
-	lines.push('END:VCARD')
-	return lines.join('\r\n')
+	if (c.birthday) l.push(`BDAY:${c.birthday}`)
+	if (c.note) l.push(`NOTE:${esc(c.note)}`)
+	l.push('END:VCARD')
+	return l.join('\r\n')
 }
 
-/** Generate multiple vCards joined by CRLF. */
-export const generateVCards = (contacts: VCardContact[]): string => contacts.map(generateVCard).join('\r\n')
+export const generateVCards = (contacts: VCardContact[]) => contacts.map(generateVCard).join('\r\n')
 
-/** Basic vCard parser (FN, ORG, TITLE, TEL, EMAIL, BDAY, NOTE). */
 export const parseVCard = (vcard: string): Partial<VCardContact> => {
-	const contact: Partial<VCardContact> = {}
-	const unescape = (s: string) => s.replace(/\\([;,n\\])/g, '$1').replace(/\\n/g, '\n')
-
+	const c: Partial<VCardContact> & { phones?: VCardPhone[]; emails?: VCardEmail[] } = {}
 	for (const line of vcard.split(/\r?\n/)) {
-		const colonIdx = line.indexOf(':')
-		if (colonIdx === -1) continue
-		const key = line.slice(0, colonIdx)
-		const value = line.slice(colonIdx + 1)
-
-		if (key.startsWith('FN')) {
-			contact.fullName = unescape(value)
-		} else if (key.startsWith('ORG')) {
-			contact.organization = unescape(value)
-		} else if (key.startsWith('TITLE')) {
-			contact.title = unescape(value)
-		} else if (key.startsWith('TEL')) {
-			const typeMatch = key.match(/type=(\w+)/i)
-			contact.phones = contact.phones ?? []
-			contact.phones.push({
-				number: value,
-				type: (typeMatch?.[1]?.toUpperCase() ?? 'CELL') as VCardPhone['type']
-			})
+		const sep = line.indexOf(':')
+		if (sep < 0) continue
+		const key = line.slice(0, sep)
+		const val = line.slice(sep + 1)
+		const unescape = (s: string) => s.replace(/\\([;,n\\])/g, '$1').replace(/\\n/g, '\n')
+		if (key.startsWith('FN')) c.fullName = unescape(val)
+		else if (key.startsWith('ORG')) c.organization = unescape(val)
+		else if (key.startsWith('TITLE')) c.title = unescape(val)
+		else if (key.startsWith('TEL')) {
+			c.phones = c.phones ?? []
+			const m = key.match(/type=(\w+)/i)
+			c.phones.push({ number: val, type: m?.[1]?.toUpperCase() ?? 'CELL' })
 		} else if (key.startsWith('EMAIL')) {
-			const typeMatch = key.match(/type=(\w+)/i)
-			contact.emails = contact.emails ?? []
-			contact.emails.push({
-				email: value,
-				type: (typeMatch?.[1]?.toUpperCase() ?? 'OTHER') as VCardEmail['type']
-			})
-		} else if (key.startsWith('BDAY')) {
-			contact.birthday = value
-		} else if (key.startsWith('NOTE')) {
-			contact.note = unescape(value)
-		}
+			c.emails = c.emails ?? []
+			const m = key.match(/type=(\w+)/i)
+			c.emails.push({ email: val, type: m?.[1]?.toUpperCase() ?? 'OTHER' })
+		} else if (key.startsWith('BDAY')) c.birthday = val
+		else if (key.startsWith('NOTE')) c.note = unescape(val)
 	}
-
-	return contact
+	return c
 }
 
-// ─── WhatsApp message content builders ───────────────────────────────────────
+/** Build a contact card message content for sendMessage */
+export const createContactCard = (c: VCardContact) => ({
+	contacts: { displayName: c.displayName ?? c.fullName, contacts: [{ vcard: generateVCard(c) }] }
+})
 
-/** Build a single-contact contactMessage content. */
-export const createContactCard = (
-	contact: VCardContact
-): { contacts: { displayName: string; contacts: { vcard: string }[] } } => ({
+/** Build a multi-contact card message content */
+export const createContactCards = (contacts: VCardContact[]) => ({
 	contacts: {
-		displayName: contact.displayName ?? contact.fullName,
-		contacts: [{ vcard: generateVCard(contact) }]
+		displayName:
+			contacts.length === 1 ? (contacts[0]!.displayName ?? contacts[0]!.fullName) : `${contacts.length} Contacts`,
+		contacts: contacts.map(c => ({ vcard: generateVCard(c) }))
 	}
 })
 
-/** Build a multi-contact contactsArrayMessage content. */
-export const createContactCards = (
-	contacts: VCardContact[]
-): { contacts: { displayName: string; contacts: { vcard: string }[] } } => {
-	const first = contacts[0]
-	return {
-		contacts: {
-			displayName:
-				contacts.length === 1 && first ? (first.displayName ?? first.fullName) : `${contacts.length} Contacts`,
-			contacts: contacts.map(c => ({ vcard: generateVCard(c) }))
-		}
-	}
-}
-
-/** Quickly create a VCardContact from a name + phone number. */
+/** Quick helper: build a VCardContact from just a name and phone number */
 export const quickContact = (
 	name: string,
 	phone: string,
-	options?: { organization?: string; email?: string }
+	opts?: { organization?: string; email?: string }
 ): VCardContact => ({
 	fullName: name,
 	phones: [{ number: phone, type: 'CELL' }],
-	organization: options?.organization,
-	emails: options?.email ? [{ email: options.email, type: 'WORK' }] : undefined
+	organization: opts?.organization,
+	emails: opts?.email ? [{ email: opts.email, type: 'WORK' }] : undefined
 })

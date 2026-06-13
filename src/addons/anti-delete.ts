@@ -1,139 +1,189 @@
 /**
- * Anti-Delete / Message Store
+ * Anti-Delete / Message Store untuk Baileys-Joss
  *
- * Source: @innovatorssoft/baileys (anti-delete.js)
- * Rewritten as clean TypeScript with full types and JSDoc.
+ * Fitur untuk menyimpan dan recover deleted messages
  *
- * Intercepts REVOKE protocol messages and recovers the original
- * message content before WhatsApp deletes it.
+ * @module anti-delete
  */
 
 import { proto } from '../../WAProto/index.js'
-import type { WAMessage, WAMessageKey } from '../Types/index.js'
+import type { WAMessage, WAMessageKey, WAMessageContent } from '../Types'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// =====================================================
+// TYPES
+// =====================================================
 
-export type MessageStoreOptions = {
-	/** Max messages to keep per chat (default: 1000) */
-	maxMessagesPerChat?: number
-	/** TTL in ms before a message is evicted (default: 24h) */
-	ttl?: number
-	/** Interval in ms for the cleanup sweep (default: 1h) */
-	cleanupInterval?: number
-}
-
-type StoredMessage = {
+export interface StoredMessage {
+	/** Original message */
 	message: WAMessage
+	/** Timestamp disimpan */
 	storedAt: number
+	/** Sudah dihapus */
 	isDeleted: boolean
+	/** Timestamp dihapus */
 	deletedAt?: number
+	/** Siapa yang menghapus */
 	deletedBy?: string
 }
 
-export type DeletedMessageInfo = {
+export interface DeletedMessageInfo {
+	/** Original message sebelum dihapus */
 	originalMessage: WAMessage
+	/** Key dari message yang dihapus */
 	key: WAMessageKey
+	/** Timestamp dihapus */
 	deletedAt: number
+	/** Siapa yang menghapus (participant untuk group) */
 	deletedBy?: string
+	/** Apakah dihapus oleh pengirim (delete for everyone) */
 	isRevokedBySender: boolean
 }
 
-// ─── MessageStore ─────────────────────────────────────────────────────────────
+export interface MessageStoreOptions {
+	/** Max messages per chat */
+	maxMessagesPerChat?: number
+	/** TTL dalam ms (default 24 jam) */
+	ttl?: number
+	/** Auto cleanup interval dalam ms */
+	cleanupInterval?: number
+}
 
-/**
- * In-memory store for WhatsApp messages with anti-delete support.
- *
- * @example
- * const store = new MessageStore()
- * sock.ev.on('messages.upsert', createMessageStoreHandler(store))
- * sock.ev.on('messages.update', createAntiDeleteHandler(store, (info) => {
- *     console.log('Message was deleted:', info.originalMessage)
- * }))
- */
+// =====================================================
+// MESSAGE STORE CLASS
+// =====================================================
+
 export class MessageStore {
-	private readonly store = new Map<string, Map<string, StoredMessage>>()
-	private readonly deletedMessages = new Map<string, DeletedMessageInfo>()
-	private readonly options: Required<MessageStoreOptions>
+	private store: Map<string, Map<string, StoredMessage>> = new Map()
+	private deletedMessages: Map<string, DeletedMessageInfo> = new Map()
+	private options: Required<MessageStoreOptions>
 	private cleanupTimer?: ReturnType<typeof setInterval>
 
 	constructor(options: MessageStoreOptions = {}) {
 		this.options = {
-			maxMessagesPerChat: options.maxMessagesPerChat ?? 1000,
-			ttl: options.ttl ?? 24 * 60 * 60 * 1000,
-			cleanupInterval: options.cleanupInterval ?? 60 * 60 * 1000
+			maxMessagesPerChat: options.maxMessagesPerChat || 1000,
+			ttl: options.ttl || 24 * 60 * 60 * 1000, // 24 hours
+			cleanupInterval: options.cleanupInterval || 60 * 60 * 1000 // 1 hour
 		}
+
+		// Start cleanup timer
 		this.startCleanup()
 	}
 
 	private startCleanup() {
-		this.cleanupTimer = setInterval(() => this.cleanup(), this.options.cleanupInterval)
-		this.cleanupTimer.unref?.()
+		this.cleanupTimer = setInterval(() => {
+			this.cleanup()
+		}, this.options.cleanupInterval)
 	}
 
-	/** Stop the background cleanup timer (call before shutting down). */
+	/**
+	 * Stop cleanup timer
+	 */
 	stopCleanup() {
-		if (this.cleanupTimer) clearInterval(this.cleanupTimer)
+		if (this.cleanupTimer) {
+			clearInterval(this.cleanupTimer)
+		}
 	}
 
-	private cleanup() {
-		const cutoff = Date.now() - this.options.ttl
+	/**
+	 * Cleanup old messages
+	 */
+	cleanup() {
+		const now = Date.now()
+		const cutoff = now - this.options.ttl
+
 		for (const [chatId, messages] of this.store) {
 			for (const [msgId, stored] of messages) {
-				if (stored.storedAt < cutoff) messages.delete(msgId)
+				if (stored.storedAt < cutoff) {
+					messages.delete(msgId)
+				}
 			}
-			if (messages.size === 0) this.store.delete(chatId)
+
+			if (messages.size === 0) {
+				this.store.delete(chatId)
+			}
 		}
+
+		// Cleanup deleted messages
 		for (const [key, info] of this.deletedMessages) {
-			if (info.deletedAt < cutoff) this.deletedMessages.delete(key)
+			if (info.deletedAt < cutoff) {
+				this.deletedMessages.delete(key)
+			}
 		}
 	}
 
-	private storeKey(key: WAMessageKey): string {
+	/**
+	 * Get store key dari message key
+	 */
+	private getKey(key: WAMessageKey): string {
 		return `${key.remoteJid}:${key.id}`
 	}
 
-	/** Store a single message. */
-	storeMessage(message: WAMessage) {
+	/**
+	 * Store message
+	 */
+	storeMessage(message: WAMessage): void {
 		const chatId = message.key.remoteJid
 		if (!chatId || !message.key.id) return
+
 		let chatMessages = this.store.get(chatId)
 		if (!chatMessages) {
 			chatMessages = new Map()
 			this.store.set(chatId, chatMessages)
 		}
+
+		// Enforce max messages per chat
 		if (chatMessages.size >= this.options.maxMessagesPerChat) {
+			// Remove oldest message
 			const oldestKey = chatMessages.keys().next().value
-			if (oldestKey) chatMessages.delete(oldestKey)
+			if (oldestKey) {
+				chatMessages.delete(oldestKey)
+			}
 		}
-		chatMessages.set(message.key.id, { message, storedAt: Date.now(), isDeleted: false })
+
+		chatMessages.set(message.key.id, {
+			message,
+			storedAt: Date.now(),
+			isDeleted: false
+		})
 	}
 
-	/** Store multiple messages at once. */
-	storeMessages(messages: WAMessage[]) {
-		for (const msg of messages) this.storeMessage(msg)
+	/**
+	 * Store multiple messages
+	 */
+	storeMessages(messages: WAMessage[]): void {
+		for (const msg of messages) {
+			this.storeMessage(msg)
+		}
 	}
 
-	/** Retrieve a stored message entry. */
+	/**
+	 * Get stored message
+	 */
 	getMessage(key: WAMessageKey): StoredMessage | undefined {
-		return this.store.get(key.remoteJid ?? '')?.get(key.id ?? '')
+		const chatMessages = this.store.get(key.remoteJid!)
+		if (!chatMessages) return undefined
+		return chatMessages.get(key.id!)
 	}
 
-	/** Retrieve the original WAMessage (for anti-delete). */
+	/**
+	 * Get original message (untuk anti-delete)
+	 */
 	getOriginalMessage(key: WAMessageKey): WAMessage | undefined {
 		return this.getMessage(key)?.message
 	}
 
 	/**
-	 * Mark a message as deleted and record who deleted it.
-	 * Returns the DeletedMessageInfo or null if the message wasn't in the store.
+	 * Mark message as deleted dan store info
 	 */
 	markAsDeleted(key: WAMessageKey, deletedBy?: string): DeletedMessageInfo | null {
 		const stored = this.getMessage(key)
 		if (!stored) return null
+
 		const now = Date.now()
 		stored.isDeleted = true
 		stored.deletedAt = now
 		stored.deletedBy = deletedBy
+
 		const info: DeletedMessageInfo = {
 			originalMessage: stored.message,
 			key,
@@ -141,33 +191,61 @@ export class MessageStore {
 			deletedBy,
 			isRevokedBySender: !deletedBy || deletedBy === stored.message.key.participant
 		}
-		this.deletedMessages.set(this.storeKey(key), info)
+
+		this.deletedMessages.set(this.getKey(key), info)
 		return info
 	}
 
+	/**
+	 * Get deleted message info
+	 */
 	getDeletedMessage(key: WAMessageKey): DeletedMessageInfo | undefined {
-		return this.deletedMessages.get(this.storeKey(key))
+		return this.deletedMessages.get(this.getKey(key))
 	}
 
+	/**
+	 * Get all deleted messages
+	 */
 	getAllDeletedMessages(): DeletedMessageInfo[] {
 		return Array.from(this.deletedMessages.values())
 	}
 
+	/**
+	 * Get deleted messages by chat
+	 */
 	getDeletedMessagesByChat(chatId: string): DeletedMessageInfo[] {
 		return Array.from(this.deletedMessages.values()).filter(info => info.key.remoteJid === chatId)
 	}
 
+	/**
+	 * Get all messages in chat
+	 */
 	getChatMessages(chatId: string): WAMessage[] {
-		return Array.from(this.store.get(chatId)?.values() ?? []).map(s => s.message)
+		const chatMessages = this.store.get(chatId)
+		if (!chatMessages) return []
+		return Array.from(chatMessages.values()).map(s => s.message)
 	}
 
+	/**
+	 * Get chat IDs
+	 */
 	getChatIds(): string[] {
 		return Array.from(this.store.keys())
 	}
 
-	getStats() {
+	/**
+	 * Get stats
+	 */
+	getStats(): {
+		totalChats: number
+		totalMessages: number
+		totalDeleted: number
+	} {
 		let totalMessages = 0
-		for (const messages of this.store.values()) totalMessages += messages.size
+		for (const messages of this.store.values()) {
+			totalMessages += messages.size
+		}
+
 		return {
 			totalChats: this.store.size,
 			totalMessages,
@@ -175,79 +253,108 @@ export class MessageStore {
 		}
 	}
 
-	getAllMessages(): Record<string, WAMessage[]> {
-		const all: Record<string, WAMessage[]> = {}
+	/**
+	 * Clear all
+	 */
+	clear(): void {
+		this.store.clear()
+		this.deletedMessages.clear()
+	}
+
+	/**
+	 * Clear chat
+	 */
+	clearChat(chatId: string): void {
+		this.store.delete(chatId)
+	}
+
+	/**
+	 * Get all messages in all chats (compatibility for bot saving)
+	 */
+	getAllMessages(): { [jid: string]: WAMessage[] } {
+		const all: { [jid: string]: WAMessage[] } = {}
 		for (const [chatId, messages] of this.store) {
 			all[chatId] = Array.from(messages.values()).map(s => s.message)
 		}
 		return all
 	}
-
-	clear() {
-		this.store.clear()
-		this.deletedMessages.clear()
-	}
-
-	clearChat(chatId: string) {
-		this.store.delete(chatId)
-	}
 }
 
-// ─── Helper functions ─────────────────────────────────────────────────────────
-
-/** Check if a WAMessage is a delete/revoke message. */
-export const isDeleteMessage = (message: WAMessage): boolean => {
-	return message.message?.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE
-}
-
-/** Extract the key of the message that was deleted from a revoke message. */
-export const getDeletedMessageKey = (message: WAMessage): WAMessageKey | null => {
-	const protoMsg = message.message?.protocolMessage
-	if (protoMsg?.type !== proto.Message.ProtocolMessage.Type.REVOKE) return null
-	return protoMsg.key ?? null
-}
-
-// ─── Event handlers ───────────────────────────────────────────────────────────
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
 
 /**
- * Create a `messages.update` handler that detects deleted messages and
- * recovers them from the store.
- *
- * @param store - The MessageStore instance
- * @param onDelete - Callback fired for each recovered deleted message
- * @returns Handler to pass to `sock.ev.on('messages.update', ...)`
+ * Check apakah message adalah delete/revoke message
  */
-export const createAntiDeleteHandler = (store: MessageStore, onDelete?: (info: DeletedMessageInfo) => void) => {
-	return (updates: { key: WAMessageKey; update: Partial<WAMessage> }[]): DeletedMessageInfo[] => {
-		const deleted: DeletedMessageInfo[] = []
+export const isDeleteMessage = (message: WAMessage): boolean => {
+	const content = message.message
+	if (!content) return false
+
+	return content.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE
+}
+
+/**
+ * Get deleted message key dari revoke message
+ */
+export const getDeletedMessageKey = (message: WAMessage): WAMessageKey | null => {
+	const content = message.message
+	if (!content) return null
+
+	const protoMsg = content.protocolMessage
+	if (protoMsg?.type !== proto.Message.ProtocolMessage.Type.REVOKE) return null
+
+	return protoMsg.key || null
+}
+
+/**
+ * Create anti-delete handler
+ * Bisa dipasang ke sock.ev.on('messages.update')
+ */
+export const createAntiDeleteHandler = (store: MessageStore) => {
+	return (updates: { key: WAMessageKey; update: Partial<WAMessage> }[]) => {
+		const deletedMessages: DeletedMessageInfo[] = []
+
 		for (const { key, update } of updates) {
+			// Check if message was deleted
 			if (update.messageStubType === proto.WebMessageInfo.StubType.REVOKE) {
-				const info = store.markAsDeleted(key, update.messageStubParameters?.[0])
-				if (info) {
-					deleted.push(info)
-					onDelete?.(info)
+				const deletedInfo = store.markAsDeleted(key, update.messageStubParameters?.[0])
+				if (deletedInfo) {
+					deletedMessages.push(deletedInfo)
 				}
 			}
 		}
-		return deleted
+
+		return deletedMessages
 	}
 }
 
 /**
- * Create a `messages.upsert` handler that stores incoming messages.
- *
- * @param store - The MessageStore instance
- * @returns Handler to pass to `sock.ev.on('messages.upsert', ...)`
+ * Create message store handler
+ * Bisa dipasang ke sock.ev.on('messages.upsert')
  */
 export const createMessageStoreHandler = (store: MessageStore) => {
 	return ({ messages }: { messages: WAMessage[] }) => {
-		const regular = messages.filter(msg => {
+		// Filter out protocol messages
+		const regularMessages = messages.filter(msg => {
 			const content = msg.message
 			if (!content) return false
+
+			// Skip protocol messages (delete, read receipt, etc)
 			if (content.protocolMessage) return false
 			if (content.senderKeyDistributionMessage) return false
+
 			return true
 		})
-		store.storeMessages(regular)
+
+		store.storeMessages(regularMessages)
 	}
+}
+
+export default {
+	MessageStore,
+	isDeleteMessage,
+	getDeletedMessageKey,
+	createAntiDeleteHandler,
+	createMessageStoreHandler
 }

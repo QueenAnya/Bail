@@ -101,13 +101,13 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	document: '/mms/document',
 	audio: '/mms/audio',
 	sticker: '/mms/image',
-	'sticker-pack': '/mms/image',
-	'thumbnail-sticker-pack': '/mms/image',
 	'thumbnail-link': '/mms/image',
 	'product-catalog-image': '/product/image',
 	'md-app-state': '',
 	'md-msg-hist': '/mms/md-app-state',
-	'biz-cover-photo': '/pps/biz-cover-photo'
+	'biz-cover-photo': '/pps/biz-cover-photo',
+	'sticker-pack': '/mms/sticker-pack',
+	'thumbnail-sticker-pack': '/mms/thumbnail-sticker-pack'
 }
 
 export const MEDIA_HKDF_KEY_MAPPING = {
@@ -119,8 +119,6 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	product: 'Image',
 	ptt: 'Audio',
 	sticker: 'Image',
-	'sticker-pack': 'Image',
-	'thumbnail-sticker-pack': 'Image Thumbnail',
 	video: 'Video',
 	'thumbnail-document': 'Document Thumbnail',
 	'thumbnail-image': 'Image Thumbnail',
@@ -131,7 +129,9 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	'product-catalog-image': '',
 	'payment-bg-image': 'Payment Background',
 	ptv: 'Video',
-	'biz-cover-photo': 'Image'
+	'biz-cover-photo': 'Image',
+	'sticker-pack': 'Sticker Pack',
+	'thumbnail-sticker-pack': 'Sticker Pack Thumbnail'
 }
 
 export type MediaType = keyof typeof MEDIA_HKDF_KEY_MAPPING
@@ -154,13 +154,26 @@ export const TimeMs = {
 	Week: 7 * 24 * 60 * 60 * 1000
 }
 
-/**
- * Regex lexer for syntax highlighting in rich-message code blocks.
- * Matches: line comments | strings/template literals | call-site identifiers
- *          | plain identifiers | numbers | whitespace/punctuation
- */
-export const LEXER_REGEX =
-	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\\b[a-zA-Z_]\w*\\b)(?=\s*\()|(\\b[a-zA-Z_]\w*\\b)|(\\b\d+(?:\.\d+)?\\b)|(\s+|[^\w\s]+)/g
-
-/** Fallback donate/reference URL used by rich-message link entities. */
+export const CALL_VIDEO_PREFIX = 'https://call.whatsapp.com/video/'
+export const CALL_AUDIO_PREFIX = 'https://call.whatsapp.com/voice/'
+/** Library name shown in fallback texts */
+export const LIBRARY_NAME = 'Baileys'
+/** Fallback URL used in offer/ad reply fields when none is provided */
 export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'
+
+/** Media upload paths for WhatsApp Newsletter (channel) media */
+export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
+	image: '/newsletter/newsletter-image',
+	video: '/newsletter/newsletter-video',
+	document: '/newsletter/newsletter-document',
+	audio: '/newsletter/newsletter-audio',
+	sticker: '/newsletter/newsletter-image',
+	'thumbnail-link': '/newsletter/newsletter-thumbnail-link'
+}
+
+/** Lexer regex for syntax highlighting in code blocks */
+export const LEXER_REGEX =
+	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\b[a-zA-Z_]\w*\b)(?=\s*\()|(\b[a-zA-Z_]\w*\b)|(\b\d+(?:\.\d+)?\b)|(\s+|[^\w\s]+)/g
+
+/** URL regex for link detection in messages */
+export const URL_REGEX = /https:\/\/(?![^:@\/\s]+:[^:@\/\s]+@)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?/g

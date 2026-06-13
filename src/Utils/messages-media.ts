@@ -1,5 +1,5 @@
 import { Boom } from '@hapi/boom'
-import { exec } from 'child_process'
+import { exec, spawn } from 'child_process'
 import * as Crypto from 'crypto'
 import { once } from 'events'
 import { createReadStream, createWriteStream, promises as fs, WriteStream } from 'fs'
@@ -10,7 +10,13 @@ import { join } from 'path'
 import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
-import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP, type MediaType } from '../Defaults'
+import {
+	DEFAULT_ORIGIN,
+	MEDIA_HKDF_KEY_MAPPING,
+	MEDIA_PATH_MAP,
+	NEWSLETTER_MEDIA_PATH_MAP,
+	type MediaType
+} from '../Defaults'
 import type {
 	BaileysEventMap,
 	DownloadableMessage,
@@ -31,12 +37,22 @@ import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-export const getImageProcessingLibrary = async () => {
+const getImageProcessingLibrary = async () => {
 	//@ts-ignore
-	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
+	const [jimp, sharp, napiImage] = await Promise.all([
+		import('jimp').catch(() => {}),
+		import('sharp').catch(() => {}),
+		// @ts-ignore — @napi-rs/image is an optional peer dep
+		import('@napi-rs/image').catch(() => {})
+	])
 
 	if (sharp) {
 		return { sharp }
+	}
+
+	// @napi-rs/image: balance between performance and compatibility
+	if (napiImage) {
+		return { image: napiImage }
 	}
 
 	if (jimp) {
@@ -122,8 +138,23 @@ const extractVideoThumb = async (
 	size: { width: number; height: number }
 ) =>
 	new Promise<void>((resolve, reject) => {
-		const cmd = `ffmpeg -ss ${time} -i ${path} -y -vf scale=${size.width}:-1 -vframes 1 -f image2 ${destPath}`
-		exec(cmd, err => {
+		// Use spawn instead of exec for safer process handling (no shell injection risk)
+		const ffmpegArgs = [
+			'-ss',
+			String(time),
+			'-i',
+			path,
+			'-y',
+			'-vf',
+			`scale=${size.width}:-1`,
+			'-vframes',
+			'1',
+			'-f',
+			'image2',
+			destPath
+		]
+		const proc = spawn('ffmpeg', ffmpegArgs)
+		proc.on('close', err => {
 			if (err) {
 				reject(err)
 			} else {
@@ -853,7 +884,9 @@ export const getWAUploadToServer = (
 			logger.debug(`uploading to "${hostname}"`)
 
 			const auth = encodeURIComponent(uploadInfo.auth)
-			const url = `https://${hostname}${MEDIA_PATH_MAP[mediaType]}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
+			const mediaPathMap = (opts as any)?.newsletter ? NEWSLETTER_MEDIA_PATH_MAP : MEDIA_PATH_MAP
+			const serverThumb = (opts as any)?.newsletter ? '&server_thumb_gen=1' : ''
+			const url = `https://${hostname}${mediaPathMap[mediaType]}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
 
 			let result: MediaUploadResult | undefined
 			try {

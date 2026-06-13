@@ -55,11 +55,11 @@ import {
 	xmppPreKey,
 	xmppSignedPreKey
 } from '../Utils'
-import { makeMutex } from '../Utils/make-mutex'
+import { makeLockManager } from '../Utils/lock-manager'
 import { makeOfflineNodeProcessor, type MessageType } from '../Utils/offline-node-processor'
 import { buildAckStanza } from '../Utils/stanza-ack'
 import {
-	buildMergedTcTokenIndexWrite,
+	commitTcTokenWithIndex,
 	isTcTokenExpired,
 	readTcTokenIndex,
 	resolveIssuanceJid,
@@ -137,14 +137,27 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		registerSocketEndHandler,
 		issuePrivacyTokens,
 		fetchAccountReachoutTimelock,
-		placeholderResendCache,
-		generateMessageTag
+		placeholderResendCache
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
 
-	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
-	const retryMutex = makeMutex()
+	const lidMigrationLocks = makeLockManager()
+	const retryLocks = makeLockManager()
+	const placeholderResendLocks = makeLockManager()
+	const retryLockRef = (msgId: string, participant: string) => ({
+		namespace: 'msg-retry',
+		id: `${msgId}:${participant}`
+	})
+
+	const incrementRetryAndGet = async (msgId: string, participant: string): Promise<number> => {
+		return retryLocks.withLock(retryLockRef(msgId, participant), async () => {
+			const key = `${msgId}:${participant}`
+			const next = ((await msgRetryCache.get<number>(key)) ?? 0) + 1
+			await msgRetryCache.set(key, next)
+			return next
+		})
+	}
 
 	const msgRetryCache =
 		config.msgRetryCounterCache ||
@@ -574,61 +587,52 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await query(stanza)
 	}
 
-	/**
-	 * Initiate an outgoing WhatsApp call (voice or video).
-	 * This sends the call offer signaling stanza. Note: this is signaling only —
-	 * full WebRTC media negotiation is not included in this implementation.
-	 * @param jid - The JID of the recipient to call
-	 * @param options - Call options (isVideo for video calls)
-	 * @returns Call result including callId, recipient JID, and call type
-	 */
 	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
-		const { isVideo = false } = options
-		const callId = randomBytes(8).toString('hex').toUpperCase().slice(0, 8)
-		const me = authState.creds.me!.id
+		const meId = authState.creds.me?.id
+		if (!meId) {
+			throw new Boom('Not authenticated')
+		}
 
+		const callId = randomBytes(8).toString('hex')
+		const isVideo = !!options.isVideo
+		const isGroup = isJidGroup(jid)
 		const stanza: BinaryNode = {
 			tag: 'call',
 			attrs: {
-				from: me,
-				to: jid,
 				id: generateMessageTag(),
-				t: String(Math.floor(Date.now() / 1000)),
-				notify: authState.creds.me?.name || ''
+				from: meId,
+				to: jid,
+				t: String(unixTimestampSeconds()),
+				...(authState.creds.me?.name ? { notify: authState.creds.me.name } : {})
 			},
 			content: [
 				{
 					tag: 'offer',
 					attrs: {
 						'call-id': callId,
-						'call-creator': me,
+						'call-creator': meId,
 						count: '0'
 					},
 					content: [
 						{
 							tag: isVideo ? 'video' : 'audio',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						},
 						{
 							tag: 'net',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						},
 						{
 							tag: 'encopt',
-							attrs: {},
-							content: randomBytes(2)
+							attrs: { key: randomBytes(8).toString('hex') }
 						},
 						{
 							tag: 'relaylatency',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						},
 						{
 							tag: 'te',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						}
 					]
 				}
@@ -636,55 +640,48 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 
 		await query(stanza)
-
-		// Cache the offer so we can reference it for cancel/reject flows
 		await callOfferCache.set(callId, {
 			chatId: jid,
-			from: me,
+			from: meId,
 			id: callId,
 			date: new Date(),
+			offline: false,
+			status: 'offer',
 			isVideo,
-			status: 'offer' as const,
-			offline: false
+			isGroup,
+			groupJid: isGroup ? jid : undefined
 		})
 
-		logger.info({ callId, to: jid, isVideo }, 'call offer sent')
-
+		// TODO: implement ICE/DTLS-SRTP call media setup once full signaling requirements are mapped.
 		return { callId, to: jid, isVideo }
 	}
 
-	/**
-	 * Cancel / terminate an ongoing or pending outgoing call.
-	 * @param callId - The callId returned from initiateCall
-	 * @param callTo - The JID of the call recipient
-	 */
 	const cancelCall = async (callId: string, callTo: string) => {
-		const me = authState.creds.me!.id
+		const meId = authState.creds.me?.id
+		if (!meId) {
+			throw new Boom('Not authenticated')
+		}
 
 		const stanza: BinaryNode = {
 			tag: 'call',
 			attrs: {
-				from: me,
-				to: callTo,
-				id: generateMessageTag()
+				from: meId,
+				to: callTo
 			},
 			content: [
 				{
 					tag: 'terminate',
 					attrs: {
 						'call-id': callId,
-						'call-creator': me,
+						'call-creator': meId,
 						count: '0'
-					},
-					content: undefined
+					}
 				}
 			]
 		}
 
 		await query(stanza)
 		await callOfferCache.del(callId)
-
-		logger.info({ callId, to: callTo }, 'call terminated/cancelled')
 	}
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
@@ -2283,10 +2280,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		sendMessageAck,
 		sendRetryRequest,
 		rejectCall,
-		initiateCall,
-		cancelCall,
 		fetchMessageHistory,
 		requestPlaceholderResend,
-		messageRetryManager
+		messageRetryManager,
+		initiateCall,
+		cancelCall
 	}
 }

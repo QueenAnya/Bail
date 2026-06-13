@@ -1,8 +1,16 @@
+import { makeMutex } from '../Utils/make-mutex'
+import { getPlatformDisplayName, getPlatformId, isAndroidBrowser, isKaiosBrowser } from '../Utils/browser-utils'
+import { makeMutex } from '../Utils/make-mutex'
 import { Boom } from '@hapi/boom'
+import { makeMutex } from '../Utils/make-mutex'
 import { randomBytes } from 'crypto'
+import { makeMutex } from '../Utils/make-mutex'
 import { URL } from 'url'
+import { makeMutex } from '../Utils/make-mutex'
 import { promisify } from 'util'
+import { makeMutex } from '../Utils/make-mutex'
 import { proto } from '../../WAProto/index.js'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	DEF_CALLBACK_PREFIX,
 	DEF_TAG_PREFIX,
@@ -13,6 +21,7 @@ import {
 	TimeMs,
 	UPLOAD_TIMEOUT
 } from '../Defaults'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	type LIDMapping,
 	type NewChatMessageCapInfo,
@@ -21,7 +30,9 @@ import {
 	type ReachoutTimelockState,
 	type SocketConfig
 } from '../Types'
+import { makeMutex } from '../Utils/make-mutex'
 import { DisconnectReason, XWAPaths } from '../Types'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	addTransactionCapability,
 	aesEncryptCTR,
@@ -38,14 +49,13 @@ import {
 	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
-	getPlatformDisplayName,
-	getPlatformId,
 	makeEventBuffer,
 	makeNoiseHandler,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
+import { makeMutex } from '../Utils/make-mutex'
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -59,9 +69,13 @@ import {
 	jidEncode,
 	S_WHATSAPP_NET
 } from '../WABinary'
+import { makeMutex } from '../Utils/make-mutex'
 import { BinaryInfo } from '../WAM/BinaryInfo.js'
+import { makeMutex } from '../Utils/make-mutex'
 import { USyncQuery, USyncUser } from '../WAUSync/'
+import { makeMutex } from '../Utils/make-mutex'
 import { WebSocketClient } from './Client'
+import { makeMutex } from '../Utils/make-mutex'
 import { executeWMexQuery } from './mex.js'
 
 /**
@@ -89,11 +103,6 @@ export const makeSocket = (config: SocketConfig) => {
 	const publicWAMBuffer = new BinaryInfo()
 
 	let serverTimeOffsetMs = 0
-
-	let pairingReady = false
-	let pairingInProgress = false
-	let pendingPairingResolve: (() => void) | undefined
-	let pendingPairingReject: ((err: Error) => void) | undefined
 
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
@@ -171,12 +180,36 @@ export const makeSocket = (config: SocketConfig) => {
 	 * @param msgId the message tag to await
 	 * @param timeoutMs timeout after which the promise will reject
 	 */
-	const waitForMessage = async <T>(msgId: string, timeoutMs = defaultQueryTimeoutMs) => {
+	const inFlightQueryTags = new Set<string>()
+
+	/**
+	 * Wait for a message with a certain tag to be received.
+	 * Stage 8 (M9): throws QueryTimeoutError on timeout; warns on duplicate stanza.
+	 */
+	const waitForMessage = async <T>(msgId: string, timeoutMs = defaultQueryTimeoutMs): Promise<T> => {
+		if (inFlightQueryTags.has(msgId)) {
+			// Should not happen under normal use — throw so caller learns immediately
+			// and can choose a different tag; callers can branch on statusCode 409.
+			throw new Boom('duplicate in-flight query tag', {
+				statusCode: 409,
+				data: { msgId }
+			})
+		}
+
+		inFlightQueryTags.add(msgId)
+
 		let onRecv: ((data: T) => void) | undefined
 		let onErr: ((err: Error) => void) | undefined
+		let resolvedOnce = false
 		try {
 			const result = await promiseTimeout<T>(timeoutMs, (resolve, reject) => {
 				onRecv = data => {
+					if (resolvedOnce) {
+						// Server emitted a second stanza for the same tag — drop it.
+						logger?.warn?.({ msgId }, 'duplicate response for in-flight query tag (later response dropped)')
+						return
+					}
+					resolvedOnce = true
 					resolve(data)
 				}
 
@@ -197,14 +230,16 @@ export const makeSocket = (config: SocketConfig) => {
 			})
 			return result
 		} catch (error) {
-			// Catch timeout and return undefined instead of throwing
 			if (error instanceof Boom && error.output?.statusCode === DisconnectReason.timedOut) {
 				logger?.warn?.({ msgId }, 'timed out waiting for message')
-				return undefined
+				throw new Boom(`Timed out waiting for response to query ${msgId}`, {
+					statusCode: DisconnectReason.timedOut,
+					data: { msgId, timeoutMs }
+				})
 			}
-
 			throw error
 		} finally {
+			inFlightQueryTags.delete(msgId)
 			if (onRecv) ws.off(`TAG:${msgId}`, onRecv)
 			if (onErr) {
 				ws.off('close', onErr)
@@ -327,17 +362,11 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
-		let lidQuery = new USyncQuery().withLIDProtocol().withContext('interactive')
+		const lidQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
-		let lidEnabled = false
 		for (const jid of phoneNumber) {
 			if (isLidUser(jid)) {
-				// LID JIDs: query via LID protocol instead of skipping
-				if (!lidEnabled) {
-					lidEnabled = true
-				}
-
 				lidQuery.withUser(new USyncUser().withLid(jid))
 			} else {
 				if (!contactEnabled) {
@@ -350,35 +379,29 @@ export const makeSocket = (config: SocketConfig) => {
 			}
 		}
 
-		const combinedResults: { jid: string; exists: boolean; lid?: string }[] = []
+		const output: { jid: string; exists: boolean }[] = []
 
 		if (usyncQuery.users.length > 0) {
 			const results = await executeUSyncQuery(usyncQuery)
 			if (results) {
-				for (const { contact, id } of results.list) {
-					if (contact) {
-						combinedResults.push({ jid: id, exists: contact as boolean })
-					}
-				}
+				const mapped = results.list
+					.filter(a => !!a.contact)
+					.map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
+				output.push(...mapped)
 			}
 		}
 
-		if (lidEnabled && lidQuery.users.length > 0) {
+		if (lidQuery.users.length > 0) {
 			const lidResults = await executeUSyncQuery(lidQuery)
 			if (lidResults) {
-				for (const { lid, id } of lidResults.list) {
-					if (lid) {
-						combinedResults.push({ jid: id, exists: true, lid: lid as string })
-					}
-				}
+				const mapped = lidResults.list
+					.filter(a => !!a.lid)
+					.map(({ lid, id }) => ({ jid: id, exists: true, lid: lid as string }))
+				output.push(...mapped)
 			}
 		}
 
-		if (combinedResults.length === 0 && usyncQuery.users.length === 0) {
-			return []
-		}
-
-		return combinedResults
+		return output
 	}
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
@@ -663,19 +686,6 @@ export const makeSocket = (config: SocketConfig) => {
 		clearInterval(keepAliveReq)
 		clearTimeout(qrTimer)
 
-		ws.removeAllListeners('close')
-		ws.removeAllListeners('open')
-		ws.removeAllListeners('message')
-
-		signalRepository.close?.()
-
-		if (!ws.isClosed && !ws.isClosing) {
-			try {
-				await ws.close()
-			} catch {}
-		}
-
-		// Reject any pending pairing request that was waiting for the handshake
 		if (pendingPairingReject) {
 			pendingPairingReject(
 				error ||
@@ -689,6 +699,18 @@ export const makeSocket = (config: SocketConfig) => {
 
 		pairingReady = false
 		pairingInProgress = false
+
+		ws.removeAllListeners('close')
+		ws.removeAllListeners('open')
+		ws.removeAllListeners('message')
+
+		signalRepository.close?.()
+
+		if (!ws.isClosed && !ws.isClosing) {
+			try {
+				await ws.close()
+			} catch {}
+		}
 
 		for (const handler of socketEndHandlers) {
 			try {
@@ -803,6 +825,11 @@ export const makeSocket = (config: SocketConfig) => {
 		void end(new Boom(msg || 'Intentional Logout', { statusCode: DisconnectReason.loggedOut }))
 	}
 
+	let pairingReady = false
+	let pairingInProgress = false
+	let pendingPairingResolve: (() => void) | undefined
+	let pendingPairingReject: ((err: Error) => void) | undefined
+
 	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
 
@@ -815,14 +842,23 @@ export const makeSocket = (config: SocketConfig) => {
 		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
 		// The server only accepts browser-type platform IDs (CHROME=1 through EDGE=6) in the pairing
 		// IQ — DESKTOP (7) and other non-browser types are rejected with 400. The OS part of
-		// companion_platform_display must also be a canonical OS name; custom brand names (e.g.
-		// "Zapper") belong in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked
-		// Devices.
+		// companion_platform_display must also be a canonical OS name; custom brand names belong
+		// in browser[0] → DeviceProps.os, which is what WhatsApp shows in Linked Devices.
+		// Pair code companion_platform_id must be Chrome (1) when using the Android
+		// browser preset. ANDROID_PHONE (16) causes silent timeout, UWP (21) causes
+		// rejection. Only Chrome (1–6) works for pair code via the web protocol.
+		// The device still appears as "Android" in Linked Devices because
+		// DeviceProps.platformType=ANDROID_PHONE is set in the registration node.
+		const isAndroid = isAndroidBrowser(browser) || isKaiosBrowser(browser)
 		const rawPlatformId = parseInt(getPlatformId(browser[1]))
-		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
-		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
-		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : 'Mac OS'
+		const isBrowserPlatform = !isAndroid && rawPlatformId >= 1 && rawPlatformId <= 6
+		const pairingPlatformId = isAndroid ? getPlatformId('Chrome') : (isBrowserPlatform ? rawPlatformId : 1).toString()
+		const pairingPlatformName = isAndroid ? 'Chrome' : isBrowserPlatform ? getPlatformDisplayName(browser[1]) : 'Chrome'
+		const pairingPlatformHost = isAndroid
+			? 'Mac OS'
+			: browser[0] === 'Mac OS' || browser[0] === 'Windows'
+				? browser[0]
+				: 'Mac OS'
 
 		await query({
 			tag: 'iq',
@@ -873,8 +909,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 		authState.creds.me = { id: jid, name: '~' }
 		ev.emit('creds.update', authState.creds)
-
-		return authState.creds.pairingCode
+		return pairingCode
 	}
 
 	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
