@@ -2,6 +2,22 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
+import {
+	captureUnifiedResponse,
+	generateCodeBlockContent,
+	generateLatexContent,
+	generateLatexImageContent,
+	generateLatexInlineImageContent,
+	generateListContent,
+	generateRichMessageContent,
+	generateTableContent,
+	generateUnifiedResponseContent,
+	type CapturedUnifiedResponse,
+	type LatexExpression,
+	type RichSubMessage
+} from '../addons/message-composer'
+import { execSendStatusMentions } from '../addons/from-messages-send'
+import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,

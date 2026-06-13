@@ -294,3 +294,31 @@ export type {
 	QuickReplyOptions,
 	CombinedButton
 } from '../Utils/interactive-message.js'
+
+// ─── Message Composer (Rich Message Content Generators) ───────────────────────
+export {
+	JS_KEYWORDS,
+	PYTHON_KEYWORDS,
+	LANGUAGE_KEYWORDS,
+	CodeHighlightType,
+	RichSubMessageType,
+	tokenizeCode,
+	buildRichContextInfo,
+	buildBotForwardedMessage,
+	generateTableContent,
+	generateListContent,
+	generateCodeBlockContent,
+	generateLatexContent,
+	generateLatexImageContent,
+	generateLatexInlineImageContent,
+	captureUnifiedResponse as captureUnifiedResponseFromComposer,
+	generateUnifiedResponseContent,
+	generateRichMessageContent
+} from './message-composer.js'
+export type {
+	CodeToken,
+	LatexExpression as LatexExpressionComposer,
+	RichSubMessage as RichSubMessageComposer,
+	RichMessageContent,
+	CapturedUnifiedResponse as CapturedUnifiedResponseComposer
+} from './message-composer.js'

@@ -134,6 +134,59 @@ type WithDimensions = {
 	height?: number
 }
 
+/** Send image/video at HD quality (bypasses WA compression) */
+type HDable = {
+	hd?: boolean
+}
+
+/** Attach classic buttons (up to 3) to a text or media message */
+type Buttonable = {
+	buttons?: proto.Message.ButtonsMessage.IButton[]
+}
+
+/** Attach template buttons (quickReply / url / call) to a message */
+type Templatable = {
+	templateButtons?: proto.IHydratedTemplateButton[]
+	footer?: string
+}
+
+/** Attach native-flow interactive buttons to a message */
+type Interactiveable = {
+	interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+	title?: string
+	subtitle?: string
+	footer?: string
+	hasMediaAttachment?: boolean
+}
+
+/** Attach a single-select list to a text message */
+type Listable = {
+	sections?: proto.Message.ListMessage.ISection[]
+	/** Title shown above the list */
+	title?: string
+	/** Label on the button that opens the list (required) */
+	buttonText?: string
+	footer?: string
+}
+
+/** Attach a WhatsApp Shop storefront to a message */
+type Shopable = {
+	shop?: proto.Message.InteractiveMessage.IShopMessage
+	title?: string
+	subtitle?: string
+	footer?: string
+	hasMediaAttachment?: boolean
+}
+
+/** Attach a WhatsApp Collection to a message */
+type Collectionable = {
+	collection?: proto.Message.InteractiveMessage.ICollectionMessage
+	title?: string
+	subtitle?: string
+	footer?: string
+	hasMediaAttachment?: boolean
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -546,6 +599,10 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	delayMs?: number
 	/** AI icon flag — injects bot node in private chats */
 	ai?: boolean
+	/** if the message is for a newsletter */
+	newsletter?: boolean
+	/** additional binary nodes to attach to the message stanza */
+	additionalNodes?: BinaryNode[]
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string

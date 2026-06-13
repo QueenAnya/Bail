@@ -30,6 +30,7 @@ import type {
 } from '../Types'
 import { WAMessageStatus, WAProto } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
+import { buildAdminInviteMessage } from '../addons/from-messages'
 import { buildMentionContextInfo } from '../addons/message-utils'
 import { sha256 } from './crypto'
 import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
@@ -658,6 +659,29 @@ export const generateWAMessageContent = async (
 		// Raw proto message — pass through directly without any wrapping
 		// ⚠️ Use with caution — no validation is performed
 		m = (message as { raw: proto.IMessage }).raw
+	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
+		// Newsletter admin invite — uses buildAdminInviteMessage from addons/from-messages
+		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
+			(message as any).adminInvite,
+			(message as any).contextInfo,
+			options
+		)
+	} else if ('order' in message && !!(message as any).order) {
+		// Order message
+		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
+	} else if (
+		'keep' in message &&
+		!!(message as any).keep &&
+		typeof (message as any).keep === 'object' &&
+		'key' in (message as any).keep
+	) {
+		// KeepInChatMessage — keep a message after disappearing-messages timer
+		const k = (message as any).keep as { key: WAMessageKey; type?: number; time?: number }
+		m.keepInChatMessage = {
+			key: k.key,
+			keepType: k.type ?? 1,
+			timestampMs: k.time ?? Date.now()
+		}
 	} else if (hasNonNullishProperty(message, 'poll')) {
 		message.poll.selectableCount ||= 0
 		message.poll.toAnnouncementGroup ||= false
@@ -1079,6 +1103,8 @@ export const generateWAMessageContent = async (
 		hasOptionalProperty(message, 'viewOnceV2Extension') &&
 		!!(message as { viewOnceV2Extension?: boolean }).viewOnceV2Extension
 	) {
+		m = { viewOnceMessageV2Extension: { message: m } }
+	} else if (hasOptionalProperty(message, 'viewOnceExt') && !!(message as { viewOnceExt?: boolean }).viewOnceExt) {
 		m = { viewOnceMessageV2Extension: { message: m } }
 	}
 
