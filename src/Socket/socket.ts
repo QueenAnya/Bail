@@ -1,5 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
+// @ts-ignore - no official types for qrcode-terminal
+import QRTerminal from 'qrcode-terminal'
 import { URL } from 'url'
 import { promisify } from 'util'
 import { proto } from '../../WAProto/index.js'
@@ -101,7 +103,7 @@ export const makeSocket = (config: SocketConfig) => {
 	if (printQRInTerminal) {
 		logger.warn(
 			{},
-			'⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.'
+			'⚠️ The printQRInTerminal option is deprecated upstream but is supported in this fork for convenience. It is recommended to listen to the connection.update event yourself and handle the QR your way.'
 		)
 	}
 
@@ -407,6 +409,14 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	const ev = makeEventBuffer(logger)
+
+	if (printQRInTerminal) {
+		ev.on('connection.update', ({ qr }) => {
+			if (qr) {
+				QRTerminal.generate(qr, { small: true })
+			}
+		})
+	}
 
 	const { creds } = authState
 	// add transaction capability
