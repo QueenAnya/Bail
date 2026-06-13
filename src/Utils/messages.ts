@@ -30,6 +30,7 @@ import type {
 } from '../Types'
 import { WAMessageStatus, WAProto } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
+import { buildMentionContextInfo } from '../addons/message-utils'
 import { sha256 } from './crypto'
 import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
 import type { ILogger } from './logger'
@@ -188,10 +189,11 @@ export const prepareWAMessageMedia = async (
 		)
 
 		const fileSha256B64 = fileSha256.toString('base64')
-		const { mediaUrl, directPath } = await options.upload(filePath, {
+		const { mediaUrl, directPath, thumbnailDirectPath, thumbnailSha256 } = await options.upload(filePath, {
 			fileEncSha256B64: fileSha256B64,
 			mediaType: mediaType,
-			timeoutMs: options.mediaUploadTimeoutMs
+			timeoutMs: options.mediaUploadTimeoutMs,
+			newsletter: true
 		})
 
 		await fs.unlink(filePath)
@@ -199,10 +201,12 @@ export const prepareWAMessageMedia = async (
 		const obj = WAProto.Message.fromObject({
 			// todo: add more support here
 			[`${mediaType}Message`]: (MessageTypeProto as any)[mediaType].fromObject({
-				url: mediaUrl,
+				// url intentionally omitted — newsletters use directPath only
 				directPath,
 				fileSha256,
 				fileLength,
+				thumbnailDirectPath,
+				thumbnailSha256: thumbnailSha256 ? Buffer.from(thumbnailSha256, 'base64') : undefined,
 				...uploadData,
 				media: undefined
 			})
@@ -518,6 +522,29 @@ export const generateWAMessageContent = async (
 					type: proto.Message.ButtonsResponseMessage.Type.DISPLAY_TEXT
 				}
 				break
+			case 'list':
+				m.listResponseMessage = {
+					title: message.buttonReply.title,
+					description: message.buttonReply.description,
+					singleSelectReply: {
+						selectedRowId: message.buttonReply.rowId
+					},
+					listType: proto.Message.ListResponseMessage.ListType.SINGLE_SELECT
+				}
+				break
+			case 'interactive':
+				m.interactiveResponseMessage = {
+					body: {
+						text: message.buttonReply.displayText,
+						format: proto.Message.InteractiveResponseMessage.Body.Format.EXTENSIONS_1
+					},
+					nativeFlowResponseMessage: {
+						name: message.buttonReply.nativeFlows?.name,
+						paramsJson: message.buttonReply.nativeFlows?.paramsJson,
+						version: message.buttonReply.nativeFlows?.version
+					}
+				}
+				break
 		}
 	} else if (hasOptionalProperty(message, 'ptv') && message.ptv) {
 		const { videoMessage } = await prepareWAMessageMedia({ video: message.video }, options)
@@ -646,8 +673,16 @@ export const generateWAMessageContent = async (
 		}
 
 		m.messageContextInfo = {
-			// encKey
-			messageSecret: message.poll.messageSecret || randomBytes(32)
+			// messageSecret must NOT be set for newsletter polls —
+			// newsletters handle encryption differently and a secret causes send failures
+			...(!options.jid || !isJidNewsletter(options.jid)
+				? {
+						messageSecret: (() => {
+							const provided = message.poll.messageSecret
+							return provided instanceof Uint8Array && provided.length === 32 ? provided : randomBytes(32)
+						})()
+					}
+				: {})
 		}
 
 		const pollCreationMessage = {

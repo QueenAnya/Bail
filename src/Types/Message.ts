@@ -215,6 +215,18 @@ export type ButtonReplyInfo = {
 	displayText: string
 	id: string
 	index: number
+	/** For type='list' — the row ID selected */
+	rowId?: string
+	/** For type='list' — optional title */
+	title?: string
+	/** For type='list' — optional description */
+	description?: string
+	/** For type='interactive' — native flow metadata */
+	nativeFlows?: {
+		name?: string
+		paramsJson?: string
+		version?: number
+	}
 }
 
 export type GroupInviteInfo = {
@@ -274,7 +286,7 @@ export type AnyRegularMessageContent = (
 	| { react: proto.Message.IReactionMessage }
 	| {
 			buttonReply: ButtonReplyInfo
-			type: 'template' | 'plain'
+			type: 'template' | 'plain' | 'list' | 'interactive'
 	  }
 	| {
 			groupInvite: GroupInviteInfo
