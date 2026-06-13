@@ -474,6 +474,14 @@ export type AnyMessageContent =
 			keep: WAMessageKey
 	  }
 	| {
+			/** Newsletter admin invite message */
+			adminInvite: AdminInviteInfo
+	  }
+	| {
+			/** Payment invite (Facebook Pay / Apple Pay / Stripe etc.) */
+			paymentInvite: PaymentInviteInfo
+	  }
+	| {
 			disappearingMessagesInChat: boolean | number
 	  }
 	| {
@@ -531,10 +539,46 @@ export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions &
 	userJid: string
 }
 
+export type AdminInviteInfo = {
+	jid: string
+	name: string
+	caption?: string
+	expiration?: number
+}
+
+export type CallCreationInfo = {
+	name?: string
+	time?: number
+	/** 1 = audio, 2 = video */
+	type?: number
+}
+
+export type PaymentInviteInfo = {
+	/** service type — 2 = Facebook Pay etc. */
+	type?: number
+	expiry?: number
+}
+
+export type WAMediaUploadFunctionOpts = {
+	fileEncSha256B64: string
+	mediaType: MediaType
+	newsletter?: boolean
+	timeoutMs?: number
+}
+
 export type WAMediaUploadFunction = (
 	encFilePath: string,
-	opts: { fileEncSha256B64: string; mediaType: MediaType; timeoutMs?: number }
-) => Promise<{ mediaUrl: string; directPath: string; meta_hmac?: string; ts?: number; fbid?: number }>
+	opts: WAMediaUploadFunctionOpts
+) => Promise<{
+	mediaUrl: string
+	directPath: string
+	thumbnailDirectPath?: string
+	thumbnailSha256?: string
+	handle?: string
+	meta_hmac?: string
+	ts?: number
+	fbid?: number
+}>
 
 export type MediaGenerationOptions = {
 	logger?: ILogger

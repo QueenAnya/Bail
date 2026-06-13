@@ -441,18 +441,20 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
+	/** Pre-existing media key — use to re-encrypt with the same key (e.g. thumbnail of sticker pack) */
+	mediaKey?: Buffer
 }
 
 export const encryptedStream = async (
 	media: WAMediaUpload,
 	mediaType: MediaType,
-	{ logger, saveOriginalFileIfRequired, opts }: EncryptedStreamOptions = {}
+	{ logger, saveOriginalFileIfRequired, opts, mediaKey: existingMediaKey }: EncryptedStreamOptions = {}
 ) => {
 	const { stream, type } = await getStream(media, opts)
 
 	logger?.debug('fetched media stream')
 
-	const mediaKey = Crypto.randomBytes(32)
+	const mediaKey = existingMediaKey || Crypto.randomBytes(32)
 	const { cipherKey, iv, macKey } = await getMediaKeys(mediaKey, mediaType)
 
 	const encFilePath = join(getTmpFilesDirectory(), mediaType + generateMessageIDV2() + '-enc')

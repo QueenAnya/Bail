@@ -223,3 +223,74 @@ export type { BaileysInMemoryStoreConfig } from '../Store/index.js'
 
 // ─── Panorama Profile Picture ─────────────────────────────────────────────────
 export { generatePanoramaProfilePicture } from '../Utils/messages-media.js'
+
+// ─── Button Sender ────────────────────────────────────────────────────────────
+export { getButtonType, getButtonArgs, InteractiveValidationError } from './button-sender.js'
+export type {
+	NativeSendButton,
+	LegacySendButton,
+	OldBaileysSendButton,
+	AnyRawButton,
+	SendButtonsData,
+	SendInteractiveData,
+	ValidationResult,
+	ButtonSenderSocket
+} from './button-sender.js'
+
+// ─── Call Handler ─────────────────────────────────────────────────────────────
+export { makeCallHandlerAddon } from './call-handler.js'
+export type { CallHandlerContext, RelayEntry, CallTransportCandidate } from './call-handler.js'
+
+// ─── From-Chats ───────────────────────────────────────────────────────────────
+export { buildClearMessageModification, createChatHelpers } from './from-chats.js'
+
+// ─── From-Messages-Recv (Call Handlers Factory) ───────────────────────────────
+export { makeCallHandlers } from './from-messages-recv.js'
+export type { CallHandlerDeps } from './from-messages-recv.js'
+
+// ─── From-Messages-Send (Status Mentions) ────────────────────────────────────
+export { normalizeStatusContent, buildStatusMentionNode, execSendStatusMentions } from './from-messages-send.js'
+export type { StatusMentionDeps } from './from-messages-send.js'
+
+// ─── From-Messages (Message Builders) ────────────────────────────────────────
+export {
+	buildAdminInviteMessage,
+	buildCallMessage,
+	buildPaymentInviteMessage,
+	buildStickerPackMessage,
+	isWebPBuffer,
+	isAnimatedWebP,
+	isLottieBuffer
+} from './from-messages.js'
+
+// ─── Message Utils ────────────────────────────────────────────────────────────
+export {
+	getMediaType,
+	getMessageType,
+	buildMentionContextInfo,
+	extractFromButtonsMessage,
+	normalizeMediaInput,
+	patchMessageForMdIfRequired,
+	prepareAlbumMessageContent,
+	makeMessageExtrasAddon
+} from './message-utils.js'
+export type { MentionContent, AlbumMediaItem, AlbumOptions, MessageExtrasContext } from './message-utils.js'
+
+// ─── Interactive Message Types ────────────────────────────────────────────────
+export type {
+	InteractiveButton,
+	InteractiveButtonMessageContent,
+	ListRow,
+	ListSection as InteractiveListSection,
+	InteractiveListMessageContent,
+	TemplateHydratedButton,
+	TemplateMessageContent,
+	NativeFlowButton as InteractiveNativeFlowButton,
+	NativeFlowOptions as InteractiveNativeFlowOptions,
+	CopyCodeButtonOptions,
+	UrlButton,
+	UrlButtonOptions,
+	QuickReplyButton,
+	QuickReplyOptions,
+	CombinedButton
+} from '../Utils/interactive-message.js'
