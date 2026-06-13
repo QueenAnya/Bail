@@ -63,6 +63,7 @@ import {
 	isJidBot,
 	isJidGroup,
 	isJidMetaAI,
+	isJidNewsletter,
 	isJidUser,
 	isLidUser,
 	isPnUser,
@@ -1102,11 +1103,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
 
-			// Smart biz node — auto-inject for button/list/template/nativeFlow messages,
+			// Smart biz node (IT/itsliaaa port) — auto-inject for button/list/template/nativeFlow,
 			// or when secureMetaServiceLabel is explicitly requested via addBizAttributes.
+			// Use normalizeMessageContent so wrapped messages (viewOnce, ephemeral) are unwrapped first.
+			const innerMessage = normalizeMessageContent(message) ?? message
 			const alreadyHasBizNode = !addBizAttributes && additionalNodes?.some(n => n.tag === 'biz')
-			if ((!alreadyHasBizNode && shouldIncludeBizBinaryNode(message)) || addBizAttributes) {
-				;(stanza.content as BinaryNode[]).push(getBizBinaryNode(message))
+			if ((!alreadyHasBizNode && shouldIncludeBizBinaryNode(innerMessage)) || addBizAttributes) {
+				;(stanza.content as BinaryNode[]).push(getBizBinaryNode(innerMessage))
 			}
 
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
@@ -1468,9 +1471,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 				const isEventMsg = 'event' in content && !!content.event
 				const isDeleteMsg = 'delete' in content && !!content.delete
+				const isKeepMsg = 'keep' in content && !!(content as unknown as { keep?: WAMessageKey }).keep
 				const isEditMsg = 'edit' in content && !!content.edit
 				const isPinMsg = 'pin' in content && !!content.pin
 				const isPollMessage = 'poll' in content && !!content.poll
+				const isQuizMsg = 'poll' in content && !!(content as any).poll?.pollType
 				const isAiMsg = 'ai' in content && !!(content as { ai?: boolean }).ai
 				const isGroupStatusMsg = 'groupStatus' in content && !!(content as { groupStatus?: boolean }).groupStatus
 				const isSecureMetaMsg =
@@ -1478,23 +1483,30 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					!!(content as { secureMetaServiceLabel?: boolean }).secureMetaServiceLabel
 				const additionalAttributes: BinaryNodeAttributes = {}
 				const additionalNodes: BinaryNode[] = []
-				// required for delete
-				if (isDeleteMsg) {
+				// required for delete / keep
+				if (isDeleteMsg || isKeepMsg) {
 					// if the chat is a group, and I am not the author, then delete the message as an admin
-					if (isJidGroup(content.delete?.remoteJid as string) && !content.delete?.fromMe) {
+					const deleteKey =
+						(content as { delete?: WAMessageKey; keep?: WAMessageKey }).delete ??
+						(content as { keep?: WAMessageKey }).keep
+					if (isJidGroup(deleteKey?.remoteJid as string) && !deleteKey?.fromMe) {
 						additionalAttributes.edit = '8'
 					} else {
 						additionalAttributes.edit = '7'
 					}
 				} else if (isEditMsg) {
-					additionalAttributes.edit = '1'
+					additionalAttributes.edit = isJidNewsletter(jid as string) ? '3' : '1'
 				} else if (isPinMsg) {
 					additionalAttributes.edit = '2'
 				} else if (isPollMessage) {
+					if (!isJidNewsletter(jid as string) && isQuizMsg) {
+						throw new Boom('Quiz polls are only allowed in newsletters', { statusCode: 400 })
+					}
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: {
-							polltype: 'creation'
+							polltype: isQuizMsg ? 'quiz_creation' : 'creation',
+							...(isPollMessage && isJidNewsletter(jid as string) ? { contenttype: 'text' } : {})
 						}
 					} as BinaryNode)
 				} else if (isEventMsg) {
@@ -1523,6 +1535,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						tag: 'bot',
 						attrs: { biz_bot: '1' }
 					} as BinaryNode)
+					delete (content as any).ai
 				} else if (isGroupStatusMsg) {
 					// Group status v2 — send as group status message
 					additionalNodes.push({

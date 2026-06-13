@@ -436,6 +436,10 @@ export type AnyMessageContent =
 			delete: WAMessageKey
 	  }
 	| {
+			/** Keep / star a message so it stays after disappearing-messages timer */
+			keep: WAMessageKey
+	  }
+	| {
 			disappearingMessagesInChat: boolean | number
 	  }
 	| {
