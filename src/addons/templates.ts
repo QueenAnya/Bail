@@ -1,24 +1,22 @@
 /**
- * Message Template Manager
- *
- * Variable-interpolation template system for reusable WhatsApp messages.
- * Syntax: {{variableName}} or {{variableName:defaultValue}}
- *
- * Includes preset templates: orders, invoices, greetings,
- * reminders, appointments, and support tickets.
+ * Message Template System
  *
  * Source: @innovatorssoft/baileys (templates.js)
+ * Rewritten as clean TypeScript with full types and JSDoc.
+ *
+ * Variable syntax: `{{variableName}}` or `{{variableName:defaultValue}}`
+ * Required variables have no default. Optional variables provide a fallback.
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface TemplateVariable {
+export type TemplateVariable = {
 	name: string
 	defaultValue?: string
 	required: boolean
 }
 
-export interface MessageTemplate {
+export type Template = {
 	id: string
 	name: string
 	content: string
@@ -29,7 +27,7 @@ export interface MessageTemplate {
 	updatedAt: Date
 }
 
-export interface CreateTemplateOptions {
+export type TemplateCreateOptions = {
 	id?: string
 	name: string
 	content: string
@@ -37,39 +35,53 @@ export interface CreateTemplateOptions {
 	category?: string
 }
 
-export interface ValidationResult {
+export type TemplateUpdateOptions = Partial<Omit<TemplateCreateOptions, 'id'>>
+
+export type TemplateValidationResult = {
 	valid: boolean
+	/** Names of required variables that are missing from the supplied data */
 	missing: string[]
 }
 
-// ─── TemplateManager class ────────────────────────────────────────────────────
+// ─── TemplateManager ─────────────────────────────────────────────────────────
 
+/**
+ * Manage reusable message templates with `{{variable:default}}` interpolation.
+ *
+ * @example
+ * const mgr = createTemplateManager()
+ * const tpl = mgr.getByName('Welcome Message')!
+ * const text = mgr.render(tpl.id, { name: 'Alice', companyName: 'Acme' })
+ * await sock.sendMessage(jid, { text })
+ */
 export class TemplateManager {
-	private templates = new Map<string, MessageTemplate>()
+	private readonly templates = new Map<string, Template>()
 
 	private generateId(): string {
-		return `tpl_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+		return `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 	}
 
 	private extractVariables(content: string): TemplateVariable[] {
-		const regex = /\{\{(\w+)(?::([^}]*))?\}\}/g
-		const vars: TemplateVariable[] = []
+		const rx = /\{\{(\w+)(?::([^}]*))?\}\}/g
 		const seen = new Set<string>()
+		const result: TemplateVariable[] = []
 		let match: RegExpExecArray | null
-
-		while ((match = regex.exec(content)) !== null) {
-			const name = match[1]!
-			if (seen.has(name)) continue
+		while ((match = rx.exec(content)) !== null) {
+			const name = match[1]
+			if (!name || seen.has(name)) continue
 			seen.add(name)
-			const defaultValue = match[2]
-			vars.push({ name, defaultValue, required: defaultValue === undefined })
+			result.push({
+				name,
+				defaultValue: match[2],
+				required: match[2] === undefined
+			})
 		}
-		return vars
+		return result
 	}
 
-	/** Create and register a new template */
-	create(options: CreateTemplateOptions): MessageTemplate {
-		const template: MessageTemplate = {
+	/** Create and store a new template. */
+	create(options: TemplateCreateOptions): Template {
+		const template: Template = {
 			id: options.id ?? this.generateId(),
 			name: options.name,
 			content: options.content,
@@ -83,166 +95,196 @@ export class TemplateManager {
 		return template
 	}
 
-	/** Get template by ID */
-	get(id: string): MessageTemplate | undefined {
+	/** Look up a template by ID. */
+	get(id: string): Template | undefined {
 		return this.templates.get(id)
 	}
 
-	/** Get template by name */
-	getByName(name: string): MessageTemplate | undefined {
+	/** Look up a template by exact name. */
+	getByName(name: string): Template | undefined {
 		return Array.from(this.templates.values()).find(t => t.name === name)
 	}
 
-	/** Get all templates */
-	getAll(): MessageTemplate[] {
+	/** Return all templates. */
+	getAll(): Template[] {
 		return Array.from(this.templates.values())
 	}
 
-	/** Get templates by category */
-	getByCategory(category: string): MessageTemplate[] {
+	/** Return all templates in a category. */
+	getByCategory(category: string): Template[] {
 		return Array.from(this.templates.values()).filter(t => t.category === category)
 	}
 
-	/** Update an existing template */
-	update(id: string, updates: Partial<CreateTemplateOptions>): MessageTemplate | undefined {
-		const existing = this.templates.get(id)
-		if (!existing) return undefined
-
-		const updated: MessageTemplate = {
-			...existing,
+	/** Update an existing template. Returns `undefined` if the ID is not found. */
+	update(id: string, updates: TemplateUpdateOptions): Template | undefined {
+		const template = this.templates.get(id)
+		if (!template) return undefined
+		const updated: Template = {
+			...template,
 			...updates,
-			variables: updates.content ? this.extractVariables(updates.content) : existing.variables,
+			variables: updates.content ? this.extractVariables(updates.content) : template.variables,
 			updatedAt: new Date()
 		}
 		this.templates.set(id, updated)
 		return updated
 	}
 
-	/** Delete a template by ID */
+	/** Delete a template by ID. Returns `true` if it existed. */
 	delete(id: string): boolean {
 		return this.templates.delete(id)
 	}
 
 	/**
-	 * Render a template by ID with variable substitution.
-	 * @throws if the template is not found
+	 * Render a template by ID with the supplied variable data.
+	 * Unreplaced required variables are left as their original `{{name}}` token.
+	 * @throws If the template ID does not exist
 	 */
-	render(id: string, data: Record<string, string | number> = {}): string {
+	render(id: string, data: Record<string, string | number | boolean> = {}): string {
 		const template = this.templates.get(id)
 		if (!template) throw new Error(`Template not found: ${id}`)
 		return this.renderContent(template.content, data)
 	}
 
-	/** Render any content string with variable substitution */
-	renderContent(content: string, data: Record<string, string | number> = {}): string {
+	/**
+	 * Render an arbitrary template string (no ID lookup).
+	 */
+	renderContent(content: string, data: Record<string, string | number | boolean> = {}): string {
 		return content.replace(/\{\{(\w+)(?::([^}]*))?\}\}/g, (_match, name: string, defaultValue?: string) => {
-			const val = data[name]
-			if (val !== undefined && val !== null) return String(val)
+			const value = data[name]
+			if (value !== undefined && value !== null) return String(value)
 			if (defaultValue !== undefined) return defaultValue
 			return _match
 		})
 	}
 
-	/** Validate a template against provided data — returns missing required fields */
-	validate(id: string, data: Record<string, any>): ValidationResult {
+	/**
+	 * Validate that all required variables are present in `data`.
+	 */
+	validate(id: string, data: Record<string, unknown>): TemplateValidationResult {
 		const template = this.templates.get(id)
 		if (!template) throw new Error(`Template not found: ${id}`)
-
 		const missing = template.variables.filter(v => v.required && !(v.name in data)).map(v => v.name)
-
 		return { valid: missing.length === 0, missing }
 	}
 
-	/** Export all templates as JSON */
+	/** Serialise all templates to a JSON string (for persistence). */
 	export(): string {
 		return JSON.stringify(Array.from(this.templates.values()), null, 2)
 	}
 
-	/** Import templates from JSON; set overwrite=true to replace existing */
+	/**
+	 * Import templates from a previously exported JSON string.
+	 * @param overwrite - Replace existing templates with the same ID (default: `false`)
+	 * @returns Number of templates imported
+	 */
 	import(json: string, overwrite = false): number {
-		const items = JSON.parse(json) as MessageTemplate[]
+		const items = JSON.parse(json) as Template[]
 		let count = 0
-		for (const t of items) {
-			if (!overwrite && this.templates.has(t.id)) continue
-			this.templates.set(t.id, {
-				...t,
-				createdAt: new Date(t.createdAt),
-				updatedAt: new Date(t.updatedAt)
+		for (const item of items) {
+			if (!overwrite && this.templates.has(item.id)) continue
+			this.templates.set(item.id, {
+				...item,
+				createdAt: new Date(item.createdAt),
+				updatedAt: new Date(item.updatedAt)
 			})
 			count++
 		}
 		return count
 	}
+
+	get size(): number {
+		return this.templates.size
+	}
 }
 
 // ─── Preset templates ─────────────────────────────────────────────────────────
 
-export const PRESET_TEMPLATES: Record<string, Omit<CreateTemplateOptions, 'id'>> = {
+export const PRESET_TEMPLATES: Record<string, TemplateCreateOptions> = {
 	ORDER_CONFIRMATION: {
 		name: 'Order Confirmation',
 		category: 'order',
-		content: `✅ *Order Confirmed!*\n\nOrder ID: #{{orderId}}\nCustomer: {{customerName}}\nDate: {{orderDate}}\n\n📦 *Items:*\n{{items}}\n\n💰 *Total: {{currency:$}} {{total}}*\n\nThank you for your order! 🙏`
+		description: 'Sent when an order is placed',
+		content: `✅ *Order Confirmed!*\n\nOrder ID: #{{orderId}}\nCustomer: {{customerName}}\nDate: {{orderDate}}\n\n📦 *Items:*\n{{items}}\n\n💰 *Total: {{currency:USD}} {{total}}*\n\nThank you for your order! 🙏`
 	},
 	ORDER_SHIPPED: {
 		name: 'Order Shipped',
 		category: 'order',
-		content: `📦 *Your Order is On The Way!*\n\nOrder ID: #{{orderId}}\nTracking: {{trackingNumber}}\nCourier: {{courier}}\n\nEstimated delivery: {{estimatedDate}}\n\nTrack: {{trackingUrl:}}`
+		description: 'Sent when an order ships',
+		content: `📦 *Your Order is On The Way!*\n\nOrder ID: #{{orderId}}\nTracking: {{trackingNumber}}\nCourier: {{courier}}\n\nEstimated delivery: {{estimatedDate}}\n\nTrack your package: {{trackingUrl:}}`
 	},
 	INVOICE: {
 		name: 'Invoice',
 		category: 'invoice',
-		content: `📄 *INVOICE*\n\nInvoice #: {{invoiceNumber}}\nDate: {{invoiceDate}}\nDue Date: {{dueDate}}\n\n*Bill To:*\n{{customerName}}\n{{customerAddress:}}\n\n*Items:*\n{{items}}\n\nSubtotal: {{currency:$}} {{subtotal}}\nTax ({{taxRate:10}}%): {{currency:$}} {{tax}}\n*Total: {{currency:$}} {{total}}*\n\nPayment: {{paymentMethod:Bank Transfer}}`
+		description: 'Standard invoice template',
+		content: `📄 *INVOICE*\n\nInvoice #: {{invoiceNumber}}\nDate: {{invoiceDate}}\nDue Date: {{dueDate}}\n\n*Bill To:*\n{{customerName}}\n{{customerAddress:}}\n\n*Items:*\n{{items}}\n\nSubtotal: {{currency:USD}} {{subtotal}}\nTax ({{taxRate:0}}%): {{currency:USD}} {{tax}}\n*Total: {{currency:USD}} {{total}}*\n\nPayment Method: {{paymentMethod:Bank Transfer}}`
 	},
 	WELCOME: {
 		name: 'Welcome Message',
 		category: 'greeting',
-		content: `👋 *Welcome, {{name}}!*\n\nThank you for joining {{companyName:us}}!\n\nWe're excited to have you on board.\n\n{{features:Here's what you can explore:\n- Our products\n- Exclusive offers\n- 24/7 support}}\n\nNeed help? Just reply to this message!`
+		description: 'Onboarding welcome message',
+		content: `👋 *Welcome, {{name}}!*\n\nThank you for joining {{companyName:us}}!\n\nWe're excited to have you. Here's what you can do:\n{{features:- Explore our products\n- Get exclusive offers\n- 24/7 support}}\n\nNeed help? Just reply to this message!`
 	},
 	BIRTHDAY: {
 		name: 'Birthday Wishes',
 		category: 'greeting',
-		content: `🎂 *Happy Birthday, {{name}}!* 🎉\n\nWishing you a wonderful day!\n\n🎁 Special gift: {{discount:10}}% off your next purchase!\nCode: {{code:BIRTHDAY}}\n\nHave a great celebration! 🥳`
+		description: 'Birthday greeting with optional discount code',
+		content: `🎂 *Happy Birthday, {{name}}!* 🎉\n\nWishing you a wonderful day filled with joy!\n\n🎁 As a special gift, here's {{discount:10}}% off your next purchase!\nUse code: {{code:BDAY}}\n\nHave a great celebration! 🥳`
 	},
 	REMINDER: {
 		name: 'Reminder',
 		category: 'notification',
-		content: `⏰ *Reminder*\n\nHi {{name}},\n\n📋 {{subject}}\n📅 Date: {{date}}\n🕐 Time: {{time}}\n📍 Location: {{location:TBD}}\n\n{{notes:}}\n\nDon't forget! 🙏`
+		description: 'General event/task reminder',
+		content: `⏰ *Reminder*\n\nHi {{name}},\n\nThis is a friendly reminder about:\n📋 {{subject}}\n\n📅 Date: {{date}}\n🕐 Time: {{time}}\n📍 Location: {{location:TBD}}\n\n{{notes:}}\n\nDon't forget! 🙏`
 	},
 	APPOINTMENT: {
 		name: 'Appointment Confirmation',
 		category: 'notification',
-		content: `📅 *Appointment Confirmed*\n\nHi {{name}},\n\n📋 Service: {{service}}\n📅 Date: {{date}}\n🕐 Time: {{time}}\n📍 Location: {{location}}\n\nPlease arrive 10 minutes early.\nTo reschedule, reply to this message.`
+		description: 'Service appointment confirmation',
+		content: `📅 *Appointment Confirmed*\n\nHi {{name}},\n\nYour appointment has been scheduled:\n\n📋 Service: {{service}}\n📅 Date: {{date}}\n🕐 Time: {{time}}\n📍 Location: {{location}}\n\nPlease arrive 10 minutes early.\n\nNeed to reschedule? Reply to this message.`
 	},
 	SUPPORT_TICKET: {
-		name: 'Support Ticket',
+		name: 'Support Ticket Created',
 		category: 'support',
-		content: `🎫 *Support Ticket Created*\n\nTicket #: {{ticketId}}\nSubject: {{subject}}\nPriority: {{priority:Normal}}\n\nHi {{name}},\nWe've received your request.\n\nExpected response: {{responseTime:24 hours}}\n\nThank you for your patience! 🙏`
+		description: 'Sent when a support ticket is opened',
+		content: `🎫 *Support Ticket Created*\n\nTicket #: {{ticketId}}\nSubject: {{subject}}\nPriority: {{priority:Normal}}\n\nHi {{name}},\n\nWe've received your request and our team is working on it.\n\nExpected response time: {{responseTime:24 hours}}\n\nThank you for your patience! 🙏`
 	},
 	SUPPORT_RESOLVED: {
 		name: 'Support Resolved',
 		category: 'support',
-		content: `✅ *Issue Resolved*\n\nTicket #: {{ticketId}}\n\nHi {{name}},\n\nYour issue has been resolved:\n\n*Solution:*\n{{solution}}\n\nNeed more help? Just reply. 🙏`
+		description: 'Sent when a support ticket is resolved',
+		content: `✅ *Issue Resolved*\n\nTicket #: {{ticketId}}\n\nHi {{name}},\n\nYour issue has been resolved:\n\n*Solution:*\n{{solution}}\n\nIf you need further assistance, please reply to this message.\n\nThank you! 🙏`
 	}
 }
 
-// ─── Factory + standalone renderer ───────────────────────────────────────────
+// ─── Factory helpers ──────────────────────────────────────────────────────────
 
-/** Create a ready-to-use TemplateManager, optionally pre-loaded with preset templates */
+/**
+ * Create a TemplateManager pre-loaded with the 9 built-in preset templates.
+ *
+ * @param includePresets - Whether to load the preset templates (default: `true`)
+ */
 export const createTemplateManager = (includePresets = true): TemplateManager => {
-	const manager = new TemplateManager()
+	const mgr = new TemplateManager()
 	if (includePresets) {
-		for (const [key, tpl] of Object.entries(PRESET_TEMPLATES)) {
-			manager.create({ ...tpl, id: key.toLowerCase() })
+		for (const [key, template] of Object.entries(PRESET_TEMPLATES)) {
+			mgr.create({ ...template, id: key.toLowerCase() })
 		}
 	}
-	return manager
+	return mgr
 }
 
-/** Render any template content string directly — no manager needed */
-export const renderTemplate = (content: string, data: Record<string, string | number> = {}): string =>
+/**
+ * One-shot template render without a TemplateManager instance.
+ *
+ * @example
+ * const text = renderTemplate('Hello {{name}}, your order #{{orderId}} is ready!', {
+ *     name: 'Alice', orderId: '1234'
+ * })
+ */
+export const renderTemplate = (content: string, data: Record<string, string | number | boolean> = {}): string =>
 	content.replace(/\{\{(\w+)(?::([^}]*))?\}\}/g, (_match, name: string, defaultValue?: string) => {
-		const val = data[name]
-		if (val !== undefined && val !== null) return String(val)
+		const value = data[name]
+		if (value !== undefined && value !== null) return String(value)
 		if (defaultValue !== undefined) return defaultValue
 		return _match
 	})

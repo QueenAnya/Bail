@@ -38,6 +38,8 @@ import {
 	ensureLTHashStateVersion,
 	extractSyncdPatches,
 	generateProfilePicture,
+	generatePanoramaProfilePicture,
+	extractImageThumb,
 	getHistoryMsg,
 	isAppStateSyncIrrecoverable,
 	isMissingKeyError,
@@ -45,7 +47,7 @@ import {
 	newLTHashState,
 	processSyncAction
 } from '../Utils'
-import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
+import { makeMutex } from '../Utils/make-mutex'
 import processMessage from '../Utils/process-message'
 import { buildTcTokenFromJid } from '../Utils/tc-token-utils'
 import {
@@ -85,8 +87,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		signalRepository,
 		onUnexpectedError,
 		sendUnifiedSession,
-		registerSocketEndHandler,
-		getMediaHost
+		registerSocketEndHandler
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
@@ -105,22 +106,14 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
 	let syncState: SyncState = SyncState.Connecting
 
-	/** Per-chat keyed mutex — same-chat messages serialize; different chats process in parallel */
-	const messageMutex = makeKeyedMutex()
+	/** this mutex ensures that messages are processed in order */
+	const messageMutex = makeMutex()
 
-	/**
-	 * Idempotency cache for processMessage (M8). TTL 10 min covers retry windows.
-	 */
-	const processedMessageCache: CacheStore = new NodeCache<boolean>({
-		stdTTL: 10 * 60,
-		useClones: false
-	}) as CacheStore
+	/** this mutex ensures that receipts are processed in order */
+	const receiptMutex = makeMutex()
 
-	/** Per-chat keyed receipt mutex */
-	const receiptMutex = makeKeyedMutex()
-
-	/** Per-WAPatchName keyed mutex — different collections apply patches in parallel */
-	const appStatePatchMutex = makeKeyedMutex()
+	/** this mutex ensures that app state patches are processed in order */
+	const appStatePatchMutex = makeMutex()
 
 	/** this mutex ensures that notifications are processed in order */
 	const notificationMutex = makeMutex()
@@ -339,6 +332,37 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					attrs: { type: 'image' },
 					content: img
 				}
+			]
+		})
+	}
+
+	/** Update profile picture with panorama/wide banner support (sends square + fullsize). */
+	const updatePanoramaProfilePicture = async (
+		jid: string,
+		content: WAMediaUpload,
+		options?: { maxWidth?: number; quality?: number }
+	) => {
+		if (!jid) {
+			throw new Boom(
+				'Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update'
+			)
+		}
+
+		const targetJid =
+			jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id) ? jidNormalizedUser(jid) : undefined
+
+		const { img, fullImg } = await generatePanoramaProfilePicture(content, options)
+		await query({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'w:profile:picture',
+				...(targetJid ? { target: targetJid } : {})
+			},
+			content: [
+				{ tag: 'picture', attrs: { type: 'image' }, content: img },
+				{ tag: 'picture', attrs: { type: 'fullsize' }, content: fullImg }
 			]
 		})
 	}
@@ -1500,7 +1524,11 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		fetchStatus,
 		fetchDisappearingDuration,
 		updateProfilePicture,
+		updatePanoramaProfilePicture,
 		removeProfilePicture,
+		/** Resize/thumbnail image → JPEG Buffer. Usage: `await sock.resize(url, 320)` */
+		resize: (media: Parameters<typeof extractImageThumb>[0], width = 320) =>
+			extractImageThumb(media, width).then(r => r.buffer),
 		updateProfileStatus,
 		updateProfileName,
 		updateBlockStatus,

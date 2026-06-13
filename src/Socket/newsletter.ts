@@ -116,6 +116,13 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		newsletterUnmute: (jid: string) => {
 			return executeWMexQuery({ newsletter_id: jid }, QueryIds.UNMUTE, XWAPaths.xwa2_newsletter_unmute_v2)
 		},
+		/**
+		 * Fetch all newsletters the current user is subscribed to.
+		 * Equivalent to groupFetchAllParticipating but for newsletters.
+		 */
+		newsletterSubscribed: () => {
+			return executeWMexQuery({}, QueryIds.SUBSCRIBED, XWAPaths.xwa2_newsletter_subscribed)
+		},
 
 		newsletterUpdateName: async (jid: string, name: string) => {
 			return await newsletterUpdate(jid, { name })

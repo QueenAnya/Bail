@@ -1,5 +1,5 @@
 import { Boom } from '@hapi/boom'
-import { exec, spawn } from 'child_process'
+import { exec } from 'child_process'
 import * as Crypto from 'crypto'
 import { once } from 'events'
 import { createReadStream, createWriteStream, promises as fs, WriteStream } from 'fs'
@@ -10,13 +10,7 @@ import { join } from 'path'
 import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
-import {
-	DEFAULT_ORIGIN,
-	MEDIA_HKDF_KEY_MAPPING,
-	MEDIA_PATH_MAP,
-	NEWSLETTER_MEDIA_PATH_MAP,
-	type MediaType
-} from '../Defaults'
+import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP, type MediaType } from '../Defaults'
 import type {
 	BaileysEventMap,
 	DownloadableMessage,
@@ -37,22 +31,12 @@ import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-const getImageProcessingLibrary = async () => {
+export const getImageProcessingLibrary = async () => {
 	//@ts-ignore
-	const [jimp, sharp, napiImage] = await Promise.all([
-		import('jimp').catch(() => {}),
-		import('sharp').catch(() => {}),
-		// @ts-ignore — @napi-rs/image is an optional peer dep
-		import('@napi-rs/image').catch(() => {})
-	])
+	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
 	if (sharp) {
 		return { sharp }
-	}
-
-	// @napi-rs/image: balance between performance and compatibility
-	if (napiImage) {
-		return { image: napiImage }
 	}
 
 	if (jimp) {
@@ -138,23 +122,8 @@ const extractVideoThumb = async (
 	size: { width: number; height: number }
 ) =>
 	new Promise<void>((resolve, reject) => {
-		// Use spawn instead of exec for safer process handling (no shell injection risk)
-		const ffmpegArgs = [
-			'-ss',
-			String(time),
-			'-i',
-			path,
-			'-y',
-			'-vf',
-			`scale=${size.width}:-1`,
-			'-vframes',
-			'1',
-			'-f',
-			'image2',
-			destPath
-		]
-		const proc = spawn('ffmpeg', ffmpegArgs)
-		proc.on('close', err => {
+		const cmd = `ffmpeg -ss ${time} -i ${path} -y -vf scale=${size.width}:-1 -vframes 1 -f image2 ${destPath}`
+		exec(cmd, err => {
 			if (err) {
 				reject(err)
 			} else {
@@ -243,6 +212,65 @@ export const generateProfilePicture = async (
 
 	return {
 		img: await img
+	}
+}
+
+/**
+ * Generate panorama/wide profile picture — produces two JPEG buffers:
+ *  - `img`     640×640 square (circle avatar thumbnail)
+ *  - `fullImg` aspect-ratio-preserved wide image (banner slot)
+ */
+export const generatePanoramaProfilePicture = async (
+	mediaUpload: WAMediaUpload,
+	options?: { maxWidth?: number; quality?: number }
+): Promise<{ img: Buffer; fullImg: Buffer }> => {
+	const { maxWidth = 720, quality = 80 } = options || {}
+
+	let buffer: Buffer
+	if (Buffer.isBuffer(mediaUpload)) {
+		buffer = mediaUpload
+	} else {
+		const { stream } = await getStream(mediaUpload)
+		buffer = await toBuffer(stream)
+	}
+
+	const lib = await getImageProcessingLibrary()
+
+	if ('sharp' in lib && typeof lib.sharp?.default === 'function') {
+		const sharpLib = lib.sharp.default
+		const meta = await sharpLib(buffer).metadata()
+		const origW = meta.width || 640
+		const origH = meta.height || 640
+		const aspect = origW / origH
+		const newW = origW > maxWidth ? maxWidth : origW
+		const newH = origW > maxWidth ? Math.round(maxWidth / aspect) : origH
+
+		const [fullImg, img] = await Promise.all([
+			sharpLib(buffer).resize(newW, newH, { fit: 'inside' }).jpeg({ quality }).toBuffer(),
+			sharpLib(buffer).resize(640, 640, { fit: 'cover', position: 'center' }).jpeg({ quality: 50 }).toBuffer()
+		])
+		return { img, fullImg }
+	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
+		const { Jimp, ResizeStrategy, MIME_JPEG } = lib.jimp as any
+		const jimp = await Jimp.read(buffer)
+		const origW: number = jimp.width
+		const origH: number = jimp.height
+		const aspect = origW / origH
+		const newW = origW > maxWidth ? maxWidth : origW
+		const newH = origW > maxWidth ? Math.round(maxWidth / aspect) : origH
+		const min = Math.min(origW, origH)
+
+		const [fullImg, img] = await Promise.all([
+			jimp.clone().resize({ w: newW, h: newH, mode: ResizeStrategy?.BILINEAR }).getBuffer(MIME_JPEG, { quality }),
+			jimp
+				.clone()
+				.crop({ x: 0, y: 0, w: min, h: min })
+				.resize({ w: 640, h: 640, mode: ResizeStrategy?.BILINEAR })
+				.getBuffer(MIME_JPEG, { quality: 50 })
+		])
+		return { img, fullImg }
+	} else {
+		throw new Boom('No image processing library available for panorama profile picture')
 	}
 }
 
@@ -361,12 +389,14 @@ export async function generateThumbnail(
 	mediaType: 'video' | 'image',
 	options: {
 		logger?: ILogger
+		hdMode?: boolean
 	}
 ) {
 	let thumbnail: string | undefined
 	let originalImageDimensions: { width: number; height: number } | undefined
 	if (mediaType === 'image') {
-		const { buffer, original } = await extractImageThumb(file)
+		const thumbWidth = options.hdMode ? 320 : 32
+		const { buffer, original } = await extractImageThumb(file, thumbWidth)
 		thumbnail = buffer.toString('base64')
 		if (original.width && original.height) {
 			originalImageDimensions = {
@@ -884,9 +914,7 @@ export const getWAUploadToServer = (
 			logger.debug(`uploading to "${hostname}"`)
 
 			const auth = encodeURIComponent(uploadInfo.auth)
-			const mediaPathMap = (opts as any)?.newsletter ? NEWSLETTER_MEDIA_PATH_MAP : MEDIA_PATH_MAP
-			const serverThumb = (opts as any)?.newsletter ? '&server_thumb_gen=1' : ''
-			const url = `https://${hostname}${mediaPathMap[mediaType]}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
+			const url = `https://${hostname}${MEDIA_PATH_MAP[mediaType]}/${fileEncSha256B64}?auth=${auth}&token=${fileEncSha256B64}`
 
 			let result: MediaUploadResult | undefined
 			try {

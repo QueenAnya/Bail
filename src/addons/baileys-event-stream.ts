@@ -1,49 +1,67 @@
-/**
- * Baileys Event Stream — capture and replay socket events to/from a file
- * Source: @innovatorssoft/baileys baileys-event-stream.js
- */
-import { EventEmitter } from 'events'
+import EventEmitter from 'events'
 import { createReadStream } from 'fs'
 import { writeFile } from 'fs/promises'
 import { createInterface } from 'readline'
 import type { BaileysEventEmitter } from '../Types/index.js'
+import { delay } from '../Utils/generics.js'
+import { makeMutex } from '../Utils/make-mutex.js'
 
-let _writeQueue = Promise.resolve()
-const enqueue = (fn: () => Promise<void>) => {
-	_writeQueue = _writeQueue.then(fn).catch(() => {})
-}
-
+/**
+ * Monkey-patches `ev.emit` to append every Baileys event as a JSON line
+ * (NDJSON) to `filename`. Useful for debugging or replaying sessions.
+ *
+ * @example
+ * captureEventStream(sock.ev, './events.ndjson')
+ */
 export const captureEventStream = (ev: BaileysEventEmitter, filename: string): void => {
 	const originalEmit = ev.emit.bind(ev)
+	const writeMutex = makeMutex()
 
-	ev.emit = function (event: string, ...args: any[]): boolean {
-		const data = args[0]
-		const line = JSON.stringify({ timestamp: Date.now(), event, data }) + '\n'
-		const result = originalEmit(event as any, data)
-		enqueue(() => writeFile(filename, line, { flag: 'a' }))
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const patchedEmit: (...a: any[]) => boolean = function (event: any, ...rest: any[]) {
+		const line = JSON.stringify({ timestamp: Date.now(), event, data: rest[0] }) + '\n'
+		const result = (originalEmit as (...a: any[]) => boolean)(event, ...rest)
+		writeMutex.mutex(async () => {
+			await writeFile(filename, line, { flag: 'a' })
+		})
 		return result
-	} as typeof ev.emit
+	}
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	;(ev as any).emit = patchedEmit
 }
 
+/**
+ * Reads an NDJSON file written by {@link captureEventStream} and replays
+ * each event on a new EventEmitter.
+ *
+ * @param filename        Path to the NDJSON file.
+ * @param delayIntervalMs Milliseconds to wait between events (default 0).
+ * @returns `{ ev, task }` — ev is the emitter, task resolves when done.
+ */
 export const readAndEmitEventStream = (
 	filename: string,
 	delayIntervalMs = 0
-): { ev: EventEmitter; task: Promise<void> } => {
-	const ev = new EventEmitter()
-	const task = (async () => {
+): { ev: BaileysEventEmitter; task: Promise<void> } => {
+	const ev = new EventEmitter() as BaileysEventEmitter
+
+	const fireEvents = async () => {
 		const fileStream = createReadStream(filename)
 		const rl = createInterface({ input: fileStream, crlfDelay: Infinity })
+
 		for await (const line of rl) {
 			if (!line.trim()) continue
 			try {
-				const { event, data } = JSON.parse(line) as { event: string; data: unknown }
-				ev.emit(event, data)
-				if (delayIntervalMs) await new Promise(r => setTimeout(r, delayIntervalMs))
+				const { event, data } = JSON.parse(line)
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				;(ev as any).emit(event, data)
+				if (delayIntervalMs) await delay(delayIntervalMs)
 			} catch {
-				/* skip malformed lines */
+				// skip malformed lines
 			}
 		}
+
 		fileStream.destroy()
-	})()
-	return { ev, task }
+	}
+
+	return { ev, task: fireEvents() }
 }
