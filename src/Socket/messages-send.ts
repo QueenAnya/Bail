@@ -143,6 +143,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	// Prevent race conditions in Signal session encryption by user
 	const encryptionMutex = makeKeyedMutex()
 
+	// Cache to avoid redundant session checks for peers we've recently validated
+	const peerSessionsCache = new NodeCache<boolean>({
+		stdTTL: DEFAULT_CACHE_TTLS.USER_DEVICES,
+		useClones: false
+	})
+
 	let mediaConn: Promise<MediaConnInfo> | undefined
 	/** Per-socket media host; updated whenever media_conn is fetched. Defaults to the public WhatsApp host. */
 	let mediaHost: string = DEF_MEDIA_HOST
@@ -472,11 +478,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		logger.debug({ jids }, 'assertSessions call with jids')
 
+		// Check peerSessionsCache and validate sessions using libsignal loadSession
 		for (const jid of uniqueJids) {
-			if (!force) {
-				const sessionValidation = await signalRepository.validateSession(jid)
-				if (sessionValidation.exists) {
-					continue
+			const signalId = signalRepository.jidToSignalProtocolAddress(jid)
+			const cachedSession = peerSessionsCache.get(signalId)
+			if (cachedSession !== undefined) {
+				if (cachedSession && !force) {
+					continue // Session exists in cache
+				}
+			} else {
+				if (!force) {
+					const sessionValidation = await signalRepository.validateSession(jid)
+					const hasSession = sessionValidation.exists
+					peerSessionsCache.set(signalId, hasSession)
+					if (hasSession) {
+						continue
+					}
 				}
 			}
 

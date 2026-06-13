@@ -105,3 +105,37 @@ export interface NewsletterMetadata {
 		description?: string
 	}
 }
+
+// ─── Extra QueryIds (from anya-bail Newsletter.ts) ───────────────────────────
+/** Secondary QueryIds set — additional newsletter operation IDs */
+export enum QueryIdd {
+	METADATA = '6620195908089573',
+	GETSUBSCRIBED = '6388546374527196',
+	CREATE = '6996806640408138',
+	UNMUTE = '7337137176362961',
+	MUTE = '25151904754424642'
+}
+
+// ─── MEX operation name constants ────────────────────────────────────────────
+export const MexOperations = {
+	PROMOTE: 'NotificationNewsletterAdminPromote',
+	DEMOTE: 'NotificationNewsletterAdminDemote',
+	UPDATE: 'NotificationNewsletterUpdate'
+} as const
+
+export type MexOperation = (typeof MexOperations)[keyof typeof MexOperations]
+
+export const MexUpdatesOperations = {
+	OWNER_COMMUNITY: 'NotificationCommunityOwnerUpdate',
+	GROUP_MEMBER_LINK: 'NotificationGroupMemberLinkPropertyUpdate',
+	GROUP_LIMIT_SHARING: 'NotificationGroupLimitSharingPropertyUpdate'
+} as const
+
+export type MexUpdatesOperation = (typeof MexUpdatesOperations)[keyof typeof MexUpdatesOperations]
+
+export const XWAPathsMexUpdates = {
+	GROUP_SHARING_CHANGE: 'xwa2_notify_group_on_prop_change',
+	COMMUNITY_OWNER_CHANGE: 'xwa2_notify_group_on_participants_roles_change'
+} as const
+
+export type XWAPathMexUpdate = (typeof XWAPathsMexUpdates)[keyof typeof XWAPathsMexUpdates]

@@ -60,7 +60,7 @@ export const DEFAULT_CACHE_TTLS = {
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.macOS('Chrome'),
+	browser: Browsers.iOS('Chrome'),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,
@@ -74,7 +74,25 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	auth: undefined as unknown as AuthenticationState,
 	markOnlineOnConnect: true,
 	syncFullHistory: true,
-	patchMessageBeforeSending: msg => msg,
+	patchMessageBeforeSending: (msg: proto.IMessage) => {
+		// iOS fix: wrap buttons/list/template/interactive in viewOnceMessageV2Extension
+		// so they render correctly on iOS clients
+		if (msg?.buttonsMessage || msg?.templateMessage || msg?.listMessage || msg?.interactiveMessage?.nativeFlowMessage) {
+			msg = {
+				viewOnceMessageV2Extension: {
+					message: {
+						messageContextInfo: {
+							deviceListMetadataVersion: 2,
+							deviceListMetadata: {}
+						},
+						...msg
+					}
+				}
+			}
+		}
+
+		return msg
+	},
 	shouldSyncHistoryMessage: ({ syncType }: proto.Message.IHistorySyncNotification) => {
 		return syncType !== proto.HistorySync.HistorySyncType.FULL
 	},

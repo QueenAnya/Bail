@@ -22,8 +22,14 @@ export type BrowsersMap = {
 	macOS(browser: string): [string, string, string]
 	baileys(browser: string): [string, string, string]
 	windows(browser: string): [string, string, string]
+	linux(browser: string): [string, string, string]
+	iOS(browser: string): [string, string, string]
 	android(apiLevel: string): [string, string, string]
+	androidCompanion(apiLevel: string): [string, string, string]
+	kaiOS(browser: string): [string, string, string]
+	chromeOS(browser: string): [string, string, string]
 	appropriate(browser: string): [string, string, string]
+	custom(os: string, browser: string, version: string): [string, string, string]
 }
 
 export enum DisconnectReason {
