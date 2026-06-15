@@ -35,6 +35,7 @@ export type SqliteAuthStateOptions =
 	| {
 			dbPath?: undefined
 			/** Pass an existing better-sqlite3 Database instance. */
+			// @ts-ignore — better-sqlite3 is an optional peer dependency
 			database: import('better-sqlite3').Database
 	  }
 
@@ -63,9 +64,12 @@ CREATE INDEX IF NOT EXISTS signal_keys_type_idx ON signal_keys(type);
 
 // ─── Lazy loader ───────────────────────────────────────────────────────────────
 
+// @ts-ignore — better-sqlite3 is an optional peer dependency
 async function loadBetterSqlite3(): Promise<(typeof import('better-sqlite3'))['default']> {
 	try {
+		// @ts-ignore — better-sqlite3 is an optional peer dependency
 		const mod = (await import('better-sqlite3')) as Record<string, unknown>
+		// @ts-ignore — better-sqlite3 is an optional peer dependency
 		return (mod.default ?? mod) as (typeof import('better-sqlite3'))['default']
 	} catch (cause) {
 		throw Object.assign(
@@ -85,6 +89,7 @@ async function loadBetterSqlite3(): Promise<(typeof import('better-sqlite3'))['d
  * WAL journal mode is enabled for reliable concurrent-read performance.
  */
 export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<SqliteAuthStateResult> {
+	// @ts-ignore — better-sqlite3 is an optional peer dependency
 	let db: import('better-sqlite3').Database
 
 	if (opts.database) {
