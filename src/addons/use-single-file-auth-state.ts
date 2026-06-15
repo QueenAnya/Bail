@@ -24,10 +24,10 @@ import { readFile, rename, stat, writeFile } from 'fs/promises'
 import { Mutex } from 'async-mutex'
 import { LRUCache } from 'lru-cache'
 import { proto } from '../../WAProto/index.js'
-import { DEFAULT_CACHE_TTLS } from '../../Defaults/index'
-import { initAuthCreds } from '../../Utils/auth-utils'
-import { BufferJSON } from '../../Utils/generics'
-import type { AuthenticationState } from '../../Types/index'
+import { DEFAULT_CACHE_TTLS } from '../Defaults/index'
+import { initAuthCreds } from '../Utils/auth-utils'
+import { BufferJSON } from '../Utils/generics'
+import type { AuthenticationState } from '../Types/index'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

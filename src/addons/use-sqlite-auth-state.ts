@@ -20,9 +20,9 @@
  */
 
 import { proto } from '../../../WAProto/index.js'
-import { initAuthCreds } from '../../Utils/auth-utils'
-import { BufferJSON } from '../../Utils/generics'
-import type { AuthenticationState } from '../../Types/index'
+import { initAuthCreds } from '../Utils/auth-utils'
+import { BufferJSON } from '../Utils/generics'
+import type { AuthenticationState } from '../Types/index'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
