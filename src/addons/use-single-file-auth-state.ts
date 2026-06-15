@@ -1,7 +1,7 @@
 /**
  * Enhanced Single-File Authentication State
  *
- * Source: @itsliaaa/baileys (use-single-file-auth-state.js)
+ * Source: @itsliaaa/baileys (use-single-file-auth-state)
  * Rewritten as clean TypeScript with full types and JSDoc.
  *
  * Improvements over the removed upstream single-file implementation:
@@ -13,7 +13,7 @@
  * Requires: `lru-cache` and `async-mutex` (both already in package.json)
  *
  * @example
- * import { useSingleFileAuthState } from './addons/auth/use-single-file-auth-state.js'
+ * import { useSingleFileAuthState } from './addons/auth/use-single-file-auth-state'
  *
  * const { state, saveCreds } = await useSingleFileAuthState('./auth_info.json')
  * const sock = makeWASocket({ auth: state })
@@ -23,11 +23,11 @@
 import { readFile, rename, stat, writeFile } from 'fs/promises'
 import { Mutex } from 'async-mutex'
 import { LRUCache } from 'lru-cache'
-import { proto } from '../../../WAProto/index.js'
-import { DEFAULT_CACHE_TTLS } from '../../Defaults/index.js'
-import { initAuthCreds } from '../../Utils/auth-utils.js'
-import { BufferJSON } from '../../Utils/generics.js'
-import type { AuthenticationState } from '../../Types/index.js'
+import { proto } from '../../WAProto/index.js'
+import { DEFAULT_CACHE_TTLS } from '../../Defaults/index'
+import { initAuthCreds } from '../../Utils/auth-utils'
+import { BufferJSON } from '../../Utils/generics'
+import type { AuthenticationState } from '../../Types/index'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

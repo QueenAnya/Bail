@@ -1,7 +1,7 @@
 /**
  * SQLite-backed Authentication State
  *
- * Source: @itsliaaa/baileys (use-sqlite-auth-state.js)
+ * Source: @itsliaaa/baileys (use-sqlite-auth-state)
  * Rewritten as clean TypeScript with full types and JSDoc.
  *
  * Uses `better-sqlite3` for synchronous, transactional key storage.
@@ -12,7 +12,7 @@
  *   - `signal_keys`  — stores Signal Protocol session/pre-keys (type + id composite PK)
  *
  * @example
- * import { useSqliteAuthState } from './addons/auth/use-sqlite-auth-state.js'
+ * import { useSqliteAuthState } from './addons/auth/use-sqlite-auth-state'
  *
  * const { state, saveCreds } = await useSqliteAuthState({ dbPath: './auth.db' })
  * const sock = makeWASocket({ auth: state })
@@ -20,9 +20,9 @@
  */
 
 import { proto } from '../../../WAProto/index.js'
-import { initAuthCreds } from '../../Utils/auth-utils.js'
-import { BufferJSON } from '../../Utils/generics.js'
-import type { AuthenticationState } from '../../Types/index.js'
+import { initAuthCreds } from '../../Utils/auth-utils'
+import { BufferJSON } from '../../Utils/generics'
+import type { AuthenticationState } from '../../Types/index'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

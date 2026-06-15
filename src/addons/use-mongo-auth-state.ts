@@ -1,7 +1,7 @@
 /**
  * MongoDB-backed Authentication State
  *
- * Source: @innovatorssoft/baileys (use-mongo-file-auth-state.js)
+ * Source: @innovatorssoft/baileys (use-mongo-file-auth-state)
  * Rewritten as clean TypeScript with full types and JSDoc.
  *
  * Stores credentials and Signal Protocol keys in a MongoDB collection.
@@ -13,7 +13,7 @@
  *
  * @example
  * import { MongoClient } from 'mongodb'
- * import { useMongoAuthState } from './addons/auth/use-mongo-auth-state.js'
+ * import { useMongoAuthState } from './addons/auth/use-mongo-auth-state'
  *
  * const client = new MongoClient(process.env.MONGO_URI!)
  * await client.connect()
@@ -24,10 +24,10 @@
  * sock.ev.on('creds.update', saveCreds)
  */
 
-import { proto } from '../../../WAProto/index.js'
-import { initAuthCreds } from '../../Utils/auth-utils.js'
-import { BufferJSON } from '../../Utils/generics.js'
-import type { AuthenticationState } from '../../Types/index.js'
+import { proto } from '../../WAProto/index.js'
+import { initAuthCreds } from '../../Utils/auth-utils'
+import { BufferJSON } from '../../Utils/generics'
+import type { AuthenticationState } from '../../Types/index'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
