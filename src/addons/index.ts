@@ -322,3 +322,31 @@ export type {
 	RichMessageContent,
 	CapturedUnifiedResponse as CapturedUnifiedResponseComposer
 } from './message-composer.js'
+
+// ─── Rich Response (newer API from rc13-final) ────────────────────────────────
+export {
+	RichSubMessageType as RichSubMessageTypeV2,
+	toUnifiedResponse,
+	wrapToBotForwardedMessage as wrapToBotForwardedMessageV2,
+	prepareRichResponseMessage as prepareRichResponseMessageV2
+} from './rich-response.js'
+export type {
+	RichTextSubmessage,
+	RichCodeSubmessage,
+	RichTableSubmessage,
+	RichLatexSubmessage,
+	RichReelItem,
+	RichContentItemsSubmessage,
+	RichSubmessage,
+	RichResponseInput
+} from './rich-response.js'
+
+// ─── QR Terminal ──────────────────────────────────────────────────────────────
+export { printQRIfNecessaryListener } from '../Utils/generics.js'
+
+// ─── New Utils ────────────────────────────────────────────────────────────────
+export { makeLockManager } from '../Utils/lock-manager.js'
+export type { LockRef } from '../Utils/lock-manager.js'
+export { migrateAuthState } from '../Utils/migrate-auth-state.js'
+export type { MigrateAuthStateOptions, MigrateAuthStateResult } from '../Utils/migrate-auth-state.js'
+export { generateAnyaMessageID, runDetached, generateKeyUuid } from '../Utils/generics.js'

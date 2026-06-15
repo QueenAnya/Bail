@@ -1,7 +1,5 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
-// @ts-ignore - no official types for qrcode-terminal
-import QRTerminal from 'qrcode-terminal'
 import { URL } from 'url'
 import { promisify } from 'util'
 import { proto } from '../../WAProto/index.js'
@@ -44,6 +42,7 @@ import {
 	getPlatformId,
 	makeEventBuffer,
 	makeNoiseHandler,
+	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
 	xmppSignedPreKey
@@ -99,13 +98,6 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const uqTagId = generateMdTagPrefix()
 	const generateMessageTag = () => `${uqTagId}${epoch++}`
-
-	if (printQRInTerminal) {
-		logger.warn(
-			{},
-			'⚠️ The printQRInTerminal option is deprecated upstream but is supported in this fork for convenience. It is recommended to listen to the connection.update event yourself and handle the QR your way.'
-		)
-	}
 
 	const syncDisabled =
 		PROCESSABLE_HISTORY_TYPES.map(syncType => config.shouldSyncHistoryMessage({ syncType })).filter(x => x === false)
@@ -411,11 +403,7 @@ export const makeSocket = (config: SocketConfig) => {
 	const ev = makeEventBuffer(logger)
 
 	if (printQRInTerminal) {
-		ev.on('connection.update', ({ qr }) => {
-			if (qr) {
-				QRTerminal.generate(qr, { small: true })
-			}
-		})
+		printQRIfNecessaryListener(ev, logger)
 	}
 
 	const { creds } = authState

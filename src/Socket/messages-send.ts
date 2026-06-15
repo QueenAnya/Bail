@@ -1273,6 +1273,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return 'native_flow_response'
 		} else if (message.groupInviteMessage) {
 			return 'url'
+		} else if (message.stickerPackMessage) {
+			return 'sticker_pack'
 		}
 
 		return ''

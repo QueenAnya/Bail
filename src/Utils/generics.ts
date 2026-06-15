@@ -11,6 +11,7 @@ import type {
 	WAMessageKey,
 	WAVersion
 } from '../Types'
+import type { ILogger } from './logger'
 import { DisconnectReason } from '../Types'
 import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
@@ -481,4 +482,65 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
+}
+
+/** Generate a message ID with the ANYA-WEB prefix (4NY4W3B + 16 random hex bytes) */
+export const generateAnyaMessageID = () => '4NY4W3B' + randomBytes(16).toString('hex').toUpperCase()
+
+/**
+ * Fire-and-forget async helper. Runs `work` in a detached microtask so caller
+ * is never blocked. Errors are logged but never thrown back to the caller.
+ */
+export function runDetached(
+	work: () => Promise<unknown>,
+	logger: { warn?: (obj: unknown, msg?: string) => void; error?: (obj: unknown, msg?: string) => void },
+	context: Record<string, unknown> = {}
+): void {
+	Promise.resolve()
+		.then(work)
+		.catch((err: unknown) => {
+			logger.error?.({ ...context, err }, 'runDetached: detached work rejected')
+		})
+}
+
+/**
+ * Generate the key.uuid field for an outgoing message.
+ * If `userUuid` is supplied it is returned verbatim; otherwise a random
+ * 15-character string prefixed with `qa3#69` is generated.
+ */
+export const generateKeyUuid = (userUuid?: string): string => {
+	const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+	const DEFAULT_BASE = 'qa3#69'
+	const DEFAULT_LEN = 15
+
+	if (userUuid !== undefined && userUuid !== '') {
+		return userUuid
+	}
+
+	const padLen = DEFAULT_LEN - DEFAULT_BASE.length
+	let pad = ''
+	const bytes = randomBytes(padLen)
+	for (let i = 0; i < padLen; i++) {
+		pad += CHARS[bytes[i]! % CHARS.length]
+	}
+	return DEFAULT_BASE + pad
+}
+
+/**
+ * Listens to `connection.update` and prints QR codes to the terminal using
+ * the optional `qrcode-terminal` package. Install it with:
+ *   npm install qrcode-terminal
+ */
+export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
+	ev.on('connection.update', async ({ qr }) => {
+		if (qr) {
+			// @ts-ignore — qrcode-terminal is an optional peer dep
+			const QR = await import('qrcode-terminal')
+				.then((m: any) => m.default || m)
+				.catch(() => {
+					logger.error('QR code terminal not added as dependency — run: npm install qrcode-terminal')
+				})
+			QR?.generate(qr, { small: true })
+		}
+	})
 }

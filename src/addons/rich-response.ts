@@ -195,7 +195,7 @@ export const wrapToBotForwardedMessage = (richResponseMessage: any): proto.IMess
 					}
 				]
 			},
-			botRenderingConfigMetadata: { renderingPayload: randomBytes(32) }
+			...({ botRenderingConfigMetadata: { renderingPayload: randomBytes(32) } } as any)
 		}
 	},
 	botForwardedMessage: {

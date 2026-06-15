@@ -177,6 +177,9 @@ export const TimeMs = {
  * Matches: line comments | strings/template literals | call-site identifiers
  *          | plain identifiers | numbers | whitespace/punctuation
  */
+/** Library name shown in fallback texts */
+export const LIBRARY_NAME = 'Baileys'
+
 export const LEXER_REGEX =
 	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\\b[a-zA-Z_]\w*\\b)(?=\s*\()|(\\b[a-zA-Z_]\w*\\b)|(\\b\d+(?:\.\d+)?\\b)|(\s+|[^\w\s]+)/g
 

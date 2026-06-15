@@ -32,8 +32,19 @@ import type { ILogger } from './logger'
 const getTmpFilesDirectory = () => tmpdir()
 
 export const getImageProcessingLibrary = async () => {
-	//@ts-ignore
-	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
+	// @ts-ignore — jimp, sharp, @napi-rs/image are optional peer deps
+	const [jimp, sharp, napiImage] = await Promise.all([
+		import('jimp').catch(() => {}),
+		// @ts-ignore
+		import('sharp').catch(() => {}),
+		// @ts-ignore — @napi-rs/image is an optional peer dep
+		import('@napi-rs/image').catch(() => {})
+	])
+
+	// @napi-rs/image: best balance of performance and compatibility
+	if (napiImage) {
+		return { image: napiImage }
+	}
 
 	if (sharp) {
 		return { sharp }
