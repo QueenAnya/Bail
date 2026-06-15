@@ -438,17 +438,19 @@ export const generateInlineEntityMessage = (
 	entities: InlineEntity[],
 	quoted?: any
 ): { message: proto.IMessage; messageId: string } => {
-	const submessages: RichSubmessage[] = [
+	const submessages: proto.IAIRichResponseSubMessage[] = [
 		{
-			messageType: RichSubMessageType.TEXT,
+			messageType: RichSubMessageType.TEXT as unknown as proto.AIRichResponseSubMessageType,
 			messageText: text,
-			inlineEntities: entities.map(e => ({
-				key: e.key,
-				metadata: {
-					__typename: 'GenAISearchCitationItem',
-					...e.metadata
-				}
-			}))
+			...({
+				inlineEntities: entities.map(e => ({
+					key: e.key,
+					metadata: {
+						__typename: 'GenAISearchCitationItem',
+						...e.metadata
+					}
+				}))
+			} as any)
 		}
 	]
 	return {

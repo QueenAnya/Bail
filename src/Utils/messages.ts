@@ -1,5 +1,5 @@
 import { Boom } from '@hapi/boom'
-import { randomBytes } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import { zip } from 'fflate'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
@@ -26,6 +26,7 @@ import type {
 	WAMessage,
 	WAMessageContent,
 	WAMessageKey,
+	WASendableProduct,
 	WATextMessage
 } from '../Types'
 import { WAMessageStatus, WAProto } from '../Types'
@@ -594,22 +595,16 @@ export const generateWAMessageContent = async (
 			name,
 			pollVotes: values.map(([optionName, optionVoteCount]) => ({ optionName, optionVoteCount }))
 		}
-		;(pollResultSnapshotMessage as Record<string, unknown>).contextInfo = {
-			...(message.contextInfo || {}),
-			...buildMentionContextInfo(message)
-		}
-		m.pollResultSnapshotMessage = pollResultSnapshotMessage
+		;(pollResultSnapshotMessage as any).contextInfo = { ...((message as any).contextInfo || {}) }(
+			m as any
+		).pollResultSnapshotMessage = pollResultSnapshotMessage
 	} else if (hasNonNullishProperty(message, 'call')) {
 		// Scheduled call creation message (call invite)
-		const callMsg = (message as { call: { name?: string; type?: number; time?: number } }).call
-		m.scheduledCallCreationMessage = {
-			title: callMsg.name || 'Call',
-			callType: callMsg.type || 1,
-			scheduledTimestampMs: callMsg.time || Date.now()
-		}
-		;(m.scheduledCallCreationMessage as Record<string, unknown>).contextInfo = {
-			...(message.contextInfo || {}),
-			...buildMentionContextInfo(message)
+		const _callMsg = (message as { call: { name?: string; type?: number; time?: number } }).call
+		;(m as any).scheduledCallCreationMessage = {
+			title: _callMsg.name || 'Call',
+			callType: _callMsg.type || 1,
+			scheduledTimestampMs: _callMsg.time || Date.now()
 		}
 	} else if (hasNonNullishProperty(message, 'payment')) {
 		// Payment request message
@@ -639,10 +634,7 @@ export const generateWAMessageContent = async (
 			noteMessage: {
 				extendedTextMessage: {
 					text: payMsg.note || '',
-					contextInfo: {
-						...(message.contextInfo || {}),
-						...buildMentionContextInfo(message)
-					}
+					contextInfo: { ...((message as any).contextInfo || {}) }
 				}
 			},
 			background: {
@@ -677,7 +669,7 @@ export const generateWAMessageContent = async (
 	) {
 		// KeepInChatMessage — keep a message after disappearing-messages timer
 		const k = (message as any).keep as { key: WAMessageKey; type?: number; time?: number }
-		m.keepInChatMessage = {
+		;(m as any).keepInChatMessage = {
 			key: k.key,
 			keepType: k.type ?? 1,
 			timestampMs: k.time ?? Date.now()
@@ -783,17 +775,17 @@ export const generateWAMessageContent = async (
 		}
 	} else if (hasNonNullishProperty(message, 'adminInvite')) {
 		// Admin invite to a newsletter/channel
-		const invite = (
+		const _invite = (
 			message as {
 				adminInvite: { jid: string; name: string; caption?: string; expiration?: number; jpegThumbnail?: Buffer }
 			}
 		).adminInvite
-		m.adminInviteMessage = {
-			inviteJid: invite.jid,
-			inviteName: invite.name,
-			caption: invite.caption ?? '',
-			inviteExpiration: invite.expiration ?? 86400,
-			jpegThumbnail: invite.jpegThumbnail
+		;(m as any).newsletterAdminInviteMessage = {
+			inviteJid: _invite.jid,
+			inviteName: _invite.name,
+			caption: _invite.caption ?? '',
+			inviteExpiration: _invite.expiration ?? 86400,
+			jpegThumbnail: _invite.jpegThumbnail
 		}
 	} else if (hasNonNullishProperty(message, 'nativeFlow')) {
 		// Native-flow interactive message
@@ -934,7 +926,7 @@ export const generateWAMessageContent = async (
 		}
 		m = { templateMessage: { hydratedTemplate, hydratedFourRowTemplate: hydratedTemplate } }
 	} else {
-		m = await prepareWAMessageMedia(message, options)
+		m = await prepareWAMessageMedia(message as any, options)
 	}
 
 	// ── Post-build wrappers (order matters — mirrors ItsLiaaa) ──────────────────
@@ -943,8 +935,8 @@ export const generateWAMessageContent = async (
 		const msgType = Object.keys(m)[0]! as Extract<keyof proto.IMessage, MessageWithContextInfo>
 		const key = m[msgType]
 		if (key && 'contextInfo' in key) {
-			;(key as proto.IExtendedTextMessage).contextInfo = {
-				...(key as proto.IExtendedTextMessage).contextInfo,
+			;(key as proto.Message.IExtendedTextMessage).contextInfo = {
+				...(key as proto.Message.IExtendedTextMessage).contextInfo,
 				isGroupStatus: true
 			}
 		} else if (key) {
@@ -957,14 +949,14 @@ export const generateWAMessageContent = async (
 		const msgType = Object.keys(m)[0]! as Extract<keyof proto.IMessage, MessageWithContextInfo>
 		const key = m[msgType]
 		if (key && 'contextInfo' in key) {
-			;(key as proto.IExtendedTextMessage).contextInfo = {
-				...(key as proto.IExtendedTextMessage).contextInfo,
-				isSpoiler: true
+			;(key as proto.Message.IExtendedTextMessage).contextInfo = {
+				...(key as proto.Message.IExtendedTextMessage).contextInfo,
+				...({ isSpoiler: true } as Partial<proto.IContextInfo>)
 			}
 		} else if (key) {
 			;(key as Record<string, unknown>).contextInfo = { isSpoiler: true }
 		}
-		m = { spoilerMessage: { message: m } }
+		m = { ...({ spoilerMessage: { message: m } } as any) }
 	}
 
 	// ─── richResponse (Meta AI–style) ────────────────────────────────────────────
@@ -1028,7 +1020,10 @@ export const generateWAMessageContent = async (
 		}
 		if (hasNonNullishProperty(message, 'footer'))
 			interactiveMessage.footer = { text: (message as { footer: string }).footer }
-		interactiveMessage.contextInfo = { ...(message.contextInfo || {}), ...buildMentionContextInfo(message) }
+		;(interactiveMessage as any).contextInfo = {
+			...((message as any).contextInfo || {}),
+			...(buildMentionContextInfo(message) as any)
+		}
 		m = { interactiveMessage }
 	} else if (hasNonNullishProperty(message, 'collection') && !!(message as { collection?: object }).collection) {
 		const colMsg = (message as { collection: { bizJid: string; id: string; version?: number } }).collection
@@ -1047,7 +1042,10 @@ export const generateWAMessageContent = async (
 		}
 		if (hasNonNullishProperty(message, 'footer'))
 			interactiveMessage.footer = { text: (message as { footer: string }).footer }
-		interactiveMessage.contextInfo = { ...(message.contextInfo || {}), ...buildMentionContextInfo(message) }
+		;(interactiveMessage as any).contextInfo = {
+			...((message as any).contextInfo || {}),
+			...(buildMentionContextInfo(message) as any)
+		}
 		m = { interactiveMessage }
 	} else if (hasNonNullishProperty(message, 'productList') && !!(message as { productList?: object[] }).productList) {
 		const plMsg = message as {
@@ -1071,7 +1069,7 @@ export const generateWAMessageContent = async (
 			},
 			listType: proto.Message.ListMessage.ListType.PRODUCT_LIST
 		}
-		listMessage.contextInfo = { ...(message.contextInfo || {}) }
+		listMessage.contextInfo = { ...((message as any).contextInfo || {}) }
 		m = { listMessage }
 	} else if (
 		hasOptionalProperty(message, 'interactiveAsTemplate') &&
@@ -1131,8 +1129,8 @@ export const generateWAMessageContent = async (
 			title: adReply.title ?? 'Baileys'
 		}
 		if (key && 'contextInfo' in key) {
-			;(key as proto.IExtendedTextMessage).contextInfo = {
-				...(key as proto.IExtendedTextMessage).contextInfo,
+			;(key as proto.Message.IExtendedTextMessage).contextInfo = {
+				...(key as proto.Message.IExtendedTextMessage).contextInfo,
 				externalAdReply: adReplyObj
 			}
 		} else if (key) {

@@ -10,9 +10,11 @@
  * const chat = store.chats.get('123@s.whatsapp.net')
  */
 
-import type { BaileysEventEmitter, Chat, Contact, WAMessage, PresenceData, Label } from '../Types/index.js'
+import type { BaileysEventEmitter, Chat, Contact, WAMessage, PresenceData } from '../Types/index.js'
+import type { Label } from '../Types/Label.js'
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults/index.js'
-import { toNumber, updateMessageWithReceipt, updateMessageWithReaction } from './generic-utils.js'
+import { toNumber } from './generics.js'
+import { updateMessageWithReceipt, updateMessageWithReaction } from './messages.js'
 import { jidNormalizedUser } from '../WABinary/index.js'
 import { WAProto } from '../Types/index.js'
 import { LabelAssociationType } from '../Types/LabelAssociation.js'
@@ -97,6 +99,7 @@ class KeyedChatStore {
 	insertIfAbsent(...chats: Chat[]) {
 		const added: Chat[] = []
 		for (const c of chats) {
+			if (!c.id) continue
 			if (!this.map.has(c.id)) {
 				this.map.set(c.id, c)
 				added.push(c)
@@ -106,6 +109,7 @@ class KeyedChatStore {
 	}
 
 	upsert(chat: Chat) {
+		if (!chat.id) return
 		this.map.set(chat.id, Object.assign(this.map.get(chat.id) ?? {}, chat) as Chat)
 	}
 }
@@ -182,6 +186,7 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 		ev.on('contacts.upsert', c => contactsUpsert(c))
 		ev.on('contacts.update', async updates => {
 			for (const u of updates) {
+				if (!u.id) continue
 				const c = contacts[u.id]
 				if (!c) continue
 				if (u.imgUrl === 'changed')

@@ -7,8 +7,7 @@
  * @example
  * import {
  *     generateInteractiveButtonMessage,
- *     generateCarouselMessage,
- *     prepareRichResponseMessage,
+ *      *     prepareRichResponseMessage,
  *     sendTable,
  *     MessageStore,
  *     createAntiDeleteHandler,
@@ -30,6 +29,13 @@
 
 // ─── Interactive / Button / Template / List / Carousel Messages ───────────────
 export {
+	ButtonHeaderType,
+	ButtonType,
+	CarouselCardType,
+	ListType,
+	buildNativeFlowMessage,
+	hasValidInteractiveHeader,
+	hasValidCarouselHeader,
 	generateInteractiveButtonMessage,
 	generateInteractiveListMessage,
 	generateTemplateMessage,
@@ -38,26 +44,24 @@ export {
 	generateUrlButtonMessage,
 	generateQuickReplyButtons,
 	generateCombinedButtons,
-	generateCarouselMessage,
+	generateCollectionMessage,
 	generateShopMessage,
-	generateCollectionMessage
+	generatePayButtonMessage,
+	generatePixButtonMessage
 } from './interactive-message.js'
 
 export type {
-	ButtonDef,
-	ButtonHeaderType,
-	InteractiveButtonMessageOptions,
+	QuickReplyButton,
+	UrlButton,
+	CallButton,
+	CopyButton,
 	ListSection,
-	InteractiveListMessageOptions,
-	TemplateButtonDef,
-	TemplateMessageOptions,
+	InteractiveListContent,
+	InteractiveButtonsContent,
+	TemplateButtonEntry,
+	TemplateContent,
 	NativeFlowButton,
-	NativeFlowOptions,
-	UrlButtonDef,
-	QuickReplyButtonDef,
-	CombinedButtonDef,
-	CarouselCard,
-	CarouselMessageOptions
+	NativeFlowOptions
 } from './interactive-message.js'
 
 // ─── Rich Response / Meta AI Messages ────────────────────────────────────────
@@ -144,7 +148,7 @@ export {
 	StatusHelper
 } from './status-posting.js'
 
-export type { TextStatusOptions, MediaStatusOptions, StatusFont, StatusBackground } from './status-posting.js'
+export type { TextStatusOptions, MediaStatusOptions, StatusFont } from './status-posting.js'
 
 // ─── Chat Control ─────────────────────────────────────────────────────────────
 export {
@@ -276,7 +280,7 @@ export {
 } from './message-utils.js'
 export type { MentionContent, AlbumMediaItem, AlbumOptions, MessageExtrasContext } from './message-utils.js'
 
-// ─── Interactive Message Types ────────────────────────────────────────────────
+// ─── Interactive Message Types (Utils/interactive-message.ts) ────────────────
 export type {
 	InteractiveButton,
 	InteractiveButtonMessageContent,
@@ -288,21 +292,19 @@ export type {
 	NativeFlowButton as InteractiveNativeFlowButton,
 	NativeFlowOptions as InteractiveNativeFlowOptions,
 	CopyCodeButtonOptions,
-	UrlButton,
+	UrlButton as InteractiveUrlButton,
 	UrlButtonOptions,
-	QuickReplyButton,
+	QuickReplyButton as InteractiveQuickReplyButton,
 	QuickReplyOptions,
 	CombinedButton
 } from '../Utils/interactive-message.js'
 
 // ─── Message Composer (Rich Message Content Generators) ───────────────────────
 export {
-	JS_KEYWORDS,
-	PYTHON_KEYWORDS,
-	LANGUAGE_KEYWORDS,
-	CodeHighlightType,
-	RichSubMessageType,
-	tokenizeCode,
+	JS_KEYWORDS as JS_KEYWORDS_V2,
+	PYTHON_KEYWORDS as PYTHON_KEYWORDS_V2,
+	LANGUAGE_KEYWORDS as LANGUAGE_KEYWORDS_V2,
+	tokenizeCode as tokenizeCodeV2,
 	buildRichContextInfo,
 	buildBotForwardedMessage,
 	generateTableContent,
@@ -313,14 +315,15 @@ export {
 	generateLatexInlineImageContent,
 	captureUnifiedResponse as captureUnifiedResponseFromComposer,
 	generateUnifiedResponseContent,
-	generateRichMessageContent
+	generateRichMessageContent,
+	generateInlineEntityMessage,
+	buildCitationMessage
 } from './message-composer.js'
 export type {
-	CodeToken,
+	CodeBlockToken,
 	LatexExpression as LatexExpressionComposer,
-	RichSubMessage as RichSubMessageComposer,
-	RichMessageContent,
-	CapturedUnifiedResponse as CapturedUnifiedResponseComposer
+	RichContextInfo,
+	InlineEntity
 } from './message-composer.js'
 
 // ─── Rich Response (newer API from rc13-final) ────────────────────────────────

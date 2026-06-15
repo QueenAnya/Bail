@@ -159,7 +159,7 @@ export class MessageScheduler {
 			try {
 				const message = await this.sendMessage(entry.jid, entry.content)
 				entry.status = 'sent'
-				entry.messageId = message?.key?.id
+				entry.messageId = message?.key?.id ?? undefined
 				this.options.onSent(entry, message)
 			} catch (err) {
 				entry.status = 'failed'

@@ -130,6 +130,7 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 		state: {
 			creds,
 			keys: {
+				// @ts-ignore
 				get: async (type, ids) => {
 					const data: Record<string, unknown> = {}
 					for (const id of ids) {

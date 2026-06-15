@@ -325,7 +325,7 @@ export const generateTemplateMessage = async (
 	options?: MediaGenerationOptions
 ): Promise<WAMessageContent> => {
 	const hydratedButtons = content.buttons.map(btn => {
-		const h: proto.Message.HydratedFourRowTemplate.IHydratedButton = { index: btn.index }
+		const h: proto.IHydratedTemplateButton = {}
 		if (btn.quickReplyButton)
 			h.quickReplyButton = { displayText: btn.quickReplyButton.displayText, id: btn.quickReplyButton.id }
 		if (btn.urlButton) h.urlButton = { displayText: btn.urlButton.displayText, url: btn.urlButton.url }
@@ -334,7 +334,7 @@ export const generateTemplateMessage = async (
 		return h
 	})
 
-	const tmpl: proto.Message.IHydratedFourRowTemplate = {
+	const tmpl: proto.Message.TemplateMessage.IHydratedFourRowTemplate = {
 		hydratedContentText: content.body,
 		hydratedFooterText: content.footer,
 		hydratedButtons
@@ -672,8 +672,8 @@ export const generatePixButton = (
 		{ footer: options.footer, header: options.title ? { title: options.title } : undefined }
 	)
 
-/** Build a product list interactive message (single-select rows with products) */
-export const generateProductListMessage = (
+/** Build a product list interactive message (single-select rows with products, via native flow) */
+export const generateProductListNativeFlowMessage = (
 	body: string,
 	products: Array<{
 		id: string
@@ -760,7 +760,7 @@ export const generateTemplateButtonReplyMessage = (
 	templateButtonReplyMessage: {
 		selectedId,
 		selectedDisplayText,
-		index
+		selectedIndex: index
 	}
 })
 

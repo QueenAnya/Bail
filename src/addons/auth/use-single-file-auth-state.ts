@@ -47,7 +47,7 @@ export const useSingleFileAuthState = async (
 	fileName: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => void }> => {
 	// ── Cache (15k entries, TTL mirrors SIGNAL_STORE) ──────────────────────────
-	const cache = new LRUCache<string, unknown>({
+	const cache = new LRUCache<string, NonNullable<unknown>>({
 		max: 15_000,
 		ttl: 1_000 * DEFAULT_CACHE_TTLS.SIGNAL_STORE,
 		updateAgeOnGet: false,
@@ -78,7 +78,9 @@ export const useSingleFileAuthState = async (
 			try {
 				const raw = await readFile(fileName, 'utf-8')
 				fileData = JSON.parse(raw, BufferJSON.reviver) || {}
-				for (const [k, v] of Object.entries(fileData)) cache.set(k, v)
+				for (const [k, v] of Object.entries(fileData)) {
+					if (v !== null && v !== undefined) cache.set(k, v as NonNullable<unknown>)
+				}
 			} catch {
 				fileData = {}
 			}
@@ -106,7 +108,7 @@ export const useSingleFileAuthState = async (
 
 	// ── Internal key accessors ────────────────────────────────────────────────
 	const writeKey = (keyName: string, value: unknown) => {
-		cache.set(keyName, value)
+		if (value !== null && value !== undefined) cache.set(keyName, value as NonNullable<unknown>)
 		fileData[keyName] = value
 		scheduleFlush()
 	}
@@ -124,14 +126,15 @@ export const useSingleFileAuthState = async (
 		state: {
 			creds,
 			keys: {
+				// @ts-ignore
 				get: (type, ids) => {
 					const data: Record<string, unknown> = {}
 					for (const id of ids) {
 						const keyName = `${type}${id}`
-						let value = cache.get(keyName)
+						let value: unknown = cache.get(keyName)
 						if (value === undefined && fileData[keyName] !== undefined) {
-							value = fileData[keyName]
-							cache.set(keyName, value)
+							value = fileData[keyName] ?? undefined
+							if (value !== null && value !== undefined) cache.set(keyName, value as NonNullable<unknown>)
 						}
 						if (type === 'app-state-sync-key' && value) {
 							value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>)

@@ -99,6 +99,7 @@ export const useMongoAuthState = async (collection: MongoCollectionLike): Promis
 		state: {
 			creds,
 			keys: {
+				// @ts-ignore
 				get: async (type, ids) => {
 					const data: Record<string, unknown> = {}
 					await Promise.all(

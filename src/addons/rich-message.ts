@@ -345,7 +345,7 @@ export const prepareRichResponseMessage = (content: RichContent) => {
 	const unified = toUnified(submessages)
 
 	const richResponseMessage = proto.AIRichResponseMessage.create({
-		submessages: submessages as proto.IAISubMessage[],
+		submessages: submessages as unknown as proto.IAIRichResponseSubMessage[],
 		messageType: proto.AIRichResponseMessageType.AI_RICH_RESPONSE_TYPE_STANDARD,
 		unifiedResponse: {
 			// ItsLiaaa fix: inject buffer so tables/code blocks render correctly
@@ -571,7 +571,7 @@ export const captureUnifiedResponse = (msg: proto.IMessage | null | undefined): 
 	if (!rich?.unifiedResponse?.data) return null
 	return {
 		unifiedResponse: { data: rich.unifiedResponse.data as Uint8Array },
-		submessages: (rich.submessages ?? []) as RichSubMessage[],
+		submessages: (rich.submessages ?? []) as unknown as RichSubMessage[],
 		contextInfo: (rich.contextInfo ?? {}) as proto.IContextInfo
 	}
 }

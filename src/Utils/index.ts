@@ -21,4 +21,9 @@ export * from './identity-change-handler'
 export * from './stanza-ack'
 export * from './lock-manager'
 export * from './migrate-auth-state'
-export * from './make-in-memory-store'
+export {
+	makeInMemoryStore as makeInMemoryStoreV2,
+	waChatKey as waChatKeyV2,
+	waMessageID as waMessageIDV2
+} from './make-in-memory-store'
+export type { InMemoryStoreConfig } from './make-in-memory-store'

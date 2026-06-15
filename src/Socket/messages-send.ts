@@ -12,9 +12,9 @@ import {
 	generateRichMessageContent,
 	generateTableContent,
 	generateUnifiedResponseContent,
-	type CapturedUnifiedResponse,
+	// CapturedUnifiedResponse removed — use captureUnifiedResponse instead
 	type LatexExpression,
-	type RichSubMessage
+	type RichSubMessageType as RichSubMessage
 } from '../addons/message-composer'
 import { execSendStatusMentions } from '../addons/from-messages-send'
 import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
