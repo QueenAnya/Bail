@@ -1,81 +1,134 @@
 /**
- * MongoDB Auth State
- * Source: @innovatorssoft/baileys use-mongo-file-auth-state.js
- * Original by: amiruldev, adjusted by @irull2nd
+ * MongoDB-backed Authentication State
+ *
+ * Source: @innovatorssoft/baileys (use-mongo-file-auth-state.js)
+ * Rewritten as clean TypeScript with full types and JSDoc.
+ *
+ * Stores credentials and Signal Protocol keys in a MongoDB collection.
+ * Compatible with any MongoDB driver collection that exposes
+ * `findOne`, `updateOne`, and `deleteOne` (Mongoose Model, native
+ * MongoClient collection, etc.).
+ *
+ * Requires: `mongodb` or `mongoose` (not bundled — install separately)
+ *
+ * @example
+ * import { MongoClient } from 'mongodb'
+ * import { useMongoAuthState } from './addons/auth/use-mongo-auth-state.js'
+ *
+ * const client = new MongoClient(process.env.MONGO_URI!)
+ * await client.connect()
+ * const collection = client.db('baileys').collection('auth')
+ *
+ * const { state, saveCreds } = await useMongoAuthState(collection)
+ * const sock = makeWASocket({ auth: state })
+ * sock.ev.on('creds.update', saveCreds)
  */
-import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils.js'
-import { BufferJSON } from '../Utils/generics.js'
-import type { AuthenticationState } from '../Types/index.js'
 
-/** Minimal MongoDB Collection interface — compatible with mongoose and native driver */
-export type MongoCollection = {
-	updateOne(filter: any, update: any, options?: any): Promise<any>
-	findOne(filter: any): Promise<any>
-	deleteOne(filter: any): Promise<any>
+import { proto } from '../../../WAProto/index.js'
+import { initAuthCreds } from '../../Utils/auth-utils.js'
+import { BufferJSON } from '../../Utils/generics.js'
+import type { AuthenticationState } from '../../Types/index.js'
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Minimal interface satisfied by both a native MongoDB Collection
+ * and a Mongoose Model.
+ */
+export interface MongoCollectionLike {
+	findOne(filter: Record<string, unknown>): Promise<Record<string, unknown> | null>
+	updateOne(
+		filter: Record<string, unknown>,
+		update: Record<string, unknown>,
+		options?: { upsert?: boolean }
+	): Promise<unknown>
+	deleteOne(filter: Record<string, unknown>): Promise<unknown>
 }
 
-export const useMongoAuthState = async (
-	collection: MongoCollection
-): Promise<{
+export type MongoAuthStateResult = {
 	state: AuthenticationState
 	saveCreds: () => Promise<void>
-}> => {
-	const writeData = (data: unknown, id: string) => {
-		const informationToStore = JSON.parse(JSON.stringify(data, BufferJSON.replacer))
-		return collection.updateOne({ _id: id }, { $set: { ...informationToStore } }, { upsert: true })
-	}
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Construct the document `_id` for a given key category and ID.
+ * e.g. `'session-6281234567890'`, `'creds'`
+ */
+const docId = (category: string, id?: string): string => (id ? `${category}-${id}` : category)
+
+// ─── useMongoAuthState ─────────────────────────────────────────────────────────
+
+/**
+ * Create a MongoDB-backed auth state using the supplied collection.
+ * Each credential key is stored as a separate document with `_id` as the key.
+ */
+export const useMongoAuthState = async (collection: MongoCollectionLike): Promise<MongoAuthStateResult> => {
+	// ── Internal read / write / delete helpers ────────────────────────────────
 
 	const readData = async (id: string): Promise<unknown> => {
+		const doc = await collection.findOne({ _id: id as unknown as Record<string, unknown> })
+		if (!doc) return undefined
+		return JSON.parse(JSON.stringify(doc), BufferJSON.reviver)
+	}
+
+	const writeData = async (id: string, data: unknown): Promise<void> => {
+		const toStore = JSON.parse(JSON.stringify(data, BufferJSON.replacer))
+		await collection.updateOne(
+			{ _id: id as unknown as Record<string, unknown> },
+			{ $set: { ...toStore } },
+			{ upsert: true }
+		)
+	}
+
+	const removeData = async (id: string): Promise<void> => {
 		try {
-			const data = JSON.stringify(await collection.findOne({ _id: id }))
-			return JSON.parse(data, BufferJSON.reviver)
+			await collection.deleteOne({ _id: id as unknown as Record<string, unknown> })
 		} catch (err) {
-			console.error('[useMongoAuthState] readData error:', err)
-			return null
+			// Non-fatal — the document may not exist
 		}
 	}
 
-	const removeData = async (id: string) => {
-		try {
-			await collection.deleteOne({ _id: id })
-		} catch (err) {
-			console.error('[useMongoAuthState] removeData error:', err)
-		}
-	}
+	// ── Credentials ───────────────────────────────────────────────────────────
 
-	const creds = ((await readData('creds')) as any) || initAuthCreds()
+	const creds: AuthenticationState['creds'] =
+		((await readData('creds')) as AuthenticationState['creds'] | undefined) ?? initAuthCreds()
 
 	return {
 		state: {
 			creds,
 			keys: {
-				get: async (type: string, ids: string[]) => {
-					const data: Record<string, any> = {}
+				// @ts-ignore
+				get: async (type, ids) => {
+					const data: Record<string, unknown> = {}
 					await Promise.all(
 						ids.map(async id => {
-							let value = await readData(`${type}-${id}`)
+							let value = await readData(docId(type, id))
 							if (type === 'app-state-sync-key' && value) {
-								value = proto.Message.AppStateSyncKeyData.fromObject(value)
+								value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>)
 							}
 							data[id] = value
 						})
 					)
-					return data as any
+					return data
 				},
-				set: async (data: Record<string, Record<string, unknown>>) => {
-					const tasks: Promise<any>[] = []
-					for (const category of Object.keys(data)) {
-						for (const id of Object.keys(data[category]!)) {
-							const value = data[category]![id]
-							const key = `${category}-${id}`
-							tasks.push(value ? writeData(value, key) : removeData(key))
+
+				set: async data => {
+					const tasks: Promise<void>[] = []
+					for (const category in data) {
+						const categoryData = (data as Record<string, Record<string, unknown>>)[category]
+						for (const id in categoryData) {
+							const value = categoryData[id]
+							const key = docId(category, id)
+							tasks.push(value ? writeData(key, value) : removeData(key))
 						}
 					}
 					await Promise.all(tasks)
 				}
 			}
 		},
-		saveCreds: () => writeData(creds, 'creds')
+
+		saveCreds: () => writeData('creds', creds)
 	}
 }

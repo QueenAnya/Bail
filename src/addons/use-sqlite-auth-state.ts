@@ -1,22 +1,54 @@
 /**
- * SQLite Auth State
- * Source: @itsliaaa/baileys v0.3.12 — Utils/use-sqlite-auth-state.js
- * Requires: npm install better-sqlite3
+ * SQLite-backed Authentication State
+ *
+ * Source: @itsliaaa/baileys (use-sqlite-auth-state.js)
+ * Rewritten as clean TypeScript with full types and JSDoc.
+ *
+ * Uses `better-sqlite3` for synchronous, transactional key storage.
+ * Requires: `npm install better-sqlite3` (+ `@types/better-sqlite3` for TS)
+ *
+ * Two tables:
+ *   - `creds`        — stores the authentication credentials (single row `__creds__`)
+ *   - `signal_keys`  — stores Signal Protocol session/pre-keys (type + id composite PK)
+ *
+ * @example
+ * import { useSqliteAuthState } from './addons/auth/use-sqlite-auth-state.js'
+ *
+ * const { state, saveCreds } = await useSqliteAuthState({ dbPath: './auth.db' })
+ * const sock = makeWASocket({ auth: state })
+ * sock.ev.on('creds.update', saveCreds)
  */
-import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils.js'
-import { BufferJSON } from '../Utils/generics.js'
-import type { AuthenticationState } from '../Types/index.js'
 
-export type SqliteAuthStateOptions = {
-	/** Path to the SQLite database file */
-	dbPath?: string
-	/** Or pass an existing better-sqlite3 Database instance */
-	database?: any
+import { proto } from '../../../WAProto/index.js'
+import { initAuthCreds } from '../../Utils/auth-utils.js'
+import { BufferJSON } from '../../Utils/generics.js'
+import type { AuthenticationState } from '../../Types/index.js'
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+export type SqliteAuthStateOptions =
+	| {
+			/** Path to the SQLite database file (will be created if it does not exist). */
+			dbPath: string
+			database?: undefined
+	  }
+	| {
+			dbPath?: undefined
+			/** Pass an existing better-sqlite3 Database instance. */
+			// @ts-ignore — better-sqlite3 is an optional peer dependency
+			database: import('better-sqlite3').Database
+	  }
+
+export type SqliteAuthStateResult = {
+	state: AuthenticationState
+	saveCreds: () => void
 }
 
+// ─── Schema ────────────────────────────────────────────────────────────────────
+
 const CREDS_ROW_KEY = '__creds__'
-const SCHEMA = `
+
+const CREATE_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS creds (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -30,48 +62,71 @@ CREATE TABLE IF NOT EXISTS signal_keys (
 CREATE INDEX IF NOT EXISTS signal_keys_type_idx ON signal_keys(type);
 `
 
-async function loadBetterSqlite3() {
+// ─── Lazy loader ───────────────────────────────────────────────────────────────
+
+// @ts-ignore — better-sqlite3 is an optional peer dependency
+async function loadBetterSqlite3(): Promise<(typeof import('better-sqlite3'))['default']> {
 	try {
-		const mod = (await import('better-sqlite3' as string)) as any
-		return mod.default ?? mod
-	} catch {
-		throw new Error('`better-sqlite3` is required. Install it: npm install better-sqlite3')
+		// @ts-ignore — better-sqlite3 is an optional peer dependency
+		const mod = (await import('better-sqlite3')) as Record<string, unknown>
+		// @ts-ignore — better-sqlite3 is an optional peer dependency
+		return (mod.default ?? mod) as (typeof import('better-sqlite3'))['default']
+	} catch (cause) {
+		throw Object.assign(
+			new Error(
+				'`better-sqlite3` is required for `useSqliteAuthState`. ' +
+					'Install it as a peer dependency: npm install better-sqlite3'
+			),
+			{ cause }
+		)
 	}
 }
 
-export const useSqliteAuthState = async (
-	opts: SqliteAuthStateOptions
-): Promise<{
-	state: AuthenticationState
-	saveCreds: () => Promise<void>
-}> => {
-	let db: any
+// ─── useSqliteAuthState ────────────────────────────────────────────────────────
+
+/**
+ * Create a SQLite-backed auth state.
+ * WAL journal mode is enabled for reliable concurrent-read performance.
+ */
+export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<SqliteAuthStateResult> {
+	// @ts-ignore — better-sqlite3 is an optional peer dependency
+	let db: import('better-sqlite3').Database
+
 	if (opts.database) {
 		db = opts.database
 	} else {
 		const Database = await loadBetterSqlite3()
 		db = new Database(opts.dbPath!)
 	}
+
+	// WAL mode — concurrent reads with sporadic writes (recommended by SQLite docs)
 	db.pragma('journal_mode = WAL')
-	db.pragma('synchronous = NORMAL')
-	db.exec(SCHEMA)
+	db.pragma('synchronous  = NORMAL')
+	db.exec(CREATE_SCHEMA_SQL)
 
 	const stmts = {
-		credsSelect: db.prepare('SELECT value FROM creds WHERE key = ?'),
-		credsUpsert: db.prepare(
+		credsSelect: db.prepare<[string]>('SELECT value FROM creds WHERE key = ?'),
+		credsUpsert: db.prepare<[string, string]>(
 			'INSERT INTO creds (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
 		),
-		keySelect: db.prepare('SELECT value FROM signal_keys WHERE type = ? AND id = ?'),
-		keyUpsert: db.prepare(
+		keySelect: db.prepare<[string, string]>('SELECT value FROM signal_keys WHERE type = ? AND id = ?'),
+		keyUpsert: db.prepare<[string, string, string]>(
 			'INSERT INTO signal_keys (type, id, value) VALUES (?, ?, ?) ON CONFLICT(type, id) DO UPDATE SET value = excluded.value'
 		),
-		keyDelete: db.prepare('DELETE FROM signal_keys WHERE type = ? AND id = ?')
-	}
+		keyDelete: db.prepare<[string, string]>('DELETE FROM signal_keys WHERE type = ? AND id = ?'),
+		keyListIds: db.prepare<[string]>('SELECT id FROM signal_keys WHERE type = ?'),
+		keyList: db.prepare<[string]>('SELECT id, value FROM signal_keys WHERE type = ?'),
+		clearKeys: db.prepare('DELETE FROM signal_keys')
+	} as const
 
 	const loadCreds = () => {
-		const row = stmts.credsSelect.get(CREDS_ROW_KEY) as any
+		const row = stmts.credsSelect.get(CREDS_ROW_KEY) as { value: string } | undefined
 		if (!row) return initAuthCreds()
-		return JSON.parse(row.value, BufferJSON.reviver)
+		return JSON.parse(row.value, BufferJSON.reviver) as AuthenticationState['creds']
+	}
+
+	const persistCreds = (creds: AuthenticationState['creds']) => {
+		stmts.credsUpsert.run(CREDS_ROW_KEY, JSON.stringify(creds, BufferJSON.replacer))
 	}
 
 	const creds = loadCreds()
@@ -80,10 +135,11 @@ export const useSqliteAuthState = async (
 		state: {
 			creds,
 			keys: {
-				get: async (type: string, ids: string[]) => {
-					const data: Record<string, any> = {}
+				// @ts-ignore
+				get: async (type, ids) => {
+					const data: Record<string, unknown> = {}
 					for (const id of ids) {
-						const row = stmts.keySelect.get(type, id) as any
+						const row = stmts.keySelect.get(type, id) as { value: string } | undefined
 						if (row) {
 							let value = JSON.parse(row.value, BufferJSON.reviver)
 							if (type === 'app-state-sync-key' && value) {
@@ -92,13 +148,15 @@ export const useSqliteAuthState = async (
 							data[id] = value
 						}
 					}
-					return data as any
+					return data
 				},
-				set: async (data: Record<string, Record<string, any>>) => {
+
+				set: async data => {
 					const writeTx = db.transaction(() => {
 						for (const category in data) {
-							for (const id in data[category]) {
-								const value = data[category][id]
+							const categoryData = data[category as keyof typeof data] as Record<string, unknown>
+							for (const id in categoryData) {
+								const value = categoryData[id]
 								if (value) {
 									stmts.keyUpsert.run(category, id, JSON.stringify(value, BufferJSON.replacer))
 								} else {
@@ -111,8 +169,7 @@ export const useSqliteAuthState = async (
 				}
 			}
 		},
-		saveCreds: async () => {
-			stmts.credsUpsert.run(CREDS_ROW_KEY, JSON.stringify(creds, BufferJSON.replacer))
-		}
+
+		saveCreds: () => persistCreds(creds)
 	}
 }

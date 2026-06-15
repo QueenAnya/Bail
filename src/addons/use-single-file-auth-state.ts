@@ -1,167 +1,162 @@
 /**
- * Single-File Auth State with LRU cache + mutex
- * Source: @itsliaaa/baileys use-single-file-auth-state.js (Lia@Changes 22-04-26)
+ * Enhanced Single-File Authentication State
+ *
+ * Source: @itsliaaa/baileys (use-single-file-auth-state.js)
+ * Rewritten as clean TypeScript with full types and JSDoc.
+ *
+ * Improvements over the removed upstream single-file implementation:
+ *  - LRUCache (15k entries, TTL = SIGNAL_STORE cache TTL) — avoids redundant disk reads
+ *  - async-mutex — prevents race conditions on parallel writes
+ *  - Atomic write via temp-file + rename — eliminates partial-write corruption
+ *  - 3-second debounced flush — batches rapid consecutive updates
+ *
+ * Requires: `lru-cache` and `async-mutex` (both already in package.json)
+ *
+ * @example
+ * import { useSingleFileAuthState } from './addons/auth/use-single-file-auth-state.js'
+ *
+ * const { state, saveCreds } = await useSingleFileAuthState('./auth_info.json')
+ * const sock = makeWASocket({ auth: state })
+ * sock.ev.on('creds.update', saveCreds)
  */
-import { readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { DEFAULT_CACHE_TTLS } from '../Defaults/index.js'
-import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils.js'
-import { BufferJSON } from '../Utils/generics.js'
-import type { AuthenticationState } from '../Types/index.js'
 
-const FLUSH_TIMEOUT_MS = 3000
+import { readFile, rename, stat, writeFile } from 'fs/promises'
+import { Mutex } from 'async-mutex'
+import { LRUCache } from 'lru-cache'
+import { proto } from '../../../WAProto/index.js'
+import { DEFAULT_CACHE_TTLS } from '../../Defaults/index.js'
+import { initAuthCreds } from '../../Utils/auth-utils.js'
+import { BufferJSON } from '../../Utils/generics.js'
+import type { AuthenticationState } from '../../Types/index.js'
 
-/** Simple LRU-like cache backed by a Map with TTL eviction */
-class SimpleLRUCache<V> {
-	private cache = new Map<string, { value: V; expiresAt: number }>()
-	private readonly max: number
-	private readonly ttl: number
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-	constructor(options: { max: number; ttl: number }) {
-		this.max = options.max
-		this.ttl = options.ttl
-	}
+/** How long to wait after the last write before flushing to disk (ms). */
+const FLUSH_DEBOUNCE_MS = 3_000
 
-	get(key: string): V | undefined {
-		const entry = this.cache.get(key)
-		if (!entry) return undefined
-		if (Date.now() > entry.expiresAt) {
-			this.cache.delete(key)
-			return undefined
-		}
-		return entry.value
-	}
+// ─── useSingleFileAuthState ───────────────────────────────────────────────────
 
-	set(key: string, value: V): void {
-		if (this.cache.size >= this.max) {
-			const oldest = this.cache.keys().next().value
-			if (oldest) this.cache.delete(oldest)
-		}
-		this.cache.set(key, { value, expiresAt: Date.now() + this.ttl })
-	}
-
-	delete(key: string): void {
-		this.cache.delete(key)
-	}
-	has(key: string): boolean {
-		return this.cache.has(key)
-	}
-}
-
-/** Simple async mutex */
-class Mutex {
-	private queue: (() => void)[] = []
-	private locked = false
-
-	async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
-		if (this.locked) await new Promise<void>(resolve => this.queue.push(resolve))
-		this.locked = true
-		try {
-			return await fn()
-		} finally {
-			this.locked = false
-			this.queue.shift()?.()
-		}
-	}
-}
-
+/**
+ * Create a single-file auth state with LRU caching and atomic writes.
+ *
+ * All signal keys and credentials are stored as JSON in `fileName`.
+ * Keys are cached in an LRU for fast repeated access without disk I/O.
+ * Writes are debounced and flushed atomically via a temp file + rename.
+ */
 export const useSingleFileAuthState = async (
 	fileName: string
-): Promise<{
-	state: AuthenticationState
-	saveCreds: () => void
-}> => {
-	const cache = new SimpleLRUCache<unknown>({
-		max: 15000,
-		ttl: 1000 * DEFAULT_CACHE_TTLS.SIGNAL_STORE
+): Promise<{ state: AuthenticationState; saveCreds: () => void }> => {
+	// ── Cache (15k entries, TTL mirrors SIGNAL_STORE) ──────────────────────────
+	const cache = new LRUCache<string, NonNullable<unknown>>({
+		max: 15_000,
+		ttl: 1_000 * DEFAULT_CACHE_TTLS.SIGNAL_STORE,
+		updateAgeOnGet: false,
+		updateAgeOnHas: false,
+		ttlAutopurge: true
 	})
+
+	// ── Race-condition safety ──────────────────────────────────────────────────
 	const mutex = new Mutex()
 	let fileData: Record<string, unknown> = {}
 	let isLoaded = false
 	let flushTimeout: ReturnType<typeof setTimeout> | null = null
 
-	const loadKey = async () => {
-		return mutex.runExclusive(async () => {
+	// ── File initialisation ───────────────────────────────────────────────────
+	const fileInfo = await stat(fileName).catch(() => null)
+	if (!fileInfo) {
+		await writeFile(fileName, '{}', 'utf-8')
+	} else if (!fileInfo.isFile()) {
+		throw new Error(
+			`Found something that is not a file at ${fileName}. ` + `Either delete it or specify a different path.`
+		)
+	}
+
+	// ── Lazy load (once) ──────────────────────────────────────────────────────
+	const ensureLoaded = () =>
+		mutex.runExclusive(async () => {
 			if (isLoaded) return
 			try {
-				const data = JSON.parse(await readFile(fileName, 'utf-8'), BufferJSON.reviver)
-				fileData = data || {}
-				for (const [keyName, value] of Object.entries(fileData)) cache.set(keyName, value)
+				const raw = await readFile(fileName, 'utf-8')
+				fileData = JSON.parse(raw, BufferJSON.reviver) || {}
+				for (const [k, v] of Object.entries(fileData)) {
+					if (v !== null && v !== undefined) cache.set(k, v as NonNullable<unknown>)
+				}
 			} catch {
 				fileData = {}
 			}
 			isLoaded = true
 		})
-	}
 
-	const flushKey = () => {
+	await ensureLoaded()
+
+	// ── Debounced flush ───────────────────────────────────────────────────────
+	const scheduleFlush = () => {
 		if (flushTimeout) return
-		flushTimeout = setTimeout(async () => {
+		flushTimeout = setTimeout(() => {
 			flushTimeout = null
-			await mutex.runExclusive(async () => {
+			void mutex.runExclusive(async () => {
 				try {
-					const tempFile = fileName + '.temp'
-					await writeFile(tempFile, JSON.stringify(fileData, BufferJSON.replacer))
-					await rename(tempFile, fileName)
-				} catch {}
+					const tmp = `${fileName}.tmp`
+					await writeFile(tmp, JSON.stringify(fileData, BufferJSON.replacer), 'utf-8')
+					await rename(tmp, fileName)
+				} catch {
+					// Flush failed — will retry on next write
+				}
 			})
-		}, FLUSH_TIMEOUT_MS)
+		}, FLUSH_DEBOUNCE_MS)
 	}
 
+	// ── Internal key accessors ────────────────────────────────────────────────
 	const writeKey = (keyName: string, value: unknown) => {
-		cache.set(keyName, value)
+		if (value !== null && value !== undefined) cache.set(keyName, value as NonNullable<unknown>)
 		fileData[keyName] = value
-		flushKey()
+		scheduleFlush()
 	}
 
 	const removeKey = (keyName: string) => {
 		cache.delete(keyName)
 		delete fileData[keyName]
-		flushKey()
+		scheduleFlush()
 	}
 
-	const fileInfo = await stat(fileName).catch(() => null)
-	if (!fileInfo) {
-		await writeFile(fileName, '{}')
-	} else if (!fileInfo.isFile()) {
-		throw new Error(`Found something that is not a file at ${fileName}`)
-	}
-
-	await loadKey()
-
-	const creds = (fileData['creds'] as any) || initAuthCreds()
+	// ── Creds ─────────────────────────────────────────────────────────────────
+	const creds = (fileData['creds'] as AuthenticationState['creds'] | undefined) ?? initAuthCreds()
 
 	return {
 		state: {
 			creds,
 			keys: {
-				get: (type: string, ids: string[]) => {
-					const data: Record<string, any> = {}
+				// @ts-ignore
+				get: (type, ids) => {
+					const data: Record<string, unknown> = {}
 					for (const id of ids) {
-						const keyName = type + id
-						let value = cache.get(keyName)
+						const keyName = `${type}${id}`
+						let value: unknown = cache.get(keyName)
 						if (value === undefined && fileData[keyName] !== undefined) {
-							value = fileData[keyName]
-							cache.set(keyName, value)
+							value = fileData[keyName] ?? undefined
+							if (value !== null && value !== undefined) cache.set(keyName, value as NonNullable<unknown>)
 						}
 						if (type === 'app-state-sync-key' && value) {
-							value = proto.Message.AppStateSyncKeyData.fromObject(value)
+							value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>)
 						}
 						data[id] = value
 					}
-					return data as any
+					return data
 				},
-				set: (data: Record<string, Record<string, unknown>>) => {
+
+				set: data => {
 					for (const category in data) {
-						for (const id in data[category]) {
-							const keyName = category + id
-							const value = data[category][id]
+						const categoryData = (data as Record<string, Record<string, unknown>>)[category]
+						for (const id in categoryData) {
+							const keyName = `${category}${id}`
+							const value = categoryData[id]
 							value ? writeKey(keyName, value) : removeKey(keyName)
 						}
 					}
 				}
 			}
 		},
+
 		saveCreds: () => writeKey('creds', creds)
 	}
 }
