@@ -19,7 +19,7 @@
  * sock.ev.on('creds.update', saveCreds)
  */
 
-import { proto } from '../../../WAProto/index.js'
+import { proto } from '../../WAProto/index.js'
 import { initAuthCreds } from '../Utils/auth-utils'
 import { BufferJSON } from '../Utils/generics'
 import type { AuthenticationState } from '../Types/index'
