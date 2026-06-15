@@ -19,21 +19,6 @@ import {
 	LabelAssociationType,
 	type MessageLabelAssociation
 } from '../Types/LabelAssociation'
-
-/**
- * Thrown when LTHash verification fails for a patch — gives callers a typed
- * handle so they can treat it differently from generic errors (e.g. re-sync).
- */
-export class LTHashMismatchError extends Error {
-	readonly patchName: string
-	readonly version: number
-	constructor(patchName: string, version: number) {
-		super(`LTHash verification failed for patch "${patchName}" at version ${version}`)
-		this.name = 'LTHashMismatchError'
-		this.patchName = patchName
-		this.version = version
-	}
-}
 import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildren, isJidGroup, jidNormalizedUser } from '../WABinary'
 import { aesDecrypt, aesEncrypt, hmacSign } from './crypto'
 import { toNumber } from './generics'
