@@ -13,7 +13,7 @@ import { DONATE_URL, LEXER_REGEX } from '../Defaults/index.js'
 import { LANGUAGE_KEYWORDS } from '../WABinary/constants.js'
 import { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
 import { proto } from '../../WAProto/index.js'
-import { unixTimestampSeconds } from './generics.js'
+import { unixTimestampSeconds } from '../Utils/generics.js'
 const NOOP = new Set([])
 export const tokenizeCode = (code, language = 'javascript') => {
 	const keywords = LANGUAGE_KEYWORDS[language] || NOOP

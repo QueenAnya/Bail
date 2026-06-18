@@ -487,6 +487,27 @@ export type AnyRegularMessageContent = (
 	}> &
 	/** Inline rich AI response via botForwardedMessage */
 	Partial<{ richResponse: { text?: string; code?: string; language?: string; botJid?: string } }> &
+	/** Attach a single-select list to a text message */
+	Partial<{
+		sections: proto.Message.ListMessage.ISection[]
+		buttonText?: string
+		title?: string
+		footer?: string
+	}> &
+	/** Attach classic buttons (up to 3) to a text or media message */
+	Partial<{
+		buttons: proto.Message.ButtonsMessage.IButton[]
+		title?: string
+		footer?: string
+	}> &
+	/** Attach native-flow interactive buttons to a text or media message */
+	Partial<{
+		interactiveButtons: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+		title?: string
+		subtitle?: string
+		footer?: string
+		hasMediaAttachment?: boolean
+	}> &
 	/** hasMediaAttachment flag for interactive messages */
 	Partial<{ hasMediaAttachment: boolean }> &
 	/** Poll result snapshot — shows vote counts */

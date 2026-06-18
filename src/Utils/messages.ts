@@ -880,6 +880,105 @@ export const generateWAMessageContent = async (
 		if (msg.text !== undefined) interactiveMessage.body = { text: msg.text }
 		if (msg.footer !== undefined) interactiveMessage.footer = { text: msg.footer }
 		m = { interactiveMessage }
+	} else if (hasNonNullishProperty(message, 'sections')) {
+		// WhatsApp List Message — { text, buttonText, title?, footer?, sections: [...] }
+		const msg = message as {
+			sections: proto.Message.ListMessage.ISection[]
+			text?: string
+			title?: string
+			buttonText?: string
+			footer?: string
+			contextInfo?: proto.IContextInfo
+		}
+		const listMessage: proto.Message.IListMessage = {
+			description: msg.text,
+			title: msg.title,
+			buttonText: msg.buttonText ?? '≡ Menu',
+			footerText: msg.footer,
+			sections: msg.sections,
+			listType: proto.Message.ListMessage.ListType.SINGLE_SELECT
+		}
+		;(listMessage as any).contextInfo = {
+			...((message as any).contextInfo || {}),
+			...(buildMentionContextInfo(message) as any)
+		}
+		m = { listMessage }
+	} else if (hasNonNullishProperty(message, 'buttons')) {
+		// Classic Buttons Message — { text?, caption?, buttons: [...], title?, footer? }
+		const msg = message as {
+			buttons: proto.Message.ButtonsMessage.IButton[]
+			text?: string
+			caption?: string
+			title?: string
+			footer?: string
+			contextInfo?: proto.IContextInfo
+		}
+		const buttonsMessage: Record<string, unknown> = {
+			buttons: msg.buttons.map(b => ({
+				...b,
+				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
+			}))
+		}
+		if (msg.text !== undefined) {
+			buttonsMessage.contentText = msg.text
+			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.EMPTY
+		} else {
+			if (msg.caption !== undefined) buttonsMessage.contentText = msg.caption
+			const mediaType = Object.keys(m)[0]?.replace('Message', '').toUpperCase()
+			if (mediaType) {
+				buttonsMessage.headerType = (proto.Message.ButtonsMessage.HeaderType as any)[mediaType]
+				Object.assign(buttonsMessage, m)
+			}
+		}
+		if (msg.footer) buttonsMessage.footerText = msg.footer
+		if (msg.title) {
+			buttonsMessage.text = msg.title
+			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.TEXT
+		}
+		;(buttonsMessage as any).contextInfo = {
+			...((message as any).contextInfo || {}),
+			...(buildMentionContextInfo(message) as any)
+		}
+		m = { buttonsMessage }
+	} else if (hasNonNullishProperty(message, 'interactiveButtons')) {
+		// Native-flow Interactive Message — { interactiveButtons: [...], text?, title?, subtitle?, caption?, footer? }
+		const msg = message as {
+			interactiveButtons: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+			text?: string
+			caption?: string
+			title?: string
+			subtitle?: string
+			footer?: string
+			hasMediaAttachment?: boolean
+			contextInfo?: proto.IContextInfo
+		}
+		const interactiveMessage: proto.Message.IInteractiveMessage = {
+			nativeFlowMessage: { buttons: msg.interactiveButtons }
+		}
+		if (msg.text !== undefined) {
+			interactiveMessage.body = { text: msg.text }
+			interactiveMessage.header = {
+				title: msg.title,
+				subtitle: msg.subtitle,
+				hasMediaAttachment: false
+			}
+		} else {
+			if (msg.caption !== undefined) {
+				interactiveMessage.body = { text: msg.caption }
+				interactiveMessage.header = {
+					title: msg.title,
+					subtitle: msg.subtitle,
+					hasMediaAttachment: msg.hasMediaAttachment ?? false,
+					...m
+				}
+			}
+		}
+		if (msg.footer) interactiveMessage.footer = { text: msg.footer }
+		;(interactiveMessage as any).contextInfo = {
+			...((message as any).contextInfo || {}),
+			...(buildMentionContextInfo(message) as any)
+		}
+		m = { interactiveMessage }
 	} else if (hasNonNullishProperty(message, 'templateButtons')) {
 		// Template buttons — simplified sendMessage API
 		const msg = message as {

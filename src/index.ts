@@ -12,3 +12,5 @@ export type WASocket = ReturnType<typeof makeWASocket>
 export { makeWASocket }
 export default makeWASocket
 export * from './Store/index'
+export { makeUSyncSocket } from './Socket/usync'
+export * from './Types/MexUpdates'

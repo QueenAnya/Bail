@@ -200,13 +200,13 @@ export type {
 } from './jid-plotting.js'
 
 // ─── Auth State Adapters ──────────────────────────────────────────────────────
-export { useSqliteAuthState } from './use-sqlite-auth-state.js'
-export type { SqliteAuthStateOptions, SqliteAuthStateResult } from './use-sqlite-auth-state.js'
+export { useSqliteAuthState } from './auth/use-sqlite-auth-state.js'
+export type { SqliteAuthStateOptions, SqliteAuthStateResult } from './auth/use-sqlite-auth-state.js'
 
-export { useSingleFileAuthState } from './use-single-file-auth-state.js'
+export { useSingleFileAuthState } from './auth/use-single-file-auth-state.js'
 
-export { useMongoAuthState } from './use-mongo-auth-state.js'
-export type { MongoCollectionLike, MongoAuthStateResult } from './use-mongo-auth-state.js'
+export { useMongoAuthState } from './auth/use-mongo-auth-state.js'
+export type { MongoCollectionLike, MongoAuthStateResult } from './auth/use-mongo-auth-state.js'
 
 // ─── Re-export shared enums used by addons ────────────────────────────────────
 export { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
@@ -353,3 +353,108 @@ export type { LockRef } from '../Utils/lock-manager.js'
 export { migrateAuthState } from '../Utils/migrate-auth-state.js'
 export type { MigrateAuthStateOptions, MigrateAuthStateResult } from '../Utils/migrate-auth-state.js'
 export { generateAnyaMessageID, runDetached, generateKeyUuid } from '../Utils/generics.js'
+
+// ─── LID Support ──────────────────────────────────────────────────────────────
+export { splitJidsByType, mergeLidAndPnResults } from './lid-support.js'
+export type { OnWhatsAppResult } from './lid-support.js'
+
+// ─── Past Participants ────────────────────────────────────────────────────────
+export { processPastParticipants, hasPastParticipants } from './past-participants.js'
+export type { GroupPastParticipant, GroupPastParticipantsResult } from './past-participants.js'
+
+// ─── Outgoing Calls ───────────────────────────────────────────────────────────
+export { createCallLink, initiateCall, rejectCall, endCall } from './outgoing-calls.js'
+
+// ─── Pairing Fix ──────────────────────────────────────────────────────────────
+export { createPairingQueue } from './pairing-fix.js'
+export type { PairingQueue, SendPairingIQFn } from './pairing-fix.js'
+
+// ─── Rich Types ───────────────────────────────────────────────────────────────
+export { RichSubMessageType as RichSubMessageTypeV3, CodeHighlightType as CodeHighlightTypeV3 } from './rich-types.js'
+
+// ─── Stickerpack ─────────────────────────────────────────────────────────────
+export { generateStickerPackId, buildStickerPackProto, STICKER_PACK_MESSAGE_TYPE } from './stickerpack.js'
+
+// ─── Message Scheduler (V2 — functional style) ───────────────────────────────
+export {
+	attachSchedulerSendFn,
+	scheduleMessage,
+	scheduleMessageAfter,
+	cancelScheduledMessage,
+	getScheduledMessage,
+	getAllScheduledMessages,
+	getPendingScheduledMessages,
+	cancelAllScheduledMessages
+} from './message-scheduler.js'
+export type { ScheduledMessageJob } from './message-scheduler.js'
+
+// ─── Make In-Memory Store (addons version) ───────────────────────────────────
+export { makeInMemoryStore as makeInMemoryStoreV3, waChatKey as waChatKeyV3 } from './make-in-memory-store.js'
+
+// ─── Browser Utils (addons version) ──────────────────────────────────────────
+export {
+	isAndroidBrowser,
+	getPlatformId,
+	getPlatformDisplayName,
+	getCompanionPlatformIdFromName
+} from './browser-utils.js'
+
+// ─── JID Plot ─────────────────────────────────────────────────────────────────
+export {
+	plotJidPair,
+	plotJidPairs,
+	resolvePnJid,
+	resolveLidJid,
+	hasLidMapping,
+	hasPnMapping,
+	getAllJidPlotEntries,
+	clearJidPlot,
+	normalizeJidForSend
+} from './jid-plot.js'
+export type { JidPlotEntry } from './jid-plot.js'
+
+// ─── Status Helpers (V2) ──────────────────────────────────────────────────────
+export {
+	STATUS_BACKGROUNDS as STATUS_BACKGROUNDS_V2,
+	STATUS_FONTS as STATUS_FONTS_V2,
+	generateStatusMessageId as generateStatusMessageIdV2,
+	createTextStatus as createTextStatusV2,
+	createImageStatus as createImageStatusV2,
+	createVideoStatus as createVideoStatusV2
+} from './status-helpers.js'
+
+// ─── Rich Message Composer (V2 — proto-aligned) ───────────────────────────────
+export {
+	buildRichContextInfo as buildRichContextInfoV2,
+	buildBotForwardedMessage as buildBotForwardedMessageV2,
+	generateTableContent as generateTableContentV2,
+	generateListContent as generateListContentV2,
+	generateCodeBlockContent as generateCodeBlockContentV2,
+	generateLatexContent as generateLatexContentV2,
+	generateLatexImageContent as generateLatexImageContentV2,
+	generateLatexInlineImageContent as generateLatexInlineImageContentV2,
+	captureUnifiedResponse as captureUnifiedResponseV2
+} from './rich-message-composer.js'
+export type {
+	RichLatexExpression,
+	RichTableOptions,
+	RichCodeOptions,
+	RichLatexOptions,
+	WAMessageLike
+} from './rich-message-composer.js'
+
+// ─── Rich Message Utils (V2) ──────────────────────────────────────────────────
+export {
+	tokenizeCode as tokenizeCodeV3,
+	toUnified as toUnifiedV2,
+	prepareRichResponseMessage as prepareRichResponseMessageV3,
+	botMetadataSignature as botMetadataSignatureV2,
+	botMetadataCertificate as botMetadataCertificateV2,
+	wrapToBotForwardedMessage as wrapToBotForwardedMessageV3
+} from './rich-message-utils.js'
+
+// ─── Auth States (flat structure) ─────────────────────────────────────────────
+export { useSqliteAuthState as useSqliteAuthStateFlat } from './use-sqlite-auth-state.js'
+export { useSingleFileAuthState as useSingleFileAuthStateFlat } from './use-single-file-auth-state.js'
+export { useMongoAuthState as useMongoAuthStateFlat } from './use-mongo-auth-state.js'
+export { useCacheManagerAuthState } from './use-cache-manager-auth-state.js'
