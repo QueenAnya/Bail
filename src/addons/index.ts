@@ -457,3 +457,6 @@ export {
 export { useSqliteAuthState as useSqliteAuthStateFlat } from './use-sqlite-auth-state.js'
 export { useMongoAuthState as useMongoAuthStateFlat } from './use-mongo-auth-state.js'
 export { makeCacheManagerAuthState } from './use-cache-manager-auth-state.js'
+
+// ─── Browser Presets (android + getPlatformDisplayName) ──────────────────────
+export { androidBrowserPreset } from './browser-presets.js'

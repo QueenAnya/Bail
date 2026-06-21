@@ -28,3 +28,8 @@ export {
 } from './make-in-memory-store'
 export type { InMemoryStoreConfig } from './make-in-memory-store'
 export * from './use-single-file-auth-state'
+export * from './anti-delete'
+export * from './baileys-event-stream'
+export * from './jid-plotting'
+export * from './message-composer'
+export * from './use-mongo-file-auth-state'
