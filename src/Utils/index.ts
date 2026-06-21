@@ -27,3 +27,4 @@ export {
 	waMessageID as waMessageIDV2
 } from './make-in-memory-store'
 export type { InMemoryStoreConfig } from './make-in-memory-store'
+export * from './use-single-file-auth-state'

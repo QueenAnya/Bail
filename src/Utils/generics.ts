@@ -102,7 +102,8 @@ export const toNumber = (t: Long | number | null | undefined): number =>
 	typeof t === 'object' && t ? ('toNumber' in t ? t.toNumber() : (t as Long).low) : t || 0
 
 /** unix timestamp of a date in seconds */
-export const unixTimestampSeconds = (date: Date = new Date()) => Math.floor(date.getTime() / 1000)
+export const unixTimestampSeconds = (d: Date | number | string = Date.now()): number =>
+	Math.floor((d instanceof Date ? d.getTime() : Number(d) || Date.now()) / 1000)
 
 export type DebouncedTimeout = ReturnType<typeof debouncedTimeout>
 
@@ -201,7 +202,7 @@ export const generateMessageIDV2 = (userId?: string): string => {
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
+export const generateMessageID = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -271,6 +272,67 @@ export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
 			isLatest: false,
 			error
 		}
+	}
+}
+
+/**
+ * Fetches latest Baileys version from GitHub source (alternative method).
+ * Reads directly from Defaults/index.ts on the master branch.
+ */
+export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
+	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
+	try {
+		const response = await fetch(URL, {
+			dispatcher: (options as any).dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+		}
+
+		const text = await response.text()
+		const lines = text.split('\n')
+		const versionLine = lines[6]
+		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
+
+		if (versionMatch) {
+			const version = [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion
+			return { version, isLatest: true }
+		} else {
+			throw new Error('Could not parse version from Defaults/index.ts')
+		}
+	} catch (error) {
+		return { version: baileysVersion as WAVersion, isLatest: false, error }
+	}
+}
+
+/**
+ * Fetches alpha/beta WA Web version from wppconnect-team versions list.
+ */
+export const fetchAlphaWaWebVersion = async (options: RequestInit = {}) => {
+	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
+	try {
+		const response = await fetch(URL, {
+			dispatcher: (options as any).dispatcher,
+			method: 'GET',
+			headers: options.headers
+		})
+		if (!response.ok) {
+			throw new Boom(`Failed to fetch latest WA version: ${response.statusText}`, { statusCode: response.status })
+		}
+
+		const versions: string[] = await response.json()
+		if (!Array.isArray(versions) || versions.length === 0) {
+			throw new Error('Invalid versions response')
+		}
+
+		// versions.json is a list of version strings like "2.2412.54" — pick latest
+		const latest = versions[versions.length - 1]!
+		const parts = latest.split('.').map(Number) as [number, number, number]
+		return { version: parts as WAVersion, isLatest: true }
+	} catch (error) {
+		return { version: baileysVersion as WAVersion, isLatest: false, error }
 	}
 }
 
