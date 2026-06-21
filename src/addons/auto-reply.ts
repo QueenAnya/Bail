@@ -8,7 +8,7 @@
  * group/private filters, typing simulation, and priority ordering.
  */
 
-import type { WAMessage, AnyMessageContent } from '../Types/index.js'
+import type { AnyMessageContent, WAMessage } from '../Types/index.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +100,7 @@ export class AutoReplyHandler {
 		if (!rule.keywords && !rule.pattern && !rule.exactMatch) {
 			throw new Error('Rule must have at least one of: keywords, pattern, or exactMatch')
 		}
+
 		const full: FullRule = {
 			...rule,
 			id: rule.id ?? this.generateId(),
@@ -149,15 +150,17 @@ export class AutoReplyHandler {
 
 	private matchRule(text: string, rule: AutoReplyRule): RegExpMatchArray | null {
 		if (!rule.active) return null
-		if (rule.exactMatch && text.toLowerCase() === rule.exactMatch.toLowerCase()) {
+		if (text.toLowerCase() === rule.exactMatch?.toLowerCase()) {
 			return [text]
 		}
+
 		if (rule.keywords?.length) {
 			const lower = text.toLowerCase()
 			for (const kw of rule.keywords) {
 				if (lower.includes(kw.toLowerCase())) return [kw]
 			}
 		}
+
 		if (rule.pattern) return text.match(rule.pattern)
 		return null
 	}

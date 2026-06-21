@@ -1,8 +1,6 @@
+import type { Logger } from 'pino'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults/index.js'
-import type { Label } from '../Types/Label.js'
-import { LabelAssociationType } from '../Types/LabelAssociation.js'
-import type { LabelAssociation } from '../Types/LabelAssociation.js'
 import type {
 	BaileysEventEmitter,
 	Chat,
@@ -13,9 +11,11 @@ import type {
 	WAMessageCursor,
 	WAMessageKey
 } from '../Types/index.js'
+import type { Label } from '../Types/Label.js'
+import type { LabelAssociation } from '../Types/LabelAssociation.js'
+import { LabelAssociationType } from '../Types/LabelAssociation.js'
 import { toNumber, updateMessageWithReaction, updateMessageWithReceipt } from '../Utils/index.js'
 import { jidNormalizedUser } from '../WABinary/index.js'
-import type { Logger } from 'pino'
 import { makeOrderedDictionary } from './make-ordered-dictionary.js'
 import { ObjectRepository } from './object-repository.js'
 
@@ -36,9 +36,7 @@ export const waMessageID = (m: WAMessage) => m.key.id || ''
 
 export const waLabelAssociationKey = {
 	key: (la: LabelAssociation) =>
-		la.type === LabelAssociationType.Chat
-			? la.chatId + la.labelId
-			: la.chatId + (la as Extract<LabelAssociation, { messageId: string }>).messageId + la.labelId,
+		la.type === LabelAssociationType.Chat ? la.chatId + la.labelId : la.chatId + la.messageId + la.labelId,
 	compare: (k1: string, k2: string) => k2.localeCompare(k1)
 }
 
@@ -83,15 +81,18 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 					for (const id of Object.keys(chats)) delete chats[id]
 					for (const jid of Object.keys(messages)) delete messages[jid]
 				}
+
 				for (const chat of newChats) {
 					const cid = chat.id
 					if (cid && !chats[cid]) chats[cid] = chat
 				}
+
 				contactsUpsert(newContacts)
 				for (const msg of newMessages) {
 					const remoteJid = msg.key?.remoteJid
-					if (remoteJid) assertMessageList(remoteJid).upsert(msg as WAMessage, 'prepend')
+					if (remoteJid) assertMessageList(remoteJid).upsert(msg, 'prepend')
 				}
+
 				logger.debug(
 					{ chats: newChats.length, contacts: newContacts.length, messages: newMessages.length },
 					'history set'
@@ -156,7 +157,7 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 					const remoteJid = msg.key?.remoteJid
 					if (!remoteJid) continue
 					const jid = jidNormalizedUser(remoteJid)
-					assertMessageList(jid).upsert(msg as WAMessage, 'append')
+					assertMessageList(jid).upsert(msg, 'append')
 					if (type === 'notify' && !chats[jid]) {
 						ev.emit('chats.upsert', [
 							{ id: jid, conversationTimestamp: toNumber(msg.messageTimestamp ?? 0), unreadCount: 1 }
@@ -173,8 +174,9 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 				const list = assertMessageList(jidNormalizedUser(remoteJid))
 				if (update?.status) {
 					const stored = list.get(key.id ?? '')?.status
-					if (stored != null && update.status <= stored) delete update.status
+					if (stored !== null && stored !== undefined && update.status <= stored) delete update.status
 				}
+
 				if (!list.updateAssign(key.id ?? '', update)) {
 					logger.debug({ update }, 'update for non-existent message')
 				}
@@ -267,13 +269,17 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 			const cid = chat.id
 			if (cid) chats[cid] = chat
 		}
+
 		if (json.contacts) Object.assign(contacts, json.contacts)
 		for (const jid in json.messages ?? {}) {
 			const list = assertMessageList(jid)
+
+			// eslint-disable-next-line @typescript-eslint/prefer-optional-chain
 			for (const msg of (json.messages ?? {})[jid] ?? []) {
 				list.upsert(msg as WAMessage, 'append')
 			}
 		}
+
 		for (const label of json.labels ?? []) labels.upsertById(label.id, label)
 		for (const la of json.labelAssociations ?? []) labelAssociations.push(la)
 	}
@@ -297,6 +303,7 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 				const end = idx >= 0 ? idx : arr.length
 				return arr.slice(Math.max(0, end - count), end)
 			}
+
 			return []
 		},
 		loadMessage: async (jid: string, id: string) => messages[jid]?.get(id),
@@ -311,25 +318,20 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 				const meta = await sock.groupMetadata(jid)
 				if (meta) groupMetadata[jid] = meta
 			}
+
 			return groupMetadata[jid]
 		},
 		getChatLabels: (chatId: string) => labelAssociations.filter(la => la.chatId === chatId),
 		getMessageLabels: (messageId: string) =>
 			labelAssociations
-				.filter(
-					la =>
-						la.type === LabelAssociationType.Message &&
-						(la as Extract<LabelAssociation, { messageId: string }>).messageId === messageId
-				)
+				.filter(la => la.type === LabelAssociationType.Message && la.messageId === messageId)
 				.map(la => la.labelId),
 		toJSON,
 		fromJSON,
 		writeToFile: (path: string) => {
-			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			require('fs').writeFileSync(path, JSON.stringify(toJSON()))
 		},
 		readFromFile: (path: string) => {
-			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const { readFileSync, existsSync } = require('fs')
 			if (existsSync(path)) {
 				logger.debug({ path }, 'reading store from file')

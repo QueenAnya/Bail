@@ -14,9 +14,8 @@
 
 import { randomBytes, randomUUID } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import { unixTimestampSeconds } from '../Utils/generics.js'
-import { tokenizeCode } from './message-composer.js'
 import type { CodeBlockToken } from './message-composer.js'
+import { tokenizeCode } from './message-composer.js'
 
 // ─── Sub-message type enum ────────────────────────────────────────────────────
 
@@ -127,6 +126,7 @@ export const toUnifiedResponse = (submessages: RichSubmessage[]) => ({
 					}
 				}
 			}
+
 			case RichSubMessageType.CONTENT_ITEMS:
 				return {
 					view_model: {

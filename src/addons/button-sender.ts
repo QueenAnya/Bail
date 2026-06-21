@@ -374,7 +374,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 		)
 	}
 
-	const cleaned = (buttons as any[]).map((b, idx) => {
+	const cleaned = buttons.map((b, idx) => {
 		const btn = b
 		if (b === null || typeof b !== 'object') {
 			errors.push(`button[${idx}] is not an object`)

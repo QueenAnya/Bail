@@ -88,6 +88,7 @@ const calculateRelevance = (query: string, text: string, position: number): numb
 	) {
 		score += 20
 	}
+
 	return Math.max(score, 0)
 }
 

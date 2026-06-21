@@ -1,7 +1,7 @@
 /**
  * MongoDB-backed Authentication State
  *
- * Source: @innovatorssoft/baileys (use-mongo-file-auth-state)
+ * Source: @innovatorssoft/baileys (use-mongo-file-auth-state.js)
  * Rewritten as clean TypeScript with full types and JSDoc.
  *
  * Stores credentials and Signal Protocol keys in a MongoDB collection.
@@ -13,7 +13,7 @@
  *
  * @example
  * import { MongoClient } from 'mongodb'
- * import { useMongoAuthState } from './addons/auth/use-mongo-auth-state'
+ * import { useMongoAuthState } from './addons/auth/use-mongo-auth-state.js'
  *
  * const client = new MongoClient(process.env.MONGO_URI!)
  * await client.connect()
@@ -25,9 +25,9 @@
  */
 
 import { proto } from '../../WAProto/index.js'
-import { initAuthCreds } from '../Utils/auth-utils'
-import { BufferJSON } from '../Utils/generics'
-import type { AuthenticationState } from '../Types/index'
+import type { AuthenticationState } from '../Types/index.js'
+import { initAuthCreds } from '../Utils/auth-utils.js'
+import { BufferJSON } from '../Utils/generics.js'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -68,23 +68,19 @@ export const useMongoAuthState = async (collection: MongoCollectionLike): Promis
 	// ── Internal read / write / delete helpers ────────────────────────────────
 
 	const readData = async (id: string): Promise<unknown> => {
-		const doc = await collection.findOne({ _id: id as unknown as Record<string, unknown> })
+		const doc = await collection.findOne({ _id: id })
 		if (!doc) return undefined
 		return JSON.parse(JSON.stringify(doc), BufferJSON.reviver)
 	}
 
 	const writeData = async (id: string, data: unknown): Promise<void> => {
 		const toStore = JSON.parse(JSON.stringify(data, BufferJSON.replacer))
-		await collection.updateOne(
-			{ _id: id as unknown as Record<string, unknown> },
-			{ $set: { ...toStore } },
-			{ upsert: true }
-		)
+		await collection.updateOne({ _id: id }, { $set: { ...toStore } }, { upsert: true })
 	}
 
 	const removeData = async (id: string): Promise<void> => {
 		try {
-			await collection.deleteOne({ _id: id as unknown as Record<string, unknown> })
+			await collection.deleteOne({ _id: id })
 		} catch (err) {
 			// Non-fatal — the document may not exist
 		}
@@ -106,8 +102,9 @@ export const useMongoAuthState = async (collection: MongoCollectionLike): Promis
 						ids.map(async id => {
 							let value = await readData(docId(type, id))
 							if (type === 'app-state-sync-key' && value) {
-								value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>)
+								value = proto.Message.AppStateSyncKeyData.fromObject(value)
 							}
+
 							data[id] = value
 						})
 					)
@@ -124,6 +121,7 @@ export const useMongoAuthState = async (collection: MongoCollectionLike): Promis
 							tasks.push(value ? writeData(key, value) : removeData(key))
 						}
 					}
+
 					await Promise.all(tasks)
 				}
 			}

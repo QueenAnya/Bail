@@ -1,7 +1,7 @@
 /**
  * Enhanced Single-File Authentication State
  *
- * Source: @itsliaaa/baileys (use-single-file-auth-state)
+ * Source: @itsliaaa/baileys (use-single-file-auth-state.js)
  * Rewritten as clean TypeScript with full types and JSDoc.
  *
  * Improvements over the removed upstream single-file implementation:
@@ -13,21 +13,21 @@
  * Requires: `lru-cache` and `async-mutex` (both already in package.json)
  *
  * @example
- * import { useSingleFileAuthState } from './addons/auth/use-single-file-auth-state'
+ * import { useSingleFileAuthState } from './addons/auth/use-single-file-auth-state.js'
  *
  * const { state, saveCreds } = await useSingleFileAuthState('./auth_info.json')
  * const sock = makeWASocket({ auth: state })
  * sock.ev.on('creds.update', saveCreds)
  */
 
-import { readFile, rename, stat, writeFile } from 'fs/promises'
 import { Mutex } from 'async-mutex'
+import { readFile, rename, stat, writeFile } from 'fs/promises'
 import { LRUCache } from 'lru-cache'
 import { proto } from '../../WAProto/index.js'
-import { DEFAULT_CACHE_TTLS } from '../Defaults/index'
-import { initAuthCreds } from '../Utils/auth-utils'
-import { BufferJSON } from '../Utils/generics'
-import type { AuthenticationState } from '../Types/index'
+import { DEFAULT_CACHE_TTLS } from '../Defaults/index.js'
+import type { AuthenticationState } from '../Types/index.js'
+import { initAuthCreds } from '../Utils/auth-utils.js'
+import { BufferJSON } from '../Utils/generics.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ const FLUSH_DEBOUNCE_MS = 3_000
  * Keys are cached in an LRU for fast repeated access without disk I/O.
  * Writes are debounced and flushed atomically via a temp file + rename.
  */
-export const useSingleFileAuthState = async (
+export const useSingleFileAuthStateV2 = async (
 	fileName: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => void }> => {
 	// ── Cache (15k entries, TTL mirrors SIGNAL_STORE) ──────────────────────────
@@ -79,11 +79,12 @@ export const useSingleFileAuthState = async (
 				const raw = await readFile(fileName, 'utf-8')
 				fileData = JSON.parse(raw, BufferJSON.reviver) || {}
 				for (const [k, v] of Object.entries(fileData)) {
-					if (v !== null && v !== undefined) cache.set(k, v as NonNullable<unknown>)
+					if (v !== null && v !== undefined) cache.set(k, v)
 				}
 			} catch {
 				fileData = {}
 			}
+
 			isLoaded = true
 		})
 
@@ -108,7 +109,7 @@ export const useSingleFileAuthState = async (
 
 	// ── Internal key accessors ────────────────────────────────────────────────
 	const writeKey = (keyName: string, value: unknown) => {
-		if (value !== null && value !== undefined) cache.set(keyName, value as NonNullable<unknown>)
+		if (value !== null && value !== undefined) cache.set(keyName, value)
 		fileData[keyName] = value
 		scheduleFlush()
 	}
@@ -134,13 +135,16 @@ export const useSingleFileAuthState = async (
 						let value: unknown = cache.get(keyName)
 						if (value === undefined && fileData[keyName] !== undefined) {
 							value = fileData[keyName] ?? undefined
-							if (value !== null && value !== undefined) cache.set(keyName, value as NonNullable<unknown>)
+							if (value !== null && value !== undefined) cache.set(keyName, value)
 						}
+
 						if (type === 'app-state-sync-key' && value) {
-							value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>)
+							value = proto.Message.AppStateSyncKeyData.fromObject(value)
 						}
+
 						data[id] = value
 					}
+
 					return data
 				},
 

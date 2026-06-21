@@ -15,9 +15,9 @@
 import { getRandomValues, randomUUID } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import { DONATE_URL, LEXER_REGEX } from '../Defaults/index.js'
-import { LANGUAGE_KEYWORDS } from '../WABinary/constants.js'
 import { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
-import { unixTimestampSeconds, generateMessageIDV2 } from '../Utils/generics.js'
+import { generateMessageIDV2 } from '../Utils/generics.js'
+import { LANGUAGE_KEYWORDS } from '../WABinary/constants.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +101,7 @@ export type CapturedUnifiedResponse = {
  * Falls back gracefully if the regex constant isn't in your Defaults.
  */
 export const tokenizeCode = (code: string, language = 'javascript'): CodeBlock[] => {
-	const keywords: Set<string> = (LANGUAGE_KEYWORDS as Record<string, Set<string>>)[language] ?? new Set()
+	const keywords: Set<string> = LANGUAGE_KEYWORDS[language] ?? new Set()
 	const blocks: CodeBlock[] = []
 
 	try {
@@ -163,6 +163,7 @@ export const toUnified = (submessages: RichSubMessage[]) => ({
 					}
 				}
 			}
+
 			case RichSubMessageType.TABLE: {
 				const meta = submessage.tableMetadata
 				return {
@@ -180,6 +181,7 @@ export const toUnified = (submessages: RichSubMessage[]) => ({
 					}
 				}
 			}
+
 			case RichSubMessageType.TEXT:
 			default:
 				return {
@@ -252,6 +254,7 @@ const buildRichContextInfo = (quoted?: proto.IWebMessageInfo): proto.IContextInf
 		ctx.participant = quoted.key.participant ?? quoted.key.remoteJid
 		ctx.quotedMessage = quoted.message
 	}
+
 	return ctx
 }
 
@@ -290,7 +293,7 @@ export const prepareRichResponseMessage = (content: RichContent) => {
 			} else {
 				return { messageType: RichSubMessageType.TABLE, tableMetadata: { title: item.title, rows: item.table } }
 			}
-		}) as RichSubMessage[]
+		})
 	} else {
 		if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
 		if (contentText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: contentText })
@@ -365,6 +368,7 @@ export const prepareRichResponseMessage = (content: RichContent) => {
 	if (disclaimerText) {
 		;(botMetadata as Record<string, unknown>).messageDisclaimerText = disclaimerText
 	}
+
 	;(botMetadata as Record<string, unknown>).botResponseId = unified.response_id
 
 	return message
@@ -527,6 +531,7 @@ export const sendLatexInlineImage = async (
 	if (options.text) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: options.text })
 
 	for (const expr of options.expressions) {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
 		const result = await uploadFn(buffer, 'image')
 		const imageUrl = result.url ?? result.directPath ?? ''
@@ -570,9 +575,9 @@ export const captureUnifiedResponse = (msg: proto.IMessage | null | undefined): 
 	const rich = botFwd.richResponseMessage
 	if (!rich?.unifiedResponse?.data) return null
 	return {
-		unifiedResponse: { data: rich.unifiedResponse.data as Uint8Array },
+		unifiedResponse: { data: rich.unifiedResponse.data },
 		submessages: (rich.submessages ?? []) as unknown as RichSubMessage[],
-		contextInfo: (rich.contextInfo ?? {}) as proto.IContextInfo
+		contextInfo: rich.contextInfo ?? {}
 	}
 }
 

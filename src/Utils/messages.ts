@@ -4,6 +4,8 @@ import { zip } from 'fflate'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
+import { buildAdminInviteMessage } from '../addons/from-messages'
+import { buildMentionContextInfo } from '../addons/message-utils'
 import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
@@ -31,8 +33,6 @@ import type {
 } from '../Types'
 import { WAMessageStatus, WAProto } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
-import { buildAdminInviteMessage } from '../addons/from-messages'
-import { buildMentionContextInfo } from '../addons/message-utils'
 import { sha256 } from './crypto'
 import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
 import type { ILogger } from './logger'
@@ -191,7 +191,7 @@ export const prepareWAMessageMedia = async (
 		)
 
 		const fileSha256B64 = fileSha256.toString('base64')
-		const { mediaUrl, directPath, thumbnailDirectPath, thumbnailSha256 } = await options.upload(filePath, {
+		const { directPath, thumbnailDirectPath, thumbnailSha256 } = await options.upload(filePath, {
 			fileEncSha256B64: fileSha256B64,
 			mediaType: mediaType,
 			timeoutMs: options.mediaUploadTimeoutMs,
@@ -320,7 +320,7 @@ export const prepareWAMessageMedia = async (
 			mediaKeyTimestamp: unixTimestampSeconds(),
 			...uploadData,
 			media: undefined
-		} as any)
+		})
 	})
 
 	if (uploadData.ptv) {
@@ -653,7 +653,8 @@ export const generateWAMessageContent = async (
 		m = (message as { raw: proto.IMessage }).raw
 	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
 		// Newsletter admin invite — uses buildAdminInviteMessage from addons/from-messages
-		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
+		// @ts-ignore
+		;(m as any).newsletterAdminInviteMessage = await buildAdminInviteMessage(
 			(message as any).adminInvite,
 			(message as any).contextInfo,
 			options
@@ -775,17 +776,13 @@ export const generateWAMessageContent = async (
 		}
 	} else if (hasNonNullishProperty(message, 'adminInvite')) {
 		// Admin invite to a newsletter/channel
-		const _invite = (
-			message as {
-				adminInvite: { jid: string; name: string; caption?: string; expiration?: number; jpegThumbnail?: Buffer }
-			}
-		).adminInvite
+		const _invite = message.adminInvite
 		;(m as any).newsletterAdminInviteMessage = {
 			inviteJid: _invite.jid,
 			inviteName: _invite.name,
 			caption: _invite.caption ?? '',
 			inviteExpiration: _invite.expiration ?? 86400,
-			jpegThumbnail: _invite.jpegThumbnail
+			jpegThumbnail: (_invite as any).jpegThumbnail
 		}
 	} else if (hasNonNullishProperty(message, 'nativeFlow')) {
 		// Native-flow interactive message
@@ -813,15 +810,18 @@ export const generateWAMessageContent = async (
 		} else if (msg.shopSurface !== undefined) {
 			interactiveMessage.shopStorefrontMessage = { surface: msg.shopSurface, id: msg.id, messageVersion: 1 }
 		}
+
 		if (msg.text !== undefined) {
 			interactiveMessage.body = { text: msg.text }
 		} else if (msg.caption !== undefined) {
 			interactiveMessage.header = { title: msg.title ?? '', subtitle: msg.subtitle ?? '', hasMediaAttachment: false }
 			interactiveMessage.body = { text: msg.caption }
 		}
+
 		if (msg.footer !== undefined) {
 			interactiveMessage.footer = { text: msg.footer }
 		}
+
 		m = { interactiveMessage }
 	} else if (hasNonNullishProperty(message, 'cards')) {
 		// Carousel / cards message
@@ -858,6 +858,7 @@ export const generateWAMessageContent = async (
 						const mediaResult = await prepareWAMessageMedia({ video: card.video }, options)
 						cardHeader = { ...mediaResult, hasMediaAttachment: true }
 					}
+
 					carouselCard.header = {
 						title: card.title ?? '',
 						subtitle: card.subtitle ?? '',
@@ -866,6 +867,7 @@ export const generateWAMessageContent = async (
 					}
 					carouselCard.body = { text: card.caption }
 				}
+
 				if (card.footer !== undefined) carouselCard.footer = { text: card.footer }
 				return carouselCard
 			})
@@ -930,11 +932,13 @@ export const generateWAMessageContent = async (
 				Object.assign(buttonsMessage, m)
 			}
 		}
+
 		if (msg.footer) buttonsMessage.footerText = msg.footer
 		if (msg.title) {
 			buttonsMessage.text = msg.title
 			buttonsMessage.headerType = proto.Message.ButtonsMessage.HeaderType.TEXT
 		}
+
 		;(buttonsMessage as any).contextInfo = {
 			...((message as any).contextInfo || {}),
 			...(buildMentionContextInfo(message) as any)
@@ -973,6 +977,7 @@ export const generateWAMessageContent = async (
 				}
 			}
 		}
+
 		if (msg.footer) interactiveMessage.footer = { text: msg.footer }
 		;(interactiveMessage as any).contextInfo = {
 			...((message as any).contextInfo || {}),
@@ -1007,6 +1012,7 @@ export const generateWAMessageContent = async (
 			} else if (btn.call !== undefined) {
 				return { index: btn.index ?? i, callButton: { displayText: buttonText ?? '📞 Call', phoneNumber: btn.call } }
 			}
+
 			return { index: btn.index ?? i }
 		})
 		const hydratedTemplate: Record<string, unknown> = {
@@ -1023,6 +1029,7 @@ export const generateWAMessageContent = async (
 			const { videoMessage } = await prepareWAMessageMedia({ video: msg.video }, options)
 			hydratedTemplate.videoMessage = videoMessage
 		}
+
 		m = { templateMessage: { hydratedTemplate, hydratedFourRowTemplate: hydratedTemplate } }
 	} else {
 		m = await prepareWAMessageMedia(message as any, options)
@@ -1041,6 +1048,7 @@ export const generateWAMessageContent = async (
 		} else if (key) {
 			;(key as Record<string, unknown>).contextInfo = { isGroupStatus: true }
 		}
+
 		m = { groupStatusMessageV2: { message: m } }
 	}
 
@@ -1055,6 +1063,7 @@ export const generateWAMessageContent = async (
 		} else if (key) {
 			;(key as Record<string, unknown>).contextInfo = { isSpoiler: true }
 		}
+
 		m = { ...({ spoilerMessage: { message: m } } as any) }
 	}
 
@@ -1117,6 +1126,7 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: !!(message as any).hasMediaAttachment
 			}
 		}
+
 		if (hasNonNullishProperty(message, 'footer'))
 			interactiveMessage.footer = { text: (message as { footer: string }).footer }
 		;(interactiveMessage as any).contextInfo = {
@@ -1139,6 +1149,7 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: !!(message as any).hasMediaAttachment
 			}
 		}
+
 		if (hasNonNullishProperty(message, 'footer'))
 			interactiveMessage.footer = { text: (message as { footer: string }).footer }
 		;(interactiveMessage as any).contextInfo = {
@@ -1804,7 +1815,7 @@ async function prepareStickerPackMessage(
 
 		const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')
 		const fileName = `${hash}.webp`
-		stickerData[fileName] = [new Uint8Array(webpBuffer), { level: 0 as 0 }]
+		stickerData[fileName] = [new Uint8Array(webpBuffer), { level: 0 }]
 		return {
 			fileName,
 			mimetype: 'image/webp',
@@ -1836,7 +1847,7 @@ async function prepareStickerPackMessage(
 	}
 
 	// Add cover to ZIP data
-	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 as 0 }]
+	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 }]
 
 	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
 		zip(stickerData, (err, data) => {

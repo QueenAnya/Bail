@@ -3,8 +3,8 @@
  * Source: @innovatorssoft/baileys status-posting.js
  */
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent } from '../Types/index.js'
 import type makeWASocket from '../Socket/index.js'
+import type { AnyMessageContent } from '../Types/index.js'
 type WASocket = ReturnType<typeof makeWASocket>
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
@@ -68,18 +68,16 @@ export const createTextStatus = (options: TextStatusOptions): AnyMessageContent 
 		contextInfo: { mentionedJid: options.mentions || [], isForwarded: false }
 	}) as unknown as AnyMessageContent
 
-export const createImageStatus = (media: Buffer | string, options?: MediaStatusOptions): AnyMessageContent =>
-	({
-		image: typeof media === 'string' ? { url: media } : media,
-		caption: options?.caption || ''
-	}) as unknown as AnyMessageContent
+export const createImageStatus = (media: Buffer | string, options?: MediaStatusOptions): AnyMessageContent => ({
+	image: typeof media === 'string' ? { url: media } : media,
+	caption: options?.caption || ''
+})
 
-export const createVideoStatus = (media: Buffer | string, options?: MediaStatusOptions): AnyMessageContent =>
-	({
-		video: typeof media === 'string' ? { url: media } : media,
-		caption: options?.caption || '',
-		gifPlayback: options?.gifPlayback || false
-	}) as unknown as AnyMessageContent
+export const createVideoStatus = (media: Buffer | string, options?: MediaStatusOptions): AnyMessageContent => ({
+	video: typeof media === 'string' ? { url: media } : media,
+	caption: options?.caption || '',
+	gifPlayback: options?.gifPlayback || false
+})
 
 export const createAudioStatus = (media: Buffer | string, options?: MediaStatusOptions): AnyMessageContent =>
 	({

@@ -35,7 +35,6 @@ import {
 	generateMdTagPrefix,
 	generateRegistrationNode,
 	getCodeFromWSError,
-	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
 	getPlatformDisplayName,
@@ -321,7 +320,7 @@ export const makeSocket = (config: SocketConfig) => {
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		let usyncQuery = new USyncQuery()
-		let lidQuery = new USyncQuery().withLIDProtocol().withContext('interactive')
+		const lidQuery = new USyncQuery().withLIDProtocol().withContext('interactive')
 
 		let contactEnabled = false
 		let lidEnabled = false

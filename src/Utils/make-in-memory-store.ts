@@ -10,14 +10,12 @@
  * const chat = store.chats.get('123@s.whatsapp.net')
  */
 
-import type { BaileysEventEmitter, Chat, Contact, WAMessage, PresenceData } from '../Types/index.js'
-import type { Label } from '../Types/Label.js'
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults/index.js'
-import { toNumber } from './generics.js'
-import { updateMessageWithReceipt, updateMessageWithReaction } from './messages.js'
-import { jidNormalizedUser } from '../WABinary/index.js'
+import type { BaileysEventEmitter, Chat, Contact, PresenceData, WAMessage } from '../Types/index.js'
 import { WAProto } from '../Types/index.js'
-import { LabelAssociationType } from '../Types/LabelAssociation.js'
+import { jidNormalizedUser } from '../WABinary/index.js'
+import { toNumber } from './generics.js'
+import { updateMessageWithReaction, updateMessageWithReceipt } from './messages.js'
 
 // ─── Simple ordered dictionary (no external dep needed) ───────────────────────
 
@@ -56,6 +54,7 @@ class OrderedDictionary<T> {
 			Object.assign(this.dict.get(id)!, item)
 			return
 		}
+
 		this.dict.set(id, item)
 		if (mode === 'prepend') this.arr.unshift(item)
 		else this.arr.push(item)
@@ -105,12 +104,13 @@ class KeyedChatStore {
 				added.push(c)
 			}
 		}
+
 		return added
 	}
 
 	upsert(chat: Chat) {
 		if (!chat.id) return
-		this.map.set(chat.id, Object.assign(this.map.get(chat.id) ?? {}, chat) as Chat)
+		this.map.set(chat.id, Object.assign(this.map.get(chat.id) ?? {}, chat))
 	}
 }
 
@@ -138,7 +138,9 @@ export interface InMemoryStoreConfig {
 // ─── makeInMemoryStore ────────────────────────────────────────────────────────
 
 export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
+	void config.logger // suppress unused warning
 	const chatKey = config.chatKey ?? waChatKey(true)
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const logger = config.logger ?? (DEFAULT_CONNECTION_CONFIG.logger as any).child({ stream: 'in-mem-store' })
 	const socket = config.socket
 
@@ -151,15 +153,16 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 
 	const assertMessages = (jid: string) => {
 		if (!messages[jid]) messages[jid] = new OrderedDictionary(waMessageID)
-		return messages[jid]!
+		return messages[jid]
 	}
 
 	const contactsUpsert = (newContacts: Contact[]) => {
 		const old = new Set(Object.keys(contacts))
 		for (const c of newContacts) {
 			old.delete(c.id)
-			contacts[c.id] = Object.assign(contacts[c.id] ?? {}, c) as Contact
+			contacts[c.id] = Object.assign(contacts[c.id] ?? {}, c)
 		}
+
 		return old
 	}
 
@@ -172,11 +175,13 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 				chats.clear()
 				for (const id in messages) delete messages[id]
 			}
+
 			chats.insertIfAbsent(...nc)
 			const oldC = contactsUpsert(ncon)
 			if (isLatest) {
 				for (const jid of oldC) delete contacts[jid]
 			}
+
 			for (const msg of nm) {
 				const jid = jidNormalizedUser((msg.key as any).remoteJidAlt ?? msg.key.remoteJid!)
 				assertMessages(jid).upsert(msg, 'prepend')
@@ -208,7 +213,7 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 		ev.on('chats.delete', ids => ids.forEach(id => chats.deleteById(id)))
 		ev.on('presence.update', ({ id, presences: prs }) => {
 			presences[id] = presences[id] ?? {}
-			Object.assign(presences[id]!, prs)
+			Object.assign(presences[id], prs)
 		})
 
 		ev.on('messages.upsert', ({ messages: nm, type }) => {
@@ -220,9 +225,9 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 				if (type === 'notify' && !chats.has(jid)) {
 					chats.insertIfAbsent({
 						id: jid,
-						conversationTimestamp: toNumber(msg.messageTimestamp!),
+						conversationTimestamp: toNumber(msg.messageTimestamp),
 						unreadCount: 1
-					} as Chat)
+					})
 				}
 			}
 		})

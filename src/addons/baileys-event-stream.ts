@@ -13,19 +13,20 @@ import { makeMutex } from '../Utils/make-mutex.js'
  * @example
  * captureEventStream(sock.ev, './events.ndjson')
  */
-export const captureEventStream = (ev: BaileysEventEmitter, filename: string): void => {
+export function captureEventStream(ev: BaileysEventEmitter, filename: string): void {
 	const originalEmit = ev.emit.bind(ev)
 	const writeMutex = makeMutex()
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// eslint-disable-next-line func-style
 	const patchedEmit: (...a: any[]) => boolean = function (event: any, ...rest: any[]) {
 		const line = JSON.stringify({ timestamp: Date.now(), event, data: rest[0] }) + '\n'
 		const result = (originalEmit as (...a: any[]) => boolean)(event, ...rest)
-		writeMutex.mutex(async () => {
+		void writeMutex.mutex(async () => {
 			await writeFile(filename, line, { flag: 'a' })
 		})
 		return result
 	}
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	;(ev as any).emit = patchedEmit
 }

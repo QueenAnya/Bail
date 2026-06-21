@@ -76,6 +76,7 @@ export class TemplateManager {
 				required: match[2] === undefined
 			})
 		}
+
 		return result
 	}
 
@@ -189,6 +190,7 @@ export class TemplateManager {
 			})
 			count++
 		}
+
 		return count
 	}
 
@@ -270,6 +272,7 @@ export const createTemplateManager = (includePresets = true): TemplateManager =>
 			mgr.create({ ...template, id: key.toLowerCase() })
 		}
 	}
+
 	return mgr
 }
 

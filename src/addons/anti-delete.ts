@@ -81,8 +81,10 @@ export class MessageStore {
 			for (const [msgId, stored] of messages) {
 				if (stored.storedAt < cutoff) messages.delete(msgId)
 			}
+
 			if (messages.size === 0) this.store.delete(chatId)
 		}
+
 		for (const [key, info] of this.deletedMessages) {
 			if (info.deletedAt < cutoff) this.deletedMessages.delete(key)
 		}
@@ -101,10 +103,12 @@ export class MessageStore {
 			chatMessages = new Map()
 			this.store.set(chatId, chatMessages)
 		}
+
 		if (chatMessages.size >= this.options.maxMessagesPerChat) {
 			const oldestKey = chatMessages.keys().next().value
 			if (oldestKey) chatMessages.delete(oldestKey)
 		}
+
 		chatMessages.set(message.key.id, { message, storedAt: Date.now(), isDeleted: false })
 	}
 
@@ -180,6 +184,7 @@ export class MessageStore {
 		for (const [chatId, messages] of this.store) {
 			all[chatId] = Array.from(messages.values()).map(s => s.message)
 		}
+
 		return all
 	}
 
@@ -229,6 +234,7 @@ export const createAntiDeleteHandler = (store: MessageStore, onDelete?: (info: D
 				}
 			}
 		}
+
 		return deleted
 	}
 }

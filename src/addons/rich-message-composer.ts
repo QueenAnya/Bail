@@ -4,7 +4,7 @@
  */
 import { proto } from '../../WAProto/index.js'
 import { generateMessageID } from '../Utils/generics.js'
-import { CodeHighlightType, RichSubMessageType, LANGUAGE_KEYWORDS } from './rich-types.js'
+import { CodeHighlightType, LANGUAGE_KEYWORDS, RichSubMessageType } from './rich-types.js'
 
 export type { CodeHighlightType, RichSubMessageType }
 export type RichLatexExpression = {
@@ -33,13 +33,14 @@ export const buildRichContextInfo = (quoted?: WAMessageLike | null): proto.ICont
 		forwardingScore: 1,
 		isForwarded: true,
 		forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
-		forwardOrigin: 4 as any
+		forwardOrigin: 4
 	}
 	if (quoted?.key) {
 		ctxInfo.stanzaId = quoted.key.id
 		ctxInfo.participant = quoted.key.participant || (quoted as any).sender || quoted.key.remoteJid
 		ctxInfo.quotedMessage = quoted.message
 	}
+
 	return ctxInfo
 }
 
@@ -55,7 +56,7 @@ export const buildBotForwardedMessage = (
 				submessages,
 				contextInfo,
 				...(unifiedResponse ? { unifiedResponse } : {})
-			} as any
+			}
 		}
 	}
 })
@@ -116,6 +117,7 @@ const tokenizeCode = (code: string, keywords: Set<string>) => {
 			blocks.push({ highlightType: CodeHighlightType.COMMENT, codeContent: line + nl })
 			continue
 		}
+
 		const regex =
 			/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b\d+(?:\.\d+)?\b)|([a-zA-Z_$][\w$]*(?=\s*\())|([a-zA-Z_$][\w$]*)|([^\s\w$"']+|\s+)/g
 		let match: RegExpExecArray | null
@@ -135,10 +137,12 @@ const tokenizeCode = (code: string, keywords: Set<string>) => {
 				})
 			else tokens.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: match[0] })
 		}
+
 		if (tokens.length > 0) tokens[tokens.length - 1]!.codeContent += nl
 		else blocks.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: line + nl })
 		blocks.push(...tokens)
 	}
+
 	return blocks
 }
 
@@ -192,6 +196,7 @@ export const generateLatexInlineImageContent = async (
 	if (options.headerText) subs.push(sub(RichSubMessageType.TEXT, { messageText: options.headerText }))
 	if (options.text) subs.push(sub(RichSubMessageType.TEXT, { messageText: options.text }))
 	for (const e of options.expressions) {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { buffer, width, height } = await renderFn(e.latexExpression)
 		const r = await uploadFn(buffer, 'image')
 		const url = r.url || r.directPath
@@ -205,6 +210,7 @@ export const generateLatexInlineImageContent = async (
 			})
 		)
 	}
+
 	if (options.footer) subs.push(sub(RichSubMessageType.TEXT, { messageText: options.footer }))
 	return { message: buildBotForwardedMessage(subs, buildRichContextInfo(quoted)), messageId: generateMessageID() }
 }

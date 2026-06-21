@@ -8,7 +8,7 @@
  * with per-entry status tracking and callbacks.
  */
 
-import type { WAMessage, AnyMessageContent } from '../Types/index.js'
+import type { AnyMessageContent, WAMessage } from '../Types/index.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,9 +64,11 @@ export class MessageScheduler {
 		if (this.queue.size >= this.options.maxQueue) {
 			throw new Error(`Maximum queue size (${this.options.maxQueue}) reached`)
 		}
+
 		if (scheduledTime.getTime() <= Date.now()) {
 			throw new Error('Scheduled time must be in the future')
 		}
+
 		const entry: ScheduledMessage = {
 			id: this.generateId(),
 			jid,
@@ -93,6 +95,7 @@ export class MessageScheduler {
 			this.queue.delete(id)
 			return true
 		}
+
 		return false
 	}
 
@@ -106,6 +109,7 @@ export class MessageScheduler {
 				count++
 			}
 		}
+
 		return count
 	}
 
@@ -166,8 +170,10 @@ export class MessageScheduler {
 				entry.error = (err as Error).message
 				this.options.onFailed(entry, err as Error)
 			}
+
 			this.queue.delete(id)
 		}
+
 		if (this.queue.size === 0) this.stopTimer()
 	}
 }

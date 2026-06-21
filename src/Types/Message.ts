@@ -135,23 +135,27 @@ type WithDimensions = {
 }
 
 /** Send image/video at HD quality (bypasses WA compression) */
-type HDable = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _HDable = {
 	hd?: boolean
 }
 
 /** Attach classic buttons (up to 3) to a text or media message */
-type Buttonable = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _Buttonable = {
 	buttons?: proto.Message.ButtonsMessage.IButton[]
 }
 
 /** Attach template buttons (quickReply / url / call) to a message */
-type Templatable = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _Templatable = {
 	templateButtons?: proto.IHydratedTemplateButton[]
 	footer?: string
 }
 
 /** Attach native-flow interactive buttons to a message */
-type Interactiveable = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _Interactiveable = {
 	interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
 	title?: string
 	subtitle?: string
@@ -160,7 +164,8 @@ type Interactiveable = {
 }
 
 /** Attach a single-select list to a text message */
-type Listable = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _Listable = {
 	sections?: proto.Message.ListMessage.ISection[]
 	/** Title shown above the list */
 	title?: string
@@ -170,7 +175,8 @@ type Listable = {
 }
 
 /** Attach a WhatsApp Shop storefront to a message */
-type Shopable = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _Shopable = {
 	shop?: proto.Message.InteractiveMessage.IShopMessage
 	title?: string
 	subtitle?: string
@@ -179,7 +185,8 @@ type Shopable = {
 }
 
 /** Attach a WhatsApp Collection to a message */
-type Collectionable = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _Collectionable = {
 	collection?: proto.Message.InteractiveMessage.ICollectionMessage
 	title?: string
 	subtitle?: string

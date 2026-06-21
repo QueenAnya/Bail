@@ -1,5 +1,5 @@
-import { randomBytes } from 'crypto'
 import { Boom } from '@hapi/boom'
+import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import { type BinaryNode } from './types'
 

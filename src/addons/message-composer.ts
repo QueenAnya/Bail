@@ -181,6 +181,7 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeBloc
 			blocks.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: line + nl })
 			continue
 		}
+
 		if (line.trim().startsWith('//') || line.trim().startsWith('#')) {
 			blocks.push({ highlightType: CodeHighlightType.COMMENT, codeContent: line + nl })
 			continue
@@ -192,7 +193,7 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeBloc
 		const tokens: CodeBlockToken[] = []
 
 		while ((match = regex.exec(line)) !== null) {
-			const val = match[0]!
+			const val = match[0]
 			if (match[1]) tokens.push({ highlightType: CodeHighlightType.COMMENT, codeContent: val })
 			else if (match[2] || match[3] || match[4])
 				tokens.push({ highlightType: CodeHighlightType.STRING, codeContent: val })
@@ -225,9 +226,11 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeBloc
 				prev.codeContent += t.codeContent
 			} else merged.push({ ...t })
 		}
+
 		if (merged.length) merged[merged.length - 1]!.codeContent += nl
 		blocks.push(...merged)
 	}
+
 	return blocks
 }
 
@@ -246,6 +249,7 @@ export const buildRichContextInfo = (quoted?: any): proto.IContextInfo => {
 		ctxInfo.participant = quoted.key.participant ?? quoted.sender ?? quoted.key.remoteJid
 		ctxInfo.quotedMessage = quoted.message
 	}
+
 	return ctxInfo
 }
 
@@ -362,6 +366,7 @@ export const generateLatexInlineImageContent = async (
 	if (text) subs.push({ messageType: RichSubMessageType.TEXT, messageText: text })
 
 	for (const expr of expressions) {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
 		const res = await uploadFn(buffer, 'image')
 		const url = res.url ?? res.directPath
@@ -384,7 +389,7 @@ export const captureUnifiedResponse = (msg: proto.IMessage) => {
 	const rich = msg?.botForwardedMessage?.message?.richResponseMessage
 	if (!rich?.unifiedResponse?.data) return null
 	return {
-		unifiedResponse: { data: Buffer.from(rich.unifiedResponse.data as Uint8Array) },
+		unifiedResponse: { data: Buffer.from(rich.unifiedResponse.data) },
 		submessages: rich.submessages ?? [],
 		contextInfo: rich.contextInfo ?? {}
 	}

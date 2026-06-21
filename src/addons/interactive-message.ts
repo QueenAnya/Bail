@@ -10,7 +10,6 @@
  *    functions for direct proto construction
  */
 
-import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import type { WAMediaUpload, WAMessageContent } from '../Types/index.js'
 import type { MediaGenerationOptions } from '../Types/Message.js'
@@ -138,11 +137,12 @@ export interface NativeFlowOptions {
  */
 export const buildNativeFlowMessage = (
 	source: NativeFlowOptions | NativeFlowButton[],
-	messageText?: string
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	_messageText?: string
 ): proto.Message.IInteractiveMessage['nativeFlowMessage'] => {
 	const isArray = Array.isArray(source)
 	const opts: NativeFlowOptions = isArray ? { buttons: source } : source
-	const rawButtons = opts.buttons ?? (isArray ? (source as NativeFlowButton[]) : [])
+	const rawButtons = opts.buttons ?? (isArray ? source : [])
 
 	const messageParamsJson: Record<string, unknown> = {}
 
@@ -180,6 +180,7 @@ export const buildNativeFlowMessage = (
 				})
 			}
 		}
+
 		if (btn.copy !== undefined) {
 			return {
 				name: 'cta_copy',
@@ -190,6 +191,7 @@ export const buildNativeFlowMessage = (
 				})
 			}
 		}
+
 		if (btn.url !== undefined) {
 			return {
 				name: 'cta_url',
@@ -202,6 +204,7 @@ export const buildNativeFlowMessage = (
 				})
 			}
 		}
+
 		if (btn.call !== undefined) {
 			return {
 				name: 'cta_call',
@@ -212,6 +215,7 @@ export const buildNativeFlowMessage = (
 				})
 			}
 		}
+
 		if (btn.sections !== undefined) {
 			return {
 				name: 'single_select',
@@ -222,6 +226,7 @@ export const buildNativeFlowMessage = (
 				})
 			}
 		}
+
 		// Raw pass-through
 		return { name: btn.name ?? 'quick_reply', buttonParamsJson: btn.paramsJson ?? '{}' }
 	})
@@ -345,10 +350,12 @@ export const generateTemplateMessage = async (
 		const m = await prepareWAMessageMedia({ image: content.headerImage }, options)
 		tmpl.imageMessage = m.imageMessage
 	}
+
 	if (content.headerVideo && options) {
 		const m = await prepareWAMessageMedia({ video: content.headerVideo }, options)
 		tmpl.videoMessage = m.videoMessage
 	}
+
 	if (content.headerLocation) {
 		tmpl.locationMessage = {
 			degreesLatitude: content.headerLocation.latitude,
@@ -755,7 +762,7 @@ export const generateListReplyMessage = (rowId: string, title?: string, descript
 export const generateTemplateButtonReplyMessage = (
 	selectedId: string,
 	selectedDisplayText: string,
-	index: number = 0
+	index = 0
 ): WAMessageContent => ({
 	templateButtonReplyMessage: {
 		selectedId,
@@ -784,7 +791,7 @@ export const generateLottieStickerMessage = (innerContent: any): WAMessageConten
  * await sock.sendMessage(jid, generateKeepChatMessage(msg.key))          // keep
  * await sock.sendMessage(jid, generateKeepChatMessage(msg.key, false))   // unkeep
  */
-export const generateKeepChatMessage = (key: proto.IMessageKey, keep: boolean = true): WAMessageContent => ({
+export const generateKeepChatMessage = (key: proto.IMessageKey, keep = true): WAMessageContent => ({
 	keepInChatMessage: {
 		key,
 		keepType: keep ? 1 : 0,

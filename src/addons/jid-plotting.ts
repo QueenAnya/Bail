@@ -9,9 +9,9 @@
  * @newsletter, @hosted, @hosted.lid).
  */
 
-import { isLidUser, jidDecode, jidNormalizedUser } from '../WABinary/index.js'
 import type { AuthenticationState } from '../Types/index.js'
 import type { WAMessage } from '../Types/index.js'
+import { isLidUser, jidDecode, jidNormalizedUser } from '../WABinary/index.js'
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -158,6 +158,7 @@ export const plotJid = (jid: string): PlottedJid | null => {
 		result.lid = info.normalizedUser
 		result.primary = info.normalizedUser
 	}
+
 	return result
 }
 
@@ -199,6 +200,7 @@ export const formatJidDisplay = (jid: string, options: JidFormatOptions = {}): s
 		else if (info.isNewsletter) display += ' (Newsletter)'
 		else if (info.isPn) display += ' (PN)'
 	}
+
 	return display
 }
 

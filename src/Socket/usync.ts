@@ -1,6 +1,6 @@
 import { Boom } from '@hapi/boom'
-import { S_WHATSAPP_NET } from '../WABinary'
 import type { SocketConfig } from '../Types'
+import { S_WHATSAPP_NET } from '../WABinary'
 import type { USyncQuery, USyncUser } from '../WAUSync'
 import { makeSocket } from './socket'
 

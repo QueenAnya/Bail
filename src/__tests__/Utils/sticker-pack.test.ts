@@ -1,6 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { jest } from '@jest/globals'
 import { unzip, zip } from 'fflate'
+// @ts-ignore — sharp is an optional peer dependency
 import sharp from 'sharp'
 import { proto as WAProto } from '../..'
 import type { MediaType } from '../../Defaults'

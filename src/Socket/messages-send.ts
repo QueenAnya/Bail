@@ -2,22 +2,6 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import {
-	captureUnifiedResponse,
-	generateCodeBlockContent,
-	generateLatexContent,
-	generateLatexImageContent,
-	generateLatexInlineImageContent,
-	generateListContent,
-	generateRichMessageContent,
-	generateTableContent,
-	generateUnifiedResponseContent,
-	// CapturedUnifiedResponse removed — use captureUnifiedResponse instead
-	type LatexExpression,
-	type RichSubMessageType as RichSubMessage
-} from '../addons/message-composer'
-import { execSendStatusMentions } from '../addons/from-messages-send'
-import { getButtonArgs, getButtonType, getMediaType, getMessageType } from '../addons/message-utils'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
@@ -73,7 +57,6 @@ import {
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	getBizBinaryNode,
-	shouldIncludeBizBinaryNode,
 	isHostedLidUser,
 	isHostedPnUser,
 	isJidBot,
@@ -88,7 +71,8 @@ import {
 	jidNormalizedUser,
 	type JidWithDevice,
 	PSA_WID,
-	S_WHATSAPP_NET
+	S_WHATSAPP_NET,
+	shouldIncludeBizBinaryNode
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
@@ -728,6 +712,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				if (additionalNodes?.length) {
 					binaryNodeContent.push(...additionalNodes)
 				}
+
 				binaryNodeContent.push({
 					tag: 'plaintext',
 					attrs: extraAttrs, // pass mediatype + other extraAttrs so media is not rejected
@@ -1416,6 +1401,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					if (isJidGroup(id)) {
 						try {
 							const groupData = await sock.groupMetadata(id)
+							// eslint-disable-next-line max-depth
 							for (const participant of groupData.participants) {
 								allUsers.add(participant.id)
 							}
@@ -1426,6 +1412,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						allUsers.add(id)
 					}
 				}
+
 				await relayMessage('status@broadcast', fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					statusJidList: Array.from(allUsers),
@@ -1448,6 +1435,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						await messageMutex.mutex(() => upsertMessage(fullMsg, 'append'))
 					})
 				}
+
 				for (const id of jid) {
 					const isGroup = isJidGroup(id)
 					const sendType = isGroup ? 'groupStatusMentionMessage' : 'statusMentionMessage'
@@ -1472,8 +1460,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							await messageMutex.mutex(() => upsertMessage(mentionMsg, 'append'))
 						})
 					}
+
 					await delay(delayMs)
 				}
+
 				return fullMsg
 			}
 
@@ -1540,32 +1530,34 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						additionalAttributes.edit = '7'
 					}
 				} else if (isEditMsg) {
-					additionalAttributes.edit = isJidNewsletter(jid as string) ? '3' : '1'
+					additionalAttributes.edit = isJidNewsletter(jid) ? '3' : '1'
 				} else if (isPinMsg) {
 					additionalAttributes.edit = '2'
 				} else if (isPollMessage) {
-					if (!isJidNewsletter(jid as string) && isQuizMsg) {
+					if (!isJidNewsletter(jid) && isQuizMsg) {
 						throw new Boom('Quiz polls are only allowed in newsletters', { statusCode: 400 })
 					}
+
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: {
 							polltype: isQuizMsg ? 'quiz_creation' : 'creation',
-							...(isPollMessage && isJidNewsletter(jid as string) ? { contenttype: 'text' } : {})
+							...(isPollMessage && isJidNewsletter(jid) ? { contenttype: 'text' } : {})
 						}
-					} as BinaryNode)
+					})
 				} else if (isEventMsg) {
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: {
 							event_type: 'creation'
 						}
-					} as BinaryNode)
+					})
 				} else if (isAiMsg) {
 					// AI icon on message — only allowed in private chats (s.whatsapp.net / @lid)
 					if (!isPnUser(jid) && !isLidUser(jid)) {
 						throw new Boom('AI icon on message is only allowed in private chat', { statusCode: 400 })
 					}
+
 					// Inject the BIZ_BOT support payload so WA renders the AI icon
 					if (fullMsg.message?.messageContextInfo) {
 						fullMsg.message.messageContextInfo.supportPayload =
@@ -1576,17 +1568,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 								'{"version":1,"is_ai_message":true,"should_upload_client_logs":false,"should_show_system_message":false,"ticket_id":"7004947587700716","citation_items":[],"ticket_locale":"us"}'
 						}
 					}
+
 					additionalNodes.push({
 						tag: 'bot',
 						attrs: { biz_bot: '1' }
-					} as BinaryNode)
+					})
 					delete (content as any).ai
 				} else if (isGroupStatusMsg) {
 					// Group status v2 — send as group status message
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: { is_group_status: 'true' }
-					} as BinaryNode)
+					})
 				}
 
 				await relayMessage(jid, fullMsg.message!, {
@@ -1651,11 +1644,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					messageContent.caption = messageContent.text
 					delete messageContent.text
 				}
+
 				delete messageContent.ptt
 				delete messageContent.font
 				delete messageContent.backgroundColor
 				delete messageContent.textColor
 			}
+
 			if (isAudio) {
 				delete messageContent.text
 				delete messageContent.caption
@@ -1669,21 +1664,17 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				!isMedia || isAudio ? ((content as any).backgroundColor ?? getRandomHexColor()) : undefined
 			const ptt = isAudio ? (typeof (content as any).ptt === 'boolean' ? (content as any).ptt : true) : undefined
 
-			const fullMsg = await generateWAMessage(
-				'status@broadcast',
-				messageContent as AnyMessageContent,
-				{
-					logger,
-					userJid,
-					upload: waUploadToServer,
-					mediaCache: config.mediaCache,
-					options: config.options,
-					font,
-					textColor,
-					backgroundColor,
-					ptt
-				} as any
-			)
+			const fullMsg = await generateWAMessage('status@broadcast', messageContent, {
+				logger,
+				userJid,
+				upload: waUploadToServer,
+				mediaCache: config.mediaCache,
+				options: config.options,
+				font,
+				textColor,
+				backgroundColor,
+				ptt
+			} as any)
 
 			await relayMessage('status@broadcast', fullMsg.message!, {
 				messageId: fullMsg.key.id!,

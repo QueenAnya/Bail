@@ -3,14 +3,14 @@
  * Source: @itsliaaa/baileys v0.3.12 (Lia@Note 03-02-26)
  * Requires: npm install @adiwajshing/keyed-db
  */
-import { writeFileSync, readFileSync, existsSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { proto as WAProto } from '../../WAProto/index.js'
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults/index.js'
-import { toNumber, updateMessageWithReceipt, updateMessageWithReaction } from '../Utils/index.js'
-import { jidNormalizedUser } from '../WABinary/index.js'
 import type { BaileysEventEmitter, Chat, Contact, WAMessage } from '../Types/index.js'
-
-type KeyedDBType = any
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { toNumber, updateMessageWithReaction, updateMessageWithReceipt } from '../Utils/index.js'
+import { jidNormalizedUser } from '../WABinary/index.js'
 
 export const waChatKey = (pin?: boolean) => ({
 	key: (c: Chat) =>
@@ -52,11 +52,11 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 	const contacts: Record<string, Contact> = {}
 	const groupMetadata: Record<string, any> = {}
 	const presences: Record<string, any> = {}
-	let state = { connection: 'close' as const }
+	const state = { connection: 'close' as const }
 
 	const assertMessageList = (jid: string) => {
 		if (!messages[jid]) messages[jid] = makeMessagesDictionary()
-		return messages[jid]!
+		return messages[jid]
 	}
 
 	const bind = (ev: BaileysEventEmitter) => {
@@ -69,12 +69,14 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 				Object.keys(chats).forEach(k => delete chats[k])
 				Object.keys(messages).forEach(k => delete messages[k])
 			}
+
 			for (const chat of newChats) if (chat.id) chats[chat.id] = chat
 			for (const contact of newContacts) if (contact.id) contacts[contact.id] = { ...contacts[contact.id], ...contact }
 			for (const msg of newMessages) {
 				const jid = msg.key.remoteJid!
 				if (jid) assertMessageList(jid).upsert(msg, 'prepend')
 			}
+
 			logger?.debug({ chats: newChats.length, messages: newMessages.length }, 'synced history')
 		})
 
@@ -88,7 +90,7 @@ export const makeInMemoryStore = (config: InMemoryStoreConfig = {}) => {
 			for (const id of deletions) delete chats[id]
 		})
 		ev.on('contacts.upsert', c => {
-			for (const ct of c) contacts[ct.id!] = { ...contacts[ct.id!], ...ct }
+			for (const ct of c) contacts[ct.id] = { ...contacts[ct.id], ...ct }
 		})
 		ev.on('contacts.update', async u => {
 			for (const upd of u) Object.assign((contacts[upd.id || ''] = contacts[upd.id || ''] || ({} as Contact)), upd)

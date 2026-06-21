@@ -8,7 +8,7 @@ import { BufferJSON } from './generics'
 
 const fileLock = new Mutex()
 
-export const useSingleFileAuthState = async (
+export const useSingleFileAuthStateV2 = async (
 	filePath: string
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
 	const resolvedPath = join(filePath)

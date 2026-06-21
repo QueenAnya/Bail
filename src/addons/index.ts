@@ -200,13 +200,13 @@ export type {
 } from './jid-plotting.js'
 
 // ─── Auth State Adapters ──────────────────────────────────────────────────────
-export { useSqliteAuthState } from './auth/use-sqlite-auth-state.js'
-export type { SqliteAuthStateOptions, SqliteAuthStateResult } from './auth/use-sqlite-auth-state.js'
+export { useSqliteAuthState } from './use-sqlite-auth-state.js'
+export type { SqliteAuthStateOptions, SqliteAuthStateResult } from './use-sqlite-auth-state.js'
 
-export { useSingleFileAuthState } from './auth/use-single-file-auth-state.js'
+export { useSingleFileAuthStateV2 } from './use-single-file-auth-state.js'
 
-export { useMongoAuthState } from './auth/use-mongo-auth-state.js'
-export type { MongoCollectionLike, MongoAuthStateResult } from './auth/use-mongo-auth-state.js'
+export { useMongoAuthState } from './use-mongo-auth-state.js'
+export type { MongoCollectionLike, MongoAuthStateResult } from './use-mongo-auth-state.js'
 
 // ─── Re-export shared enums used by addons ────────────────────────────────────
 export { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
@@ -455,6 +455,5 @@ export {
 
 // ─── Auth States (flat structure) ─────────────────────────────────────────────
 export { useSqliteAuthState as useSqliteAuthStateFlat } from './use-sqlite-auth-state.js'
-export { useSingleFileAuthState as useSingleFileAuthStateFlat } from './use-single-file-auth-state.js'
 export { useMongoAuthState as useMongoAuthStateFlat } from './use-mongo-auth-state.js'
-export { useCacheManagerAuthState } from './use-cache-manager-auth-state.js'
+export { makeCacheManagerAuthState } from './use-cache-manager-auth-state.js'

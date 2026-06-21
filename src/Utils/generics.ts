@@ -11,10 +11,10 @@ import type {
 	WAMessageKey,
 	WAVersion
 } from '../Types'
-import type { ILogger } from './logger'
 import { DisconnectReason } from '../Types'
 import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
+import type { ILogger } from './logger'
 
 export const BufferJSON = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -330,7 +330,7 @@ export const fetchAlphaWaWebVersion = async (options: RequestInit = {}) => {
 		// versions.json is a list of version strings like "2.2412.54" — pick latest
 		const latest = versions[versions.length - 1]!
 		const parts = latest.split('.').map(Number) as [number, number, number]
-		return { version: parts as WAVersion, isLatest: true }
+		return { version: parts, isLatest: true }
 	} catch (error) {
 		return { version: baileysVersion as WAVersion, isLatest: false, error }
 	}
@@ -585,6 +585,7 @@ export const generateKeyUuid = (userUuid?: string): string => {
 	for (let i = 0; i < padLen; i++) {
 		pad += CHARS[bytes[i]! % CHARS.length]
 	}
+
 	return DEFAULT_BASE + pad
 }
 
