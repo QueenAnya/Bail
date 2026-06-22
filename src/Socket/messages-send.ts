@@ -1723,3 +1723,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 	}
 }
+// Note: sendMarkdown, sendTable, sendList, sendCodeBlock, sendLatexImage,
+// sendLatexInlineImage, sendRichMessage, captureUnifiedResponse, sendUnifiedResponse
+// are exported from addons/rich-message.ts and should be wired to the socket
+// by the user via: sock.sendMarkdown = (jid, text, quoted) => sendMarkdown(sock, jid, text, quoted)

@@ -98,3 +98,6 @@ export const useSingleFileAuthStateV2 = async (
 		}
 	}
 }
+
+/** @alias useSingleFileAuthStateV2 — original name kept for compatibility */
+export const useSingleFileAuthState = useSingleFileAuthStateV2

@@ -832,7 +832,11 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		return child?.attrs?.token
 	}
 
-	const sendPresenceUpdate = async (type: WAPresence, toJid?: string) => {
+	const sendPresenceUpdate = async (
+		type: WAPresence,
+		toJid?: string,
+		options: { simulateTyping?: boolean; typingDuration?: number } = {}
+	) => {
 		const me = authState.creds.me!
 		const isAvailableType = type === 'available'
 		if (isAvailableType || type === 'unavailable') {
@@ -871,6 +875,20 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					}
 				]
 			})
+
+			// simulateTyping: wait typingDuration ms then auto-send 'paused'
+			const { simulateTyping = false, typingDuration = 1500 } = options
+			if (simulateTyping && (type === 'composing' || type === 'recording')) {
+				await new Promise<void>(r => setTimeout(r, typingDuration))
+				await sendNode({
+					tag: 'chatstate',
+					attrs: {
+						from: isLid ? me.lid! : me.id,
+						to: toJid!
+					},
+					content: [{ tag: 'paused', attrs: {} }]
+				}).catch(() => {})
+			}
 		}
 	}
 

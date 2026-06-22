@@ -460,3 +460,10 @@ export { makeCacheManagerAuthState } from './use-cache-manager-auth-state.js'
 
 // ─── Browser Presets (android + getPlatformDisplayName) ──────────────────────
 export { androidBrowserPreset } from './browser-presets.js'
+
+// ─── Auth States (additional) ─────────────────────────────────────────────────
+export { useMongoFileAuthState } from './use-mongo-file-auth-state.js'
+export { useMultiFileAuthState } from './use-multi-file-auth-state.js'
+
+// ─── Markdown Content Generator ───────────────────────────────────────────────
+export { generateMarkdownContent } from './rich-message.js'

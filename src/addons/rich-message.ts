@@ -16,7 +16,7 @@ import { getRandomValues, randomUUID } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import { DONATE_URL, LEXER_REGEX } from '../Defaults/index.js'
 import { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
-import { generateMessageIDV2 } from '../Utils/generics.js'
+import { generateMessageID, generateMessageIDV2 } from '../Utils/generics.js'
 import { LANGUAGE_KEYWORDS } from '../WABinary/constants.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -610,5 +610,39 @@ const buildBotForwardedMessage = (
 		botForwardedMessage: {
 			message: { richResponseMessage: richResponse }
 		}
+	}
+}
+
+/**
+ * Generate a Meta AI–style markdown message content.
+ * Used by sendMarkdown — wraps plain text in a GenAIMarkdownTextUXPrimitive.
+ */
+export const generateMarkdownContent = (
+	text: string,
+	quoted?: proto.IWebMessageInfo,
+	options: Record<string, unknown> = {}
+): { message: proto.IMessage; messageId: string } => {
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
+	const { randomUUID } = require('crypto') as typeof import('crypto')
+
+	const submessages: RichSubMessage[] = [{ messageType: RichSubMessageType.TEXT, messageText: text } as any]
+
+	const sections = [
+		{
+			view_model: {
+				primitive: { text, __typename: 'GenAIMarkdownTextUXPrimitive' },
+				__typename: 'GenAISingleLayoutViewModel'
+			}
+		}
+	]
+
+	const unifiedResponse = {
+		data: Buffer.from(JSON.stringify({ response_id: randomUUID(), sections }))
+	}
+
+	const ctx = buildRichContextInfo(quoted)
+	return {
+		message: buildBotForwardedMessage(submessages, ctx, unifiedResponse),
+		messageId: generateMessageID()
 	}
 }
