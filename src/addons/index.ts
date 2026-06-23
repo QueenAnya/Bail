@@ -79,14 +79,14 @@ export {
 	sendLatexImage,
 	sendLatexInlineImage,
 	sendRichMessage,
-	captureUnifiedResponse,
+	captureUnifiedResponse as captureUnifiedResponseRM,
 	sendUnifiedResponse
 } from './rich-message.js'
 
 export type {
 	CodeBlock,
 	RichSubMessage,
-	LatexExpression,
+	LatexExpression as LatexExpressionRM,
 	RichContent,
 	CapturedUnifiedResponse
 } from './rich-message.js'
@@ -121,7 +121,7 @@ export {
 	createMessageSearch
 } from './message-search.js'
 
-export type { MessageType, SearchOptions, SearchResult } from './message-search.js'
+export type { MessageType as SearchMessageType, SearchOptions, SearchResult } from './message-search.js'
 
 // ─── vCard / Contact Cards ────────────────────────────────────────────────────
 export {
@@ -211,8 +211,8 @@ export type { MongoCollectionLike, MongoAuthStateResult } from './use-mongo-auth
 // ─── Re-export shared enums used by addons ────────────────────────────────────
 export { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
 
-// ─── Baileys Event Stream ────────────────────────────────────────────────────
-export { captureEventStream, readAndEmitEventStream } from './baileys-event-stream.js'
+// ─── Baileys Event Stream (re-exported via Utils/baileys-event-stream) ────────
+// captureEventStream and readAndEmitEventStream available via Utils/index
 
 // ─── In-Memory Store ─────────────────────────────────────────────────────────
 export {
@@ -305,17 +305,17 @@ export {
 	PYTHON_KEYWORDS as PYTHON_KEYWORDS_V2,
 	LANGUAGE_KEYWORDS as LANGUAGE_KEYWORDS_V2,
 	tokenizeCode as tokenizeCodeV2,
-	buildRichContextInfo,
-	buildBotForwardedMessage,
-	generateTableContent,
-	generateListContent,
-	generateCodeBlockContent,
-	generateLatexContent,
-	generateLatexImageContent,
-	generateLatexInlineImageContent,
+	buildRichContextInfo as buildRichContextInfoMC,
+	buildBotForwardedMessage as buildBotForwardedMessageMC,
+	generateTableContent as generateTableContentMC,
+	generateListContent as generateListContentMC,
+	generateCodeBlockContent as generateCodeBlockContentMC,
+	generateLatexContent as generateLatexContentMC,
+	generateLatexImageContent as generateLatexImageContentMC,
+	generateLatexInlineImageContent as generateLatexInlineImageContentMC,
 	captureUnifiedResponse as captureUnifiedResponseFromComposer,
-	generateUnifiedResponseContent,
-	generateRichMessageContent,
+	generateUnifiedResponseContent as generateUnifiedResponseContentMC,
+	generateRichMessageContent as generateRichMessageContentMC,
 	generateInlineEntityMessage,
 	buildCitationMessage
 } from './message-composer.js'
@@ -393,9 +393,9 @@ export { makeInMemoryStore as makeInMemoryStoreV3, waChatKey as waChatKeyV3 } fr
 
 // ─── Browser Utils (addons version) ──────────────────────────────────────────
 export {
-	isAndroidBrowser,
-	getPlatformId,
-	getPlatformDisplayName,
+	isAndroidBrowser as isAndroidBrowserAddon,
+	getPlatformId as getPlatformIdAddon,
+	getPlatformDisplayName as getPlatformDisplayNameAddon,
 	getCompanionPlatformIdFromName
 } from './browser-utils.js'
 
@@ -460,10 +460,6 @@ export { makeCacheManagerAuthState } from './use-cache-manager-auth-state.js'
 
 // ─── Browser Presets (android + getPlatformDisplayName) ──────────────────────
 export { androidBrowserPreset } from './browser-presets.js'
-
-// ─── Auth States (additional) ─────────────────────────────────────────────────
-export { useMongoFileAuthState } from './use-mongo-file-auth-state.js'
-export { useMultiFileAuthState } from './use-multi-file-auth-state.js'
 
 // ─── Markdown Content Generator ───────────────────────────────────────────────
 export { generateMarkdownContent } from './rich-message.js'

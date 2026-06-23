@@ -14,3 +14,4 @@ export default makeWASocket
 export * from './Store/index'
 export { makeUSyncSocket } from './Socket/usync'
 export * from './Types/MexUpdates'
+export * from './addons/index'

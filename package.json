@@ -1,8 +1,8 @@
 {
   "name": "baileys",
   "type": "module",
-  "version": "7.0.0-rc13",
-  "description": "A WebSockets library for interacting with WhatsApp Web",
+  "version": "7.0.0-rc13.1",
+  "description": "Baileys RC13 - anya-bail build: upgraded WAProto (115k), WA version 1041848672, full addons layer (auth states, rich messages, scheduler, store, etc.)",
   "keywords": [
     "whatsapp",
     "automation"
