@@ -70,6 +70,7 @@ import {
 import {
 	areJidsSameUser,
 	type BinaryNode,
+	type BinaryNodeAttributes,
 	binaryNodeToString,
 	getAllBinaryNodeChildren,
 	getBinaryNodeChild,
@@ -137,8 +138,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		registerSocketEndHandler,
 		issuePrivacyTokens,
 		fetchAccountReachoutTimelock,
-		placeholderResendCache,
-		generateMessageTag
+		placeholderResendCache
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
@@ -574,61 +574,62 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		await query(stanza)
 	}
 
+	// ───────────────────────────────────────────────────────────
+	// Call management — Source: innovatorssoft/baileys (initiateCall/cancelCall
+	// use the RC official style: self-contained stanza-building).
+	// ───────────────────────────────────────────────────────────
+
 	/**
-	 * Initiate an outgoing WhatsApp call (voice or video).
-	 * This sends the call offer signaling stanza. Note: this is signaling only —
-	 * full WebRTC media negotiation is not included in this implementation.
-	 * @param jid - The JID of the recipient to call
-	 * @param options - Call options (isVideo for video calls)
-	 * @returns Call result including callId, recipient JID, and call type
+	 * Initiate a call and track its state in `callOfferCache`.
+	 * Source: Baileys feature/outgoing-calls (self-contained, does not
+	 * depend on the `offerCall` helper in messages-send.ts).
 	 */
 	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
-		const { isVideo = false } = options
-		const callId = randomBytes(8).toString('hex').toUpperCase().slice(0, 8)
-		const me = authState.creds.me!.id
+		const meId = authState.creds.me?.id
+		if (!meId) {
+			throw new Boom('Not authenticated')
+		}
 
+		const callId = randomBytes(8).toString('hex')
+		const isVideo = !!options.isVideo
+		const isGroup = isJidGroup(jid)
 		const stanza: BinaryNode = {
 			tag: 'call',
 			attrs: {
-				from: me,
+				id: sock.generateMessageTag(),
+				from: meId,
 				to: jid,
-				id: generateMessageTag(),
-				t: String(Math.floor(Date.now() / 1000)),
-				notify: authState.creds.me?.name || ''
+				t: String(unixTimestampSeconds()),
+				...(authState.creds.me?.name ? { notify: authState.creds.me.name } : {})
 			},
 			content: [
 				{
 					tag: 'offer',
 					attrs: {
 						'call-id': callId,
-						'call-creator': me,
+						'call-creator': meId,
 						count: '0'
 					},
 					content: [
 						{
 							tag: isVideo ? 'video' : 'audio',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						},
 						{
 							tag: 'net',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						},
 						{
 							tag: 'encopt',
-							attrs: {},
-							content: randomBytes(2)
+							attrs: { key: randomBytes(2).toString('hex') }
 						},
 						{
 							tag: 'relaylatency',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						},
 						{
 							tag: 'te',
-							attrs: {},
-							content: undefined
+							attrs: {}
 						}
 					]
 				}
@@ -636,55 +637,295 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 
 		await query(stanza)
-
-		// Cache the offer so we can reference it for cancel/reject flows
 		await callOfferCache.set(callId, {
 			chatId: jid,
-			from: me,
+			from: meId,
 			id: callId,
 			date: new Date(),
+			offline: false,
+			status: 'offer',
 			isVideo,
-			status: 'offer' as const,
-			offline: false
-		})
-
-		logger.info({ callId, to: jid, isVideo }, 'call offer sent')
+			isGroup,
+			groupJid: isGroup ? jid : undefined
+		} as unknown as WACallEvent)
 
 		return { callId, to: jid, isVideo }
 	}
 
+	/** Terminate an ongoing/offered call. */
+	const terminateCall = async (
+		callId: string,
+		callTo: string,
+		callCreator?: string,
+		reason?: string,
+		duration?: number
+	) => {
+		const meId = authState.creds.me?.id
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+
+		const terminateAttrs: BinaryNodeAttributes = {
+			'call-id': callId,
+			'call-creator': callCreator || meId
+		}
+		if (reason) terminateAttrs.reason = reason
+		if (typeof duration === 'number') {
+			terminateAttrs.duration = String(duration)
+			terminateAttrs.audio_duration = String(duration)
+		}
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: { to: callTo, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'terminate', attrs: terminateAttrs }]
+		}
+		await query(stanza)
+		await callOfferCache.del(callId)
+	}
+
 	/**
-	 * Cancel / terminate an ongoing or pending outgoing call.
-	 * @param callId - The callId returned from initiateCall
-	 * @param callTo - The JID of the call recipient
+	 * Cancel a call you placed before it's answered.
+	 * Source: Baileys feature/outgoing-calls (official RC implementation)
 	 */
 	const cancelCall = async (callId: string, callTo: string) => {
-		const me = authState.creds.me!.id
+		const meId = authState.creds.me?.id
+		if (!meId) {
+			throw new Boom('Not authenticated')
+		}
 
 		const stanza: BinaryNode = {
 			tag: 'call',
 			attrs: {
-				from: me,
-				to: callTo,
-				id: generateMessageTag()
+				from: meId,
+				to: callTo
 			},
 			content: [
 				{
 					tag: 'terminate',
 					attrs: {
 						'call-id': callId,
-						'call-creator': me,
+						'call-creator': meId,
 						count: '0'
-					},
-					content: undefined
+					}
 				}
 			]
 		}
 
 		await query(stanza)
 		await callOfferCache.del(callId)
+	}
 
-		logger.info({ callId, to: callTo }, 'call terminated/cancelled')
+	/** Accept (answer) an incoming call. */
+	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
+		const meId = authState.creds.me?.id
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+
+		const acceptContent: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' } }]
+		if (isVideo) {
+			acceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' } })
+		}
+
+		acceptContent.push({ tag: 'net', attrs: { medium: '2' } }, { tag: 'encopt', attrs: { keygen: '2' } })
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: { from: meId, to: callFrom, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'accept', attrs: { 'call-id': callId, 'call-creator': callFrom }, content: acceptContent }]
+		}
+		await query(stanza)
+	}
+
+	/** Send preaccept signal (codec capabilities) for an incoming call. */
+	const preacceptCall = async (callId: string, callCreator: string, isVideo?: boolean) => {
+		const preacceptContent: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' } }]
+		if (isVideo) {
+			preacceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' } })
+		}
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{ tag: 'preaccept', attrs: { 'call-id': callId, 'call-creator': callCreator }, content: preacceptContent }
+			]
+		}
+		await sendNode(stanza)
+	}
+
+	/** Report relay latency measurements to the server. */
+	const sendRelayLatency = async (
+		callId: string,
+		callCreator: string,
+		relays: Array<{ relayName?: string; latency: number; relayId?: string; dlBw?: number; ulBw?: number }>,
+		transactionId?: string
+	) => {
+		const attrs: BinaryNodeAttributes = { 'call-id': callId, 'call-creator': callCreator }
+		if (transactionId) attrs['transaction-id'] = transactionId
+
+		const teChildren: BinaryNode[] = relays.map(r => {
+			const teAttrs: BinaryNodeAttributes = { latency: String(r.latency) }
+			if (r.relayName) teAttrs.relay_name = r.relayName
+			if (r.relayId) teAttrs.relay_id = r.relayId
+			if (r.dlBw !== undefined) teAttrs.dl_bw = String(r.dlBw)
+			if (r.ulBw !== undefined) teAttrs.ul_bw = String(r.ulBw)
+			return { tag: 'te', attrs: teAttrs }
+		})
+
+		await sendNode({
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'relaylatency', attrs, content: teChildren }]
+		})
+	}
+
+	/** Send transport (p2p/ICE) candidates for a call. */
+	const sendTransport = async (
+		callId: string,
+		callCreator: string,
+		to: string,
+		candidates: Array<{ priority: string; data: Uint8Array }>,
+		round?: number
+	) => {
+		const attrs: BinaryNodeAttributes = {
+			'call-id': callId,
+			'call-creator': callCreator,
+			'transport-message-type': '1'
+		}
+		if (round !== undefined) attrs['p2p-cand-round'] = String(round)
+
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'transport',
+					attrs,
+					content: candidates.map(c => ({ tag: 'te', attrs: { priority: c.priority }, content: c.data }))
+				}
+			]
+		})
+	}
+
+	/** Send call duration log to the server after a call ends. */
+	const sendCallDuration = async (
+		callId: string,
+		callCreator: string,
+		peer: string,
+		audioDuration: number,
+		callType = '1x1'
+	) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'duration',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						peer,
+						audio_duration: String(audioDuration),
+						type: callType
+					}
+				}
+			]
+		})
+	}
+
+	/** Mute or unmute during a call. */
+	const muteCall = async (callId: string, callCreator: string, to: string, muted: boolean) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'mute_v2',
+					attrs: { 'mute-state': muted ? '1' : '0', 'call-id': callId, 'call-creator': callCreator }
+				}
+			]
+		})
+	}
+
+	/** Send heartbeat to keep a group/link call alive. */
+	const sendHeartbeat = async (callId: string, callCreator: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: `${callId}@call`, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'heartbeat', attrs: { 'call-id': callId, 'call-creator': callCreator } }]
+		})
+	}
+
+	/** Send encryption re-key during a call. */
+	const sendEncRekey = async (callId: string, callCreator: string, to: string, transactionId: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'enc_rekey',
+					attrs: { 'transaction-id': transactionId, 'call-id': callId, 'call-creator': callCreator },
+					content: [
+						{ tag: 'encopt', attrs: { keygen: '2' } },
+						{ tag: 'enc', attrs: { v: '2', type: 'msg' } }
+					]
+				}
+			]
+		})
+	}
+
+	/** Send video state change during a call. */
+	const sendVideoState = async (
+		callId: string,
+		callCreator: string,
+		to: string,
+		enabled: boolean,
+		orientation = '1'
+	) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'video',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						state: enabled ? '1' : '0',
+						device_orientation: orientation
+					}
+				}
+			]
+		})
+	}
+
+	/** Query info about a call link before joining. */
+	const queryCallLink = async (token: string, media: 'audio' | 'video' = 'video') => {
+		return query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_query', attrs: { media, token } }]
+		})
+	}
+
+	/** Join a call via its link token. */
+	const joinCallLink = async (token: string, media: 'audio' | 'video' = 'video') => {
+		const joinContent: BinaryNode[] = [
+			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' } },
+			{ tag: 'net', attrs: { medium: '2' } },
+			{ tag: 'capability', attrs: { ver: '1' } }
+		]
+
+		if (media === 'video') {
+			joinContent.splice(1, 0, {
+				tag: 'video',
+				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' }
+			})
+		}
+
+		return query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_join', attrs: { media, token }, content: joinContent }]
+		})
 	}
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
@@ -1401,7 +1642,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	async function decipherLinkPublicKey(data: Uint8Array | Buffer) {
 		const buffer = toRequiredBuffer(data)
 		const salt = buffer.slice(0, 32)
-
 		const secretKey = await derivePairingCodeKey(authState.creds.pairingCode!, salt)
 		const iv = buffer.slice(32, 48)
 		const payload = buffer.slice(48, 80)
@@ -2285,7 +2525,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		sendRetryRequest,
 		rejectCall,
 		initiateCall,
+		terminateCall,
 		cancelCall,
+		acceptCall,
+		preacceptCall,
+		sendRelayLatency,
+		sendTransport,
+		sendCallDuration,
+		muteCall,
+		sendHeartbeat,
+		sendEncRekey,
+		sendVideoState,
+		queryCallLink,
+		joinCallLink,
 		fetchMessageHistory,
 		requestPlaceholderResend,
 		messageRetryManager

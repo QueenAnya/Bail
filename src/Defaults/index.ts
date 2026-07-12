@@ -4,7 +4,7 @@ import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'
 import { Browsers } from '../Utils/browser-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1041848672]
+const version = [2, 3000, 1035194821]
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -60,7 +60,7 @@ export const DEFAULT_CACHE_TTLS = {
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.iOS('Chrome'),
+	browser: Browsers.macOS('Chrome'),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,
@@ -74,25 +74,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	auth: undefined as unknown as AuthenticationState,
 	markOnlineOnConnect: true,
 	syncFullHistory: true,
-	patchMessageBeforeSending: (msg: proto.IMessage) => {
-		// iOS fix: wrap buttons/list/template/interactive in viewOnceMessageV2Extension
-		// so they render correctly on iOS clients
-		if (msg?.buttonsMessage || msg?.templateMessage || msg?.listMessage || msg?.interactiveMessage?.nativeFlowMessage) {
-			msg = {
-				viewOnceMessageV2Extension: {
-					message: {
-						messageContextInfo: {
-							deviceListMetadataVersion: 2,
-							deviceListMetadata: {}
-						},
-						...msg
-					}
-				}
-			}
-		}
-
-		return msg
-	},
+	patchMessageBeforeSending: msg => msg,
 	shouldSyncHistoryMessage: ({ syncType }: proto.Message.IHistorySyncNotification) => {
 		return syncType !== proto.HistorySync.HistorySyncType.FULL
 	},
@@ -119,8 +101,7 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	document: '/mms/document',
 	audio: '/mms/audio',
 	sticker: '/mms/image',
-	'sticker-pack': '/mms/image',
-	'thumbnail-sticker-pack': '/mms/image',
+	'sticker-pack': '/mms/sticker',
 	'thumbnail-link': '/mms/image',
 	'product-catalog-image': '/product/image',
 	'md-app-state': '',
@@ -137,8 +118,8 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	product: 'Image',
 	ptt: 'Audio',
 	sticker: 'Image',
-	'sticker-pack': 'Image',
-	'thumbnail-sticker-pack': 'Image Thumbnail',
+	/** Source: innovatorssoft/baileys — used by the Sticker Pack message feature */
+	'sticker-pack': 'Sticker Pack',
 	video: 'Video',
 	'thumbnail-document': 'Document Thumbnail',
 	'thumbnail-image': 'Image Thumbnail',
@@ -171,17 +152,3 @@ export const TimeMs = {
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
 }
-
-/**
- * Regex lexer for syntax highlighting in rich-message code blocks.
- * Matches: line comments | strings/template literals | call-site identifiers
- *          | plain identifiers | numbers | whitespace/punctuation
- */
-/** Library name shown in fallback texts */
-export const LIBRARY_NAME = 'Baileys'
-
-export const LEXER_REGEX =
-	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\\b[a-zA-Z_]\w*\\b)(?=\s*\()|(\\b[a-zA-Z_]\w*\\b)|(\\b\d+(?:\.\d+)?\\b)|(\s+|[^\w\s]+)/g
-
-/** Fallback donate/reference URL used by rich-message link entities. */
-export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'

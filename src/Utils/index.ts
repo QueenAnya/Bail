@@ -19,17 +19,28 @@ export * from './browser-utils'
 export * from './companion-reg-client-utils'
 export * from './identity-change-handler'
 export * from './stanza-ack'
-export * from './lock-manager'
-export * from './migrate-auth-state'
-export {
-	makeInMemoryStore as makeInMemoryStoreV2,
-	waChatKey as waChatKeyV2,
-	waMessageID as waMessageIDV2
-} from './make-in-memory-store'
-export type { InMemoryStoreConfig } from './make-in-memory-store'
-export * from './use-single-file-auth-state'
-export * from './anti-delete'
-export * from './baileys-event-stream'
-export * from './jid-plotting'
-export * from './message-composer'
-export * from './use-mongo-file-auth-state'
+
+// ───────────────────────────────────────────────────────────
+// innovatorssoft addons (ported from @innovatorssoft/baileys)
+// ───────────────────────────────────────────────────────────
+export * from '../innovatorssoft/anti-delete'
+export * from '../innovatorssoft/auto-reply'
+export * from '../innovatorssoft/scheduling'
+export * from '../innovatorssoft/message-search'
+export * from '../innovatorssoft/status-posting'
+export * from '../innovatorssoft/message-composer'
+export * from '../innovatorssoft/interactive-message'
+export * from '../innovatorssoft/jid-plotting'
+export * from '../innovatorssoft/decrypt-event-edit'
+export * from '../innovatorssoft/native-flow-buttons'
+export * from '../innovatorssoft/templates'
+export * from '../innovatorssoft/chat-control'
+export * from '../innovatorssoft/vcard'
+export * from '../innovatorssoft/store/object-repository'
+export * from '../innovatorssoft/store/make-ordered-dictionary'
+export * from '../innovatorssoft/store/make-in-memory-store'
+
+// ───────────────────────────────────────────────────────────
+// itsliaaa addons (ported from @itsliaaa/baileys)
+// ───────────────────────────────────────────────────────────
+export * from '../itsliaaa/use-sqlite-auth-state'

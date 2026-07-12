@@ -31,20 +31,9 @@ import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-export const getImageProcessingLibrary = async () => {
-	// @ts-ignore — jimp, sharp, @napi-rs/image are optional peer deps
-	const [jimp, sharp, napiImage] = await Promise.all([
-		import('jimp').catch(() => {}),
-		// @ts-ignore
-		import('sharp').catch(() => {}),
-		// @ts-ignore — @napi-rs/image is an optional peer dep
-		import('@napi-rs/image').catch(() => {})
-	])
-
-	// @napi-rs/image: best balance of performance and compatibility
-	if (napiImage) {
-		return { image: napiImage }
-	}
+const getImageProcessingLibrary = async () => {
+	//@ts-ignore
+	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
 	if (sharp) {
 		return { sharp }
@@ -143,7 +132,7 @@ const extractVideoThumb = async (
 		})
 	})
 
-export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | string, width = 32) => {
+export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | string, width = 32, quality = 50) => {
 	// TODO: Move entirely to sharp, removing jimp as it supports readable streams
 	// This will have positive speed and performance impacts as well as minimizing RAM usage.
 	if (bufferOrFilePath instanceof Readable) {
@@ -155,7 +144,7 @@ export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | st
 		const img = lib.sharp.default(bufferOrFilePath)
 		const dimensions = await img.metadata()
 
-		const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer()
+		const buffer = await img.resize(width).jpeg({ quality }).toBuffer()
 		return {
 			buffer,
 			original: {
@@ -171,7 +160,7 @@ export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | st
 		}
 		const buffer = await jimp
 			.resize({ w: width, mode: lib.jimp.ResizeStrategy.BILINEAR })
-			.getBuffer('image/jpeg', { quality: 50 })
+			.getBuffer('image/jpeg', { quality })
 		return {
 			buffer,
 			original: dimensions
@@ -227,17 +216,17 @@ export const generateProfilePicture = async (
 }
 
 /**
- * Generate panorama/wide profile picture — produces two JPEG buffers:
- *  - `img`     640×640 square (circle avatar thumbnail)
- *  - `fullImg` aspect-ratio-preserved wide image (banner slot)
+ * Generate both a square preview and a wide "panorama" version of a
+ * profile picture upload.
+ * Source: innovatorssoft/baileys — upstream only had the square crop.
  */
 export const generatePanoramaProfilePicture = async (
 	mediaUpload: WAMediaUpload,
 	options?: { maxWidth?: number; quality?: number }
 ): Promise<{ img: Buffer; fullImg: Buffer }> => {
+	let buffer: Buffer
 	const { maxWidth = 720, quality = 80 } = options || {}
 
-	let buffer: Buffer
 	if (Buffer.isBuffer(mediaUpload)) {
 		buffer = mediaUpload
 	} else {
@@ -246,43 +235,63 @@ export const generatePanoramaProfilePicture = async (
 	}
 
 	const lib = await getImageProcessingLibrary()
+	let img: Buffer
+	let fullImg: Buffer
 
 	if ('sharp' in lib && typeof lib.sharp?.default === 'function') {
-		const sharpLib = lib.sharp.default
-		const meta = await sharpLib(buffer).metadata()
-		const origW = meta.width || 640
-		const origH = meta.height || 640
-		const aspect = origW / origH
-		const newW = origW > maxWidth ? maxWidth : origW
-		const newH = origW > maxWidth ? Math.round(maxWidth / aspect) : origH
+		const metadata = await lib.sharp.default(buffer).metadata()
+		const originalWidth = metadata.width || 640
+		const originalHeight = metadata.height || 640
+		const aspectRatio = originalWidth / originalHeight
 
-		const [fullImg, img] = await Promise.all([
-			sharpLib(buffer).resize(newW, newH, { fit: 'inside' }).jpeg({ quality }).toBuffer(),
-			sharpLib(buffer).resize(640, 640, { fit: 'cover', position: 'center' }).jpeg({ quality: 50 }).toBuffer()
-		])
-		return { img, fullImg }
+		let newWidth = originalWidth
+		let newHeight = originalHeight
+		if (originalWidth > maxWidth) {
+			newWidth = maxWidth
+			newHeight = Math.round(maxWidth / aspectRatio)
+		}
+
+		fullImg = await lib.sharp
+			.default(buffer)
+			.resize(newWidth, newHeight, { fit: 'inside' })
+			.jpeg({ quality })
+			.toBuffer()
+		img = await lib.sharp
+			.default(buffer)
+			.resize(640, 640, { fit: 'cover', position: 'center' })
+			.jpeg({ quality: 50 })
+			.toBuffer()
 	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
-		const { Jimp, ResizeStrategy, MIME_JPEG } = lib.jimp as any
-		const jimp = await Jimp.read(buffer)
-		const origW: number = jimp.width
-		const origH: number = jimp.height
-		const aspect = origW / origH
-		const newW = origW > maxWidth ? maxWidth : origW
-		const newH = origW > maxWidth ? Math.round(maxWidth / aspect) : origH
-		const min = Math.min(origW, origH)
+		const jimp = await (lib.jimp.Jimp as any).read(buffer)
+		const originalWidth = jimp.width as number
+		const originalHeight = jimp.height as number
+		const aspectRatio = originalWidth / originalHeight
 
-		const [fullImg, img] = await Promise.all([
-			jimp.clone().resize({ w: newW, h: newH, mode: ResizeStrategy?.BILINEAR }).getBuffer(MIME_JPEG, { quality }),
-			jimp
-				.clone()
-				.crop({ x: 0, y: 0, w: min, h: min })
-				.resize({ w: 640, h: 640, mode: ResizeStrategy?.BILINEAR })
-				.getBuffer(MIME_JPEG, { quality: 50 })
-		])
-		return { img, fullImg }
+		let newWidth = originalWidth
+		let newHeight = originalHeight
+		if (originalWidth > maxWidth) {
+			newWidth = maxWidth
+			newHeight = Math.round(maxWidth / aspectRatio)
+		}
+
+		fullImg = await jimp
+			.clone()
+			.resize({ w: newWidth, h: newHeight, mode: lib.jimp.ResizeStrategy.BILINEAR })
+			.getBuffer('image/jpeg', { quality })
+
+		const min = Math.min(originalWidth, originalHeight)
+		const xOffset = Math.floor((originalWidth - min) / 2)
+		const yOffset = Math.floor((originalHeight - min) / 2)
+		img = await jimp
+			.clone()
+			.crop({ x: xOffset, y: yOffset, w: min, h: min })
+			.resize({ w: 640, h: 640, mode: lib.jimp.ResizeStrategy.BILINEAR })
+			.getBuffer('image/jpeg', { quality: 50 })
 	} else {
-		throw new Boom('No image processing library available for panorama profile picture')
+		throw new Boom('No image processing library available')
 	}
+
+	return { img, fullImg }
 }
 
 /** gets the SHA256 of the given media message */
@@ -400,14 +409,15 @@ export async function generateThumbnail(
 	mediaType: 'video' | 'image',
 	options: {
 		logger?: ILogger
+		/** Source: innovatorssoft/baileys — generate a higher-quality, larger preview thumbnail */
 		hdMode?: boolean
 	}
 ) {
 	let thumbnail: string | undefined
 	let originalImageDimensions: { width: number; height: number } | undefined
+	const hdMode = options.hdMode === true
 	if (mediaType === 'image') {
-		const thumbWidth = options.hdMode ? 320 : 32
-		const { buffer, original } = await extractImageThumb(file, thumbWidth)
+		const { buffer, original } = hdMode ? await extractImageThumb(file, 320, 85) : await extractImageThumb(file)
 		thumbnail = buffer.toString('base64')
 		if (original.width && original.height) {
 			originalImageDimensions = {
@@ -418,7 +428,8 @@ export async function generateThumbnail(
 	} else if (mediaType === 'video') {
 		const imgFilename = join(getTmpFilesDirectory(), generateMessageIDV2() + '.jpg')
 		try {
-			await extractVideoThumb(file, imgFilename, '00:00:00', { width: 32, height: 32 })
+			const thumbSize = hdMode ? { width: 320, height: 180 } : { width: 32, height: 32 }
+			await extractVideoThumb(file, imgFilename, '00:00:00', thumbSize)
 			const buff = await fs.readFile(imgFilename)
 			thumbnail = buff.toString('base64')
 
@@ -452,20 +463,18 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
-	/** Pre-existing media key — use to re-encrypt with the same key (e.g. thumbnail of sticker pack) */
-	mediaKey?: Buffer
 }
 
 export const encryptedStream = async (
 	media: WAMediaUpload,
 	mediaType: MediaType,
-	{ logger, saveOriginalFileIfRequired, opts, mediaKey: existingMediaKey }: EncryptedStreamOptions = {}
+	{ logger, saveOriginalFileIfRequired, opts }: EncryptedStreamOptions = {}
 ) => {
 	const { stream, type } = await getStream(media, opts)
 
 	logger?.debug('fetched media stream')
 
-	const mediaKey = existingMediaKey || Crypto.randomBytes(32)
+	const mediaKey = Crypto.randomBytes(32)
 	const { cipherKey, iv, macKey } = await getMediaKeys(mediaKey, mediaType)
 
 	const encFilePath = join(getTmpFilesDirectory(), mediaType + generateMessageIDV2() + '-enc')
@@ -1064,7 +1073,8 @@ export const decryptMediaRetryData = (
 	return proto.MediaRetryNotification.decode(plaintext)
 }
 
-export const getStatusCodeForMediaRetry = (code: number) => (MEDIA_RETRY_STATUS_MAP as Record<number, number>)[code]
+export const getStatusCodeForMediaRetry = (code: number) =>
+	MEDIA_RETRY_STATUS_MAP[code as proto.MediaRetryNotification.ResultType]
 
 const MEDIA_RETRY_STATUS_MAP = {
 	[proto.MediaRetryNotification.ResultType.SUCCESS]: 200,

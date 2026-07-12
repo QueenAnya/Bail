@@ -14,7 +14,6 @@ import type {
 import { DisconnectReason } from '../Types'
 import { type BinaryNode, getAllBinaryNodeChildren, jidDecode } from '../WABinary'
 import { sha256 } from './crypto'
-import type { ILogger } from './logger'
 
 export const BufferJSON = {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,8 +101,7 @@ export const toNumber = (t: Long | number | null | undefined): number =>
 	typeof t === 'object' && t ? ('toNumber' in t ? t.toNumber() : (t as Long).low) : t || 0
 
 /** unix timestamp of a date in seconds */
-export const unixTimestampSeconds = (d: Date | number | string = Date.now()): number =>
-	Math.floor((d instanceof Date ? d.getTime() : Number(d) || Date.now()) / 1000)
+export const unixTimestampSeconds = (date: Date = new Date()) => Math.floor(date.getTime() / 1000)
 
 export type DebouncedTimeout = ReturnType<typeof debouncedTimeout>
 
@@ -202,7 +200,7 @@ export const generateMessageIDV2 = (userId?: string): string => {
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase()
+export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
@@ -272,67 +270,6 @@ export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
 			isLatest: false,
 			error
 		}
-	}
-}
-
-/**
- * Fetches latest Baileys version from GitHub source (alternative method).
- * Reads directly from Defaults/index.ts on the master branch.
- */
-export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
-	try {
-		const response = await fetch(URL, {
-			dispatcher: (options as any).dispatcher,
-			method: 'GET',
-			headers: options.headers
-		})
-		if (!response.ok) {
-			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
-		}
-
-		const text = await response.text()
-		const lines = text.split('\n')
-		const versionLine = lines[6]
-		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
-
-		if (versionMatch) {
-			const version = [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion
-			return { version, isLatest: true }
-		} else {
-			throw new Error('Could not parse version from Defaults/index.ts')
-		}
-	} catch (error) {
-		return { version: baileysVersion as WAVersion, isLatest: false, error }
-	}
-}
-
-/**
- * Fetches alpha/beta WA Web version from wppconnect-team versions list.
- */
-export const fetchAlphaWaWebVersion = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
-	try {
-		const response = await fetch(URL, {
-			dispatcher: (options as any).dispatcher,
-			method: 'GET',
-			headers: options.headers
-		})
-		if (!response.ok) {
-			throw new Boom(`Failed to fetch latest WA version: ${response.statusText}`, { statusCode: response.status })
-		}
-
-		const versions: string[] = await response.json()
-		if (!Array.isArray(versions) || versions.length === 0) {
-			throw new Error('Invalid versions response')
-		}
-
-		// versions.json is a list of version strings like "2.2412.54" — pick latest
-		const latest = versions[versions.length - 1]!
-		const parts = latest.split('.').map(Number) as [number, number, number]
-		return { version: parts, isLatest: true }
-	} catch (error) {
-		return { version: baileysVersion as WAVersion, isLatest: false, error }
 	}
 }
 
@@ -544,66 +481,4 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
-}
-
-/** Generate a message ID with the ANYA-WEB prefix (4NY4W3B + 16 random hex bytes) */
-export const generateAnyaMessageID = () => '4NY4W3B' + randomBytes(16).toString('hex').toUpperCase()
-
-/**
- * Fire-and-forget async helper. Runs `work` in a detached microtask so caller
- * is never blocked. Errors are logged but never thrown back to the caller.
- */
-export function runDetached(
-	work: () => Promise<unknown>,
-	logger: { warn?: (obj: unknown, msg?: string) => void; error?: (obj: unknown, msg?: string) => void },
-	context: Record<string, unknown> = {}
-): void {
-	Promise.resolve()
-		.then(work)
-		.catch((err: unknown) => {
-			logger.error?.({ ...context, err }, 'runDetached: detached work rejected')
-		})
-}
-
-/**
- * Generate the key.uuid field for an outgoing message.
- * If `userUuid` is supplied it is returned verbatim; otherwise a random
- * 15-character string prefixed with `qa3#69` is generated.
- */
-export const generateKeyUuid = (userUuid?: string): string => {
-	const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-	const DEFAULT_BASE = 'qa3#69'
-	const DEFAULT_LEN = 15
-
-	if (userUuid !== undefined && userUuid !== '') {
-		return userUuid
-	}
-
-	const padLen = DEFAULT_LEN - DEFAULT_BASE.length
-	let pad = ''
-	const bytes = randomBytes(padLen)
-	for (let i = 0; i < padLen; i++) {
-		pad += CHARS[bytes[i]! % CHARS.length]
-	}
-
-	return DEFAULT_BASE + pad
-}
-
-/**
- * Listens to `connection.update` and prints QR codes to the terminal using
- * the optional `qrcode-terminal` package. Install it with:
- *   npm install qrcode-terminal
- */
-export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILogger) => {
-	ev.on('connection.update', async ({ qr }) => {
-		if (qr) {
-			// @ts-ignore — qrcode-terminal is an optional peer dep
-			const QR = await import('qrcode-terminal')
-				.then((m: any) => m.default || m)
-				.catch(() => {
-					logger.error('QR code terminal not added as dependency — run: npm install qrcode-terminal')
-				})
-			QR?.generate(qr, { small: true })
-		}
-	})
 }

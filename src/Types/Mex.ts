@@ -1,7 +1,6 @@
 export enum XWAPaths {
 	xwa2_newsletter_create = 'xwa2_newsletter_create',
 	xwa2_newsletter_subscribers = 'xwa2_newsletter_subscribers',
-	xwa2_newsletter_subscribed = 'xwa2_newsletter_subscribed',
 	xwa2_newsletter_view = 'xwa2_newsletter_view',
 	xwa2_newsletter_metadata = 'xwa2_newsletter',
 	xwa2_newsletter_admin_count = 'xwa2_newsletter_admin',
@@ -23,7 +22,6 @@ export enum QueryIds {
 	UPDATE_METADATA = '24250201037901610',
 	METADATA = '6563316087068696',
 	SUBSCRIBERS = '9783111038412085',
-	SUBSCRIBED = '5847027265343424',
 	FOLLOW = '24404358912487870',
 	UNFOLLOW = '9767147403369991',
 	MUTE = '29766401636284406',
@@ -39,6 +37,25 @@ export type NewsletterUpdate = {
 	name?: string
 	description?: string
 	picture?: string
+}
+export interface NewsletterCreateResponse {
+	id: string
+	state: { type: string }
+	thread_metadata: {
+		creation_time: string
+		description: { id: string; text: string; update_time: string }
+		handle: string | null
+		invite: string
+		name: { id: string; text: string; update_time: string }
+		picture: { direct_path: string; id: string; type: string }
+		preview: { direct_path: string; id: string; type: string }
+		subscribers_count: string
+		verification: 'VERIFIED' | 'UNVERIFIED'
+	}
+	viewer_metadata: {
+		mute: 'ON' | 'OFF'
+		role: NewsletterViewRole
+	}
 }
 export interface NewsletterCreateResponse {
 	id: string
@@ -86,37 +103,3 @@ export interface NewsletterMetadata {
 		description?: string
 	}
 }
-
-// ─── Extra QueryIds (from anya-bail Newsletter.ts) ───────────────────────────
-/** Secondary QueryIds set — additional newsletter operation IDs */
-export enum QueryIdd {
-	METADATA = '6620195908089573',
-	GETSUBSCRIBED = '6388546374527196',
-	CREATE = '6996806640408138',
-	UNMUTE = '7337137176362961',
-	MUTE = '25151904754424642'
-}
-
-// ─── MEX operation name constants ────────────────────────────────────────────
-export const MexOperations = {
-	PROMOTE: 'NotificationNewsletterAdminPromote',
-	DEMOTE: 'NotificationNewsletterAdminDemote',
-	UPDATE: 'NotificationNewsletterUpdate'
-} as const
-
-export type MexOperation = (typeof MexOperations)[keyof typeof MexOperations]
-
-export const MexUpdatesOperations = {
-	OWNER_COMMUNITY: 'NotificationCommunityOwnerUpdate',
-	GROUP_MEMBER_LINK: 'NotificationGroupMemberLinkPropertyUpdate',
-	GROUP_LIMIT_SHARING: 'NotificationGroupLimitSharingPropertyUpdate'
-} as const
-
-export type MexUpdatesOperation = (typeof MexUpdatesOperations)[keyof typeof MexUpdatesOperations]
-
-export const XWAPathsMexUpdates = {
-	GROUP_SHARING_CHANGE: 'xwa2_notify_group_on_prop_change',
-	COMMUNITY_OWNER_CHANGE: 'xwa2_notify_group_on_participants_roles_change'
-} as const
-
-export type XWAPathMexUpdate = (typeof XWAPathsMexUpdates)[keyof typeof XWAPathsMexUpdates]

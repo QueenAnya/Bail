@@ -14,17 +14,15 @@ import { encodeBigEndian } from './generics'
 import { createSignalIdentity } from './signal'
 
 const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
-	// Always use MACOS platform for UserAgent — we connect via web protocol
-	// (WA\x06\x03) so the server expects a web-compatible identity.
-	// Using WEB causes 405 errors; using SMB_ANDROID breaks pair code.
-	// Android identity is only set in DeviceProps (registration node).
 	return {
 		appVersion: {
 			primary: config.version[0],
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		platform: proto.ClientPayload.UserAgent.Platform.MACOS,
+		platform: config.browser[1].toLocaleLowerCase().includes('android')
+			? proto.ClientPayload.UserAgent.Platform.ANDROID
+			: proto.ClientPayload.UserAgent.Platform.WEB,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
 		device: 'Desktop',
@@ -62,7 +60,9 @@ const getClientPayload = (config: SocketConfig) => {
 		userAgent: getUserAgent(config)
 	}
 
-	payload.webInfo = getWebInfo(config)
+	if (!config.browser[1].toLocaleLowerCase().includes('android')) {
+		payload.webInfo = getWebInfo(config)
+	}
 
 	if (config.pushName) {
 		payload.pushName = config.pushName
@@ -87,7 +87,6 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
-	// 'ANDROID' is not in PlatformType enum — map to ANDROID_PHONE
 	if (platformType === 'ANDROID') {
 		return proto.DeviceProps.PlatformType.ANDROID_PHONE
 	}

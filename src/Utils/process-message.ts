@@ -35,6 +35,7 @@ import { getKeyAuthor, toNumber } from './generics'
 import { downloadAndProcessHistorySyncNotification } from './history'
 import type { ILogger } from './logger'
 import { buildMergedTcTokenIndexWrite, resolveTcTokenJid } from './tc-token-utils'
+import { decryptEventEdit } from '../innovatorssoft/decrypt-event-edit'
 
 type ProcessMessageContext = {
 	shouldProcessHistoryMsg: boolean
@@ -623,6 +624,59 @@ const processMessage = async (
 			}
 		} else {
 			logger?.warn({ creationMsgKey }, 'event creation message not found, cannot decrypt response')
+		}
+	} else if (
+		content?.secretEncryptedMessage &&
+		proto.Message.SecretEncryptedMessage.SecretEncType[content.secretEncryptedMessage.secretEncType!] === 'EVENT_EDIT'
+	) {
+		// Source: innovatorssoft/baileys — decrypts an *edit* to a previously-sent
+		// event RSVP. Upstream only handled the initial response
+		// (encEventResponseMessage above); without this branch, edited RSVPs
+		// are silently dropped.
+		const encEventEdit = content.secretEncryptedMessage
+		const creationMsgKey = encEventEdit.targetMessageKey!
+
+		const eventMsg = await getMessage(creationMsgKey)
+		if (eventMsg) {
+			try {
+				const meIdNormalised = jidNormalizedUser(meId)
+				const eventCreatorKey = creationMsgKey.participant || creationMsgKey.remoteJid!
+				const eventCreatorPn = isLidUser(eventCreatorKey)
+					? await signalRepository.lidMapping.getPNForLID(eventCreatorKey)
+					: eventCreatorKey
+				const eventCreatorJid = getKeyAuthor(
+					{ remoteJid: jidNormalizedUser(eventCreatorPn!), fromMe: meIdNormalised === eventCreatorPn },
+					meIdNormalised
+				)
+
+				const responderJid = getKeyAuthor(message.key, meIdNormalised)
+				const eventEncKey = eventMsg?.messageContextInfo?.messageSecret
+
+				if (!eventEncKey) {
+					logger?.warn({ creationMsgKey }, 'event edit: missing messageSecret for decryption')
+				} else {
+					const editedMsg = decryptEventEdit(encEventEdit as unknown as proto.Message.IPollEncValue, {
+						eventEncKey,
+						eventCreatorJid,
+						eventMsgId: creationMsgKey.id!,
+						responderJid
+					})
+
+					const protocolMsg = editedMsg?.protocolMessage
+					if (protocolMsg) {
+						ev.emit('messages.update', [
+							{
+								key: { ...message.key, id: protocolMsg.key?.id },
+								update: { message: protocolMsg.editedMessage || undefined }
+							}
+						])
+					}
+				}
+			} catch (err) {
+				logger?.warn({ err, creationMsgKey }, 'failed to decrypt event edit')
+			}
+		} else {
+			logger?.warn({ creationMsgKey }, 'event creation message not found, cannot decrypt edit')
 		}
 	} else if (message.messageStubType) {
 		const jid = message.key?.remoteJid!
