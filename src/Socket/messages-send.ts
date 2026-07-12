@@ -5,6 +5,7 @@ import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import {
 	captureUnifiedResponse,
+	extractUnifiedResponse,
 	generateCodeBlockContent,
 	generateListContent,
 	generateLatexContent,
@@ -1247,6 +1248,34 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		return ''
 	}
 
+	const getPrivacyTokens = async (jids: string[]) => {
+		const t = unixTimestampSeconds().toString()
+		const result = await query({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'privacy'
+			},
+			content: [
+				{
+					tag: 'tokens',
+					attrs: {},
+					content: jids.map(jid => ({
+						tag: 'token',
+						attrs: {
+							jid: jidNormalizedUser(jid),
+							t,
+							type: 'trusted_contact'
+						}
+					}))
+				}
+			]
+		})
+
+		return result
+	}
+
 	const issuePrivacyTokens = async (jids: string[], timestamp?: number) => {
 		const t = (timestamp ?? unixTimestampSeconds()).toString()
 		const result = await query({
@@ -1659,7 +1688,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			getUrlInfo: (text: string) =>
 				getUrlInfo(text, {
 					thumbnailWidth: linkPreviewImageThumbnailWidth,
-					fetchOpts: { timeout: 3000, ...(axiosOptions || {}) },
+					fetchOpts: { timeout: 3000, ...(httpRequestOptions || {}) },
 					logger,
 					uploadImage: generateHighQualityLinkPreview ? waUploadToServer : undefined
 				}),
@@ -1737,6 +1766,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		userDevicesCache,
 		devicesMutex,
 		issuePrivacyTokens,
+		getPrivacyTokens,
 		assertSessions,
 		relayMessage,
 		sendReceipt,
@@ -1753,6 +1783,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		sendLatexInlineImage,
 		sendRichMessage,
 		captureUnifiedResponse,
+		extractUnifiedResponse,
 		sendUnifiedResponse,
 		sendStatusMentions,
 		// Function (not getter) so the spread in chats.ts preserves the live closure binding.
