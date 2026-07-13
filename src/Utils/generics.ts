@@ -1,6 +1,5 @@
 import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
-import type Long from 'long'
 import { proto } from '../../WAProto/index.js'
 const baileysVersion = [2, 3000, 1035194821]
 import type {
@@ -180,6 +179,8 @@ export async function promiseTimeout<T>(
 
 // inspired from whatsmeow code
 // https://github.com/tulir/whatsmeow/blob/64bc969fbe78d31ae0dd443b8d4c80a5d026d07a/send.go#L42
+export const MSG_ID_PREFIX = '4NY4W3B'
+
 export const generateMessageIDV2 = (userId?: string): string => {
 	const data = Buffer.alloc(8 + 20 + 16)
 	data.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000)))
@@ -196,38 +197,26 @@ export const generateMessageIDV2 = (userId?: string): string => {
 	random.copy(data, 28)
 
 	const hash = createHash('sha256').update(data).digest()
-	return '3EB0' + hash.toString('hex').toUpperCase().substring(0, 18)
+	return MSG_ID_PREFIX + hash.toString('hex').toUpperCase().substring(0, 18)
 }
 
 // generate a random ID to attach to a message
-export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
+export const generateMessageID = (): string => MSG_ID_PREFIX + randomBytes(18).toString('hex').toUpperCase()
 
 /**
- * Source: custom addon
- *
- * Generates the value for `MessageKey.uuid` — a separate, custom field
- * kept alongside (never replacing) the standard `id` field, which keeps
- * using `generateMessageIDV2`/`generateMessageID` completely unchanged.
- *
- * Priority is resolved by the caller before invoking this function:
- *   1. `content.uuid` (if the caller passed one in the message content)
- *   2. `options.uuid` (if the caller passed one in send options)
- *   3. a generated default (if neither was provided)
- *
- * @param userUuid the already-priority-resolved uuid from the caller, or
- * `undefined`/empty if none was supplied
- * @returns the exact `userUuid` unmodified if provided (never truncated,
- * padded, or altered), otherwise a freshly generated default uuid that is
- * at most 15 characters long
+ * Generates a uuid field value for key.uuid
+ * Format: (userUuid || 'qa3#69') padded/trimmed to exactly 11 chars
+ * Padding uses random alphanumeric chars
  */
 export const generateKeyUuid = (userUuid?: string): string => {
-	if (typeof userUuid === 'string' && userUuid.length > 0) {
-		// user-supplied uuid: preserve exactly as-is, no modification
-		return userUuid
-	}
-
-	// default: generated value, capped at a maximum of 15 characters
-	return randomBytes(8).toString('hex').toUpperCase().slice(0, 15)
+	const TOTAL_LENGTH = 11
+	const base = (userUuid || 'qa3#69').substring(0, TOTAL_LENGTH)
+	if (base.length === TOTAL_LENGTH) return base
+	const pad = randomBytes(TOTAL_LENGTH)
+		.toString('base64')
+		.replace(/[^A-Z0-9]/gi, '')
+		.substring(0, TOTAL_LENGTH - base.length)
+	return base + pad
 }
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {

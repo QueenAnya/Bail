@@ -21,14 +21,36 @@ export const Browsers: BrowsersMap = {
 	macOS: browser => ['Mac OS', browser, '14.4.1'],
 	baileys: browser => ['Baileys', browser, '6.5.0'],
 	windows: browser => ['Windows', browser, '10.0.22631'],
-	android: browser => [browser, 'Android', ''],
+	/** Android companion device. apiLevel is the Android API level e.g. '14' */
+	android: (apiLevel: string) => [apiLevel, 'Android', ''],
 	/** The appropriate browser based on your OS & release */
 	appropriate: browser => [PLATFORM_MAP[platform()] || 'Ubuntu', browser, release()]
 }
 
+/**
+ * Checks if the browser tuple represents an Android companion device.
+ * @param browser - Browser tuple [os, platform, version]
+ * @returns True if platform is 'Android' (case-insensitive)
+ */
+export const isAndroidBrowser = (browser: [string, string, string]): boolean => {
+	return browser[1]?.toUpperCase() === 'ANDROID'
+}
+
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
-	return (platformType || proto.DeviceProps.PlatformType.CHROME).toString()
+	if (platformType !== undefined) {
+		return platformType.toString()
+	}
+
+	// 'ANDROID' is not in the PlatformType enum — map to ANDROID_PHONE
+	if (browser.toUpperCase() === 'ANDROID') {
+		const androidPhone = proto.DeviceProps.PlatformType['ANDROID_PHONE' as any]
+		if (androidPhone !== undefined) {
+			return androidPhone.toString()
+		}
+	}
+
+	return proto.DeviceProps.PlatformType.CHROME.toString()
 }
 
 export const getPlatformDisplayName = (browser: string) => {

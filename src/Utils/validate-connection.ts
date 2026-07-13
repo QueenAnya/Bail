@@ -12,6 +12,7 @@ import { type BinaryNode, getBinaryNodeChild, jidDecode, S_WHATSAPP_NET } from '
 import { Curve, hmacSign } from './crypto'
 import { encodeBigEndian } from './generics'
 import { createSignalIdentity } from './signal'
+import { isAndroidBrowser } from './browser-utils'
 
 const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 	return {
@@ -20,7 +21,7 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		platform: config.browser[1].toLocaleLowerCase().includes('android')
+		platform: isAndroidBrowser(config.browser)
 			? proto.ClientPayload.UserAgent.Platform.ANDROID
 			: proto.ClientPayload.UserAgent.Platform.WEB,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
@@ -60,7 +61,8 @@ const getClientPayload = (config: SocketConfig) => {
 		userAgent: getUserAgent(config)
 	}
 
-	if (!config.browser[1].toLocaleLowerCase().includes('android')) {
+	// Android companion devices don't send webInfo
+	if (!isAndroidBrowser(config.browser)) {
 		payload.webInfo = getWebInfo(config)
 	}
 
@@ -87,10 +89,6 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 
 const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
-	if (platformType === 'ANDROID') {
-		return proto.DeviceProps.PlatformType.ANDROID_PHONE
-	}
-
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
 		proto.DeviceProps.PlatformType.CHROME
