@@ -13,7 +13,6 @@
  *   npm install @adiwajshing/keyed-db
  */
 
-// @ts-expect-error — @adiwajshing/keyed-db ships its own (older-style) types
 import KeyedDB from '@adiwajshing/keyed-db'
 import { createRequire } from 'module'
 import { proto } from '../../../WAProto/index.js'
@@ -82,7 +81,7 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 	const labelAssociationKey = config.labelAssociationKey || waLabelAssociationKey
 	const logger: ILogger = config.logger || (DEFAULT_CONNECTION_CONFIG.logger as ILogger)
 
-	const chats = new KeyedDB<Chat, string>(chatKey, (c: Chat) => c.id)
+	const chats = new KeyedDB<Chat, string>(chatKey, (c: Chat) => c.id || '')
 	const messages: { [jid: string]: MessagesDict } = {}
 	const contacts: { [jid: string]: Contact } = {}
 	const groupMetadata: { [jid: string]: GroupMetadata } = {}

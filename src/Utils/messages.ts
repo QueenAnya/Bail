@@ -507,7 +507,7 @@ export const generateWAMessageContent = async (
 
 		const { zip } = await import('fflate')
 
-		const stickerData: Record<string, [Uint8Array, { level: number }]> = {}
+		const stickerData: Record<string, [Uint8Array, { level: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 }]> = {}
 		const stickerMetadata = await Promise.all(
 			stickers.map(async (s, i) => {
 				const { stream } = await getStream(s.sticker)
@@ -1767,3 +1767,18 @@ export const assertMediaContent = (content: proto.IMessage | null | undefined) =
 
 	return mediaContent
 }
+
+/**
+ * Source: innovatorssoft/baileys (ported from compiled JS to TypeScript)
+ *
+ * True for message types that need the `<biz>` binary node (buttons,
+ * list, template, or interactive-with-nativeFlow messages) alongside them
+ * for WhatsApp to render them correctly. Used by `relayMessage`.
+ */
+export const shouldIncludeBizBinaryNode = (message: proto.IMessage): boolean =>
+	!!(
+		message.buttonsMessage ||
+		message.listMessage ||
+		message.templateMessage ||
+		(message.interactiveMessage && message.interactiveMessage.nativeFlowMessage)
+	)

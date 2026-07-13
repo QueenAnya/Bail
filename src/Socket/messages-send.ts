@@ -5,7 +5,6 @@ import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import {
 	captureUnifiedResponse,
-	extractUnifiedResponse,
 	generateCodeBlockContent,
 	generateListContent,
 	generateLatexContent,
@@ -51,6 +50,7 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
+	shouldIncludeBizBinaryNode,
 	unixTimestampSeconds
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
@@ -69,8 +69,10 @@ import {
 	type BinaryNode,
 	type BinaryNodeAttributes,
 	type FullJid,
+	getBinaryFilteredBizBot,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
+	getBizBinaryNode,
 	isHostedLidUser,
 	isHostedPnUser,
 	isJidBot,
@@ -643,7 +645,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			useUserDevicesCache,
 			useCachedGroupMetadata,
 			statusJidList,
-			ai
+			ai,
+			addBizAttributes
 		}: MessageRelayOptions
 	) => {
 		const meId = assertMeId(authState.creds)
@@ -1108,21 +1111,35 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
-			if (additionalNodes && additionalNodes.length > 0) {
-				;(stanza.content as BinaryNode[]).push(...additionalNodes)
-			}
-
 			// Source: innovatorssoft/baileys — shows the small "AI" bot icon on
-			// the message bubble. Only valid for 1:1 (private) and LID chats.
+			// the message bubble (1:1/LID chats only), and attaches the `<biz>`
+			// binary node WhatsApp requires alongside buttons/list/template/
+			// interactive (native-flow) messages — without it those message
+			// types may not render correctly on real WhatsApp clients.
 			const isPrivateChat = !isGroupOrStatus && !isNewsletter
+			let didPushAdditionalNodes = false
+
 			if (ai && (isPrivateChat || isLid)) {
-				const alreadyHasBotNode = (additionalNodes || []).some(node => node.tag === 'bot')
-				if (!alreadyHasBotNode) {
+				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes || [])
+				if (filteredBizBot && additionalNodes) {
+					;(stanza.content as BinaryNode[]).push(...additionalNodes)
+					didPushAdditionalNodes = true
+				} else {
 					;(stanza.content as BinaryNode[]).push({
 						tag: 'bot',
 						attrs: { biz_bot: '1' }
 					})
 				}
+			}
+
+			let alreadyHasBizNode = false
+			if (!didPushAdditionalNodes && additionalNodes && additionalNodes.length > 0) {
+				;(stanza.content as BinaryNode[]).push(...additionalNodes)
+				alreadyHasBizNode = !addBizAttributes && additionalNodes.some(node => node.tag === 'biz')
+			}
+
+			if ((!alreadyHasBizNode && shouldIncludeBizBinaryNode(message)) || addBizAttributes) {
+				;(stanza.content as BinaryNode[]).push(getBizBinaryNode(message))
 			}
 
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
@@ -1246,34 +1263,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		}
 
 		return ''
-	}
-
-	const getPrivacyTokens = async (jids: string[]) => {
-		const t = unixTimestampSeconds().toString()
-		const result = await query({
-			tag: 'iq',
-			attrs: {
-				to: S_WHATSAPP_NET,
-				type: 'set',
-				xmlns: 'privacy'
-			},
-			content: [
-				{
-					tag: 'tokens',
-					attrs: {},
-					content: jids.map(jid => ({
-						tag: 'token',
-						attrs: {
-							jid: jidNormalizedUser(jid),
-							t,
-							type: 'trusted_contact'
-						}
-					}))
-				}
-			]
-		})
-
-		return result
 	}
 
 	const issuePrivacyTokens = async (jids: string[], timestamp?: number) => {
@@ -1766,7 +1755,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		userDevicesCache,
 		devicesMutex,
 		issuePrivacyTokens,
-		getPrivacyTokens,
 		assertSessions,
 		relayMessage,
 		sendReceipt,
@@ -1783,7 +1771,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		sendLatexInlineImage,
 		sendRichMessage,
 		captureUnifiedResponse,
-		extractUnifiedResponse,
 		sendUnifiedResponse,
 		sendStatusMentions,
 		// Function (not getter) so the spread in chats.ts preserves the live closure binding.
@@ -1928,13 +1915,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					} as BinaryNode)
 				}
 
+				// Source: innovatorssoft/baileys — forces the `<biz>` binary
+				// node onto the stanza even for message types that wouldn't
+				// normally need one.
+				const isNeedBizAttrs =
+					'secureMetaServiceLabel' in content &&
+					!!(content as { secureMetaServiceLabel?: boolean }).secureMetaServiceLabel
+
 				await relayMessage(jid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes,
 					statusJidList: options.statusJidList,
 					additionalNodes,
-					ai: options.ai
+					ai: options.ai,
+					addBizAttributes: isNeedBizAttrs
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {

@@ -574,9 +574,6 @@ export const captureUnifiedResponse = (
 	}
 }
 
-// Alias matching @queenanya/baileys@9.4.4's naming — identical implementation.
-export const extractUnifiedResponse = captureUnifiedResponse
-
 export const generateUnifiedResponseContent = (
 	quoted: any,
 	captured: { submessages: any[]; unifiedResponse: { data: string | Buffer } }

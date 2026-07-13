@@ -148,6 +148,8 @@ type ExtraModifiers = {
 	viewOnceV2Extension?: boolean
 	/** alias for `viewOnceV2Extension` */
 	viewOnceExt?: boolean
+	/** Source: innovatorssoft/baileys — force-attach the `<biz>` binary node needed for some business/interactive message types to render correctly */
+	secureMetaServiceLabel?: boolean
 }
 
 type Editable = {
@@ -598,6 +600,8 @@ export type MessageRelayOptions = MinimalRelayOptions & {
 	useUserDevicesCache?: boolean
 	/** jid list of participants for status@broadcast */
 	statusJidList?: string[]
+	/** Source: innovatorssoft/baileys — force-attach the `<biz>` binary node (see `secureMetaServiceLabel` on message content) */
+	addBizAttributes?: boolean
 }
 
 export type MiscMessageGenerationOptions = MinimalRelayOptions & {

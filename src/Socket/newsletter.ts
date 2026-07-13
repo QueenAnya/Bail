@@ -79,10 +79,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 
 		newsletterUpdate,
 
-		newsletterFetchAllParticipating: async () => {
-			return executeWMexQuery({}, QueryIds.GETSUBSCRIBED, XWAPaths.xwa2_newsletter_subscribed)
-		},
-
 		newsletterSubscribers: async (jid: string) => {
 			return executeWMexQuery<{ subscribers: number }>(
 				{ newsletter_id: jid },

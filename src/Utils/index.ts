@@ -39,6 +39,8 @@ export * from '../innovatorssoft/vcard'
 export * from '../innovatorssoft/store/object-repository'
 export * from '../innovatorssoft/store/make-ordered-dictionary'
 export * from '../innovatorssoft/store/make-in-memory-store'
+export * from '../innovatorssoft/single-file-auth-state'
+export * from '../innovatorssoft/mongo-file-auth-state'
 
 // ───────────────────────────────────────────────────────────
 // itsliaaa addons (ported from @itsliaaa/baileys)
