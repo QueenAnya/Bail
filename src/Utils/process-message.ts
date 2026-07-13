@@ -35,6 +35,7 @@ import { getKeyAuthor, toNumber } from './generics'
 import { downloadAndProcessHistorySyncNotification } from './history'
 import type { ILogger } from './logger'
 import { buildMergedTcTokenIndexWrite, resolveTcTokenJid } from './tc-token-utils'
+import { decryptEventEdit } from '../innovatorssoft/decrypt-event-edit'
 
 type ProcessMessageContext = {
 	shouldProcessHistoryMsg: boolean
@@ -330,6 +331,45 @@ const processMessage = async (
 
 	const protocolMsg = content?.protocolMessage
 	if (protocolMsg) {
+		// Mirror whatsmeow's `handleProtocolMessage` guard, but applied only to
+		// the protocol message types that originate from our own device — an
+		// attacker could otherwise spoof any of these to manipulate local state.
+		//
+		// Self-only types (drop if `!fromMe`):
+		//   - HISTORY_SYNC_NOTIFICATION                 (our phone driving history sync)
+		//   - APP_STATE_SYNC_KEY_SHARE                  (key share between our devices)
+		//   - LID_MIGRATION_MAPPING_SYNC                (server-initiated via our phone)
+		//   - PEER_DATA_OPERATION_REQUEST_RESPONSE_MESSAGE (response from our phone to our PDO request)
+		//
+		// Cross-user types (must NOT be dropped — legitimately arrive from others):
+		//   - REVOKE
+		//   - MESSAGE_EDIT
+		//   - EPHEMERAL_SETTING
+		//   - GROUP_MEMBER_LABEL_CHANGE
+		//
+		// See https://github.com/tulir/whatsmeow/blob/8d3700152a/message.go#L842-L845
+		// for the reference architecture — whatsmeow's `handleProtocolMessage`
+		// only contains self-only types because edits are unwrapped from
+		// `EditedMessage` BEFORE this dispatch and revokes aren't routed here.
+		const SELF_ONLY_TYPES = new Set<proto.Message.ProtocolMessage.Type>([
+			proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION,
+			proto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_SHARE,
+			proto.Message.ProtocolMessage.Type.LID_MIGRATION_MAPPING_SYNC,
+			proto.Message.ProtocolMessage.Type.PEER_DATA_OPERATION_REQUEST_RESPONSE_MESSAGE
+		])
+		if (
+			protocolMsg.type !== null &&
+			protocolMsg.type !== undefined &&
+			SELF_ONLY_TYPES.has(protocolMsg.type) &&
+			!message.key.fromMe
+		) {
+			logger?.warn(
+				{ msgId: message.key.id, type: protocolMsg.type, from: message.key.participant || message.key.remoteJid },
+				'dropping spoofed self-only protocolMessage from non-self origin'
+			)
+			return
+		}
+
 		switch (protocolMsg.type) {
 			case proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION:
 				const histNotification = protocolMsg.historySyncNotification!
@@ -584,6 +624,59 @@ const processMessage = async (
 			}
 		} else {
 			logger?.warn({ creationMsgKey }, 'event creation message not found, cannot decrypt response')
+		}
+	} else if (
+		content?.secretEncryptedMessage &&
+		proto.Message.SecretEncryptedMessage.SecretEncType[content.secretEncryptedMessage.secretEncType!] === 'EVENT_EDIT'
+	) {
+		// Source: innovatorssoft/baileys — decrypts an *edit* to a previously-sent
+		// event RSVP. Upstream only handled the initial response
+		// (encEventResponseMessage above); without this branch, edited RSVPs
+		// are silently dropped.
+		const encEventEdit = content.secretEncryptedMessage
+		const creationMsgKey = encEventEdit.targetMessageKey!
+
+		const eventMsg = await getMessage(creationMsgKey)
+		if (eventMsg) {
+			try {
+				const meIdNormalised = jidNormalizedUser(meId)
+				const eventCreatorKey = creationMsgKey.participant || creationMsgKey.remoteJid!
+				const eventCreatorPn = isLidUser(eventCreatorKey)
+					? await signalRepository.lidMapping.getPNForLID(eventCreatorKey)
+					: eventCreatorKey
+				const eventCreatorJid = getKeyAuthor(
+					{ remoteJid: jidNormalizedUser(eventCreatorPn!), fromMe: meIdNormalised === eventCreatorPn },
+					meIdNormalised
+				)
+
+				const responderJid = getKeyAuthor(message.key, meIdNormalised)
+				const eventEncKey = eventMsg?.messageContextInfo?.messageSecret
+
+				if (!eventEncKey) {
+					logger?.warn({ creationMsgKey }, 'event edit: missing messageSecret for decryption')
+				} else {
+					const editedMsg = decryptEventEdit(encEventEdit as unknown as proto.Message.IPollEncValue, {
+						eventEncKey,
+						eventCreatorJid,
+						eventMsgId: creationMsgKey.id!,
+						responderJid
+					})
+
+					const protocolMsg = editedMsg?.protocolMessage
+					if (protocolMsg) {
+						ev.emit('messages.update', [
+							{
+								key: { ...message.key, id: protocolMsg.key?.id },
+								update: { message: protocolMsg.editedMessage || undefined }
+							}
+						])
+					}
+				}
+			} catch (err) {
+				logger?.warn({ err, creationMsgKey }, 'failed to decrypt event edit')
+			}
+		} else {
+			logger?.warn({ creationMsgKey }, 'event creation message not found, cannot decrypt edit')
 		}
 	} else if (message.messageStubType) {
 		const jid = message.key?.remoteJid!

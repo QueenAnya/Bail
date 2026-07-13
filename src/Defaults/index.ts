@@ -1,18 +1,3 @@
-export const BOT_RENDERING_CONFIG_METADATA = {
-	forceRenderingConfig: true,
-	botRenderingToken: 1,
-	rendererVersion: 1
-}
-
-export const DONATE_URL = 'https://saweria.co/itsliaaa'
-
-export const BIZ_BOT_SUPPORT_PAYLOAD = JSON.stringify({
-	bot_type: 'AI',
-	supported_features: ['rich_response', 'code_block', 'table', 'latex']
-})
-
-export const LIBRARY_NAME = '@whiskeysockets/baileys-merged'
-
 import { proto } from '../../WAProto/index.js'
 import { makeLibSignalRepository } from '../Signal/libsignal'
 import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'
@@ -116,9 +101,8 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	document: '/mms/document',
 	audio: '/mms/audio',
 	sticker: '/mms/image',
+	'sticker-pack': '/mms/sticker',
 	'thumbnail-link': '/mms/image',
-	'sticker-pack': '/mms/sticker-pack',
-	'thumbnail-sticker-pack': '/mms/thumbnail-sticker-pack',
 	'product-catalog-image': '/product/image',
 	'md-app-state': '',
 	'md-msg-hist': '/mms/md-app-state',
@@ -134,8 +118,8 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	product: 'Image',
 	ptt: 'Audio',
 	sticker: 'Image',
+	/** Source: innovatorssoft/baileys — used by the Sticker Pack message feature */
 	'sticker-pack': 'Sticker Pack',
-	'thumbnail-sticker-pack': 'Sticker Pack Thumbnail',
 	video: 'Video',
 	'thumbnail-document': 'Document Thumbnail',
 	'thumbnail-image': 'Image Thumbnail',
@@ -156,7 +140,6 @@ export const MEDIA_KEYS = Object.keys(MEDIA_PATH_MAP) as MediaType[]
 /** 120s timeout for history sync stall detection, same as WA Web's handleChunkProgress / restartPausedTimer (g = 120) */
 export const HISTORY_SYNC_PAUSED_TIMEOUT_MS = 120_000
 
-export const MIN_UPLOAD_INTERVAL = 5000 // 5 seconds minimum between uploads
 export const MIN_PREKEY_COUNT = 5
 
 export const INITIAL_PREKEY_COUNT = 812

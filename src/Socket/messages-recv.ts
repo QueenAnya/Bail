@@ -18,6 +18,8 @@ import type {
 	NewChatMessageCapInfo,
 	SocketConfig,
 	WACallEvent,
+	WAInitiateCallOptions,
+	WAInitiateCallResult,
 	WAMessage,
 	WAMessageKey,
 	WAPatchName
@@ -54,8 +56,7 @@ import {
 	xmppSignedPreKey
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
-import { makeOfflineNodeProcessor } from '../Utils/offline-node-processor'
-import type { OfflineMessageType as MessageType } from '../Utils/offline-node-processor'
+import { makeOfflineNodeProcessor, type MessageType } from '../Utils/offline-node-processor'
 import { buildAckStanza } from '../Utils/stanza-ack'
 import {
 	buildMergedTcTokenIndexWrite,
@@ -69,6 +70,7 @@ import {
 import {
 	areJidsSameUser,
 	type BinaryNode,
+	type BinaryNodeAttributes,
 	binaryNodeToString,
 	getAllBinaryNodeChildren,
 	getBinaryNodeChild,
@@ -570,6 +572,360 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			]
 		}
 		await query(stanza)
+	}
+
+	// ───────────────────────────────────────────────────────────
+	// Call management — Source: innovatorssoft/baileys (initiateCall/cancelCall
+	// use the RC official style: self-contained stanza-building).
+	// ───────────────────────────────────────────────────────────
+
+	/**
+	 * Initiate a call and track its state in `callOfferCache`.
+	 * Source: Baileys feature/outgoing-calls (self-contained, does not
+	 * depend on the `offerCall` helper in messages-send.ts).
+	 */
+	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
+		const meId = authState.creds.me?.id
+		if (!meId) {
+			throw new Boom('Not authenticated')
+		}
+
+		const callId = randomBytes(8).toString('hex')
+		const isVideo = !!options.isVideo
+		const isGroup = isJidGroup(jid)
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: {
+				id: sock.generateMessageTag(),
+				from: meId,
+				to: jid,
+				t: String(unixTimestampSeconds()),
+				...(authState.creds.me?.name ? { notify: authState.creds.me.name } : {})
+			},
+			content: [
+				{
+					tag: 'offer',
+					attrs: {
+						'call-id': callId,
+						'call-creator': meId,
+						count: '0'
+					},
+					content: [
+						{
+							tag: isVideo ? 'video' : 'audio',
+							attrs: {}
+						},
+						{
+							tag: 'net',
+							attrs: {}
+						},
+						{
+							tag: 'encopt',
+							attrs: { key: randomBytes(2).toString('hex') }
+						},
+						{
+							tag: 'relaylatency',
+							attrs: {}
+						},
+						{
+							tag: 'te',
+							attrs: {}
+						}
+					]
+				}
+			]
+		}
+
+		await query(stanza)
+		await callOfferCache.set(callId, {
+			chatId: jid,
+			from: meId,
+			id: callId,
+			date: new Date(),
+			offline: false,
+			status: 'offer',
+			isVideo,
+			isGroup,
+			groupJid: isGroup ? jid : undefined
+		} as unknown as WACallEvent)
+
+		return { callId, to: jid, isVideo }
+	}
+
+	/** Terminate an ongoing/offered call. */
+	const terminateCall = async (
+		callId: string,
+		callTo: string,
+		callCreator?: string,
+		reason?: string,
+		duration?: number
+	) => {
+		const meId = authState.creds.me?.id
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+
+		const terminateAttrs: BinaryNodeAttributes = {
+			'call-id': callId,
+			'call-creator': callCreator || meId
+		}
+		if (reason) terminateAttrs.reason = reason
+		if (typeof duration === 'number') {
+			terminateAttrs.duration = String(duration)
+			terminateAttrs.audio_duration = String(duration)
+		}
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: { to: callTo, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'terminate', attrs: terminateAttrs }]
+		}
+		await query(stanza)
+		await callOfferCache.del(callId)
+	}
+
+	/**
+	 * Cancel a call you placed before it's answered.
+	 * Source: Baileys feature/outgoing-calls (official RC implementation)
+	 */
+	const cancelCall = async (callId: string, callTo: string) => {
+		const meId = authState.creds.me?.id
+		if (!meId) {
+			throw new Boom('Not authenticated')
+		}
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: {
+				from: meId,
+				to: callTo
+			},
+			content: [
+				{
+					tag: 'terminate',
+					attrs: {
+						'call-id': callId,
+						'call-creator': meId,
+						count: '0'
+					}
+				}
+			]
+		}
+
+		await query(stanza)
+		await callOfferCache.del(callId)
+	}
+
+	/** Accept (answer) an incoming call. */
+	const acceptCall = async (callId: string, callFrom: string, isVideo?: boolean) => {
+		const meId = authState.creds.me?.id
+		if (!meId) throw new Boom('Not authenticated', { statusCode: 401 })
+
+		const acceptContent: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' } }]
+		if (isVideo) {
+			acceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' } })
+		}
+
+		acceptContent.push({ tag: 'net', attrs: { medium: '2' } }, { tag: 'encopt', attrs: { keygen: '2' } })
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: { from: meId, to: callFrom, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'accept', attrs: { 'call-id': callId, 'call-creator': callFrom }, content: acceptContent }]
+		}
+		await query(stanza)
+	}
+
+	/** Send preaccept signal (codec capabilities) for an incoming call. */
+	const preacceptCall = async (callId: string, callCreator: string, isVideo?: boolean) => {
+		const preacceptContent: BinaryNode[] = [{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' } }]
+		if (isVideo) {
+			preacceptContent.push({ tag: 'video', attrs: { dec: 'H264,AV1', device_orientation: '1' } })
+		}
+
+		const stanza: BinaryNode = {
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{ tag: 'preaccept', attrs: { 'call-id': callId, 'call-creator': callCreator }, content: preacceptContent }
+			]
+		}
+		await sendNode(stanza)
+	}
+
+	/** Report relay latency measurements to the server. */
+	const sendRelayLatency = async (
+		callId: string,
+		callCreator: string,
+		relays: Array<{ relayName?: string; latency: number; relayId?: string; dlBw?: number; ulBw?: number }>,
+		transactionId?: string
+	) => {
+		const attrs: BinaryNodeAttributes = { 'call-id': callId, 'call-creator': callCreator }
+		if (transactionId) attrs['transaction-id'] = transactionId
+
+		const teChildren: BinaryNode[] = relays.map(r => {
+			const teAttrs: BinaryNodeAttributes = { latency: String(r.latency) }
+			if (r.relayName) teAttrs.relay_name = r.relayName
+			if (r.relayId) teAttrs.relay_id = r.relayId
+			if (r.dlBw !== undefined) teAttrs.dl_bw = String(r.dlBw)
+			if (r.ulBw !== undefined) teAttrs.ul_bw = String(r.ulBw)
+			return { tag: 'te', attrs: teAttrs }
+		})
+
+		await sendNode({
+			tag: 'call',
+			attrs: { to: callCreator, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'relaylatency', attrs, content: teChildren }]
+		})
+	}
+
+	/** Send transport (p2p/ICE) candidates for a call. */
+	const sendTransport = async (
+		callId: string,
+		callCreator: string,
+		to: string,
+		candidates: Array<{ priority: string; data: Uint8Array }>,
+		round?: number
+	) => {
+		const attrs: BinaryNodeAttributes = {
+			'call-id': callId,
+			'call-creator': callCreator,
+			'transport-message-type': '1'
+		}
+		if (round !== undefined) attrs['p2p-cand-round'] = String(round)
+
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'transport',
+					attrs,
+					content: candidates.map(c => ({ tag: 'te', attrs: { priority: c.priority }, content: c.data }))
+				}
+			]
+		})
+	}
+
+	/** Send call duration log to the server after a call ends. */
+	const sendCallDuration = async (
+		callId: string,
+		callCreator: string,
+		peer: string,
+		audioDuration: number,
+		callType = '1x1'
+	) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'duration',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						peer,
+						audio_duration: String(audioDuration),
+						type: callType
+					}
+				}
+			]
+		})
+	}
+
+	/** Mute or unmute during a call. */
+	const muteCall = async (callId: string, callCreator: string, to: string, muted: boolean) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'mute_v2',
+					attrs: { 'mute-state': muted ? '1' : '0', 'call-id': callId, 'call-creator': callCreator }
+				}
+			]
+		})
+	}
+
+	/** Send heartbeat to keep a group/link call alive. */
+	const sendHeartbeat = async (callId: string, callCreator: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to: `${callId}@call`, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'heartbeat', attrs: { 'call-id': callId, 'call-creator': callCreator } }]
+		})
+	}
+
+	/** Send encryption re-key during a call. */
+	const sendEncRekey = async (callId: string, callCreator: string, to: string, transactionId: string) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'enc_rekey',
+					attrs: { 'transaction-id': transactionId, 'call-id': callId, 'call-creator': callCreator },
+					content: [
+						{ tag: 'encopt', attrs: { keygen: '2' } },
+						{ tag: 'enc', attrs: { v: '2', type: 'msg' } }
+					]
+				}
+			]
+		})
+	}
+
+	/** Send video state change during a call. */
+	const sendVideoState = async (
+		callId: string,
+		callCreator: string,
+		to: string,
+		enabled: boolean,
+		orientation = '1'
+	) => {
+		await sendNode({
+			tag: 'call',
+			attrs: { to, id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [
+				{
+					tag: 'video',
+					attrs: {
+						'call-id': callId,
+						'call-creator': callCreator,
+						state: enabled ? '1' : '0',
+						device_orientation: orientation
+					}
+				}
+			]
+		})
+	}
+
+	/** Query info about a call link before joining. */
+	const queryCallLink = async (token: string, media: 'audio' | 'video' = 'video') => {
+		return query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_query', attrs: { media, token } }]
+		})
+	}
+
+	/** Join a call via its link token. */
+	const joinCallLink = async (token: string, media: 'audio' | 'video' = 'video') => {
+		const joinContent: BinaryNode[] = [
+			{ tag: 'audio', attrs: { rate: '16000', enc: 'opus' } },
+			{ tag: 'net', attrs: { medium: '2' } },
+			{ tag: 'capability', attrs: { ver: '1' } }
+		]
+
+		if (media === 'video') {
+			joinContent.splice(1, 0, {
+				tag: 'video',
+				attrs: { screen_width: '1080', screen_height: '2400', dec: 'H264,H265,AV1', device_orientation: '0' }
+			})
+		}
+
+		return query({
+			tag: 'call',
+			attrs: { to: 'call', id: randomBytes(16).toString('hex').toUpperCase() },
+			content: [{ tag: 'link_join', attrs: { media, token }, content: joinContent }]
+		})
 	}
 
 	const sendRetryRequest = async (node: BinaryNode, forceIncludeKeys = false) => {
@@ -1367,7 +1723,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const bundle = extractE2ESessionFromRetryReceipt(receiptNode)
 		if (bundle) {
 			try {
-				await signalRepository.injectE2ESession({ jid: participant, session: bundle as any })
+				await signalRepository.injectE2ESession({ jid: participant, session: bundle })
 				injectedFromBundle = true
 				logger.debug({ participant, retryCount }, 'injected session from retry receipt key bundle')
 			} catch (error) {
@@ -1949,7 +2305,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
-	const nodeProcessor = makeOfflineNodeProcessor(
+	const offlineNodeProcessor = makeOfflineNodeProcessor(
 		new Map<MessageType, (node: BinaryNode) => Promise<void>>([
 			['message', handleMessage],
 			['call', handleCall],
@@ -1990,7 +2346,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		const isOffline = !!node.attrs.offline
 
 		if (isOffline) {
-			nodeProcessor.enqueue(type, node)
+			offlineNodeProcessor.enqueue(type, node)
 		} else {
 			await processNodeWithBuffer(node, identifier, exec)
 		}
@@ -2168,6 +2524,20 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		sendMessageAck,
 		sendRetryRequest,
 		rejectCall,
+		initiateCall,
+		terminateCall,
+		cancelCall,
+		acceptCall,
+		preacceptCall,
+		sendRelayLatency,
+		sendTransport,
+		sendCallDuration,
+		muteCall,
+		sendHeartbeat,
+		sendEncRekey,
+		sendVideoState,
+		queryCallLink,
+		joinCallLink,
 		fetchMessageHistory,
 		requestPlaceholderResend,
 		messageRetryManager

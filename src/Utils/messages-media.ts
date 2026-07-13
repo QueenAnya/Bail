@@ -31,7 +31,7 @@ import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-export const getImageProcessingLibrary = async () => {
+const getImageProcessingLibrary = async () => {
 	//@ts-ignore
 	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
 
@@ -132,7 +132,7 @@ const extractVideoThumb = async (
 		})
 	})
 
-export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | string, width = 32) => {
+export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | string, width = 32, quality = 50) => {
 	// TODO: Move entirely to sharp, removing jimp as it supports readable streams
 	// This will have positive speed and performance impacts as well as minimizing RAM usage.
 	if (bufferOrFilePath instanceof Readable) {
@@ -144,7 +144,7 @@ export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | st
 		const img = lib.sharp.default(bufferOrFilePath)
 		const dimensions = await img.metadata()
 
-		const buffer = await img.resize(width).jpeg({ quality: 50 }).toBuffer()
+		const buffer = await img.resize(width).jpeg({ quality }).toBuffer()
 		return {
 			buffer,
 			original: {
@@ -160,7 +160,7 @@ export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | st
 		}
 		const buffer = await jimp
 			.resize({ w: width, mode: lib.jimp.ResizeStrategy.BILINEAR })
-			.getBuffer('image/jpeg', { quality: 50 })
+			.getBuffer('image/jpeg', { quality })
 		return {
 			buffer,
 			original: dimensions
@@ -213,6 +213,85 @@ export const generateProfilePicture = async (
 	return {
 		img: await img
 	}
+}
+
+/**
+ * Generate both a square preview and a wide "panorama" version of a
+ * profile picture upload.
+ * Source: innovatorssoft/baileys — upstream only had the square crop.
+ */
+export const generatePanoramaProfilePicture = async (
+	mediaUpload: WAMediaUpload,
+	options?: { maxWidth?: number; quality?: number }
+): Promise<{ img: Buffer; fullImg: Buffer }> => {
+	let buffer: Buffer
+	const { maxWidth = 720, quality = 80 } = options || {}
+
+	if (Buffer.isBuffer(mediaUpload)) {
+		buffer = mediaUpload
+	} else {
+		const { stream } = await getStream(mediaUpload)
+		buffer = await toBuffer(stream)
+	}
+
+	const lib = await getImageProcessingLibrary()
+	let img: Buffer
+	let fullImg: Buffer
+
+	if ('sharp' in lib && typeof lib.sharp?.default === 'function') {
+		const metadata = await lib.sharp.default(buffer).metadata()
+		const originalWidth = metadata.width || 640
+		const originalHeight = metadata.height || 640
+		const aspectRatio = originalWidth / originalHeight
+
+		let newWidth = originalWidth
+		let newHeight = originalHeight
+		if (originalWidth > maxWidth) {
+			newWidth = maxWidth
+			newHeight = Math.round(maxWidth / aspectRatio)
+		}
+
+		fullImg = await lib.sharp
+			.default(buffer)
+			.resize(newWidth, newHeight, { fit: 'inside' })
+			.jpeg({ quality })
+			.toBuffer()
+		img = await lib.sharp
+			.default(buffer)
+			.resize(640, 640, { fit: 'cover', position: 'center' })
+			.jpeg({ quality: 50 })
+			.toBuffer()
+	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
+		const jimp = await (lib.jimp.Jimp as any).read(buffer)
+		const originalWidth = jimp.width as number
+		const originalHeight = jimp.height as number
+		const aspectRatio = originalWidth / originalHeight
+
+		let newWidth = originalWidth
+		let newHeight = originalHeight
+		if (originalWidth > maxWidth) {
+			newWidth = maxWidth
+			newHeight = Math.round(maxWidth / aspectRatio)
+		}
+
+		fullImg = await jimp
+			.clone()
+			.resize({ w: newWidth, h: newHeight, mode: lib.jimp.ResizeStrategy.BILINEAR })
+			.getBuffer('image/jpeg', { quality })
+
+		const min = Math.min(originalWidth, originalHeight)
+		const xOffset = Math.floor((originalWidth - min) / 2)
+		const yOffset = Math.floor((originalHeight - min) / 2)
+		img = await jimp
+			.clone()
+			.crop({ x: xOffset, y: yOffset, w: min, h: min })
+			.resize({ w: 640, h: 640, mode: lib.jimp.ResizeStrategy.BILINEAR })
+			.getBuffer('image/jpeg', { quality: 50 })
+	} else {
+		throw new Boom('No image processing library available')
+	}
+
+	return { img, fullImg }
 }
 
 /** gets the SHA256 of the given media message */
@@ -330,12 +409,15 @@ export async function generateThumbnail(
 	mediaType: 'video' | 'image',
 	options: {
 		logger?: ILogger
+		/** Source: innovatorssoft/baileys — generate a higher-quality, larger preview thumbnail */
+		hdMode?: boolean
 	}
 ) {
 	let thumbnail: string | undefined
 	let originalImageDimensions: { width: number; height: number } | undefined
+	const hdMode = options.hdMode === true
 	if (mediaType === 'image') {
-		const { buffer, original } = await extractImageThumb(file)
+		const { buffer, original } = hdMode ? await extractImageThumb(file, 320, 85) : await extractImageThumb(file)
 		thumbnail = buffer.toString('base64')
 		if (original.width && original.height) {
 			originalImageDimensions = {
@@ -346,7 +428,8 @@ export async function generateThumbnail(
 	} else if (mediaType === 'video') {
 		const imgFilename = join(getTmpFilesDirectory(), generateMessageIDV2() + '.jpg')
 		try {
-			await extractVideoThumb(file, imgFilename, '00:00:00', { width: 32, height: 32 })
+			const thumbSize = hdMode ? { width: 320, height: 180 } : { width: 32, height: 32 }
+			await extractVideoThumb(file, imgFilename, '00:00:00', thumbSize)
 			const buff = await fs.readFile(imgFilename)
 			thumbnail = buff.toString('base64')
 
@@ -777,9 +860,11 @@ const uploadWithFetch = async ({
 	// Convert Node.js Readable to Web ReadableStream
 	const nodeStream = createReadStream(filePath)
 	const webStream = Readable.toWeb(nodeStream) as ReadableStream
+	// Native fetch only accepts Undici-style dispatchers, not generic https Agents.
+	const dispatcher = typeof (agent as { dispatch?: unknown } | undefined)?.dispatch === 'function' ? agent : undefined
 
 	const response = await fetch(url, {
-		dispatcher: agent,
+		...(dispatcher ? { dispatcher } : {}),
 		method: 'POST',
 		body: webStream,
 		headers,
