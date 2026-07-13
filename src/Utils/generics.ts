@@ -202,6 +202,34 @@ export const generateMessageIDV2 = (userId?: string): string => {
 // generate a random ID to attach to a message
 export const generateMessageID = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase()
 
+/**
+ * Source: custom addon
+ *
+ * Generates the value for `MessageKey.uuid` — a separate, custom field
+ * kept alongside (never replacing) the standard `id` field, which keeps
+ * using `generateMessageIDV2`/`generateMessageID` completely unchanged.
+ *
+ * Priority is resolved by the caller before invoking this function:
+ *   1. `content.uuid` (if the caller passed one in the message content)
+ *   2. `options.uuid` (if the caller passed one in send options)
+ *   3. a generated default (if neither was provided)
+ *
+ * @param userUuid the already-priority-resolved uuid from the caller, or
+ * `undefined`/empty if none was supplied
+ * @returns the exact `userUuid` unmodified if provided (never truncated,
+ * padded, or altered), otherwise a freshly generated default uuid that is
+ * at most 15 characters long
+ */
+export const generateKeyUuid = (userUuid?: string): string => {
+	if (typeof userUuid === 'string' && userUuid.length > 0) {
+		// user-supplied uuid: preserve exactly as-is, no modification
+		return userUuid
+	}
+
+	// default: generated value, capped at a maximum of 15 characters
+	return randomBytes(8).toString('hex').toUpperCase().slice(0, 15)
+}
+
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {
 	return async (check: (u: BaileysEventMap[T]) => Promise<boolean | undefined>, timeoutMs?: number) => {
 		let listener: (item: BaileysEventMap[T]) => void

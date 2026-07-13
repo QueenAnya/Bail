@@ -23,6 +23,14 @@ export type WAMessageKey = proto.IMessageKey & {
 	participantAlt?: string
 	participantUsername?: string
 	server_id?: string
+	/**
+	 * Source: custom addon — a separate, user-controllable identifier kept
+	 * alongside the standard `id` (which is left completely untouched).
+	 * NOT part of the official WhatsApp protobuf schema — this is a
+	 * local-only field attached after message construction, so it never
+	 * gets sent over the wire. See `generateKeyUuid` in `Utils/generics.ts`.
+	 */
+	uuid?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
 }
@@ -150,6 +158,12 @@ type ExtraModifiers = {
 	viewOnceExt?: boolean
 	/** Source: innovatorssoft/baileys — force-attach the `<biz>` binary node needed for some business/interactive message types to render correctly */
 	secureMetaServiceLabel?: boolean
+	/**
+	 * Source: custom addon — sets `key.uuid` on the resulting message.
+	 * Priority: `content.uuid` > `options.uuid` > generated default.
+	 * Does not affect or replace `key.id` in any way.
+	 */
+	uuid?: string
 }
 
 type Editable = {
@@ -588,6 +602,11 @@ type MinimalRelayOptions = {
 	useCachedGroupMetadata?: boolean
 	/** Source: innovatorssoft/baileys — shows the small "AI" bot icon next to this message (1:1 / LID chats only) */
 	ai?: boolean
+	/**
+	 * Source: custom addon — sets `key.uuid` on the resulting message when
+	 * `content.uuid` isn't set. See `generateKeyUuid` in `Utils/generics.ts`.
+	 */
+	uuid?: string
 }
 
 export type MessageRelayOptions = MinimalRelayOptions & {

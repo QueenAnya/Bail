@@ -29,7 +29,7 @@ import type {
 import { WAMessageStatus, WAProto } from '../Types'
 import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
-import { generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
+import { generateKeyUuid, generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
 import type { ILogger } from './logger'
 import {
 	downloadContentFromMessage,
@@ -1400,12 +1400,25 @@ export const generateWAMessageFromContent = (
 		participant: isJidGroup(jid) || isJidStatusBroadcast(jid) ? userJid : undefined, // TODO: Add support for LIDs
 		status: WAMessageStatus.PENDING
 	}
-	return WAProto.WebMessageInfo.fromObject(messageJSON) as WAMessage
+	const waMessage = WAProto.WebMessageInfo.fromObject(messageJSON) as WAMessage
+	// Source: custom addon — key.uuid is a local-only field (not part of the
+	// WhatsApp protobuf schema), so it must be attached after fromObject()
+	// runs, since fromObject() silently drops unknown properties.
+	;(waMessage.key as WAMessageKey).uuid = generateKeyUuid(options?.uuid)
+	return waMessage
 }
 
 export const generateWAMessage = async (jid: string, content: AnyMessageContent, options: MessageGenerationOptions) => {
 	// ensure msg ID is with every log
 	options.logger = options?.logger?.child({ msgId: options.messageId })
+	// Source: custom addon — resolve key.uuid priority: content.uuid takes
+	// precedence over options.uuid. This only affects the new `uuid` field;
+	// the standard `id` generation below is completely untouched.
+	const contentUuid = (content as { uuid?: string } | undefined)?.uuid
+	if (typeof contentUuid === 'string' && contentUuid.length > 0) {
+		options.uuid = contentUuid
+	}
+
 	// Pass jid in the options to generateWAMessageContent
 	return generateWAMessageFromContent(jid, await generateWAMessageContent(content, { ...options, jid }), options)
 }
