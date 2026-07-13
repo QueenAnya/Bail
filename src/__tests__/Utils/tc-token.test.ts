@@ -528,8 +528,8 @@ describe('buildTcTokenFromJid', () => {
 })
 
 describe('SERVER_ERROR_CODES', () => {
-	it('MessageAccountRestriction is 463', () => {
-		expect(SERVER_ERROR_CODES.MessageAccountRestriction).toBe('463')
+	it('MissingTcToken is 463', () => {
+		expect(SERVER_ERROR_CODES.MissingTcToken).toBe('463')
 	})
 
 	it('SmaxInvalid is 479', () => {

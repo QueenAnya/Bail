@@ -41,9 +41,6 @@ export type ConnectionState = {
 	 * */
 	isOnline?: boolean
 
-	/**
-	 * When you are in this state, WhatsApp prevents outgoing messages and calls.
-	 */
 	reachoutTimeLock?: ReachoutTimelockState
 }
 
@@ -70,7 +67,6 @@ export enum ReachoutTimelockEnforcementType {
 	BIZ_COMMERCE_VIOLATION_VIOLENT_CONTENT = 'BIZ_COMMERCE_VIOLATION_VIOLENT_CONTENT',
 	BIZ_COMMERCE_VIOLATION_WEAPONS = 'BIZ_COMMERCE_VIOLATION_WEAPONS',
 	BIZ_QUALITY = 'BIZ_QUALITY',
-	/** This means there is no restriction */
 	DEFAULT = 'DEFAULT',
 	WEB_COMPANION_ONLY = 'WEB_COMPANION_ONLY'
 }

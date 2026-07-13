@@ -1,5 +1,6 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
+import Long from 'long'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -38,7 +39,6 @@ import {
 	encodeSyncdPatch,
 	ensureLTHashStateVersion,
 	extractSyncdPatches,
-	generatePanoramaProfilePicture,
 	generateProfilePicture,
 	getHistoryMsg,
 	isAppStateSyncIrrecoverable,
@@ -86,8 +86,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		query,
 		signalRepository,
 		onUnexpectedError,
-		sendUnifiedSession,
-		registerSocketEndHandler
+		sendUnifiedSession
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
@@ -138,6 +137,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
 			useClones: false
 		}) as CacheStore)
+
+	if (!config.placeholderResendCache) {
+		config.placeholderResendCache = placeholderResendCache
+	}
 
 	/** helper function to fetch the given app state sync key */
 	const getAppStateSyncKey = async (keyId: string) => {
@@ -331,54 +334,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					tag: 'picture',
 					attrs: { type: 'image' },
 					content: img
-				}
-			]
-		})
-	}
-
-	/**
-	 * Update profile picture with a wide "panorama" image — sends both a
-	 * square preview and the full wide image, for clients that support it.
-	 * Source: innovatorssoft/baileys
-	 */
-	const updatePanoramaProfilePicture = async (
-		jid: string,
-		content: WAMediaUpload,
-		options?: { maxWidth?: number; quality?: number }
-	) => {
-		let targetJid
-		if (!jid) {
-			throw new Boom(
-				'Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update'
-			)
-		}
-
-		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
-			targetJid = jidNormalizedUser(jid)
-		} else {
-			targetJid = undefined
-		}
-
-		const { img, fullImg } = await generatePanoramaProfilePicture(content, options)
-
-		await query({
-			tag: 'iq',
-			attrs: {
-				to: S_WHATSAPP_NET,
-				type: 'set',
-				xmlns: 'w:profile:picture',
-				...(targetJid ? { target: targetJid } : {})
-			},
-			content: [
-				{
-					tag: 'picture',
-					attrs: { type: 'image' },
-					content: img
-				},
-				{
-					tag: 'picture',
-					attrs: { type: 'fullsize' },
-					content: fullImg
 				}
 			]
 		})
@@ -693,8 +648,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 									snapshot,
 									getCachedAppStateSyncKey,
 									initialVersionMap[name],
-									appStateMacVerification.snapshot,
-									logger
+									appStateMacVerification.snapshot
 								)
 								states[name] = newState
 								Object.assign(globalMutationMap, mutationMap)
@@ -924,8 +878,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		if (tag === 'presence') {
 			presence = {
 				lastKnownPresence: attrs.type === 'unavailable' ? 'unavailable' : 'available',
-				lastSeen: attrs.last && attrs.last !== 'deny' ? +attrs.last : undefined,
-				groupOnlineCount: attrs.count ? +attrs.count : undefined
+				lastSeen: attrs.last && attrs.last !== 'deny' ? +attrs.last : undefined
 			}
 		} else if (Array.isArray(content)) {
 			const [firstChild] = content
@@ -1089,20 +1042,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
-	 * Removes a single message from a chat's history (without deleting the whole chat).
-	 * Source: innovatorssoft/baileys
-	 */
-	const clearMessage = (jid: string, key: WAMessageKey, messageTimestamp: number) => {
-		return chatModify(
-			{
-				delete: true,
-				lastMessages: [{ key, messageTimestamp }]
-			},
-			jid
-		)
-	}
-
-	/**
 	 * Enable/Disable link preview privacy, not related to baileys link preview generation
 	 */
 	const updateDisableLinkPreviewsPrivacy = (isPreviewsDisabled: boolean) => {
@@ -1247,6 +1186,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			},
 			''
 		)
+	}
+
+	/**
+	 * Clear a message from chat (delete for me)
+	 */
+	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
 	}
 
 	/**
@@ -1522,20 +1468,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		}
 	})
 
-	registerSocketEndHandler(() => {
-		if (awaitingSyncTimeout) {
-			clearTimeout(awaitingSyncTimeout)
-			awaitingSyncTimeout = undefined
-		}
-
-		if (!config.placeholderResendCache && placeholderResendCache.close) {
-			placeholderResendCache.close()
-		}
-
-		syncState = SyncState.Connecting
-		privacySettings = undefined
-	})
-
 	return {
 		...sock,
 		serverProps,
@@ -1555,7 +1487,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		fetchStatus,
 		fetchDisappearingDuration,
 		updateProfilePicture,
-		updatePanoramaProfilePicture,
 		removeProfilePicture,
 		updateProfileStatus,
 		updateProfileName,
@@ -1574,10 +1505,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		resyncAppState,
 		chatModify,
 		clearMessage,
+		deleteChat: clearMessage,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,
-		placeholderResendCache,
 		addLabel,
 		addChatLabel,
 		removeChatLabel,

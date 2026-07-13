@@ -1,12 +1,7 @@
-/**
- * JID / LID Plotting & Utilities
- * Source: @innovatorssoft/baileys jid-plotting.js
- */
-import { jidDecode, jidNormalizedUser, isLidUser } from '../WABinary/index.js'
-import type { AuthenticationCreds } from '../Types/index.js'
-import type { proto } from '../../WAProto/index.js'
+import type { AuthenticationState, WAMessage } from '../Types'
+import { isHostedLidUser, isHostedPnUser, isLidUser, jidDecode, jidNormalizedUser } from '../WABinary'
 
-export type ParsedJid = {
+export interface JidInfo {
 	jid: string
 	user: string
 	server: string
@@ -19,7 +14,8 @@ export type ParsedJid = {
 	isNewsletter: boolean
 	normalizedUser: string
 }
-export type SenderPnInfo = {
+
+export interface SenderPnInfo {
 	phoneJid: string
 	phoneNumber: string
 	lid?: string
@@ -27,18 +23,18 @@ export type SenderPnInfo = {
 	pushName?: string
 	platform?: string
 }
-export type PlottedJid = { original: string; primary: string; info: ParsedJid | null; pn?: string; lid?: string }
-export type JidPlotter = {
-	plotToLid(pn: string): Promise<string | null>
-	plotToPn(lid: string): Promise<string | null>
-	plotBidirectional(jid: string): Promise<PlottedJid>
+
+export interface PlottedJid {
+	original: string
+	primary: string
+	info: JidInfo | null
+	pn?: string
+	lid?: string
 }
 
-const isPnUser = (jid: string) => jid?.endsWith('@s.whatsapp.net')
-const isHostedPnUser = (jid: string) => jid?.endsWith('@hosted')
-const isHostedLidUser = (jid: string) => jid?.endsWith('@hosted.lid')
+const isPnUser = (jid?: string) => jid?.endsWith('@s.whatsapp.net')
 
-export const parseJid = (jid: string): ParsedJid | null => {
+export const parseJid = (jid: string): JidInfo | null => {
 	if (!jid) return null
 	const decoded = jidDecode(jid)
 	if (!decoded) return null
@@ -48,30 +44,30 @@ export const parseJid = (jid: string): ParsedJid | null => {
 		server: decoded.server,
 		device: decoded.device || 0,
 		agent: 0,
-		isLid: Boolean(isLidUser(jid) || isHostedLidUser(jid)),
-		isPn: Boolean(isPnUser(jid) || isHostedPnUser(jid)),
-		isHosted: Boolean(jid.includes('@hosted') || isHostedLidUser(jid) || isHostedPnUser(jid)),
-		isGroup: Boolean(jid.endsWith('@g.us')),
-		isNewsletter: Boolean(jid.endsWith('@newsletter')),
+		isLid: !!(isLidUser(jid) || isHostedLidUser(jid)),
+		isPn: !!(isPnUser(jid) || isHostedPnUser(jid)),
+		isHosted: jid.includes('@hosted') || !!isHostedLidUser(jid) || !!isHostedPnUser(jid),
+		isGroup: jid.endsWith('@g.us'),
+		isNewsletter: jid.endsWith('@newsletter'),
 		normalizedUser: jidNormalizedUser(jid)
 	}
 }
 
-export const getSenderPn = (creds: AuthenticationCreds): SenderPnInfo | null => {
+export const getSenderPn = (creds: AuthenticationState['creds']): SenderPnInfo | null => {
 	if (!creds?.me?.id) return null
 	const decoded = jidDecode(creds.me.id)
 	if (!decoded) return null
 	return {
 		phoneJid: `${decoded.user}@s.whatsapp.net`,
 		phoneNumber: decoded.user,
-		lid: creds.me.lid || undefined,
+		lid: (creds.me as any).lid,
 		deviceId: decoded.device || 0,
 		pushName: creds.me.name,
-		platform: creds.platform
+		platform: (creds as any).platform
 	}
 }
 
-export const getCurrentSenderInfo = (authState: { creds: AuthenticationCreds }) => getSenderPn(authState.creds)
+export const getCurrentSenderInfo = (authState: AuthenticationState) => getSenderPn(authState.creds)
 
 export const isSelf = (jid: string, senderPn: SenderPnInfo): boolean => {
 	if (!jid || !senderPn) return false
@@ -82,6 +78,7 @@ export const isSelf = (jid: string, senderPn: SenderPnInfo): boolean => {
 		const normalizedLid = jidNormalizedUser(senderPn.lid)
 		if (normalizedJid === normalizedLid) return true
 	}
+
 	return false
 }
 
@@ -96,17 +93,19 @@ export const plotJid = (jid: string): PlottedJid | null => {
 		result.lid = info.normalizedUser
 		result.primary = info.normalizedUser
 	}
+
 	return result
 }
 
 export const normalizePhoneToJid = (phone: string): string => {
 	if (phone.includes('@')) return jidNormalizedUser(phone)
-	return `${phone.replace(/[^\d@]/g, '')}@s.whatsapp.net`
+	return `${phone.replace(/[^\d]/g, '')}@s.whatsapp.net`
 }
 
 export const extractPhoneNumber = (jid: string): string | null => {
 	const info = parseJid(jid)
-	return info?.isPn ? info.user : null
+	if (!info?.isPn) return null
+	return info.user
 }
 
 export const formatJidDisplay = (jid: string, options?: { showDevice?: boolean; showType?: boolean }): string => {
@@ -120,6 +119,7 @@ export const formatJidDisplay = (jid: string, options?: { showDevice?: boolean; 
 		else if (info.isNewsletter) display += ' (Newsletter)'
 		else if (info.isPn) display += ' (PN)'
 	}
+
 	return display
 }
 
@@ -141,10 +141,11 @@ export const getJidVariants = (phone: string): string[] => {
 	]
 }
 
-export const constructJidWithDevice = (user: string, device: number, server = 's.whatsapp.net'): string =>
-	device === 0 ? `${user}@${server}` : `${user}:${device}@${server}`
+export const constructJidWithDevice = (user: string, device: number, server = 's.whatsapp.net'): string => {
+	return device === 0 ? `${user}@${server}` : `${user}:${device}@${server}`
+}
 
-export const getRemoteJidFromMessage = (msg: proto.IWebMessageInfo): { chatJid: string; senderJid: string } | null => {
+export const getRemoteJidFromMessage = (msg: WAMessage): { chatJid: string; senderJid: string } | null => {
 	if (!msg?.key?.remoteJid) return null
 	const chatJid = msg.key.remoteJid
 	const isGroupMsg = chatJid.endsWith('@g.us')
@@ -152,13 +153,19 @@ export const getRemoteJidFromMessage = (msg: proto.IWebMessageInfo): { chatJid: 
 	return { chatJid, senderJid }
 }
 
+export interface JidPlotterWithMapping {
+	plotToLid: (pn: string) => Promise<string | null>
+	plotToPn: (lid: string) => Promise<string | null>
+	plotBidirectional: (jid: string) => Promise<PlottedJid>
+}
+
 export const createJidPlotter = (
 	getLIDForPN: (pn: string) => Promise<string | null>,
 	getPNForLID: (lid: string) => Promise<string | null>
-): JidPlotter => ({
-	plotToLid: pn => getLIDForPN(pn),
-	plotToPn: lid => getPNForLID(lid),
-	plotBidirectional: async jid => {
+): JidPlotterWithMapping => ({
+	plotToLid: (pn: string) => getLIDForPN(pn),
+	plotToPn: (lid: string) => getPNForLID(lid),
+	plotBidirectional: async (jid: string): Promise<PlottedJid> => {
 		const info = parseJid(jid)
 		if (!info) return { original: jid, primary: jid, info: null }
 		const result: PlottedJid = { original: jid, primary: jid, info }
@@ -173,6 +180,7 @@ export const createJidPlotter = (
 			if (pn) result.pn = pn
 			result.primary = result.pn || info.normalizedUser
 		}
+
 		return result
 	}
 })

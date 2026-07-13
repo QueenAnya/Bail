@@ -19,7 +19,6 @@ export type CacheStore = {
 	del(key: string): void | Promise<void> | number | boolean
 	/** flush all data */
 	flushAll(): void | Promise<void>
-	close?: () => void
 }
 
 export type PossiblyExtendedCacheStore = CacheStore & {
@@ -51,8 +50,6 @@ export type SocketConfig = {
 	version: WAVersion
 	/** override browser config */
 	browser: WABrowserDescription
-	/** Initial pushName carried in the registration ClientPayload (used by mock servers for deterministic phone assignment). */
-	pushName?: string
 	/** agent used for fetch requests -- uploading/downloading media */
 	fetchAgent?: Agent
 	/** should the QR be printed in the terminal
