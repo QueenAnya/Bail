@@ -160,6 +160,25 @@ rather than guessing at the intended behavior.
 - `clearMessage(jid, key, messageTimestamp)` — deletes a single message
   from chat history via `chatModify`.
 
+## WAProto schema audit
+
+Checked whether `itsliaaa/baileys` or `innovatorssoft/baileys` shipped a
+newer/different WAProto schema than D_may11's:
+
+- **`D_may11/WAProto/WAProto.proto` and `E_merged/WAProto/WAProto.proto`
+  are byte-for-byte identical** (5,479 lines, 421 messages, `diff`
+  reports zero differences). No schema update needed — both lineages
+  were already on the same proto generation.
+- **Found and removed a stale duplicate:** D_may11 (and this build,
+  inherited from it) had a leftover nested `WAProto/WAProto/` folder —
+  an exact copy of the top-level `WAProto/` directory (proto, generated
+  `index.js`/`index.d.ts`, build scripts), ~5.2MB, left over from a
+  previous proto-regeneration run. Confirmed nothing in `src/` imports
+  from the nested path. It was also **stale**: the top-level
+  `index.js` has a BigInt fast-path optimization for Long→string/number
+  conversion that the nested copy doesn't have. Removed — not used, and
+  the copy that remains is the newer/faster one.
+
 ## `productList` and raw-passthrough content — completed (not skipped)
 
 Originally flagged as "documented but never built" dead code in
