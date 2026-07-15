@@ -222,6 +222,86 @@ export const generateProfilePicture = async (
 	}
 }
 
+/**
+ * Generates a WhatsApp-style "panorama" profile picture: a cover-cropped
+ * square thumbnail plus a wider full-size preview, using whichever image
+ * backend is available (sharp preferred, jimp fallback).
+ * Source: innovatorssoft/baileys
+ */
+export const generatePanoramaProfilePicture = async (
+	mediaUpload: WAMediaUpload,
+	options?: { maxWidth?: number; quality?: number }
+): Promise<{ img: Buffer; fullImg: Buffer }> => {
+	let buffer: Buffer
+	const { maxWidth = 720, quality = 80 } = options || {}
+
+	if (Buffer.isBuffer(mediaUpload)) {
+		buffer = mediaUpload
+	} else {
+		const { stream } = await getStream(mediaUpload)
+		buffer = await toBuffer(stream)
+	}
+
+	const lib: any = await getImageProcessingLibrary()
+	let img: Buffer
+	let fullImg: Buffer
+
+	if ('sharp' in lib && typeof lib.sharp?.default === 'function') {
+		const metadata = await lib.sharp.default(buffer).metadata()
+		const originalWidth = metadata.width || 640
+		const originalHeight = metadata.height || 640
+		const aspectRatio = originalWidth / originalHeight
+
+		let newWidth = originalWidth
+		let newHeight = originalHeight
+		if (originalWidth > maxWidth) {
+			newWidth = maxWidth
+			newHeight = Math.round(maxWidth / aspectRatio)
+		}
+
+		fullImg = await lib.sharp
+			.default(buffer)
+			.resize(newWidth, newHeight, { fit: 'inside' })
+			.jpeg({ quality })
+			.toBuffer()
+		img = await lib.sharp
+			.default(buffer)
+			.resize(640, 640, { fit: 'cover', position: 'center' })
+			.jpeg({ quality: 50 })
+			.toBuffer()
+	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
+		const jimp = await (lib.jimp.Jimp as any).read(buffer)
+		const originalWidth = jimp.width as number
+		const originalHeight = jimp.height as number
+		const aspectRatio = originalWidth / originalHeight
+
+		let newWidth = originalWidth
+		let newHeight = originalHeight
+		if (originalWidth > maxWidth) {
+			newWidth = maxWidth
+			newHeight = Math.round(maxWidth / aspectRatio)
+		}
+
+		fullImg = await jimp
+			.clone()
+			.resize({ w: newWidth, h: newHeight, mode: lib.jimp.ResizeStrategy.BILINEAR })
+			.getBuffer('image/jpeg', { quality })
+
+		const min = Math.min(originalWidth, originalHeight)
+		const xOffset = Math.floor((originalWidth - min) / 2)
+		const yOffset = Math.floor((originalHeight - min) / 2)
+		img = await jimp
+			.clone()
+			.crop({ x: xOffset, y: yOffset, w: min, h: min })
+			.resize({ w: 640, h: 640, mode: lib.jimp.ResizeStrategy.BILINEAR })
+			.getBuffer('image/jpeg', { quality: 50 })
+	} else {
+		throw new Boom('No image processing library available')
+	}
+
+	return { img, fullImg }
+}
+
 /** gets the SHA256 of the given media message */
 export const mediaMessageSHA256B64 = (message: WAMessageContent) => {
 	const media = Object.values(message)[0] as WAGenericMediaMessage

@@ -1,6 +1,7 @@
 /**
- * Re-export shim — message-composer → addons/rich-message-composer
+ * Re-export shim — message-composer → addons/message-composer
  * Kept for backward compatibility with existing imports
+ * Source: innovatorssoft/baileys (comprehensive rich-message composer)
  */
 export {
 	generateTableContent,
@@ -9,16 +10,14 @@ export {
 	generateLatexContent,
 	generateLatexImageContent,
 	generateLatexInlineImageContent,
+	generateMarkdownContent,
 	captureUnifiedResponse,
 	generateUnifiedResponseContent,
 	generateRichMessageContent,
 	buildBotForwardedMessage,
-	buildRichContextInfo
-} from '../addons/rich-message-composer.js'
+	buildRichContextInfo,
+	renderLatexToPng,
+	uploadUnencryptedToWA
+} from '../addons/message-composer.js'
 
-export type {
-	RichLatexExpression as LatexExpression,
-	RichCodeOptions,
-	RichTableOptions,
-	RichLatexOptions
-} from '../addons/rich-message-composer.js'
+export type { LatexExpression } from '../addons/message-composer.js'

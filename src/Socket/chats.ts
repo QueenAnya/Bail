@@ -15,6 +15,7 @@ import type {
 	WABusinessProfile,
 	WAMediaUpload,
 	WAMessage,
+	WAMessageKey,
 	WAPatchCreate,
 	WAPatchName,
 	WAPresence,
@@ -38,6 +39,7 @@ import {
 	ensureLTHashStateVersion,
 	extractSyncdPatches,
 	generateProfilePicture,
+	generatePanoramaProfilePicture,
 	getHistoryMsg,
 	isAppStateSyncIrrecoverable,
 	isMissingKeyError,
@@ -329,6 +331,54 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					tag: 'picture',
 					attrs: { type: 'image' },
 					content: img
+				}
+			]
+		})
+	}
+
+	/**
+	 * Update a wide "panorama" style profile picture (adds a full-size preview
+	 * alongside the standard square thumbnail).
+	 * Source: innovatorssoft/baileys
+	 */
+	const updatePanoramaProfilePicture = async (
+		jid: string,
+		content: WAMediaUpload,
+		options?: { maxWidth?: number; quality?: number }
+	) => {
+		let targetJid
+		if (!jid) {
+			throw new Boom(
+				'Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update'
+			)
+		}
+
+		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+			targetJid = jidNormalizedUser(jid)
+		} else {
+			targetJid = undefined
+		}
+
+		const { img, fullImg } = await generatePanoramaProfilePicture(content, options)
+
+		await query({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'w:profile:picture',
+				...(targetJid ? { target: targetJid } : {})
+			},
+			content: [
+				{
+					tag: 'picture',
+					attrs: { type: 'image' },
+					content: img
+				},
+				{
+					tag: 'picture',
+					attrs: { type: 'fullsize' },
+					content: fullImg
 				}
 			]
 		})
@@ -1038,6 +1088,20 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
+	 * Clear (delete) a single message from a chat's history.
+	 * Source: innovatorssoft/baileys
+	 */
+	const clearMessage = (jid: string, key: WAMessageKey, messageTimestamp: number) => {
+		return chatModify(
+			{
+				delete: true,
+				lastMessages: [{ key, messageTimestamp }]
+			} as ChatModification,
+			jid
+		)
+	}
+
+	/**
 	 * Enable/Disable link preview privacy, not related to baileys link preview generation
 	 */
 	const updateDisableLinkPreviewsPrivacy = (isPreviewsDisabled: boolean) => {
@@ -1490,6 +1554,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		fetchStatus,
 		fetchDisappearingDuration,
 		updateProfilePicture,
+		updatePanoramaProfilePicture,
 		removeProfilePicture,
 		updateProfileStatus,
 		updateProfileName,
@@ -1507,6 +1572,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		getBusinessProfile,
 		resyncAppState,
 		chatModify,
+		clearMessage,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,

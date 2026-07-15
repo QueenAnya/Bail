@@ -294,6 +294,80 @@ export type AnyRegularMessageContent = (
 			 */
 			time?: 86400 | 604800 | 2592000
 	  }
+	| ({
+			/** Source: innovatorssoft/baileys — send a newsletter admin invite */
+			adminInvite: {
+				jid: string
+				name: string
+				caption?: string
+				expiration?: number
+			}
+	  } & Contextable)
+	| {
+			/** Source: innovatorssoft/baileys — pins/keeps a message in the chat */
+			keep: WAMessageKey
+			type?: number
+	  }
+	| {
+			/** Source: innovatorssoft/baileys — sends a "scheduled call" invite card */
+			call: {
+				time?: number
+				type?: number
+				name?: string
+			}
+	  }
+	| {
+			/** Source: innovatorssoft/baileys — sends a payment-invite card */
+			paymentInvite: {
+				expiry?: number
+				/** service type, defaults to 2 */
+				type?: number
+			}
+	  }
+	| ({
+			/** Source: innovatorssoft/baileys — requests a payment from the recipient */
+			payment: {
+				amount?: number
+				currency?: string
+				offset?: number
+				expiry?: number
+				from?: string
+				note?: string
+				image?: { placeholderArgb?: number; textArgb?: number; subtextArgb?: number }
+			}
+	  } & Contextable)
+	| ({
+			/** Source: innovatorssoft/baileys — sends an order message */
+			order: proto.Message.IOrderMessage
+	  } & Contextable)
+	| ({
+			/** Source: innovatorssoft/baileys — sends a snapshot of poll results */
+			pollResult: {
+				name: string
+				/** array of [optionName, voteCount] tuples */
+				values: [string, number][]
+			}
+	  } & Contextable)
+	| ({
+			/** Source: innovatorssoft/baileys — attach a Shop storefront card */
+			shop: { surface: number; id: string }
+			text?: string
+			caption?: string
+			title?: string
+			subtitle?: string
+			footer?: string
+			hasMediaAttachment?: boolean
+	  } & Contextable)
+	| ({
+			/** Source: innovatorssoft/baileys — attach a Collection card */
+			collection: { bizJid: string; id: string; version?: number }
+			text?: string
+			caption?: string
+			title?: string
+			subtitle?: string
+			footer?: string
+			hasMediaAttachment?: boolean
+	  } & Contextable)
 	| {
 			product: WASendableProduct
 			businessOwnerJid?: string

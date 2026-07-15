@@ -599,6 +599,146 @@ export const generateWAMessageContent = async (
 		m.pinInChatMessage.senderTimestampMs = Date.now()
 
 		m.messageContextInfo.messageAddOnDurationInSecs = message.type === 1 ? message.time || 86400 : 0
+	} else if (hasNonNullishProperty(message, 'adminInvite')) {
+		// Source: innovatorssoft/baileys — sends a newsletter "you've been made
+		// an admin" invite card; upstream had the proto field but no generator.
+		m.newsletterAdminInviteMessage = {
+			newsletterJid: (message as any).adminInvite.jid,
+			newsletterName: (message as any).adminInvite.name,
+			caption: (message as any).adminInvite.caption,
+			inviteExpiration: (message as any).adminInvite.expiration,
+			contextInfo: (message as any).contextInfo || {}
+		}
+
+		if (options.getProfilePicUrl) {
+			const pfpUrl = await options.getProfilePicUrl((message as any).adminInvite.jid, 'preview')
+			if (pfpUrl) {
+				const resp = await fetch(pfpUrl, { method: 'GET', dispatcher: options?.options?.dispatcher })
+				if (resp.ok) {
+					const buf = Buffer.from(await resp.arrayBuffer())
+					m.newsletterAdminInviteMessage.jpegThumbnail = buf
+				}
+			}
+		}
+	} else if (hasNonNullishProperty(message, 'keep')) {
+		// Source: innovatorssoft/baileys — pins/keeps a message in the chat
+		m.keepInChatMessage = {
+			key: (message as any).keep,
+			keepType: (message as any).type || 1,
+			timestampMs: Date.now()
+		}
+	} else if (hasNonNullishProperty(message, 'call')) {
+		// Source: innovatorssoft/baileys — "scheduled call" invite card
+		m.scheduledCallCreationMessage = {
+			scheduledTimestampMs: (message as any).call?.time || Date.now(),
+			callType: (message as any).call?.type || 1,
+			title: (message as any).call?.name || 'Call Creation'
+		}
+	} else if (hasNonNullishProperty(message, 'paymentInvite')) {
+		// Source: innovatorssoft/baileys — sends a payment-invite card
+		m.paymentInviteMessage = {
+			expiryTimestamp: (message as any).paymentInvite?.expiry || 0,
+			serviceType: (message as any).paymentInvite?.type || 2
+		}
+	} else if (hasNonNullishProperty(message, 'payment')) {
+		// Source: innovatorssoft/baileys — requests a payment from the recipient
+		m.requestPaymentMessage = {
+			currencyCodeIso4217: (message as any).payment?.currency || 'IDR',
+			amount1000: ((message as any).payment?.amount || 999999999) * 1000,
+			requestFrom: (message as any).payment?.from || '0@s.whatsapp.net',
+			expiryTimestamp: (message as any).payment?.expiry || 0,
+			amount: {
+				value: (message as any).payment?.amount || 999999999,
+				offset: (message as any).payment?.offset || 0,
+				currencyCode: (message as any).payment?.currency || 'IDR'
+			},
+			noteMessage: {
+				extendedTextMessage: {
+					text: (message as any).payment?.note || 'Notes',
+					contextInfo: (message as any).contextInfo || {}
+				}
+			},
+			background: {
+				placeholderArgb: (message as any).payment?.image?.placeholderArgb || 4278190080,
+				textArgb: (message as any).payment?.image?.textArgb || 4294967295,
+				subtextArgb: (message as any).payment?.image?.subtextArgb || 4294967295
+			}
+		}
+	} else if (hasOptionalProperty(message, 'order') && !!(message as any).order) {
+		// Source: innovatorssoft/baileys — a real, simple gap: orderMessage was never wired
+		const orderMessage: any = (proto.Message as any).OrderMessage.fromObject((message as any).order)
+		orderMessage.contextInfo = { ...((message as any).contextInfo || {}) }
+		m.orderMessage = orderMessage
+	} else if (hasOptionalProperty(message, 'pollResult') && !!(message as any).pollResult) {
+		// Source: innovatorssoft/baileys — sends a snapshot of poll results
+		// (e.g. when forwarding/announcing the final tally of a poll).
+		const pollResult = (message as any).pollResult as { name: string; values: [string, number][] }
+		if (!Array.isArray(pollResult.values)) {
+			throw new Boom('Invalid pollResult values', { statusCode: 400 })
+		}
+
+		m.pollResultSnapshotMessage = {
+			name: pollResult.name,
+			pollVotes: pollResult.values.map(([optionName, optionVoteCount]) => ({
+				optionName,
+				optionVoteCount
+			})),
+			contextInfo: (message as any).contextInfo || {}
+		}
+	} else if (hasOptionalProperty(message, 'shop') && !!(message as any).shop) {
+		// Source: innovatorssoft/baileys — `sock.sendMessage(jid, { shop: { surface, id }, text/caption })`
+		const msg = message as any
+		const interactiveMessage: any = {
+			shopStorefrontMessage: { surface: msg.shop.surface, id: msg.shop.id }
+		}
+
+		if (hasOptionalProperty(message, 'text')) {
+			interactiveMessage.body = { text: msg.text }
+			interactiveMessage.header = { title: msg.title, subtitle: msg.subtitle, hasMediaAttachment: false }
+		} else if (hasOptionalProperty(message, 'caption')) {
+			interactiveMessage.body = { text: msg.caption }
+			interactiveMessage.header = {
+				title: msg.title,
+				subtitle: msg.subtitle,
+				hasMediaAttachment: msg.hasMediaAttachment || false
+			}
+		}
+
+		if (hasOptionalProperty(message, 'footer') && !!msg.footer) {
+			interactiveMessage.footer = { text: msg.footer }
+		}
+
+		interactiveMessage.contextInfo = msg.contextInfo || {}
+		m = { interactiveMessage }
+	} else if (hasOptionalProperty(message, 'collection') && !!(message as any).collection) {
+		// Source: innovatorssoft/baileys — `sock.sendMessage(jid, { collection: { bizJid, id }, text/caption })`
+		const msg = message as any
+		const interactiveMessage: any = {
+			collectionMessage: {
+				bizJid: msg.collection.bizJid,
+				id: msg.collection.id,
+				messageVersion: msg.collection?.version
+			}
+		}
+
+		if (hasOptionalProperty(message, 'text')) {
+			interactiveMessage.body = { text: msg.text }
+			interactiveMessage.header = { title: msg.title, subtitle: msg.subtitle, hasMediaAttachment: false }
+		} else if (hasOptionalProperty(message, 'caption')) {
+			interactiveMessage.body = { text: msg.caption }
+			interactiveMessage.header = {
+				title: msg.title,
+				subtitle: msg.subtitle,
+				hasMediaAttachment: msg.hasMediaAttachment || false
+			}
+		}
+
+		if (hasOptionalProperty(message, 'footer') && !!msg.footer) {
+			interactiveMessage.footer = { text: msg.footer }
+		}
+
+		interactiveMessage.contextInfo = msg.contextInfo || {}
+		m = { interactiveMessage }
 	} else if (hasNonNullishProperty(message, 'buttonReply')) {
 		switch (message.type) {
 			case 'template':

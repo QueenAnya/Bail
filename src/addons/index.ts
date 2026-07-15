@@ -21,13 +21,9 @@
  * └─────────────────────────────────────────────────────────────────┘
  */
 
-// ── Types & Enums ────────────────────────────────────────────────────────────
-export * from './rich-types.js'
-
 // ── Message Generators ───────────────────────────────────────────────────────
 export * from './interactive-message.js'
-export * from './rich-message-composer.js'
-export * from './rich-message-utils.js'
+export * from './message-composer.js'
 
 // ── Bot / Addon Utils ────────────────────────────────────────────────────────
 export * from './anti-delete.js'

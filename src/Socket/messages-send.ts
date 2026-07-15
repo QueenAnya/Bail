@@ -1,6 +1,20 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
+import {
+	captureUnifiedResponse,
+	generateCodeBlockContent,
+	generateLatexContent,
+	generateLatexImageContent,
+	generateLatexInlineImageContent,
+	generateListContent,
+	generateMarkdownContent,
+	generateRichMessageContent,
+	generateTableContent,
+	generateUnifiedResponseContent,
+	renderLatexToPng as defaultRenderLatexToPng,
+	uploadUnencryptedToWA
+} from '../addons/message-composer.js'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
@@ -1257,6 +1271,233 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 	const waUploadToServer = getWAUploadToServer(config, refreshMediaConn)
 
+	// ───────────────────────────────────────────────────────────
+	// Rich-message socket methods — Source: innovatorssoft/baileys.
+	// Thin wrappers that build content via `innovatorssoft/message-composer`
+	// and relay it directly, matching the documented `sock.sendTable(...)`
+	// style API.
+	// ───────────────────────────────────────────────────────────
+
+	const sendTable = async (
+		jid: string,
+		title: string,
+		headers: string[],
+		rows: string[][],
+		quoted?: WAMessage,
+		options: { headerText?: string; footer?: string } = {}
+	) => {
+		const { message, messageId } = generateTableContent(title, headers, rows, quoted, options)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const sendList = async (
+		jid: string,
+		title: string,
+		items: string[] | string[][],
+		quoted?: WAMessage,
+		options: { headerText?: string; footer?: string } = {}
+	) => {
+		const { message, messageId } = generateListContent(title, items, quoted, options)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const sendCodeBlock = async (
+		jid: string,
+		code: string,
+		quoted?: WAMessage,
+		options: { title?: string; footer?: string; language?: string } = {}
+	) => {
+		const { message, messageId } = generateCodeBlockContent(code, quoted, options)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const sendMarkdown = async (
+		jid: string,
+		text: string,
+		quoted?: WAMessage,
+		options: { botJid?: string; mentions?: string[] } = {}
+	) => {
+		const { message, messageId } = generateMarkdownContent(text, quoted, options)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const sendLatex = async (
+		jid: string,
+		quoted: WAMessage | undefined,
+		options: {
+			text?: string
+			expressions: Array<{ latexExpression: string; url?: string; width?: number; height?: number }>
+			headerText?: string
+			footer?: string
+		}
+	) => {
+		const { message, messageId } = generateLatexContent(quoted, options)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const normalizeLatexFormulas = (options: any): string[] => {
+		const formulas: string[] = []
+		if (typeof options === 'string') {
+			formulas.push(options)
+		} else if (options && typeof options === 'object') {
+			if (options.formula) {
+				formulas.push(options.formula)
+			} else if (options.latex) {
+				formulas.push(options.latex)
+			} else if (options.expressions && Array.isArray(options.expressions)) {
+				for (const e of options.expressions) {
+					if (typeof e === 'string') formulas.push(e)
+					else if (e?.latexExpression) formulas.push(e.latexExpression)
+				}
+			} else if (options.text) {
+				formulas.push(options.text)
+			}
+		} else if (Array.isArray(options)) {
+			for (const e of options) {
+				if (typeof e === 'string') formulas.push(e)
+				else if (e?.latexExpression) formulas.push(e.latexExpression)
+			}
+		}
+
+		return formulas.length > 0 ? formulas : ['E=mc^2']
+	}
+
+	const sendLatexImage = async (
+		jid: string,
+		quoted?: any,
+		options?: any,
+		renderLatexToPng?: (expr: string) => Promise<Buffer | { buffer: Buffer; width?: number; height?: number }>,
+		uploadFn?: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string } | string>
+	) => {
+		if (
+			quoted &&
+			!quoted.key &&
+			(quoted.expressions || quoted.text || typeof quoted === 'string' || (Array.isArray(quoted) && quoted.length > 0))
+		) {
+			uploadFn = renderLatexToPng as any
+			renderLatexToPng = options
+			options = quoted
+			quoted = undefined
+		}
+
+		const formulas = normalizeLatexFormulas(options)
+		const renderFn = renderLatexToPng || defaultRenderLatexToPng
+		const uploadToWA = uploadFn || (async (buffer: Buffer) => uploadUnencryptedToWA(buffer, waUploadToServer as any))
+
+		const safeRender = async (expr: string) => {
+			const res = await renderFn(expr)
+			if (Buffer.isBuffer(res)) {
+				return { buffer: res, width: 1200, height: 600 }
+			} else if (res && Buffer.isBuffer((res as any).buffer)) {
+				return res as { buffer: Buffer; width: number; height: number }
+			}
+
+			throw new Error('renderLatexToPng must return a Buffer or an object containing a buffer')
+		}
+
+		const safeUpload = async (buffer: Buffer, type: string) => {
+			const res = await uploadToWA(buffer, type)
+			return typeof res === 'string' ? { url: res } : res
+		}
+
+		const composerOptions = {
+			text: (options && typeof options === 'object' && (options.caption || options.text)) || '',
+			headerText: options?.headerText,
+			footer: options?.footer,
+			expressions: formulas.map(formula => ({ latexExpression: formula }))
+		}
+
+		const { message, messageId } = await generateLatexImageContent(
+			quoted,
+			composerOptions,
+			safeUpload as any,
+			safeRender
+		)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const sendLatexInlineImage = async (
+		jid: string,
+		quoted?: any,
+		options?: any,
+		renderLatexToPng?: (expr: string) => Promise<Buffer | { buffer: Buffer; width?: number; height?: number }>,
+		uploadFn?: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string } | string>
+	) => {
+		if (
+			quoted &&
+			!quoted.key &&
+			(quoted.expressions || quoted.text || typeof quoted === 'string' || (Array.isArray(quoted) && quoted.length > 0))
+		) {
+			uploadFn = renderLatexToPng as any
+			renderLatexToPng = options
+			options = quoted
+			quoted = undefined
+		}
+
+		const formulas = normalizeLatexFormulas(options)
+		const renderFn = renderLatexToPng || defaultRenderLatexToPng
+		const uploadToWA = uploadFn || (async (buffer: Buffer) => uploadUnencryptedToWA(buffer, waUploadToServer as any))
+
+		const safeRender = async (expr: string) => {
+			const res = await renderFn(expr)
+			if (Buffer.isBuffer(res)) {
+				return { buffer: res, width: 1200, height: 600 }
+			} else if (res && Buffer.isBuffer((res as any).buffer)) {
+				return res as { buffer: Buffer; width: number; height: number }
+			}
+
+			throw new Error('renderLatexToPng must return a Buffer or an object containing a buffer')
+		}
+
+		const safeUpload = async (buffer: Buffer, type: string) => {
+			const res = await uploadToWA(buffer, type)
+			return typeof res === 'string' ? { url: res } : res
+		}
+
+		const composerOptions = {
+			text: (options && typeof options === 'object' && (options.caption || options.text)) || '',
+			headerText: options?.headerText,
+			footer: options?.footer,
+			expressions: formulas.map(formula => ({ latexExpression: formula }))
+		}
+
+		const { message, messageId } = await generateLatexInlineImageContent(
+			quoted,
+			composerOptions,
+			safeUpload as any,
+			safeRender
+		)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const sendRichMessage = async (
+		jid: string,
+		submessages: any[],
+		quoted?: WAMessage,
+		options: { botJid?: string; mentions?: string[]; useMarkdown?: boolean } = {}
+	) => {
+		const { message, messageId } = generateRichMessageContent(submessages, quoted, options)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
+	const sendUnifiedResponse = async (
+		jid: string,
+		quoted: WAMessage | undefined,
+		captured: { submessages: any[]; unifiedResponse: { data: string | Buffer } }
+	) => {
+		const { message, messageId } = generateUnifiedResponseContent(quoted, captured)
+		await relayMessage(jid, message, { messageId })
+		return { message, messageId }
+	}
+
 	const waitForMsgMediaUpdate = bindWaitForEvent(ev, 'messages.media-update')
 
 	registerSocketEndHandler(() => {
@@ -1290,6 +1531,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		getUSyncDevices,
 		messageRetryManager,
 		updateMemberLabel,
+		sendTable,
+		sendList,
+		sendCodeBlock,
+		sendMarkdown,
+		sendLatex,
+		sendLatexImage,
+		sendLatexInlineImage,
+		sendRichMessage,
+		sendUnifiedResponse,
 		updateMediaMessage: async (message: WAMessage) => {
 			const content = assertMediaContent(message.message)
 			const mediaKey = content.mediaKey!
