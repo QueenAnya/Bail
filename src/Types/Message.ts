@@ -423,6 +423,11 @@ export type MessageRelayOptions = MinimalRelayOptions & {
 	useUserDevicesCache?: boolean
 	/** jid list of participants for status@broadcast */
 	statusJidList?: string[]
+	/**
+	 * Source: innovatorssoft/baileys — forces the `<biz>` binary node onto the
+	 * stanza even for message types that wouldn't normally need one.
+	 */
+	addBizAttributes?: boolean
 }
 
 export type MiscMessageGenerationOptions = MinimalRelayOptions & {

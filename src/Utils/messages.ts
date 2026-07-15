@@ -1522,6 +1522,21 @@ export const assertMediaContent = (content: proto.IMessage | null | undefined) =
 }
 
 /**
+ * Source: innovatorssoft/baileys (ported from compiled JS to TypeScript)
+ *
+ * True for message types that need the `<biz>` binary node (buttons,
+ * list, template, or interactive-with-nativeFlow messages) alongside them
+ * for WhatsApp to render them correctly. Used by `relayMessage`.
+ */
+export const shouldIncludeBizBinaryNode = (message: proto.IMessage): boolean =>
+	!!(
+		message.buttonsMessage ||
+		message.listMessage ||
+		message.templateMessage ||
+		(message.interactiveMessage && message.interactiveMessage.nativeFlowMessage)
+	)
+
+/**
  * Checks if a WebP buffer is animated by looking for VP8X chunk with animation flag
  * or ANIM/ANMF chunks
  */

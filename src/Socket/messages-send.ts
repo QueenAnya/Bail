@@ -48,6 +48,7 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
+	shouldIncludeBizBinaryNode,
 	unixTimestampSeconds
 } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
@@ -68,6 +69,7 @@ import {
 	type FullJid,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
+	getBizBinaryNode,
 	isHostedLidUser,
 	isHostedPnUser,
 	isJidBot,
@@ -649,7 +651,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			additionalNodes,
 			useUserDevicesCache,
 			useCachedGroupMetadata,
-			statusJidList
+			statusJidList,
+			addBizAttributes
 		}: MessageRelayOptions
 	) => {
 		const meId = assertMeId(authState.creds)
@@ -1114,8 +1117,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
+			let alreadyHasBizNode = false
 			if (additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
+				alreadyHasBizNode = !addBizAttributes && additionalNodes.some(node => node.tag === 'biz')
+			}
+
+			// Source: innovatorssoft/baileys — attaches the `<biz>` binary node
+			// WhatsApp requires alongside buttons/list/template/interactive
+			// (native-flow) messages — without it those message types may not
+			// render correctly on real WhatsApp clients.
+			if ((!alreadyHasBizNode && shouldIncludeBizBinaryNode(message)) || addBizAttributes) {
+				;(stanza.content as BinaryNode[]).push(getBizBinaryNode(message))
 			}
 
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
