@@ -918,13 +918,7 @@ export const generateWAMessageContent = async (
 		}
 	} else if ('stickerPack' in message) {
 		m = await prepareStickerPackMessage(message.stickerPack, options)
-	} else {
-		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
-	}
-
-	// ── Interactive Messages (itsliaaa/Lia@Changes 30-01-26 → 12-03-26) ──────
-
-	if (hasNonNullishProperty(message, 'buttons')) {
+	} else if (hasNonNullishProperty(message, 'buttons')) {
 		const buttonsMessage: Record<string, any> = {
 			buttons: (message as any).buttons.map((button: Record<string, any>) => {
 				const buttonText = button.text || button.buttonText
@@ -1096,6 +1090,8 @@ export const generateWAMessageContent = async (
 		if (hasOptionalProperty(message, 'text')) interactiveMessage.body = { text: (message as any).text }
 		if (hasOptionalProperty(message, 'footer')) interactiveMessage.footer = { text: (message as any).footer }
 		m = { interactiveMessage }
+	} else {
+		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {

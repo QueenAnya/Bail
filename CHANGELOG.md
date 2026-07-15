@@ -17,6 +17,48 @@ Source snapshots referenced below:
 
 ---
 
+---
+
+## Critical bug: buttons/sections/templateButtons/nativeFlow/cards/productList broken for typical usage
+
+**Root cause of "40–50% of features not working" reported after the last
+build.** `generateWAMessageContent()` had **two separate, non-exclusive
+if-chains** back to back — inherited from D_may11's own original
+architecture, not introduced by this merge (confirmed: the identical
+pattern exists in D_may11's unmodified source).
+
+Chain 1 (text, media, contacts, location, groupInvite, payment, order,
+stickerPack, etc.) ended with a generic fallback:
+`} else { m = await prepareWAMessageMedia(...) }` — which **throws
+`Invalid media type` for any content that doesn't match a chain-1 key**.
+Chain 2 (`buttons`, `sections`, `templateButtons`, `nativeFlow`, `cards`,
+and this build's new `productList`) started as a **separate standalone
+`if`** immediately after chain 1's closing brace — not an `else if`.
+
+Net effect: `sock.sendMessage(jid, { buttons: [...] })` on its own threw
+`Invalid media type` before ever reaching the buttons-handling code,
+because chain 1's fallback ran first and threw. It only "worked" when the
+content happened to also include an unrelated chain-1-matching key (most
+commonly `text`), which let chain 1 exit through a non-throwing branch
+first, after which chain 2 ran and overwrote `m` with the real buttons
+message. This explains why `9.4.4` (which doesn't have the buttons/
+sections/templateButtons/nativeFlow/cards feature family at all) worked
+fine, while this build — which has the fuller feature set — silently
+broke most calls to it.
+
+**Fix:** merged the two chains into one continuous `if / else if / ... /
+else` — chain 2 now continues chain 1 directly, and the generic
+`prepareWAMessageMedia` fallback was moved to be the true final `else`
+of the whole combined chain (after `cards`), not a false stop partway
+through. Verified with content that intentionally omits `text`/any
+chain-1 key for `buttons`, `sections`, `templateButtons`, and
+`productList` — all now succeed. (`cards` correctly still throws on
+genuinely invalid input — a real internal validation, not this bug.)
+
+This is the same category of bug as the `stickerPack` fix earlier in
+this document, but affecting a much larger surface (the entire second
+if-block, not one branch).
+
 ## Merge — base selection
 
 - **D_may11 chosen as base.** A→B→C→D is one continuous lineage (each
