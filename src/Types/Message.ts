@@ -325,6 +325,58 @@ export type AnyRegularMessageContent = (
 			}
 	  }
 	| ({
+			/** Source: innovatorssoft/baileys (real WAProto) — shares/forwards an existing event invite */
+			eventInvite: {
+				eventId: string
+				eventTitle: string
+				startTime: number
+				endTime?: number
+				caption?: string
+				callLink?: string
+				isCanceled?: boolean
+				jpegThumbnail?: Uint8Array
+			}
+	  } & Contextable)
+	| {
+			/** Source: innovatorssoft/baileys (real WAProto) — recurring payment reminder card */
+			paymentReminder: {
+				reminderId: string
+				instanceId: string
+				description?: string
+				/** 1=WEEKLY, 2=BI_WEEKLY, 3=MONTHLY, 4=QUARTERLY */
+				frequency?: number
+				/** 1=ACTIVE, 2=CANCELLED_BY_CREATOR, 3=STOPPED_BY_RECEIVER, 4=EXPIRED, 5=PAID */
+				status?: number
+				payeeVpa?: string
+				payeeJid?: string
+				payerJid?: string
+				amount?: { value?: number; offset?: number; currencyCode?: string }
+			}
+	  }
+	| {
+			/** Source: innovatorssoft/baileys (real WAProto) — adds an option to an existing poll */
+			pollAddOption: {
+				pollCreationMessageKey: WAMessageKey
+				option: { optionName?: string; optionHash?: Uint8Array }
+				metadata?: unknown
+			}
+	  }
+	| ({
+			/** Source: innovatorssoft/baileys (real WAProto) — bill-splitting request among participants */
+			splitPayment: {
+				splitId: string
+				totalAmount: { value?: number; offset?: number; currencyCode?: string }
+				description?: string
+				requesterJid: string
+				participants: Array<{
+					jid: string
+					amount: { value?: number; offset?: number; currencyCode?: string }
+					status?: number
+				}>
+				createdAtMs?: number
+			}
+	  } & Contextable)
+	| ({
 			/** Source: innovatorssoft/baileys — requests a payment from the recipient */
 			payment: {
 				amount?: number

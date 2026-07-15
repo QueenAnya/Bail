@@ -179,6 +179,74 @@ newer/different WAProto schema than D_may11's:
   conversion that the nested copy doesn't have. Removed — not used, and
   the copy that remains is the newer/faster one.
 
+## Proto layer — full-restructure assessment (not adopted) + targeted additions
+
+Two real, currently-published upstream packages were checked directly
+(not derived/merged snapshots): `@innovatorssoft/baileys` 7.4.4 and
+`@itsliaaa/baileys` 0.3.18-final.
+
+**Full proto restructure — assessed, not adopted.** innovatorssoft's real
+repo has completely restructured `WAProto.proto` into 26 separate
+per-concern files (`E2E.proto`, `Adv.proto`, `SyncAction.proto`, etc.,
+6,495 total lines vs this build's 5,479-line monolithic file) targeting
+a newer WhatsApp Web version (`1043028647` vs `1035194821`). Deep
+assessment found the real, shipped package has **322 of 437 top-level
+type names (74%) duplicated across multiple files** (e.g. `BotMetadata`
+is separately defined in 6 different files) — resolved at runtime only
+by object-spread order in their `index.js` barrel, with no reliable way
+to verify from outside that every duplicate pair is field-identical.
+Their own shipped `WAProto/index.d.ts` also has real import-path bugs
+(wrong paths, a `WAChatLockSettings`/`ChatLockSettings` name mismatch, a
+missing `AICommonDeprecated` import). Given the size and risk of safely
+reconciling 322 collisions by hand, this was not adopted wholesale —
+staying on the current, fully-tested monolithic proto was judged safer
+than a large, hard-to-fully-verify migration.
+
+**Targeted additions — adopted.** Compared this build's `Message`
+wrapper (95 direct content fields) against innovatorssoft's real E2E.proto
+`Message` wrapper (107 fields) to find genuinely new, real (not derived)
+message types. Of 12 new fields found:
+
+- Skipped `groupRootKeyShare` / `rootSecretDistributeMessage` — internal
+  Signal/E2E session-key protocol messages, not application content;
+  wiring these into the content-type dispatcher would be unsafe.
+- Skipped `newsletterAdminProfileMessage(V2)`, `newsletterAdminProfileStatusMessage`,
+  `spoilerMessage` — all typed as `FutureProofMessage` in the real proto,
+  i.e. WhatsApp-reserved placeholders with no real schema yet.
+- Skipped `conditionalRevealMessage` — needs real `encPayload`/`encIv`
+  ciphertext this build has no keying infrastructure to produce safely.
+- Skipped `pollCreationMessageV6` — a poll-creation schema version bump;
+  the existing (older) poll-creation path already works and changing it
+  needs more validation than fits this pass.
+- **Added, with exact field numbers matching the real upstream schema
+  (119, 121, 122, 124, 125):**
+  - `eventInvite` → `eventInviteMessage` — share/forward an existing
+    event invite (distinct from `event`, which creates a new one)
+  - `paymentReminder` → `paymentReminderMessage` — recurring payment
+    reminder card
+  - `pollAddOption` → `pollAddOptionMessage` — add an option to an
+    existing poll
+  - `splitPayment` → `splitPaymentMessage` — bill-splitting request
+    among multiple participants
+
+Proto regenerated via the project's own `GenerateStatics.sh`
+(`pbjs`/`pbts`) after editing `WAProto.proto` — not hand-edited compiled
+output. All 4 new types verified with a dedicated test (written, run,
+removed) confirming correct message construction and no interference
+with existing content types.
+
+## `phonenumber-mcc.json` — removed (confirmed dead, not fabricated)
+
+- Confirmed byte-identical to the real `@innovatorssoft/baileys` 7.4.4
+  package's copy — this is genuine data, not something invented during
+  the merge.
+- Absent entirely from `@itsliaaa/baileys`.
+- **But unused everywhere**: even in innovatorssoft's own real,
+  currently-published package, the loaded data is only re-exported as a
+  `PHONENUMBER_MCC` constant from `Defaults/index.ts` and never consumed
+  by any other file in their codebase. In this build it was even more
+  orphaned — not exported at all, just an unreferenced JSON file. Removed.
+
 ## `productList` and raw-passthrough content — completed (not skipped)
 
 Originally flagged as "documented but never built" dead code in

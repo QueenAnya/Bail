@@ -653,6 +653,59 @@ export const generateWAMessageContent = async (
 			expiryTimestamp: (message as any).paymentInvite?.expiry || 0,
 			serviceType: (message as any).paymentInvite?.type || 2
 		}
+	} else if (hasNonNullishProperty(message, 'eventInvite')) {
+		// Source: innovatorssoft/baileys real WAProto (E2E.proto) — shares/
+		// forwards an existing event invite (distinct from `event`, which
+		// creates a new event).
+		const ei = (message as any).eventInvite
+		m.eventInviteMessage = {
+			eventId: ei.eventId,
+			eventTitle: ei.eventTitle,
+			startTime: ei.startTime,
+			endTime: ei.endTime,
+			caption: ei.caption,
+			callLink: ei.callLink,
+			isCanceled: ei.isCanceled || false,
+			jpegThumbnail: ei.jpegThumbnail,
+			contextInfo: (message as any).contextInfo || {}
+		}
+	} else if (hasNonNullishProperty(message, 'paymentReminder')) {
+		// Source: innovatorssoft/baileys real WAProto (E2E.proto) —
+		// recurring payment reminder card.
+		const pr = (message as any).paymentReminder
+		m.paymentReminderMessage = {
+			reminderId: pr.reminderId,
+			instanceId: pr.instanceId,
+			description: pr.description,
+			frequency: pr.frequency || 1,
+			status: pr.status || 1,
+			payeeVpa: pr.payeeVpa,
+			payeeJid: pr.payeeJid,
+			payerJid: pr.payerJid,
+			amount: pr.amount
+		}
+	} else if (hasNonNullishProperty(message, 'pollAddOption')) {
+		// Source: innovatorssoft/baileys real WAProto (E2E.proto) — adds a
+		// new option to an existing poll the caller doesn't own.
+		const pa = (message as any).pollAddOption
+		m.pollAddOptionMessage = {
+			pollCreationMessageKey: pa.pollCreationMessageKey,
+			addOption: pa.option,
+			metadata: pa.metadata
+		}
+	} else if (hasNonNullishProperty(message, 'splitPayment')) {
+		// Source: innovatorssoft/baileys real WAProto (E2E.proto) —
+		// bill-splitting request among multiple participants.
+		const sp = (message as any).splitPayment
+		m.splitPaymentMessage = {
+			splitId: sp.splitId,
+			totalAmount: sp.totalAmount,
+			description: sp.description,
+			requesterJid: sp.requesterJid,
+			participants: sp.participants,
+			createdAtMs: sp.createdAtMs || Date.now(),
+			contextInfo: (message as any).contextInfo || {}
+		}
 	} else if (hasNonNullishProperty(message, 'payment')) {
 		// Source: innovatorssoft/baileys — requests a payment from the recipient
 		m.requestPaymentMessage = {
