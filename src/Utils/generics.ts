@@ -204,19 +204,31 @@ export const generateMessageIDV2 = (userId?: string): string => {
 export const generateMessageID = (): string => MSG_ID_PREFIX + randomBytes(18).toString('hex').toUpperCase()
 
 /**
- * Generates a uuid field value for key.uuid
- * Format: (userUuid || 'qa3#69') padded/trimmed to exactly 11 chars
- * Padding uses random alphanumeric chars
+ * Generates the value for `key.uuid` on a sent message.
+ *
+ * Priority handled by the caller: `content.uuid` > `options.uuid` > this function's default.
+ * `generateKeyUuid(userUuid)` itself just decides between "use exactly what was given"
+ * and "generate a default":
+ *
+ *  - If `userUuid` is provided (non-empty), it is returned EXACTLY as supplied —
+ *    never truncated, padded, or otherwise modified, regardless of its length.
+ *  - If not provided, a default uuid is generated with a maximum length of 15 characters
+ *    (a short static prefix + random alphanumeric padding).
  */
 export const generateKeyUuid = (userUuid?: string): string => {
-	const TOTAL_LENGTH = 11
-	const base = (userUuid || 'qa3#69').substring(0, TOTAL_LENGTH)
-	if (base.length === TOTAL_LENGTH) return base
-	const pad = randomBytes(TOTAL_LENGTH)
+	if (userUuid) {
+		// Custom value supplied — preserve exactly as-is, no length manipulation.
+		return userUuid
+	}
+
+	const DEFAULT_UUID_PREFIX = 'qa3#69'
+	const DEFAULT_UUID_MAX_LENGTH = 15
+	const padLength = Math.max(0, DEFAULT_UUID_MAX_LENGTH - DEFAULT_UUID_PREFIX.length)
+	const pad = randomBytes(padLength * 3)
 		.toString('base64')
-		.replace(/[^A-Z0-9]/gi, '')
-		.substring(0, TOTAL_LENGTH - base.length)
-	return base + pad
+		.replace(/[^A-Za-z0-9]/g, '')
+		.substring(0, padLength)
+	return (DEFAULT_UUID_PREFIX + pad).substring(0, DEFAULT_UUID_MAX_LENGTH)
 }
 
 export function bindWaitForEvent<T extends keyof BaileysEventMap>(ev: BaileysEventEmitter, event: T) {

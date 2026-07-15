@@ -25,6 +25,13 @@ export type WAMessageKey = proto.IMessageKey & {
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
+	/**
+	 * Custom application-level identifier, separate from `id`.
+	 * Not part of the WhatsApp wire protocol — purely local metadata for the caller
+	 * to correlate a sent message with their own tracking system.
+	 * See `generateKeyUuid` / `MiscMessageGenerationOptions.uuid`.
+	 */
+	uuid?: string
 }
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo
@@ -298,7 +305,7 @@ export type AnyRegularMessageContent = (
 ) &
 	ViewOnce
 
-export type AnyMessageContent =
+export type AnyMessageContent = (
 	| AnyRegularMessageContent
 	| {
 			forward: WAMessage
@@ -314,6 +321,14 @@ export type AnyMessageContent =
 	| {
 			limitSharing: boolean
 	  }
+) & {
+	/**
+	 * Custom application-level identifier for this specific message, mapped onto
+	 * `key.uuid` on the returned WAMessage. Takes priority over `options.uuid`.
+	 * See `generateKeyUuid`.
+	 */
+	uuid?: string
+}
 
 export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
 
@@ -354,17 +369,25 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	/** if it is broadcast */
 	broadcast?: boolean
 	/**
-	 * Optional identifier added as key.uuid on the returned WAMessage.
-	 * Value = (content.uuid || options.uuid || 'qa3#69') + random chars, total exactly 11 chars.
-	 * The key.id field is NOT modified — it stays as standard '4NY4W3B...' format.
+	 * Optional identifier added as a separate `key.uuid` field on the returned WAMessage.
+	 * The existing `key.id` field (standard message id, e.g. '4NY4W3B...') is never touched.
+	 *
+	 * Priority: `content.uuid` > `options.uuid` > generated default.
+	 *
+	 * If a custom uuid is supplied (via content or options), it is used EXACTLY as given —
+	 * never truncated, padded, or modified, regardless of length.
+	 * If none is supplied, a default uuid is generated with a maximum length of 15 characters.
 	 *
 	 * @example
-	 * sock.sendMessage(jid, { text: 'Hi' }, { uuid: 'text' })
+	 * sock.sendMessage(jid, { text: 'Hi' }, { uuid: 'custom-uuid' })
 	 * // → key.id   = '4NY4W3B118751AAD4EDF59842'  (unchanged)
-	 * // → key.uuid = 'textA3K9Z2M' (11 chars)
+	 * // → key.uuid = 'custom-uuid'                (used exactly as-is)
+	 *
+	 * sock.sendMessage(jid, { text: 'Hi', uuid: 'mybot' } as any)
+	 * // → key.uuid = 'mybot'                      (content.uuid wins over options.uuid)
 	 *
 	 * sock.sendMessage(jid, { text: 'Hi' })
-	 * // → key.uuid = 'qa3#69A3K9Z' (11 chars, default)
+	 * // → key.uuid = 'qa3#69A3K9Z...'              (generated default, max 15 chars)
 	 */
 	uuid?: string
 }

@@ -1376,9 +1376,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					messageId: options.messageId || generateMessageIDV2(sock.user?.id),
 					...options
 				})
-				// Attach uuid to key — 11-char identifier for caller tracking
-				const _uuidSource = (content as any).uuid || options.uuid
-				;(fullMsg.key as any).uuid = generateKeyUuid(_uuidSource)
+				// Attach uuid to key — separate field from `id`, id generation is untouched.
+				// Priority: content.uuid > options.uuid > generated default.
+				fullMsg.key.uuid = generateKeyUuid(content.uuid || options.uuid)
 
 				const isEventMsg = 'event' in content && !!content.event
 				const isDeleteMsg = 'delete' in content && !!content.delete
