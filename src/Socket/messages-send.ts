@@ -69,6 +69,7 @@ import {
 	type FullJid,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
+	getBinaryFilteredBizBot,
 	getBizBinaryNode,
 	isHostedLidUser,
 	isHostedPnUser,
@@ -652,7 +653,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			useUserDevicesCache,
 			useCachedGroupMetadata,
 			statusJidList,
-			addBizAttributes
+			addBizAttributes,
+			ai
 		}: MessageRelayOptions
 	) => {
 		const meId = assertMeId(authState.creds)
@@ -1117,8 +1119,26 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				})
 			}
 
+			// Source: innovatorssoft/baileys — shows the small "AI" bot icon on
+			// the message bubble (1:1/LID chats only).
+			const isPrivateChat = !isGroupOrStatus && !isNewsletter
+			let didPushAdditionalNodes = false
+
+			if (ai && (isPrivateChat || isLid)) {
+				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes || [])
+				if (filteredBizBot && additionalNodes) {
+					;(stanza.content as BinaryNode[]).push(...additionalNodes)
+					didPushAdditionalNodes = true
+				} else {
+					;(stanza.content as BinaryNode[]).push({
+						tag: 'bot',
+						attrs: { biz_bot: '1' }
+					})
+				}
+			}
+
 			let alreadyHasBizNode = false
-			if (additionalNodes && additionalNodes.length > 0) {
+			if (!didPushAdditionalNodes && additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 				alreadyHasBizNode = !addBizAttributes && additionalNodes.some(node => node.tag === 'biz')
 			}
@@ -1678,12 +1698,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					} as BinaryNode)
 				}
 
+				// Source: innovatorssoft/baileys — forces the `<biz>` binary
+				// node onto the stanza even for message types that wouldn't
+				// normally need one.
+				const isNeedBizAttrs =
+					'secureMetaServiceLabel' in content &&
+					!!(content as { secureMetaServiceLabel?: boolean }).secureMetaServiceLabel
+
 				await relayMessage(jid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes,
 					statusJidList: options.statusJidList,
-					additionalNodes
+					additionalNodes,
+					ai: options.ai,
+					addBizAttributes: isNeedBizAttrs
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {

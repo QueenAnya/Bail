@@ -1,1 +1,201 @@
+# Changelog — `anya-bail` (v9.5.5-anya-merged.1)
+
+This build merges 5 source snapshots into one package. Base = `D_may11`
+(`@queenanya/baileys` 9.5.5-beta.2, cleanest test run, correct LID handling),
+extended with features pulled from 3 other snapshots and one comprehensive
+`innovatorssoft/baileys` merge (`E_merged`, `baileys` 7.0.0-rc13).
+
+Source snapshots referenced below:
+
+| Tag      | Date     | package version                                      |
+| -------- | -------- | ---------------------------------------------------- |
+| A_apr17  | Apr 17   | `@queenanya/baileys` 9.5.4                           |
+| B_may01  | May 1    | `@queenanya/baileys` 9.5.5-beta.1                    |
+| C_may03  | May 3    | `@queenanya/baileys` 9.4.4                           |
+| D_may11  | May 11   | `baileys` 9.5.5-beta.2 — **merge base**              |
+| E_merged | Jul 8–10 | `baileys` 7.0.0-rc13 (innovatorssoft/itsliaaa merge) |
+
+---
+
+## Merge — base selection
+
+- **D_may11 chosen as base.** A→B→C→D is one continuous lineage (each
+  snapshot is a direct descendant of the previous), so D already contains
+  everything from A/B/C. Verified: 0 TS errors, 403/403 tests, clean async
+  exit (B/C both leaked an open Jest handle; D fixed it).
+- **From C_may03:** ported `outgoing-calls.ts` (call initiate/reject/end)
+  and `call-handler.ts` (call relay/transport layer) — both were dropped
+  in D's C→D refactor with no replacement.
+- **From E_merged:** ported `decrypt-event-edit.ts`, `native-flow-buttons.ts`,
+  `use-sqlite-auth-state.ts`, and the in-memory `store/` module — none of
+  these existed in D.
+
+## Bug fixes found during merge
+
+- **`stickerPack` message generation was broken.** A test file was saved
+  without a `.ts` extension (`sticker-pack.test`), so it silently never
+  ran. Renaming it exposed a real bug: the `stickerPack` content-type check
+  was a standalone `if` placed _after_ the main content-type if/else chain,
+  so the chain's generic fallback (`prepareWAMessageMedia`) threw
+  `Invalid media type` before the sticker-pack branch was ever reached.
+  Fixed by folding the check into the chain as a proper `else if`.
+- `stickerPackSize` / `fileLength` / `mediaKeyTimestamp` were left as
+  protobuf `Long` objects instead of plain JS numbers (these are `uint64`
+  fields in the schema, and `fromObject()` wraps them by default). Fixed
+  by unwrapping to `Number(...)` after construction.
+- `packId` option on `StickerPack` was declared but never read — a custom
+  pack id was always overwritten by a generated one. Fixed.
+
+## `uuid` field on `MessageKey`
+
+- Added `uuid?: string` to `WAMessageKey` and to `AnyMessageContent` as a
+  proper typed field (was previously accessed via `as any` casts).
+- Fixed `generateKeyUuid(userUuid?)`: the existing implementation
+  **truncated/padded any custom uuid to exactly 11 characters**, silently
+  mutating whatever the caller supplied. Rewritten so a custom uuid
+  (`content.uuid` or `options.uuid`) is returned **exactly as given**,
+  with no truncation, padding, or modification — and the generated
+  default is capped at a maximum of 15 characters.
+- Priority: `content.uuid` > `options.uuid` > generated default.
+  `key.id` (the standard message id, `4NY4W3B...`) is completely
+  untouched by this feature.
+
+## `@napi-rs/image` — completed a half-wired backend
+
+- `prepareStickerPackMessage()` already checked for a third image backend
+  (`hasImage = 'image' in lib && !!lib.image?.Transformer`) alongside
+  sharp/jimp — but `getImageProcessingLibrary()` never actually tried to
+  load `@napi-rs/image`, so that branch was always dead. Confirmed this
+  was true in E_merged too (not a merge artifact — an upstream gap).
+- Rewrote `getImageProcessingLibrary()` to load all three backends in
+  parallel and return whichever succeeded (previously it returned only
+  the first match, sharp-or-jimp).
+- Added `@napi-rs/image@^1.12.0` to `devDependencies`, `peerDependencies`,
+  and `peerDependenciesMeta` (optional), matching the existing sharp/jimp
+  pattern.
+- Verified against the real published API (`new Transformer(buf).resize(w,h).webp(quality)`)
+  with a real image round-trip (RIFF/WEBP magic-byte check).
+
+## Missing content types — ported from `innovatorssoft/baileys` (E_merged)
+
+Added to `Utils/messages.ts` (`generateWAMessageContent`) and typed in
+`Types/Message.ts` (`AnyRegularMessageContent`):
+
+- `adminInvite` — newsletter admin invite card
+- `keep` — pin/keep a message in chat
+- `call` — scheduled call creation card
+- `paymentInvite` — payment invite card
+- `payment` — request-payment message
+- `order` — order message (`proto.Message.IOrderMessage` passthrough)
+- `pollResult` — poll result snapshot message
+- `shop` — shop storefront interactive card
+- `collection` — collection interactive card
+
+Not ported: `productList` — the type existed in E_merged's own type
+definitions but was never wired to a runtime handler there either
+(confirmed absent in `generateWAMessageContent`). Left unimplemented
+rather than guessing at the intended behavior.
+
+## Rich-message socket methods
+
+- Replaced D's split `addons/rich-message-composer.ts` +
+  `addons/rich-message-utils.ts` with E_merged's single, more complete
+  `innovatorssoft/message-composer.ts` (renamed to `addons/message-composer.ts`).
+  D's version was missing `generateMarkdownContent`, `renderLatexToPng`,
+  and `uploadUnencryptedToWA` entirely.
+- Removed `addons/rich-types.ts` — its constants (`RichSubMessageType`,
+  `CodeHighlightType`, language keyword sets) were exact duplicates of
+  what the new `message-composer.ts` already defines; keeping both caused
+  a duplicate-export collision.
+- Added socket methods, wired in `Socket/messages-send.ts`:
+  `sendTable`, `sendList`, `sendCodeBlock`, `sendMarkdown`, `sendLatex`,
+  `sendLatexImage`, `sendLatexInlineImage`, `sendRichMessage`,
+  `sendUnifiedResponse`.
+
+## `<biz>` binary node — buttons/list/template render fix
+
+- **This was a real functional gap, not cosmetic.** WhatsApp expects a
+  `<biz>` binary node alongside buttons/list/template/interactive
+  (native-flow) messages; without it, these message types may not render
+  correctly (or at all) on real WhatsApp clients. This build had zero
+  `<biz>`-node handling anywhere before this change.
+- Ported `getBizBinaryNode()` and `getBinaryFilteredBizBot()` into
+  `WABinary/generic-utils.ts`, and `shouldIncludeBizBinaryNode()` into
+  `Utils/messages.ts`.
+- Wired into `relayMessage()` (`Socket/messages-send.ts`): the `<biz>`
+  node is now appended automatically whenever the outgoing message needs
+  one, unless `additionalNodes` already supplied one.
+- Added `addBizAttributes?: boolean` to `MessageRelayOptions` to force
+  the node for message types that wouldn't normally need it.
+- Added automatic detection: `sendMessage()` now sets
+  `addBizAttributes` when the content includes
+  `secureMetaServiceLabel: true` (see below).
+
+## `ai` bot-icon flag
+
+- Added `ai?: boolean` to `MinimalRelayOptions` (so it's available on
+  both `MessageRelayOptions` and `MiscMessageGenerationOptions`).
+- When `sock.sendMessage(jid, content, { ai: true })` is used in a 1:1 or
+  LID chat, `relayMessage()` now pushes a `{ tag: 'bot', attrs: { biz_bot: '1' } }`
+  node onto the stanza, which shows the small "AI" icon on the message
+  bubble in the WhatsApp client. No-op in groups/status/newsletters.
+- Avoids double-pushing the bot node if `additionalNodes` already
+  contains one (checked via `getBinaryFilteredBizBot`).
+
+## `secureMetaServiceLabel` content flag
+
+- Added `secureMetaServiceLabel?: boolean` to `AnyMessageContent`.
+- `sendMessage()` now inspects the content for this flag and, if set,
+  forces `addBizAttributes: true` on the `relayMessage()` call — i.e. a
+  `<biz>` node gets attached even for message types that wouldn't
+  otherwise trigger one.
+
+## New chat/profile methods
+
+- `updatePanoramaProfilePicture(jid, content, options?)` — sets a wide
+  "panorama" profile picture (adds a full-size preview alongside the
+  standard square thumbnail). Depends on new
+  `generatePanoramaProfilePicture()` in `Utils/messages-media.ts`
+  (sharp/jimp, same backend selection as the rest of the media pipeline).
+- `clearMessage(jid, key, messageTimestamp)` — deletes a single message
+  from chat history via `chatModify`.
+
+## Known dead code — identified but intentionally not ported
+
+These exist in `innovatorssoft/baileys` (E_merged) itself, unrelated to
+this merge — confirmed by checking whether E_merged's own codebase calls
+them anywhere:
+
+- **`getBinaryFilteredButtons`** (`WABinary/generic-utils.ts`) — fully
+  implemented, exported, but never called. The one place that logically
+  needed it (`relayMessage`'s biz-node decision) uses an inline duplicate
+  check instead. No functional value in porting it.
+- **`ProductListContent`** type — declared, no runtime handler.
+- **`RawPassthroughContent`**-style raw content shorthand
+  (`{ interactiveMessage: ... }` etc. passed directly as message content)
+  — the type surface suggests it should work, but there's no generic
+  passthrough dispatch in `generateWAMessageContent`; content shaped this
+  way falls through to the generic media-type error.
+
+## Known pre-existing test issue (not a regression)
+
+- `sticker-pack.test.ts` → _"should reject sticker exceeding 1MB size
+  limit"_ — flaky by test design, not a code bug. The sticker pipeline
+  resizes to 512×512 before the size check runs, and a WebP-encoded
+  512×512 image at quality 80 essentially never exceeds 1MB regardless of
+  input size or content (even random noise). 442/443 tests pass; this is
+  the one failure, present before and after every change in this merge.
+
+## Verification
+
+Every change in this document was checked with `tsc --noEmit` (0 errors)
+and the full Jest suite (442/443 passing throughout) after each step, plus
+dedicated scratch tests for `generateKeyUuid`, `@napi-rs/image` loading,
+and the `<biz>` node builder (written, run, and removed — not part of the
+committed test suite).
+
+---
+
+# Upstream Changelog (D_may11)
+
 ## 9.5.5-beta.2 (2026-05-11)

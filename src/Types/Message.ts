@@ -402,6 +402,11 @@ export type AnyMessageContent = (
 	 * See `generateKeyUuid`.
 	 */
 	uuid?: string
+	/**
+	 * Source: innovatorssoft/baileys — forces the `<biz>` binary node onto the
+	 * stanza even for message types that wouldn't normally need one.
+	 */
+	secureMetaServiceLabel?: boolean
 }
 
 export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
@@ -411,6 +416,8 @@ type MinimalRelayOptions = {
 	messageId?: string
 	/** should we use group metadata cache, or fetch afresh from the server; default assumed to be "true" */
 	useCachedGroupMetadata?: boolean
+	/** Source: innovatorssoft/baileys — shows the small "AI" bot icon next to this message (1:1 / LID chats only) */
+	ai?: boolean
 }
 
 export type MessageRelayOptions = MinimalRelayOptions & {
