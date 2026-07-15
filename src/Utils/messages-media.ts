@@ -33,17 +33,24 @@ const getTmpFilesDirectory = () => tmpdir()
 
 export const getImageProcessingLibrary = async () => {
 	//@ts-ignore
-	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
+	const [jimp, sharp, image] = await Promise.all([
+		import('jimp').catch(() => undefined),
+		import('sharp').catch(() => undefined),
+		import('@napi-rs/image').catch(() => undefined)
+	])
 
-	if (sharp) {
-		return { sharp }
+	if (!sharp && !image && !jimp) {
+		throw new Boom('No image processing library available')
 	}
 
-	if (jimp) {
-		return { jimp }
-	}
-
-	throw new Boom('No image processing library available')
+	// Return every backend that loaded successfully — callers (e.g. the sticker-pack
+	// pipeline) check `hasSharp`/`hasImage`/`hasJimp` independently and pick their own
+	// priority order (sharp > @napi-rs/image > jimp), so we shouldn't short-circuit here.
+	const lib: { sharp?: typeof sharp; image?: typeof image; jimp?: typeof jimp } = {}
+	if (sharp) lib.sharp = sharp
+	if (image) lib.image = image
+	if (jimp) lib.jimp = jimp
+	return lib
 }
 
 export const hkdfInfoKey = (type: MediaType) => {
