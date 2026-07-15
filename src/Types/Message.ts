@@ -369,6 +369,18 @@ export type AnyRegularMessageContent = (
 			hasMediaAttachment?: boolean
 	  } & Contextable)
 	| {
+			/**
+			 * Product-catalog list message. Maps onto the real
+			 * `Message.ListMessage.ProductListInfo` proto schema.
+			 */
+			productList: Array<{ title: string; products: Array<{ productId: string }> }>
+			title?: string
+			text?: string
+			buttonText?: string
+			footer?: string
+			businessOwnerJid?: string
+	  }
+	| {
 			product: WASendableProduct
 			businessOwnerJid?: string
 			body?: string

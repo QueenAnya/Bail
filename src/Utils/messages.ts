@@ -500,7 +500,20 @@ export const generateWAMessageContent = async (
 	options: MessageContentGenerationOptions
 ) => {
 	let m: WAMessageContent = {}
-	if (hasNonNullishProperty(message, 'text')) {
+	if (
+		hasOptionalProperty(message, 'interactiveMessage') ||
+		hasOptionalProperty(message, 'buttonsMessage') ||
+		hasOptionalProperty(message, 'listMessage') ||
+		hasOptionalProperty(message, 'templateMessage')
+	) {
+		// Raw passthrough escape hatch: the caller supplied an already-built
+		// `proto.IMessage` sub-field directly (e.g. `{ interactiveMessage: {...} }`)
+		// instead of going through one of the higher-level shorthands above.
+		// Copied through as-is — these are real proto.IMessage field names, so
+		// no transformation is needed or safe to assume.
+		const { uuid: _uuid, secureMetaServiceLabel: _secureMetaServiceLabel, ...rest } = message as any
+		m = rest
+	} else if (hasNonNullishProperty(message, 'text')) {
 		const extContent = { text: message.text } as WATextMessage
 
 		let urlInfo = message.linkPreview
@@ -900,6 +913,29 @@ export const generateWAMessageContent = async (
 				footerText: (message as any).footer,
 				description: (message as any).text,
 				listType: ListType.SINGLE_SELECT
+			}
+		}
+	} else if (hasOptionalProperty(message, 'productList') && !!(message as any).productList) {
+		// Product-catalog list message. Maps directly onto the real
+		// `Message.ListMessage.ProductListInfo` proto schema
+		// (productSections[], each with title + products[{productId}]).
+		const msg = message as any
+		m = {
+			listMessage: {
+				title: msg.title,
+				description: msg.text,
+				buttonText: msg.buttonText,
+				footerText: msg.footer,
+				listType: ListType.PRODUCT_LIST,
+				productListInfo: {
+					productSections: msg.productList.map(
+						(section: { title: string; products: Array<{ productId: string }> }) => ({
+							title: section.title,
+							products: section.products.map(p => ({ productId: p.productId }))
+						})
+					),
+					businessOwnerJid: msg.businessOwnerJid
+				}
 			}
 		}
 	} else if (hasNonNullishProperty(message, 'templateButtons')) {

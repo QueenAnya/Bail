@@ -160,22 +160,35 @@ rather than guessing at the intended behavior.
 - `clearMessage(jid, key, messageTimestamp)` — deletes a single message
   from chat history via `chatModify`.
 
+## `productList` and raw-passthrough content — completed (not skipped)
+
+Originally flagged as "documented but never built" dead code in
+E_merged. Implemented properly here instead of porting the gap:
+
+- **`productList`** — product-catalog list message. Maps directly onto
+  the real `Message.ListMessage.ProductListInfo` proto schema
+  (`listType: PRODUCT_LIST`, `productSections[]`, each with `title` +
+  `products[{productId}]`, optional `businessOwnerJid`). Verified against
+  `WAProto/WAProto.proto` rather than guessed.
+- **Raw passthrough** — a generic escape hatch: if content already has
+  an `interactiveMessage` / `buttonsMessage` / `listMessage` /
+  `templateMessage` key (a real `proto.IMessage` sub-field), it's copied
+  through as-is instead of going through the higher-level shorthands.
+  Checked first, so it never interferes with normal `text`/other content.
+
+`getBinaryFilteredButtons` remains intentionally unported — genuinely
+unused everywhere, including in E_merged's own codebase.
+
 ## Known dead code — identified but intentionally not ported
 
-These exist in `innovatorssoft/baileys` (E_merged) itself, unrelated to
-this merge — confirmed by checking whether E_merged's own codebase calls
-them anywhere:
+Exists in `innovatorssoft/baileys` (E_merged) itself, unrelated to this
+merge — confirmed by checking whether E_merged's own codebase calls it
+anywhere:
 
 - **`getBinaryFilteredButtons`** (`WABinary/generic-utils.ts`) — fully
   implemented, exported, but never called. The one place that logically
   needed it (`relayMessage`'s biz-node decision) uses an inline duplicate
   check instead. No functional value in porting it.
-- **`ProductListContent`** type — declared, no runtime handler.
-- **`RawPassthroughContent`**-style raw content shorthand
-  (`{ interactiveMessage: ... }` etc. passed directly as message content)
-  — the type surface suggests it should work, but there's no generic
-  passthrough dispatch in `generateWAMessageContent`; content shaped this
-  way falls through to the generic media-type error.
 
 ## Known pre-existing test issue (not a regression)
 
