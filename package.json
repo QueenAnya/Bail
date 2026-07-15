@@ -1,5 +1,5 @@
 {
-  "name": "baileys",
+  "name": "@queenanya/baileys",
   "type": "module",
   "version": "9.5.5-anya-merged.1",
   "description": "A WebSockets library for interacting with WhatsApp Web",
