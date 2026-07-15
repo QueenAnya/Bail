@@ -1,36 +1,29 @@
+/**
+ * Anti-Delete / Message Store
+ * Source: @innovatorssoft/baileys anti-delete.js
+ */
 import { proto } from '../../WAProto/index.js'
-import type { WAMessage, WAMessageKey } from '../Types'
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-export interface MessageStoreOptions {
-	maxMessagesPerChat?: number
-	ttl?: number
-	cleanupInterval?: number
-}
-
-export interface StoredMessage {
-	message: WAMessage
+export type StoredMessage = {
+	message: proto.IWebMessageInfo
 	storedAt: number
 	isDeleted: boolean
 	deletedAt?: number
 	deletedBy?: string
 }
-
-export interface DeletedMessageInfo {
-	originalMessage: WAMessage
-	key: WAMessageKey
+export type DeletedMessageInfo = {
+	originalMessage: proto.IWebMessageInfo
+	key: proto.IMessageKey
 	deletedAt: number
 	deletedBy?: string
 	isRevokedBySender: boolean
 }
-
-// ── MessageStore ───────────────────────────────────────────────────────────
+export type MessageStoreOptions = { maxMessagesPerChat?: number; ttl?: number; cleanupInterval?: number }
 
 export class MessageStore {
 	private store = new Map<string, Map<string, StoredMessage>>()
 	private deletedMessages = new Map<string, DeletedMessageInfo>()
-	private cleanupTimer: ReturnType<typeof setInterval> | null = null
+	private cleanupTimer: ReturnType<typeof setInterval>
 	private options: Required<MessageStoreOptions>
 
 	constructor(options: MessageStoreOptions = {}) {
@@ -39,15 +32,11 @@ export class MessageStore {
 			ttl: options.ttl ?? 24 * 60 * 60 * 1000,
 			cleanupInterval: options.cleanupInterval ?? 60 * 60 * 1000
 		}
-		this.startCleanup()
-	}
-
-	private startCleanup() {
 		this.cleanupTimer = setInterval(() => this.cleanup(), this.options.cleanupInterval)
 	}
 
 	stopCleanup() {
-		if (this.cleanupTimer) clearInterval(this.cleanupTimer)
+		clearInterval(this.cleanupTimer)
 	}
 
 	private cleanup() {
@@ -56,92 +45,83 @@ export class MessageStore {
 			for (const [msgId, stored] of messages) {
 				if (stored.storedAt < cutoff) messages.delete(msgId)
 			}
-
 			if (messages.size === 0) this.store.delete(chatId)
 		}
-
 		for (const [key, info] of this.deletedMessages) {
 			if (info.deletedAt < cutoff) this.deletedMessages.delete(key)
 		}
 	}
 
-	private getKey(key: WAMessageKey) {
+	private getKey(key: proto.IMessageKey) {
 		return `${key.remoteJid}:${key.id}`
 	}
 
-	storeMessage(message: WAMessage) {
-		const chatId = message.key.remoteJid
-		if (!chatId || !message.key.id) return
+	storeMessage(message: proto.IWebMessageInfo) {
+		const chatId = message.key?.remoteJid
+		if (!chatId || !message?.key?.id) return
+		const msgId = message.key!.id as string
 		let chatMessages = this.store.get(chatId)
 		if (!chatMessages) {
 			chatMessages = new Map()
 			this.store.set(chatId, chatMessages)
 		}
-
 		if (chatMessages.size >= this.options.maxMessagesPerChat) {
-			const oldestKey = chatMessages.keys().next().value
-			if (oldestKey) chatMessages.delete(oldestKey)
+			const oldest = chatMessages.keys().next().value
+			if (oldest) chatMessages.delete(oldest)
 		}
-
-		chatMessages.set(message.key.id, { message, storedAt: Date.now(), isDeleted: false })
+		chatMessages.set(msgId, { message, storedAt: Date.now(), isDeleted: false })
 	}
 
-	storeMessages(messages: WAMessage[]) {
+	storeMessages(messages: proto.IWebMessageInfo[]) {
 		for (const msg of messages) this.storeMessage(msg)
 	}
 
-	getMessage(key: WAMessageKey): StoredMessage | undefined {
+	getMessage(key: proto.IMessageKey): StoredMessage | undefined {
 		return this.store.get(key.remoteJid!)?.get(key.id!)
 	}
 
-	getOriginalMessage(key: WAMessageKey): WAMessage | undefined {
+	getOriginalMessage(key: proto.IMessageKey): proto.IWebMessageInfo | undefined {
 		return this.getMessage(key)?.message
 	}
 
-	markAsDeleted(key: WAMessageKey, deletedBy?: string): DeletedMessageInfo | null {
+	markAsDeleted(key: proto.IMessageKey, deletedBy?: string | null): DeletedMessageInfo | null {
 		const stored = this.getMessage(key)
 		if (!stored) return null
 		const now = Date.now()
 		stored.isDeleted = true
 		stored.deletedAt = now
-		stored.deletedBy = deletedBy
+		stored.deletedBy = deletedBy ?? undefined
 		const info: DeletedMessageInfo = {
 			originalMessage: stored.message,
 			key,
 			deletedAt: now,
-			deletedBy,
-			isRevokedBySender: !deletedBy || deletedBy === stored.message.key.participant
+			deletedBy: deletedBy ?? undefined,
+			isRevokedBySender: !deletedBy || deletedBy === (stored.message.key?.participant ?? undefined)
 		}
 		this.deletedMessages.set(this.getKey(key), info)
 		return info
 	}
 
-	getDeletedMessage(key: WAMessageKey) {
+	getDeletedMessage(key: proto.IMessageKey) {
 		return this.deletedMessages.get(this.getKey(key))
 	}
-
 	getAllDeletedMessages() {
 		return Array.from(this.deletedMessages.values())
 	}
-
 	getDeletedMessagesByChat(chatId: string) {
 		return Array.from(this.deletedMessages.values()).filter(i => i.key.remoteJid === chatId)
 	}
-
-	getChatMessages(chatId: string): WAMessage[] {
+	getChatMessages(chatId: string) {
 		return Array.from(this.store.get(chatId)?.values() ?? []).map(s => s.message)
 	}
-
 	getChatIds() {
 		return Array.from(this.store.keys())
 	}
-
 	getStats() {
 		let totalMessages = 0
-		for (const messages of this.store.values()) totalMessages += messages.size
+		for (const msgs of this.store.values()) totalMessages += msgs.size
 		return { totalChats: this.store.size, totalMessages, totalDeleted: this.deletedMessages.size }
 	}
-
 	clear() {
 		this.store.clear()
 		this.deletedMessages.clear()
@@ -149,31 +129,24 @@ export class MessageStore {
 	clearChat(chatId: string) {
 		this.store.delete(chatId)
 	}
-
-	getAllMessages(): Record<string, WAMessage[]> {
-		const all: Record<string, WAMessage[]> = {}
-		for (const [chatId, messages] of this.store) {
-			all[chatId] = Array.from(messages.values()).map(s => s.message)
-		}
-
+	getAllMessages() {
+		const all: Record<string, proto.IWebMessageInfo[]> = {}
+		for (const [chatId, messages] of this.store) all[chatId] = Array.from(messages.values()).map(s => s.message)
 		return all
 	}
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+export const isDeleteMessage = (message: proto.IWebMessageInfo): boolean =>
+	message.message?.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE
 
-export const isDeleteMessage = (message: WAMessage): boolean => {
-	return message.message?.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE
-}
-
-export const getDeletedMessageKey = (message: WAMessage): WAMessageKey | null => {
+export const getDeletedMessageKey = (message: proto.IWebMessageInfo): proto.IMessageKey | null => {
 	const protoMsg = message.message?.protocolMessage
 	if (protoMsg?.type !== proto.Message.ProtocolMessage.Type.REVOKE) return null
-	return protoMsg.key ?? null
+	return protoMsg.key || null
 }
 
-export const createAntiDeleteHandler = (store: MessageStore) => {
-	return (updates: Array<{ key: WAMessageKey; update: Partial<WAMessage> }>) => {
+export const createAntiDeleteHandler =
+	(store: MessageStore) => (updates: { key: proto.IMessageKey; update: Partial<proto.IWebMessageInfo> }[]) => {
 		const deletedMessages: DeletedMessageInfo[] = []
 		for (const { key, update } of updates) {
 			if (update.messageStubType === proto.WebMessageInfo.StubType.REVOKE) {
@@ -181,28 +154,16 @@ export const createAntiDeleteHandler = (store: MessageStore) => {
 				if (info) deletedMessages.push(info)
 			}
 		}
-
 		return deletedMessages
 	}
-}
 
-export const createMessageStoreHandler = (store: MessageStore) => {
-	return ({ messages }: { messages: WAMessage[] }) => {
+export const createMessageStoreHandler =
+	(store: MessageStore) =>
+	({ messages }: { messages: proto.IWebMessageInfo[] }) => {
 		const regular = messages.filter(msg => {
 			const c = msg.message
 			if (!c) return false
-			if (c.protocolMessage) return false
-			if (c.senderKeyDistributionMessage) return false
-			return true
+			return !c.protocolMessage && !c.senderKeyDistributionMessage
 		})
 		store.storeMessages(regular)
 	}
-}
-
-export default {
-	MessageStore,
-	isDeleteMessage,
-	getDeletedMessageKey,
-	createAntiDeleteHandler,
-	createMessageStoreHandler
-}

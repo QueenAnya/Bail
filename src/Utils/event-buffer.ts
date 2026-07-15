@@ -1,4 +1,5 @@
 import EventEmitter from 'events'
+import type { proto } from '../../WAProto/index.js'
 import type {
 	BaileysEvent,
 	BaileysEventEmitter,
@@ -61,6 +62,8 @@ type BaileysBufferableEventEmitter = BaileysEventEmitter & {
 	flush(): boolean
 	/** is there an ongoing buffer */
 	isBuffering(): boolean
+	/** destroy the event buffer, clearing all resources */
+	destroy(): void
 }
 
 /**
@@ -233,7 +236,29 @@ export const makeEventBuffer = (logger: ILogger): BaileysBufferableEventEmitter 
 		},
 		on: (...args) => ev.on(...args),
 		off: (...args) => ev.off(...args),
-		removeAllListeners: (...args) => ev.removeAllListeners(...args)
+		removeAllListeners: (...args) => ev.removeAllListeners(...args),
+		destroy() {
+			// Clear buffer timeout
+			if (bufferTimeout) {
+				clearTimeout(bufferTimeout)
+				bufferTimeout = null
+			}
+
+			if (flushPendingTimeout) {
+				clearTimeout(flushPendingTimeout)
+				flushPendingTimeout = null
+			}
+
+			// Clear history cache
+			historyCache.clear()
+			// Reset buffer data
+			data = makeBufferData()
+			isBuffering = false
+			bufferCount = 0
+			// Remove all listeners
+			ev.removeAllListeners()
+			logger.debug('Event buffer destroyed')
+		}
 	}
 }
 
@@ -310,16 +335,37 @@ function append<E extends BufferableEvent>(
 
 			data.historySets.empty = false
 			data.historySets.syncType = eventData.syncType
+			if (eventData.pastParticipants?.length) {
+				const merged = new Map<string, proto.IPastParticipants>()
+				const sigOf = (p: proto.IPastParticipant) => `${p.userJid || ''}:${p.leaveTs || ''}:${p.leaveReason || ''}`
+				const ingest = (entry: proto.IPastParticipants) => {
+					const key = entry.groupJid ?? JSON.stringify(entry)
+					const existing = merged.get(key)
+					if (!existing) {
+						merged.set(key, { ...entry, pastParticipants: [...(entry.pastParticipants || [])] })
+						return
+					}
+
+					const seen = new Set((existing.pastParticipants || []).map(sigOf))
+					for (const p of entry.pastParticipants || []) {
+						const sig = sigOf(p)
+						if (!seen.has(sig)) {
+							existing.pastParticipants!.push(p)
+							seen.add(sig)
+						}
+					}
+				}
+
+				for (const entry of data.historySets.pastParticipants || []) ingest(entry)
+				for (const entry of eventData.pastParticipants) ingest(entry)
+
+				data.historySets.pastParticipants = [...merged.values()]
+			}
+
 			data.historySets.progress = eventData.progress
 			data.historySets.chunkOrder = eventData.chunkOrder
 			data.historySets.peerDataRequestSessionId = eventData.peerDataRequestSessionId
 			data.historySets.isLatest = eventData.isLatest || data.historySets.isLatest
-			if (eventData.pastParticipants?.length) {
-				data.historySets.pastParticipants = [
-					...(data.historySets.pastParticipants || []),
-					...eventData.pastParticipants
-				]
-			}
 
 			break
 		case 'chats.upsert':
@@ -604,12 +650,12 @@ function consolidateEvents(data: BufferedEventData) {
 			chats: Object.values(data.historySets.chats),
 			messages: Object.values(data.historySets.messages),
 			contacts: Object.values(data.historySets.contacts),
+			pastParticipants: data.historySets.pastParticipants,
 			syncType: data.historySets.syncType,
-			chunkOrder: data.historySets.chunkOrder,
 			progress: data.historySets.progress,
 			isLatest: data.historySets.isLatest,
-			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId,
-			pastParticipants: data.historySets.pastParticipants
+			chunkOrder: data.historySets.chunkOrder,
+			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId
 		}
 	}
 

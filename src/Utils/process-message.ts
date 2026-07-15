@@ -1,3 +1,4 @@
+import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import type {
 	AuthenticationCreds,
@@ -47,6 +48,15 @@ type ProcessMessageContext = {
 	getMessage: SocketConfig['getMessage']
 }
 
+const REAL_MSG_STUB_TYPES = new Set([
+	WAMessageStubType.CALL_MISSED_GROUP_VIDEO,
+	WAMessageStubType.CALL_MISSED_GROUP_VOICE,
+	WAMessageStubType.CALL_MISSED_VIDEO,
+	WAMessageStubType.CALL_MISSED_VOICE
+])
+
+const REAL_MSG_REQ_ME_STUB_TYPES = new Set([WAMessageStubType.GROUP_PARTICIPANT_ADD])
+
 async function storeTcTokensFromHistorySync(
 	chats: Chat[],
 	signalRepository: SignalRepositoryWithLIDStore,
@@ -54,8 +64,8 @@ async function storeTcTokensFromHistorySync(
 	logger?: ILogger
 ) {
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
-	const candidates: { storageJid: string; token: Buffer; ts: number; senderTs?: number }[] = []
 
+	const candidates: { storageJid: string; token: Buffer; ts: number; senderTs?: number }[] = []
 	for (const chat of chats) {
 		const ts = chat.tcTokenTimestamp ? toNumber(chat.tcTokenTimestamp) : 0
 		if (chat.tcToken?.length && ts > 0) {
@@ -70,7 +80,9 @@ async function storeTcTokensFromHistorySync(
 		}
 	}
 
-	if (!candidates.length) return
+	if (!candidates.length) {
+		return
+	}
 
 	const jids = candidates.map(c => c.storageJid)
 	const existing = await keyStore.get('tctoken', jids)
@@ -79,7 +91,9 @@ async function storeTcTokensFromHistorySync(
 	for (const c of candidates) {
 		const existingEntry = existing[c.storageJid]
 		const existingTs = existingEntry?.timestamp ? Number(existingEntry.timestamp) : 0
-		if (existingTs > 0 && existingTs >= c.ts) continue
+		if (existingTs > 0 && existingTs >= c.ts) {
+			continue
+		}
 
 		entries[c.storageJid] = {
 			...existingEntry,
@@ -92,6 +106,7 @@ async function storeTcTokensFromHistorySync(
 	if (Object.keys(entries).length) {
 		logger?.debug({ count: Object.keys(entries).length }, 'storing tctokens from history sync')
 		try {
+			// Include updated __index so cross-session pruning picks these JIDs up.
 			const indexWrite = await buildMergedTcTokenIndexWrite(keyStore, Object.keys(entries))
 			await keyStore.set({ tctoken: { ...entries, ...indexWrite } })
 		} catch (err) {
@@ -99,15 +114,6 @@ async function storeTcTokensFromHistorySync(
 		}
 	}
 }
-
-const REAL_MSG_STUB_TYPES = new Set([
-	WAMessageStubType.CALL_MISSED_GROUP_VIDEO,
-	WAMessageStubType.CALL_MISSED_GROUP_VOICE,
-	WAMessageStubType.CALL_MISSED_VIDEO,
-	WAMessageStubType.CALL_MISSED_VOICE
-])
-
-const REAL_MSG_REQ_ME_STUB_TYPES = new Set([WAMessageStubType.GROUP_PARTICIPANT_ADD])
 
 /** Cleans a received message to further processing */
 export const cleanMessage = (message: WAMessage, meId: string, meLid: string) => {
@@ -182,12 +188,24 @@ export const shouldIncrementChatUnread = (message: WAMessage) => !message.key.fr
  * Get the ID of the chat from the given key.
  * Typically -- that'll be the remoteJid, but for broadcasts, it'll be the participant
  */
-export const getChatId = ({ remoteJid, participant, fromMe }: WAMessageKey) => {
-	if (isJidBroadcast(remoteJid!) && !isJidStatusBroadcast(remoteJid!) && !fromMe) {
-		return participant!
+export const getChatId = ({ remoteJid, participant, fromMe }: WAMessageKey): string => {
+	if (!remoteJid) {
+		throw new Boom('Cannot derive chat id: message key is missing remoteJid', {
+			data: { remoteJid, participant, fromMe }
+		})
 	}
 
-	return remoteJid!
+	if (isJidBroadcast(remoteJid) && !isJidStatusBroadcast(remoteJid) && !fromMe) {
+		if (!participant) {
+			throw new Boom('Cannot derive chat id: broadcast message key is missing participant', {
+				data: { remoteJid, fromMe }
+			})
+		}
+
+		return participant
+	}
+
+	return remoteJid
 }
 
 type PollContext = {
@@ -348,17 +366,14 @@ const processMessage = async (
 							.catch(err => logger?.warn({ err }, 'failed to store LID-PN mappings from history sync'))
 					}
 
+					await storeTcTokensFromHistorySync(data.chats, signalRepository, keyStore, logger)
+
 					ev.emit('messaging-history.set', {
 						...data,
 						isLatest: histNotification.syncType !== proto.HistorySync.HistorySyncType.ON_DEMAND ? isLatest : undefined,
-						peerDataRequestSessionId: histNotification.peerDataRequestSessionId,
-						chunkOrder: histNotification.chunkOrder
+						chunkOrder: histNotification.chunkOrder,
+						peerDataRequestSessionId: histNotification.peerDataRequestSessionId
 					})
-
-					// Store tctokens from history sync chats (fire-and-forget)
-					storeTcTokensFromHistorySync(data.chats, signalRepository, keyStore, logger).catch(err =>
-						logger?.warn({ err }, 'failed to process tctokens from history sync')
-					)
 				}
 
 				break
