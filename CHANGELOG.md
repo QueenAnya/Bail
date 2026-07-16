@@ -19,6 +19,56 @@ Source snapshots referenced below:
 
 ---
 
+## Critical bug: `chatModify`-based features (star/archive/mute/pin/clearMessage) silently no-op
+
+**Second real bug found via live user testing** (`clearMessage`, then
+confirmed `star`/archive also affected — "no error, feature just doesn't
+do anything"). Unlike the buttons/sections bug above, this one produces
+**no thrown error at all**, making it much harder to detect from code
+review or unit tests alone.
+
+Traced the entire call chain end-to-end against `C_may03` (9.4.4, the
+last version confirmed fully working) and found every single function
+involved — `appPatch`, `chatModificationToAppPatch`, `getMessageRange`,
+`resyncAppState`, `getAppStateSyncKey`, `encodeSyncdPatch`,
+`mutationKeys`, `generateMac` — **byte-identical** between the two. The
+only difference anywhere in this feature's dependency chain: the native
+(Rust/WASM) `whatsapp-rust-bridge` package, which provides
+`expandAppStateKeys` (used to derive the 5 AES/HMAC keys — indexKey,
+valueEncryptionKey, valueMacKey, snapshotMacKey, patchMacKey — that
+every `chatModify` action is encrypted and MAC'd with before being sent
+to WhatsApp's servers).
+
+- `C_may03` (working): `whatsapp-rust-bridge@0.5.3`
+- `D_may11` → this build (not working): `whatsapp-rust-bridge@0.5.4`
+
+The version bump happened in D_may11's own C→D transition, silently,
+with no accompanying test coverage for app-state-sync — `appPatch`-based
+features aren't covered by this codebase's Jest suite at all (they
+require a live, authenticated connection to actually observe an effect,
+so nothing here would have caught a native-module regression). A native
+module producing subtly wrong key-derivation output would explain the
+symptom exactly: the JS code runs to completion without throwing (the
+patch gets built and sent successfully at the network level), but if the
+keys are wrong, WhatsApp's servers can't validate the patch and simply
+don't apply it — invisible from this library's side.
+
+**Fix:** downgraded `whatsapp-rust-bridge` back to `0.5.3` in
+`package.json` (`dependencies`) — the last version confirmed working.
+Verified: the 3 APIs this codebase actually uses from the package
+(`expandAppStateKeys`, `md5`, `hkdf`, `LTHashAntiTampering`) are called
+identically in `C_may03`, so this is a safe, compatible downgrade — not
+a partial/best-effort one. Also directly verified `expandAppStateKeys`
+still produces 5 correctly-sized (32-byte) keys after the downgrade.
+
+**Not independently re-verified against a live WhatsApp connection** (not
+possible in this environment) — if `star`/`archive`/`clearMessage`/`mute`/
+`pin` still don't work after this fix, the native module version is
+ruled out and the next place to look is `authState.keys` (the app-state
+sync key storage/retrieval implementation in the bot's own auth-state
+adapter), since that's the one remaining piece of this pipeline that
+lives outside this package.
+
 ## Critical bug: buttons/sections/templateButtons/nativeFlow/cards/productList broken for typical usage
 
 **Root cause of "40–50% of features not working" reported after the last
