@@ -387,17 +387,6 @@ export type Sticker = {
 }
 
 /**
- * Individual sticker within a sticker pack (V2 style)
- */
-export type StickerPackStickerr = {
-	sticker: WAMediaUpload
-	emojis?: string[]
-	accessibilityLabel?: string
-	isAnimated?: boolean
-	isLottie?: boolean
-}
-
-/**
  * Full sticker pack definition (Merged V1/V2)
  */
 export type StickerPackk = {

@@ -39,10 +39,18 @@ const getTmpFilesDirectory = () => tmpdir()
 
 export const getImageProcessingLibrary = async () => {
 	//@ts-ignore
-	const [jimp, sharp] = await Promise.all([import('jimp').catch(() => {}), import('sharp').catch(() => {})])
+	const [jimp, sharp, image] = await Promise.all([
+		import('jimp').catch(() => {}),
+		import('sharp').catch(() => {}),
+		import('@napi-rs/image').catch(() => {})
+	])
 
 	if (sharp) {
 		return { sharp }
+	}
+
+	if (image) {
+		return { image }
 	}
 
 	if (jimp) {
@@ -158,6 +166,18 @@ export const extractImageThumb = async (bufferOrFilePath: Readable | Buffer | st
 				height: dimensions.height
 			}
 		}
+	} else if ('image' in lib && typeof lib.image?.Transformer === 'function') {
+		const inputBuffer = Buffer.isBuffer(bufferOrFilePath) ? bufferOrFilePath : await fs.readFile(bufferOrFilePath)
+		const transformer = new lib.image.Transformer(inputBuffer)
+		const dimensions = await transformer.metadata()
+		const buffer = await transformer.resize(width).jpeg(50)
+		return {
+			buffer,
+			original: {
+				width: dimensions.width,
+				height: dimensions.height
+			}
+		}
 	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'object') {
 		const jimp = await (lib.jimp.Jimp as any).read(bufferOrFilePath)
 		const dimensions = {
@@ -206,6 +226,10 @@ export const generateProfilePicture = async (
 				quality: 50
 			})
 			.toBuffer()
+	} else if ('image' in lib && typeof lib.image?.Transformer === 'function') {
+		const meta = await new lib.image.Transformer(buffer).metadata()
+		const min = Math.min(meta.width, meta.height)
+		img = new lib.image.Transformer(buffer).crop(0, 0, min, min).resize(w, h).jpeg(50)
 	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
 		const jimp = await (lib.jimp.Jimp as any).read(buffer)
 		const min = Math.min(jimp.width, jimp.height)
@@ -250,6 +274,10 @@ export const generatePanoramaProfilePicture = async (
 		const meta = await sharpImg.metadata()
 		const targetWidth = Math.min(maxWidth, meta.width || maxWidth)
 		wide = await sharpImg.resize({ width: targetWidth }).jpeg({ quality }).toBuffer()
+	} else if ('image' in lib && typeof lib.image?.Transformer === 'function') {
+		const meta = await new lib.image.Transformer(buffer).metadata()
+		const targetWidth = Math.min(maxWidth, meta.width || maxWidth)
+		wide = await new lib.image.Transformer(buffer).resize(targetWidth).jpeg(quality)
 	} else if ('jimp' in lib && typeof lib.jimp?.Jimp === 'function') {
 		const jimp = await (lib.jimp.Jimp as any).read(buffer)
 		const targetWidth = Math.min(maxWidth, jimp.width)

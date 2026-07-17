@@ -7,7 +7,8 @@ import {
 	buildAdminInviteMessage,
 	buildCallMessage,
 	buildPaymentInviteMessage,
-	buildStickerPackMessage
+	buildStickerPackMessage,
+	isWebPBuffer
 } from '../addons/from-messages'
 import {
 	CALL_AUDIO_PREFIX,
@@ -43,8 +44,11 @@ import {
 	generateThumbnail,
 	getAudioDuration,
 	getAudioWaveform,
+	getImageProcessingLibrary,
 	getRawMediaUploadData,
-	type MediaDownloadOptions
+	getStream,
+	type MediaDownloadOptions,
+	toBuffer
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
 
@@ -149,7 +153,9 @@ export const prepareWAMessageMedia = async (
 		media: (message as any)[mediaType]
 	}
 	delete (uploadData as any)[mediaType]
-	// check if cacheable + generate cache key
+
+	// check if cacheable + generate cache key (must run BEFORE sticker webp conversion below,
+	// since conversion replaces a {url} media reference with a raw Buffer)
 	const cacheableKey =
 		typeof uploadData.media === 'object' &&
 		'url' in uploadData.media &&
@@ -176,6 +182,28 @@ export const prepareWAMessageMedia = async (
 			Object.assign(obj[key as keyof proto.Message]!, { ...uploadData, media: undefined })
 
 			return obj
+		}
+	}
+
+	// ── sticker → auto-convert non-WebP images to WebP (matches stickerPack behavior) ──
+	// Runs only past the cache-hit check above, so a cache hit never pays this cost.
+	if (mediaType === 'sticker') {
+		const { stream } = await getStream(uploadData.media)
+		const buffer = await toBuffer(stream)
+		if (isWebPBuffer(buffer)) {
+			uploadData.media = buffer // already webp, keep as-is (preserves EXIF + animation)
+		} else {
+			const lib = await getImageProcessingLibrary()
+			if (lib?.sharp) {
+				uploadData.media = await lib.sharp.default(buffer).webp().toBuffer()
+			} else if (lib?.image) {
+				uploadData.media = await new lib.image.Transformer(buffer).webp()
+			} else {
+				throw new Boom(
+					'No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP. Either install one of them or provide the sticker in WebP format.',
+					{ statusCode: 400 }
+				)
+			}
 		}
 	}
 
