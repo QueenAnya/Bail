@@ -1,5 +1,13 @@
 export type WACallUpdateType =
-	'offer' | 'ringing' | 'preaccept' | 'transport' | 'relaylatency' | 'timeout' | 'reject' | 'accept' | 'terminate'
+	| 'offer'
+	| 'ringing'
+	| 'preaccept'
+	| 'transport'
+	| 'relaylatency'
+	| 'timeout'
+	| 'reject'
+	| 'accept'
+	| 'terminate'
 
 export type WAInitiateCallOptions = {
 	isVideo?: boolean

@@ -39,19 +39,19 @@ Out of scope (please file as regular issues or PRs):
 - Bugs that only affect availability of the local process (a malformed input that throws an exception in your handler is not a CVE; a malformed input that lets a remote party crash any Baileys client is)
 - Issues in third-party WhatsApp clones or forks of Baileys
 - Behavior of WhatsApp itself — we don't control the server; report those to Meta
-- Missing rate limiting in *your* application — Baileys doesn't add rate limiting on top of WhatsApp's
+- Missing rate limiting in _your_ application — Baileys doesn't add rate limiting on top of WhatsApp's
 - Reports that boil down to "the library can be misused for spam." See `CODE_OF_CONDUCT.md` § Project-Specific Conduct; that's a contributions matter, not a vulnerability.
 
 ## Coordinated disclosure
 
 Our default timeline:
 
-| Day | Step |
-|---|---|
-| 0 | Report received, acknowledged within 72h |
-| ≤ 7 | Initial assessment shared with reporter; severity and rough timeline agreed |
-| ≤ 30 | Fix prepared on a private branch; reporter invited to validate if they want |
-| Coordinated date | Fix merged, release published, advisory + CVE published |
+| Day              | Step                                                                        |
+| ---------------- | --------------------------------------------------------------------------- |
+| 0                | Report received, acknowledged within 72h                                    |
+| ≤ 7              | Initial assessment shared with reporter; severity and rough timeline agreed |
+| ≤ 30             | Fix prepared on a private branch; reporter invited to validate if they want |
+| Coordinated date | Fix merged, release published, advisory + CVE published                     |
 
 If you need to disclose sooner (e.g., active exploitation in the wild), tell us — we'll prioritize accordingly. If a fix is taking longer than 30 days, we'll keep you updated and explain why.
 
@@ -61,10 +61,10 @@ We're happy to credit reporters in the advisory. Tell us how you'd like to be cr
 
 Security fixes are backported to the **latest minor release line**. Older majors (≤ 6.x) are unmaintained — please upgrade. The `master` branch is also patched immediately, but downstream pinning to `master` is at your own risk for stability.
 
-| Version | Supported |
-|---|---|
-| `7.x` (current) | ✅ |
-| `< 7.0` | ❌ |
+| Version         | Supported |
+| --------------- | --------- |
+| `7.x` (current) | ✅        |
+| `< 7.0`         | ❌        |
 
 ## Operational security for users
 

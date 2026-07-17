@@ -23,8 +23,8 @@ jobs:
         ports:
           - 8080:8080
         env:
-          CHATSTATE_TTL_SECS: "3"
-          ADV_SECRET_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          CHATSTATE_TTL_SECS: '3'
+          ADV_SECRET_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
         options: --log-driver none
 
     steps:
@@ -67,6 +67,6 @@ jobs:
 
       - name: Run E2E tests
         env:
-          SOCKET_URL: "wss://127.0.0.1:8080/ws/chat"
-          ADV_SECRET_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+          SOCKET_URL: 'wss://127.0.0.1:8080/ws/chat'
+          ADV_SECRET_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
         run: yarn test:e2e
