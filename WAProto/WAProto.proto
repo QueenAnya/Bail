@@ -2100,12 +2100,6 @@ message Message {
     optional ButtonsMessage buttonsMessage = 42;
     optional ButtonsResponseMessage buttonsResponseMessage = 43;
     optional PaymentInviteMessage paymentInviteMessage = 44;
-    // Source: innovatorssoft/baileys real WAProto — field numbers match
-    // the real upstream schema exactly (119, 121, 124, 125).
-    optional EventInviteMessage eventInviteMessage = 122;
-    optional PollAddOptionMessage pollAddOptionMessage = 121;
-    optional PaymentReminderMessage paymentReminderMessage = 124;
-    optional SplitPaymentMessage splitPaymentMessage = 125;
     optional InteractiveMessage interactiveMessage = 45;
     optional ReactionMessage reactionMessage = 46;
     optional StickerSyncRMRMessage stickerSyncRmrMessage = 47;
@@ -2998,74 +2992,6 @@ message Message {
         }
     }
 
-    // Source: innovatorssoft/baileys real WAProto (E2E.proto) — not present in
-    // the monolithic proto this build was based on. Field numbers match the
-    // real upstream schema exactly.
-    message EventInviteMessage {
-        optional ContextInfo contextInfo = 1;
-        optional string eventId = 2;
-        optional string eventTitle = 3;
-        optional bytes jpegThumbnail = 4;
-        optional int64 startTime = 5;
-        optional string caption = 6;
-        optional bool isCanceled = 7;
-        optional int64 endTime = 8;
-        optional string callLink = 9;
-    }
-
-    message PaymentReminderMessage {
-        optional string reminderId = 1;
-        optional string instanceId = 2;
-        optional string description = 3;
-        optional ReminderFrequency frequency = 4;
-        optional ReminderStatus status = 5;
-        optional string payeeVpa = 6;
-        optional string payeeJid = 7;
-        optional string payerJid = 8;
-        optional Money amount = 9;
-        enum ReminderFrequency {
-            REMINDER_FREQUENCY_UNKNOWN = 0;
-            WEEKLY = 1;
-            BI_WEEKLY = 2;
-            MONTHLY = 3;
-            QUARTERLY = 4;
-        }
-        enum ReminderStatus {
-            REMINDER_STATUS_UNKNOWN = 0;
-            ACTIVE = 1;
-            CANCELLED_BY_CREATOR = 2;
-            STOPPED_BY_RECEIVER = 3;
-            EXPIRED = 4;
-            PAID = 5;
-        }
-    }
-
-    message PollAddOptionMessage {
-        optional MessageKey pollCreationMessageKey = 1;
-        optional Message.PollCreationMessage.Option addOption = 2;
-        optional Message.PollUpdateMessageMetadata metadata = 3;
-    }
-
-    message SplitPaymentParticipant {
-        optional string jid = 1;
-        optional Money amount = 2;
-        optional SplitPaymentStatus status = 3;
-        enum SplitPaymentStatus {
-            PENDING = 0;
-            PAID = 1;
-        }
-    }
-
-    message SplitPaymentMessage {
-        optional string splitId = 1;
-        optional Money totalAmount = 2;
-        optional string description = 3;
-        optional string requesterJid = 4;
-        repeated Message.SplitPaymentParticipant participants = 5;
-        optional int64 createdAtMs = 6;
-        optional ContextInfo contextInfo = 17;
-    }
-
     message PaymentExtendedMetadata {
         optional uint32 type = 1;
         optional string platform = 2;
@@ -3082,7 +3008,6 @@ message Message {
             UPI = 3;
         }
     }
-
 
     message PaymentLinkMetadata {
         optional PaymentLinkButton button = 1;

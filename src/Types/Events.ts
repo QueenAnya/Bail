@@ -152,9 +152,10 @@ export type BufferedEventData = {
 		isLatest: boolean
 		progress?: number | null
 		syncType?: proto.HistorySync.HistorySyncType
-		pastParticipants?: proto.IPastParticipants[]
+
 		chunkOrder?: number | null
 		peerDataRequestSessionId?: string
+		pastParticipants?: proto.IPastParticipants[]
 	}
 	chatUpserts: { [jid: string]: Chat }
 	chatUpdates: { [jid: string]: ChatUpdate }

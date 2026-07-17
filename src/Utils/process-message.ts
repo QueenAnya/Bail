@@ -48,15 +48,6 @@ type ProcessMessageContext = {
 	getMessage: SocketConfig['getMessage']
 }
 
-const REAL_MSG_STUB_TYPES = new Set([
-	WAMessageStubType.CALL_MISSED_GROUP_VIDEO,
-	WAMessageStubType.CALL_MISSED_GROUP_VOICE,
-	WAMessageStubType.CALL_MISSED_VIDEO,
-	WAMessageStubType.CALL_MISSED_VOICE
-])
-
-const REAL_MSG_REQ_ME_STUB_TYPES = new Set([WAMessageStubType.GROUP_PARTICIPANT_ADD])
-
 async function storeTcTokensFromHistorySync(
 	chats: Chat[],
 	signalRepository: SignalRepositoryWithLIDStore,
@@ -64,8 +55,8 @@ async function storeTcTokensFromHistorySync(
 	logger?: ILogger
 ) {
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
-
 	const candidates: { storageJid: string; token: Buffer; ts: number; senderTs?: number }[] = []
+
 	for (const chat of chats) {
 		const ts = chat.tcTokenTimestamp ? toNumber(chat.tcTokenTimestamp) : 0
 		if (chat.tcToken?.length && ts > 0) {
@@ -80,9 +71,7 @@ async function storeTcTokensFromHistorySync(
 		}
 	}
 
-	if (!candidates.length) {
-		return
-	}
+	if (!candidates.length) return
 
 	const jids = candidates.map(c => c.storageJid)
 	const existing = await keyStore.get('tctoken', jids)
@@ -91,9 +80,7 @@ async function storeTcTokensFromHistorySync(
 	for (const c of candidates) {
 		const existingEntry = existing[c.storageJid]
 		const existingTs = existingEntry?.timestamp ? Number(existingEntry.timestamp) : 0
-		if (existingTs > 0 && existingTs >= c.ts) {
-			continue
-		}
+		if (existingTs > 0 && existingTs >= c.ts) continue
 
 		entries[c.storageJid] = {
 			...existingEntry,
@@ -106,7 +93,6 @@ async function storeTcTokensFromHistorySync(
 	if (Object.keys(entries).length) {
 		logger?.debug({ count: Object.keys(entries).length }, 'storing tctokens from history sync')
 		try {
-			// Include updated __index so cross-session pruning picks these JIDs up.
 			const indexWrite = await buildMergedTcTokenIndexWrite(keyStore, Object.keys(entries))
 			await keyStore.set({ tctoken: { ...entries, ...indexWrite } })
 		} catch (err) {
@@ -114,6 +100,15 @@ async function storeTcTokensFromHistorySync(
 		}
 	}
 }
+
+const REAL_MSG_STUB_TYPES = new Set([
+	WAMessageStubType.CALL_MISSED_GROUP_VIDEO,
+	WAMessageStubType.CALL_MISSED_GROUP_VOICE,
+	WAMessageStubType.CALL_MISSED_VIDEO,
+	WAMessageStubType.CALL_MISSED_VOICE
+])
+
+const REAL_MSG_REQ_ME_STUB_TYPES = new Set([WAMessageStubType.GROUP_PARTICIPANT_ADD])
 
 /** Cleans a received message to further processing */
 export const cleanMessage = (message: WAMessage, meId: string, meLid: string) => {
@@ -330,6 +325,45 @@ const processMessage = async (
 
 	const protocolMsg = content?.protocolMessage
 	if (protocolMsg) {
+		// Mirror whatsmeow's `handleProtocolMessage` guard, but applied only to
+		// the protocol message types that originate from our own device — an
+		// attacker could otherwise spoof any of these to manipulate local state.
+		//
+		// Self-only types (drop if `!fromMe`):
+		//   - HISTORY_SYNC_NOTIFICATION                 (our phone driving history sync)
+		//   - APP_STATE_SYNC_KEY_SHARE                  (key share between our devices)
+		//   - LID_MIGRATION_MAPPING_SYNC                (server-initiated via our phone)
+		//   - PEER_DATA_OPERATION_REQUEST_RESPONSE_MESSAGE (response from our phone to our PDO request)
+		//
+		// Cross-user types (must NOT be dropped — legitimately arrive from others):
+		//   - REVOKE
+		//   - MESSAGE_EDIT
+		//   - EPHEMERAL_SETTING
+		//   - GROUP_MEMBER_LABEL_CHANGE
+		//
+		// See https://github.com/tulir/whatsmeow/blob/8d3700152a/message.go#L842-L845
+		// for the reference architecture — whatsmeow's `handleProtocolMessage`
+		// only contains self-only types because edits are unwrapped from
+		// `EditedMessage` BEFORE this dispatch and revokes aren't routed here.
+		const SELF_ONLY_TYPES = new Set<proto.Message.ProtocolMessage.Type>([
+			proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION,
+			proto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_SHARE,
+			proto.Message.ProtocolMessage.Type.LID_MIGRATION_MAPPING_SYNC,
+			proto.Message.ProtocolMessage.Type.PEER_DATA_OPERATION_REQUEST_RESPONSE_MESSAGE
+		])
+		if (
+			protocolMsg.type !== null &&
+			protocolMsg.type !== undefined &&
+			SELF_ONLY_TYPES.has(protocolMsg.type) &&
+			!message.key.fromMe
+		) {
+			logger?.warn(
+				{ msgId: message.key.id, type: protocolMsg.type, from: message.key.participant || message.key.remoteJid },
+				'dropping spoofed self-only protocolMessage from non-self origin'
+			)
+			return
+		}
+
 		switch (protocolMsg.type) {
 			case proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION:
 				const histNotification = protocolMsg.historySyncNotification!

@@ -5219,10 +5219,6 @@ export namespace proto {
         buttonsMessage?: (proto.Message.IButtonsMessage|null);
         buttonsResponseMessage?: (proto.Message.IButtonsResponseMessage|null);
         paymentInviteMessage?: (proto.Message.IPaymentInviteMessage|null);
-        eventInviteMessage?: (proto.Message.IEventInviteMessage|null);
-        pollAddOptionMessage?: (proto.Message.IPollAddOptionMessage|null);
-        paymentReminderMessage?: (proto.Message.IPaymentReminderMessage|null);
-        splitPaymentMessage?: (proto.Message.ISplitPaymentMessage|null);
         interactiveMessage?: (proto.Message.IInteractiveMessage|null);
         reactionMessage?: (proto.Message.IReactionMessage|null);
         stickerSyncRmrMessage?: (proto.Message.IStickerSyncRMRMessage|null);
@@ -5322,10 +5318,6 @@ export namespace proto {
         public buttonsMessage?: (proto.Message.IButtonsMessage|null);
         public buttonsResponseMessage?: (proto.Message.IButtonsResponseMessage|null);
         public paymentInviteMessage?: (proto.Message.IPaymentInviteMessage|null);
-        public eventInviteMessage?: (proto.Message.IEventInviteMessage|null);
-        public pollAddOptionMessage?: (proto.Message.IPollAddOptionMessage|null);
-        public paymentReminderMessage?: (proto.Message.IPaymentReminderMessage|null);
-        public splitPaymentMessage?: (proto.Message.ISplitPaymentMessage|null);
         public interactiveMessage?: (proto.Message.IInteractiveMessage|null);
         public reactionMessage?: (proto.Message.IReactionMessage|null);
         public stickerSyncRmrMessage?: (proto.Message.IStickerSyncRMRMessage|null);
@@ -7619,166 +7611,6 @@ export namespace proto {
             enum OrderSurface {
                 CATALOG = 1
             }
-        }
-
-        interface IEventInviteMessage {
-            contextInfo?: (proto.IContextInfo|null);
-            eventId?: (string|null);
-            eventTitle?: (string|null);
-            jpegThumbnail?: (Uint8Array|null);
-            startTime?: (number|Long|null);
-            caption?: (string|null);
-            isCanceled?: (boolean|null);
-            endTime?: (number|Long|null);
-            callLink?: (string|null);
-        }
-
-        class EventInviteMessage implements IEventInviteMessage {
-            constructor(p?: proto.Message.IEventInviteMessage);
-            public contextInfo?: (proto.IContextInfo|null);
-            public eventId?: (string|null);
-            public eventTitle?: (string|null);
-            public jpegThumbnail?: (Uint8Array|null);
-            public startTime?: (number|Long|null);
-            public caption?: (string|null);
-            public isCanceled?: (boolean|null);
-            public endTime?: (number|Long|null);
-            public callLink?: (string|null);
-            public static create(properties?: proto.Message.IEventInviteMessage): proto.Message.EventInviteMessage;
-            public static encode(m: proto.Message.IEventInviteMessage, w?: $protobuf.Writer): $protobuf.Writer;
-            public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.EventInviteMessage;
-            public static fromObject(d: { [k: string]: any }): proto.Message.EventInviteMessage;
-            public static toObject(m: proto.Message.EventInviteMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
-            public toJSON(): { [k: string]: any };
-            public static getTypeUrl(typeUrlPrefix?: string): string;
-        }
-
-        interface IPaymentReminderMessage {
-            reminderId?: (string|null);
-            instanceId?: (string|null);
-            description?: (string|null);
-            frequency?: (proto.Message.PaymentReminderMessage.ReminderFrequency|null);
-            status?: (proto.Message.PaymentReminderMessage.ReminderStatus|null);
-            payeeVpa?: (string|null);
-            payeeJid?: (string|null);
-            payerJid?: (string|null);
-            amount?: (proto.IMoney|null);
-        }
-
-        class PaymentReminderMessage implements IPaymentReminderMessage {
-            constructor(p?: proto.Message.IPaymentReminderMessage);
-            public reminderId?: (string|null);
-            public instanceId?: (string|null);
-            public description?: (string|null);
-            public frequency?: (proto.Message.PaymentReminderMessage.ReminderFrequency|null);
-            public status?: (proto.Message.PaymentReminderMessage.ReminderStatus|null);
-            public payeeVpa?: (string|null);
-            public payeeJid?: (string|null);
-            public payerJid?: (string|null);
-            public amount?: (proto.IMoney|null);
-            public static create(properties?: proto.Message.IPaymentReminderMessage): proto.Message.PaymentReminderMessage;
-            public static encode(m: proto.Message.IPaymentReminderMessage, w?: $protobuf.Writer): $protobuf.Writer;
-            public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.PaymentReminderMessage;
-            public static fromObject(d: { [k: string]: any }): proto.Message.PaymentReminderMessage;
-            public static toObject(m: proto.Message.PaymentReminderMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
-            public toJSON(): { [k: string]: any };
-            public static getTypeUrl(typeUrlPrefix?: string): string;
-        }
-
-        namespace PaymentReminderMessage {
-
-            enum ReminderFrequency {
-                REMINDER_FREQUENCY_UNKNOWN = 0,
-                WEEKLY = 1,
-                BI_WEEKLY = 2,
-                MONTHLY = 3,
-                QUARTERLY = 4
-            }
-
-            enum ReminderStatus {
-                REMINDER_STATUS_UNKNOWN = 0,
-                ACTIVE = 1,
-                CANCELLED_BY_CREATOR = 2,
-                STOPPED_BY_RECEIVER = 3,
-                EXPIRED = 4,
-                PAID = 5
-            }
-        }
-
-        interface IPollAddOptionMessage {
-            pollCreationMessageKey?: (proto.IMessageKey|null);
-            addOption?: (proto.Message.PollCreationMessage.IOption|null);
-            metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
-        }
-
-        class PollAddOptionMessage implements IPollAddOptionMessage {
-            constructor(p?: proto.Message.IPollAddOptionMessage);
-            public pollCreationMessageKey?: (proto.IMessageKey|null);
-            public addOption?: (proto.Message.PollCreationMessage.IOption|null);
-            public metadata?: (proto.Message.IPollUpdateMessageMetadata|null);
-            public static create(properties?: proto.Message.IPollAddOptionMessage): proto.Message.PollAddOptionMessage;
-            public static encode(m: proto.Message.IPollAddOptionMessage, w?: $protobuf.Writer): $protobuf.Writer;
-            public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.PollAddOptionMessage;
-            public static fromObject(d: { [k: string]: any }): proto.Message.PollAddOptionMessage;
-            public static toObject(m: proto.Message.PollAddOptionMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
-            public toJSON(): { [k: string]: any };
-            public static getTypeUrl(typeUrlPrefix?: string): string;
-        }
-
-        interface ISplitPaymentParticipant {
-            jid?: (string|null);
-            amount?: (proto.IMoney|null);
-            status?: (proto.Message.SplitPaymentParticipant.SplitPaymentStatus|null);
-        }
-
-        class SplitPaymentParticipant implements ISplitPaymentParticipant {
-            constructor(p?: proto.Message.ISplitPaymentParticipant);
-            public jid?: (string|null);
-            public amount?: (proto.IMoney|null);
-            public status?: (proto.Message.SplitPaymentParticipant.SplitPaymentStatus|null);
-            public static create(properties?: proto.Message.ISplitPaymentParticipant): proto.Message.SplitPaymentParticipant;
-            public static encode(m: proto.Message.ISplitPaymentParticipant, w?: $protobuf.Writer): $protobuf.Writer;
-            public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.SplitPaymentParticipant;
-            public static fromObject(d: { [k: string]: any }): proto.Message.SplitPaymentParticipant;
-            public static toObject(m: proto.Message.SplitPaymentParticipant, o?: $protobuf.IConversionOptions): { [k: string]: any };
-            public toJSON(): { [k: string]: any };
-            public static getTypeUrl(typeUrlPrefix?: string): string;
-        }
-
-        namespace SplitPaymentParticipant {
-
-            enum SplitPaymentStatus {
-                PENDING = 0,
-                PAID = 1
-            }
-        }
-
-        interface ISplitPaymentMessage {
-            splitId?: (string|null);
-            totalAmount?: (proto.IMoney|null);
-            description?: (string|null);
-            requesterJid?: (string|null);
-            participants?: (proto.Message.ISplitPaymentParticipant[]|null);
-            createdAtMs?: (number|Long|null);
-            contextInfo?: (proto.IContextInfo|null);
-        }
-
-        class SplitPaymentMessage implements ISplitPaymentMessage {
-            constructor(p?: proto.Message.ISplitPaymentMessage);
-            public splitId?: (string|null);
-            public totalAmount?: (proto.IMoney|null);
-            public description?: (string|null);
-            public requesterJid?: (string|null);
-            public participants: proto.Message.ISplitPaymentParticipant[];
-            public createdAtMs?: (number|Long|null);
-            public contextInfo?: (proto.IContextInfo|null);
-            public static create(properties?: proto.Message.ISplitPaymentMessage): proto.Message.SplitPaymentMessage;
-            public static encode(m: proto.Message.ISplitPaymentMessage, w?: $protobuf.Writer): $protobuf.Writer;
-            public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.SplitPaymentMessage;
-            public static fromObject(d: { [k: string]: any }): proto.Message.SplitPaymentMessage;
-            public static toObject(m: proto.Message.SplitPaymentMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
-            public toJSON(): { [k: string]: any };
-            public static getTypeUrl(typeUrlPrefix?: string): string;
         }
 
         interface IPaymentExtendedMetadata {

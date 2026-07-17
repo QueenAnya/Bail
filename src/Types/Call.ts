@@ -1,13 +1,15 @@
 export type WACallUpdateType =
-	| 'offer'
-	| 'ringing'
-	| 'preaccept'
-	| 'transport'
-	| 'relaylatency'
-	| 'timeout'
-	| 'reject'
-	| 'accept'
-	| 'terminate'
+	'offer' | 'ringing' | 'preaccept' | 'transport' | 'relaylatency' | 'timeout' | 'reject' | 'accept' | 'terminate'
+
+export type WAInitiateCallOptions = {
+	isVideo?: boolean
+}
+
+export type WAInitiateCallResult = {
+	callId: string
+	to: string
+	isVideo: boolean
+}
 
 export type WACallEvent = {
 	chatId: string
@@ -21,14 +23,4 @@ export type WACallEvent = {
 	status: WACallUpdateType
 	offline: boolean
 	latencyMs?: number
-}
-
-export type WAInitiateCallOptions = {
-	isVideo?: boolean
-}
-
-export type WAInitiateCallResult = {
-	callId: string
-	to: string
-	isVideo: boolean
 }

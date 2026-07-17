@@ -33,7 +33,7 @@ Baileys is a dual-use library. It can be used for legitimate automation, bots, a
 - Scraping users or contacts without their consent
 - Evasion techniques specifically designed to hide automation from WhatsApp
 
-Discussion of how WhatsApp's restrictions work in order to handle them gracefully (e.g., backing off when restricted, surfacing the restriction to the application) is fine and necessary. The line is intent: are we _responding to_ the platform's behavior, or _defeating_ it?
+Discussion of how WhatsApp's restrictions work in order to handle them gracefully (e.g., backing off when restricted, surfacing the restriction to the application) is fine and necessary. The line is intent: are we *responding to* the platform's behavior, or *defeating* it?
 
 ## AI Policy
 
@@ -41,7 +41,7 @@ This project welcomes AI-assisted contributions. Most of us use them. The rules:
 
 1. **You are the author.** AI tools (Claude, Copilot, Cursor, Codex, ChatGPT, etc.) are tools. The human who opens the PR is responsible for every line in it — correctness, license compatibility, security implications, and adherence to the rest of this Code of Conduct. "The AI wrote it" is not a defense.
 
-2. **Disclose AI use in PRs.** A one-line note in the PR description is enough — for example: _"Drafted with Claude Code, reviewed and tested by me."_ You don't need to enumerate every prompt. The point is that reviewers know to look closer at things AI tools commonly get wrong (hallucinated APIs, invented protocol details, plausible-but-wrong refactors).
+2. **Disclose AI use in PRs.** A one-line note in the PR description is enough — for example: *"Drafted with Claude Code, reviewed and tested by me."* You don't need to enumerate every prompt. The point is that reviewers know to look closer at things AI tools commonly get wrong (hallucinated APIs, invented protocol details, plausible-but-wrong refactors).
 
 3. **Review before you submit.** Don't open PRs with code you haven't read. Don't open PRs with code you don't understand well enough to defend in review. If a reviewer asks "why does this work?" and your answer is "the AI suggested it," the PR will be closed.
 
@@ -51,7 +51,7 @@ This project welcomes AI-assisted contributions. Most of us use them. The rules:
    - `baileys_auth_info/` and any other auth/session state — these contain Signal identity keys equivalent to long-lived credentials
    - `.env` files, API tokens, signing keys
    - Real user phone numbers, message content, or contact lists from production systems
-     Most AI providers retain prompts for some period; treat anything you paste as published.
+   Most AI providers retain prompts for some period; treat anything you paste as published.
 
 6. **Don't use AI to mass-generate issues, PRs, or comments.** Drive-by AI-generated PRs that "fix" non-bugs, add unnecessary tests, or reformat unrelated code waste maintainer time and will be closed without detailed review. If you're using an autonomous agent, supervise it.
 

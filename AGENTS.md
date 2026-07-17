@@ -44,18 +44,18 @@ Node ≥ 20 (enforced by `engines` and `preinstall`).
 
 ## Daily commands
 
-| Task                     | Command                                                         |
-| ------------------------ | --------------------------------------------------------------- |
-| Install                  | `yarn install`                                                  |
-| Build (lib + types)      | `yarn build`                                                    |
-| Type-check + lint        | `yarn lint`                                                     |
-| Auto-fix lint + format   | `yarn lint:fix`                                                 |
-| Format only              | `yarn format`                                                   |
-| Unit + integration tests | `yarn test`                                                     |
-| End-to-end tests         | `yarn test:e2e` (requires the bartender mock server, see below) |
-| Run the example          | `yarn example`                                                  |
-| Regenerate protobufs     | `yarn gen:protobuf`                                             |
-| Audit deps               | `yarn npm audit --recursive`                                    |
+| Task | Command |
+|---|---|
+| Install | `yarn install` |
+| Build (lib + types) | `yarn build` |
+| Type-check + lint | `yarn lint` |
+| Auto-fix lint + format | `yarn lint:fix` |
+| Format only | `yarn format` |
+| Unit + integration tests | `yarn test` |
+| End-to-end tests | `yarn test:e2e` (requires the bartender mock server, see below) |
+| Run the example | `yarn example` |
+| Regenerate protobufs | `yarn gen:protobuf` |
+| Audit deps | `yarn npm audit --recursive` |
 
 `yarn lint` runs `tsc` first, then ESLint. A green lint means no type errors.
 
@@ -64,7 +64,7 @@ Node ≥ 20 (enforced by `engines` and `preinstall`).
 - **TypeScript strict** — `strict`, `strictNullChecks`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` are all on. Don't disable them locally.
 - **Tabs** for indentation, single quotes, no semicolons (Prettier-enforced).
 - **No `any` in new code.** Existing `any`s in tests are tolerated as warnings, not invitations.
-- **No comments that restate the code.** Comment the _why_ — protocol quirks, WhatsApp-side behavior, non-obvious workarounds. Don't comment-narrate "// loop over messages".
+- **No comments that restate the code.** Comment the *why* — protocol quirks, WhatsApp-side behavior, non-obvious workarounds. Don't comment-narrate "// loop over messages".
 - **No emojis in code or commit messages** unless the user explicitly asks.
 - **Named exports** preferred. Default exports only where they already exist (e.g., `makeWASocket`).
 - **Errors**: throw `Boom` (`@hapi/boom`) for protocol/HTTP-style errors so downstream code can branch on `.output.statusCode`. Plain `Error` for everything else.
@@ -80,11 +80,11 @@ These are the patterns the existing code uses. Match them. New code that does th
 import { Boom } from '@hapi/boom'
 
 if (!sock.user) {
-	throw new Boom('Not authenticated', { statusCode: 401 })
+  throw new Boom('Not authenticated', { statusCode: 401 })
 }
 
 if (!isJidUser(jid)) {
-	throw new Boom(`Invalid jid: ${jid}`, { statusCode: 400 })
+  throw new Boom(`Invalid jid: ${jid}`, { statusCode: 400 })
 }
 ```
 
@@ -103,16 +103,16 @@ logger.warn(`error 463 from ${attrs.from}`)
 console.log('failed:', error)
 ```
 
-Pino convention: errors go under `err`, not `error` or `e`. The structured object is the _first_ argument so log processors can index it.
+Pino convention: errors go under `err`, not `error` or `e`. The structured object is the *first* argument so log processors can index it.
 
 ### JIDs — always go through the helpers
 
 ```ts
 import { jidDecode, jidNormalizedUser, areJidsSameUser, isJidUser } from '../WABinary'
 
-const decoded = jidDecode(rawJid) // { user, server, device?, agent? } | undefined
+const decoded = jidDecode(rawJid)            // { user, server, device?, agent? } | undefined
 const normalized = jidNormalizedUser(rawJid) // strips device/agent, lowercases
-const same = areJidsSameUser(a, b) // compare user portions only
+const same = areJidsSameUser(a, b)           // compare user portions only
 ```
 
 Never split a JID with `.split('@')` or compare with `===`. JIDs carry device suffixes (`:0`, `:42`), agent fields, and LID/PN duality — string ops will silently miss matches and you'll ship a bug that only fires on multi-device accounts.
@@ -124,12 +124,12 @@ import { getBinaryNodeChild, getBinaryNodeChildren, getBinaryNodeChildString } f
 
 const groupsNode = getBinaryNodeChild(result, 'groups')
 if (!groupsNode) {
-	throw new Boom('missing <groups> in iq response', { statusCode: 502 })
+  throw new Boom('missing <groups> in iq response', { statusCode: 502 })
 }
 
 const groups = getBinaryNodeChildren(groupsNode, 'group') // BinaryNode[]
-const text = getBinaryNodeChildString(node, 'body') // string | undefined
-const { attrs } = node // typed Record<string, string>
+const text = getBinaryNodeChildString(node, 'body')        // string | undefined
+const { attrs } = node                                     // typed Record<string, string>
 ```
 
 Don't reach into `node.content` as an array directly — types are loose and the shape varies by stanza. The accessors handle the missing/single/array cases.
@@ -137,14 +137,11 @@ Don't reach into `node.content` as an array directly — types are loose and the
 ### Sending IQs — `query` with timeouts
 
 ```ts
-const result = await sock.query(
-	{
-		tag: 'iq',
-		attrs: { to: S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
-		content: [{ tag: 'picture', attrs: { type: 'image', query: 'url' } }]
-	},
-	/* timeoutMs */ 15_000
-)
+const result = await sock.query({
+  tag: 'iq',
+  attrs: { to: S_WHATSAPP_NET, type: 'get', xmlns: 'w:profile:picture' },
+  content: [{ tag: 'picture', attrs: { type: 'image', query: 'url' } }]
+}, /* timeoutMs */ 15_000)
 ```
 
 `query` auto-generates the stanza id, attaches a one-shot listener, and rejects on timeout. Don't write your own `sock.ws.send` + manual listener — you'll leak listeners on errors.
@@ -153,8 +150,8 @@ const result = await sock.query(
 
 ```ts
 sock.ws.on('CB:ib,,dirty', async (node: BinaryNode) => {
-	const { attrs } = getBinaryNodeChild(node, 'dirty')!
-	// ...
+  const { attrs } = getBinaryNodeChild(node, 'dirty')!
+  // ...
 })
 
 sock.ws.on('CB:notification,type:server_sync', handler)
@@ -174,28 +171,28 @@ sock.ev.on('creds.update', saveCreds)
 
 ### Async cleanup — bracket pattern
 
-When you allocate a resource (timer, listener, ws subscription) inside a Promise, clean it up in _both_ paths:
+When you allocate a resource (timer, listener, ws subscription) inside a Promise, clean it up in *both* paths:
 
 ```ts
 return new Promise<T>((resolve, reject) => {
-	const timer = setTimeout(() => {
-		cleanup()
-		reject(new Boom('timed out', { statusCode: 408 }))
-	}, timeoutMs)
+  const timer = setTimeout(() => {
+    cleanup()
+    reject(new Boom('timed out', { statusCode: 408 }))
+  }, timeoutMs)
 
-	const cleanup = () => {
-		clearTimeout(timer)
-		sock.ev.off('event.name', handler)
-	}
+  const cleanup = () => {
+    clearTimeout(timer)
+    sock.ev.off('event.name', handler)
+  }
 
-	const handler = (data: T) => {
-		if (matches(data)) {
-			cleanup()
-			resolve(data)
-		}
-	}
+  const handler = (data: T) => {
+    if (matches(data)) {
+      cleanup()
+      resolve(data)
+    }
+  }
 
-	sock.ev.on('event.name', handler)
+  sock.ev.on('event.name', handler)
 })
 ```
 
@@ -229,9 +226,9 @@ if (msg.message && msg.message.extendedTextMessage) { ... }
 ```ts
 // src/__tests__/Utils/decode-wa-message.test.ts
 describe('SERVER_ERROR_CODES', () => {
-	it('MessageAccountRestriction is 463', () => {
-		expect(SERVER_ERROR_CODES.MessageAccountRestriction).toBe('463')
-	})
+  it('MessageAccountRestriction is 463', () => {
+    expect(SERVER_ERROR_CODES.MessageAccountRestriction).toBe('463')
+  })
 })
 ```
 
@@ -257,7 +254,6 @@ test(e2e): test harness + signal/prekey fixes
 PR titles follow the same convention. Squash-merge is the default.
 
 Before opening a PR:
-
 1. `yarn lint` — must be 0 errors.
 2. `yarn test` — must be all green. If you can't run e2e locally, say so in the PR description.
 3. Don't commit `baileys_auth_info/`, `.env`, `mitm_*.db`, `.superset/`, or any session state. Git is configured to ignore the obvious ones; double-check.
@@ -274,7 +270,7 @@ Before opening a PR:
 ## Testing expectations
 
 - New public API → unit test in `src/__tests__/`.
-- New protocol path or stanza handler → integration test mocking the binary node, _not_ an e2e test (e2e is expensive and flaky in agent loops).
+- New protocol path or stanza handler → integration test mocking the binary node, *not* an e2e test (e2e is expensive and flaky in agent loops).
 - New crypto/auth flow → e2e against bartender if feasible, otherwise a deterministic fixture-based unit test.
 
 Tests are colocated by area: `src/__tests__/Socket/`, `src/__tests__/Utils/`, `src/__tests__/binary/`. Match the existing layout.
@@ -282,7 +278,6 @@ Tests are colocated by area: `src/__tests__/Socket/`, `src/__tests__/Utils/`, `s
 ## Security-sensitive changes
 
 If your change touches:
-
 - Auth state read/write, key storage, prekey/session lifecycle
 - Message decryption / signature verification
 - Any path that handles user PII (phone numbers, JIDs, message content) in logs or errors
