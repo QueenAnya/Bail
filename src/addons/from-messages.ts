@@ -181,7 +181,11 @@ export async function buildStickerPackMessage(
 
 	const stickerMetadata = await Promise.all(
 		validStickers.map(async (s: any, i: number) => {
-			const raw = s.sticker ?? s.data
+			const raw = s.data ?? s.sticker
+			if (!raw) {
+				throw new Error(`Sticker at index ${i} is missing media — provide either 'data' or 'sticker'`)
+			}
+
 			const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
 			const { stream } = await getStream(normalized)
 			const buffer = (await toBuffer(stream)) as Buffer
@@ -198,15 +202,13 @@ export async function buildStickerPackMessage(
 			} else if (isWebPBuffer(buffer)) {
 				finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
 			} else {
-				// Non-WebP sticker — needs sharp/@napi-rs/image to convert (jimp can't output WebP)
+				// Non-WebP sticker — needs sharp to convert (jimp can't output WebP)
 				const lib = await getImageProcessingLibrary()
 				if (lib?.sharp) {
 					finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
-				} else if (lib?.image) {
-					finalBuffer = await new lib.image.Transformer(buffer).webp()
 				} else {
 					throw new Boom(
-						`Sticker ${i + 1}: No image processing library (sharp or @napi-rs/image) available for converting to WebP. Either install one of them or provide stickers in WebP format.`,
+						`Sticker ${i + 1}: No image processing library (sharp) available for converting to WebP. Either install sharp or provide stickers in WebP format.`,
 						{ statusCode: 400 }
 					)
 				}
@@ -247,11 +249,9 @@ export async function buildStickerPackMessage(
 		const lib = await getImageProcessingLibrary()
 		if (lib?.sharp) {
 			coverWebP = await lib.sharp.default(coverBuffer).webp().toBuffer()
-		} else if (lib?.image) {
-			coverWebP = await new lib.image.Transformer(coverBuffer).webp()
 		} else {
 			throw new Boom(
-				'No image processing library (sharp or @napi-rs/image) available for converting cover to WebP. Either install one of them or provide cover in WebP format.',
+				'No image processing library (sharp) available for converting cover to WebP. Either install sharp or provide cover in WebP format.',
 				{ statusCode: 400 }
 			)
 		}
@@ -286,8 +286,6 @@ export async function buildStickerPackMessage(
 		const lib = await getImageProcessingLibrary()
 		if (lib?.sharp) {
 			thumbnailBuffer = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
-		} else if (lib?.image) {
-			thumbnailBuffer = await new lib.image.Transformer(coverBuffer).resize(252, 252).jpeg()
 		} else if (lib?.jimp) {
 			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
 			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')

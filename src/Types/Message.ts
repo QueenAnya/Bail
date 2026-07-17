@@ -571,6 +571,8 @@ export type AnyMediaMessageContent = (
 	| ({
 			sticker: WAMediaUpload
 			isAnimated?: boolean
+			/** wrap the sticker into a lottieStickerMessage (itsliaa/baileys style) */
+			isLottie?: boolean
 	  } & WithDimensions)
 	| ({
 			document: WAMediaUpload
@@ -642,7 +644,10 @@ export type ProductListSection = {
 }
 
 export type StickerPackSticker = {
-	sticker: WAMediaUpload
+	/** sticker media — itsliaa/baileys style field name (preferred) */
+	data?: WAMediaUpload
+	/** @deprecated use `data` instead — kept for backward compatibility */
+	sticker?: WAMediaUpload
 	emojis?: string[]
 	accessibilityLabel?: string
 	isAnimated?: boolean
@@ -822,6 +827,16 @@ export type AnyMessageContent =
 			 */
 			groupStatus: boolean
 	  }
+	| {
+			/**
+			 * Bypass content generation entirely and send a manually-built
+			 * proto.IMessage as-is. Useful for constructing message types
+			 * that don't have a dedicated AnyMessageContent shape yet.
+			 * @example
+			 * await sock.sendMessage(jid, { raw: { extendedTextMessage: { text: 'hi' } } })
+			 */
+			raw: proto.IMessage
+	  }
 
 export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
 
@@ -867,6 +882,9 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	additionalNodes?: BinaryNode[]
 	/** if true, show AI icon on the message bubble */
 	ai?: boolean
+	/** attach a "secure" Meta service label badge to the message (e.g. for
+	 *  verified-business / official-service style bubbles) */
+	secureMetaServiceLabel?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string

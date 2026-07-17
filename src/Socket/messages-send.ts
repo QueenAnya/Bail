@@ -652,8 +652,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			useUserDevicesCache,
 			useCachedGroupMetadata,
 			statusJidList,
-			AI = false
-		}: MessageRelayOptions & { AI?: boolean }
+			AI = false,
+			secureMetaServiceLabel = false
+		}: MessageRelayOptions & { AI?: boolean; secureMetaServiceLabel?: boolean }
 	) => {
 		const meId = assertMeId(authState.creds)
 		const meLid = authState.creds.me?.lid
@@ -1190,6 +1191,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
+			// secure Meta service label — tags the message as coming from a
+			// verified/official-service style sender (badge on the bubble)
+			if (secureMetaServiceLabel) {
+				;(stanza.content as BinaryNode[]).push({
+					tag: 'meta_secure_service',
+					attrs: { service_type: 'secure' }
+				})
+			}
+
 			if (!didPushAdditional && additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
@@ -1498,7 +1508,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						messageId: mediaMsg.key.id!,
 						useCachedGroupMetadata: options.useCachedGroupMetadata,
 						statusJidList: options.statusJidList,
-						AI: (options as any).ai
+						AI: (options as any).ai,
+						secureMetaServiceLabel: (options as any).secureMetaServiceLabel
 					})
 				}
 
@@ -1578,7 +1589,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					additionalAttributes,
 					statusJidList: options.statusJidList,
 					additionalNodes,
-					AI: options.ai
+					AI: options.ai,
+					secureMetaServiceLabel: options.secureMetaServiceLabel
 				})
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {

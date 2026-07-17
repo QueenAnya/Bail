@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals'
-import { makeOfflineNodeProcessor, type MessageType } from '../../Utils/offline-node-processor'
+import { makeOfflineNodeProcessor, type OfflineNodeType } from '../../Utils/offline-node-processor'
 import { type BinaryNode } from '../../WABinary'
 
 function makeNode(id: string, tag = 'message'): BinaryNode {
@@ -11,7 +11,7 @@ describe('makeOfflineNodeProcessor', () => {
 	let isWsOpen: boolean
 	let yieldCalls: number
 
-	function createProcessor(handlers: Map<MessageType, (node: BinaryNode) => Promise<void>>, batchSize = 10) {
+	function createProcessor(handlers: Map<OfflineNodeType, (node: BinaryNode) => Promise<void>>, batchSize = 10) {
 		return makeOfflineNodeProcessor(
 			handlers,
 			{
@@ -68,7 +68,7 @@ describe('makeOfflineNodeProcessor', () => {
 			const receiptIds: string[] = []
 			const notificationIds: string[] = []
 
-			const handlers = new Map<MessageType, (node: BinaryNode) => Promise<void>>([
+			const handlers = new Map<OfflineNodeType, (node: BinaryNode) => Promise<void>>([
 				[
 					'message',
 					async n => {
@@ -160,7 +160,7 @@ describe('makeOfflineNodeProcessor', () => {
 
 			const processor = createProcessor(new Map([['message', handler]]))
 			// Enqueue an unknown type
-			processor.enqueue('unknown-type' as MessageType, makeNode('unknown-1'))
+			processor.enqueue('unknown-type' as OfflineNodeType, makeNode('unknown-1'))
 			processor.enqueue('message', makeNode('msg-1'))
 
 			await new Promise(r => setTimeout(r, 10))
@@ -307,7 +307,7 @@ describe('makeOfflineNodeProcessor', () => {
 			const processor = createProcessor(new Map([['message', handler]]))
 			processor.enqueue('message', makeNode('msg-1'))
 			processor.enqueue('message', makeNode('msg-2')) // will throw
-			processor.enqueue('bogus' as MessageType, makeNode('x')) // unknown type
+			processor.enqueue('bogus' as OfflineNodeType, makeNode('x')) // unknown type
 			processor.enqueue('message', makeNode('msg-3'))
 
 			await new Promise(r => setTimeout(r, 10))
