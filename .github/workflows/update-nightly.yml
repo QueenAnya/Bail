@@ -49,7 +49,12 @@ jobs:
           yarn install --no-immutable
 
       - name: Update version to alpha
-        run: yarn version --prerelease --preid=alpha --no-git --no-git-tag-version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          BASE=${CURRENT%%-*}
+          NEW="$BASE-alpha.$(date +%Y%m%d%H%M)"
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='$NEW';fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n')"
+          echo "Set version to $NEW"
 
       - name: Build NPM package
         run: yarn pack && mv *baileys-*.tgz baileys-nightly.tgz
