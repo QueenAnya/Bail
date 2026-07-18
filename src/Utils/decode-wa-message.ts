@@ -95,7 +95,13 @@ export const SERVER_ERROR_CODES = {
 } as const
 
 type MessageType =
-	'chat' | 'peer_broadcast' | 'other_broadcast' | 'group' | 'direct_peer_status' | 'other_status' | 'newsletter'
+	| 'chat'
+	| 'peer_broadcast'
+	| 'other_broadcast'
+	| 'group'
+	| 'direct_peer_status'
+	| 'other_status'
+	| 'newsletter'
 
 export const extractAddressingContext = (stanza: BinaryNode) => {
 	let senderAlt: string | undefined
