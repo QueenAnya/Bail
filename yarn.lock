@@ -285,7 +285,7 @@
     hookified "^1.15.1"
     keyv "^5.6.0"
 
-"@cacheable/node-cache@^1.4.0":
+"@cacheable/node-cache@^1.5.3":
   version "1.7.6"
   resolved "https://registry.npmjs.org/@cacheable/node-cache/-/node-cache-1.7.6.tgz"
   integrity sha512-6Omk2SgNnjtxB5f/E6bTIWIt5xhdpx39fGNRQgU9lojvRxU68v+qY+SXXLsp3ZGukqoPjsK21wZ6XABFr/Ge3A==
@@ -1204,6 +1204,11 @@
   version "1.14.0"
   resolved "https://registry.npmjs.org/@napi-rs/image-linux-x64-gnu/-/image-linux-x64-gnu-1.14.0.tgz"
   integrity sha512-oU3wnQcDeZf+t8vyKMP4A6okY7JNjRbiiC7j8UsJ2lDf0no3GDQEJCCFDrQ7gCKQZAI7cr0rFbI75l2KlTM0PQ==
+
+"@napi-rs/image-linux-x64-musl@1.14.0":
+  version "1.14.0"
+  resolved "https://registry.npmjs.org/@napi-rs/image-linux-x64-musl/-/image-linux-x64-musl-1.14.0.tgz"
+  integrity sha512-iuDTfVmFm9W6S4gzLNdSFt+Wr86LtciJJ+u2i0KBixpFYoHzeIkUr6LHBIkYg3eNdi7xHBb9qFBvxxhFQg4tUQ==
 
 "@napi-rs/image@^1.14.0":
   version "1.14.0"
@@ -4078,7 +4083,7 @@ lru-cache@^10.2.0:
   resolved "https://registry.npmjs.org/lru-cache/-/lru-cache-10.4.3.tgz"
   integrity sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==
 
-lru-cache@^11.1.0:
+lru-cache@^11.2.6:
   version "11.5.2"
   resolved "https://registry.npmjs.org/lru-cache/-/lru-cache-11.5.2.tgz"
   integrity sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==
@@ -4492,7 +4497,7 @@ p-locate@^5.0.0:
   dependencies:
     p-limit "^3.0.2"
 
-p-queue@^9.0.0:
+p-queue@^9.1.0:
   version "9.3.1"
   resolved "https://registry.npmjs.org/p-queue/-/p-queue-9.3.1.tgz"
   integrity sha512-POWdiIPmsUPGwb4FeQ4OBg46aqmcInSWe45CKDsGHiOBiVQM9chqfQTuqhuTzcg2Vz9faTI65at0KkVyVEiCHw==
@@ -5673,10 +5678,10 @@ walker@^1.0.8:
   dependencies:
     makeerror "1.0.12"
 
-whatsapp-rust-bridge@0.5.4:
-  version "0.5.4"
-  resolved "https://registry.npmjs.org/whatsapp-rust-bridge/-/whatsapp-rust-bridge-0.5.4.tgz"
-  integrity sha512-yYO1qSs0Fe7tGtnxOFHomocUD6IZtoAgmA4oDFyGIRZ67D3QZk3w7swA6XXFXNQngiyrg2k7tul6IrM3eUFh7A==
+whatsapp-rust-bridge@0.5.5:
+  version "0.5.5"
+  resolved "https://registry.npmjs.org/whatsapp-rust-bridge/-/whatsapp-rust-bridge-0.5.5.tgz"
+  integrity sha512-Io1qmIEi1FTXTMhN1KmZS35BHHvwRbKHUUcN/Rn6pJUU/Mk469BcWpmFEJY0a6cYu3SHwBsqzC/0IXDj+SUvgA==
 
 which@^2.0.1:
   version "2.0.2"
@@ -5752,7 +5757,7 @@ write-file-atomic@^5.0.1:
     imurmurhash "^0.1.4"
     signal-exit "^4.0.1"
 
-ws@^8.13.0:
+ws@^8.19.0:
   version "8.21.1"
   resolved "https://registry.npmjs.org/ws/-/ws-8.21.1.tgz"
   integrity sha512-+0NTnW77fFN/DjQi6k/Sq/Yvk4Sgajw7urW8V+asjXnRgDs9gyGkdb7EzgfhA4goXsRIZKE28fzIXBHEzhuiWw==
