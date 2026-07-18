@@ -1,17 +1,10 @@
 name: E2E Tests
 
-# NOTE: The upstream WhiskeySockets e2e suite needs a private mock WhatsApp
-# server (ghcr.io/whiskeysockets-devtools/bartender) gated behind a private
-# org secret (BARTENDER_GHCR_TOKEN). Forks/renamed copies of this repo have
-# neither, and referencing a missing secret in `services.*.credentials.password`
-# is an invalid workflow template (fails to even parse, regardless of trigger
-# type) — that's the "Unexpected value ''" error. So this workflow no longer
-# references that private image/secret at all; it just reports that e2e is
-# skipped on forks. If you stand up your own mock server, replace the
-# "Run E2E tests" step below with your own service+test step and wire in
-# your own credentials.
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
 
 permissions:
   contents: read
@@ -21,6 +14,18 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      mock-server:
+        image: ghcr.io/whiskeysockets-devtools/bartender:latest
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.BARTENDER_GHCR_TOKEN }}
+        ports:
+          - 8080:8080
+        env:
+          CHATSTATE_TTL_SECS: '3'
+          ADV_SECRET_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+        options: --log-driver none
 
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +53,20 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: E2E tests skipped (no private mock server on this fork)
+      - name: Wait for mock server
         run: |
-          echo "Skipping e2e tests: this fork has no access to WhiskeySockets' private mock server / secret."
-          echo "See the comment at the top of .github/workflows/e2e.yml to wire in your own mock server."
+          for i in $(seq 1 30); do
+            if curl -sk https://localhost:8080/ > /dev/null 2>&1; then
+              echo "Mock server is ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mock server failed to become ready"
+          exit 1
+
+      - name: Run E2E tests
+        env:
+          SOCKET_URL: 'wss://127.0.0.1:8080/ws/chat'
+          ADV_SECRET_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+        run: yarn test:e2e

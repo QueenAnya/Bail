@@ -85,7 +85,7 @@ jobs:
         # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
         if: steps.get_previous_version.outputs.is_beta == 'false'
         run: |
-          npm publish --access public
+          npm publish --access public --provenance
           npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -95,7 +95,7 @@ jobs:
         if: steps.get_previous_version.outputs.is_beta == 'false'
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          npm publish --access public --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          npm publish --access public --provenance --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
@@ -105,7 +105,7 @@ jobs:
         # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
         if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
-          npm publish --access public --tag beta
+          npm publish --access public --provenance --tag beta
           npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -115,7 +115,7 @@ jobs:
         if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          npm publish --access public --tag beta --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          npm publish --access public --provenance --tag beta --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
