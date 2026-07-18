@@ -41,7 +41,12 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: yarn install --no-immutable
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
 
       - name: Update version to alpha
         run: yarn version --prerelease --preid=alpha --no-git --no-git-tag-version
