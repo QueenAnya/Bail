@@ -65,10 +65,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Make Package
-        run: yarn pack
-
-      - name: Rename Pack
-        run: mv *.tgz baileys.tgz
+        run: yarn pack -o baileys.tgz
 
       - name: Create Release
         uses: meeDamian/github-release@2.0
