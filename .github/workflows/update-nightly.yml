@@ -40,7 +40,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           yarn cache clean
           rm yarn.lock .yarn/cache -rf
@@ -49,12 +49,7 @@ jobs:
           yarn install --no-immutable
 
       - name: Update version to alpha
-        run: |
-          CURRENT=$(node -p "require('./package.json').version")
-          BASE=${CURRENT%%-*}
-          NEW="$BASE-alpha.$(date +%Y%m%d%H%M)"
-          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));p.version='$NEW';fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n')"
-          echo "Set version to $NEW"
+        run: npm version prerelease --preid=alpha --no-git-tag-version
 
       - name: Build NPM package
         run: yarn pack && mv *baileys-*.tgz baileys-nightly.tgz
