@@ -1,7 +1,11 @@
 {
   "name": "@queenanya/baileys",
   "type": "module",
+<<<<<<< HEAD
   "version": "9.7.0-5",
+=======
+  "version": "9.7.0",
+>>>>>>> refs/remotes/origin/master
   "description": "A WebSockets library for interacting with WhatsApp Web",
   "keywords": [
     "whatsapp",
@@ -61,6 +65,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.31.0",
+    "@napi-rs/image": "^1.14.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.9.0",
     "@types/qrcode-terminal": "0.12.2",
@@ -90,8 +95,7 @@
     "tsx": "^4.20.3",
     "typedoc": "^0.27.9",
     "typedoc-plugin-markdown": "4.4.2",
-    "typescript": "^5.8.2",
-    "@napi-rs/image": "^1.14.0"
+    "typescript": "^5.8.2"
   },
   "peerDependencies": {
     "@napi-rs/image": "^1.9.0",
