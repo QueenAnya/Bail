@@ -1,5 +1,3 @@
-# 7.0.0-rc12 (2026-05-20)
+## [9.5.7](github.com/WhiskeySockets/Baileys/compare/v9.5.6...v9.5.7) (2026-07-23)
 
-### Bug Fixes
-
-- **process-message:** only drop self-only protocolMessages from non-self senders ([3beb08e](github.com/WhiskeySockets/Baileys/commits/3beb08eecfcb4e65722e674034bd84fb11a9de35))
+## 9.5.6 (2026-07-23)
