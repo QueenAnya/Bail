@@ -677,6 +677,43 @@ export const generateWAMessageContent = async (
 	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
 		// addons/from-messages.ts → buildPaymentInviteMessage
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
+	} else if (hasNonNullishProperty(message, 'paymentInviteServiceType')) {
+		// flat style — sock.sendMessage(jid, { paymentInviteServiceType: 1, expiry })
+		// serviceType: Facebook Pay=1, Apple Pay=2, Stripe=3
+		m.paymentInviteMessage = {
+			serviceType: (message as { paymentInviteServiceType: 1 | 2 | 3 }).paymentInviteServiceType,
+			expiryTimestamp: (message as { expiry?: number }).expiry
+		}
+	} else if (hasNonNullishProperty(message, 'requestPaymentFrom')) {
+		// Request payment from another user
+		// sock.sendMessage(jid, { requestPaymentFrom: jid, amount1000, currencyCodeIso4217 })
+		const opts = message as {
+			requestPaymentFrom: string
+			amount1000?: number
+			currencyCodeIso4217?: string
+		}
+		m.requestPaymentMessage = {
+			requestFrom: opts.requestPaymentFrom,
+			background: { placeholderArgb: 0, textArgb: 0, subtextArgb: 0 },
+			currencyCodeIso4217: opts.currencyCodeIso4217 ?? 'IDR',
+			amount1000: opts.amount1000 ?? 0
+		}
+	} else if (hasNonNullishProperty(message, 'orderText')) {
+		// Order message — sock.sendMessage(jid, { orderText, thumbnail, currency, orderId })
+		const opts = message as { orderText: string; thumbnail?: Buffer; currency?: string; orderId?: string }
+		m.orderMessage = {
+			orderId: opts.orderId ?? `order_${Date.now()}`,
+			thumbnail: opts.thumbnail,
+			itemCount: 1,
+			status: proto.Message.OrderMessage.OrderStatus.INQUIRY,
+			surface: proto.Message.OrderMessage.OrderSurface.CATALOG,
+			message: opts.orderText,
+			orderTitle: opts.orderText,
+			sellerJid: options.jid ?? '',
+			token: generateMessageIDV2(),
+			totalAmount1000: 0,
+			totalCurrencyCode: opts.currency ?? 'IDR'
+		}
 	} else if (hasNonNullishProperty(message, 'album')) {
 		m.albumMessage = {
 			expectedImageCount: message.album.expectedImageCount,
@@ -1074,6 +1111,12 @@ export const generateWAMessageContent = async (
 	// ── viewOnceExt → viewOnceMessageV2Extension ──────────────────────────────
 	if (hasOptionalProperty(message, 'viewOnceExt') && !!(message as any).viewOnceExt) {
 		m = { viewOnceMessageV2Extension: { message: m } }
+	} else if (hasOptionalProperty(message, 'viewOnceV2Extension') && !!(message as any).viewOnceV2Extension) {
+		// itsliaa-style alias for viewOnceExt
+		m = { viewOnceMessageV2Extension: { message: m } }
+	} else if (hasOptionalProperty(message, 'viewOnceV2') && !!(message as any).viewOnceV2) {
+		// itsliaa-style — plain viewOnceMessageV2 (no Extension)
+		m = { viewOnceMessageV2: { message: m } }
 	}
 
 	// ── groupStatus → groupStatusMessageV2 ────────────────────────────────────
@@ -1088,6 +1131,21 @@ export const generateWAMessageContent = async (
 		}
 
 		m = { groupStatusMessageV2: { message: m } }
+	}
+
+	// ── spoiler → wrap media with isSpoiler contextInfo + spoilerMessage ──────
+	if (hasOptionalProperty(message, 'spoiler') && !!(message as { spoiler?: boolean }).spoiler) {
+		const msgType = Object.keys(m)[0] as string
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const key = (m as any)[msgType]
+		if (key && 'contextInfo' in key && !!key.contextInfo) {
+			key.contextInfo.isSpoiler = true
+		} else if (key) {
+			key.contextInfo = { isSpoiler: true }
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		m = { ...({ spoilerMessage: { message: m } } as any) }
 	}
 
 	// ── interactiveAsTemplate → templateMessage.interactiveMessageTemplate ────

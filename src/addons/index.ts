@@ -104,12 +104,24 @@ export * from './from-messages'
 // ── Auth State — re-exported from src/Utils (canonical location) ───────────
 export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
 export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'
+export { migrateAuthState } from '../Utils/migrate-auth-state'
+export * from './use-sqlite-auth-state'
+export * from './use-cache-manager-auth-state'
 
 // ── In-Memory Store ────────────────────────────────────────────────────────
-export * from './in-memory-store'
+export * from '../Store/index.js'
 
 // ── Typing Indicator ───────────────────────────────────────────────────────
 export * from './typing-indicator'
 
 // ── Read Receipt Controller ────────────────────────────────────────────────
 export * from './read-receipt-controller'
+
+// ── Pinned Messages & Disappearing Message Durations ───────────────────────
+export * from './pinned-messages-manager'
+
+// ── Lock Manager ────────────────────────────────────────────────────────────
+export { makeLockManager } from '../Utils/lock-manager'
+
+// ── Baileys Event Stream ────────────────────────────────────────────────────
+export * from './baileys-event-stream'

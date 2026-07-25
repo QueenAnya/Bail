@@ -761,6 +761,12 @@ export type AnyRegularMessageContent = (
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { paymentInvite: PaymentInviteInfo }
+	/** Payment invite (flat style) — service type: 1=Facebook Pay, 2=Apple Pay, 3=Stripe */
+	| { paymentInviteServiceType: 1 | 2 | 3; expiry?: number }
+	/** Request payment from another user */
+	| { requestPaymentFrom: string; amount1000?: number; currencyCodeIso4217?: string }
+	/** Send an order message (flat style) */
+	| { orderText: string; thumbnail?: Buffer; currency?: string; orderId?: string }
 	| { keep: KeepMessageOptions }
 	| { order: OrderMessageOptions }
 	| { payment: PaymentMessageOptions }
@@ -815,6 +821,14 @@ export type AnyMessageContent =
 			 * await sock.sendMessage('120363xxx@g.us', { text: 'Hello group!', groupStatus: true })
 			 */
 			groupStatus: boolean
+	  }
+	| {
+			/**
+			 * Blur the attached media until the recipient taps to reveal it.
+			 * @example
+			 * await sock.sendMessage(jid, { image: {...}, spoiler: true })
+			 */
+			spoiler: boolean
 	  }
 	| {
 			/**

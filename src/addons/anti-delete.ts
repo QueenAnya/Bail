@@ -172,13 +172,16 @@ export const getDeletedMessageKey = (message: WAMessage): WAMessageKey | null =>
 	return protoMsg.key ?? null
 }
 
-export const createAntiDeleteHandler = (store: MessageStore) => {
+export const createAntiDeleteHandler = (store: MessageStore, onDelete?: (info: DeletedMessageInfo) => void) => {
 	return (updates: Array<{ key: WAMessageKey; update: Partial<WAMessage> }>) => {
 		const deletedMessages: DeletedMessageInfo[] = []
 		for (const { key, update } of updates) {
 			if (update.messageStubType === proto.WebMessageInfo.StubType.REVOKE) {
 				const info = store.markAsDeleted(key, update.messageStubParameters?.[0])
-				if (info) deletedMessages.push(info)
+				if (info) {
+					deletedMessages.push(info)
+					onDelete?.(info)
+				}
 			}
 		}
 

@@ -76,6 +76,7 @@ import {
 	getBinaryFilteredButtons,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
+	getBizBinaryNode,
 	isHostedLidUser,
 	isHostedPnUser,
 	isJidBot,
@@ -89,7 +90,8 @@ import {
 	jidNormalizedUser,
 	type JidWithDevice,
 	PSA_WID,
-	S_WHATSAPP_NET
+	S_WHATSAPP_NET,
+	shouldIncludeBizBinaryNode
 } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
@@ -1175,6 +1177,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					} else {
 						;(stanza.content as BinaryNode[]).push(botNode)
 					}
+				}
+			}
+
+			// Smart biz node (itsliaa port) — auto-inject for button/list/template/nativeFlow messages,
+			// or when secureMetaServiceLabel is explicitly requested. Without this, WhatsApp won't
+			// correctly render/deliver those interactive message types.
+			// Use normalizeMessageContent so wrapped messages (viewOnce, ephemeral) are unwrapped first.
+			{
+				const innerMessage = normalizeMessageContent(message) ?? message
+				const alreadyHasBizNode = !secureMetaServiceLabel && additionalNodes?.some(n => n.tag === 'biz')
+				if ((!alreadyHasBizNode && shouldIncludeBizBinaryNode(innerMessage)) || secureMetaServiceLabel) {
+					;(stanza.content as BinaryNode[]).push(getBizBinaryNode(innerMessage))
 				}
 			}
 
