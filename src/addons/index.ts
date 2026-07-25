@@ -1,127 +1,365 @@
 /**
- * anya-bail — src/addons
- * Queen-Anya structure with WS-patched features merged in
+ * Baileys Addons — Barrel Export
  *
- * Quick reference:
- *   Button sender         → sendButtons, sendInteractiveMessage, sendListMessage ...
- *   Anti-delete           → MessageStore, createAntiDeleteHandler, createMessageStoreHandler
- *   Scheduler             → MessageScheduler, ScheduledMessageStatus, createMessageScheduler
- *   Auto-reply            → AutoReplyHandler, createAutoReply
- *   vCard                 → generateVCard, createContactCard, quickContact
- *   Status                → createTextStatus, createImageStatus, StatusHelper (TextStatusOptions, MediaStatusOptions)
- *   Status mentions       → makeStatusMentionsAddon → sendStatusMentions
- *   Templates             → TemplateManager, renderTemplate, PRESET_TEMPLATES
- *   JID utils             → parseJid, plotJid, JidPlotterWithMapping, createJidPlotter
- *   JID plot (innov.)     → JidPlot, buildJidPlot, resolveJidPlot
- *   Message utils         → getMediaType, getMessageType, getButtonType, getButtonArgs
- *   Message WS extras     → buildMentionContextInfo, patchMessageForMdIfRequired,
- *                           prepareAlbumMessageContent, normalizeMediaInput
- *   Socket extras         → makeMessageExtrasAddon → profilePictureUrl, getEphemeralGroup
- *   Message search        → MessageType, RegexSearchOptions, searchMessages,
- *                           searchMessagesRegex, MessageSearchManager, createMessageSearch
- *   Interactive msgs      → generateInteractiveButtonMessage, generateTemplateMessage,
- *                           generateNativeFlowMessage, generateCombinedButtons ...
- *   Call handler          → makeCallHandlerAddon → initiateCall, acceptCall, muteCall ...
- *   Generics extras       → asciiDecode, getPlatformId, printQRIfNecessaryListener
- *   Rich response (innov.)→ sendTable, sendList, sendCodeBlock, sendLatex ...
- *   Scheduler (innov.)    → schedule, cancelScheduled, listScheduled ...
- *   Auth state            → useSingleFileAuthState, useMongoFileAuthState
- *   In-memory store       → makeInMemoryStore
- *   Typing indicator      → createTypingIndicator
- *   Read receipt control  → createReadReceiptController
+ * Import anything from `'@whiskeysockets/baileys/addons'` (or a relative path
+ * to this file) to access all addon utilities without deep import paths.
  *
- *   From src/ re-exports (Anya originals):
- *     from-chats.ts         → chat socket helpers
- *     from-messages-recv.ts → messages-recv helpers
- *     from-messages-send.ts → StatusMentionDeps, normalizeStatusContent, buildStatusMentionNode
- *     from-messages.ts      → message content builders (buttons, stickers, albums...)
- *
- * NOTE: The following patch features are baked directly into Socket/Utils source:
- *   pairing-fix         → src/Socket/socket.ts
- *   browser-presets     → src/Utils/browser-utils.ts + src/Socket/socket.ts
- *   lid-support         → src/WABinary/jid-utils.ts
- *   outgoing-calls      → src/Socket/chats.ts + src/Socket/messages-recv.ts
- *   mex-linked-profiles → src/Socket/messages-recv.ts
- *   past-participants   → src/Utils/history.ts + src/Utils/event-buffer.ts
- *   privacy-tokens      → src/Socket/messages-send.ts
- *   stickerpack         → src/addons/from-messages.ts (buildStickerPackMessage)
+ * @example
+ * import {
+ *     generateInteractiveButtonMessage,
+ *      *     prepareRichResponseMessage,
+ *     sendTable,
+ *     MessageStore,
+ *     createAntiDeleteHandler,
+ *     AutoReplyHandler,
+ *     MessageScheduler,
+ *     createMessageSearch,
+ *     generateVCard,
+ *     StatusHelper,
+ *     createTypingIndicator,
+ *     PinnedMessagesManager,
+ *     createTemplateManager,
+ *     parseJid,
+ *     createJidPlotter,
+ *     useSqliteAuthState,
+ *     useSingleFileAuthState,
+ *     useMongoAuthState
+ * } from './addons/index.js'
  */
 
-// ── Button Sender ──────────────────────────────────────────────────────────
-export * from './button-sender'
+// ─── Interactive / Button / Template / List / Carousel Messages ───────────────
+export {
+	ButtonHeaderType,
+	ButtonType,
+	CarouselCardType,
+	ListType,
+	buildNativeFlowMessage,
+	hasValidInteractiveHeader,
+	hasValidCarouselHeader,
+	generateInteractiveButtonMessage,
+	generateInteractiveListMessage,
+	generateTemplateMessage,
+	generateNativeFlowMessage,
+	generateCopyCodeButton,
+	generateUrlButtonMessage,
+	generateQuickReplyButtons,
+	generateCombinedButtons,
+	generateCollectionMessage,
+	generateShopMessage,
+	generatePayButtonMessage,
+	generatePixButtonMessage
+} from './interactive-message.js'
 
-// ── Anti-Delete ────────────────────────────────────────────────────────────
-export * from './anti-delete'
+export type {
+	QuickReplyButton,
+	UrlButton,
+	CallButton,
+	CopyButton,
+	ListSection,
+	InteractiveListContent,
+	InteractiveButtonsContent,
+	TemplateButtonEntry,
+	TemplateContent,
+	NativeFlowButton,
+	NativeFlowOptions
+} from './interactive-message.js'
 
-// ── Auto-Reply ────────────────────────────────────────────────────────────
-export * from './auto-reply'
+// ─── Rich Response / Meta AI Messages ────────────────────────────────────────
+export {
+	tokenizeCode,
+	toUnified,
+	botMetadataSignature,
+	botMetadataCertificate,
+	wrapToBotForwardedMessage,
+	prepareRichResponseMessage,
+	sendTable,
+	sendList,
+	sendMarkdown,
+	sendCodeBlock,
+	sendLatex,
+	sendLatexImage,
+	sendLatexInlineImage,
+	sendRichMessage,
+	captureUnifiedResponse,
+	sendUnifiedResponse
+} from './rich-message.js'
 
-// ── vCard / Contact Cards ─────────────────────────────────────────────────
-export * from './vcard'
+export type {
+	CodeBlock,
+	RichSubMessage,
+	LatexExpression,
+	RichContent,
+	CapturedUnifiedResponse
+} from './rich-message.js'
 
-// ── Status Posting + Mentions ─────────────────────────────────────────────
-export * from './status-posting'
+// ─── Anti-Delete / Message Store ─────────────────────────────────────────────
+export {
+	MessageStore,
+	isDeleteMessage,
+	getDeletedMessageKey,
+	createAntiDeleteHandler,
+	createMessageStoreHandler
+} from './anti-delete.js'
 
-// ── Message Templates ─────────────────────────────────────────────────────
-export * from './templates'
+export type { MessageStoreOptions, DeletedMessageInfo } from './anti-delete.js'
 
-// ── JID Plotting (anya-bail) ──────────────────────────────────────────────
-export * from './jid-plotting'
+// ─── Auto-Reply ───────────────────────────────────────────────────────────────
+export { AutoReplyHandler, createAutoReply } from './auto-reply.js'
 
-// ── JID Plot (innovatorssoft) ─────────────────────────────────────────────
-export * from './jid-plot'
+export type { AutoReplyRule, AutoReplyOptions } from './auto-reply.js'
 
-// ── Message Utils + WS Extras + Socket Extras ─────────────────────────────
-export * from './message-utils'
+// ─── Message Scheduler ────────────────────────────────────────────────────────
+export { MessageScheduler, createMessageScheduler } from './scheduling.js'
 
-// ── Message Composer (Rich / Bot / Meta AI messages) ──────────────────────
-export * from './message-composer'
+export type { ScheduledMessage, SchedulerOptions } from './scheduling.js'
 
-// ── Message Search ────────────────────────────────────────────────────────
-export * from './message-search'
+// ─── Message Search ───────────────────────────────────────────────────────────
+export {
+	extractMessageText,
+	searchMessages,
+	searchMessagesRegex,
+	MessageSearchManager,
+	createMessageSearch
+} from './message-search.js'
 
-// ── Interactive / Button Message Generators ───────────────────────────────
-//export * from './interactive-message'
+export type { MessageType, SearchOptions, SearchResult } from './message-search.js'
 
-// ── Call Handler ──────────────────────────────────────────────────────────
-export * from './call-handler'
+// ─── vCard / Contact Cards ────────────────────────────────────────────────────
+export {
+	generateVCard,
+	generateVCards,
+	parseVCard,
+	createContactCard,
+	createContactCards,
+	quickContact
+} from './vcard.js'
 
-// ── Scheduler (anya-bail) ─────────────────────────────────────────────────
-export * from './scheduling'
+export type { VCardPhone, VCardEmail, VCardUrl, VCardAddress, VCardContact } from './vcard.js'
 
-// ── Message Scheduler (innovatorssoft) ────────────────────────────────────
-export * from './message-scheduler'
+// ─── Status / Story Helpers ───────────────────────────────────────────────────
+export {
+	STATUS_BROADCAST_JID,
+	STATUS_BACKGROUNDS,
+	STATUS_FONTS,
+	generateStatusMessageId,
+	createTextStatus,
+	createImageStatus,
+	createVideoStatus,
+	createAudioStatus,
+	StatusHelper
+} from './status-posting.js'
 
-// ── Rich Response (innovatorssoft) ────────────────────────────────────────
-export * from './rich-response'
+export type { TextStatusOptions, MediaStatusOptions, StatusFont } from './status-posting.js'
+export { makeStatusMentionsAddon } from './status-posting.js'
+export type { StatusMentionContent, StatusMentionsContext } from './status-posting.js'
 
-// ── From src/ (Anya originals) ────────────────────────────────────────────
-export * from './from-chats'
-export * from './from-messages-recv'
-export * from './from-messages-send'
-export * from './from-messages'
+// ─── Chat Control ─────────────────────────────────────────────────────────────
+export {
+	DISAPPEARING_DURATIONS,
+	TypingIndicator,
+	createTypingIndicator,
+	PinnedMessagesManager,
+	createPinnedMessagesManager,
+	createReadReceiptController
+} from './chat-control.js'
 
-// ── Auth State — re-exported from src/Utils (canonical location) ───────────
-export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
-export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'
-export { migrateAuthState } from '../Utils/migrate-auth-state'
-export * from './use-sqlite-auth-state'
-export * from './use-cache-manager-auth-state'
+export type { DisappearingDuration, PinnedMessage, ReadReceiptConfig, ReadReceiptController } from './chat-control.js'
 
-// ── In-Memory Store ────────────────────────────────────────────────────────
-export * from '../Store/index.js'
+// ─── Message Templates ────────────────────────────────────────────────────────
+export { TemplateManager, PRESET_TEMPLATES, createTemplateManager, renderTemplate } from './templates.js'
 
-// ── Typing Indicator ───────────────────────────────────────────────────────
-export * from './typing-indicator'
+export type {
+	TemplateVariable,
+	Template,
+	TemplateCreateOptions,
+	TemplateUpdateOptions,
+	TemplateValidationResult
+} from './templates.js'
 
-// ── Read Receipt Controller ────────────────────────────────────────────────
-export * from './read-receipt-controller'
+// ─── JID Plotting & LID/PN Support ───────────────────────────────────────────
+export {
+	parseJid,
+	getSenderPn,
+	getCurrentSenderInfo,
+	isSelf,
+	plotJid,
+	normalizePhoneToJid,
+	extractPhoneNumber,
+	formatJidDisplay,
+	isSameUser,
+	getJidVariants,
+	constructJidWithDevice,
+	getRemoteJidFromMessage,
+	createJidPlotter
+} from './jid-plotting.js'
 
-// ── Pinned Messages & Disappearing Message Durations ───────────────────────
-export * from './pinned-messages-manager'
+export type {
+	ParsedJid,
+	SenderPnInfo,
+	PlottedJid,
+	JidFormatOptions,
+	RemoteJidInfo,
+	JidPlotter
+} from './jid-plotting.js'
 
-// ── Lock Manager ────────────────────────────────────────────────────────────
-export { makeLockManager } from '../Utils/lock-manager'
+// ─── Auth State Adapters ──────────────────────────────────────────────────────
+export { useSqliteAuthState } from './use-sqlite-auth-state.js'
+export type { SqliteAuthStateOptions, SqliteAuthStateResult } from './use-sqlite-auth-state.js'
 
-// ── Baileys Event Stream ────────────────────────────────────────────────────
-export * from './baileys-event-stream'
+export { useSingleFileAuthState } from './use-single-file-auth-state.js'
+
+export { useMongoAuthState } from './use-mongo-auth-state.js'
+export type { MongoCollectionLike, MongoAuthStateResult } from './use-mongo-auth-state.js'
+
+// ─── Re-export shared enums used by addons ────────────────────────────────────
+export { CodeHighlightType, RichSubMessageType } from '../Types/RichType.js'
+
+// ─── Baileys Event Stream ────────────────────────────────────────────────────
+export { captureEventStream, readAndEmitEventStream } from './baileys-event-stream.js'
+
+// ─── In-Memory Store ─────────────────────────────────────────────────────────
+export {
+	makeInMemoryStore,
+	waChatKey,
+	waMessageID,
+	waLabelAssociationKey,
+	makeOrderedDictionary,
+	ObjectRepository
+} from '../Store/index.js'
+export type { BaileysInMemoryStoreConfig } from '../Store/index.js'
+
+// ─── Panorama Profile Picture ─────────────────────────────────────────────────
+export { generatePanoramaProfilePicture } from '../Utils/messages-media.js'
+
+// ─── Button Sender ────────────────────────────────────────────────────────────
+export { getButtonType, getButtonArgs, InteractiveValidationError } from './button-sender.js'
+export type {
+	NativeSendButton,
+	LegacySendButton,
+	OldBaileysSendButton,
+	AnyRawButton,
+	SendButtonsData,
+	SendInteractiveData,
+	ValidationResult,
+	ButtonSenderSocket
+} from './button-sender.js'
+
+// ─── Call Handler ─────────────────────────────────────────────────────────────
+export { makeCallHandlerAddon } from './call-handler.js'
+export type { CallHandlerContext, RelayEntry, CallTransportCandidate } from './call-handler.js'
+
+// ─── From-Chats ───────────────────────────────────────────────────────────────
+export { buildClearMessageModification, createChatHelpers } from './from-chats.js'
+
+// ─── From-Messages-Recv (Call Handlers Factory) ───────────────────────────────
+export { makeCallHandlers } from './from-messages-recv.js'
+export type { CallHandlerDeps } from './from-messages-recv.js'
+
+// ─── From-Messages-Send (Status Mentions) ────────────────────────────────────
+export { normalizeStatusContent, buildStatusMentionNode, execSendStatusMentions } from './from-messages-send.js'
+export type { StatusMentionDeps } from './from-messages-send.js'
+
+// ─── From-Messages (Message Builders) ────────────────────────────────────────
+export {
+	buildAdminInviteMessage,
+	buildCallMessage,
+	buildPaymentInviteMessage,
+	buildStickerPackMessage,
+	isWebPBuffer,
+	isAnimatedWebP,
+	isLottieBuffer
+} from './from-messages.js'
+
+// ─── Message Utils ────────────────────────────────────────────────────────────
+export {
+	getMediaType,
+	getMessageType,
+	buildMentionContextInfo,
+	extractFromButtonsMessage,
+	normalizeMediaInput,
+	patchMessageForMdIfRequired,
+	prepareAlbumMessageContent,
+	makeMessageExtrasAddon
+} from './message-utils.js'
+export type { MentionContent, AlbumMediaItem, AlbumOptions, MessageExtrasContext } from './message-utils.js'
+
+// ─── Interactive Message Types (Utils/interactive-message.ts) ────────────────
+export type {
+	InteractiveButton,
+	InteractiveButtonMessageContent,
+	ListRow,
+	ListSection as InteractiveListSection,
+	InteractiveListMessageContent,
+	TemplateHydratedButton,
+	TemplateMessageContent,
+	NativeFlowButton as InteractiveNativeFlowButton,
+	NativeFlowOptions as InteractiveNativeFlowOptions,
+	CopyCodeButtonOptions,
+	UrlButton as InteractiveUrlButton,
+	UrlButtonOptions,
+	QuickReplyButton as InteractiveQuickReplyButton,
+	QuickReplyOptions,
+	CombinedButton
+} from '../Utils/interactive-message.js'
+
+// ─── Message Composer (Rich Message Content Generators) ───────────────────────
+export {
+	JS_KEYWORDS as JS_KEYWORDS_V2,
+	PYTHON_KEYWORDS as PYTHON_KEYWORDS_V2,
+	LANGUAGE_KEYWORDS as LANGUAGE_KEYWORDS_V2,
+	tokenizeCode as tokenizeCodeV2,
+	buildRichContextInfo,
+	buildBotForwardedMessage,
+	generateTableContent,
+	generateListContent,
+	generateCodeBlockContent,
+	generateLatexContent,
+	generateLatexImageContent,
+	generateLatexInlineImageContent,
+	captureUnifiedResponse as captureUnifiedResponseFromComposer,
+	generateUnifiedResponseContent,
+	generateRichMessageContent,
+	generateInlineEntityMessage,
+	buildCitationMessage
+} from './message-composer.js'
+export type {
+	CodeBlockToken,
+	LatexExpression as LatexExpressionComposer,
+	RichContextInfo,
+	InlineEntity
+} from './message-composer.js'
+
+// ─── Rich Response (newer API from rc13-final) ────────────────────────────────
+export {
+	RichSubMessageType as RichSubMessageTypeV2,
+	toUnifiedResponse,
+	wrapToBotForwardedMessage as wrapToBotForwardedMessageV2,
+	prepareRichResponseMessage as prepareRichResponseMessageV2
+} from './rich-response.js'
+export type {
+	RichTextSubmessage,
+	RichCodeSubmessage,
+	RichTableSubmessage,
+	RichLatexSubmessage,
+	RichReelItem,
+	RichContentItemsSubmessage,
+	RichSubmessage,
+	RichResponseInput
+} from './rich-response.js'
+export {
+	captureUnifiedResponse,
+	sendUnifiedResponse,
+	clearCapturedResponses,
+	getCapturedResponses
+} from './rich-response.js'
+export type { UnifiedResponseEntry } from './rich-response.js'
+
+// ─── QR Terminal ──────────────────────────────────────────────────────────────
+export { printQRIfNecessaryListener } from '../Utils/generics.js'
+
+// ─── New Utils ────────────────────────────────────────────────────────────────
+export { makeLockManager } from '../Utils/lock-manager.js'
+export type { LockRef } from '../Utils/lock-manager.js'
+export { migrateAuthState } from '../Utils/migrate-auth-state.js'
+export type { MigrateAuthStateOptions, MigrateAuthStateResult } from '../Utils/migrate-auth-state.js'
+export { generateAnyaMessageID, runDetached, generateKeyUuid } from '../Utils/generics.js'

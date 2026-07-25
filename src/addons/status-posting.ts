@@ -1,12 +1,27 @@
+/**
+ * Status Posting Helpers
+ *
+ * High-level utilities for sending WhatsApp status updates:
+ *  — Text status with background colors, gradients, and fonts
+ *  — Image, video, GIF, and audio status
+ *  — Group status (sends to group JID with groupStatus flag)
+ *  — Personal broadcast (status@broadcast) with optional jidList
+ *
+ * Source: @innovatorssoft/baileys (status-posting.js)
+ */
+
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, GroupMetadata, WAMediaUpload, WAMessage } from '../Types'
-import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
-import { getUrlInfo } from '../Utils/link-preview'
-import type { ILogger } from '../Utils/logger'
-import { isJidGroup, isPnUser, jidNormalizedUser, STORIES_JID } from '../WABinary'
+import type { AnyMessageContent, GroupMetadata, WAMediaUpload, WAMessage } from '../Types/index.js'
+import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils/index.js'
+import { getUrlInfo } from '../Utils/link-preview.js'
+import type { ILogger } from '../Utils/logger.js'
+import { isJidGroup, isPnUser, jidNormalizedUser, STORIES_JID } from '../WABinary/index.js'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 export const STATUS_BROADCAST_JID = 'status@broadcast'
 
+/** Pre-defined solid + gradient background colours for text status */
 export const STATUS_BACKGROUNDS = {
 	solid: {
 		green: '#25D366',
@@ -29,8 +44,9 @@ export const STATUS_BACKGROUNDS = {
 		midnight: ['#1E3A8A', '#4C1D95'],
 		aurora: ['#06B6D4', '#8B5CF6', '#EC4899']
 	}
-}
+} as const
 
+/** WA status font indices (0–9) */
 export const STATUS_FONTS = {
 	SANS_SERIF: 0,
 	SERIF: 1,
@@ -42,18 +58,23 @@ export const STATUS_FONTS = {
 	DANCING: 7,
 	COMFORTAA: 8,
 	EXOTWO: 9
-}
+} as const
 
-export const generateStatusMessageId = () => `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+export type StatusFont = (typeof STATUS_FONTS)[keyof typeof STATUS_FONTS]
+
+// ─── ID generator ─────────────────────────────────────────────────────────────
+
+/** Generate a WhatsApp-style status message ID (starts with 3EB0) */
+export const generateStatusMessageId = (): string => `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
 
 export const getStatusJid = () => STATUS_BROADCAST_JID
 
-// ── Typed option interfaces (WS-patched) ───────────────────────────────────
+// ─── Content builders ─────────────────────────────────────────────────────────
 
 export interface TextStatusOptions {
 	text: string
 	backgroundColor?: string
-	font?: number
+	font?: StatusFont
 	textColor?: string
 	mentions?: string[]
 }
@@ -61,30 +82,35 @@ export interface TextStatusOptions {
 export interface MediaStatusOptions {
 	caption?: string
 	gifPlayback?: boolean
-	waveform?: Uint8Array
+	waveform?: Buffer | Uint8Array
 }
 
-// ── Status content builders ────────────────────────────────────────────────
-
+/** Build text status content object (pass directly to sendMessage) */
 export const createTextStatus = (options: TextStatusOptions) => ({
 	text: options.text,
-	backgroundColor: options.backgroundColor || STATUS_BACKGROUNDS.solid.green,
+	backgroundColor: options.backgroundColor ?? STATUS_BACKGROUNDS.solid.green,
 	font: options.font ?? STATUS_FONTS.SANS_SERIF,
-	textColor: options.textColor || '#FFFFFF',
-	contextInfo: { mentionedJid: options.mentions || [], isForwarded: false }
+	textColor: options.textColor ?? '#FFFFFF',
+	contextInfo: {
+		mentionedJid: options.mentions ?? [],
+		isForwarded: false
+	}
 })
 
+/** Build image status content */
 export const createImageStatus = (media: WAMediaUpload | string, options?: MediaStatusOptions) => ({
 	image: typeof media === 'string' ? { url: media } : media,
-	caption: options?.caption || ''
+	caption: options?.caption ?? ''
 })
 
+/** Build video status content */
 export const createVideoStatus = (media: WAMediaUpload | string, options?: MediaStatusOptions) => ({
 	video: typeof media === 'string' ? { url: media } : media,
-	caption: options?.caption || '',
-	gifPlayback: options?.gifPlayback || false
+	caption: options?.caption ?? '',
+	gifPlayback: options?.gifPlayback ?? false
 })
 
+/** Build PTT/audio status content */
 export const createAudioStatus = (media: WAMediaUpload | string, options?: MediaStatusOptions) => ({
 	audio: typeof media === 'string' ? { url: media } : media,
 	ptt: true,
@@ -92,34 +118,79 @@ export const createAudioStatus = (media: WAMediaUpload | string, options?: Media
 	waveform: options?.waveform
 })
 
-export const StatusHelper = {
-	text: (text: string, backgroundColor?: string, font?: number) => createTextStatus({ text, backgroundColor, font }),
-	image: (buffer: WAMediaUpload, caption?: string) => createImageStatus(buffer, { caption }),
-	imageUrl: (url: string, caption?: string) => createImageStatus(url, { caption }),
-	video: (buffer: WAMediaUpload, caption?: string) => createVideoStatus(buffer, { caption }),
-	videoUrl: (url: string, caption?: string) => createVideoStatus(url, { caption }),
-	gif: (buffer: WAMediaUpload, caption?: string) => createVideoStatus(buffer, { caption, gifPlayback: true }),
-	voiceNote: (buffer: WAMediaUpload) => createAudioStatus(buffer),
+// ─── High-level StatusHelper ──────────────────────────────────────────────────
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	send: async (sock: any, content: any, jidList: string[] = []) => {
-		if (!jidList || jidList.length === 0) {
-			console.warn('StatusHelper: jidList is empty.')
+/**
+ * High-level helper object for building and sending status updates.
+ *
+ * @example
+ * // Text status
+ * await StatusHelper.send(sock, StatusHelper.text('Hello World!', '#25D366'), contacts)
+ *
+ * // Image status
+ * await StatusHelper.send(sock, StatusHelper.image(buffer, 'My photo'))
+ *
+ * // Group status
+ * await StatusHelper.send(sock, StatusHelper.text('Team update'), ['123@g.us'])
+ */
+export const StatusHelper = {
+	/** Build a text status */
+	text: (text: string, backgroundColor?: string, font?: StatusFont) =>
+		createTextStatus({ text, backgroundColor, font }),
+
+	/** Build an image status from a Buffer */
+	image: (buffer: Buffer, caption?: string) => createImageStatus(buffer, { caption }),
+
+	/** Build an image status from a URL */
+	imageUrl: (url: string, caption?: string) => createImageStatus(url, { caption }),
+
+	/** Build a video status from a Buffer */
+	video: (buffer: Buffer, caption?: string) => createVideoStatus(buffer, { caption }),
+
+	/** Build a video status from a URL */
+	videoUrl: (url: string, caption?: string) => createVideoStatus(url, { caption }),
+
+	/** Build a GIF status (looped video) */
+	gif: (buffer: Buffer, caption?: string) => createVideoStatus(buffer, { caption, gifPlayback: true }),
+
+	/** Build a PTT voice note status */
+	voiceNote: (buffer: Buffer, waveform?: Buffer) => createAudioStatus(buffer, { waveform }),
+
+	/**
+	 * Send status to a list of JIDs (or broadcast to all contacts if empty).
+	 * Handles groups separately via the groupStatus flag.
+	 *
+	 * @param sock      - Baileys socket instance
+	 * @param content   - Status content (from createTextStatus, createImageStatus, etc.)
+	 * @param jidList   - JIDs who should see the status; leave empty for all contacts
+	 */
+	send: async (
+		sock: {
+			sendMessage: (jid: string, content: any, opts?: any) => Promise<any>
+		},
+		content: any,
+		jidList: string[] = []
+	) => {
+		if (jidList.length === 0) {
+			console.warn('[StatusHelper] jidList is empty — status visible to all contacts')
 		}
 
 		const groups = jidList.filter(j => j?.endsWith('@g.us'))
 		const individuals = jidList.filter(j => j?.endsWith('@s.whatsapp.net') || j?.endsWith('@lid'))
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 		let lastResult: any
 
-		if (groups.length > 0) {
-			const groupContent = { ...content, contextInfo: { ...content.contextInfo, isGroupStatus: true } }
-			for (const groupJid of groups) {
-				lastResult = await sock.sendMessage(groupJid, groupContent, { messageId: generateStatusMessageId() })
-			}
+		// Group status — sends into each group chat with groupStatus=true
+		for (const groupJid of groups) {
+			lastResult = await sock.sendMessage(
+				groupJid,
+				{ ...content, groupStatus: true },
+				{ messageId: generateStatusMessageId() }
+			)
 		}
 
-		if (individuals.length > 0 || jidList.length === 0) {
+		// Personal broadcast
+		if (individuals.length > 0 || groups.length === 0) {
 			const result = await sock.sendMessage(STATUS_BROADCAST_JID, content, {
 				statusJidList: individuals.length > 0 ? individuals : undefined,
 				messageId: generateStatusMessageId()
@@ -131,7 +202,7 @@ export const StatusHelper = {
 	}
 }
 
-// ── Status Mentions Addon (WS-patched) ────────────────────────────────────
+// ── Status Mentions Addon (ported from anya-baileys-9_9_0-5) ─────────────
 // Send a WhatsApp status/story and tag specific users or groups.
 // Usage — inject into makeMessagesSocket return:
 //   const addon = makeStatusMentionsAddon({ ... })

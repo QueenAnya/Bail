@@ -4,7 +4,7 @@ import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'
 import { Browsers } from '../Utils/browser-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1038669233] // anya: kept newer version
+const version = [2, 3000, 1035194821]
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -74,7 +74,25 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	auth: undefined as unknown as AuthenticationState,
 	markOnlineOnConnect: true,
 	syncFullHistory: true,
-	patchMessageBeforeSending: msg => msg,
+	patchMessageBeforeSending: (msg: proto.IMessage) => {
+		// iOS fix: wrap buttons/list/template/interactive in viewOnceMessageV2Extension
+		// so they render correctly on iOS clients
+		if (msg?.buttonsMessage || msg?.templateMessage || msg?.listMessage || msg?.interactiveMessage?.nativeFlowMessage) {
+			msg = {
+				viewOnceMessageV2Extension: {
+					message: {
+						messageContextInfo: {
+							deviceListMetadataVersion: 2,
+							deviceListMetadata: {}
+						},
+						...msg
+					}
+				}
+			}
+		}
+
+		return msg
+	},
 	shouldSyncHistoryMessage: ({ syncType }: proto.Message.IHistorySyncNotification) => {
 		return syncType !== proto.HistorySync.HistorySyncType.FULL
 	},
@@ -101,22 +119,13 @@ export const MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
 	document: '/mms/document',
 	audio: '/mms/audio',
 	sticker: '/mms/image',
-	'sticker-pack': '/mms/sticker-pack',
-	'thumbnail-sticker-pack': '/mms/thumbnail-sticker-pack',
+	'sticker-pack': '/mms/image',
+	'thumbnail-sticker-pack': '/mms/image',
 	'thumbnail-link': '/mms/image',
 	'product-catalog-image': '/product/image',
 	'md-app-state': '',
 	'md-msg-hist': '/mms/md-app-state',
 	'biz-cover-photo': '/pps/biz-cover-photo'
-}
-
-export const NEWSLETTER_MEDIA_PATH_MAP: { [T in MediaType]?: string } = {
-	image: '/newsletter/newsletter-image',
-	video: '/newsletter/newsletter-video',
-	document: '/newsletter/newsletter-document',
-	audio: '/newsletter/newsletter-audio',
-	sticker: '/newsletter/newsletter-image',
-	'thumbnail-link': '/newsletter/newsletter-image'
 }
 
 export const MEDIA_HKDF_KEY_MAPPING = {
@@ -128,8 +137,8 @@ export const MEDIA_HKDF_KEY_MAPPING = {
 	product: 'Image',
 	ptt: 'Audio',
 	sticker: 'Image',
-	'sticker-pack': 'Sticker Pack',
-	'thumbnail-sticker-pack': 'Sticker Pack Thumbnail',
+	'sticker-pack': 'Image',
+	'thumbnail-sticker-pack': 'Image Thumbnail',
 	video: 'Video',
 	'thumbnail-document': 'Document Thumbnail',
 	'thumbnail-image': 'Image Thumbnail',
@@ -162,3 +171,17 @@ export const TimeMs = {
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
 }
+
+/**
+ * Regex lexer for syntax highlighting in rich-message code blocks.
+ * Matches: line comments | strings/template literals | call-site identifiers
+ *          | plain identifiers | numbers | whitespace/punctuation
+ */
+/** Library name shown in fallback texts */
+export const LIBRARY_NAME = 'Baileys'
+
+export const LEXER_REGEX =
+	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\\b[a-zA-Z_]\w*\\b)(?=\s*\()|(\\b[a-zA-Z_]\w*\\b)|(\\b\d+(?:\.\d+)?\\b)|(\s+|[^\w\s]+)/g
+
+/** Fallback donate/reference URL used by rich-message link entities. */
+export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'

@@ -1,5 +1,5 @@
-import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
+import { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
 import { type BinaryNode } from './types'
 
@@ -101,31 +101,6 @@ export const getBinaryNodeMessages = ({ content }: BinaryNode) => {
 	return msgs
 }
 
-/**
- * Returns truthy if the additionalNodes array already contains a <biz> / button node
- * so relayMessage doesn't inject a duplicate.
- */
-export const getBinaryFilteredButtons = (nodeContent: BinaryNode | BinaryNode['content']): BinaryNode['content'] => {
-	if (!Array.isArray(nodeContent)) return false as any
-	return nodeContent.some((a: BinaryNode) => {
-		const firstChild = Array.isArray(a?.content) ? a.content[0] : undefined
-		const firstGrandchild = Array.isArray(firstChild?.content) ? firstChild.content[0] : undefined
-		return (
-			(typeof firstGrandchild?.tag === 'string' && ['native_flow'].includes(firstGrandchild.tag)) ||
-			(typeof firstChild?.tag === 'string' && ['interactive', 'buttons', 'list'].includes(firstChild.tag)) ||
-			['hsm', 'biz'].includes(a?.tag)
-		)
-	}) as any
-}
-
-/**
- * Returns truthy if the additionalNodes array already contains a <bot> biz_bot node.
- */
-export const getBinaryFilteredBizBot = (nodeContent: BinaryNode | BinaryNode['content']): BinaryNode['content'] => {
-	if (!Array.isArray(nodeContent)) return false as any
-	return nodeContent.some((b: BinaryNode) => b?.tag === 'bot' && b?.attrs?.biz_bot === '1') as any
-}
-
 function bufferToUInt(e: Uint8Array | Buffer, t: number) {
 	let a = 0
 	for (let i = 0; i < t; i++) {
@@ -166,7 +141,7 @@ export function binaryNodeToString(node: BinaryNode | BinaryNode['content'], i =
 	return tag + content
 }
 
-// ─── Biz Binary Node (itsliaa port) ───────────────────────────────────────────
+// ─── Biz Binary Node (IT/itsliaaa port) ──────────────────────────────────────
 
 const FLOWS_MAP: { [k: string]: boolean } = {
 	mpm: true,
@@ -199,11 +174,10 @@ const MIXED_NATIVE_FLOW: BinaryNode = {
  * and payment-related flows (review_and_pay, payment_info).
  *
  * Used automatically by `relayMessage` when `shouldIncludeBizBinaryNode`
- * returns true, and also when a secure-meta-service label is requested.
+ * returns true, and also when `addBizAttributes: true` is passed.
  */
 export const getBizBinaryNode = (message: proto.IMessage): BinaryNode => {
 	const flowMsg = message.interactiveMessage?.nativeFlowMessage
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const firstButtonName = (flowMsg?.buttons as any)?.[0]?.name as string | undefined
 
 	const qualityContent: BinaryNode = {
@@ -286,3 +260,28 @@ export const shouldIncludeBizBinaryNode = (message: proto.IMessage): boolean =>
 		message.templateMessage ||
 		message.interactiveMessage?.nativeFlowMessage
 	)
+
+/**
+ * Returns truthy if the additionalNodes array already contains a button/interactive/biz/list node.
+ * Used to avoid double-injecting a biz node when one already exists.
+ */
+export const getBinaryFilteredButtons = (nodeContent: BinaryNode | BinaryNode['content']): BinaryNode['content'] => {
+	if (!Array.isArray(nodeContent)) return false as any
+	return nodeContent.some((a: BinaryNode) => {
+		const firstChild = Array.isArray(a?.content) ? a.content[0] : undefined
+		const firstGrandchild = Array.isArray(firstChild?.content) ? firstChild.content[0] : undefined
+		return (
+			(typeof firstGrandchild?.tag === 'string' && ['native_flow'].includes(firstGrandchild.tag)) ||
+			(typeof firstChild?.tag === 'string' && ['interactive', 'buttons', 'list'].includes(firstChild.tag)) ||
+			['hsm', 'biz'].includes(a?.tag)
+		)
+	}) as any
+}
+
+/**
+ * Returns truthy if the additionalNodes array already contains a <bot biz_bot="1"> node.
+ */
+export const getBinaryFilteredBizBot = (nodeContent: BinaryNode | BinaryNode['content']): BinaryNode['content'] => {
+	if (!Array.isArray(nodeContent)) return false as any
+	return nodeContent.some((b: BinaryNode) => b?.tag === 'bot' && b?.attrs?.biz_bot === '1') as any
+}

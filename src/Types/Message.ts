@@ -129,8 +129,12 @@ type ViewOnce = {
 type Editable = {
 	edit?: WAMessageKey
 }
+type WithDimensions = {
+	width?: number
+	height?: number
+}
 
-/** Send image/video at HD quality */
+/** Send image/video at HD quality (bypasses WA compression) */
 type HDable = {
 	hd?: boolean
 }
@@ -183,308 +187,6 @@ type Collectionable = {
 	hasMediaAttachment?: boolean
 }
 
-/** Attach a carousel of cards to a message */
-type Cardsable = {
-	cards?: Carousel[]
-	title?: string
-	subtitle?: string
-	footer?: string
-}
-
-type WithDimensions = {
-	width?: number
-	height?: number
-}
-
-export type AlbumMessageOptions = {
-	/** Number of images expected in the album */
-	expectedImageCount?: number
-	/** Number of videos expected in the album */
-	expectedVideoCount?: number
-}
-
-export type KeepMessageOptions = {
-	/** The message key to keep */
-	key: proto.IMessageKey
-	/** Keep duration in seconds (86400 = 24h, 604800 = 7d, 0 = unkeep) */
-	keepDurationSeconds?: number
-}
-
-export type ButtonContent = {
-	/** Button display text */
-	displayText: string
-	/** Button ID */
-	id: string
-	/** Button type */
-	type?: 'reply' | 'url' | 'call' | 'copy'
-	/** URL for url-type buttons */
-	url?: string
-	/** Phone number for call-type buttons */
-	phoneNumber?: string
-	/** Text to copy for copy-type buttons */
-	copyCode?: string
-}
-
-export type ButtonsMessageOptions = {
-	/** Message body text */
-	text: string
-	/** Footer text */
-	footer?: string
-	/** Header text */
-	headerText?: string
-	/** Buttons to display */
-	buttons: ButtonContent[]
-	/** Header type: text | image | video | document */
-	headerType?: 'text' | 'image' | 'video' | 'document'
-	/** Media for header */
-	headerMedia?: WAMediaUpload
-}
-
-export type ListMessageSection = {
-	title: string
-	rows: {
-		title: string
-		rowId: string
-		description?: string
-	}[]
-}
-
-export type ListMessageOptions = {
-	text: string
-	footer?: string
-	title?: string
-	buttonText: string
-	sections: ListMessageSection[]
-}
-
-export type TemplateButtonContent =
-	| { index: number; urlButton: { displayText: string; url: string } }
-	| { index: number; callButton: { displayText: string; phoneNumber: string } }
-	| { index: number; quickReplyButton: { displayText: string; id: string } }
-
-export type TemplateMessageOptions = {
-	text: string
-	footer?: string
-	templateButtons: TemplateButtonContent[]
-	/** Optional header: text, image, video, document */
-	header?: string
-	headerMedia?: WAMediaUpload
-}
-
-type InteractiveButton =
-	| { type: 'reply'; displayText: string; id: string }
-	| { type: 'url'; displayText: string; url: string; merchantUrl?: string }
-	| { type: 'cta_call'; displayText: string; phoneNumber: string }
-	| { type: 'cta_copy'; displayText: string; copyCode: string }
-
-export type CarouselCard = {
-	body: string
-	footer?: string
-	headerImage?: WAMediaUpload
-	headerVideo?: WAMediaUpload
-	buttons: InteractiveButton[]
-}
-
-export type InteractiveMessageOptions = {
-	body: string
-	footer?: string
-	/** Header options */
-	header?: {
-		title?: string
-		subtitle?: string
-		hasMediaAttachment?: boolean
-	}
-	/** Buttons (for native-flow / button-list style) */
-	buttons?: InteractiveButton[]
-	/** Carousel cards */
-	cards?: CarouselCard[]
-	/** Products list */
-	shop?: {
-		id: string
-		thumbnail?: WAMediaUpload
-		title?: string
-	}
-}
-
-export type InteractiveMessagePIXOptions = InteractiveMessageOptions & {
-	/** PIX payment key */
-	pixKey: string
-	/** Payment amount in cents */
-	amount: number
-	/** Merchant name */
-	merchantName: string
-}
-
-export type InteractiveMessagePAYOptions = InteractiveMessageOptions & {
-	/** Payment amount */
-	amount: number
-	/** Currency code, e.g. "BRL" */
-	currency: string
-	/** Reference ID */
-	referenceId?: string
-	/** Payment note */
-	note?: string
-}
-
-export type PaymentMessageOptions = {
-	/** Amount in smallest currency unit (e.g. cents) */
-	amount: number
-	/** Currency code (e.g. "USD", "BRL") */
-	currency: string
-	/** Note/memo for the payment */
-	note?: string
-	/** Receiver JID */
-	receiverJid: string
-	/** Request or send */
-	type?: 'request' | 'send'
-	/** Background color (hex) */
-	backgroundColor?: string
-}
-
-export type PaymentInviteInfoo = {
-	type?: number
-	expiry?: number
-}
-
-export type PaymentInviteMessageOptions = {
-	/** Type of payment service */
-	serviceType: 'UNKNOWN' | 'FACEBOOK_PAY' | 'NOVI' | 'UPI' | 'PAYTM' | 'BR_GPY' | 'BR_PIX'
-	/** Expiry timestamp (ms since epoch) */
-	expiryTimestamp?: number
-}
-
-export type OrderMessageOptions = {
-	/** Order ID */
-	orderId: string
-	/** Thumbnail image of an order item */
-	thumbnail?: WAMediaUpload
-	/** Item count */
-	itemCount: number
-	/** Order status */
-	status?: 'INQUIRY' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELED'
-	/** Surface (e.g. 1 = catalog, 2 = message) */
-	surface?: number
-	/** Message associated with the order */
-	message?: string
-	/** Order title */
-	title?: string
-	/** Seller JID */
-	sellerJid?: string
-	/** Token */
-	token?: string
-}
-
-/**
- * Individual sticker within a sticker pack (V1 style)
- */
-export type Sticker = {
-	/** Sticker media source */
-	data: WAMediaUpload
-	/** Emoji tags for this sticker */
-	emojis?: string[]
-	/** Accessibility label */
-	accessibilityLabel?: string
-}
-
-/**
- * Full sticker pack definition (Merged V1/V2)
- */
-export type StickerPackk = {
-	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
-	stickers: StickerPackSticker[] | Sticker[]
-	/** Cover sticker shown in the tray */
-	cover: WAMediaUpload
-	/** Display name of the pack */
-	name: string
-	/** Publisher name */
-	publisher: string
-	/** Optional description */
-	description?: string
-	/** Pack ID — auto-generated if not provided */
-	packId?: string
-}
-
-export type StickerPackMessageOptions = {
-	/** Pack name */
-	packName: string
-	/** Pack publisher */
-	publisher?: string
-	/** Pack ID */
-	packId?: string
-	/** Sticker count */
-	stickerCount?: number
-}
-
-export type StatusMentionOptions = {
-	/** Status JIDs to mention */
-	statusJidList: string[]
-	/** Text to accompany */
-	text: string
-	/** Background color */
-	backgroundColor?: string
-	/** Font */
-	font?: number
-}
-
-export type ShopMessageOptions = {
-	/** Surface: 1=unknown, 2=catalog */
-	surface?: number
-	/** Message */
-	message?: string
-}
-
-export type CollectionMessageOptions = {
-	/** Business JID owning the collection */
-	bizJid: string
-	/** Collection ID */
-	id: string
-	/** Message version */
-	messageVersion?: number
-}
-
-export type RichTextTable = {
-	/** Table data rows (first row = header if headerRow=true) */
-	rows: string[][]
-	/** Whether first row is a header */
-	headerRow?: boolean
-	/** Optional title */
-	title?: string
-}
-
-export type RichTextList = {
-	/** List items */
-	items: string[]
-	/** Ordered (numbered) list */
-	ordered?: boolean
-	/** Optional title */
-	title?: string
-}
-
-export type CodeBlockOptions = {
-	/** Code string */
-	code: string
-	/** Language hint */
-	language?: string
-}
-
-export type LatexOptions = {
-	/** LaTeX expression */
-	expression: string
-}
-
-export type RichMessageOptions = {
-	/** Rich text content parts */
-	parts: (
-		| { type: 'text'; text: string }
-		| { type: 'table'; table: RichTextTable }
-		| { type: 'list'; list: RichTextList }
-		| { type: 'code'; code: CodeBlockOptions }
-		| { type: 'latex'; latex: LatexOptions }
-	)[]
-	/** Optional caption */
-	caption?: string
-}
-
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
@@ -492,11 +194,6 @@ export type PollMessageOptions = {
 	/** 32 byte message secret to encrypt poll selections */
 	messageSecret?: Uint8Array
 	toAnnouncementGroup?: boolean
-	/**
-	 * Poll content type — used for newsletter polls meta node.
-	 * 1 = TEXT (default), 2 = IMAGE
-	 */
-	pollContentType?: 1 | 2
 }
 
 export type EventMessageOptions = {
@@ -510,6 +207,13 @@ export type EventMessageOptions = {
 	isScheduleCall?: boolean
 	extraGuestsAllowed?: boolean
 	messageSecret?: Uint8Array<ArrayBufferLike>
+}
+
+export type AlbumMessageOptions = {
+	/** Number of images expected in the album */
+	expectedImageCount?: number
+	/** Number of videos expected in the album */
+	expectedVideoCount?: number
 }
 
 type SharePhoneNumber = {
@@ -527,12 +231,6 @@ export type AnyMediaMessageContent = (
 			jpegThumbnail?: string
 	  } & Mentionable &
 			Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable &
-			HDable &
 			WithDimensions)
 	| ({
 			video: WAMediaUpload
@@ -543,12 +241,6 @@ export type AnyMediaMessageContent = (
 			ptv?: boolean
 	  } & Mentionable &
 			Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable &
-			HDable &
 			WithDimensions)
 	| {
 			audio: WAMediaUpload
@@ -560,38 +252,32 @@ export type AnyMediaMessageContent = (
 	| ({
 			sticker: WAMediaUpload
 			isAnimated?: boolean
-			/** wrap the sticker into a lottieStickerMessage (itsliaa/baileys style) */
-			isLottie?: boolean
 	  } & WithDimensions)
 	| ({
 			document: WAMediaUpload
 			mimetype: string
 			fileName?: string
 			caption?: string
-	  } & Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable)
+	  } & Contextable)
 ) & { mimetype?: string } & Editable & {
 		/** key of the parent albumMessage to associate this media with */
 		albumParentKey?: WAMessageKey
 	}
 
-/** Info for replying to a button */
 export type ButtonReplyInfo = {
-	displayText?: string
-	id?: string
-	index?: number
-	// list reply fields
-	title?: string
-	description?: string
+	displayText: string
+	id: string
+	index: number
+	/** For type='list' — the row ID selected */
 	rowId?: string
-	// interactive (native flow) reply fields
+	/** For type='list' — optional title */
+	title?: string
+	/** For type='list' — optional description */
+	description?: string
+	/** For type='interactive' — native flow metadata */
 	nativeFlows?: {
-		name: string
-		paramsJson: string
+		name?: string
+		paramsJson?: string
 		version?: number
 	}
 }
@@ -608,66 +294,19 @@ export type WASendableProduct = Omit<proto.Message.ProductMessage.IProductSnapsh
 	productImage: WAMediaUpload
 }
 
-/** One card / slide in a carousel message */
-export type Carousel = {
-	image?: WAMediaUpload
-	video?: WAMediaUpload
-	document?: WAMediaUpload
-	mimetype?: string
-	fileName?: string
-	product?: WASendableProduct
-	title?: string
-	body?: string
-	footer?: string
-	buttons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
-}
-
-/** Product entry for productList messages */
-export type ProductListEntry = {
-	productId: string
-}
-
-export type ProductListSection = {
-	title: string
-	products: ProductListEntry[]
-}
-
-export type StickerPackSticker = {
-	/** sticker media — itsliaa/baileys style field name (preferred) */
-	data?: WAMediaUpload
-	/** @deprecated use `data` instead — kept for backward compatibility */
-	sticker?: WAMediaUpload
+export type Sticker = {
+	data: WAMediaUpload
 	emojis?: string[]
 	accessibilityLabel?: string
-	isAnimated?: boolean
-	isLottie?: boolean
 }
 
 export type StickerPack = {
-	stickers: StickerPackSticker[]
+	stickers: Sticker[]
 	cover: WAMediaUpload
 	name: string
 	publisher: string
 	description?: string
 	packId?: string
-}
-
-export type AdminInviteInfo = {
-	jid: string
-	name: string
-	caption?: string
-	expiration?: number
-}
-
-export type CallCreationInfo = {
-	name?: string
-	time?: number
-	type?: number
-}
-
-export type PaymentInviteInfo = {
-	type?: number
-	expiry?: number
 }
 
 export type AnyRegularMessageContent = (
@@ -676,13 +315,6 @@ export type AnyRegularMessageContent = (
 			linkPreview?: WAUrlInfo | null
 	  } & Mentionable &
 			Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable &
-			Cardsable &
-			Listable &
 			Editable)
 	| AnyMediaMessageContent
 	| { event: EventMessageOptions }
@@ -690,13 +322,6 @@ export type AnyRegularMessageContent = (
 			poll: PollMessageOptions
 	  } & Mentionable &
 			Contextable &
-			Buttonable &
-			Templatable &
-			Interactiveable &
-			Shopable &
-			Collectionable &
-			Cardsable &
-			Listable &
 			Editable)
 	| ({
 			album: AlbumMessageOptions
@@ -735,66 +360,169 @@ export type AnyRegularMessageContent = (
 			businessOwnerJid?: string
 			body?: string
 			footer?: string
-			/** attach interactive buttons to a product message */
-			interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
-			title?: string
-			subtitle?: string
-			hasMediaAttachment?: boolean
 	  }
 	| {
-			/** productList — renders as a List Message with products */
-			productList: ProductListSection[]
-			text?: string
-			title?: string
-			buttonText?: string
-			footer?: string
-			businessOwnerJid?: string
-			thumbnail?: WAMediaUpload | string
+			stickerPack: StickerPack
 	  }
 	| SharePhoneNumber
 	| RequestPhoneNumber
-	| ({
-			album: AlbumMessageOptions
-	  } & Contextable &
-			Mentionable)
-	| { stickerPack: StickerPack }
-	| { adminInvite: AdminInviteInfo }
-	| { call: CallCreationInfo }
-	| { paymentInvite: PaymentInviteInfo }
-	/** Payment invite (flat style) — service type: 1=Facebook Pay, 2=Apple Pay, 3=Stripe */
+	/** Payment invite — service type: 1=Facebook Pay, 2=Apple Pay, 3=Stripe */
 	| { paymentInviteServiceType: 1 | 2 | 3; expiry?: number }
 	/** Request payment from another user */
-	| { requestPaymentFrom: string; amount1000?: number; currencyCodeIso4217?: string }
-	/** Send an order message (flat style) */
+	| { requestPaymentFrom: string }
+	/** Send an order message */
 	| { orderText: string; thumbnail?: Buffer; currency?: string; orderId?: string }
-	| { keep: KeepMessageOptions }
-	| { order: OrderMessageOptions }
-	| { payment: PaymentMessageOptions }
-	| { paymentInvite: PaymentInviteInfo | PaymentInviteMessageOptions }
-	// | { buttons: ButtonsMessageOptions }
-	// | { list: ListMessageOptions }
-	// | { template: TemplateMessageOptions }
-	| { interactive: InteractiveMessageOptions }
-	| { interactivePIX: InteractiveMessagePIXOptions }
-	| { interactivePAY: InteractiveMessagePAYOptions }
-	| { statusMention: StatusMentionOptions }
-	// | { shop: ShopMessageOptions }
-	| { collection: CollectionMessageOptions }
-	| { hdImage: WAMediaUpload; caption?: string; mimetype?: string }
-	| { hdVideo: WAMediaUpload; caption?: string; mimetype?: string }
-	| { callMessage: proto.Message.IScheduledCallCreationMessage }
-	| { pollResult: proto.Message.IPollResultSnapshotMessage }
-	// | { richMessage: RichMessageOptions }
+	/** Admin invite to a newsletter channel */
 	| {
-			richResponse: {
-				text: string
-				code?: string
-				language?: string
-				botJid?: string
+			adminInvite: {
+				jid: string
+				name: string
+				caption?: string
+				expiration?: number
+				jpegThumbnail?: Buffer
 			}
 	  }
+	/** Native-flow interactive message (send interactiveButtons directly) */
+	| {
+			nativeFlow?: {
+				buttons: Array<{ name: string; buttonParamsJson: string }>
+				messageParamsJson?: string
+			}
+			text?: string
+			caption?: string
+			title?: string
+			subtitle?: string
+			footer?: string
+			thumbnail?: Buffer
+			bizJid?: string
+			shopSurface?: number
+			id?: string
+			audioFooter?: WAMediaUpload
+	  }
+	/** Cards / carousel message (alias for carouselMessage via content) */
+	| {
+			cards: Array<{
+				text?: string
+				caption?: string
+				title?: string
+				subtitle?: string
+				footer?: string
+				thumbnail?: Buffer
+				audioFooter?: WAMediaUpload
+				nativeFlow?: {
+					buttons: Array<{ name: string; buttonParamsJson: string }>
+				}
+				product?: WASendableProduct
+				image?: WAMediaUpload
+				video?: WAMediaUpload
+			}>
+			text?: string
+			footer?: string
+	  }
+	/** Template buttons — simpler than generateTemplateMessage addon helper */
+	| {
+			templateButtons: Array<{
+				text?: string
+				buttonText?: string
+				id?: string
+				url?: string
+				call?: string
+				index?: number
+			}>
+			text?: string
+			caption?: string
+			title?: string
+			footer?: string
+			image?: WAMediaUpload
+			video?: WAMediaUpload
+			id?: string
+	  }
 ) &
-	ViewOnce
+	ViewOnce &
+	/** Wrap in groupStatusMessageV2 — only works in group chats */
+	Partial<{ groupStatus: boolean }> &
+	/** Add AI bot icon — only works in private chats */
+	Partial<{ ai: boolean }> &
+	/** Wrap in lottieStickerMessage */
+	Partial<{ isLottie: boolean }> &
+	/** Wrap in spoilerMessage */
+	Partial<{ spoiler: boolean }> &
+	/** Wrap in ephemeralMessage */
+	Partial<{ ephemeral: boolean }> &
+	/** Wrap in viewOnceMessageV2 */
+	Partial<{ viewOnceV2: boolean }> &
+	/** Wrap in viewOnceMessageV2Extension */
+	Partial<{ viewOnceV2Extension: boolean }> &
+	/** Wrap interactiveMessage into a templateMessage */
+	Partial<{ interactiveAsTemplate: boolean }> &
+	/** Attach external ad reply context info */
+	Partial<{
+		externalAdReply: {
+			title?: string
+			body?: string
+			url?: string
+			thumbnail?: Buffer
+			largeThumbnail?: boolean
+			mediaType?: number
+		}
+	}> &
+	/** Mention additional JIDs beyond the message text mentions */
+	Partial<{ mentions: string[]; mentionAll: boolean }> &
+	/** Attach raw contextInfo to the message */
+	Partial<{ contextInfo: proto.IContextInfo }> &
+	/** Inject a biz binary node — shows secure service label on business clients */
+	Partial<{ secureMetaServiceLabel: boolean }> &
+	/** HD image/video — send without WA compression (higher-quality thumbnail) */
+	Partial<{ hd: boolean }> &
+	/** Shop storefront interactive message */
+	Partial<{ shop: { surface: number; id: string } }> &
+	/** Collection interactive message */
+	Partial<{ collection: { bizJid: string; id: string; version?: number } }> &
+	/** ProductList interactive message */
+	Partial<{
+		productList: { title?: string; products: { productId: string }[] }[]
+		thumbnail?: WAMediaUpload
+		buttonText?: string
+		businessOwnerJid?: string
+	}> &
+	/** Inline rich AI response via botForwardedMessage */
+	Partial<{ richResponse: { text?: string; code?: string; language?: string; botJid?: string } }> &
+	/** hasMediaAttachment flag for interactive messages */
+	Partial<{ hasMediaAttachment: boolean }> &
+	/** Poll result snapshot — shows vote counts */
+	Partial<{
+		pollResult: {
+			name: string
+			values: [string, number][]
+		}
+	}> &
+	/** Scheduled call creation (call invite) message */
+	Partial<{
+		call: {
+			name?: string
+			/** 1 = audio, 2 = video */
+			type?: number
+			time?: number
+		}
+	}> &
+	/** Payment request message */
+	Partial<{
+		payment: {
+			note?: string
+			currency?: string
+			offset?: number
+			amount?: number
+			expiry?: number
+			from?: string
+			image?: {
+				placeholderArgb?: string
+				textArgb?: string
+				subtextArgb?: string
+			}
+		}
+	}> &
+	/** Raw proto message — pass through directly, no wrapping or validation */
+	Partial<{ raw: proto.IMessage }>
 
 export type AnyMessageContent =
 	| AnyRegularMessageContent
@@ -807,38 +535,22 @@ export type AnyMessageContent =
 			delete: WAMessageKey
 	  }
 	| {
+			/** Keep / star a message so it stays after disappearing-messages timer */
+			keep: WAMessageKey
+	  }
+	| {
+			/** Newsletter admin invite message */
+			adminInvite: AdminInviteInfo
+	  }
+	| {
+			/** Payment invite (Facebook Pay / Apple Pay / Stripe etc.) */
+			paymentInvite: PaymentInviteInfo
+	  }
+	| {
 			disappearingMessagesInChat: boolean | number
 	  }
 	| {
 			limitSharing: boolean
-	  }
-	| {
-			/**
-			 * Send as a group status (story visible to group members).
-			 * Set to `true` to wrap the message in groupStatusMessageV2.
-			 * The jid should be a group JID (e.g. `120363xxxxxxxx@g.us`).
-			 * @example
-			 * await sock.sendMessage('120363xxx@g.us', { text: 'Hello group!', groupStatus: true })
-			 */
-			groupStatus: boolean
-	  }
-	| {
-			/**
-			 * Blur the attached media until the recipient taps to reveal it.
-			 * @example
-			 * await sock.sendMessage(jid, { image: {...}, spoiler: true })
-			 */
-			spoiler: boolean
-	  }
-	| {
-			/**
-			 * Bypass content generation entirely and send a manually-built
-			 * proto.IMessage as-is. Useful for constructing message types
-			 * that don't have a dedicated AnyMessageContent shape yet.
-			 * @example
-			 * await sock.sendMessage(jid, { raw: { extendedTextMessage: { text: 'hi' } } })
-			 */
-			raw: proto.IMessage
 	  }
 
 export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
@@ -846,6 +558,8 @@ export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
 type MinimalRelayOptions = {
 	/** override the message ID with a custom provided string */
 	messageId?: string
+	/** override the message key's uuid with a custom provided string (falls back to a generated one if omitted) */
+	uuid?: string
 	/** should we use group metadata cache, or fetch afresh from the server; default assumed to be "true" */
 	useCachedGroupMetadata?: boolean
 }
@@ -860,6 +574,10 @@ export type MessageRelayOptions = MinimalRelayOptions & {
 	useUserDevicesCache?: boolean
 	/** jid list of participants for status@broadcast */
 	statusJidList?: string[]
+	/** inject a biz binary node for secureMetaServiceLabel messages */
+	addBizAttributes?: boolean
+	/** AI icon relay flag — injects bot node in private chats */
+	AI?: boolean
 }
 
 export type MiscMessageGenerationOptions = MinimalRelayOptions & {
@@ -879,18 +597,37 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	font?: number
 	/** if it is broadcast */
 	broadcast?: boolean
+	/** delay in ms between sending messages (used by status broadcast) */
+	delayMs?: number
+	/** AI icon flag — injects bot node in private chats */
+	ai?: boolean
 	/** if the message is for a newsletter */
 	newsletter?: boolean
-	/** additional binary nodes to attach to the message */
+	/** additional binary nodes to attach to the message stanza */
 	additionalNodes?: BinaryNode[]
-	/** if true, show AI icon on the message bubble */
-	ai?: boolean
-	/** attach a "secure" Meta service label badge to the message (e.g. for
-	 *  verified-business / official-service style bubbles) */
-	secureMetaServiceLabel?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
+}
+
+export type AdminInviteInfo = {
+	jid: string
+	name: string
+	caption?: string
+	expiration?: number
+}
+
+export type CallCreationInfo = {
+	name?: string
+	time?: number
+	/** 1 = audio, 2 = video */
+	type?: number
+}
+
+export type PaymentInviteInfo = {
+	/** service type — 2 = Facebook Pay etc. */
+	type?: number
+	expiry?: number
 }
 
 export type WAMediaUploadFunctionOpts = {

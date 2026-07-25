@@ -20,17 +20,18 @@ const createMockEventEmitter = () => {
 	} as unknown as BaileysEventEmitter & { emittedEvents: typeof emittedEvents }
 }
 
-const createMockLogger = (): ILogger => ({
-	warn: jest.fn(),
-	info: jest.fn(),
-	debug: jest.fn(),
-	error: jest.fn(),
-	trace: jest.fn(),
-	child: jest.fn(function (this: ILogger) {
-		return this
-	}),
-	level: 'silent'
-})
+const createMockLogger = (): ILogger =>
+	({
+		warn: jest.fn(),
+		info: jest.fn(),
+		debug: jest.fn(),
+		error: jest.fn(),
+		trace: jest.fn(),
+		child: jest.fn(function (this: ILogger) {
+			return this
+		}),
+		level: 'silent'
+	}) as unknown as ILogger
 
 const createSyncAction = (
 	action: proto.ISyncActionValue,

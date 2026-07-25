@@ -1,8 +1,4 @@
 export const S_WHATSAPP_NET = '@s.whatsapp.net'
-export const LID = '@lid'
-export const G_US = '@g.us'
-export const C_US = '@g.us'
-//export const C_US = '@c.us'
 export const OFFICIAL_BIZ_JID = '16505361212@c.us'
 export const SERVER_JID = 'server@c.us'
 export const PSA_WID = '0@c.us'
@@ -101,6 +97,9 @@ export const isLidUser = (jid: string | undefined) => jid?.endsWith('@lid')
 export const isJidBroadcast = (jid: string | undefined) => jid?.endsWith('@broadcast')
 /** is the jid a group */
 export const isJidGroup = (jid: string | undefined) => jid?.endsWith('@g.us')
+
+/** Returns true for regular user JIDs (s.whatsapp.net or @c.us) */
+export const isJidUser = (jid: string | undefined) => jid?.endsWith('@s.whatsapp.net') || jid?.endsWith('@c.us')
 /** is the jid the status broadcast */
 export const isJidStatusBroadcast = (jid: string) => jid === 'status@broadcast'
 /** is the jid a newsletter */
@@ -121,7 +120,7 @@ export const jidNormalizedUser = (jid: string | undefined) => {
 	}
 
 	const { user, server } = result
-	return jidEncode(user, server === 'c.us' ? 's.whatsapp.net' : server)
+	return jidEncode(user, server === 'c.us' ? 's.whatsapp.net' : (server as JidServer))
 }
 
 export const transferDevice = (fromJid: string, toJid: string) => {

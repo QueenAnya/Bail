@@ -12,27 +12,16 @@
  * are implemented here as standalone helpers that require a `sendNode` / `query` ref.
  */
 
-import type { BinaryNode } from '../WABinary'
-import { getBinaryNodeChild } from '../WABinary'
+import type { BinaryNode } from '../WABinary/index'
+import { getBinaryNodeChild } from '../WABinary/index'
 // generateMessageTag is a socket-layer util; we inline a compatible version here
 const generateMessageTag = (): string =>
 	Math.random().toString(36).slice(2, 8).toUpperCase() + Date.now().toString(36).toUpperCase()
 
-export type WAInitiateCallOptions = {
-	/** Whether to start a video call (default: false = audio) */
-	isVideo?: boolean
-}
-
-export type WAInitiateCallResult = {
-	callId: string
-	to: string
-	isVideo: boolean
-}
-
-// ── Types re-export (extending existing WACallUpdateType) ─────────────────────
-// The patch removes internal update types that aren't really received,
-// keeping only the ones WA actually sends.
-export type WACallUpdateType = 'offer' | 'ringing' | 'timeout' | 'reject' | 'accept' | 'terminate'
+// WAInitiateCallOptions, WAInitiateCallResult, WACallUpdateType live in src/Types/Call.ts
+// Importing from there to avoid duplicate export conflicts
+import type { WACallUpdateType, WAInitiateCallOptions, WAInitiateCallResult } from '../Types/index'
+export type { WACallUpdateType, WAInitiateCallOptions, WAInitiateCallResult }
 
 // ── createCallLink ─────────────────────────────────────────────────────────────
 /**

@@ -31,7 +31,6 @@ export function makeOrderedDictionary<T>(idGetter: (item: T) => string) {
 			delete dict[id]
 			dict[newId] = item
 		}
-
 		return true
 	}
 
