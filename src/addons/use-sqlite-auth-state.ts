@@ -20,9 +20,9 @@
  */
 
 import { proto } from '../../WAProto/index.js'
+import type { AuthenticationState } from '../Types/index'
 import { initAuthCreds } from '../Utils/auth-utils'
 import { BufferJSON } from '../Utils/generics'
-import type { AuthenticationState } from '../Types/index'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -145,9 +145,11 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 							if (type === 'app-state-sync-key' && value) {
 								value = proto.Message.AppStateSyncKeyData.fromObject(value)
 							}
+
 							data[id] = value
 						}
 					}
+
 					return data
 				},
 

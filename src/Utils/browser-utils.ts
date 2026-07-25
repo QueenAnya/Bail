@@ -44,9 +44,9 @@ const PLATFORM_VERSIONS: Record<string, string> = {
 	wearos: '4.1',
 	harmonyos: '4.0.0',
 	kaios: '3.1',
-	smarttv: '8.0',
-	raspberrypi: '12',
-	symbian: '9.4',
+	smarttv: '23.3.1',
+	raspberrypi: '11 (Bullseye)',
+	symbian: '3',
 	blackberry: '10.3.3',
 	windowsphone: '8.1'
 }
@@ -80,30 +80,37 @@ export const Browsers: BrowsersMap = {
 
 /**
  * Checks if the browser tuple represents an Android companion device.
- * @param browser - Browser tuple [os, platform, version]
- * @returns True if platform is 'Android' (case-insensitive)
  */
 export const isAndroidBrowser = (browser: [string, string, string]): boolean => {
 	return browser[1]?.toUpperCase() === 'ANDROID'
 }
 
+/**
+ * Returns a numeric platform ID string for the given browser name.
+ * Falls back to Chrome (1) for unknown/non-browser platforms.
+ */
 export const getPlatformId = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
-	return (platformType || proto.DeviceProps.PlatformType.CHROME).toString()
+	if (platformType !== undefined) {
+		return platformType.toString()
+	}
+
+	// 'ANDROID' not in PlatformType enum — map to ANDROID_PHONE
+	if (browser.toUpperCase() === 'ANDROID') {
+		const androidPhone = proto.DeviceProps.PlatformType['ANDROID_PHONE' as any]
+		if (androidPhone !== undefined) {
+			return androidPhone.toString()
+		}
+	}
+
+	return (proto.DeviceProps.PlatformType.CHROME || 1).toString()
 }
 
 /**
- * Returns the display name for a given browser platform string.
- * Falls back to 'Chrome' if not recognized.
+ * Returns the display name for the given browser type.
+ * Falls back to 'Chrome' if browser type is not a known platform type.
  */
-export const getPlatformDisplayName = (browser: string): string => {
-	const known: Record<string, string> = {
-		CHROME: 'Chrome',
-		EDGE: 'Edge',
-		FIREFOX: 'Firefox',
-		IE: 'IE',
-		OPERA: 'Opera',
-		SAFARI: 'Safari'
-	}
-	return known[browser.toUpperCase()] || browser
+export const getPlatformDisplayName = (browser: string) => {
+	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
+	return platformType !== undefined ? browser : 'Chrome'
 }

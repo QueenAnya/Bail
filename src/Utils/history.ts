@@ -38,7 +38,6 @@ export const downloadHistory = async (msg: proto.Message.IHistorySyncNotificatio
 	const chunks: Buffer[] = []
 	inflater.on('data', (chunk: Buffer) => chunks.push(chunk))
 	await pipeline(stream, inflater)
-
 	const buffer = Buffer.concat(chunks)
 	const syncData = proto.HistorySync.decode(buffer)
 	return syncData
@@ -133,9 +132,10 @@ export const processHistoryMessage = (item: proto.IHistorySync, logger?: ILogger
 		contacts,
 		messages,
 		lidPnMappings,
-		pastParticipants: item.pastParticipants,
+
 		syncType: item.syncType,
-		progress: item.progress
+		progress: item.progress,
+		pastParticipants: item.pastParticipants
 	}
 }
 

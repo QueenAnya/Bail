@@ -45,55 +45,6 @@ Use at your own discretion. Do not spam people with this. We discourage any stal
 > This is the only official repository and is maintained by the community.
 > **Join the Discord [here](https://discord.gg/WeJM5FP9GG)**
 
-## About This Build
-
-This package (`anya-bail`, version `9.9.0-5-anya-merged.1`) is a merged build on top of
-official Baileys `7.0.0-rc13`, combining the addon layers from several community forks
-into one base. Core protocol code (WAProto, WABinary, Socket) is kept identical to the
-real official `@whiskeysockets/baileys@7.0.0-rc13` release — only one field was added
-on top (see below), and no other protocol behavior was changed. Full history of what
-was merged, reverted, and why is in [`MERGE_NOTES.md`](MERGE_NOTES.md).
-
-### Custom `uuid` field on `MessageKey`
-
-In addition to the standard `id` field (unchanged, still generated the same way), every
-outgoing message key now also carries a `uuid`:
-
-- Priority: an explicit `uuid` on the message content → an explicit `uuid` passed in
-  send options → an auto-generated default (15 characters) if neither is given.
-- `id` is completely untouched — this is purely additive.
-
-```ts
-// explicit uuid via content
-await sock.sendMessage(jid, { text: 'hi', uuid: 'my-custom-uuid' })
-
-// explicit uuid via options
-await sock.sendMessage(jid, { text: 'hi' }, { uuid: 'my-custom-uuid' })
-
-// or let it auto-generate
-await sock.sendMessage(jid, { text: 'hi' })
-console.log(sentMsg.key.uuid)
-```
-
-### Addons
-
-All addons are available from the barrel export, e.g.
-`import { makeStatusMentionsAddon, printQRIfNecessaryListener } from '@whiskeysockets/baileys/addons'`.
-Source lives in `src/addons/`. Current set:
-
-`anti-delete` · `auto-reply` · `baileys-event-stream` · `browser-presets` · `browser-utils` ·
-`button-sender` · `call-handler` · `chat-control` (includes read-receipt & typing-indicator
-control) · `from-chats` / `from-messages` (recv/send) · `interactive-message` · `jid-plot` /
-`jid-plotting` · `lid-support` · `make-in-memory-store` · `message-composer` ·
-`message-scheduler` · `message-search` · `message-utils` · `outgoing-calls` · `pairing-fix` ·
-`past-participants` · `rich-message` (includes `sendMarkdown`) / `rich-message-composer` / `rich-message-utils` /
-`rich-types` · `rich-response` (includes the unified-response capture registry —
-`captureUnifiedResponse` / `sendUnifiedResponse` / `clearCapturedResponses` /
-`getCapturedResponses`) · `scheduling` · `status-helpers` · `status-posting` (includes
-`makeStatusMentionsAddon` for status/story @mentions) · `stickerpack` · `templates` ·
-`use-cache-manager-auth-state` / `use-mongo-auth-state` / `use-single-file-auth-state` /
-`use-sqlite-auth-state` · `vcard`
-
 ## Example
 
 Do check out & run [example.ts](Example/example.ts) to see an example usage of the library.
@@ -703,7 +654,6 @@ await sock.sendMessage(id, {
 #### Audio Message
 
 - To audio message work in all devices you need to convert with some tool like `ffmpeg` with this flags:
-
   ```bash
       codec: libopus //ogg file
       ac: 1 //one channel
@@ -712,7 +662,6 @@ await sock.sendMessage(id, {
   ```
 
   - Example:
-
   ```bash
   ffmpeg -i input.mp4 -avoid_negative_ts make_zero -ac 1 output.ogg
   ```

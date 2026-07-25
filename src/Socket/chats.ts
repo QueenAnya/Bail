@@ -1,6 +1,6 @@
 import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
-import type Long from 'long'
+import Long from 'long'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -39,9 +39,8 @@ import {
 	encodeSyncdPatch,
 	ensureLTHashStateVersion,
 	extractSyncdPatches,
-	generateProfilePicture,
 	generatePanoramaProfilePicture,
-	extractImageThumb,
+	generateProfilePicture,
 	getHistoryMsg,
 	isAppStateSyncIrrecoverable,
 	isMissingKeyError,
@@ -68,10 +67,6 @@ import {
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeSocket } from './socket.js'
 
-/**
- * Builds the `<picture>` query content node(s) for a profile-picture fetch.
- * Extracted as a standalone pure helper for testability.
- */
 export const buildProfilePictureQueryContent = (
 	type: 'preview' | 'image',
 	tcTokenContent?: BinaryNode[]
@@ -354,22 +349,31 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		})
 	}
 
-	/** Update profile picture with panorama/wide banner support (sends square + fullsize). */
+	/**
+	 * Set a full-width banner/panorama profile picture without square cropping.
+	 * Uploads a square 640x640 crop (for the circle avatar/thumbnail, same as
+	 * updateProfilePicture) plus a wide, aspect-preserved banner capped at
+	 * `opts.maxWidth`, for clients that render the wide banner slot.
+	 */
 	const updatePanoramaProfilePicture = async (
 		jid: string,
 		content: WAMediaUpload,
-		options?: { maxWidth?: number; quality?: number }
+		opts?: { maxWidth?: number; quality?: number }
 	) => {
+		let targetJid
 		if (!jid) {
 			throw new Boom(
 				'Illegal no-jid profile update. Please specify either your ID or the ID of the chat you wish to update'
 			)
 		}
 
-		const targetJid =
-			jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id) ? jidNormalizedUser(jid) : undefined
+		if (jidNormalizedUser(jid) !== jidNormalizedUser(authState.creds.me!.id)) {
+			targetJid = jidNormalizedUser(jid)
+		} else {
+			targetJid = undefined
+		}
 
-		const { img, fullImg } = await generatePanoramaProfilePicture(content, options)
+		const { square, wide } = await generatePanoramaProfilePicture(content, opts)
 		await query({
 			tag: 'iq',
 			attrs: {
@@ -379,8 +383,16 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				...(targetJid ? { target: targetJid } : {})
 			},
 			content: [
-				{ tag: 'picture', attrs: { type: 'image' }, content: img },
-				{ tag: 'picture', attrs: { type: 'fullsize' }, content: fullImg }
+				{
+					tag: 'picture',
+					attrs: { type: 'image' },
+					content: square
+				},
+				{
+					tag: 'picture',
+					attrs: { type: 'preview' },
+					content: wide
+				}
 			]
 		})
 	}
@@ -787,8 +799,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	 * type = "image for the high res picture"
 	 */
 	const profilePictureUrl = async (jid: string, type: 'preview' | 'image' = 'preview', timeoutMs?: number) => {
-		const baseContent = buildProfilePictureQueryContent(type)
-
 		// WA Web only includes tctoken for user JIDs (not groups/newsletters)
 		// and never for own profile pic (Chat model for self has no tcToken).
 		// Including tctoken for own JID causes the server to never respond.
@@ -797,13 +807,12 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		const me = authState.creds.me
 		const isSelf =
 			me && (normalizedJid === jidNormalizedUser(me.id) || (me.lid && normalizedJid === jidNormalizedUser(me.lid)))
-		let content: BinaryNode[] | undefined = baseContent
+		let tcTokenContent: BinaryNode[] | undefined
 
 		if (serverProps.profilePicPrivacyToken && isUserJid && !isSelf) {
-			content = await buildTcTokenFromJid({
+			tcTokenContent = await buildTcTokenFromJid({
 				authState,
 				jid: normalizedJid,
-				baseContent,
 				getLIDForPN
 			})
 		}
@@ -818,7 +827,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					type: 'get',
 					xmlns: 'w:profile:picture'
 				},
-				content
+				content: buildProfilePictureQueryContent(type, tcTokenContent)
 			},
 			timeoutMs
 		)
@@ -1183,32 +1192,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
-	 * Clear / delete a specific message from a chat (for yourself only).
-	 * Equivalent to long-pressing a message and selecting "Delete for Me".
-	 *
-	 * @param jid          The JID of the chat containing the message.
-	 * @param key          The WAMessageKey of the message to clear.
-	 * @param timestamps   The messageTimestamp of the message (number or Long).
-	 *
-	 * @example
-	 * await sock.clearMessage(jid, msg.key, msg.messageTimestamp)
-	 */
-	const clearMessage = (jid: string, key: WAMessageKey, timestamps: number | Long | null | undefined) => {
-		return chatModify(
-			{
-				delete: true,
-				lastMessages: [
-					{
-						key,
-						messageTimestamp: timestamps
-					}
-				]
-			} as unknown as ChatModification,
-			jid
-		)
-	}
-
-	/**
 	 * Adds label for the message
 	 */
 	const addMessageLabel = (jid: string, messageId: string, labelId: string) => {
@@ -1260,6 +1243,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			},
 			''
 		)
+	}
+
+	/**
+	 * Clear a message from chat (delete for me)
+	 */
+	const clearMessage = (jid: string, key: WAMessageKey, timeStamp: number | Long) => {
+		return chatModify({ delete: true, lastMessages: [{ key, messageTimestamp: timeStamp }] }, jid)
 	}
 
 	/**
@@ -1570,9 +1560,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		updateProfilePicture,
 		updatePanoramaProfilePicture,
 		removeProfilePicture,
-		/** Resize/thumbnail image → JPEG Buffer. Usage: `await sock.resize(url, 320)` */
-		resize: (media: Parameters<typeof extractImageThumb>[0], width = 320) =>
-			extractImageThumb(media, width).then(r => r.buffer),
 		updateProfileStatus,
 		updateProfileName,
 		updateBlockStatus,
@@ -1589,6 +1576,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		getBusinessProfile,
 		resyncAppState,
 		chatModify,
+		clearMessage,
+		deleteChat: clearMessage,
 		cleanDirtyBits,
 		addOrEditContact,
 		removeContact,
@@ -1596,7 +1585,6 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		addLabel,
 		addChatLabel,
 		removeChatLabel,
-		clearMessage,
 		addMessageLabel,
 		removeMessageLabel,
 		star,

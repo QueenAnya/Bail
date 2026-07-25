@@ -3,9 +3,9 @@
  * Source: @innovatorssoft/baileys make-cache-manager-store.js
  */
 import { proto } from '../../WAProto/index.js'
+import type { AuthenticationState } from '../Types/index.js'
 import { initAuthCreds } from '../Utils/auth-utils.js'
 import { BufferJSON } from '../Utils/generics.js'
-import type { AuthenticationState } from '../Types/index.js'
 
 /** Minimal interface compatible with any cache-manager v5 store */
 export type CacheManagerStore = {
@@ -33,7 +33,7 @@ export const useCacheManagerAuthState = async (
 	const readData = async (file: string): Promise<unknown> => {
 		try {
 			const data = await store.get(defaultKey(file))
-			return data != null ? JSON.parse(data!, BufferJSON.reviver) : null
+			return data !== null && data !== undefined ? JSON.parse(data, BufferJSON.reviver) : null
 		} catch {
 			return null
 		}
@@ -69,6 +69,7 @@ export const useCacheManagerAuthState = async (
 							if (type === 'app-state-sync-key' && value) {
 								value = proto.Message.AppStateSyncKeyData.fromObject(value)
 							}
+
 							data[id] = value
 						})
 					)
@@ -83,6 +84,7 @@ export const useCacheManagerAuthState = async (
 							tasks.push(value ? writeData(key, value) : removeData(key))
 						}
 					}
+
 					await Promise.all(tasks)
 				}
 			}

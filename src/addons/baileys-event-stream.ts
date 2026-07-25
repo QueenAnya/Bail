@@ -18,14 +18,15 @@ export const captureEventStream = (ev: BaileysEventEmitter, filename: string): v
 	const writeMutex = makeMutex()
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const patchedEmit: (...a: any[]) => boolean = function (event: any, ...rest: any[]) {
+	const patchedEmit: (...a: any[]) => boolean = (event: any, ...rest: any[]) => {
 		const line = JSON.stringify({ timestamp: Date.now(), event, data: rest[0] }) + '\n'
 		const result = (originalEmit as (...a: any[]) => boolean)(event, ...rest)
-		writeMutex.mutex(async () => {
+		void writeMutex.mutex(async () => {
 			await writeFile(filename, line, { flag: 'a' })
 		})
 		return result
 	}
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	;(ev as any).emit = patchedEmit
 }

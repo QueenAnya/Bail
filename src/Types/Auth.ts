@@ -86,15 +86,6 @@ export type SignalDataTypeMap = {
 
 export type SignalDataSet = { [T in keyof SignalDataTypeMap]?: { [id: string]: SignalDataTypeMap[T] | null } }
 
-/** Names of the typed records a {@link SignalKeyStore} holds. */
-export type SignalDataType = keyof SignalDataTypeMap
-
-/** Identifies one (type, id) record in the key store — the unit of locking. */
-export type RecordRef = {
-	type: SignalDataType
-	id: string
-}
-
 type Awaitable<T> = T | Promise<T>
 
 export type SignalKeyStore = {
@@ -117,6 +108,15 @@ export type SignalKeyStore = {
 export type SignalKeyStoreWithTransaction = SignalKeyStore & {
 	isInTransaction: () => boolean
 	transaction<T>(exec: () => Promise<T>, key: string): Promise<T>
+}
+
+/** Names of the typed records a {@link SignalKeyStore} holds. */
+export type SignalDataType = keyof SignalDataTypeMap
+
+/** Identifies one (type, id) record in the key store — the unit of locking. */
+export type RecordRef = {
+	type: SignalDataType
+	id: string
 }
 
 export type TransactionCapabilityOptions = {

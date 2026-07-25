@@ -652,9 +652,9 @@ function consolidateEvents(data: BufferedEventData) {
 			contacts: Object.values(data.historySets.contacts),
 			pastParticipants: data.historySets.pastParticipants,
 			syncType: data.historySets.syncType,
+			chunkOrder: data.historySets.chunkOrder,
 			progress: data.historySets.progress,
 			isLatest: data.historySets.isLatest,
-			chunkOrder: data.historySets.chunkOrder,
 			peerDataRequestSessionId: data.historySets.peerDataRequestSessionId
 		}
 	}

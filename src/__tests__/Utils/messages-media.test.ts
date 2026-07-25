@@ -334,12 +334,12 @@ describe('getWAUploadToServer', () => {
 
 	it('does not pass a generic https Agent as a fetch dispatcher', async () => {
 		let fetchInit: RequestInit | undefined
-		globalThis.fetch = (async (_input, init) => {
+		globalThis.fetch = async (_input, init) => {
 			fetchInit = init
 			return new Response(JSON.stringify({ url: 'https://example.com/media', direct_path: '/media' }), {
 				headers: { 'Content-Type': 'application/json' }
 			})
-		}) as typeof fetch
+		}
 
 		const mediaConn: MediaConnInfo = {
 			auth: 'auth-token',
@@ -364,7 +364,7 @@ describe('getWAUploadToServer', () => {
 			fbid: undefined,
 			ts: undefined
 		})
-		expect((fetchInit as (RequestInit & { dispatcher?: unknown }) | undefined)?.dispatcher).toBeUndefined()
+		expect(fetchInit?.dispatcher).toBeUndefined()
 	})
 })
 

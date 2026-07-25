@@ -1,6 +1,6 @@
 import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../Types'
 import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
-import { QueryIds, XWAPaths } from '../Types'
+import { QueryIdd, QueryIds, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
 import { getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'
@@ -79,6 +79,16 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 
 		newsletterUpdate,
 
+		newsletterFetchAllParticipating: async () => {
+			return await genericExecuteWMexQuery(
+				{},
+				QueryIdd.GETSUBSCRIBED,
+				XWAPaths.xwa2_newsletter_subscribed,
+				query,
+				generateMessageTag
+			)
+		},
+
 		newsletterSubscribers: async (jid: string) => {
 			return executeWMexQuery<{ subscribers: number }>(
 				{ newsletter_id: jid },
@@ -115,13 +125,6 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 
 		newsletterUnmute: (jid: string) => {
 			return executeWMexQuery({ newsletter_id: jid }, QueryIds.UNMUTE, XWAPaths.xwa2_newsletter_unmute_v2)
-		},
-		/**
-		 * Fetch all newsletters the current user is subscribed to.
-		 * Equivalent to groupFetchAllParticipating but for newsletters.
-		 */
-		newsletterSubscribed: () => {
-			return executeWMexQuery({}, QueryIds.SUBSCRIBED, XWAPaths.xwa2_newsletter_subscribed)
 		},
 
 		newsletterUpdateName: async (jid: string, name: string) => {

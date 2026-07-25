@@ -23,9 +23,9 @@ That assumption was checked against the real sources this pass and found **wrong
   `p-queue` ^9.0.0, `whatsapp-rust-bridge` 0.5.4, `ws` ^8.13.0.
 
 **Both have been reverted** to match the real, verified `@whiskeysockets/baileys@7.0.0-rc13`
-values exactly (WAProto.proto restored to the original F_final version, which was
+values exactly (WAProto.proto restored to the original F*final version, which was
 already correct; package.json dependency versions restored to official pins). The
-`uuid` field patch (see below) was then re-applied on top of the _correct_ proto.
+`uuid` field patch (see below) was then re-applied on top of the \_correct* proto.
 
 One exception: `long` (^5.3.2) is kept as an explicit dependency even though official
 package.json doesn't list it directly — the source code (`generics.ts`, `chats.ts`,

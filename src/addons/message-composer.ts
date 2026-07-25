@@ -1,20 +1,218 @@
 /**
- * Rich Message Composer
- *
- * Provides strongly-typed helpers for building WhatsApp AI/bot-style rich messages:
- *  — Tables, code blocks (with syntax highlighting), LaTeX expressions,
- *    inline images, lists, and arbitrary sub-message arrays.
- *  — Wraps everything in the botForwardedMessage → richResponseMessage proto.
- *
- * Source: @innovatorssoft/baileys (message-composer.js) — best tokenizer,
- * most complete, cleanest API.
+ * message-composer.ts (addons)
+ * Rich message builders for Meta AI / Bot botForwardedMessage payloads.
+ * Ported from WhiskeySockets/Baileys main (April 2026).
  */
 
-import { proto } from '../../WAProto/index.js'
-import { generateMessageID } from '../Utils/generics.js'
+import type { proto } from '../../WAProto/index.js'
+import { generateMessageID } from '../Utils/generics'
 
-// ─── Language keywords (for syntax highlighting) ─────────────────────────────
+// ── Keyword sets ──────────────────────────────────────────────────────────────
 
+// ─── Syntax-highlighting keyword sets (used by addons/rich-message tokenizer) ─
+
+export const CPP_KEYWORDS = new Set([
+	'alignas',
+	'alignof',
+	'and',
+	'and_eq',
+	'asm',
+	'auto',
+	'bitand',
+	'bitor',
+	'bool',
+	'break',
+	'case',
+	'catch',
+	'char',
+	'class',
+	'compl',
+	'concept',
+	'const',
+	'consteval',
+	'constexpr',
+	'constinit',
+	'const_cast',
+	'continue',
+	'co_await',
+	'co_return',
+	'co_yield',
+	'decltype',
+	'default',
+	'delete',
+	'do',
+	'double',
+	'dynamic_cast',
+	'else',
+	'enum',
+	'explicit',
+	'export',
+	'extern',
+	'false',
+	'float',
+	'for',
+	'friend',
+	'goto',
+	'if',
+	'inline',
+	'int',
+	'long',
+	'mutable',
+	'namespace',
+	'new',
+	'noexcept',
+	'not',
+	'not_eq',
+	'nullptr',
+	'operator',
+	'or',
+	'or_eq',
+	'private',
+	'protected',
+	'public',
+	'register',
+	'reinterpret_cast',
+	'requires',
+	'return',
+	'short',
+	'signed',
+	'sizeof',
+	'static',
+	'static_assert',
+	'static_cast',
+	'struct',
+	'switch',
+	'template',
+	'this',
+	'thread_local',
+	'throw',
+	'true',
+	'try',
+	'typedef',
+	'typeid',
+	'typename',
+	'union',
+	'unsigned',
+	'using',
+	'virtual',
+	'void',
+	'volatile',
+	'wchar_t',
+	'while',
+	'xor',
+	'xor_eq'
+])
+
+export const CSS_KEYWORDS = new Set([
+	'import',
+	'media',
+	'font-face',
+	'keyframes',
+	'supports',
+	'charset',
+	'important',
+	'root',
+	'hover',
+	'active',
+	'focus',
+	'visited',
+	'before',
+	'after',
+	'not',
+	'nth-child',
+	'first-child',
+	'last-child',
+	'only-child',
+	'none',
+	'inherit',
+	'initial',
+	'unset',
+	'auto',
+	'transparent',
+	'currentcolor'
+])
+
+export const GO_KEYWORDS = new Set([
+	'break',
+	'default',
+	'func',
+	'interface',
+	'select',
+	'case',
+	'defer',
+	'go',
+	'map',
+	'struct',
+	'chan',
+	'else',
+	'goto',
+	'package',
+	'switch',
+	'const',
+	'fallthrough',
+	'if',
+	'range',
+	'type',
+	'continue',
+	'for',
+	'import',
+	'return',
+	'var',
+	'true',
+	'false',
+	'nil'
+])
+
+export const HTML_KEYWORDS = new Set([
+	'html',
+	'head',
+	'body',
+	'title',
+	'meta',
+	'link',
+	'script',
+	'style',
+	'header',
+	'footer',
+	'main',
+	'section',
+	'article',
+	'aside',
+	'nav',
+	'div',
+	'span',
+	'h1',
+	'h2',
+	'h3',
+	'h4',
+	'h5',
+	'h6',
+	'p',
+	'a',
+	'img',
+	'ul',
+	'ol',
+	'li',
+	'table',
+	'tr',
+	'td',
+	'th',
+	'thead',
+	'tbody',
+	'form',
+	'input',
+	'button',
+	'select',
+	'textarea',
+	'label',
+	'option',
+	'canvas',
+	'svg',
+	'iframe',
+	'video',
+	'audio',
+	'source'
+])
 export const JS_KEYWORDS = new Set([
 	'import',
 	'export',
@@ -105,6 +303,330 @@ export const PYTHON_KEYWORDS = new Set([
 	'self',
 	'print'
 ])
+export const RUST_KEYWORDS = new Set([
+	'as',
+	'break',
+	'const',
+	'continue',
+	'crate',
+	'else',
+	'enum',
+	'extern',
+	'false',
+	'fn',
+	'for',
+	'if',
+	'impl',
+	'in',
+	'let',
+	'loop',
+	'match',
+	'mod',
+	'move',
+	'mut',
+	'pub',
+	'ref',
+	'return',
+	'self',
+	'Self',
+	'static',
+	'struct',
+	'super',
+	'trait',
+	'true',
+	'type',
+	'unsafe',
+	'use',
+	'where',
+	'while',
+	'async',
+	'await',
+	'dyn',
+	'abstract',
+	'become',
+	'box',
+	'do',
+	'final',
+	'macro',
+	'override',
+	'priv',
+	'typeof',
+	'unsized',
+	'virtual',
+	'yield',
+	'try'
+])
+
+export const C_KEYWORDS = new Set([
+	'auto',
+	'break',
+	'case',
+	'char',
+	'const',
+	'continue',
+	'default',
+	'do',
+	'double',
+	'else',
+	'enum',
+	'extern',
+	'float',
+	'for',
+	'goto',
+	'if',
+	'inline',
+	'int',
+	'long',
+	'register',
+	'restrict',
+	'return',
+	'short',
+	'signed',
+	'sizeof',
+	'static',
+	'struct',
+	'switch',
+	'typedef',
+	'union',
+	'unsigned',
+	'void',
+	'volatile',
+	'while',
+	'_Alignas',
+	'_Alignof',
+	'_Atomic',
+	'_Bool',
+	'_Complex',
+	'_Generic',
+	'_Imaginary',
+	'_Noreturn',
+	'_Static_assert',
+	'_Thread_local'
+])
+
+export const CSHARP_KEYWORDS = new Set([
+	'abstract',
+	'as',
+	'base',
+	'bool',
+	'break',
+	'byte',
+	'case',
+	'catch',
+	'char',
+	'checked',
+	'class',
+	'const',
+	'continue',
+	'decimal',
+	'default',
+	'delegate',
+	'do',
+	'double',
+	'else',
+	'enum',
+	'event',
+	'explicit',
+	'extern',
+	'false',
+	'finally',
+	'fixed',
+	'float',
+	'for',
+	'foreach',
+	'goto',
+	'if',
+	'implicit',
+	'in',
+	'int',
+	'interface',
+	'internal',
+	'is',
+	'lock',
+	'long',
+	'namespace',
+	'new',
+	'null',
+	'object',
+	'operator',
+	'out',
+	'override',
+	'params',
+	'private',
+	'protected',
+	'public',
+	'readonly',
+	'ref',
+	'return',
+	'sbyte',
+	'sealed',
+	'short',
+	'sizeof',
+	'stackalloc',
+	'static',
+	'string',
+	'struct',
+	'switch',
+	'this',
+	'throw',
+	'true',
+	'try',
+	'typeof',
+	'uint',
+	'ulong',
+	'unchecked',
+	'unsafe',
+	'ushort',
+	'using',
+	'virtual',
+	'void',
+	'volatile',
+	'while',
+	'async',
+	'await',
+	'record',
+	'init',
+	'required',
+	'file',
+	'global',
+	'nameof',
+	'var',
+	'dynamic',
+	'partial',
+	'yield',
+	'from',
+	'where',
+	'select',
+	'group',
+	'orderby',
+	'join',
+	'let',
+	'into',
+	'equals',
+	'by',
+	'ascending',
+	'descending'
+])
+
+export const BASH_KEYWORDS = new Set([
+	'if',
+	'then',
+	'else',
+	'elif',
+	'fi',
+	'case',
+	'esac',
+	'for',
+	'while',
+	'until',
+	'do',
+	'done',
+	'in',
+	'function',
+	'select',
+	'time',
+	'coproc',
+	'echo',
+	'printf',
+	'read',
+	'cd',
+	'pwd',
+	'exit',
+	'export',
+	'unset',
+	'alias',
+	'unalias',
+	'source',
+	'exec',
+	'eval',
+	'test',
+	'shift',
+	'trap',
+	'wait',
+	'jobs',
+	'kill',
+	'bg',
+	'fg',
+	'history',
+	'type',
+	'ulimit',
+	'umask',
+	'set',
+	'true',
+	'false'
+])
+
+export const CMD_KEYWORDS = new Set([
+	'echo',
+	'set',
+	'if',
+	'else',
+	'for',
+	'in',
+	'do',
+	'goto',
+	'call',
+	'exit',
+	'shift',
+	'pause',
+	'start',
+	'title',
+	'cls',
+	'rem',
+	'dir',
+	'copy',
+	'move',
+	'del',
+	'mkdir',
+	'rmdir',
+	'type',
+	'ren',
+	'tasklist',
+	'taskkill',
+	'ping',
+	'ipconfig',
+	'netstat',
+	'shutdown'
+])
+
+export const POWERSHELL_KEYWORDS = new Set([
+	'function',
+	'filter',
+	'param',
+	'begin',
+	'process',
+	'end',
+	'if',
+	'else',
+	'elseif',
+	'switch',
+	'foreach',
+	'for',
+	'while',
+	'do',
+	'until',
+	'break',
+	'continue',
+	'return',
+	'throw',
+	'trap',
+	'try',
+	'catch',
+	'finally',
+	'$true',
+	'$false',
+	'$null',
+	'Write-Host',
+	'Write-Output',
+	'Get-Item',
+	'Set-Item',
+	'Get-ChildItem',
+	'Remove-Item',
+	'Copy-Item',
+	'Move-Item',
+	'Test-Path',
+	'Invoke-Command'
+])
 
 export const LANGUAGE_KEYWORDS: Record<string, Set<string>> = {
 	javascript: JS_KEYWORDS,
@@ -112,10 +634,29 @@ export const LANGUAGE_KEYWORDS: Record<string, Set<string>> = {
 	js: JS_KEYWORDS,
 	ts: JS_KEYWORDS,
 	python: PYTHON_KEYWORDS,
-	py: PYTHON_KEYWORDS
+	py: PYTHON_KEYWORDS,
+	css: CSS_KEYWORDS,
+	html: HTML_KEYWORDS,
+	go: GO_KEYWORDS,
+	golang: GO_KEYWORDS,
+	cpp: CPP_KEYWORDS,
+	'c++': CPP_KEYWORDS,
+	rust: RUST_KEYWORDS,
+	rs: RUST_KEYWORDS,
+	c: C_KEYWORDS,
+	h: C_KEYWORDS,
+	csharp: CSHARP_KEYWORDS,
+	cs: CSHARP_KEYWORDS,
+	bash: BASH_KEYWORDS,
+	sh: BASH_KEYWORDS,
+	zsh: BASH_KEYWORDS,
+	cmd: CMD_KEYWORDS,
+	bat: CMD_KEYWORDS,
+	powershell: POWERSHELL_KEYWORDS,
+	ps1: POWERSHELL_KEYWORDS
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+// ── Enums ─────────────────────────────────────────────────────────────────────
 
 export enum CodeHighlightType {
 	DEFAULT = 0,
@@ -139,14 +680,11 @@ export enum RichSubMessageType {
 	CONTENT_ITEMS = 9
 }
 
-// ─── Interfaces ───────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface CodeBlockToken {
-	highlightType: CodeHighlightType
-	codeContent: string
-}
+export type CodeToken = { highlightType: CodeHighlightType; codeContent: string }
 
-export interface LatexExpression {
+export type LatexExpression = {
 	latexExpression: string
 	url?: string
 	width?: number
@@ -158,22 +696,38 @@ export interface LatexExpression {
 	imageTrailingPadding?: number
 }
 
-export interface RichContextInfo {
-	stanzaId?: string
-	participant?: string
-	quotedMessage?: proto.IMessage
+export type RichSubMessage = {
+	messageType: RichSubMessageType | number
+	messageText?: string
+	tableMetadata?: { title: string; rows: Array<{ items: string[]; isHeading?: boolean }> }
+	codeMetadata?: { codeLanguage: string; codeBlocks: CodeToken[] }
+	latexMetadata?: { text: string; expressions: LatexExpression[] }
+	imageMetadata?: {
+		imageUrl: { imagePreviewUrl: string; imageHighResUrl: string }
+		imageText?: string
+		alignment?: number
+	}
 }
 
-// ─── Tokenizer ────────────────────────────────────────────────────────────────
+export type RichMessageContent = { message: proto.IMessage; messageId: string }
 
-/** Tokenize source code into highlight blocks for a code-block sub-message. */
-export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeBlockToken[] => {
-	const keywords = LANGUAGE_KEYWORDS[language] ?? JS_KEYWORDS
-	const blocks: CodeBlockToken[] = []
+export type CapturedUnifiedResponse = {
+	unifiedResponse: { data: Buffer | Uint8Array }
+	submessages: RichSubMessage[]
+	contextInfo: Record<string, unknown>
+}
+
+type QuotedMsg = { key?: proto.IMessageKey; message?: proto.IMessage | null; sender?: string } | undefined
+
+// ── Tokenizer ─────────────────────────────────────────────────────────────────
+
+export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToken[] => {
+	const keywords = LANGUAGE_KEYWORDS[language] || JS_KEYWORDS
+	const blocks: CodeToken[] = []
 	const lines = codeStr.split('\n')
 
 	for (let li = 0; li < lines.length; li++) {
-		const line = lines[li]!
+		const line = lines[li] as string
 		const isLast = li === lines.length - 1
 		const nl = isLast ? '' : '\n'
 
@@ -181,23 +735,38 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeBloc
 			blocks.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: line + nl })
 			continue
 		}
+
 		if (line.trim().startsWith('//') || line.trim().startsWith('#')) {
 			blocks.push({ highlightType: CodeHighlightType.COMMENT, codeContent: line + nl })
 			continue
 		}
 
-		const regex =
-			/(\/\/.*$|#.*$)|("(?:[^"\\]|\\.)*")|('(?:[^'\\]|\\.)*')|(`(?:[^`\\]|\\.)*`)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_$][\w$]*\b)|([^\s\w$"'`]+)|(\s+)/g
+		const regex = new RegExp(
+			[
+				'(\\/\\/.*$|#.*$)',
+				'("(?:[^"\\\\]|\\\\.)*")',
+				"('(?:[^'\\\\]|\\\\.)*')",
+				'(`(?:[^`\\\\]|\\\\.)*`)',
+				'(\\b\\d+(?:\\.\\d+)?\\b)',
+				'(\\b[a-zA-Z_$][\\w$]*\\b)',
+				'([^\\s\\w$"\'`]+)',
+				'(\\s+)'
+			].join('|'),
+			'g'
+		)
+
 		let match: RegExpExecArray | null
-		const tokens: CodeBlockToken[] = []
+		const tokens: CodeToken[] = []
 
 		while ((match = regex.exec(line)) !== null) {
-			const val = match[0]!
-			if (match[1]) tokens.push({ highlightType: CodeHighlightType.COMMENT, codeContent: val })
-			else if (match[2] || match[3] || match[4])
+			const val = match[0]
+			if (match[1]) {
+				tokens.push({ highlightType: CodeHighlightType.COMMENT, codeContent: val })
+			} else if (match[2] || match[3] || match[4]) {
 				tokens.push({ highlightType: CodeHighlightType.STRING, codeContent: val })
-			else if (match[5]) tokens.push({ highlightType: CodeHighlightType.NUMBER, codeContent: val })
-			else if (match[6]) {
+			} else if (match[5]) {
+				tokens.push({ highlightType: CodeHighlightType.NUMBER, codeContent: val })
+			} else if (match[6]) {
 				if (keywords.has(val)) {
 					tokens.push({ highlightType: CodeHighlightType.KEYWORD, codeContent: val })
 				} else {
@@ -212,30 +781,32 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeBloc
 			}
 		}
 
-		if (!tokens.length) {
+		if (tokens.length === 0) {
 			blocks.push({ highlightType: CodeHighlightType.DEFAULT, codeContent: line + nl })
 			continue
 		}
 
-		// Merge adjacent same-type tokens
-		const merged: CodeBlockToken[] = []
+		const merged: CodeToken[] = []
 		for (const t of tokens) {
-			const prev = merged[merged.length - 1]
+			const prev = merged.length > 0 ? merged[merged.length - 1]! : undefined
 			if (prev?.highlightType === t.highlightType) {
 				prev.codeContent += t.codeContent
-			} else merged.push({ ...t })
+			} else {
+				merged.push({ ...t })
+			}
 		}
-		if (merged.length) merged[merged.length - 1]!.codeContent += nl
+
+		if (merged.length > 0) merged[merged.length - 1]!.codeContent += nl
 		blocks.push(...merged)
 	}
+
 	return blocks
 }
 
-// ─── Context / wrapper helpers ────────────────────────────────────────────────
+// ── Context / wrapper helpers ─────────────────────────────────────────────────
 
-/** Build a contextInfo object for botForwardedMessage payloads. */
-export const buildRichContextInfo = (quoted?: any): proto.IContextInfo => {
-	const ctxInfo: proto.IContextInfo = {
+export const buildRichContextInfo = (quoted?: QuotedMsg): Record<string, unknown> => {
+	const ctxInfo: Record<string, unknown> = {
 		forwardingScore: 1,
 		isForwarded: true,
 		forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
@@ -243,254 +814,195 @@ export const buildRichContextInfo = (quoted?: any): proto.IContextInfo => {
 	}
 	if (quoted?.key) {
 		ctxInfo.stanzaId = quoted.key.id
-		ctxInfo.participant = quoted.key.participant ?? quoted.sender ?? quoted.key.remoteJid
+		ctxInfo.participant = quoted.key.participant || quoted.sender || quoted.key.remoteJid
 		ctxInfo.quotedMessage = quoted.message
 	}
+
 	return ctxInfo
 }
 
-/** Wrap sub-messages into the botForwardedMessage → richResponseMessage proto structure. */
 export const buildBotForwardedMessage = (
-	submessages: any[],
-	contextInfo?: proto.IContextInfo,
-	unifiedResponse?: { data: Buffer }
+	submessages: RichSubMessage[],
+	contextInfo: Record<string, unknown>,
+	unifiedResponse?: { data: Buffer | Uint8Array }
 ): proto.IMessage => {
-	const richResponse: any = { messageType: 1, submessages, contextInfo }
+	const richResponse: Record<string, unknown> = { messageType: 1, submessages, contextInfo }
 	if (unifiedResponse) richResponse.unifiedResponse = unifiedResponse
-	return { botForwardedMessage: { message: { richResponseMessage: richResponse } } }
+	return {
+		richResponseMessage: richResponse
+	}
 }
 
-// ─── Generators ───────────────────────────────────────────────────────────────
+// ── Generators ────────────────────────────────────────────────────────────────
 
-/** Generate a rich table message. */
 export const generateTableContent = (
 	title: string,
 	headers: string[],
 	rows: string[][],
-	quoted?: any,
-	options?: { headerText?: string; footer?: string }
-): { message: proto.IMessage; messageId: string } => {
-	const { footer, headerText } = options ?? {}
+	quoted?: QuotedMsg,
+	options: { headerText?: string; footer?: string } = {}
+): RichMessageContent => {
+	const { footer, headerText } = options
 	const tableRows = [{ items: headers, isHeading: true }, ...rows.map(row => ({ items: row.map(String) }))]
-	const subs: any[] = []
-	if (headerText) subs.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
-	subs.push({ messageType: RichSubMessageType.TABLE, tableMetadata: { title, rows: tableRows } })
-	if (footer) subs.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
-	return { message: buildBotForwardedMessage(subs, buildRichContextInfo(quoted)), messageId: generateMessageID() }
-}
-
-/** Generate a rich list message (rendered as table rows). */
-export const generateListContent = (
-	title: string,
-	items: string[] | string[][],
-	quoted?: any,
-	options?: { headerText?: string; footer?: string }
-): { message: proto.IMessage; messageId: string } => {
-	const { footer, headerText } = options ?? {}
-	const tableRows = items.map(item => ({ items: Array.isArray(item) ? item.map(String) : [String(item)] }))
-	const subs: any[] = []
-	if (headerText) subs.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
-	subs.push({ messageType: RichSubMessageType.TABLE, tableMetadata: { title, rows: tableRows } })
-	if (footer) subs.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
-	return { message: buildBotForwardedMessage(subs, buildRichContextInfo(quoted)), messageId: generateMessageID() }
-}
-
-/** Generate a rich code-block message with syntax highlighting. */
-export const generateCodeBlockContent = (
-	code: string,
-	quoted?: any,
-	options?: { title?: string; language?: string; footer?: string }
-): { message: proto.IMessage; messageId: string } => {
-	const { title, footer, language = 'javascript' } = options ?? {}
-	const subs: any[] = []
-	if (title) subs.push({ messageType: RichSubMessageType.TEXT, messageText: title })
-	subs.push({
-		messageType: RichSubMessageType.CODE,
-		codeMetadata: { codeLanguage: language, codeBlocks: tokenizeCode(code, language) }
-	})
-	if (footer) subs.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
-	return { message: buildBotForwardedMessage(subs, buildRichContextInfo(quoted)), messageId: generateMessageID() }
-}
-
-/** Generate a LaTeX expression message (text only, no image upload). */
-export const generateLatexContent = (
-	quoted?: any,
-	options?: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string }
-): { message: proto.IMessage; messageId: string } => {
-	const { text, expressions = [], headerText, footer } = options ?? {}
-	const subs: any[] = []
-	if (headerText) subs.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
-	subs.push({ messageType: RichSubMessageType.LATEX, latexMetadata: { text: text ?? '', expressions } })
-	if (footer) subs.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
-	return { message: buildBotForwardedMessage(subs, buildRichContextInfo(quoted)), messageId: generateMessageID() }
-}
-
-/** Render LaTeX expressions to images, upload them, and build a latex message. */
-export const generateLatexImageContent = async (
-	quoted: any,
-	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
-	uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>,
-	renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>
-): Promise<{ message: proto.IMessage; messageId: string }> => {
-	const { text, expressions = [], headerText, footer } = options
-	const subs: any[] = []
-	if (headerText) subs.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
-
-	const resolved = await Promise.all(
-		expressions.map(async expr => {
-			const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
-			const res = await uploadFn(buffer, 'image')
-			return { latexExpression: expr.latexExpression, url: res.url ?? res.directPath, width, height }
-		})
-	)
-
-	subs.push({ messageType: RichSubMessageType.LATEX, latexMetadata: { text: text ?? '', expressions: resolved } })
-	if (footer) subs.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
-	return { message: buildBotForwardedMessage(subs, buildRichContextInfo(quoted)), messageId: generateMessageID() }
-}
-
-/** Render each LaTeX expression as an inline image block. */
-export const generateLatexInlineImageContent = async (
-	quoted: any,
-	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
-	uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>,
-	renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>
-): Promise<{ message: proto.IMessage; messageId: string }> => {
-	const { text, expressions = [], headerText, footer } = options
-	const subs: any[] = []
-	if (headerText) subs.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
-	if (text) subs.push({ messageType: RichSubMessageType.TEXT, messageText: text })
-
-	for (const expr of expressions) {
-		const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
-		const res = await uploadFn(buffer, 'image')
-		const url = res.url ?? res.directPath
-		subs.push({
-			messageType: RichSubMessageType.INLINE_IMAGE,
-			imageMetadata: {
-				imageUrl: { imagePreviewUrl: url, imageHighResUrl: url },
-				imageText: expr.latexExpression,
-				alignment: 2
-			}
-		})
-	}
-
-	if (footer) subs.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
-	return { message: buildBotForwardedMessage(subs, buildRichContextInfo(quoted)), messageId: generateMessageID() }
-}
-
-/** Capture the unifiedResponse payload from an incoming Meta AI botForwardedMessage. */
-export const captureUnifiedResponse = (msg: proto.IMessage) => {
-	const rich = msg?.botForwardedMessage?.message?.richResponseMessage
-	if (!rich?.unifiedResponse?.data) return null
-	return {
-		unifiedResponse: { data: Buffer.from(rich.unifiedResponse.data as Uint8Array) },
-		submessages: rich.submessages ?? [],
-		contextInfo: rich.contextInfo ?? {}
-	}
-}
-
-/** Re-send a previously captured unified response to a new JID. */
-export const generateUnifiedResponseContent = (
-	quoted: any,
-	captured: { submessages: any[]; unifiedResponse: { data: Buffer } }
-): { message: proto.IMessage; messageId: string } => ({
-	message: buildBotForwardedMessage(captured.submessages, buildRichContextInfo(quoted), captured.unifiedResponse),
-	messageId: generateMessageID()
-})
-
-/** Build a fully custom rich message from an arbitrary sub-messages array. */
-export const generateRichMessageContent = (
-	submessages: any[],
-	quoted?: any
-): { message: proto.IMessage; messageId: string } => ({
-	message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-	messageId: generateMessageID()
-})
-
-// ─── Inline Entities Message ──────────────────────────────────────────────────
-
-export interface InlineEntity {
-	key: string
-	metadata: {
-		reference_id?: number
-		reference_url?: string
-		reference_title?: string
-		reference_display_name?: string
-		sources?: any[]
-		__typename?: string
-		[key: string]: any
-	}
-}
-
-/**
- * Generate a rich text message with inline citation entities.
- * Inline entities appear as superscript numbers linking to sources.
- *
- * @example
- * const msg = generateInlineEntityMessage(
- *   'WhatsApp was founded in 2009 {{SS_0}}¹{{/SS_0}}',
- *   [{ key: 'SS_0', metadata: { reference_url: 'https://example.com', reference_title: 'Source', reference_display_name: 'Example' } }]
- * )
- */
-export const generateInlineEntityMessage = (
-	text: string,
-	entities: InlineEntity[],
-	quoted?: any
-): { message: proto.IMessage; messageId: string } => {
-	const submessages: proto.IAIRichResponseSubMessage[] = [
-		{
-			messageType: RichSubMessageType.TEXT as unknown as proto.AIRichResponseSubMessageType,
-			messageText: text,
-			...({
-				inlineEntities: entities.map(e => ({
-					key: e.key,
-					metadata: {
-						__typename: 'GenAISearchCitationItem',
-						...e.metadata
-					}
-				}))
-			} as any)
-		}
-	]
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	submessages.push({ messageType: RichSubMessageType.TABLE, tableMetadata: { title, rows: tableRows } })
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
 		messageId: generateMessageID()
 	}
 }
 
-/**
- * Shorthand: build a single citation link inline entity.
- * @example
- * const msg = buildCitationMessage(
- *   'Some fact',
- *   'https://example.com',
- *   'Source Title',
- *   'Source Name'
- * )
- */
-export const buildCitationMessage = (
-	text: string,
-	url: string,
-	title?: string,
-	displayName?: string,
-	quoted?: any
-): { message: proto.IMessage; messageId: string } => {
-	const key = 'SS_0'
-	return generateInlineEntityMessage(
-		`${text} {{${key}}}¹{{/${key}}} `,
-		[
-			{
-				key,
-				metadata: {
-					reference_id: 1,
-					reference_url: url,
-					reference_title: title ?? 'Source',
-					reference_display_name: displayName ?? 'Source',
-					__typename: 'GenAISearchCitationItem'
-				}
-			}
-		],
-		quoted
-	)
+export const generateListContent = (
+	title: string,
+	items: string[] | string[][],
+	quoted?: QuotedMsg,
+	options: { headerText?: string; footer?: string } = {}
+): RichMessageContent => {
+	const { footer, headerText } = options
+	const tableRows = items.map(item => ({ items: Array.isArray(item) ? item.map(String) : [String(item)] }))
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	submessages.push({ messageType: RichSubMessageType.TABLE, tableMetadata: { title, rows: tableRows } })
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+		messageId: generateMessageID()
+	}
 }
+
+export const generateCodeBlockContent = (
+	code: string,
+	quoted?: QuotedMsg,
+	options: { title?: string; footer?: string; language?: string } = {}
+): RichMessageContent => {
+	const { title, footer, language = 'javascript' } = options
+	const submessages: RichSubMessage[] = []
+	if (title) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: title })
+	submessages.push({
+		messageType: RichSubMessageType.CODE,
+		codeMetadata: { codeLanguage: language, codeBlocks: tokenizeCode(code, language) }
+	})
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+		messageId: generateMessageID()
+	}
+}
+
+export const generateLatexContent = (
+	quoted: QuotedMsg,
+	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string }
+): RichMessageContent => {
+	const { text, expressions, headerText, footer } = options
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	const latexExpressions: LatexExpression[] = expressions.map(expr => {
+		const entry: LatexExpression = {
+			latexExpression: expr.latexExpression,
+			url: expr.url,
+			width: expr.width,
+			height: expr.height
+		}
+		if (expr.fontHeight !== undefined) entry.fontHeight = expr.fontHeight
+		if (expr.imageTopPadding !== undefined) entry.imageTopPadding = expr.imageTopPadding
+		if (expr.imageLeadingPadding !== undefined) entry.imageLeadingPadding = expr.imageLeadingPadding
+		if (expr.imageBottomPadding !== undefined) entry.imageBottomPadding = expr.imageBottomPadding
+		if (expr.imageTrailingPadding !== undefined) entry.imageTrailingPadding = expr.imageTrailingPadding
+		return entry
+	})
+	submessages.push({
+		messageType: RichSubMessageType.LATEX,
+		latexMetadata: { text: text || '', expressions: latexExpressions }
+	})
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+		messageId: generateMessageID()
+	}
+}
+
+export const generateLatexImageContent = async (
+	quoted: QuotedMsg,
+	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+	uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>,
+	renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>
+): Promise<RichMessageContent> => {
+	const { text, expressions, headerText, footer } = options
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	const latexExpressions = await Promise.all(
+		expressions.map(async expr => {
+			const { buffer, width, height } = await renderLatexToPng(expr.latexExpression)
+			const res = await uploadFn(buffer, 'image')
+			return { latexExpression: expr.latexExpression, url: res.url || res.directPath, width, height }
+		})
+	)
+	submessages.push({
+		messageType: RichSubMessageType.LATEX,
+		latexMetadata: { text: text || '', expressions: latexExpressions }
+	})
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+		messageId: generateMessageID()
+	}
+}
+
+export const generateLatexInlineImageContent = async (
+	quoted: QuotedMsg,
+	options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+	uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>,
+	renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>
+): Promise<RichMessageContent> => {
+	const { text, expressions, headerText, footer } = options
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	if (text) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: text })
+	for (const expr of expressions) {
+		const { buffer /* width, height */ } = await renderLatexToPng(expr.latexExpression)
+		const res = await uploadFn(buffer, 'image')
+		const imageUrl = res.url || res.directPath || ''
+		submessages.push({
+			messageType: RichSubMessageType.INLINE_IMAGE,
+			imageMetadata: {
+				imageUrl: { imagePreviewUrl: imageUrl, imageHighResUrl: imageUrl },
+				imageText: expr.latexExpression,
+				alignment: 2
+			}
+		})
+	}
+
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+		messageId: generateMessageID()
+	}
+}
+
+export const extractUnifiedResponse = (msg: proto.IMessage | null | undefined): CapturedUnifiedResponse | null => {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const botFwd = (msg as any)?.botForwardedMessage?.message
+	if (!botFwd) return null
+	const rich = botFwd.richResponseMessage
+	if (!rich?.unifiedResponse?.data) return null
+	return {
+		unifiedResponse: { data: rich.unifiedResponse.data },
+		submessages: rich.submessages || [],
+		contextInfo: rich.contextInfo || {}
+	}
+}
+
+export const generateUnifiedResponseContent = (
+	quoted: QuotedMsg,
+	captured: CapturedUnifiedResponse
+): RichMessageContent => ({
+	message: buildBotForwardedMessage(captured.submessages, buildRichContextInfo(quoted), captured.unifiedResponse),
+	messageId: generateMessageID()
+})
+
+export const generateRichMessageContent = (submessages: RichSubMessage[], quoted?: QuotedMsg): RichMessageContent => ({
+	message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
+	messageId: generateMessageID()
+})
