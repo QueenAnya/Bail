@@ -149,9 +149,5 @@
     "better-sqlite3": {
       "optional": true
     }
-  },
-  "packageManager": "yarn@4.9.2",
-  "engines": {
-    "node": ">=20.0.0"
   }
 }
