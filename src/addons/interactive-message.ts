@@ -79,6 +79,8 @@ export type NativeFlowOptions = {
 		subtitle?: string
 		hasMediaAttachment?: boolean
 	}
+	/** Raw JSON string merged into nativeFlowMessage.messageParamsJson (e.g. limited_time_offer, bottom_sheet) */
+	messageParamsJson?: string
 }
 
 export type CopyCodeButtonOptions = NativeFlowOptions & {
@@ -107,14 +109,37 @@ export type QuickReplyOptions = {
 }
 
 export type CombinedButton =
-	| { type: 'url'; displayText: string; url: string }
-	| { type: 'reply'; displayText: string; id: string }
-	| { type: 'copy'; displayText: string; copyCode: string }
-	| { type: 'call'; displayText: string; phoneNumber: string }
+	| { type: 'url'; displayText: string; url: string; icon?: string; useWebview?: boolean }
+	| { type: 'reply'; displayText: string; id: string; icon?: string }
+	| { type: 'copy'; displayText: string; copyCode: string; icon?: string }
+	| { type: 'call'; displayText: string; phoneNumber: string; icon?: string }
+	| {
+			type: 'sections'
+			displayText: string
+			icon?: string
+			sections: {
+				title?: string
+				highlightLabel?: string
+				rows: { header?: string; title: string; description?: string; id: string }[]
+			}[]
+	  }
+	/**
+	 * Bare WhatsApp native-flow format — pass this through untouched when you
+	 * already have it, or need a button `name` (e.g. 'cta_catalog', 'mpm',
+	 * 'galaxy_message') that the shorthand variants above don't cover yet.
+	 * No `type` field needed — detected automatically by the presence of
+	 * `name` + `buttonParamsJson`.
+	 * Example: { name: 'cta_catalog', buttonParamsJson: JSON.stringify({ business_phone_number: '628xxx' }) }
+	 */
+	| { name: string; buttonParamsJson: string; type?: undefined }
 
 export type CombinedButtonOptions = {
 	footer?: string
 	title?: string
+	/** Adds a `limited_time_offer` wrapper to the message params (offer banner above buttons) */
+	offer?: { text: string; code?: string; url?: string; expirationSeconds?: number }
+	/** Adds a `bottom_sheet` wrapper — collapses buttons into a "View options" sheet */
+	bottomSheet?: { title?: string; buttonText: string }
 }
 
 // ─── Generators ────────────────────────────────────────────────────────────────
@@ -281,7 +306,7 @@ export const generateNativeFlowMessage = (
 					name: btn.name,
 					buttonParamsJson: btn.buttonParamsJson
 				})),
-				messageParamsJson: ''
+				messageParamsJson: options?.messageParamsJson ?? ''
 			}
 		}
 	}
@@ -373,23 +398,36 @@ export const generateQuickReplyButtons = (body: string, buttons: QuickReplyButto
  */
 export const generateCombinedButtons = (body: string, buttons: CombinedButton[], options?: CombinedButtonOptions) => {
 	const nativeButtons: NativeFlowButton[] = buttons.map(btn => {
+		// Bare native format: { name, buttonParamsJson } with no `type` — pass through untouched
+		if (!btn.type && 'name' in btn && 'buttonParamsJson' in btn) {
+			return { name: btn.name, buttonParamsJson: btn.buttonParamsJson }
+		}
+
+		const icon = 'icon' in btn && btn.icon ? String(btn.icon).toUpperCase() : undefined
 		switch (btn.type) {
 			case 'url':
 				return {
 					name: 'cta_url',
-					buttonParamsJson: JSON.stringify({ display_text: btn.displayText, url: btn.url })
+					buttonParamsJson: JSON.stringify({
+						display_text: btn.displayText,
+						url: btn.url,
+						merchant_url: btn.url,
+						webview_interaction: btn.useWebview ?? false,
+						icon
+					})
 				}
 			case 'reply':
 				return {
 					name: 'quick_reply',
-					buttonParamsJson: JSON.stringify({ display_text: btn.displayText, id: btn.id })
+					buttonParamsJson: JSON.stringify({ display_text: btn.displayText, id: btn.id, icon })
 				}
 			case 'copy':
 				return {
 					name: 'cta_copy',
 					buttonParamsJson: JSON.stringify({
 						display_text: btn.displayText,
-						copy_code: btn.copyCode
+						copy_code: btn.copyCode,
+						icon
 					})
 				}
 			case 'call':
@@ -397,14 +435,51 @@ export const generateCombinedButtons = (body: string, buttons: CombinedButton[],
 					name: 'cta_call',
 					buttonParamsJson: JSON.stringify({
 						display_text: btn.displayText,
-						phone_number: btn.phoneNumber
+						phone_number: btn.phoneNumber,
+						icon
+					})
+				}
+			case 'sections':
+				return {
+					name: 'single_select',
+					buttonParamsJson: JSON.stringify({
+						title: btn.displayText,
+						sections: btn.sections.map(s => ({
+							title: s.title,
+							highlight_label: s.highlightLabel,
+							rows: s.rows.map(r => ({ header: r.header, title: r.title, description: r.description, id: r.id }))
+						})),
+						icon
 					})
 				}
 		}
 	})
 
+	// Build messageParamsJson wrapper for offer / bottom_sheet, if requested
+	const messageParams: Record<string, unknown> = {}
+	if (options?.offer) {
+		messageParams.limited_time_offer = {
+			offer_text: options.offer.text,
+			offer_code: options.offer.code,
+			offer_url: options.offer.url,
+			offer_expiration_timestamp_secs: options.offer.expirationSeconds
+		}
+	}
+
+	if (options?.bottomSheet) {
+		messageParams.bottom_sheet = {
+			in_thread_buttons_limit: 1,
+			divider_indices: Array.from({ length: nativeButtons.length }, (_, i) => i),
+			list_title: options.bottomSheet.title || '📄 Select Options',
+			button_title: options.bottomSheet.buttonText
+		}
+	}
+
+	const messageParamsJson = Object.keys(messageParams).length > 0 ? JSON.stringify(messageParams) : undefined
+
 	return generateNativeFlowMessage(body, nativeButtons, {
 		footer: options?.footer,
-		header: options?.title ? { title: options.title } : undefined
+		header: options?.title ? { title: options.title } : undefined,
+		messageParamsJson
 	})
 }

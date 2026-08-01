@@ -1,5 +1,5 @@
 import { Boom } from '@hapi/boom'
-import { exec } from 'child_process'
+import { spawn } from 'child_process'
 import * as Crypto from 'crypto'
 import { once } from 'events'
 import { createReadStream, createWriteStream, promises as fs, WriteStream } from 'fs'
@@ -129,21 +129,48 @@ export async function getMediaKeys(
 	}
 }
 
-/** Extracts video thumb using FFMPEG */
-const extractVideoThumb = async (
+/**
+ * Extracts a video thumbnail using FFmpeg.
+ * Uses spawn() with an argument array (not exec() with a shell string) so
+ * that `path` can never be interpreted as shell syntax — closes a shell
+ * injection vector present in naive `exec(\`ffmpeg ... ${path} ...\`)` calls.
+ * Streams the frame out via stdout (`pipe:1`) instead of a temp file.
+ */
+const extractVideoThumb = (
 	path: string,
-	destPath: string,
-	time: string,
-	size: { width: number; height: number }
-) =>
-	new Promise<void>((resolve, reject) => {
-		const cmd = `ffmpeg -ss ${time} -i ${path} -y -vf scale=${size.width}:-1 -vframes 1 -f image2 ${destPath}`
-		exec(cmd, err => {
-			if (err) {
-				reject(err)
-			} else {
-				resolve()
-			}
+	time = '00:00:00',
+	size: { width: number } = { width: 320 }
+): Promise<Buffer> =>
+	new Promise((resolve, reject) => {
+		const args = [
+			'-ss',
+			time,
+			'-i',
+			path,
+			'-y',
+			'-vf',
+			`scale=${size.width}:-1`,
+			'-vframes',
+			'1',
+			'-f',
+			'image2',
+			'-vcodec',
+			'mjpeg',
+			'pipe:1'
+		]
+
+		const ffmpeg = spawn('ffmpeg', args)
+		const chunks: Buffer[] = []
+		let errorOutput = ''
+
+		ffmpeg.stdout.on('data', chunk => chunks.push(chunk))
+		ffmpeg.stderr.on('data', data => {
+			errorOutput += data.toString()
+		})
+		ffmpeg.on('error', reject)
+		ffmpeg.on('close', code => {
+			if (code === 0) return resolve(Buffer.concat(chunks))
+			reject(new Error(`ffmpeg exited with code ${code}\n${errorOutput}`))
 		})
 	})
 
@@ -422,14 +449,10 @@ export async function generateThumbnail(
 			}
 		}
 	} else if (mediaType === 'video') {
-		const thumbSize = hdMode ? { width: 320, height: 180 } : { width: 32, height: 32 }
-		const imgFilename = join(getTmpFilesDirectory(), generateMessageIDV2() + '.jpg')
+		const thumbSize = hdMode ? { width: 320 } : { width: 32 }
 		try {
-			await extractVideoThumb(file, imgFilename, '00:00:00', thumbSize)
-			const buff = await fs.readFile(imgFilename)
+			const buff = await extractVideoThumb(file, '00:00:00', thumbSize)
 			thumbnail = buff.toString('base64')
-
-			await fs.unlink(imgFilename)
 		} catch (err) {
 			options.logger?.debug('could not generate video thumb: ' + err)
 		}

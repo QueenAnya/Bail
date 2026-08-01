@@ -9,9 +9,9 @@ export {
 	generateLatexContent,
 	generateLatexImageContent,
 	generateLatexInlineImageContent,
-	captureUnifiedResponse,
+	extractUnifiedResponse,
 	generateUnifiedResponseContent,
 	generateRichMessageContent
-} from '../addons/rich-message-composer.js'
+} from '../addons/message-composer.js'
 
-export type { RichLatexExpression as LatexExpression } from '../addons/rich-message-composer.js'
+export type { LatexExpression } from '../addons/message-composer.js'

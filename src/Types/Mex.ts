@@ -32,7 +32,9 @@ export enum QueryIds {
 	DEMOTE = '6551828931592903',
 	DELETE = '30062808666639665',
 	REACHOUT_TIMELOCK = '23983697327930364',
-	MESSAGE_CAPPING_INFO = '24503548349331633'
+	MESSAGE_CAPPING_INFO = '24503548349331633',
+	/** Source: innovatorssoft/Baileys — used by newsletterReactionMode/newsletterAction */
+	JOB_MUTATION = '7150902998257522'
 }
 export type NewsletterUpdate = {
 	name?: string
@@ -58,25 +60,7 @@ export interface NewsletterCreateResponse {
 		role: NewsletterViewRole
 	}
 }
-export interface NewsletterCreateResponse {
-	id: string
-	state: { type: string }
-	thread_metadata: {
-		creation_time: string
-		description: { id: string; text: string; update_time: string }
-		handle: string | null
-		invite: string
-		name: { id: string; text: string; update_time: string }
-		picture: { direct_path: string; id: string; type: string }
-		preview: { direct_path: string; id: string; type: string }
-		subscribers_count: string
-		verification: 'VERIFIED' | 'UNVERIFIED'
-	}
-	viewer_metadata: {
-		mute: 'ON' | 'OFF'
-		role: NewsletterViewRole
-	}
-}
+
 export type NewsletterViewRole = 'ADMIN' | 'GUEST' | 'OWNER' | 'SUBSCRIBER'
 export interface NewsletterMetadata {
 	id: string

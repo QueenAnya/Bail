@@ -11,12 +11,12 @@ import {
 	generateLatexImageContent,
 	generateLatexInlineImageContent,
 	generateListContent,
+	generateMarkdownContent,
 	generateRichMessageContent,
 	generateTableContent,
 	generateUnifiedResponseContent,
 	type LatexExpression,
-	type RichSubMessage,
-	RichSubMessageType
+	type RichSubMessage
 } from '../addons/message-composer'
 import { getButtonArgs, getButtonType } from '../addons/message-utils'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
@@ -1729,19 +1729,23 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * parse, just passes the string straight through as a single TEXT submessage.
 		 */
 		sendMarkdown: async (jid: string, markdown: string, quoted?: any) => {
-			const { message, messageId } = generateRichMessageContent(
-				[{ messageType: RichSubMessageType.TEXT, messageText: markdown }],
-				quoted
-			)
+			const { message, messageId } = generateMarkdownContent(markdown, quoted)
 			await relayMessage(jid, message, { messageId })
 			return { message, messageId }
 		},
 
 		/**
 		 * Send a fully custom rich message from a raw submessages array.
+		 * Pass { useMarkdown: true } to render TEXT/TABLE/CODE submessages
+		 * as native WhatsApp rich-content primitives via unifiedResponse.
 		 */
-		sendRichMessage: async (jid: string, submessages: RichSubMessage[], quoted?: any) => {
-			const { message, messageId } = generateRichMessageContent(submessages, quoted)
+		sendRichMessage: async (
+			jid: string,
+			submessages: RichSubMessage[],
+			quoted?: any,
+			options?: { useMarkdown?: boolean }
+		) => {
+			const { message, messageId } = generateRichMessageContent(submessages, quoted, options)
 			await relayMessage(jid, message, { messageId })
 			return { message, messageId }
 		},

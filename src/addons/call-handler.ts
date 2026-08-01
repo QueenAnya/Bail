@@ -1,6 +1,12 @@
 /**
  * Call Handler Addon
- * Ported from innovatorssoft/Baileys.
+ * Source: @innovatorssoft/baileys Socket/messages-recv.js (call-handling block,
+ * embedded inline in their recv pipeline — extracted here as a standalone addon).
+ * Verified against innovatorssoft/Baileys main branch: all 15 functions below
+ * (offerCall, initiateCall, acceptCall, cancelCall, preacceptCall, terminateCall,
+ * muteCall, joinCallLink, queryCallLink, sendCallDuration, sendHeartbeat,
+ * sendRelayLatency, sendTransport, sendVideoState, sendEncRekey) plus
+ * sanitizeCallerPn match their compiled source with identical names and signatures.
  *
  * Full outgoing call support: initiate, accept, cancel, mute, terminate,
  * join via link, query link, send heartbeat/transport/video-state/relay-latency/enc-rekey.

@@ -26,7 +26,8 @@ import {
 
 /**
  * Build newsletterAdminInviteMessage from adminInvite content
- * Source: messages.ts → adminInvite block
+ * Source: innovatorssoft/Baileys (inline in generateWAMessageContent's
+ * 'adminInvite' branch) — verified field-for-field match.
  */
 export async function buildAdminInviteMessage(
 	adminInvite: AdminInviteInfo,
@@ -57,13 +58,15 @@ export async function buildAdminInviteMessage(
 
 /**
  * Build scheduledCallCreationMessage from call content
- * Source: messages.ts → call block
+ * Source: innovatorssoft/Baileys (inline in generateWAMessageContent's
+ * 'call' branch) — verified field-for-field match, including the
+ * 'Call Creation' default title.
  */
 export function buildCallMessage(call: CallCreationInfo): proto.Message.IScheduledCallCreationMessage {
 	return {
 		scheduledTimestampMs: call.time ?? Date.now(),
 		callType: call.type ?? 1,
-		title: call.name ?? 'Call'
+		title: call.name ?? 'Call Creation'
 	}
 }
 
@@ -71,7 +74,8 @@ export function buildCallMessage(call: CallCreationInfo): proto.Message.ISchedul
 
 /**
  * Build paymentInviteMessage from paymentInvite content
- * Source: messages.ts → paymentInvite block
+ * Source: innovatorssoft/Baileys (inline in generateWAMessageContent's
+ * 'paymentInvite' branch) — verified field-for-field match.
  */
 export function buildPaymentInviteMessage(paymentInvite: PaymentInviteInfo): proto.Message.IPaymentInviteMessage {
 	return {
@@ -165,6 +169,13 @@ export function isLottieBuffer(buffer: Buffer): boolean {
  * - stickerPackOrigin: USER_CREATED (not THIRD_PARTY)
  * - thumbnail-sticker-pack media type for thumbnail
  */
+/** Max concurrent stickers processed at once (matches itsliaaa/baileys) — avoids CPU/memory spikes on large packs */
+const STICKER_PACK_CONCURRENCY_LIMIT = 15
+/** WhatsApp's sticker pack limit */
+const MAX_STICKERS_PER_PACK = 60
+/** Per-sticker WebP size limit enforced by WhatsApp clients */
+const MAX_STICKER_SIZE_BYTES = 1024 * 1024
+
 export async function buildStickerPackMessage(
 	stickerPack: StickerPack,
 	options: MessageContentGenerationOptions
@@ -179,64 +190,80 @@ export async function buildStickerPackMessage(
 		throw new Error('Sticker pack must contain at least one sticker')
 	}
 
-	const stickerMetadata = await Promise.all(
-		validStickers.map(async (s: any, i: number) => {
-			const raw = s.data ?? s.sticker
-			if (!raw) {
-				throw new Error(`Sticker at index ${i} is missing media — provide either 'data' or 'sticker'`)
-			}
+	if (validStickers.length > MAX_STICKERS_PER_PACK) {
+		throw new Boom(`Sticker pack exceeds the maximum limit of ${MAX_STICKERS_PER_PACK} stickers`, { statusCode: 400 })
+	}
 
-			const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
-			const { stream } = await getStream(normalized)
-			const buffer = (await toBuffer(stream)) as Buffer
-
-			// Lottie/WAS detection (PR #260)
-			const detectedLottie = s.isLottie !== undefined ? s.isLottie : isLottieBuffer(buffer)
-			let finalBuffer = buffer
-
-			if (detectedLottie) {
-				// Raw Lottie JSON → gzip to WAS
-				if (buffer[0] === 0x7b) {
-					finalBuffer = gzipSync(buffer)
+	const stickerMetadata: any[] = new Array(validStickers.length)
+	for (let i = 0; i < validStickers.length; i += STICKER_PACK_CONCURRENCY_LIMIT) {
+		const chunkEnd = Math.min(i + STICKER_PACK_CONCURRENCY_LIMIT, validStickers.length)
+		const chunkResults = await Promise.all(
+			validStickers.slice(i, chunkEnd).map(async (s: any, offset: number) => {
+				const index = i + offset
+				const raw = s.data ?? s.sticker
+				if (!raw) {
+					throw new Error(`Sticker at index ${index} is missing media — provide either 'data' or 'sticker'`)
 				}
-			} else if (isWebPBuffer(buffer)) {
-				finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
-			} else {
-				// Non-WebP sticker — needs sharp/@napi-rs/image to convert (jimp can't output WebP)
-				const lib = await getImageProcessingLibrary()
-				if (lib?.sharp) {
-					finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
-				} else if (lib?.image) {
-					finalBuffer = await new lib.image.Transformer(buffer).webp()
+
+				const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
+				const { stream } = await getStream(normalized)
+				const buffer = (await toBuffer(stream)) as Buffer
+
+				// Lottie/WAS detection (PR #260)
+				const detectedLottie = s.isLottie !== undefined ? s.isLottie : isLottieBuffer(buffer)
+				let finalBuffer = buffer
+
+				if (detectedLottie) {
+					// Raw Lottie JSON → gzip to WAS
+					if (buffer[0] === 0x7b) {
+						finalBuffer = gzipSync(buffer)
+					}
+				} else if (isWebPBuffer(buffer)) {
+					finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
 				} else {
-					throw new Boom(
-						`Sticker ${i + 1}: No image processing library (sharp or @napi-rs/image) available for converting to WebP. Either install one of them or provide stickers in WebP format.`,
-						{ statusCode: 400 }
-					)
+					// Non-WebP sticker — needs sharp/@napi-rs/image to convert (jimp can't output WebP)
+					const lib = await getImageProcessingLibrary()
+					if (lib?.sharp) {
+						finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
+					} else if (lib?.image) {
+						finalBuffer = await new lib.image.Transformer(buffer).webp()
+					} else {
+						throw new Boom(
+							`Sticker ${index + 1}: No image processing library (sharp or @napi-rs/image) available for converting to WebP. Either install one of them or provide stickers in WebP format.`,
+							{ statusCode: 400 }
+						)
+					}
 				}
-			}
 
-			const isAnimated = detectedLottie ? true : isAnimatedWebP(finalBuffer)
-			const extension = detectedLottie ? 'was' : 'webp'
-			// Use sha256 hash for filename (deduplication) — RFC 4648 base64url
-			const hash = sha256(finalBuffer).toString('base64url')
-			const fileName = `${hash}.${extension}`
+				if (finalBuffer.length > MAX_STICKER_SIZE_BYTES) {
+					throw new Boom(`Sticker at index ${index} exceeds the 1MB size limit`, { statusCode: 400 })
+				}
 
-			// Dedup: only add if not already in stickerData
-			if (!stickerData[fileName]) {
-				stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 as 0 }]
-			}
+				const isAnimated = detectedLottie ? true : isAnimatedWebP(finalBuffer)
+				const extension = detectedLottie ? 'was' : 'webp'
+				// Use sha256 hash for filename (deduplication) — RFC 4648 base64url
+				const hash = sha256(finalBuffer).toString('base64url')
+				const fileName = `${hash}.${extension}`
 
-			return {
-				fileName,
-				mimetype: detectedLottie ? 'application/was' : 'image/webp',
-				isAnimated,
-				isLottie: detectedLottie,
-				emojis: s.emojis || [],
-				accessibilityLabel: s.accessibilityLabel || ''
-			}
-		})
-	)
+				// Dedup: only add if not already in stickerData
+				if (!stickerData[fileName]) {
+					stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 as 0 }]
+				}
+
+				return {
+					fileName,
+					mimetype: detectedLottie ? 'application/was' : 'image/webp',
+					isAnimated,
+					isLottie: detectedLottie,
+					emojis: s.emojis || [],
+					accessibilityLabel: s.accessibilityLabel || ''
+				}
+			})
+		)
+		for (let j = 0; j < chunkResults.length; j++) {
+			stickerMetadata[i + j] = chunkResults[j]
+		}
+	}
 
 	// ── Step 2: Process cover (tray icon) → add INSIDE ZIP ───────────────
 	const coverRaw = Buffer.isBuffer(cover) ? cover : typeof cover === 'string' ? { url: cover } : cover

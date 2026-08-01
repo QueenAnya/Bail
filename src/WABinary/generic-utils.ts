@@ -202,7 +202,9 @@ const MIXED_NATIVE_FLOW: BinaryNode = {
  * returns true, and also when a secure-meta-service label is requested.
  */
 export const getBizBinaryNode = (message: proto.IMessage): BinaryNode => {
-	const flowMsg = message.interactiveMessage?.nativeFlowMessage
+	const flowMsg =
+		message.interactiveMessage?.nativeFlowMessage ||
+		message.interactiveMessage?.carouselMessage?.cards?.[0]?.nativeFlowMessage
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const firstButtonName = (flowMsg?.buttons as any)?.[0]?.name as string | undefined
 
@@ -284,5 +286,6 @@ export const shouldIncludeBizBinaryNode = (message: proto.IMessage): boolean =>
 		message.buttonsMessage ||
 		message.listMessage ||
 		message.templateMessage ||
-		message.interactiveMessage?.nativeFlowMessage
+		message.interactiveMessage?.nativeFlowMessage ||
+		message.interactiveMessage?.carouselMessage
 	)

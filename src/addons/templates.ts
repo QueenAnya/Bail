@@ -150,6 +150,11 @@ export const PRESET_TEMPLATES = {
 		name: 'Birthday Wishes',
 		category: 'greeting',
 		content: `🎂 *Happy Birthday, {{name}}!* 🎉\n\nWishing you a wonderful day!\n\n🎁 Use code: {{code}} for {{discount:10}}% off! 🥳`
+	},
+	INVOICE: {
+		name: 'Invoice',
+		category: 'invoice',
+		content: `🧾 *Invoice {{invoiceNumber}}*\n\nBilled to: {{customerName}}\nInvoice date: {{invoiceDate}}\nDue date: {{dueDate:on receipt}}\n\n📋 *Items:*\n{{items}}\n\nSubtotal: {{subtotal}}\n💰 *Total: {{total}}*\n\nThank you for your business! 🙏`
 	}
 }
 

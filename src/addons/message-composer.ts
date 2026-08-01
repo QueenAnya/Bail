@@ -824,7 +824,7 @@ export const buildRichContextInfo = (quoted?: QuotedMsg): Record<string, unknown
 export const buildBotForwardedMessage = (
 	submessages: RichSubMessage[],
 	contextInfo: Record<string, unknown>,
-	unifiedResponse?: { data: Buffer | Uint8Array }
+	unifiedResponse?: { data: Buffer | Uint8Array | string }
 ): proto.IMessage => {
 	const richResponse: Record<string, unknown> = { messageType: 1, submessages, contextInfo }
 	if (unifiedResponse) richResponse.unifiedResponse = unifiedResponse
@@ -1002,7 +1002,84 @@ export const generateUnifiedResponseContent = (
 	messageId: generateMessageID()
 })
 
-export const generateRichMessageContent = (submessages: RichSubMessage[], quoted?: QuotedMsg): RichMessageContent => ({
-	message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted)),
-	messageId: generateMessageID()
+/**
+ * Converts submessages into WhatsApp's native unifiedResponse primitive
+ * sections (matches innovatorssoft's rich-message-utils.js toUnified).
+ */
+const buildUnifiedResponseSections = (submessages: RichSubMessage[]) => ({
+	response_id: generateMessageID(),
+	sections: submessages.map(sm => {
+		if (sm.messageType === RichSubMessageType.CODE && sm.codeMetadata) {
+			return {
+				view_model: {
+					primitive: {
+						language: sm.codeMetadata.codeLanguage,
+						code_blocks: sm.codeMetadata.codeBlocks.map(b => ({
+							content: b.codeContent,
+							type: CodeHighlightType[b.highlightType] ?? 'DEFAULT'
+						})),
+						__typename: 'GenAICodeUXPrimitive'
+					},
+					__typename: 'GenAISingleLayoutViewModel'
+				}
+			}
+		}
+
+		if (sm.messageType === RichSubMessageType.TABLE && sm.tableMetadata) {
+			return {
+				view_model: {
+					primitive: {
+						title: sm.tableMetadata.title,
+						rows: sm.tableMetadata.rows.map(r => ({
+							is_header: !!r.isHeading,
+							cells: r.items,
+							markdown_cells: r.items.map(item => ({ text: item }))
+						})),
+						__typename: 'GenATableUXPrimitive'
+					},
+					__typename: 'GenAISingleLayoutViewModel'
+				}
+			}
+		}
+
+		// TEXT (and default fallback)
+		return {
+			view_model: {
+				primitive: {
+					text: (sm as { messageText?: string }).messageText ?? '',
+					inline_entities: (sm as { inlineEntities?: unknown[] }).inlineEntities ?? [],
+					__typename: 'GenAIMarkdownTextUXPrimitive'
+				},
+				__typename: 'GenAISingleLayoutViewModel'
+			}
+		}
+	})
 })
+
+export type GenerateRichMessageOptions = { useMarkdown?: boolean }
+
+export const generateRichMessageContent = (
+	submessages: RichSubMessage[],
+	quoted?: QuotedMsg,
+	options: GenerateRichMessageOptions = {}
+): RichMessageContent => {
+	const unifiedResponse = options.useMarkdown
+		? { data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages))).toString('base64') }
+		: undefined
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted), unifiedResponse),
+		messageId: generateMessageID()
+	}
+}
+
+/** Always builds native markdown unifiedResponse (matches innovatorssoft's dedicated generateMarkdownContent) */
+export const generateMarkdownContent = (text: string, quoted?: QuotedMsg): RichMessageContent => {
+	const submessages: RichSubMessage[] = [{ messageType: RichSubMessageType.TEXT, messageText: text }]
+	const unifiedResponse = {
+		data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages))).toString('base64')
+	}
+	return {
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted), unifiedResponse),
+		messageId: generateMessageID()
+	}
+}

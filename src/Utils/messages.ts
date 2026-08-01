@@ -3,6 +3,8 @@ import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
+import type { RichContent } from '../addons/bot-forwarded-message.js'
+import { prepareRichResponseMessage } from '../addons/bot-forwarded-message.js'
 import {
 	buildAdminInviteMessage,
 	buildCallMessage,
@@ -748,6 +750,10 @@ export const generateWAMessageContent = async (
 			{ cover, stickers, name, publisher, description, packId },
 			options
 		)
+	} else if ('code' in message || 'table' in message || 'links' in message || 'richResponse' in message) {
+		// sock.sendMessage(jid, { richResponse: { text, code, language, ... } })
+		// or the flat shorthand: { code, table, links, headerText, contentText, footerText, ... }
+		m = prepareRichResponseMessage(message as unknown as RichContent)
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 
@@ -1017,7 +1023,24 @@ export const generateWAMessageContent = async (
 
 		const slides = await Promise.all(
 			message.cards.map(async slide => {
-				const { image, video, document: doc, product, title, body, footer, buttons } = slide as any
+				const {
+					image,
+					video,
+					document: doc,
+					product,
+					title,
+					body,
+					caption,
+					footer,
+					buttons,
+					nativeFlow,
+					offerText,
+					offerCode,
+					offerUrl,
+					offerExpiration,
+					optionText,
+					optionTitle
+				} = slide as any
 				let header: proto.IMessage = {}
 
 				if (product) {
@@ -1061,12 +1084,74 @@ export const generateWAMessageContent = async (
 					...header
 				}
 
+				const rawButtons: any[] = nativeFlow ?? buttons ?? []
+				const convertedButtons = rawButtons.map((b: any) => {
+					if (b.name && b.buttonParamsJson) return b // already native
+					const icon = b.icon ? String(b.icon).toUpperCase() : undefined
+					if (b.url) {
+						return {
+							name: 'cta_url',
+							buttonParamsJson: JSON.stringify({
+								display_text: b.text,
+								url: b.url,
+								merchant_url: b.url,
+								webview_interaction: b.useWebview ?? false,
+								icon
+							})
+						}
+					}
+
+					if (b.copy) {
+						return {
+							name: 'cta_copy',
+							buttonParamsJson: JSON.stringify({ display_text: b.text, copy_code: b.copy, icon })
+						}
+					}
+
+					if (b.call) {
+						return {
+							name: 'cta_call',
+							buttonParamsJson: JSON.stringify({ display_text: b.text, phone_number: b.call, icon })
+						}
+					}
+
+					if (b.sections) {
+						return {
+							name: 'single_select',
+							buttonParamsJson: JSON.stringify({ title: b.text, sections: b.sections, icon })
+						}
+					}
+
+					// default: quick_reply shorthand ({ text, id })
+					return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: b.text, id: b.id, icon }) }
+				})
+
+				const cardParams: Record<string, unknown> = {}
+				if (offerText || offerCode || offerUrl || offerExpiration) {
+					cardParams.limited_time_offer = {
+						offer_text: offerText,
+						offer_code: offerCode,
+						offer_url: offerUrl,
+						offer_expiration_timestamp_secs: offerExpiration ? Math.floor(offerExpiration / 1000) : undefined
+					}
+				}
+
+				if (optionText || optionTitle) {
+					cardParams.bottom_sheet = {
+						in_thread_buttons_limit: 1,
+						divider_indices: Array.from({ length: convertedButtons.length }, (_, i) => i),
+						list_title: optionTitle || optionText,
+						button_title: optionText
+					}
+				}
+
 				return WAProto.Message.InteractiveMessage.create({
 					header: WAProto.Message.InteractiveMessage.Header.create(headerProps),
-					body: WAProto.Message.InteractiveMessage.Body.create({ text: body }),
+					body: WAProto.Message.InteractiveMessage.Body.create({ text: caption ?? body }),
 					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
 					nativeFlowMessage: WAProto.Message.InteractiveMessage.NativeFlowMessage.create({
-						buttons: buttons ?? []
+						buttons: convertedButtons,
+						messageParamsJson: Object.keys(cardParams).length > 0 ? JSON.stringify(cardParams) : undefined
 					})
 				})
 			})

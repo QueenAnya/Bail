@@ -4,7 +4,11 @@
  * sendLatexInlineImage, sendRichMessage, captureUnifiedResponse, sendUnifiedResponse
  */
 
-import type { AnyMessageContent, MiscMessageGenerationOptions } from '../Types'
+import { proto } from '../../WAProto/index.js'
+import type { AnyMessageContent, MiscMessageGenerationOptions, WAMessage } from '../Types'
+import { toUnified, wrapToBotForwardedMessage } from './bot-forwarded-message.js'
+import type { RichSubMessage } from './message-composer.js'
+import { RichSubMessageType, tokenizeCode } from './message-composer.js'
 
 type SendFn = (jid: string, content: AnyMessageContent, options?: MiscMessageGenerationOptions) => Promise<any>
 
@@ -17,41 +21,80 @@ type SendFn = (jid: string, content: AnyMessageContent, options?: MiscMessageGen
 export const sendTable = async (
 	sendMessage: SendFn,
 	jid: string,
+	title: string,
+	headers: string[],
 	rows: string[][],
-	opts?: { title?: string; headerRow?: boolean } & MiscMessageGenerationOptions
-): Promise<void> => {
-	const hasHeader = opts?.headerRow !== false
-	const colWidths =
-		rows[0]?.map((_: string, ci: number) => Math.max(...rows.map((r: string[]) => (r[ci] ?? '').length))) ?? []
-	const divider = colWidths.map((w: number) => '─'.repeat(w + 2)).join('┼')
+	quoted?: WAMessage | null,
+	opts?: MiscMessageGenerationOptions & { footer?: string; headerText?: string }
+): Promise<any> => {
+	const tableRows: { items: string[]; isHeading?: boolean }[] = [
+		{ items: headers, isHeading: true },
+		...rows.map(row => ({ items: row.map(String) }))
+	]
 
-	const formatted = rows.map((row: string[], ri: number) => {
-		const line = row.map((cell: string, ci: number) => (cell ?? '').padEnd(colWidths[ci] ?? 0)).join(' │ ')
-		if (hasHeader && ri === 0) return `┌${divider}┐\n│ ${line} │\n├${divider}┤`
-		return `│ ${line} │`
+	const submessages: RichSubMessage[] = []
+	if (opts?.headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: opts.headerText })
+	submessages.push({
+		messageType: RichSubMessageType.TABLE,
+		tableMetadata: { title, rows: tableRows }
 	})
+	if (opts?.footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: opts.footer })
 
-	formatted.push(`└${divider}┘`)
-
-	const tableText = (opts?.title ? `*${opts.title}*\n` : '') + '```\n' + formatted.join('\n') + '\n```'
-	await sendMessage(jid, { text: tableText }, opts)
+	const content = wrapToBotForwardedMessage(
+		proto.AIRichResponseMessage.create({
+			submessages: submessages as unknown as proto.IAIRichResponseSubMessage[],
+			messageType: proto.AIRichResponseMessageType.AI_RICH_RESPONSE_TYPE_STANDARD,
+			contextInfo: quoted?.key
+				? {
+						stanzaId: quoted.key.id,
+						participant: quoted.key.participant ?? quoted.key.remoteJid,
+						quotedMessage: quoted.message
+					}
+				: undefined
+		})
+	)
+	return sendMessage(jid, content as unknown as AnyMessageContent, opts)
 }
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
 /**
- * Format an array of items as a numbered or bulleted list and send it.
+ * Send a rich list — each item can be a single string or an array of
+ * cells for a multi-column row. Renders as a native table primitive
+ * (same underlying mechanism as sendTable).
  */
 export const sendList = async (
 	sendMessage: SendFn,
 	jid: string,
-	items: string[],
-	opts?: { title?: string; ordered?: boolean } & MiscMessageGenerationOptions
-): Promise<void> => {
-	const { title, ordered = false } = opts ?? {}
-	const lines = items.map((item: string, i: number) => (ordered ? `${i + 1}. ${item}` : `• ${item}`))
-	const text = (title ? `*${title}*\n` : '') + lines.join('\n')
-	await sendMessage(jid, { text }, opts)
+	title: string,
+	items: (string | string[])[],
+	quoted?: WAMessage | null,
+	opts?: MiscMessageGenerationOptions & { footer?: string; headerText?: string }
+): Promise<any> => {
+	const tableRows = items.map(item => ({ items: Array.isArray(item) ? item.map(String) : [String(item)] }))
+
+	const submessages: RichSubMessage[] = []
+	if (opts?.headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: opts.headerText })
+	submessages.push({
+		messageType: RichSubMessageType.TABLE,
+		tableMetadata: { title, rows: tableRows }
+	})
+	if (opts?.footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: opts.footer })
+
+	const content = wrapToBotForwardedMessage(
+		proto.AIRichResponseMessage.create({
+			submessages: submessages as unknown as proto.IAIRichResponseSubMessage[],
+			messageType: proto.AIRichResponseMessageType.AI_RICH_RESPONSE_TYPE_STANDARD,
+			contextInfo: quoted?.key
+				? {
+						stanzaId: quoted.key.id,
+						participant: quoted.key.participant ?? quoted.key.remoteJid,
+						quotedMessage: quoted.message
+					}
+				: undefined
+		})
+	)
+	return sendMessage(jid, content as unknown as AnyMessageContent, opts)
 }
 
 // ─── Code Block ───────────────────────────────────────────────────────────────
@@ -64,12 +107,33 @@ export const sendCodeBlock = async (
 	sendMessage: SendFn,
 	jid: string,
 	code: string,
-	opts?: { language?: string; title?: string } & MiscMessageGenerationOptions
-): Promise<void> => {
-	const { language = '', title } = opts ?? {}
-	const block = '```' + language + '\n' + code + '\n```'
-	const text = (title ? `*${title}*\n` : '') + block
-	await sendMessage(jid, { text }, opts)
+	quoted?: WAMessage | null,
+	opts?: { language?: string; title?: string; footer?: string } & MiscMessageGenerationOptions
+): Promise<any> => {
+	const { language = 'javascript', title, footer, ...sendOpts } = opts ?? {}
+
+	const submessages: RichSubMessage[] = []
+	if (title) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: title })
+	submessages.push({
+		messageType: RichSubMessageType.CODE,
+		codeMetadata: { codeLanguage: language, codeBlocks: tokenizeCode(code, language) }
+	})
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
+
+	const content = wrapToBotForwardedMessage(
+		proto.AIRichResponseMessage.create({
+			submessages: submessages as unknown as proto.IAIRichResponseSubMessage[],
+			messageType: proto.AIRichResponseMessageType.AI_RICH_RESPONSE_TYPE_STANDARD,
+			contextInfo: quoted?.key
+				? {
+						stanzaId: quoted.key.id,
+						participant: quoted.key.participant ?? quoted.key.remoteJid,
+						quotedMessage: quoted.message
+					}
+				: undefined
+		})
+	)
+	return sendMessage(jid, content as unknown as AnyMessageContent, sendOpts)
 }
 
 // ─── LaTeX ────────────────────────────────────────────────────────────────────
@@ -129,19 +193,8 @@ export const sendLatexInlineImage = async (
 // ─── Rich Message ──────────────────────────────────────────────────────────────
 
 type RichTextTable = { rows: string[][]; headerRow?: boolean; title?: string }
-type RichTextList = { items: string[]; ordered?: boolean; title?: string }
 type CodeBlockOptions = { code: string; language?: string }
 type LatexOptions = { expression: string }
-type RichMessageOptions = {
-	parts: (
-		| { type: 'text'; text: string }
-		| { type: 'table'; table: RichTextTable }
-		| { type: 'list'; list: RichTextList }
-		| { type: 'code'; code: CodeBlockOptions }
-		| { type: 'latex'; latex: LatexOptions }
-	)[]
-	caption?: string
-}
 
 const renderTable = (table: RichTextTable): string => {
 	const rows = table.rows
@@ -158,11 +211,6 @@ const renderTable = (table: RichTextTable): string => {
 	return (table.title ? `*${table.title}*\n` : '') + '```\n' + lines.join('\n') + '\n```'
 }
 
-const renderList = (list: RichTextList): string => {
-	const lines = list.items.map((item, i) => (list.ordered ? `${i + 1}. ${item}` : `• ${item}`))
-	return (list.title ? `*${list.title}*\n` : '') + lines.join('\n')
-}
-
 const renderCode = (code: CodeBlockOptions): string => '```' + (code.language ?? '') + '\n' + code.code + '\n```'
 
 const renderLatex = (latex: LatexOptions): string => '`' + latex.expression + '`'
@@ -170,30 +218,81 @@ const renderLatex = (latex: LatexOptions): string => '`' + latex.expression + '`
 /**
  * Send a rich message composed of mixed content parts (text, table, list, code, latex).
  */
+export type SendRichMessageOptions = MiscMessageGenerationOptions & {
+	/**
+	 * When true, converts standard submessages (TEXT, TABLE, CODE, INLINE_IMAGE)
+	 * into WhatsApp's native unifiedResponse primitives (GenAIMarkdownTextUXPrimitive,
+	 * GenATableUXPrimitive, etc.) so they render as native rich content instead of
+	 * plain text.
+	 */
+	useMarkdown?: boolean
+}
+
+/**
+ * Send a fully custom rich message by assembling raw submessage objects
+ * (messageType: 2=Text, 3=Inline Image, 4=Table, 5=Code Block, 8=LaTeX).
+ * With `{ useMarkdown: true }`, builds the real botForwardedMessage +
+ * unifiedResponse payload so WhatsApp renders native markdown/table/code
+ * primitives instead of a flattened text fallback.
+ */
 export const sendRichMessage = async (
 	sendMessage: SendFn,
 	jid: string,
-	rich: RichMessageOptions,
-	opts?: MiscMessageGenerationOptions
-): Promise<void> => {
-	const parts = rich.parts.map((part: any) => {
-		switch (part.type) {
-			case 'text':
-				return part.text
-			case 'table':
-				return renderTable(part.table)
-			case 'list':
-				return renderList(part.list)
-			case 'code':
-				return renderCode(part.code)
-			case 'latex':
-				return renderLatex(part.latex)
+	submessages: RichSubMessage[],
+	quoted?: WAMessage | null,
+	opts?: SendRichMessageOptions
+): Promise<any> => {
+	const { useMarkdown, ...sendOpts } = opts ?? {}
+
+	if (useMarkdown) {
+		const unified = toUnified(submessages)
+		const richResponseMessage = proto.AIRichResponseMessage.create({
+			submessages: submessages as unknown as proto.IAIRichResponseSubMessage[],
+			messageType: proto.AIRichResponseMessageType.AI_RICH_RESPONSE_TYPE_STANDARD,
+			unifiedResponse: { data: Buffer.from(JSON.stringify(unified), 'utf-8') },
+			contextInfo: quoted?.key
+				? {
+						stanzaId: quoted.key.id,
+						participant: quoted.key.participant ?? quoted.key.remoteJid,
+						quotedMessage: quoted.message
+					}
+				: undefined
+		})
+		const content = wrapToBotForwardedMessage(richResponseMessage)
+		return sendMessage(jid, content as unknown as AnyMessageContent, sendOpts)
+	}
+
+	// Fallback: flatten submessages into plain text
+	const parts = submessages.map(sub => {
+		switch (sub.messageType) {
+			case 2: // TEXT
+				return (sub as { messageText?: string }).messageText ?? ''
+			case 4: {
+				// TABLE
+				const meta = (sub as any).tableMetadata
+				return meta ? renderTable({ rows: meta.rows.map((r: any) => r.items), title: meta.title }) : ''
+			}
+
+			case 5: {
+				// CODE
+				const meta = (sub as any).codeMetadata
+				return meta
+					? renderCode({ code: meta.codeBlocks.map((b: any) => b.codeContent).join(''), language: meta.codeLanguage })
+					: ''
+			}
+
+			case 8: {
+				// LATEX
+				const meta = (sub as any).latexExpression
+				return meta ? renderLatex({ expression: meta }) : ''
+			}
+
 			default:
 				return ''
 		}
 	})
-	const text = parts.join('\n\n') + (rich.caption ? '\n\n' + rich.caption : '')
-	await sendMessage(jid, { text }, opts)
+	const text = parts.join('\n\n')
+	return sendMessage(jid, { text }, { ...sendOpts, quoted: quoted ?? undefined })
 }
 
 // ─── Unified Response ──────────────────────────────────────────────────────────

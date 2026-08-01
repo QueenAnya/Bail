@@ -198,6 +198,7 @@ export class PinnedMessagesManager {
 			cleared += pins.length - valid.length
 			this.store.set(jid, valid)
 		}
+
 		return cleared
 	}
 
@@ -290,6 +291,7 @@ export const createReadReceiptController = (
 			if (currentConfig.readDelay > 0) {
 				await new Promise<void>(r => setTimeout(r, currentConfig.readDelay))
 			}
+
 			await sendReadReceipt(jid, participant, messageIds)
 		},
 

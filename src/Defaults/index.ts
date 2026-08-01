@@ -4,7 +4,7 @@ import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'
 import { Browsers } from '../Utils/browser-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1038669233] // anya: kept newer version
+const version = [2, 3000, 1043861459] // anya: kept newer version
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -162,3 +162,17 @@ export const TimeMs = {
 	Day: 24 * 60 * 60 * 1000,
 	Week: 7 * 24 * 60 * 60 * 1000
 }
+
+/** Library name shown in fallback texts */
+export const LIBRARY_NAME = 'Baileys'
+
+/**
+ * Regex lexer for syntax highlighting in rich-message code blocks.
+ * Matches: line comments | strings/template literals | call-site identifiers
+ *          | plain identifiers | numbers | whitespace/punctuation
+ */
+export const LEXER_REGEX =
+	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\b[a-zA-Z_]\w*\b)(?=\s*\()|(\b[a-zA-Z_]\w*\b)|(\b\d+(?:\.\d+)?\b)|(\s+|[^\w\s]+)/g
+
+/** Fallback donate/reference URL used by rich-message link entities. */
+export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'

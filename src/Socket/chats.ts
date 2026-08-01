@@ -390,7 +390,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				},
 				{
 					tag: 'picture',
-					attrs: { type: 'preview' },
+					attrs: { type: 'fullsize' },
 					content: wide
 				}
 			]

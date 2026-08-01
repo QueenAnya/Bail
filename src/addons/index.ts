@@ -94,6 +94,7 @@ export * from './message-scheduler'
 
 // ── Rich Response (innovatorssoft) ────────────────────────────────────────
 export * from './rich-response'
+export * from './bot-forwarded-message'
 
 // ── From src/ (Anya originals) ────────────────────────────────────────────
 export * from './from-chats'
@@ -112,16 +113,28 @@ export * from './use-cache-manager-auth-state'
 export * from '../Store/index.js'
 
 // ── Typing Indicator ───────────────────────────────────────────────────────
-export * from './typing-indicator'
+export * from './chat-control'
 
 // ── Read Receipt Controller ────────────────────────────────────────────────
-export * from './read-receipt-controller'
 
 // ── Pinned Messages & Disappearing Message Durations ───────────────────────
-export * from './pinned-messages-manager'
 
 // ── Lock Manager ────────────────────────────────────────────────────────────
 export { makeLockManager } from '../Utils/lock-manager'
 
 // ── Baileys Event Stream ────────────────────────────────────────────────────
 export * from './baileys-event-stream'
+
+// ── Lightweight In-Memory Store (addon variant, aliased to avoid clashing
+//    with Store/make-in-memory-store.ts's makeInMemoryStore) ────────────────
+export {
+	makeInMemoryStore as makeSimpleInMemoryStore,
+	type InMemoryStore as SimpleInMemoryStore,
+	type InMemoryStoreConfig as SimpleInMemoryStoreConfig
+} from './in-memory-store'
+
+// ── Chat History Helpers (getLastMessageInChat / getOldestMessageInChat / copyNForward) ──
+export * from './chat-history-helpers'
+
+// ── Sticker Pack (WhiskeySockets PR shell + itsliaaa full builder + convertToWebP) ──
+export * from './stickerpack'

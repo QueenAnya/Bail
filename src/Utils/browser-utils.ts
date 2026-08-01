@@ -57,6 +57,8 @@ export const Browsers: BrowsersMap = {
 	baileys: browser => ['Baileys', browser, PLATFORM_VERSIONS['baileys']!],
 	windows: browser => ['Windows', browser, PLATFORM_VERSIONS['win32']!],
 	linux: browser => ['Linux', browser, PLATFORM_VERSIONS['linux']!],
+	/** Solaris/SunOS */
+	solaris: browser => ['Solaris', browser, PLATFORM_VERSIONS['sunos']!],
 	/** iOS device */
 	iOS: browser => ['iOS', browser, PLATFORM_VERSIONS['ios']!],
 	/** Android companion device — apiLevel is the Android API level e.g. '14' */

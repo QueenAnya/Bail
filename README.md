@@ -15,6 +15,28 @@ This is a temporary README.md, the new guide is in development and will this fil
 
 New guide link: https://baileys.wiki
 
+# About This Fork (@queenanya/baileys)
+
+This is an extended fork built on top of `@whiskeysockets/baileys`. Summary
+of what's different — full details, per-file source attribution, and
+verification notes are in **[`src/addons/README.md`](src/addons/README.md)**:
+
+- **33 addon files** (`src/addons/`) — auto-reply, anti-delete, message
+  scheduling, JID plotting/LID support, rich responses (tables/lists/code
+  blocks/LaTeX), interactive buttons (with `icon`/`offer`/`bottom_sheet`
+  support and raw-native-format pass-through), call handling, chat control
+  (typing/pinned/read-receipts), status posting, templates, vCards, SQLite
+  & cache-manager auth state, and more. Sourced and function-level
+  verified against `innovatorssoft/Baileys`, `itsliaaa/baileys`, and 11
+  real WhiskeySockets PR branches.
+- **74 extra WAProto message types** (schema-only — not yet wired to
+  Socket helpers), reconstructed from itsliaaa's and innovatorssoft's
+  proto sources.
+- WA Web version pin kept current with the live WhatsApp Web build.
+- Security fix: `extractVideoThumb` FFmpeg invocation switched from
+  shell-string `exec()` to argument-array `spawn()`, closing a shell
+  injection vector.
+
 # Get Support
 
 If you'd like business to enterprise-level support from Rajeh, the current maintainer of Baileys, you can book a video chat. Book a 1 hour time slot by contacting him on Discord or pre-ordering [here](https://purpshell.dev/book). The earlier you pre-order the better, as his time slots usually fill up very quickly. He offers immense value per hour and will answer all your questions before the time runs out.
@@ -654,7 +676,6 @@ await sock.sendMessage(id, {
 #### Audio Message
 
 - To audio message work in all devices you need to convert with some tool like `ffmpeg` with this flags:
-
   ```bash
       codec: libopus //ogg file
       ac: 1 //one channel
@@ -663,7 +684,6 @@ await sock.sendMessage(id, {
   ```
 
   - Example:
-
   ```bash
   ffmpeg -i input.mp4 -avoid_negative_ts make_zero -ac 1 output.ogg
   ```
