@@ -57,6 +57,8 @@ import {
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import { makeOfflineNodeProcessor, type OfflineNodeType } from '../Utils/offline-node-processor'
+import { getPasskeyRequestState } from '../Utils/passkey'
+import { abortShortcakeHandshake, beginShortcakeHandshake, completeShortcakeHandshake } from '../Utils/shortcake'
 import { buildAckStanza } from '../Utils/stanza-ack'
 import {
 	buildMergedTcTokenIndexWrite,
@@ -1512,6 +1514,81 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			case 'privacy_token':
 				await handlePrivacyTokenNotification(node)
 				break
+			case 'passkey_prologue_request':
+			case 'crsc_continuation': {
+				// Surface passkey companion-linking step via connection.update.
+				// Source: WhiskeySockets/Baileys PR #2696 (frndchagas)
+				const passkeyRequest = getPasskeyRequestState(node)
+				if (passkeyRequest) {
+					logger.info({ type: passkeyRequest.type }, 'passkey companion-linking step required')
+					ev.emit('connection.update', { passkeyRequest })
+				}
+
+				// Shortcake headless handshake — only if signPasskeyAssertion is configured.
+				// Source: WhiskeySockets/Baileys PR #2689 (vinikjkkj — WB collaborator)
+				if (config.signPasskeyAssertion) {
+					if (node.attrs.type === 'passkey_prologue_request') {
+						try {
+							const { ephemeralPublicKey } = await beginShortcakeHandshake()
+							// Send prologue response with our ephemeral public key
+							await sendNode({
+								tag: 'iq',
+								attrs: {
+									to: S_WHATSAPP_NET,
+									type: 'set',
+									xmlns: 'passkey',
+									id: generateMessageTag()
+								},
+								content: [
+									{
+										tag: 'prologue_response',
+										attrs: {},
+										content: [
+											{
+												tag: 'client_ephemeral_public',
+												attrs: {},
+												content: Buffer.from(ephemeralPublicKey)
+											}
+										]
+									}
+								]
+							})
+							logger.debug('shortcake: sent prologue response')
+						} catch (err) {
+							abortShortcakeHandshake()
+							logger.warn({ err }, 'shortcake: prologue failed')
+						}
+					} else if (node.attrs.type === 'crsc_continuation') {
+						try {
+							const result = await completeShortcakeHandshake(node, config.signPasskeyAssertion)
+							if (result) {
+								await sendNode({
+									tag: 'iq',
+									attrs: {
+										to: S_WHATSAPP_NET,
+										type: 'set',
+										xmlns: 'passkey',
+										id: result.requestId
+									},
+									content: [
+										{
+											tag: 'assertion',
+											attrs: {},
+											content: result.assertionPayload
+										}
+									]
+								})
+								logger.info('shortcake: passkey linking assertion sent')
+							}
+						} catch (err) {
+							abortShortcakeHandshake()
+							logger.warn({ err }, 'shortcake: continuation failed')
+						}
+					}
+				}
+
+				break
+			}
 		}
 
 		if (Object.keys(result).length) {
