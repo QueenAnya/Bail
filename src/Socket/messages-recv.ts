@@ -1927,12 +1927,12 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						const pn = await signalRepository.lidMapping.getPNForLID(primaryJid)
 						// getPNForLID returns a device-scoped JID — normalize to strip device suffix
 						const pnJid = pn ? jidNormalizedUser(pn) : ''
+						// eslint-disable-next-line max-depth
 						if (pnJid) {
-							if (isJidGroup(msg.key.remoteJid!)) {
-								msg.key.participantAlt = pnJid
-							} else {
-								msg.key.remoteJidAlt = pnJid
-							}
+							const isGroup = isJidGroup(msg.key.remoteJid!)
+							// eslint-disable-next-line max-depth
+							if (isGroup) msg.key.participantAlt = pnJid
+							else msg.key.remoteJidAlt = pnJid
 						}
 					} catch (err) {
 						logger.debug({ err }, 'failed to recover alt JID from LID mapping store')

@@ -134,7 +134,7 @@ export const useSingleFileAuthState = async (
 						for (const id in categoryData) {
 							const keyName = category + id
 							const value = categoryData[id]
-							value != null ? writeKey(keyName, value) : removeKey(keyName)
+							value !== null ? writeKey(keyName, value) : removeKey(keyName)
 						}
 					}
 				}
