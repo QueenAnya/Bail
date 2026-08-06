@@ -52,7 +52,6 @@ import {
 	getUrlFromDirectPath,
 	getWAUploadToServer,
 	hasValidAlbumMedia,
-	hasValidInteractiveHeader,
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
