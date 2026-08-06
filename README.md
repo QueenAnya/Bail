@@ -28,21 +28,34 @@ This is an extended fork built on top of `@whiskeysockets/baileys`.
 
 Summary of what's different:
 
-- **33 addon files** (`src/addons/`) — auto-reply, anti-delete, message
+- **35 addon files** (`src/addons/`) — auto-reply, anti-delete, message
   scheduling, JID plotting/LID support, rich responses (tables/lists/code
-  blocks/LaTeX), interactive buttons (with `icon`/`offer`/`bottom_sheet`
-  support and raw-native-format pass-through), call handling, chat control
+  blocks/LaTeX), interactive buttons, call handling, chat control
   (typing/pinned/read-receipts), status posting, templates, vCards, SQLite
   & cache-manager auth state, and more. Sourced and function-level
   verified against `innovatorssoft/Baileys`, `itsliaaa/baileys`, and 11
   real WhiskeySockets PR branches.
-- **74 extra WAProto message types** (schema-only — not yet wired to
-  Socket helpers), reconstructed from itsliaaa's and innovatorssoft's
-  proto sources.
+- **74 extra WAProto message types** (schema-only), reconstructed from
+  itsliaaa's and innovatorssoft's proto sources.
+- **WhatsApp Username socket** — 9 functions: `checkUsername`, `setUsername`,
+  `deleteUsername`, `getMyUsername`, `setUsernamePin`, `findUserByUsername`,
+  `fetchContactUsernames`, `checkUsernameMulti`, `getUsernameRecommendations`
+  (ported from innovatorssoft/Baileys).
+- **Album send** — `sendMessage(jid, { album: [...] })` with proto container +
+  sequential media relay, `hasValidAlbumMedia` validation per item,
+  configurable `delayMs` (default 800ms).
+- **StickerPack full pipeline** — `stickerPackMessage` routing baked into
+  `sendMessage` + standalone `prepareStickerPackMessageItsliaaa` builder.
+- **Android browser** — `Browsers.android('Chrome')` with ViewOnce receive
+  support and experimental-use warning.
+- **Proto security** — WAProto globals (`$Object`, `$BigInt`, `$Array` etc.)
+  via `$util.global.*` prevent scope shadowing/prototype pollution.
+  `protobufjs` upgraded to `^8.7.0`.
+- **Advanced single-file auth** — LRUCache (max 20,000) + Mutex +
+  debounced atomic write (temp → rename, 3s flush) for crash-safe storage.
 - WA Web version pin kept current with the live WhatsApp Web build.
-- Security fix: `extractVideoThumb` FFmpeg invocation switched from
-  shell-string `exec()` to argument-array `spawn()`, closing a shell
-  injection vector.
+- Security fix: `extractVideoThumb` switched from `exec()` to `spawn()`
+  closing a shell injection vector.
 
 ## Fork-Exclusive Features — Usage Guide
 
@@ -565,7 +578,94 @@ These are core-file patches, not addons — no import needed, they just work:
 
 ---
 
-### 20. WAProto Schema Extensions
+### 20. Album Send
+
+Send multiple images/videos as a native WhatsApp album (carousel of media):
+
+```ts
+await sock.sendMessage(
+	jid,
+	{
+		album: [
+			{ image: { url: 'https://example.com/photo1.jpg' }, caption: 'First photo' },
+			{ image: fs.readFileSync('./photo2.png') },
+			{ video: { url: 'https://example.com/clip.mp4' }, caption: 'Short clip' }
+		]
+	},
+	{
+		delayMs: 800 // delay between each media relay (default: 800ms)
+	}
+)
+```
+
+**How it works:**
+
+1. An `albumMessage` container is sent first (with expected image/video counts)
+2. Each media item is then relayed individually, linked back to the parent via `messageAssociation`
+3. `hasValidAlbumMedia` validates each item is image or video before sending
+4. Invalid items throw `400 Bad Request` instead of silently failing
+
+**Ported from:** `@itsliaaa/baileys`
+
+---
+
+### 21. WhatsApp Username Socket
+
+Full WhatsApp username management — check availability, set, pin, find users:
+
+```ts
+// Check if username is available
+const result = await sock.checkUsername('myusername')
+if (result.available) {
+	console.log('Available!')
+} else {
+	console.log('Taken. Suggestions:', result.suggestions)
+}
+
+// Set your username
+await sock.setUsername('myusername', {
+	source: 'USER_INPUT' // or 'FB', 'IG', 'SUGGESTION'
+})
+
+// Get your current username
+const username = await sock.getMyUsername()
+
+// Pin username with a PIN (for cross-platform discovery)
+await sock.setUsernamePin('1234')
+
+// Find a user by their username (returns their JID)
+const user = await sock.findUserByUsername('theirusername')
+console.log(user?.jid) // '1234567890@s.whatsapp.net'
+
+// Fetch usernames of known contacts (USync)
+const contacts = await sock.fetchContactUsernames('1234567890@s.whatsapp.net', '0987654321@s.whatsapp.net')
+
+// Check multiple usernames at once
+const multi = await sock.checkUsernameMulti(['name1', 'name2', 'name3'])
+
+// Delete your username
+await sock.deleteUsername()
+
+// Get username recommendations
+const recs = await sock.getUsernameRecommendations()
+```
+
+> **Note:** `USERNAME_QUERY_IDS` are captured from live WA Web sessions and
+> may rotate with WA updates. Use the `proto-extract` tool to refresh them.
+
+**Constants exposed:**
+
+```ts
+sock.USERNAME_QUERY_IDS // { CHECK, CHECK_MULTI, SET, GET, GET_RECOMMENDATIONS, PIN_SET }
+sock.USERNAME_CHECK_RESULT // { SUCCESS, INVALID }
+sock.USERNAME_SOURCE // { FB, IG, USER_INPUT, SUGGESTION }
+```
+
+**Ported from:** `innovatorssoft/Baileys` (`Socket/username.js`)
+
+---
+
+### 22. WAProto Schema Extensions
 
 74 extra message types beyond real WhiskeySockets/Baileys (61 from
 itsliaaa, 13 from innovatorssoft) — bots, polls-add-option, split-payments,
@@ -579,6 +679,12 @@ or recognizes them automatically yet. Full list in
 
 ## Security Fixes (informational — no API surface)
 
+- **Proto globals** (`$Object`, `$BigInt`, `$Array` etc.): WAProto/index.js
+  now accesses all builtins via `$util.global.*` — prevents prototype
+  pollution and scope shadowing attacks. `protobufjs` upgraded `^7.5.6` →
+  `^8.7.0`. Critical checks (`__proto__` guard + recursion depth limit)
+  were already present; globals are the remaining layer. Ported from
+  `@biled` (AgusXzz/biled).
 - **`extractVideoThumb`**: FFmpeg invocation switched from shell-string
   `exec()` to argument-array `spawn()`, closing a shell injection vector.
 - **`Panoramic Profile Picture`**: fixed wire attribute
@@ -586,6 +692,9 @@ or recognizes them automatically yet. Full list in
   to reject/ignore the wide banner image.
 - **`peerDependenciesMeta`**: `sharp` is now correctly marked optional
   (was listed as a peer dependency without the `optional: true` flag).
+- **Single-file auth atomic write**: `useSingleFileAuthState` now writes
+  to a `.temp` file first and atomically renames it — prevents partial/corrupt
+  auth files on crash mid-write.
 
 # Get Support
 
@@ -1226,6 +1335,7 @@ await sock.sendMessage(id, {
 #### Audio Message
 
 - To audio message work in all devices you need to convert with some tool like `ffmpeg` with this flags:
+
   ```bash
       codec: libopus //ogg file
       ac: 1 //one channel
@@ -1234,6 +1344,7 @@ await sock.sendMessage(id, {
   ```
 
   - Example:
+
   ```bash
   ffmpeg -i input.mp4 -avoid_negative_ts make_zero -ac 1 output.ogg
   ```

@@ -176,3 +176,11 @@ export const LEXER_REGEX =
 
 /** Fallback donate/reference URL used by rich-message link entities. */
 export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'
+
+/**
+ * Support payload for AI/Bot messages — injected into messageContextInfo.supportPayload.
+ * Signals to WA servers that this is an AI bot message.
+ * Ported from @itsliaaa/baileys (Lia@Changes)
+ */
+export const BIZ_BOT_SUPPORT_PAYLOAD =
+	'{"version":1,"is_ai_message":true,"should_upload_client_logs":false,"should_show_system_message":false,"ticket_id":"7004947587700716","citation_items":[],"ticket_locale":"us"}'

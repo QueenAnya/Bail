@@ -1023,14 +1023,19 @@ export const getWAUploadToServer = (
 	}
 }
 
-const getMediaRetryKey = (mediaKey: Buffer | Uint8Array) => {
-	return hkdf(mediaKey, 32, { info: 'WhatsApp Media Retry Notification' })
+const getMediaRetryKey = (mediaKey: Buffer | Uint8Array | string) => {
+	// Normalize: consumers that persist messages as JSON get mediaKey back as a base64
+	// string — HKDF must run over the 32 raw key bytes, not the 44 base64 chars.
+	// Mirrors the normalization already done in getMediaKeys(). PR #2729.
+	const keyBuffer =
+		typeof mediaKey === 'string' ? Buffer.from(mediaKey.replace(/^data:.*;base64,/, ''), 'base64') : mediaKey
+	return hkdf(keyBuffer, 32, { info: 'WhatsApp Media Retry Notification' })
 }
 
 /**
  * Generate a binary node that will request the phone to re-upload the media & return the newly uploaded URL
  */
-export const encryptMediaRetryRequest = (key: WAMessageKey, mediaKey: Buffer | Uint8Array, meId: string) => {
+export const encryptMediaRetryRequest = (key: WAMessageKey, mediaKey: Buffer | Uint8Array | string, meId: string) => {
 	const recp: proto.IServerErrorReceipt = { stanzaId: key.id }
 	const recpBuffer = proto.ServerErrorReceipt.encode(recp).finish()
 
@@ -1107,7 +1112,7 @@ export const decodeMediaRetryNode = (node: BinaryNode) => {
 
 export const decryptMediaRetryData = (
 	{ ciphertext, iv }: { ciphertext: Uint8Array; iv: Uint8Array },
-	mediaKey: Uint8Array,
+	mediaKey: Uint8Array | string,
 	msgId: string
 ) => {
 	const retryKey = getMediaRetryKey(mediaKey)

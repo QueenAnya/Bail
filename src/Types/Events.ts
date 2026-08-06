@@ -20,6 +20,14 @@ import type { ConnectionState, NewChatMessageCapInfo } from './State'
 export type BaileysEventMap = {
 	/** connection state has been updated -- WS closed, opened, connecting etc. */
 	'connection.update': Partial<ConnectionState>
+	/** Emitted when the phone returns a link preview via PDO response. PR #2701 */
+	'link-preview.update': {
+		/** The request stanza ID that correlates to the requestPhoneLinkPreview call */
+		requestId: string
+		/** URL for which the preview was generated */
+		url: string
+		urlInfo: import('./Message').WAUrlInfo
+	}
 	/** credentials updated -- some metadata, keys or something */
 	'creds.update': Partial<AuthenticationCreds>
 	/** set chats (history sync), everything is reverse chronologically sorted */

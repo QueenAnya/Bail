@@ -640,10 +640,14 @@ export const generateWAMessageContent = async (
 		const pollCreationMessage = {
 			name: message.poll.name,
 			selectableOptionsCount: message.poll.selectableCount,
-			options: message.poll.values.map(optionName => ({ optionName }))
+			options: message.poll.values.map(optionName => ({ optionName })),
+			hideVoterNames: message.poll.hideVoterNames ?? false
 		}
 
-		if (message.poll.toAnnouncementGroup) {
+		if (message.poll.hideVoterNames) {
+			// V6 — hidden-voter-names poll (PR #2725, reverse-engineered from live WA)
+			m.pollCreationMessageV6 = pollCreationMessage
+		} else if (message.poll.toAnnouncementGroup) {
 			// poll v2 is for community announcement groups (single select and multiple)
 			m.pollCreationMessageV2 = pollCreationMessage
 		} else {
@@ -1577,9 +1581,10 @@ export function getAggregateVotesInPollMessage(
 		message?.pollCreationMessage?.options ||
 		message?.pollCreationMessageV2?.options ||
 		message?.pollCreationMessageV3?.options ||
+		message?.pollCreationMessageV6?.options ||
 		[]
 	const voteHashMap = opts.reduce(
-		(acc, opt) => {
+		(acc: { [_: string]: VoteAggregation }, opt: proto.Message.PollCreationMessage.IOption) => {
 			const hash = sha256(Buffer.from(opt.optionName || '')).toString()
 			acc[hash] = {
 				name: opt.optionName || '',
@@ -1689,8 +1694,8 @@ export const downloadMediaMessage = async <Type extends 'buffer' | 'stream'>(
 	const result = await downloadMsg().catch(async error => {
 		if (
 			ctx &&
-			typeof error?.status === 'number' && // treat errors with status as HTTP failures requiring reupload
-			REUPLOAD_REQUIRED_STATUS.includes(error.status as number)
+			typeof (error?.status ?? error?.output?.statusCode) === 'number' && // treat errors with status as HTTP failures requiring reupload
+			REUPLOAD_REQUIRED_STATUS.includes((error?.status ?? error?.output?.statusCode) as number)
 		) {
 			ctx.logger.info({ key: message.key }, 'sending reupload media request...')
 			// request reupload
@@ -1741,6 +1746,30 @@ export const downloadMediaMessage = async <Type extends 'buffer' | 'stream'>(
 
 		return stream
 	}
+}
+
+/**
+ * Checks whether a message has valid album media (image or video).
+ * Used in album send pipeline to validate individual album items.
+ * Ported from @itsliaaa/baileys
+ */
+export const hasValidAlbumMedia = (message: proto.IMessage | null | undefined): boolean => {
+	return !!(message?.imageMessage || message?.videoMessage)
+}
+
+/**
+ * Checks whether a message has valid interactive header media.
+ * Used to validate carousel/interactive message headers.
+ * Ported from @itsliaaa/baileys
+ */
+export const hasValidInteractiveHeader = (message: proto.IMessage | null | undefined): boolean => {
+	return !!(
+		message?.imageMessage ||
+		message?.videoMessage ||
+		message?.documentMessage ||
+		message?.productMessage ||
+		message?.locationMessage
+	)
 }
 
 /** Checks whether the given message is a media message; if it is returns the inner content */

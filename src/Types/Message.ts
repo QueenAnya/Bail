@@ -497,6 +497,11 @@ export type PollMessageOptions = {
 	 * 1 = TEXT (default), 2 = IMAGE
 	 */
 	pollContentType?: 1 | 2
+	/**
+	 * Hide voter names — when true, poll uses V6 format and shows 'Names hidden' badge.
+	 * PR #2725 — reverse-engineered from live WhatsApp.
+	 */
+	hideVoterNames?: boolean
 }
 
 export type EventMessageOptions = {

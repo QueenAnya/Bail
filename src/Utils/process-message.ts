@@ -459,47 +459,67 @@ const processMessage = async (
 					const peerDataOperationResult = response.peerDataOperationResult || []
 					for (const result of peerDataOperationResult) {
 						const retryResponse = result?.placeholderMessageResendResponse
-						//eslint-disable-next-line max-depth
-						if (!retryResponse?.webMessageInfoBytes) {
-							continue
-						}
-
-						//eslint-disable-next-line max-depth
-						try {
-							const webMessageInfo = proto.WebMessageInfo.decode(retryResponse.webMessageInfoBytes)
-							const msgId = webMessageInfo.key?.id
-							// Retrieve cached original message data (preserves LID details,
-							// timestamps, etc. that the phone may omit in its PDO response)
-							const cachedData = msgId ? await placeholderResendCache?.get<Partial<WAMessage> | true>(msgId) : undefined
+						// eslint-disable-next-line max-depth
+						if (retryResponse?.webMessageInfoBytes) {
 							//eslint-disable-next-line max-depth
-							if (msgId) {
-								await placeholderResendCache?.del(msgId)
-							}
-
-							let finalMsg: WAMessage
-							//eslint-disable-next-line max-depth
-							if (cachedData && typeof cachedData === 'object') {
-								// Apply decoded message content onto cached metadata (preserves LID etc.)
-								cachedData.message = webMessageInfo.message
+							try {
+								const webMessageInfo = proto.WebMessageInfo.decode(retryResponse.webMessageInfoBytes)
+								const msgId = webMessageInfo.key?.id
+								// Retrieve cached original message data (preserves LID details,
+								// timestamps, etc. that the phone may omit in its PDO response)
+								const cachedData = msgId
+									? await placeholderResendCache?.get<Partial<WAMessage> | true>(msgId)
+									: undefined
 								//eslint-disable-next-line max-depth
-								if (webMessageInfo.messageTimestamp) {
-									cachedData.messageTimestamp = webMessageInfo.messageTimestamp
+								if (msgId) {
+									await placeholderResendCache?.del(msgId)
 								}
 
-								finalMsg = cachedData as WAMessage
-							} else {
-								finalMsg = webMessageInfo as WAMessage
+								let finalMsg: WAMessage
+								//eslint-disable-next-line max-depth
+								if (cachedData && typeof cachedData === 'object') {
+									// Apply decoded message content onto cached metadata (preserves LID etc.)
+									cachedData.message = webMessageInfo.message
+									//eslint-disable-next-line max-depth
+									if (webMessageInfo.messageTimestamp) {
+										cachedData.messageTimestamp = webMessageInfo.messageTimestamp
+									}
+
+									finalMsg = cachedData as WAMessage
+								} else {
+									finalMsg = webMessageInfo as WAMessage
+								}
+
+								logger?.debug({ msgId, requestId: response.stanzaId }, 'received placeholder resend')
+
+								ev.emit('messages.upsert', {
+									messages: [finalMsg],
+									type: 'notify',
+									requestId: response.stanzaId!
+								})
+							} catch (err) {
+								logger?.warn({ err, stanzaId: response.stanzaId }, 'failed to decode placeholder resend response')
 							}
+						}
 
-							logger?.debug({ msgId, requestId: response.stanzaId }, 'received placeholder resend')
-
-							ev.emit('messages.upsert', {
-								messages: [finalMsg],
-								type: 'notify',
-								requestId: response.stanzaId!
-							})
-						} catch (err) {
-							logger?.warn({ err, stanzaId: response.stanzaId }, 'failed to decode placeholder resend response')
+						// PR #2701 — phone-generated link preview response
+						const linkPreviewResponse = result?.linkPreviewResponse
+						// eslint-disable-next-line max-depth
+						if (linkPreviewResponse?.url) {
+							const { linkPreviewResponseToUrlInfo } = await import('./link-preview')
+							const urlInfo = linkPreviewResponseToUrlInfo(result)
+							// eslint-disable-next-line max-depth
+							if (urlInfo) {
+								logger?.debug(
+									{ url: linkPreviewResponse.url, requestId: response.stanzaId },
+									'received phone link preview'
+								)
+								ev.emit('link-preview.update', {
+									requestId: response.stanzaId!,
+									url: linkPreviewResponse.url,
+									urlInfo
+								})
+							}
 						}
 					}
 				}

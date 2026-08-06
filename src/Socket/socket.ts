@@ -1131,12 +1131,15 @@ export const makeSocket = (config: SocketConfig) => {
 	// update credentials when required
 	ev.on('creds.update', update => {
 		const name = update.me?.name
-		// if name has just been received
-		if (creds.me?.name !== name) {
+		// if name has just been received — guard on non-empty string so partial
+		// creds.update (pre-key churn, incoming message handling) doesn't emit
+		// a typeless <presence/> that marks the account as online unexpectedly.
+		// Fixes: WhiskeySockets/Baileys#2553 (PR #2740)
+		if (typeof name === 'string' && name && creds.me?.name !== name) {
 			logger.debug({ name }, 'updated pushName')
 			sendNode({
 				tag: 'presence',
-				attrs: { name: name! }
+				attrs: { name }
 			}).catch(err => {
 				logger.warn({ trace: err.stack }, 'error in sending presence update on name change')
 			})

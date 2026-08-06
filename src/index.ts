@@ -9,6 +9,8 @@ export * from './WAM/index'
 export * from './WAUSync/index'
 export * from './addons/index'
 
+export type { UsernameSocket } from './Socket/username'
+
 export type WASocket = ReturnType<typeof makeWASocket>
 export { makeWASocket }
 export default makeWASocket

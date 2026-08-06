@@ -76,3 +76,5 @@ export type WABusinessProfile = {
 }
 
 export type CurveKeyPair = { private: Uint8Array; public: Uint8Array }
+
+export * from './RichType'

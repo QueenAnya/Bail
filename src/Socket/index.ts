@@ -1,6 +1,6 @@
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
 import type { UserFacingSocketConfig } from '../Types'
-import { makeCommunitiesSocket } from './communities'
+import { makeUsernameSocket } from './username'
 
 // export the last socket layer
 const makeWASocket = (config: UserFacingSocketConfig) => {
@@ -9,7 +9,7 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 		...config
 	}
 
-	return makeCommunitiesSocket(newConfig)
+	return makeUsernameSocket(newConfig)
 }
 
 export default makeWASocket
