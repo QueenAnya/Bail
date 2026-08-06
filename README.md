@@ -583,18 +583,23 @@ These are core-file patches, not addons — no import needed, they just work:
 Send multiple images/videos as a native WhatsApp album (carousel of media):
 
 ```ts
-await sock.sendMessage(jid, {
-    album: [
-        { image: { url: 'https://example.com/photo1.jpg' }, caption: 'First photo' },
-        { image: fs.readFileSync('./photo2.png') },
-        { video: { url: 'https://example.com/clip.mp4' }, caption: 'Short clip' }
-    ]
-}, {
-    delayMs: 800  // delay between each media relay (default: 800ms)
-})
+await sock.sendMessage(
+	jid,
+	{
+		album: [
+			{ image: { url: 'https://example.com/photo1.jpg' }, caption: 'First photo' },
+			{ image: fs.readFileSync('./photo2.png') },
+			{ video: { url: 'https://example.com/clip.mp4' }, caption: 'Short clip' }
+		]
+	},
+	{
+		delayMs: 800 // delay between each media relay (default: 800ms)
+	}
+)
 ```
 
 **How it works:**
+
 1. An `albumMessage` container is sent first (with expected image/video counts)
 2. Each media item is then relayed individually, linked back to the parent via `messageAssociation`
 3. `hasValidAlbumMedia` validates each item is image or video before sending
@@ -612,14 +617,14 @@ Full WhatsApp username management — check availability, set, pin, find users:
 // Check if username is available
 const result = await sock.checkUsername('myusername')
 if (result.available) {
-    console.log('Available!')
+	console.log('Available!')
 } else {
-    console.log('Taken. Suggestions:', result.suggestions)
+	console.log('Taken. Suggestions:', result.suggestions)
 }
 
 // Set your username
 await sock.setUsername('myusername', {
-    source: 'USER_INPUT' // or 'FB', 'IG', 'SUGGESTION'
+	source: 'USER_INPUT' // or 'FB', 'IG', 'SUGGESTION'
 })
 
 // Get your current username
@@ -633,10 +638,7 @@ const user = await sock.findUserByUsername('theirusername')
 console.log(user?.jid) // '1234567890@s.whatsapp.net'
 
 // Fetch usernames of known contacts (USync)
-const contacts = await sock.fetchContactUsernames(
-    '1234567890@s.whatsapp.net',
-    '0987654321@s.whatsapp.net'
-)
+const contacts = await sock.fetchContactUsernames('1234567890@s.whatsapp.net', '0987654321@s.whatsapp.net')
 
 // Check multiple usernames at once
 const multi = await sock.checkUsernameMulti(['name1', 'name2', 'name3'])
@@ -652,10 +654,11 @@ const recs = await sock.getUsernameRecommendations()
 > may rotate with WA updates. Use the `proto-extract` tool to refresh them.
 
 **Constants exposed:**
+
 ```ts
-sock.USERNAME_QUERY_IDS  // { CHECK, CHECK_MULTI, SET, GET, GET_RECOMMENDATIONS, PIN_SET }
-sock.USERNAME_CHECK_RESULT  // { SUCCESS, INVALID }
-sock.USERNAME_SOURCE  // { FB, IG, USER_INPUT, SUGGESTION }
+sock.USERNAME_QUERY_IDS // { CHECK, CHECK_MULTI, SET, GET, GET_RECOMMENDATIONS, PIN_SET }
+sock.USERNAME_CHECK_RESULT // { SUCCESS, INVALID }
+sock.USERNAME_SOURCE // { FB, IG, USER_INPUT, SUGGESTION }
 ```
 
 **Ported from:** `innovatorssoft/Baileys` (`Socket/username.js`)
@@ -1332,6 +1335,7 @@ await sock.sendMessage(id, {
 #### Audio Message
 
 - To audio message work in all devices you need to convert with some tool like `ffmpeg` with this flags:
+
   ```bash
       codec: libopus //ogg file
       ac: 1 //one channel
@@ -1340,6 +1344,7 @@ await sock.sendMessage(id, {
   ```
 
   - Example:
+
   ```bash
   ffmpeg -i input.mp4 -avoid_negative_ts make_zero -ac 1 output.ogg
   ```
