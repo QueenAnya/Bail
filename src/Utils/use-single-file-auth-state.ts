@@ -53,6 +53,7 @@ export const useSingleFileAuthState = async (
 			} catch {
 				fileData = {}
 			}
+
 			isLoaded = true
 		})
 	}
@@ -124,6 +125,7 @@ export const useSingleFileAuthState = async (
 
 						data[id] = value as SignalDataTypeMap[T]
 					}
+
 					return data
 				},
 				set: <T extends keyof SignalDataTypeMap>(data: {
