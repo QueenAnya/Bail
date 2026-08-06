@@ -1,4 +1,3 @@
-import { proto } from '../../WAProto/index.js'
 import type { WAMediaUploadFunction, WAUrlInfo } from '../Types'
 import type { ILogger } from './logger'
 import { prepareWAMessageMedia } from './messages'
@@ -109,26 +108,4 @@ export const getUrlInfo = async (
 			throw error
 		}
 	}
-}
-
-/**
- * Converts a WA PDO link-preview response result into a WAUrlInfo object.
- * Called when the phone responds to a GENERATE_LINK_PREVIEW PDO request.
- * Source: WhiskeySockets/Baileys PR #2701
- */
-export const linkPreviewResponseToUrlInfo = (
-	result: proto.Message.PeerDataOperationRequestResponseMessage.IPeerDataOperationResult
-): WAUrlInfo | undefined => {
-	const linkPreviewResponse = result?.linkPreviewResponse
-	if (!linkPreviewResponse) return undefined
-
-	const urlInfo: WAUrlInfo = {
-		'canonical-url': linkPreviewResponse.url ?? '',
-		'matched-text': linkPreviewResponse.matchText ?? '',
-		title: linkPreviewResponse.title ?? '',
-		description: linkPreviewResponse.description ?? undefined,
-		jpegThumbnail: linkPreviewResponse.thumbData?.length ? Buffer.from(linkPreviewResponse.thumbData) : undefined
-	}
-
-	return urlInfo
 }

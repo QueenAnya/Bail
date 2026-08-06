@@ -103,20 +103,6 @@ export type SocketConfig = {
 	 * */
 	generateHighQualityLinkPreview: boolean
 
-	/**
-	 * Optional callback for Shortcake (CRSC) passkey companion-linking.
-	 * When provided, the client can complete headless WebAuthn assertions
-	 * during the passkey pairing flow initiated by `passkey_prologue_request`.
-	 *
-	 * Receives a `challenge` bytes and must return a signed assertion
-	 * (FIDO2/WebAuthn AuthenticatorAssertionResponse.signature).
-	 *
-	 * Without this callback, the `passkeyRequest` connection.update is still
-	 * emitted but the handshake is not completed automatically.
-	 * Source: WhiskeySockets/Baileys PR #2689 (vinikjkkj — WB collaborator)
-	 */
-	signPasskeyAssertion?: (challenge: Uint8Array) => Promise<Uint8Array>
-
 	/** Enable automatic session recreation for failed messages */
 	enableAutoSessionRecreation: boolean
 

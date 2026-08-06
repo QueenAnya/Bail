@@ -45,16 +45,6 @@ export type ConnectionState = {
 	 * When you are in this state, WhatsApp prevents outgoing messages and calls.
 	 */
 	reachoutTimeLock?: ReachoutTimelockState
-
-	/**
-	 * Set when WhatsApp sends a passkey companion-linking notification
-	 * (passkey_prologue_request or crsc_continuation) during pairing.
-	 * Source: WhiskeySockets/Baileys PR #2696 (frndchagas)
-	 */
-	passkeyRequest?: {
-		type: 'passkey_prologue_request' | 'crsc_continuation'
-		hasOptions: boolean
-	}
 }
 
 export type ReachoutTimelockState = {

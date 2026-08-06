@@ -13,26 +13,6 @@ import { Curve, hmacSign } from './crypto'
 import { encodeBigEndian } from './generics'
 import { createSignalIdentity } from './signal'
 
-/**
- * Determines the correct UserAgent.Platform for the client payload.
- * macOS Desktop with syncFullHistory must advertise MACOS platform —
- * WA server rejects Desktop full-history payloads (status 428) unless
- * macOS Desktop uses MACOS + DARWIN combination. Fixes issue #2677.
- * Source: WhiskeySockets/Baileys PR #2693 (frndchagas)
- */
-const getUserAgentPlatform = (config: SocketConfig): proto.ClientPayload.UserAgent.Platform => {
-	if (config.browser[1].toLocaleLowerCase().includes('android')) {
-		return proto.ClientPayload.UserAgent.Platform.ANDROID
-	}
-
-	// macOS Desktop + full-history requires MACOS platform (not WEB)
-	if (config.syncFullHistory && config.browser[0] === 'Mac OS' && config.browser[1] === 'Desktop') {
-		return proto.ClientPayload.UserAgent.Platform.MACOS
-	}
-
-	return proto.ClientPayload.UserAgent.Platform.WEB
-}
-
 const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 	return {
 		appVersion: {
@@ -40,7 +20,9 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 			secondary: config.version[1],
 			tertiary: config.version[2]
 		},
-		platform: getUserAgentPlatform(config),
+		platform: config.browser[1].toLocaleLowerCase().includes('android')
+			? proto.ClientPayload.UserAgent.Platform.ANDROID
+			: proto.ClientPayload.UserAgent.Platform.WEB,
 		//platform: proto.ClientPayload.UserAgent.Platform.MACOS,
 		releaseChannel: proto.ClientPayload.UserAgent.ReleaseChannel.RELEASE,
 		osVersion: '0.1',
@@ -99,10 +81,7 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 	const { user, device } = jidDecode(userJid)!
 	const payload: proto.IClientPayload = {
 		...getClientPayload(config),
-		// passive: false — WA server rejects existing companion sessions with 428
-		// when passive: true is used on reconnect. Registration already uses false.
-		// Source: WhiskeySockets/Baileys PR #2682 (gobeyondpty)
-		passive: false,
+		passive: true,
 		pull: true,
 		username: +user,
 		device: device,

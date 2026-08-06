@@ -327,46 +327,6 @@ export class LIDMappingStore {
 	}
 
 	/**
-	 * Returns the stored LID for a PN from the local cache/keystore only.
-	 * Unlike getLIDForPN, this does NOT trigger USync for unmapped contacts.
-	 * Used in the outbound send path to avoid implicit network calls.
-	 * Source: WhiskeySockets/Baileys PR #2692 (frndchagas)
-	 */
-	async getStoredLIDForPN(pn: string): Promise<string | null> {
-		const decoded = jidDecode(pn)
-		if (!decoded) return null
-
-		const server = decoded.server
-		const isValidPN = server === 's.whatsapp.net' || server === 'hosted'
-		if (!isValidPN) return null
-
-		const pnUser = decoded.user
-		// Check LRU cache first — avoids keystore round-trip on every send
-		const cached = this.mappingCache.get(`pn:${pnUser}`)
-		if (cached && typeof cached === 'string') {
-			const lidServer = server === 'hosted' ? 'hosted.lid' : 'lid'
-			const pnDevice = decoded.device !== undefined ? decoded.device : 0
-			return `${cached}${pnDevice ? `:${pnDevice}` : ''}@${lidServer}`
-		}
-
-		// Fall back to keystore (local DB only — no network)
-		try {
-			const result = await this.keys.get('lid-mapping', [pnUser])
-			const lidUser = result[pnUser]
-			if (!lidUser || typeof lidUser !== 'string') return null
-
-			this.mappingCache.set(`pn:${pnUser}`, lidUser)
-			this.mappingCache.set(`lid:${lidUser}`, pnUser)
-
-			const lidServer = server === 'hosted' ? 'hosted.lid' : 'lid'
-			const pnDevice = decoded.device !== undefined ? decoded.device : 0
-			return `${lidUser}${pnDevice ? `:${pnDevice}` : ''}@${lidServer}`
-		} catch {
-			return null
-		}
-	}
-
-	/**
 	 * Close the cache and release resources
 	 */
 	close(): void {

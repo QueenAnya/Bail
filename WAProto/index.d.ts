@@ -5276,7 +5276,6 @@ export namespace proto {
         statusQuotedMessage?: (proto.Message.IStatusQuotedMessage|null);
         statusStickerInteractionMessage?: (proto.Message.IStatusStickerInteractionMessage|null);
         pollCreationMessageV5?: (proto.Message.IPollCreationMessage|null);
-        pollCreationMessageV6?: (proto.Message.IPollCreationMessage|null);
         newsletterFollowerInviteMessageV2?: (proto.Message.INewsletterFollowerInviteMessage|null);
         pollResultSnapshotMessageV3?: (proto.Message.IPollResultSnapshotMessage|null);
     }
@@ -5376,7 +5375,6 @@ export namespace proto {
         public statusQuotedMessage?: (proto.Message.IStatusQuotedMessage|null);
         public statusStickerInteractionMessage?: (proto.Message.IStatusStickerInteractionMessage|null);
         public pollCreationMessageV5?: (proto.Message.IPollCreationMessage|null);
-        public pollCreationMessageV6?: (proto.Message.IPollCreationMessage|null);
         public newsletterFollowerInviteMessageV2?: (proto.Message.INewsletterFollowerInviteMessage|null);
         public pollResultSnapshotMessageV3?: (proto.Message.IPollResultSnapshotMessage|null);
         public static create(properties?: proto.IMessage): proto.Message;

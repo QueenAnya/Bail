@@ -52,6 +52,7 @@ import {
 	getUrlFromDirectPath,
 	getWAUploadToServer,
 	hasValidAlbumMedia,
+	hasValidInteractiveHeader,
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
@@ -97,56 +98,6 @@ import {
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
 
-/**
- * Resolves a PN or hosted-PN JID to its mapped LID for outbound sends.
- * Uses local-only store lookup — does NOT trigger USync / network.
- * For cold (unmapped) contacts the original jid is returned unchanged.
- * Source: WhiskeySockets/Baileys PR #2692 (frndchagas)
- */
-export type MessageSendJid = {
-	/** The JID to actually send to (may be LID if mapped) */
-	jid: string
-	/** Original PN JID preserved as alternate addressing metadata */
-	remoteJidAlt?: string
-	/** 'lid' when routed to a LID, undefined otherwise */
-	addressingMode?: 'lid'
-	/** Additional stanza attributes for LID addressing */
-	additionalAttributes?: Record<string, string>
-}
-
-export const resolveMessageSendJid = async (
-	jid: string,
-	getStoredLIDForPN: (pn: string) => Promise<string | null>
-): Promise<MessageSendJid> => {
-	// Only resolve for PN and hosted-PN JIDs
-	if (!isPnUser(jid) && !isHostedPnUser(jid)) {
-		return { jid }
-	}
-
-	let lid: string | null = null
-	try {
-		lid = await getStoredLIDForPN(jid)
-	} catch {
-		// getStoredLIDForPN can fail on keystore error — fall back to original PN
-		return { jid }
-	}
-
-	if (!lid || (!isLidUser(lid) && !isHostedLidUser(lid))) {
-		return { jid }
-	}
-
-	const remoteJidAlt = jidNormalizedUser(jid)
-	return {
-		jid: lid,
-		remoteJidAlt,
-		addressingMode: 'lid',
-		additionalAttributes: {
-			addressing_mode: 'lid',
-			recipient_pn: remoteJidAlt
-		}
-	}
-}
-
 export const makeMessagesSocket = (config: SocketConfig) => {
 	const {
 		logger,
@@ -174,8 +125,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
-	// Local-only lookup — used in send path to avoid implicit USync. PR #2692
-	const getStoredLIDForPN = signalRepository.lidMapping.getStoredLIDForPN.bind(signalRepository.lidMapping)
 
 	/**
 	 * Set of tctoken storage JIDs with a fire-and-forget `issuePrivacyTokens` IQ in flight.
@@ -1464,21 +1413,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		waUploadToServer,
 		fetchPrivacySettings,
 		sendPeerDataOperationMessage,
-
-		/**
-		 * Request the paired phone to generate a high-quality link preview for a URL.
-		 * The phone resolves the URL natively and returns metadata via a PDO response,
-		 * which is handled in process-message and emitted as a 'link-preview.update' event.
-		 * Falls back to local link-preview-js when `generateHighQualityLinkPreview` is false.
-		 * Source: WhiskeySockets/Baileys PR #2701 (frndchagas)
-		 */
-		requestPhoneLinkPreview: async (url: string): Promise<string> => {
-			const pdoMessage: proto.Message.IPeerDataOperationRequestMessage = {
-				peerDataOperationRequestType: proto.Message.PeerDataOperationRequestType.GENERATE_LINK_PREVIEW,
-				requestUrlPreview: [{ url }]
-			}
-			return sendPeerDataOperationMessage(pdoMessage)
-		},
 		createParticipantNodes,
 		getUSyncDevices,
 		messageRetryManager,
@@ -1614,16 +1548,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return mediaMsgs[0]
 			} else {
-				// PR #2692 — Resolve PN → LID before send (local-only, no USync)
-				// Prevents ERROR 463 for warm contacts with existing PN→LID mapping.
-				// Falls back to original jid on lookup failure.
-				const {
-					jid: resolvedJid,
-					remoteJidAlt: lidRemoteJidAlt,
-					additionalAttributes: lidAttrs
-				} = await resolveMessageSendJid(jid, getStoredLIDForPN)
-
-				const fullMsg = await generateWAMessage(resolvedJid, content, {
+				const fullMsg = await generateWAMessage(jid, content, {
 					logger,
 					userJid,
 					getUrlInfo: text =>
@@ -1691,16 +1616,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				// PR #2692 — set alternate addressing on key when routed to LID
-				if (lidRemoteJidAlt) {
-					fullMsg.key.remoteJidAlt = lidRemoteJidAlt
-					fullMsg.key.addressingMode = 'lid'
-				}
-
-				await relayMessage(resolvedJid, fullMsg.message!, {
+				await relayMessage(jid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
-					additionalAttributes: { ...additionalAttributes, ...(lidAttrs || {}) },
+					additionalAttributes,
 					statusJidList: options.statusJidList,
 					additionalNodes,
 					AI: options.ai,

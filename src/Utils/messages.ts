@@ -1584,7 +1584,7 @@ export function getAggregateVotesInPollMessage(
 		message?.pollCreationMessageV6?.options ||
 		[]
 	const voteHashMap = opts.reduce(
-		(acc: { [_: string]: VoteAggregation }, opt: proto.Message.PollCreationMessage.IOption) => {
+		(acc, opt) => {
 			const hash = sha256(Buffer.from(opt.optionName || '')).toString()
 			acc[hash] = {
 				name: opt.optionName || '',
