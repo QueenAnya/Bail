@@ -122,6 +122,8 @@ export const linkPreviewResponseToUrlInfo = (
 	const linkPreviewResponse = result?.linkPreviewResponse
 	if (!linkPreviewResponse) return undefined
 
+	// WAUrlInfo uses hyphenated keys ('canonical-url', 'matched-text') — not camelCase.
+	// WAProto response fields are matchText/thumbData (not matchedText/jpegThumbnail).
 	const urlInfo: WAUrlInfo = {
 		'canonical-url': linkPreviewResponse.url ?? '',
 		'matched-text': linkPreviewResponse.matchText ?? '',

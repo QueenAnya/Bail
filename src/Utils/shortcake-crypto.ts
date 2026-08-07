@@ -23,6 +23,9 @@ export type ShortcakeKeyPair = {
  */
 export const generateShortcakeKeyPair = async (): Promise<ShortcakeKeyPair> => {
 	const { webcrypto } = await import('crypto')
+	// TS lib.dom's generateKey() overloads don't include X25519 in their algorithm
+	// union, so it resolves to the widest overload (CryptoKeyPair | CryptoKey).
+	// X25519 always produces a key pair — cast is safe here.
 	const keyPair = (await webcrypto.subtle.generateKey({ name: 'X25519' }, true, [
 		'deriveKey',
 		'deriveBits'
@@ -57,7 +60,7 @@ export const shortcakeDH = async (privateKey: Uint8Array, peerPublicKey: Uint8Ar
 	)
 	const pubKey = await webcrypto.subtle.importKey('raw', peerPublicKey, { name: 'X25519' }, false, [])
 	const bits = await webcrypto.subtle.deriveBits({ name: 'X25519', public: pubKey }, privKey, 256)
-	return Buffer.from(new Uint8Array(bits))
+	return Buffer.from(bits)
 }
 
 // ── AEAD ─────────────────────────────────────────────────────────────────────

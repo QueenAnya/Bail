@@ -53,7 +53,6 @@ export const useSingleFileAuthState = async (
 			} catch {
 				fileData = {}
 			}
-
 			isLoaded = true
 		})
 	}
@@ -125,7 +124,6 @@ export const useSingleFileAuthState = async (
 
 						data[id] = value as SignalDataTypeMap[T]
 					}
-
 					return data
 				},
 				set: <T extends keyof SignalDataTypeMap>(data: {
@@ -136,7 +134,7 @@ export const useSingleFileAuthState = async (
 						for (const id in categoryData) {
 							const keyName = category + id
 							const value = categoryData[id]
-							value !== null ? writeKey(keyName, value) : removeKey(keyName)
+							value != null ? writeKey(keyName, value) : removeKey(keyName)
 						}
 					}
 				}

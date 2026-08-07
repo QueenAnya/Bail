@@ -52,6 +52,7 @@ import {
 	getUrlFromDirectPath,
 	getWAUploadToServer,
 	hasValidAlbumMedia,
+	hasValidInteractiveHeader,
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
@@ -1475,7 +1476,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		requestPhoneLinkPreview: async (url: string): Promise<string> => {
 			const pdoMessage: proto.Message.IPeerDataOperationRequestMessage = {
 				peerDataOperationRequestType: proto.Message.PeerDataOperationRequestType.GENERATE_LINK_PREVIEW,
-				requestUrlPreview: [{ url }]
+				// requestUrlPreview is the real WAProto field (not linkPreviewRequest)
+				requestUrlPreview: [{ url, includeHqThumbnail: true }]
 			}
 			return sendPeerDataOperationMessage(pdoMessage)
 		},

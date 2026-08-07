@@ -423,20 +423,52 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		})
 	}
 
-	/** update the profile status for yourself */
-	const updateProfileStatus = async (status: string) => {
+	/**
+	 * Update the profile status ("About") for yourself.
+	 *
+	 * Source: WhiskeySockets/Baileys PR #2755 (ayusc) — WA Web moved the About
+	 * update to a w:mex GraphQL query supporting an emoji and an optional
+	 * auto-expiry duration (in seconds).
+	 *
+	 * Fixes applied vs the PR (reviewer-flagged):
+	 *  - emoji/duration made optional so existing `updateProfileStatus(status)`
+	 *    callers keep compiling (PR made them required — a breaking API change)
+	 *  - status truncated by Unicode code points, not UTF-16 code units, so a
+	 *    50th-unit high surrogate can't split a supplementary-plane character
+	 *    (emoji, etc.) into an invalid half-surrogate
+	 *  - the 50-char limit is WA Web's current About-text limit for this
+	 *    specific w:mex query — documented here since it isn't obvious from
+	 *    the opaque query_id
+	 */
+	const updateProfileStatus = async (status: string, emoji = '', duration?: number) => {
+		// Truncate by Unicode code points (handles surrogate pairs/emoji correctly)
+		const truncatedStatus = Array.from(status).slice(0, 50).join('')
+
 		await query({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
-				type: 'set',
-				xmlns: 'status'
+				type: 'get',
+				xmlns: 'w:mex'
 			},
 			content: [
 				{
-					tag: 'status',
-					attrs: {},
-					content: Buffer.from(status, 'utf-8')
+					tag: 'query',
+					// WA Web's current About-update query_id — verify against a fresh
+					// WA Web session if status updates start failing after a WA update.
+					attrs: { query_id: '9152604461510864' },
+					content: Buffer.from(
+						JSON.stringify({
+							variables: {
+								input: {
+									text: truncatedStatus,
+									emoji: { content: emoji },
+									...(duration !== undefined ? { ephemeral_duration_sec: duration } : {})
+								}
+							}
+						}),
+						'utf-8'
+					)
 				}
 			]
 		})

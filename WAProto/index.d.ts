@@ -5276,9 +5276,9 @@ export namespace proto {
         statusQuotedMessage?: (proto.Message.IStatusQuotedMessage|null);
         statusStickerInteractionMessage?: (proto.Message.IStatusStickerInteractionMessage|null);
         pollCreationMessageV5?: (proto.Message.IPollCreationMessage|null);
-        pollCreationMessageV6?: (proto.Message.IPollCreationMessage|null);
         newsletterFollowerInviteMessageV2?: (proto.Message.INewsletterFollowerInviteMessage|null);
         pollResultSnapshotMessageV3?: (proto.Message.IPollResultSnapshotMessage|null);
+        pollCreationMessageV6?: (proto.Message.IPollCreationMessage|null);
     }
 
     class Message implements IMessage {
@@ -5376,9 +5376,9 @@ export namespace proto {
         public statusQuotedMessage?: (proto.Message.IStatusQuotedMessage|null);
         public statusStickerInteractionMessage?: (proto.Message.IStatusStickerInteractionMessage|null);
         public pollCreationMessageV5?: (proto.Message.IPollCreationMessage|null);
-        public pollCreationMessageV6?: (proto.Message.IPollCreationMessage|null);
         public newsletterFollowerInviteMessageV2?: (proto.Message.INewsletterFollowerInviteMessage|null);
         public pollResultSnapshotMessageV3?: (proto.Message.IPollResultSnapshotMessage|null);
+        public pollCreationMessageV6?: (proto.Message.IPollCreationMessage|null);
         public static create(properties?: proto.IMessage): proto.Message;
         public static encode(m: proto.IMessage, w?: $protobuf.Writer): $protobuf.Writer;
         public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message;
@@ -8308,6 +8308,7 @@ export namespace proto {
             pollContentType?: (proto.Message.PollContentType|null);
             pollType?: (proto.Message.PollType|null);
             correctAnswer?: (proto.Message.PollCreationMessage.IOption|null);
+            hideVoterNames?: (boolean|null);
         }
 
         class PollCreationMessage implements IPollCreationMessage {
@@ -8320,6 +8321,7 @@ export namespace proto {
             public pollContentType?: (proto.Message.PollContentType|null);
             public pollType?: (proto.Message.PollType|null);
             public correctAnswer?: (proto.Message.PollCreationMessage.IOption|null);
+            public hideVoterNames?: (boolean|null);
             public static create(properties?: proto.Message.IPollCreationMessage): proto.Message.PollCreationMessage;
             public static encode(m: proto.Message.IPollCreationMessage, w?: $protobuf.Writer): $protobuf.Writer;
             public static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.PollCreationMessage;

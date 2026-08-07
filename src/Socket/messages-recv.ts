@@ -57,15 +57,16 @@ import {
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import { makeOfflineNodeProcessor, type OfflineNodeType } from '../Utils/offline-node-processor'
+import { buildAckStanza } from '../Utils/stanza-ack'
 import { getPasskeyRequestState } from '../Utils/passkey'
 import { abortShortcakeHandshake, beginShortcakeHandshake, completeShortcakeHandshake } from '../Utils/shortcake'
-import { buildAckStanza } from '../Utils/stanza-ack'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,
 	readTcTokenIndex,
 	resolveIssuanceJid,
 	resolveTcTokenJid,
+	storeTcTokenFromMessageNode,
 	storeTcTokensFromIqResult,
 	TC_TOKEN_INDEX_KEY
 } from '../Utils/tc-token-utils'
@@ -1586,7 +1587,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						}
 					}
 				}
-
 				break
 			}
 		}
@@ -1974,6 +1974,19 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	const handleMessage = async (node: BinaryNode) => {
 		const encNode = getBinaryNodeChild(node, 'enc')
+
+		// PR #2752 — proactively capture <tctoken> from incoming message stanzas,
+		// mirroring WA Web's opportunistic warm-contact token caching. Fire-and-forget
+		// and placed before the msmsg early-return so capture doesn't depend on the
+		// message body being decryptable.
+		storeTcTokenFromMessageNode({
+			node,
+			keys: authState.keys,
+			getLIDForPN,
+			onNewJidStored: jid => trackTcTokenJid(jid),
+			logger
+		}).catch(err => logger.debug({ err }, 'failed to store tctoken from incoming message'))
+
 		// TODO: temporary fix for crashes and issues resulting of failed msmsg decryption
 		if (encNode?.attrs.type === 'msmsg') {
 			logger.debug({ key: node.attrs.key }, 'ignored msmsg')
@@ -2004,12 +2017,12 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						const pn = await signalRepository.lidMapping.getPNForLID(primaryJid)
 						// getPNForLID returns a device-scoped JID — normalize to strip device suffix
 						const pnJid = pn ? jidNormalizedUser(pn) : ''
-						// eslint-disable-next-line max-depth
 						if (pnJid) {
-							const isGroup = isJidGroup(msg.key.remoteJid!)
-							// eslint-disable-next-line max-depth
-							if (isGroup) msg.key.participantAlt = pnJid
-							else msg.key.remoteJidAlt = pnJid
+							if (isJidGroup(msg.key.remoteJid!)) {
+								msg.key.participantAlt = pnJid
+							} else {
+								msg.key.remoteJidAlt = pnJid
+							}
 						}
 					} catch (err) {
 						logger.debug({ err }, 'failed to recover alt JID from LID mapping store')

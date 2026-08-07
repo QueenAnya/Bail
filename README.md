@@ -665,7 +665,63 @@ sock.USERNAME_SOURCE // { FB, IG, USER_INPUT, SUGGESTION }
 
 ---
 
-### 22. WAProto Schema Extensions
+### 22. Enterprise Bot Framework (`src/Framework/`)
+
+A high-level `Bot` class with middleware routing, command handling, SQLite-backed
+sessions/stats, and automatic reconnect with message queueing.
+
+```ts
+import { Bot } from '@queenanya/baileys'
+import { useMultiFileAuthState } from '@queenanya/baileys'
+import pino from 'pino'
+
+const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
+const logger = pino({ level: 'info' })
+
+const bot = new Bot({
+	socketConfig: { auth: state, logger },
+	dbPath: './bot_store.db', // per-instance — avoids shared-DB collisions
+	enableStats: true,
+	logger
+})
+
+await bot.start() // creates bot.socket
+bot.socket!.ev.on('creds.update', saveCreds) // register AFTER start()
+
+bot.command('!sticker', async ctx => {
+	await ctx.replySticker(imageBuffer, { packname: 'My Pack', author: 'Me' })
+})
+
+bot.command('!ghosts', async ctx => {
+	const ghosts = await bot.stats!.getGhosts(ctx.remoteJid!, true, 30)
+	// ...
+})
+```
+
+**Source:** `WhiskeySockets/Baileys` PR #2710 (LuferOS). The upstream PR had **12
+reviewer-flagged bugs across P0–P3 severity and was never revised** — all are
+fixed here before inclusion:
+
+| #   | Bug                                                                                                                                                            | Severity | Fix                                                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| 1   | `bot.socket?.ev.on('creds.update', ...)` called before `bot.start()` — socket is `undefined`, listener silently never registers, session lost on every restart | P0       | `bot-example.ts` now calls `await bot.start()` **first**, then registers `creds.update`             |
+| 2   | `require('node-webpmux')` — CJS `require` crashes in ESM at import time                                                                                        | P1       | `createRequire(import.meta.url)` in `MediaManager.ts`                                               |
+| 3   | Voice notes missing `-ac 1` / `-ar 16000` / `-application voip` — WA rejects or misplays non-mono Opus                                                         | P1       | Full param set added in `convertToVoiceNote()`                                                      |
+| 4   | Stats stored/queried with raw (non-normalized) JIDs — device-suffix variants split into separate entries, active users misreported as "ghosts"                 | P1       | `jidNormalizedUser()` applied in `observeMessage()` and `getGhosts()`                               |
+| 5   | `text.startsWith(cmd)` matches `!stickerSpam` for command `!sticker`                                                                                           | P2       | `Bot.command()` now requires exact match or `cmd + ' '` prefix                                      |
+| 6   | Message queue never rejected on `DisconnectReason.loggedOut` — pending promises hang forever                                                                   | P2       | `rejectQueue()` called on logged-out close with `Boom(401)`                                         |
+| 7   | `fs.writeFileSync`/`readFileSync`/`unlinkSync` block the event loop during media conversion                                                                    | P2       | All I/O switched to `fs.promises.*` in `MediaManager.ts`                                            |
+| 8   | `SQLiteStore.set()` stored raw strings unconditionally — `get<string>()` on a JSON-looking string round-trips incorrectly                                      | P2       | Always `JSON.stringify()` on write, `JSON.parse()` on read, with legacy fallback                    |
+| 9   | `new SQLiteStore('baileys_store.db')` hardcoded — two Bot instances in the same directory share (and corrupt) state                                            | P2       | `BotConfig.dbPath` is now required/configurable, defaults documented                                |
+| 10  | All logging via `console.log`, including raw JIDs in log lines — no log-level control, not Pino-compatible                                                     | P2       | `BotConfig.logger: ILogger` — structured, Pino-compatible logging throughout                        |
+| 11  | `Context.text` only reads `conversation`/`extendedTextMessage` — a command sent as an image caption never matches                                              | P3       | `text` getter also checks `imageMessage.caption`, `videoMessage.caption`, `documentMessage.caption` |
+| 12  | `import makeWASocket` (value import) used only as a type — breaks under `verbatimModuleSyntax`                                                                 | P1       | Changed to `import type makeWASocket` in `Context.ts`                                               |
+
+**Peer dependencies (optional):** `node-webpmux`, `fluent-ffmpeg`, `ffmpeg-static`, `better-sqlite3`.
+
+---
+
+### 23. WAProto Schema Extensions
 
 74 extra message types beyond real WhiskeySockets/Baileys (61 from
 itsliaaa, 13 from innovatorssoft) — bots, polls-add-option, split-payments,

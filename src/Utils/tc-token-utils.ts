@@ -10,6 +10,13 @@ import {
 	isPnUser,
 	jidNormalizedUser
 } from '../WABinary'
+import type { ILogger } from './logger'
+import { makeKeyedMutex } from './make-mutex'
+
+// Serializes read-compare-write per storageJid so concurrent incoming messages
+// from the same contact can't race and let an older token clobber a newer one.
+// Fixes PR #2752 reviewer P2: "read-compare-write sequence isn't serialized".
+const tcTokenWriteMutex = makeKeyedMutex()
 
 // Same phone-number pattern as WABinary's isJidBot, applied against the user
 // part so the check is invariant to @c.us ↔ @s.whatsapp.net normalization.
@@ -215,4 +222,91 @@ export async function storeTcTokensFromIqResult({
 		})
 		onNewJidStored?.(storageJid)
 	}
+}
+
+export type StoreTcTokenFromMessageParams = {
+	/** The raw incoming <message> stanza (not yet decrypted) */
+	node: BinaryNode
+	keys: SignalKeyStoreWithTransaction
+	getLIDForPN: (pn: string) => Promise<string | null>
+	onNewJidStored?: (jid: string) => void
+	/** Required for any code path crossing an async boundary (key-store + LID resolution) */
+	logger: ILogger
+}
+
+/**
+ * Opportunistically captures a <tctoken> child WhatsApp attaches directly to
+ * incoming <message> stanzas — mirrors WA Web's WAWebSetTcTokenChatAction.
+ * handleIncomingTcToken, which keeps a token on hand for warm contacts
+ * proactively, before a reply is ever attempted (avoiding a later 463).
+ *
+ * Call this fire-and-forget from handleMessage, right after the stanza is
+ * parsed and before requiring successful decryption — capture must not
+ * depend on the message body being decryptable.
+ *
+ * Source: WhiskeySockets/Baileys PR #2752 (sahilashraff)
+ * Fixes applied vs the PR (reviewer-flagged):
+ *  - P2: read-compare-write serialized per storageJid via makeKeyedMutex
+ *    (prevents a race where an older token clobbers a newer one)
+ *  - P2: dedup uses `>` (overwrite on equal timestamp) to match
+ *    storeTcTokensFromIqResult's semantics — was `>=` (skip on equal)
+ *  - nit: accepts logger: ILogger and passes it through
+ */
+export async function storeTcTokenFromMessageNode({
+	node,
+	keys,
+	getLIDForPN,
+	onNewJidStored,
+	logger
+}: StoreTcTokenFromMessageParams): Promise<string | undefined> {
+	const tcTokenNode = getBinaryNodeChild(node, 'tctoken')
+	if (!tcTokenNode || !(tcTokenNode.content instanceof Uint8Array)) {
+		return undefined
+	}
+
+	const rawJidAttr = node.attrs.from
+	if (!rawJidAttr) return undefined
+
+	const rawJid = jidNormalizedUser(rawJidAttr)
+	if (!isRegularUser(rawJid)) return undefined
+
+	// Prefer sender_lid when present (group/broadcast context) — same
+	// resolution preference as the rest of the tc-token subsystem.
+	const senderLid = node.attrs.sender_lid ? jidNormalizedUser(node.attrs.sender_lid) : undefined
+	const storageJid = senderLid ?? (await resolveTcTokenJid(rawJid, getLIDForPN))
+
+	const incomingTs = tcTokenNode.attrs.t ? Number(tcTokenNode.attrs.t) : 0
+	// timestamp-less tokens would be immediately expired
+	if (!incomingTs) return undefined
+
+	// P2 FIX: serialize get → compare → set per storageJid so two incoming
+	// messages from the same contact in quick succession can't interleave
+	// and let an older token overwrite a newer one.
+	return tcTokenWriteMutex.mutex(storageJid, async () => {
+		try {
+			const existingTcData = await keys.get('tctoken', [storageJid])
+			const existingEntry = existingTcData[storageJid]
+			const existingTs = existingEntry?.timestamp ? Number(existingEntry.timestamp) : 0
+
+			// P2 FIX: `>` not `>=` — matches storeTcTokensFromIqResult so a
+			// re-issued token with an equal timestamp (but possibly updated
+			// bytes) is still accepted, consistent across both capture paths.
+			if (existingTs > 0 && existingTs > incomingTs) return undefined
+
+			await keys.set({
+				tctoken: {
+					[storageJid]: {
+						...existingEntry,
+						token: Buffer.from(tcTokenNode.content as Uint8Array),
+						timestamp: tcTokenNode.attrs.t
+					}
+				}
+			})
+			onNewJidStored?.(storageJid)
+			return storageJid
+		} catch (err) {
+			logger.debug({ err }, 'failed to store tctoken from incoming message')
+			return undefined
+		}
+	})
 }

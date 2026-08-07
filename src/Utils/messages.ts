@@ -1577,14 +1577,14 @@ export function getAggregateVotesInPollMessage(
 	{ message, pollUpdates }: Pick<WAMessage, 'pollUpdates' | 'message'>,
 	meId?: string
 ) {
-	const opts =
+	const opts: { optionName?: string | null }[] =
 		message?.pollCreationMessage?.options ||
 		message?.pollCreationMessageV2?.options ||
 		message?.pollCreationMessageV3?.options ||
 		message?.pollCreationMessageV6?.options ||
 		[]
 	const voteHashMap = opts.reduce(
-		(acc: { [_: string]: VoteAggregation }, opt: proto.Message.PollCreationMessage.IOption) => {
+		(acc: { [_: string]: VoteAggregation }, opt: { optionName?: string | null }) => {
 			const hash = sha256(Buffer.from(opt.optionName || '')).toString()
 			acc[hash] = {
 				name: opt.optionName || '',
