@@ -3,7 +3,7 @@ name: Publish Release PNPM
 on:
   push:
     tags:
-      - 'av*'
+      - 'v*'
 
 permissions: write-all
 
@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -21,7 +21,7 @@ jobs:
         run: git fetch --tags -f || true
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: latest
 
@@ -55,9 +55,9 @@ jobs:
           echo "Is beta version: ${{ steps.get_previous_version.outputs.is_beta }}"
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20.x
+          node-version: lts/*
           registry-url: 'https://registry.npmjs.org'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -127,17 +127,14 @@ jobs:
         run: mv *.tgz baileys.tgz
 
       - name: Create Release
-        uses: meeDamian/github-release@2.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          commitish: ${{ github.sha }}
+          tag_name: ${{ github.ref_name }}
+          target_commitish: ${{ github.sha }}
           name: ${{ github.ref_name }}
           body: ${{ steps.generate_changelog.outputs.changelog }}
           draft: false
           prerelease: false
-          files: baileys.tgz
-          gzip: folders
-          allow_override: true
+          files: |
+            baileys.tgz
