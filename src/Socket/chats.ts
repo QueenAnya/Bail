@@ -424,24 +424,17 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	}
 
 	/**
-	 * Update the profile status ("About") for yourself.
-	 *
-	 * Source: WhiskeySockets/Baileys PR #2755 (ayusc) — WA Web moved the About
-	 * update to a w:mex GraphQL query supporting an emoji and an optional
-	 * auto-expiry duration (in seconds).
-	 *
-	 * Fixes applied vs the PR (reviewer-flagged):
-	 *  - emoji/duration made optional so existing `updateProfileStatus(status)`
-	 *    callers keep compiling (PR made them required — a breaking API change)
-	 *  - status truncated by Unicode code points, not UTF-16 code units, so a
-	 *    50th-unit high surrogate can't split a supplementary-plane character
-	 *    (emoji, etc.) into an invalid half-surrogate
-	 *  - the 50-char limit is WA Web's current About-text limit for this
-	 *    specific w:mex query — documented here since it isn't obvious from
-	 *    the opaque query_id
+	 * update the profile status for yourself
+	 * PR #2755: WhatsApp Web migrated the status-update endpoint from the legacy
+	 * `xmlns: 'status'` IQ to a `w:mex` GraphQL-style query. `emoji` and `duration`
+	 * (in seconds) are optional to keep this backward compatible with existing
+	 * callers that only pass a status string.
 	 */
 	const updateProfileStatus = async (status: string, emoji = '', duration?: number) => {
-		// Truncate by Unicode code points (handles surrogate pairs/emoji correctly)
+		// P2 review fix: WA Web's about-me limit is 139 chars; this w:mex mutation
+		// caps at 50. Truncate by Unicode code points (not UTF-16 code units) so a
+		// surrogate pair (e.g. an emoji) at the boundary isn't split into an
+		// unpaired/invalid half-character.
 		const truncatedStatus = Array.from(status).slice(0, 50).join('')
 
 		await query({
@@ -454,8 +447,9 @@ export const makeChatsSocket = (config: SocketConfig) => {
 			content: [
 				{
 					tag: 'query',
-					// WA Web's current About-update query_id — verify against a fresh
-					// WA Web session if status updates start failing after a WA update.
+					// query_id: opaque, server-assigned identifier for the "update
+					// about/status text" w:mex mutation — must stay in sync with
+					// WhatsApp Web's current protocol definition.
 					attrs: { query_id: '9152604461510864' },
 					content: Buffer.from(
 						JSON.stringify({
@@ -463,6 +457,10 @@ export const makeChatsSocket = (config: SocketConfig) => {
 								input: {
 									text: truncatedStatus,
 									emoji: { content: emoji },
+									// P2 review fix: omit the field entirely rather than sending an
+									// explicit 0 — an explicit 0 could mean "expire immediately" to
+									// the server, whereas omission means "no auto-expiry", which is
+									// what callers who don't pass `duration` actually want.
 									...(duration !== undefined ? { ephemeral_duration_sec: duration } : {})
 								}
 							}

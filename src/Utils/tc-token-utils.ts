@@ -232,6 +232,13 @@ export type StoreTcTokenFromMessageParams = {
 	onNewJidStored?: (jid: string) => void
 	/** Required for any code path crossing an async boundary (key-store + LID resolution) */
 	logger: ILogger
+	/**
+	 * Preferred sender JID, e.g. `msg.key.participant || node.attrs.from` from
+	 * the already-decrypted message envelope. In a group context, `node.attrs.from`
+	 * alone is the GROUP jid, not the actual sender — pass this to resolve the
+	 * individual participant correctly. Falls back to `node.attrs.from` if omitted.
+	 */
+	fallbackJid?: string
 }
 
 /**
@@ -240,31 +247,41 @@ export type StoreTcTokenFromMessageParams = {
  * handleIncomingTcToken, which keeps a token on hand for warm contacts
  * proactively, before a reply is ever attempted (avoiding a later 463).
  *
- * Call this fire-and-forget from handleMessage, right after the stanza is
- * parsed and before requiring successful decryption — capture must not
- * depend on the message body being decryptable.
+ * Call this fire-and-forget right after `decryptMessageNode` returns (so
+ * `msg.key.participant` is available for correct group-sender resolution via
+ * `fallbackJid`), but before requiring successful decryption — capture must
+ * not depend on the message body actually decrypting.
  *
  * Source: WhiskeySockets/Baileys PR #2752 (sahilashraff)
  * Fixes applied vs the PR (reviewer-flagged):
  *  - P2: read-compare-write serialized per storageJid via makeKeyedMutex
  *    (prevents a race where an older token clobbers a newer one)
  *  - P2: dedup uses `>` (overwrite on equal timestamp) to match
- *    storeTcTokensFromIqResult's semantics — was `>=` (skip on equal)
+ *    storeTcTokensFromIqResult's semantics
  *  - nit: accepts logger: ILogger and passes it through
+ *  - group-context fix: accepts `fallbackJid` (caller-supplied
+ *    `msg.key.participant || node.attrs.from`) instead of only trusting
+ *    `node.attrs.from`, which is the GROUP jid — not the sender — on
+ *    group message stanzas
+ *
+ * NOTE: the exact wire shape here is reverse-engineered from the upstream
+ * PR and not independently traffic-verified in this fork — confirm against a
+ * live capture before relying on it if tokens aren't refreshing as expected.
  */
 export async function storeTcTokenFromMessageNode({
 	node,
 	keys,
 	getLIDForPN,
 	onNewJidStored,
-	logger
+	logger,
+	fallbackJid
 }: StoreTcTokenFromMessageParams): Promise<string | undefined> {
 	const tcTokenNode = getBinaryNodeChild(node, 'tctoken')
 	if (!tcTokenNode || !(tcTokenNode.content instanceof Uint8Array)) {
 		return undefined
 	}
 
-	const rawJidAttr = node.attrs.from
+	const rawJidAttr = fallbackJid || node.attrs.from
 	if (!rawJidAttr) return undefined
 
 	const rawJid = jidNormalizedUser(rawJidAttr)

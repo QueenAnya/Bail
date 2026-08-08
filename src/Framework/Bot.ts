@@ -15,14 +15,14 @@
  */
 
 import { Boom } from '@hapi/boom'
-import { DisconnectReason } from '../Types'
-import type { AnyMessageContent, MiscMessageGenerationOptions, SocketConfig, WAMessage } from '../Types'
-import type { ILogger } from '../Utils/logger'
 import makeWASocket from '../Socket'
+import type { AnyMessageContent, MiscMessageGenerationOptions, SocketConfig, WAMessage } from '../Types'
+import { DisconnectReason } from '../Types'
+import type { ILogger } from '../Utils/logger'
 import { isJidGroup } from '../WABinary'
+import { SQLiteStore } from './Store/SQLiteStore'
 import { Context } from './Context'
 import { SessionManager } from './SessionManager'
-import { SQLiteStore } from './Store/SQLiteStore'
 import { StatsManager } from './StatsManager'
 
 export type MiddlewareFn = (ctx: Context, next: () => Promise<void>) => Promise<void> | void
@@ -106,6 +106,7 @@ export class Bot {
 			if (text === cmd || text?.startsWith(cmd + ' ')) {
 				await handler(ctx)
 			}
+
 			await next()
 		})
 		return this
@@ -117,6 +118,7 @@ export class Bot {
 			if (ctx.text) {
 				await handler(ctx)
 			}
+
 			await next()
 		})
 		return this
@@ -162,6 +164,7 @@ export class Bot {
 		for (const msg of queue) {
 			msg.reject(new Boom(reason, { statusCode: 401 }))
 		}
+
 		if (queue.length > 0) {
 			this.logger.warn({ rejected: queue.length }, 'message queue rejected — session terminated')
 		}
@@ -258,6 +261,7 @@ export class Bot {
 				await middleware(ctx, () => dispatch(i + 1))
 			}
 		}
+
 		await dispatch(0)
 	}
 
@@ -267,6 +271,7 @@ export class Bot {
 			clearTimeout(this.reconnectTimer)
 			this.reconnectTimer = null
 		}
+
 		this.rejectQueue('bot stopped')
 		this.store.close()
 		this.stats?.close()

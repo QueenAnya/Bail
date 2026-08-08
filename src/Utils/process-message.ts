@@ -459,8 +459,9 @@ const processMessage = async (
 					const peerDataOperationResult = response.peerDataOperationResult || []
 					for (const result of peerDataOperationResult) {
 						const retryResponse = result?.placeholderMessageResendResponse
+						// eslint-disable-next-line max-depth
 						if (retryResponse?.webMessageInfoBytes) {
-							//eslint-disable-next-line max-depth
+							// eslint-disable-next-line max-depth
 							try {
 								const webMessageInfo = proto.WebMessageInfo.decode(retryResponse.webMessageInfoBytes)
 								const msgId = webMessageInfo.key?.id
@@ -503,9 +504,11 @@ const processMessage = async (
 
 						// PR #2701 — phone-generated link preview response
 						const linkPreviewResponse = result?.linkPreviewResponse
+						// eslint-disable-next-line max-depth
 						if (linkPreviewResponse?.url) {
 							const { linkPreviewResponseToUrlInfo } = await import('./link-preview')
 							const urlInfo = linkPreviewResponseToUrlInfo(result)
+							// eslint-disable-next-line max-depth
 							if (urlInfo) {
 								logger?.debug(
 									{ url: linkPreviewResponse.url, requestId: response.stanzaId },

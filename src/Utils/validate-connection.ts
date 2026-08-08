@@ -24,10 +24,12 @@ const getUserAgentPlatform = (config: SocketConfig): proto.ClientPayload.UserAge
 	if (config.browser[1].toLocaleLowerCase().includes('android')) {
 		return proto.ClientPayload.UserAgent.Platform.ANDROID
 	}
+
 	// macOS Desktop + full-history requires MACOS platform (not WEB)
 	if (config.syncFullHistory && config.browser[0] === 'Mac OS' && config.browser[1] === 'Desktop') {
 		return proto.ClientPayload.UserAgent.Platform.MACOS
 	}
+
 	return proto.ClientPayload.UserAgent.Platform.WEB
 }
 

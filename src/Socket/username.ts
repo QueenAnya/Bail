@@ -9,8 +9,8 @@
 
 import type { SocketConfig } from '../Types'
 import { USyncQuery, USyncUser } from '../WAUSync'
-import { executeWMexQuery } from './mex'
 import { makeCommunitiesSocket } from './communities'
+import { executeWMexQuery } from './mex'
 
 // ── Query IDs (captured from live WA Web session) ─────────────────────────────
 export const USERNAME_QUERY_IDS = {
@@ -69,6 +69,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (!USERNAME_QUERY_IDS.CHECK) {
 			throw new Error('Username CHECK query_id not configured — capture a live WA session to obtain it')
 		}
+
 		const data = await mexQuery<any>(
 			{ username, include_suggestions: includeSuggestions },
 			USERNAME_QUERY_IDS.CHECK,
@@ -77,6 +78,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (data?.result === USERNAME_CHECK_RESULT.SUCCESS) {
 			return { available: true, username }
 		}
+
 		return {
 			available: false,
 			username,
@@ -91,6 +93,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (!USERNAME_QUERY_IDS.CHECK_MULTI) {
 			throw new Error('Username CHECK_MULTI query_id not configured')
 		}
+
 		return mexQuery<any>({ usernames }, USERNAME_QUERY_IDS.CHECK_MULTI, 'xwa2_username_check_multi')
 	}
 
@@ -99,6 +102,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (!USERNAME_QUERY_IDS.SET) {
 			throw new Error('Username SET query_id not configured — capture a live WA session to obtain it')
 		}
+
 		const { source = USERNAME_SOURCE.USER_INPUT, sessionId, pin } = options
 		const variables: Record<string, unknown> = {
 			username,
@@ -115,6 +119,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (!USERNAME_QUERY_IDS.SET) {
 			throw new Error('Username SET query_id not configured — capture a live WA session to obtain it')
 		}
+
 		return mexQuery<any>({ username: null }, USERNAME_QUERY_IDS.SET, 'xwa2_username_delete')
 	}
 
@@ -123,6 +128,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (!USERNAME_QUERY_IDS.GET) {
 			throw new Error('Username GET query_id not configured — capture a live WA session to obtain it')
 		}
+
 		const data = await mexQuery<any>({}, USERNAME_QUERY_IDS.GET, 'xwa2_username_get')
 		return data?.username ?? null
 	}
@@ -132,6 +138,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (!USERNAME_QUERY_IDS.PIN_SET) {
 			throw new Error('Username PIN_SET query_id not configured — capture a live WA session to obtain it')
 		}
+
 		return mexQuery<any>({ pin }, USERNAME_QUERY_IDS.PIN_SET, 'xwa2_username_pin_set')
 	}
 
@@ -149,7 +156,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		if (!entry) return null
 
 		return {
-			jid: entry.id as string,
+			jid: entry.id,
 			contact: Boolean(entry.contact)
 		}
 	}
@@ -160,6 +167,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		for (const jid of jids) {
 			usyncQuery.withUser(new USyncUser().withId(jid))
 		}
+
 		const result = await executeUSyncQuery(usyncQuery)
 		return result?.list ?? []
 	}

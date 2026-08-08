@@ -52,7 +52,6 @@ import {
 	getUrlFromDirectPath,
 	getWAUploadToServer,
 	hasValidAlbumMedia,
-	hasValidInteractiveHeader,
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
@@ -173,6 +172,29 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		groupToggleEphemeral,
 		registerSocketEndHandler
 	} = sock
+
+	// PR #2748: when a contact's identity key changes mid-session, the
+	// per-device sender-key cache (`senderKeyMap` below) can go stale — the
+	// recipient's re-established session no longer has our sender key, but we
+	// still think we've already distributed it. `markIdentityChanged` records
+	// a short grace window during which the sender-key cache is bypassed and
+	// the key is redistributed. A Map (not a Set) is used so a second change
+	// for the same JID resets the timer instead of the earlier timeout wiping
+	// out a later one.
+	const recentlyChangedIdentities = new Map<string, ReturnType<typeof setTimeout>>()
+	const IDENTITY_CHANGE_GRACE_MS = 60_000
+
+	const markIdentityChanged = (jid: string) => {
+		const existing = recentlyChangedIdentities.get(jid)
+		if (existing) clearTimeout(existing)
+
+		const timer = setTimeout(() => {
+			recentlyChangedIdentities.delete(jid)
+		}, IDENTITY_CHANGE_GRACE_MS)
+		// don't keep the process alive just for this cleanup timer
+		timer.unref?.()
+		recentlyChangedIdentities.set(jid, timer)
+	}
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
 	// Local-only lookup — used in send path to avoid implicit USync. PR #2692
@@ -874,7 +896,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const senderKeyRecipients: string[] = []
 				for (const device of devices) {
 					const deviceJid = device.jid
-					const hasKey = !!senderKeyMap[deviceJid]
+					// PR #2748: a stale `true` in senderKeyMap survives an identity
+					// change even though the recipient's re-established session no
+					// longer holds our sender key — force redistribution during the
+					// grace window instead of trusting the cache.
+					const identityRecentlyChanged = recentlyChangedIdentities.has(jidNormalizedUser(deviceJid))
+					const hasKey = !identityRecentlyChanged && !!senderKeyMap[deviceJid]
 					if (
 						(!hasKey || !!participant) &&
 						!isHostedLidUser(deviceJid) &&
@@ -1447,6 +1474,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		if (messageRetryManager) {
 			messageRetryManager.clear()
 		}
+
+		for (const timer of recentlyChangedIdentities.values()) {
+			clearTimeout(timer)
+		}
+
+		recentlyChangedIdentities.clear()
 	})
 
 	return {
@@ -1459,6 +1492,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		sendReceipt,
 		sendReceipts,
 		readMessages,
+		markIdentityChanged,
+		recentlyChangedIdentities,
 		refreshMediaConn,
 		// Function (not getter) so the spread in chats.ts preserves the live closure binding.
 		getMediaHost: () => mediaHost,

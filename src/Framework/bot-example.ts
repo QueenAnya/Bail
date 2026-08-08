@@ -15,9 +15,9 @@
  * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — fixed for @queenanya/baileys
  */
 
+import pino from 'pino'
 import { useMultiFileAuthState } from '../Utils/use-multi-file-auth-state'
 import { Bot } from './Bot'
-import pino from 'pino'
 
 async function main() {
 	const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
@@ -48,6 +48,7 @@ async function main() {
 			await ctx.reply({ text: 'Reply to or send an image with !sticker' })
 			return
 		}
+
 		// download logic omitted for brevity — see downloadMediaMessage in Utils
 		await ctx.reply({ text: 'Sticker created!' })
 	})

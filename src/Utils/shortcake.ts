@@ -15,12 +15,11 @@
  */
 
 import type { BinaryNode } from '../WABinary'
-import { getBinaryNodeChild, getBinaryNodeChildBuffer } from '../WABinary'
+import { getBinaryNodeChildBuffer } from '../WABinary'
 import {
 	generateShortcakeKeyPair,
-	shortcakeDecrypt,
-	shortcakeEncrypt,
 	shortcakeDH,
+	shortcakeEncrypt,
 	shortcakeHKDF,
 	type ShortcakeKeyPair
 } from './shortcake-crypto'

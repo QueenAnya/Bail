@@ -96,7 +96,7 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 		db = opts.database
 	} else {
 		const Database = await loadBetterSqlite3()
-		db = new Database(opts.dbPath!)
+		db = new Database(opts.dbPath)
 	}
 
 	// WAL mode — concurrent reads with sporadic writes (recommended by SQLite docs)

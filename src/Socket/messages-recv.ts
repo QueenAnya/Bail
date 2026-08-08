@@ -57,9 +57,9 @@ import {
 } from '../Utils'
 import { makeMutex } from '../Utils/make-mutex'
 import { makeOfflineNodeProcessor, type OfflineNodeType } from '../Utils/offline-node-processor'
-import { buildAckStanza } from '../Utils/stanza-ack'
 import { getPasskeyRequestState } from '../Utils/passkey'
 import { abortShortcakeHandshake, beginShortcakeHandshake, completeShortcakeHandshake } from '../Utils/shortcake'
+import { buildAckStanza } from '../Utils/stanza-ack'
 import {
 	buildMergedTcTokenIndexWrite,
 	isTcTokenExpired,
@@ -1110,6 +1110,13 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 			if (result.action === 'no_identity_node') {
 				logger.info({ node }, 'unknown encrypt notification')
+			} else if (result.action === 'session_refreshed' && node.attrs.from) {
+				// PR #2748: 'me' is always false here — self identity changes on
+				// the primary device return 'skipped_self_primary' above and never
+				// reach this branch.
+				const changedJid = jidNormalizedUser(node.attrs.from)
+				sock.markIdentityChanged(changedJid)
+				ev.emit('identity-change', { jid: changedJid, me: false })
 			}
 		}
 	}
@@ -1587,6 +1594,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						}
 					}
 				}
+
 				break
 			}
 		}
@@ -1975,18 +1983,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const handleMessage = async (node: BinaryNode) => {
 		const encNode = getBinaryNodeChild(node, 'enc')
 
-		// PR #2752 — proactively capture <tctoken> from incoming message stanzas,
-		// mirroring WA Web's opportunistic warm-contact token caching. Fire-and-forget
-		// and placed before the msmsg early-return so capture doesn't depend on the
-		// message body being decryptable.
-		storeTcTokenFromMessageNode({
-			node,
-			keys: authState.keys,
-			getLIDForPN,
-			onNewJidStored: jid => trackTcTokenJid(jid),
-			logger
-		}).catch(err => logger.debug({ err }, 'failed to store tctoken from incoming message'))
-
 		// TODO: temporary fix for crashes and issues resulting of failed msmsg decryption
 		if (encNode?.attrs.type === 'msmsg') {
 			logger.debug({ key: node.attrs.key }, 'ignored msmsg')
@@ -2004,6 +2000,20 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				decrypt
 			} = decryptMessageNode(node, authState.creds.me!.id, authState.creds.me!.lid || '', signalRepository, logger)
 
+			// PR #2748/#2752 — proactively capture <tctoken> from incoming message
+			// stanzas, mirroring WA Web's opportunistic warm-contact token caching.
+			// Placed after decryptMessageNode (so msg.key.participant is available for
+			// correct group-sender resolution) but before decrypt() runs — capture
+			// doesn't depend on the message body actually decrypting successfully.
+			storeTcTokenFromMessageNode({
+				node,
+				fallbackJid: jidNormalizedUser(msg.key.participant || node.attrs.from || ''),
+				keys: authState.keys,
+				getLIDForPN,
+				onNewJidStored: jid => trackTcTokenJid(jid),
+				logger
+			}).catch(err => logger.debug({ err }, 'failed to store tctoken from incoming message'))
+
 			const alt = msg.key.participantAlt || msg.key.remoteJidAlt
 
 			// PR #2744: When server omits *_pn attributes for LID-addressed contacts,
@@ -2017,12 +2027,12 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 						const pn = await signalRepository.lidMapping.getPNForLID(primaryJid)
 						// getPNForLID returns a device-scoped JID — normalize to strip device suffix
 						const pnJid = pn ? jidNormalizedUser(pn) : ''
+						// eslint-disable-next-line max-depth
 						if (pnJid) {
-							if (isJidGroup(msg.key.remoteJid!)) {
-								msg.key.participantAlt = pnJid
-							} else {
-								msg.key.remoteJidAlt = pnJid
-							}
+							const isGroup = isJidGroup(msg.key.remoteJid!)
+							// eslint-disable-next-line max-depth
+							if (isGroup) msg.key.participantAlt = pnJid
+							else msg.key.remoteJidAlt = pnJid
 						}
 					} catch (err) {
 						logger.debug({ err }, 'failed to recover alt JID from LID mapping store')

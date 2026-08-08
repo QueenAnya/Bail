@@ -51,6 +51,7 @@ export class SQLiteStore {
 			this.del(key)
 			return
 		}
+
 		// P2 FIX: always JSON.stringify — raw string storage breaks round-trip for
 		// values that are valid JSON (numbers, booleans, JSON objects serialized as strings)
 		this.setStmt.run(key, JSON.stringify(value))

@@ -7,6 +7,9 @@
  *  - P2: text getter now includes imageMessage.caption and videoMessage.caption
  *        so bot.command('!sticker') fires when user sends image with that caption.
  *  - P2: Session generics default to `unknown` not `any`.
+ *  - P2: reply/react/replySticker/replyVoiceNote throw when remoteJid is
+ *        missing instead of silently no-op'ing, so callers don't assume a
+ *        message went out when it never did.
  *
  * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
  */
@@ -70,13 +73,15 @@ export class Context {
 	}
 
 	async reply(content: AnyMessageContent, options?: MiscMessageGenerationOptions): Promise<void> {
-		if (!this.remoteJid) return
+		// Silently returning here would make a caller believe the reply went
+		// out when it never did — throw instead so the failure is visible.
+		if (!this.remoteJid) throw new Error('Cannot reply: remoteJid is undefined')
 		await this.bot.sendMessage(
 			this.remoteJid,
 			{
 				...content
 				// inject quoted context so WA shows as a reply
-			} as AnyMessageContent,
+			},
 			{
 				quoted: this.message,
 				...options
@@ -85,20 +90,20 @@ export class Context {
 	}
 
 	async react(emoji: string): Promise<void> {
-		if (!this.remoteJid) return
+		if (!this.remoteJid) throw new Error('Cannot react: remoteJid is undefined')
 		await this.bot.sendMessage(this.remoteJid, {
 			react: { text: emoji, key: this.message.key }
 		})
 	}
 
 	async replySticker(inputPathOrBuffer: string | Buffer, metadata?: StickerMetadata): Promise<void> {
-		if (!this.remoteJid) return
+		if (!this.remoteJid) throw new Error('Cannot reply: remoteJid is undefined')
 		const buffer = await MediaManager.convertToSticker(inputPathOrBuffer, metadata)
 		await this.reply({ sticker: buffer })
 	}
 
 	async replyVoiceNote(inputPathOrBuffer: string | Buffer): Promise<void> {
-		if (!this.remoteJid) return
+		if (!this.remoteJid) throw new Error('Cannot reply: remoteJid is undefined')
 		const buffer = await MediaManager.convertToVoiceNote(inputPathOrBuffer)
 		await this.reply({
 			audio: buffer,

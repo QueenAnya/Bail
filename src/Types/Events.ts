@@ -77,6 +77,13 @@ export type BaileysEventMap = {
 	 * if requestId is provided, then the messages was received from the phone due to it being unavailable
 	 *  */
 	'messages.upsert': { messages: WAMessage[]; type: MessageUpsertType; requestId?: string }
+	/**
+	 * PR #2748: a contact's Signal identity key changed (e.g. they reinstalled
+	 * WhatsApp or switched devices) and Baileys refreshed the session for
+	 * future messages. `me` is always `false` here — self identity changes on
+	 * the primary device are filtered out before this event would fire.
+	 */
+	'identity-change': { jid: string; me: boolean }
 	/** message was reacted to. If reaction was removed -- then "reaction.text" will be falsey */
 	'messages.reaction': { key: WAMessageKey; reaction: proto.IReaction }[]
 

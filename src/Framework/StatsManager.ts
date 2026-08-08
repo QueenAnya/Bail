@@ -151,9 +151,11 @@ export class StatsManager {
 				if (!lastActive) {
 					return { jid: normalizedJid, isTotalGhost: true }
 				}
+
 				if (lastActive < cutoff) {
 					return { jid: normalizedJid, isTotalGhost: false, lastActive }
 				}
+
 				return null
 			})
 			.filter((g): g is GhostResult => g !== null)

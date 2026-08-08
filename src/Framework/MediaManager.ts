@@ -14,20 +14,21 @@
  * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
  */
 
-import { createRequire } from 'module'
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
 import { randomBytes } from 'crypto'
 import ffmpegStatic from 'ffmpeg-static'
+import * as fs from 'fs'
+import { createRequire } from 'module'
+import * as os from 'os'
+import * as path from 'path'
 
 // P1 FIX: ESM-safe require for CJS-only package
 const require = createRequire(import.meta.url)
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 const webpmux = require('node-webpmux')
 
 // Configure ffmpeg path from static binary
 import ffmpegLib from 'fluent-ffmpeg'
+
 if (ffmpegStatic) {
 	ffmpegLib.setFfmpegPath(ffmpegStatic)
 }
@@ -62,7 +63,6 @@ export class MediaManager {
 			if (Buffer.isBuffer(inputPathOrBuffer)) {
 				await fs.promises.writeFile(tempInput, inputPathOrBuffer)
 			} else {
-				await fs.promises.copyFile(inputPathOrBuffer, tempOutput.replace('.webp', '.in'))
 				await fs.promises.copyFile(inputPathOrBuffer, tempInput)
 			}
 
@@ -92,7 +92,14 @@ export class MediaManager {
 			// P2 FIX: async read
 			const webpBuffer = await fs.promises.readFile(tempOutput)
 
-			// P2 FIX: EXIF pack metadata — write serialized JSON length into buffer at offset 14
+			// P2 FIX: EXIF pack metadata. The 22-byte header is a fixed TIFF/IFD
+			// preamble (magic + one IFD entry pointing at the WhatsApp tag 0x0741)
+			// followed by a little-endian payload length and a little-endian
+			// offset to where the payload begins (always 22, since the header is
+			// a fixed size). The previous version allocated an all-zero 22-byte
+			// buffer and only wrote the length in big-endian — WhatsApp's parser
+			// expects little-endian and the actual magic bytes, so packname/
+			// author metadata silently failed to attach.
 			if (metadata?.packname || metadata?.author) {
 				const exifJson = JSON.stringify({
 					'sticker-pack-id': `com.queenanya.sticker.${randomBytes(4).toString('hex')}`,
@@ -101,8 +108,31 @@ export class MediaManager {
 					emojis: ['🤖']
 				})
 				const exifBytes = Buffer.from(exifJson, 'utf8')
-				const exifHeader = Buffer.alloc(22)
-				exifHeader.writeUInt32BE(exifBytes.length, 14) // write payload length
+				const exifHeader = Buffer.from([
+					0x49,
+					0x49,
+					0x2a,
+					0x00, // TIFF byte order (little-endian) + magic number
+					0x08,
+					0x00,
+					0x00,
+					0x00, // offset to first IFD
+					0x01,
+					0x00, // number of IFD entries
+					0x41,
+					0x57,
+					0x07,
+					0x00, // tag 0x0741 (WhatsApp), type 0x0007 (undefined)
+					0x00,
+					0x00,
+					0x00,
+					0x00, // payload length placeholder — filled below
+					0x16,
+					0x00,
+					0x00,
+					0x00 // offset to payload data (fixed: 22 = header size)
+				])
+				exifHeader.writeUInt32LE(exifBytes.length, 14)
 				const fullExif = Buffer.concat([exifHeader, exifBytes])
 
 				const img = new webpmux.Image()
