@@ -25,6 +25,11 @@ export type WAMessageKey = proto.IMessageKey & {
 	server_id?: string
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
+	// NOTE: `uuid` is NOT declared here — it's already part of the real WA
+	// protobuf schema (proto.IMessageKey.uuid?: string | null), inherited
+	// automatically via the intersection above. Redeclaring it here as
+	// `string` (without `| null`) breaks assignability from plain
+	// proto.IMessageKey values elsewhere in the codebase.
 }
 export type WATextMessage = proto.Message.IExtendedTextMessage
 export type WAContextInfo = proto.IContextInfo

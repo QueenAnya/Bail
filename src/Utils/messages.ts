@@ -1391,12 +1391,13 @@ export const generateWAMessageFromContent = (
 			remoteJid: jid,
 			fromMe: true,
 			id: options?.messageId || generateMessageIDV2(),
-			// priority: explicit content.uuid -> options.uuid -> generated default
-			uuid: generateKeyUuid(
-				(message as { uuid?: string })?.uuid ??
-					(content as { uuid?: string })?.uuid ??
-					(options as { uuid?: string })?.uuid
-			)
+			// priority: content.uuid -> options.uuid -> generated default.
+			// content.uuid is captured & folded into options.uuid by generateWAMessage()
+			// BEFORE this function is called (generateWAMessageContent builds a fresh
+			// object and would otherwise silently drop it) — the `message` check here
+			// only matters for callers invoking this function directly with a
+			// hand-crafted proto.IMessage that happens to carry a `.uuid` property.
+			uuid: generateKeyUuid((message as { uuid?: string })?.uuid ?? (options as { uuid?: string })?.uuid)
 		},
 		message: message,
 		messageTimestamp: timestamp,
@@ -1410,8 +1411,18 @@ export const generateWAMessageFromContent = (
 export const generateWAMessage = async (jid: string, content: AnyMessageContent, options: MessageGenerationOptions) => {
 	// ensure msg ID is with every log
 	options.logger = options?.logger?.child({ msgId: options.messageId })
+	// Capture content.uuid HERE — generateWAMessageContent() below builds a
+	// brand-new WAMessageContent object field-by-field and does not carry
+	// over unknown top-level properties like `.uuid`, so if we don't grab it
+	// now it's silently lost before generateWAMessageFromContent ever sees it.
+	// content.uuid takes priority over options.uuid per generateKeyUuid's spec.
+	const contentUuid = (content as { uuid?: string })?.uuid
 	// Pass jid in the options to generateWAMessageContent
-	return generateWAMessageFromContent(jid, await generateWAMessageContent(content, { ...options, jid }), options)
+	return generateWAMessageFromContent(
+		jid,
+		await generateWAMessageContent(content, { ...options, jid }),
+		contentUuid !== undefined ? { ...options, uuid: contentUuid } : options
+	)
 }
 
 /** Get the key to access the true type of content */

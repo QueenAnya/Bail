@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -21,9 +21,9 @@ jobs:
         run: git fetch --tags -f || true
 
       - name: Setup Node
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v7
         with:
-          node-version: 20.x
+          node-version: lts/*
 
       - name: Enable Corepack and Set Yarn Version
         run: |
@@ -32,7 +32,7 @@ jobs:
           corepack prepare yarn@4.x --activate
 
       - name: Restore Yarn Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         id: yarn-cache
         with:
           path: .yarn/cache
@@ -63,25 +63,21 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Update Nightly TAG
-        uses: richardsimko/update-tag@v1
+        uses: richardsimko/update-tag@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: nightly
 
       - name: Update Nightly Release
-        uses: meeDamian/github-release@2.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: nightly
-          commitish: ${{ github.sha }}
+          tag_name: nightly
+          target_commitish: ${{ github.sha }}
           name: Nightly Release
           body: ${{ steps.generate_changelog.outputs.changelog }}
           draft: false
           prerelease: true
-          files: >
+          files: |
             baileys-nightly.tgz
-          gzip: folders
-          allow_override: true

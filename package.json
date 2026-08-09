@@ -1,18 +1,18 @@
 {
   "name": "@queenanya/baileys",
   "type": "module",
-  "version": "6.0.0-2",
+  "version": "9.6.0-2",
   "description": "A WebSockets library for interacting with WhatsApp Web",
   "keywords": [
     "whatsapp",
     "automation"
   ],
-  "homepage": "https://github.com/WhiskeySockets/Baileys/",
+  "homepage": "https://github.com/QueenAnya/Bail/",
   "repository": {
-    "url": "git@github.com:WhiskeySockets/Baileys.git"
+    "url": "git@github.com:QueenAnya/Bail.git"
   },
   "license": "MIT",
-  "author": "Rajeh Taher",
+  "author": "OLDUSER 06",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [

@@ -374,6 +374,12 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		}
 
 		const { square, wide } = await generatePanoramaProfilePicture(content, opts)
+
+		// BUG FIX: WhatsApp's `w:profile:picture` IQ handler expects exactly one
+		// <picture> child per `set` IQ (same as the working updateProfilePicture
+		// above). The previous version sent both the square and wide images as
+		// two <picture> children inside a single IQ, which the server does not
+		// support — it silently no-ops. Send them as two sequential IQs instead.
 		await query({
 			tag: 'iq',
 			attrs: {
@@ -387,7 +393,19 @@ export const makeChatsSocket = (config: SocketConfig) => {
 					tag: 'picture',
 					attrs: { type: 'image' },
 					content: square
-				},
+				}
+			]
+		})
+
+		await query({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'w:profile:picture',
+				...(targetJid ? { target: targetJid } : {})
+			},
+			content: [
 				{
 					tag: 'picture',
 					attrs: { type: 'fullsize' },
