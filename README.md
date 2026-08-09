@@ -15,6 +15,21 @@ This is a temporary README.md, the new guide is in development and will this fil
 
 New guide link: https://baileys.wiki
 
+> **Known issue — PN→LID send routing disabled.** The upstream PR #2692
+> (`resolveMessageSendJid`) auto-routed 1:1 sends through a locally-cached
+> LID when one was known, to reduce ERROR 463 on warm contacts. In testing
+> it broke _all_ private-chat message delivery while leaving group and
+> channel sends unaffected (consistent with the fact that its JID guard
+> only matches 1:1 `@s.whatsapp.net` JIDs). It has been disabled — 1:1
+> sends now always use the JID passed to `sendMessage()` unchanged. The
+> function is still defined in `src/Socket/messages-send.ts` for reference
+> but is not called from the default send path. Suspected root cause: LID
+> and PN are separate Signal Protocol sessions in WA's multi-device model,
+> and redirecting the _send_ JID to a LID without confirming a live session
+> exists for that LID can silently encrypt with the wrong/no session. If
+> you want to re-enable this, verify session state before routing to a
+> LID, not just that a PN→LID mapping is cached.
+
 # About This Fork (@queenanya/baileys)
 
 This is an extended fork built on top of `@whiskeysockets/baileys`.
@@ -717,7 +732,11 @@ fixed here before inclusion:
 | 11  | `Context.text` only reads `conversation`/`extendedTextMessage` — a command sent as an image caption never matches                                              | P3       | `text` getter also checks `imageMessage.caption`, `videoMessage.caption`, `documentMessage.caption` |
 | 12  | `import makeWASocket` (value import) used only as a type — breaks under `verbatimModuleSyntax`                                                                 | P1       | Changed to `import type makeWASocket` in `Context.ts`                                               |
 
-**Peer dependencies (optional):** `node-webpmux`, `fluent-ffmpeg`, `ffmpeg-static`, `better-sqlite3`.
+**Dependencies:** `node-webpmux`, `fluent-ffmpeg`, `ffmpeg-static`, `better-sqlite3` are
+regular (hard) dependencies of this package — since `Framework/` is exported
+unconditionally from the package root, they must always be installed rather
+than left as optional peer dependencies (which previously caused `Cannot find
+module` build failures for anyone who hadn't separately installed them).
 
 ---
 

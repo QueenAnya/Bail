@@ -197,8 +197,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	}
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
-	// Local-only lookup — used in send path to avoid implicit USync. PR #2692
-	const getStoredLIDForPN = signalRepository.lidMapping.getStoredLIDForPN.bind(signalRepository.lidMapping)
+	// PR #2692 routing disabled (broke private-chat delivery) — binding kept commented
+	// for whoever re-investigates this, rather than deleted outright.
+	// const getStoredLIDForPN = signalRepository.lidMapping.getStoredLIDForPN.bind(signalRepository.lidMapping)
 
 	/**
 	 * Set of tctoken storage JIDs with a fire-and-forget `issuePrivacyTokens` IQ in flight.
@@ -1651,14 +1652,20 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return mediaMsgs[0]
 			} else {
-				// PR #2692 — Resolve PN → LID before send (local-only, no USync)
-				// Prevents ERROR 463 for warm contacts with existing PN→LID mapping.
-				// Falls back to original jid on lookup failure.
-				const {
-					jid: resolvedJid,
-					remoteJidAlt: lidRemoteJidAlt,
-					additionalAttributes: lidAttrs
-				} = await resolveMessageSendJid(jid, getStoredLIDForPN)
+				// PR #2692 (PN → LID routing) DISABLED — caused private-chat (1:1) messages
+				// to silently fail to deliver while group/channel sends kept working.
+				// Root cause suspected: sending to the resolved LID JID via relayMessage
+				// requires an already-established Signal session for that LID identity;
+				// LID and PN are separate Signal sessions in WA's multi-device model, and
+				// if only the PN session existed, encryption for the LID jid could be
+				// silently wrong (recipient never decrypts) rather than erroring loudly.
+				// Groups/channels are unaffected because resolveMessageSendJid's guard
+				// (`isPnUser(jid) || isHostedPnUser(jid)`) only ever matches 1:1 JIDs.
+				// resolveMessageSendJid() is left defined above for future investigation —
+				// just not called from the default send path until verified safe.
+				const resolvedJid = jid
+				const lidRemoteJidAlt: string | undefined = undefined
+				const lidAttrs: Record<string, string> | undefined = undefined
 
 				const fullMsg = await generateWAMessage(resolvedJid, content, {
 					logger,

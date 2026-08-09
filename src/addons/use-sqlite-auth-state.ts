@@ -5,7 +5,8 @@
  * Rewritten as clean TypeScript with full types and JSDoc.
  *
  * Uses `better-sqlite3` for synchronous, transactional key storage.
- * Requires: `npm install better-sqlite3` (+ `@types/better-sqlite3` for TS)
+ * `better-sqlite3` is a hard dependency of this package (pulled in for the
+ * Framework's SQLiteStore/StatsManager) — no separate install needed.
  *
  * Two tables:
  *   - `creds`        — stores the authentication credentials (single row `__creds__`)
@@ -35,7 +36,9 @@ export type SqliteAuthStateOptions =
 	| {
 			dbPath?: undefined
 			/** Pass an existing better-sqlite3 Database instance. */
-			// @ts-ignore — better-sqlite3 is an optional peer dependency
+			// @ts-ignore — dynamic import() type reference resolves fine at compile
+			// time now that @types/better-sqlite3 is a devDependency; left in place
+			// defensively for module-resolution edge cases (e.g. verbatimModuleSyntax).
 			database: import('better-sqlite3').Database
 	  }
 
