@@ -1392,7 +1392,11 @@ export const generateWAMessageFromContent = (
 			fromMe: true,
 			id: options?.messageId || generateMessageIDV2(),
 			// priority: explicit content.uuid -> options.uuid -> generated default
-			uuid: generateKeyUuid((message as { uuid?: string })?.uuid ?? (options as { uuid?: string })?.uuid)
+			uuid: generateKeyUuid(
+				(message as { uuid?: string })?.uuid ??
+					(content as { uuid?: string })?.uuid ??
+					(options as { uuid?: string })?.uuid
+			)
 		},
 		message: message,
 		messageTimestamp: timestamp,
