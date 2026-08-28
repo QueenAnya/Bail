@@ -24,6 +24,8 @@
  *   Call handler          → makeCallHandlerAddon → initiateCall, acceptCall, muteCall ...
  *   Generics extras       → asciiDecode, getPlatformId, printQRIfNecessaryListener
  *   Rich response (innov.)→ sendTable, sendList, sendCodeBlock, sendLatex ...
+ *   Link preview (innov.) → applyLinkPreviewMetadata, buildFaviconMMSMetadata
+ *   Newsletter roles (innov.) → emitNewsletterRoleUpdate (promote/demote)
  *   Scheduler (innov.)    → schedule, cancelScheduled, listScheduled ...
  *   Auth state            → useSingleFileAuthState, useMongoFileAuthState
  *   In-memory store       → makeInMemoryStore
@@ -61,6 +63,13 @@ export * from './vcard'
 
 // ── Status Posting + Mentions ─────────────────────────────────────────────
 export * from './status-posting'
+// status-helpers.ts is kept in this folder as a pure, unmodified-scope
+// port of innovatorssoft's status-posting.js (no StatusMentions extras) —
+// but its 12 core functions
+// (createTextStatus, createImageStatus, StatusHelper, etc.) are exact
+// duplicates of what status-posting.ts already exports. Per policy: when a
+// cloned file's functions already exist in an exported file, the clone is
+// kept for reference/audit purposes but is NOT itself re-exported here.
 
 // ── Message Templates ─────────────────────────────────────────────────────
 export * from './templates'
@@ -81,7 +90,17 @@ export * from './message-composer'
 export * from './message-search'
 
 // ── Interactive / Button Message Generators ───────────────────────────────
-//export * from './interactive-message'
+export * from './interactive-message'
+// interactive-message-basic.ts is kept in this folder as a pure, unmodified-
+// scope port of innovatorssoft's interactive-message.js — same 8 functions
+// (generateInteractiveButtonMessage, generateInteractiveListMessage,
+// generateTemplateMessage, generateNativeFlowMessage, generateCopyCodeButton,
+// generateUrlButtonMessage, generateQuickReplyButtons,
+// generateCombinedButtons) as interactive-message.ts already exports (which
+// adds full TS param/return types on top but no behavior changes). Per
+// policy: when a cloned file's functions already exist in an exported file,
+// the clone is kept for reference/audit purposes but is NOT itself
+// re-exported here.
 
 // ── Call Handler ──────────────────────────────────────────────────────────
 export * from './call-handler'
@@ -94,7 +113,7 @@ export * from './message-scheduler'
 
 // ── Rich Response (innovatorssoft) ────────────────────────────────────────
 export * from './rich-response'
-export * from './bot-forwarded-message'
+export * from './rich-message-utils'
 
 // ── From src/ (Anya originals) ────────────────────────────────────────────
 export * from './from-chats'
@@ -138,3 +157,16 @@ export * from './chat-history-helpers'
 
 // ── Sticker Pack (WhiskeySockets PR shell + itsliaaa full builder + convertToWebP) ──
 export * from './stickerpack'
+
+// ── Jimp Profile-Picture Generators + Setters (full/panoramic + square) ────
+export * from './media-messages'
+export * from './media-set'
+
+// ── VoIP Calling (wraps third-party baileys-caller SDK, separate WA session) ──
+export * from './voip-calling'
+
+// ── Link Preview Extras (innovatorssoft) — linkPreviewMetadata + favicon ──
+export * from './link-preview-extras'
+
+// ── Newsletter Role Updates (innovatorssoft) — promote/demote event emission ──
+export * from './newsletter-role-updates'

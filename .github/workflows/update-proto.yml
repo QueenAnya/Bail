@@ -56,6 +56,7 @@ jobs:
           echo -e "{\n\t\"version\": [$WA_NUMBERS]\n}" > src/Defaults/baileys-version.json
 
       - name: Create Pull Request
+        id: create_pr
         uses: peter-evans/create-pull-request@v8
         with:
           commit-message: 'chore: updated proto/version to v${{steps.wa_proto_info.outputs.wa_version}}'
@@ -64,6 +65,9 @@ jobs:
           delete-branch: true
           labels: 'update-proto'
           body: "Automated changes\nFound source JS URL: ${{steps.wa_proto_info.outputs.wa_js_url}}\nCurrent version: v${{steps.wa_proto_info.outputs.wa_version}}"
-          add-paths: |
-            WAProto/*
-            src/Defaults/baileys-version.json
+
+      - name: Auto-merge Pull Request
+        if: steps.create_pr.outputs.pull-request-operation == 'created'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ steps.create_pr.outputs.pull-request-number }}" --merge --delete-branch

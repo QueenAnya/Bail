@@ -639,7 +639,8 @@ export const downloadContentFromMessage = async (
 ) => {
 	// Fallback host: explicit opt > host parsed from `url` > DEF_MEDIA_HOST.
 	// Lets us honor a non-default host carried by the proto without forcing callers to thread it through.
-	const fallbackHost = opts.host ?? extractHost(url)
+	const urlHost = extractHost(url)
+	const fallbackHost = opts.host ?? (urlHost !== 'a.whatsapp.net' ? urlHost : DEF_MEDIA_HOST)
 	const downloadUrl = directPath ? getUrlFromDirectPath(directPath, fallbackHost) : url
 	if (!downloadUrl) {
 		throw new Boom('No valid media URL or directPath present in message', { statusCode: 400 })

@@ -12,6 +12,7 @@ export * from './lt-hash'
 export * from './auth-utils'
 export * from './use-multi-file-auth-state'
 export * from './use-single-file-auth-state'
+export * from './use-single-file-auth-state-legacy'
 export * from './use-mongo-file-auth-state'
 export * from './link-preview'
 export * from './event-buffer'
@@ -19,7 +20,40 @@ export * from './process-message'
 export * from './message-retry-manager'
 export * from './browser-utils'
 export * from './identity-change-handler'
-export * from './interactive-message'
+// The full-featured version (icon, offer, bottomSheet, sections, bare
+// native passthrough support) is exported as the canonical/default from
+// addons/interactive-message.ts via addons/index.ts. This file
+// (Utils/interactive-message.ts) is a simpler, plainer version — kept and
+// exported here under a `Basic` suffix (same pattern as
+// status-helpers.ts's `*Basic` exports) since its 24 exported names
+// collide with the addons/ version's (same names, different/narrower
+// signatures).
+export {
+	type CombinedButton as CombinedButtonBasic,
+	type CombinedButtonOptions as CombinedButtonOptionsBasic,
+	type CopyCodeButtonOptions as CopyCodeButtonOptionsBasic,
+	type InteractiveButton as InteractiveButtonBasic,
+	type InteractiveButtonMessageContent as InteractiveButtonMessageContentBasic,
+	type InteractiveListMessageContent as InteractiveListMessageContentBasic,
+	type ListRow as ListRowBasic,
+	type ListSection as ListSectionBasic,
+	type NativeFlowButton as NativeFlowButtonBasic,
+	type NativeFlowOptions as NativeFlowOptionsBasic,
+	type QuickReplyButton as QuickReplyButtonBasic,
+	type QuickReplyOptions as QuickReplyOptionsBasic,
+	type TemplateHydratedButton as TemplateHydratedButtonBasic,
+	type TemplateMessageContent as TemplateMessageContentBasic,
+	type UrlButton as UrlButtonBasic,
+	type UrlButtonOptions as UrlButtonOptionsBasic,
+	generateCombinedButtons as generateCombinedButtonsBasic,
+	generateCopyCodeButton as generateCopyCodeButtonBasic,
+	generateInteractiveButtonMessage as generateInteractiveButtonMessageBasic,
+	generateInteractiveListMessage as generateInteractiveListMessageBasic,
+	generateNativeFlowMessage as generateNativeFlowMessageBasic,
+	generateQuickReplyButtons as generateQuickReplyButtonsBasic,
+	generateTemplateMessage as generateTemplateMessageBasic,
+	generateUrlButtonMessage as generateUrlButtonMessageBasic
+} from './interactive-message'
 export * from './message-composer'
 export * from './stanza-ack'
 export * from './companion-reg-client-utils'

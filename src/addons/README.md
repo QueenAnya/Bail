@@ -370,3 +370,221 @@ item-by-item, checking real code (not just presence) against F_merge:
   `getWAUploadToServer` in `Utils/messages-media.ts`, which is already
   present and — for newsletter media paths + thumbnail direct-paths — is
   ahead of real upstream, not behind it.
+
+## innovatorssoft `Utils/` Full Re-Audit (this session)
+
+Cross-checked every innovatorssoft-attributed file the user flagged from a
+live GitHub file listing (16 files: `anti-delete`, `auto-reply`,
+`baileys-event-stream`, `chat-control`, `identity-change-handler`,
+`interactive-message`, `jid-plotting`, `message-composer`, `message-search`,
+`rich-message-utils`, `scheduling`, `status-posting`, `templates`,
+`use-mongo-file-auth-state`, `use-single-file-auth-state`, `vcard`) against
+this fork's current source, function-by-function.
+
+**15 of 16 confirmed as faithful existing ports** — same exported functions,
+same logic, same edge-case handling as innovatorssoft's `.js`, already
+correctly present (in most cases as a typed superset with extra
+interfaces/options innovatorssoft's plain JS doesn't have). No changes
+needed for: `anti-delete`, `auto-reply`, `baileys-event-stream`,
+`chat-control`, `identity-change-handler`, `interactive-message`,
+`jid-plotting`, `message-composer`, `message-search`, `scheduling`,
+`status-posting`, `templates`, `use-mongo-file-auth-state`, `vcard`, and
+`rich-message-utils` (innovatorssoft's `botMetadataSignature` /
+`botMetadataCertificate` / `wrapToBotForwardedMessage` /
+`prepareRichResponseMessage` are all present, consolidated into
+`addons/bot-forwarded-message.ts` instead of a separate file — logic
+verified identical, only the random-byte source differs cosmetically:
+`crypto.randomFillSync` (Node) vs `getRandomValues` (Web Crypto), both
+cryptographically equivalent).
+
+**1 of 16 was genuinely different — cloned as a separate file:**
+`use-single-file-auth-state.js`. innovatorssoft's version is the **original
+upstream WhiskeySockets/Baileys deprecated example implementation** — marked
+`@deprecated`, explicitly commented "DO NOT USE IN A PROD ENVIRONMENT",
+synchronous, no caching, no debouncing, no atomic writes, no concurrency
+guard (`writeFileSync` on every single `set()` call). This fork's existing
+`use-single-file-auth-state.ts` is a different, production-hardened
+implementation (LRUCache + `async-mutex` + debounced atomic temp-file-swap
+writes, ported from itsliaaa/baileys). Since the two differ fundamentally in
+approach (not just cosmetically), innovatorssoft's version was NOT used to
+overwrite the existing file — it was added as
+**`Utils/use-single-file-auth-state-legacy.ts`**, exporting
+`useSingleFileAuthStateLegacy`, clearly marked deprecated, for anyone who
+specifically needs its exact (KEY_MAP-translated, synchronous) behavior for
+compatibility reasons. The default `use-single-file-auth-state.ts` remains
+the recommended option.
+
+## Category B/C Cleanup — This Session
+
+Following up on the full `addons/` audit above, the user confirmed all
+Category C files (originally-unmatched to either fork) **except
+`button-sender.ts`** were personally hand-ported from innovatorssoft/itsliaaa
+by the user — not misattributed, just not matchable by function-name search
+alone (likely renamed/restructured during porting). No changes made to
+Category C as a result; `button-sender.ts` remains the one file with
+genuinely unconfirmed origin.
+
+### `bot-forwarded-message.ts` → renamed to `rich-message-utils.ts`
+
+Full function-by-function re-check (all 6 exports of innovatorssoft's
+`rich-message-utils.js`, not just the 4 checked earlier) confirmed 100%
+logical parity: `botMetadataSignature`, `botMetadataCertificate`,
+`wrapToBotForwardedMessage`, `toUnified`, `prepareRichResponseMessage` are
+all defined directly and match; `tokenizeCode` is imported from
+`message-composer.ts` rather than redefined — which turns out to mirror
+innovatorssoft's own source exactly (their `message-composer.js` and
+`rich-message-utils.js` duplicate `tokenizeCode` verbatim; this fork just
+de-duplicated it). Since the file is a complete, faithful port, it was
+renamed to match the upstream filename. All import references
+(`Utils/messages.ts`, `addons/index.ts`, `addons/rich-response.ts`) updated
+accordingly.
+
+## Full `addons/` Audit — File Rename, Export Fixes, New Clone (this session)
+
+Cross-checked all 34 files in `src/addons/` against both innovatorssoft's
+and itsliaaa's actual source, function-by-function (not just filename
+matching). Findings and fixes:
+
+1. **`bot-forwarded-message.ts` → renamed to `rich-message-utils.ts`.**
+   Confirmed all 6 of innovatorssoft's `rich-message-utils.js` functions are
+   present and logically identical: `botMetadataSignature`,
+   `botMetadataCertificate`, `wrapToBotForwardedMessage`,
+   `prepareRichResponseMessage`, `toUnified` (all defined directly), and
+   `tokenizeCode` (imported from `message-composer.ts` rather than
+   duplicated — innovatorssoft's own source duplicates this function
+   verbatim across both files; this fork de-duplicated it, which doesn't
+   change behavior). Since scope was 100% complete, renamed to match the
+   upstream filename. All internal/external references
+   (`Utils/messages.ts`, `addons/index.ts`, `addons/rich-response.ts`)
+   updated accordingly.
+
+2. **`interactive-message.ts` export was commented out** in
+   `addons/index.ts` (`//export * from './interactive-message'`) —
+   uncommented. Checked for naming collisions against every other
+   currently-exported addon file first; none found.
+
+3. **`status-helpers.ts` — confirmed already correctly exported** via a
+   pre-existing aliased block in `addons/index.ts` (`*Basic` suffix on all
+   12 overlapping names vs `status-posting.ts`). No action needed beyond
+   expanding its header comment to clarify the relationship between the two
+   files (same core functions; `status-posting.ts` additionally has
+   StatusMentions mention-tagging support).
+
+4. **`status-posting.ts` — real bug found and fixed, then made defensive.**
+   The `groupStatus` field for group status sends was nested inside
+   `contextInfo` under the wrong name (`isGroupStatus`) instead of being a
+   top-level `groupStatus` field, which is what innovatorssoft's source —
+   and, going by the field-naming convention, WhatsApp's actual protocol —
+   expects. `status-helpers.ts` already had this correct, which is how the
+   discrepancy was caught. Final fix ships **both** placements defensively:
+   `groupStatus: true` (top-level, confirmed-correct) AND
+   `isGroupStatus: true` (nested in `contextInfo`, the original queenanya
+   placement) side by side, so nothing that may have relied on the old
+   field is silently broken — the extra field is harmless if unused.
+
+5. **`interactive-message-basic.ts` — new file, added, NOT exported.** A
+   pure, faithful TypeScript port of innovatorssoft's `interactive-message.js`
+   (same 8 functions as `interactive-message.ts`, which additionally has
+   full param/return TS types — logic confirmed identical, not a behavior
+   fork). **Export policy:** when a cloned file's functions are already
+   available via another exported file, the clone is kept in the repo for
+   reference/audit purposes but is deliberately **not** re-exported from
+   `addons/index.ts` — avoids alias-naming churn for zero functional
+   benefit. Same policy applied to `status-helpers.ts` (also kept,
+   also unexported, since `status-posting.ts` already exports the same
+   12 functions).
+
+**Category C note (per user instruction):** the ~13 addon files with no
+matching function names in either fork's source (`button-sender.ts`
+excepted — origin still unclear) are confirmed to be code the user added
+personally from innovatorssoft/itsliaaa — not flagged as attribution
+errors, left as-is.
+
+## Jimp Profile-Picture Generators — `media-messages.ts` / `media-set.ts` (new)
+
+User-supplied `media-messages.js` (Jimp 0.22.x) + `media-set.js` ported to
+this fork's `jimp@^1.6.1` (a breaking API change: default export → named
+`{ Jimp, JimpMime }`, `getBufferAsync(mime)` → `await getBuffer(mime)`,
+`Jimp.MIME_JPEG` → `JimpMime.jpeg`). `jimp` moved from an optional peer
+dependency to a hard `dependencies` entry, same reasoning as the Framework
+peer-dep fix — these addon files are unconditionally exported from the
+package root, so `jimp` must always be installed.
+
+**Deduplicated:** the source had two pairs of functions with identical (or
+near-identical, minus a bug) bodies under different names —
+`generatePP`/`generateProfilePictureFP`, and
+`generateProfilePictureFull`/`changeprofileFull` (the latter had a
+`ReferenceError`-causing bug: bare `MIME_JPEG` instead of `Jimp.MIME_JPEG`).
+Each pair is implemented once and exported under **both** original names
+as aliases, so nothing importing either name breaks — no functional
+duplication, no lost compatibility. `generateProfilePicturee` (flexible
+Buffer/url/stream input) stays separate — it's genuinely different logic.
+
+`media-set.ts`'s imports were changed from `@queenanya/baileys` (external
+package import, as the user's original file had it) to relative internal
+paths, since these files now live inside the package itself.
+
+## VoIP Calling — `src/Voip/` (same-session) + `voip-calling.ts` (separate-session)
+
+Ported from [`baileys-caller`](https://github.com/SheIITear/baileys-caller)
+(by SheIITear) — wraps WhatsApp Web's official VoIP WASM stack (worker
+thread pool, RTP/SRTP session management, FFmpeg audio decode/resample).
+**Two integration modes exist, for two different use cases:**
+
+### `src/Voip/voip-engine.ts` — same-session (the primary, requested integration)
+
+Wired directly into the core socket chain (`Socket/socket.ts` →
+`registerSocketEndHandler`, invoked from `Socket/username.ts`'s
+`attachVoipToSocket(sock)`), exposing `sock.initiateCall(jid, opts)` on
+your **existing** bot connection — no separate QR scan, no separate auth
+directory. This is what [§30 in the main README](../../README.md#30-voice-calling-wasm-based-same-session)
+documents. Lazy-initialized (WASM engine only spins up on first
+`initiateCall()` call).
+
+**2 bugs found and fixed during verification:**
+
+1. **Asset path resolution bug** (`wasm-engine.ts`) — the original
+   `baileys-caller` compiles flat into `dist/*.mjs` (one directory level
+   under its package root), so `path.resolve(__dirname, '..')` correctly
+   reached its package root to find `assets/wasm/whatsapp.wasm`. This
+   fork's build (`tsconfig.build.json`: `outDir: "lib"`, no `rootDir`
+   override) mirrors `src/`'s subfolder structure — so this file compiles
+   to `lib/Voip/wasm-engine.js`, **two** levels under the package root, not
+   one. The single-level `path.resolve(__dirname, '..')` would have
+   resolved to `lib/` and never found the WASM binary at runtime. Fixed to
+   `path.resolve(__dirname, '..', '..')`. This fix propagates correctly to
+   every other asset lookup (`loader.js`, `worker-modules.js`) since they
+   all derive from the same corrected `resourcesPath`.
+2. **Implicit `any`** (`audio-feeder.ts`) — the `ffmpeg` child process
+   `'exit'` event handler's `code` parameter was untyped; annotated as
+   `number | null` (matches Node's actual `ChildProcess` `'exit'` event
+   signature).
+
+Everything else in the port (`types.ts`, `audio-feeder.ts`,
+`relay-transport.ts`, `signaling.ts`, `wasm-engine.ts`,
+`worker-bootstrap.ts`) was copied byte-for-byte from the original
+`.mts` source (only `.mjs` → `.js` extension references changed, to match
+this project's compiled-output convention) — no manual retyping, to
+eliminate transcription-error risk in code this complex/security-sensitive.
+
+`@roamhq/wrtc` (native WebRTC bindings) is a **lazy dynamic import**
+(`import('@roamhq/wrtc')`) inside the call-placing method, not a static
+top-level import — so it's correctly left as an _optional_ peer dependency
+(unlike `node-webpmux`/`fluent-ffmpeg`/`jimp`/etc., which needed to move to
+hard `dependencies` earlier in this fork's history because they're
+statically imported at module load time from files that are unconditionally
+exported). Consumers who never call `sock.initiateCall()` never need
+`@roamhq/wrtc` installed at all.
+
+### `addons/voip-calling.ts` — separate-session alternative
+
+A **different, standalone** wrapper — `createVoipClient({ authDir })`
+creates its **own independent** WhatsApp connection (own QR scan, own auth
+directory), for cases where you want calling fully decoupled from your main
+bot's session. Dynamically imports the **external**
+[`baileys-caller`](https://github.com/SheIITear/baileys-caller) npm
+package (not vendored — install separately:
+`npm install github:SheIITear/baileys-caller`) rather than this fork's
+vendored `src/Voip/` port. Use this only if you specifically want calling
+on a second, isolated session — for the common case (calling from your
+existing bot), use `sock.initiateCall()` (§30) instead.

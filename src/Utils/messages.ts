@@ -3,8 +3,6 @@ import { randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
-import type { RichContent } from '../addons/bot-forwarded-message.js'
-import { prepareRichResponseMessage } from '../addons/bot-forwarded-message.js'
 import {
 	buildAdminInviteMessage,
 	buildCallMessage,
@@ -12,6 +10,9 @@ import {
 	buildStickerPackMessage,
 	isWebPBuffer
 } from '../addons/from-messages'
+import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../addons/link-preview-extras'
+import type { RichContent } from '../addons/rich-message-utils.js'
+import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
 import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
@@ -461,7 +462,11 @@ export const generateWAMessageContent = async (
 				extContent.thumbnailSha256 = img.fileSha256
 				extContent.thumbnailEncSha256 = img.fileEncSha256
 			}
+
+			applyLinkPreviewMetadata(extContent, urlInfo)
 		}
+
+		extContent.faviconMMSMetadata = await buildFaviconMMSMetadata(message.favicon, options, prepareWAMessageMedia)
 
 		if (options.backgroundColor) {
 			extContent.backgroundArgb = await assertColor(options.backgroundColor)
@@ -1467,7 +1472,8 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 			message?.editedMessage ||
 			message?.associatedChildMessage ||
 			message?.groupStatusMessage ||
-			message?.groupStatusMessageV2
+			message?.groupStatusMessageV2 ||
+			message?.lottieStickerMessage
 		)
 	}
 }

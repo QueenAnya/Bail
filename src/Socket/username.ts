@@ -8,6 +8,7 @@
  */
 
 import type { SocketConfig } from '../Types'
+import { attachVoipToSocket } from '../Voip/voip-engine'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeCommunitiesSocket } from './communities'
 import { executeWMexQuery } from './mex'
@@ -63,6 +64,12 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 	/** Internal helper — wraps executeWMexQuery with this socket's query/tag */
 	const mexQuery = <T = any>(variables: Record<string, unknown>, queryId: string, dataPath: string): Promise<T> =>
 		executeWMexQuery<T>(variables, queryId, dataPath, query, generateMessageTag)
+
+	// ── VoIP calling (ported from baileys-caller, single-session — see Voip/) ──
+	// Lazily initializes the WASM engine on first `initiateCall()`; bots that
+	// never call it never pay the worker-pool/WASM-compile startup cost.
+	const { initiateCall, disconnectVoip } = attachVoipToSocket(sock)
+	sock.registerSocketEndHandler(() => disconnectVoip())
 
 	// ── 1. Check username availability ────────────────────────────────────────
 	const checkUsername = async (username: string, includeSuggestions = true): Promise<UsernameCheckResult> => {
@@ -194,7 +201,10 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		// Constants (expose for consumers)
 		USERNAME_QUERY_IDS,
 		USERNAME_CHECK_RESULT,
-		USERNAME_SOURCE
+		USERNAME_SOURCE,
+		// VoIP calling
+		initiateCall,
+		disconnectVoip
 	}
 }
 

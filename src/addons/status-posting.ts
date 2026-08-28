@@ -113,7 +113,19 @@ export const StatusHelper = {
 		let lastResult: any
 
 		if (groups.length > 0) {
-			const groupContent = { ...content, contextInfo: { ...content.contextInfo, isGroupStatus: true } }
+			// Ship BOTH field placements defensively:
+			//  - `groupStatus: true` (top-level) — matches innovatorssoft's
+			//    status-posting.js exactly; this is the one WA's server is
+			//    confirmed to expect.
+			//  - `isGroupStatus: true` (nested in contextInfo) — the original
+			//    queenanya field/placement, kept alongside in case any code
+			//    path (older WA client versions, other tooling) reads it from
+			//    there instead. Harmless extra data if unused.
+			const groupContent = {
+				...content,
+				groupStatus: true,
+				contextInfo: { ...content.contextInfo, isGroupStatus: true }
+			}
 			for (const groupJid of groups) {
 				lastResult = await sock.sendMessage(groupJid, groupContent, { messageId: generateStatusMessageId() })
 			}

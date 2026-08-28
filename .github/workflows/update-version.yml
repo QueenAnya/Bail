@@ -53,7 +53,7 @@ jobs:
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Pull Request
+      - name: Create Pull Request and Auto-Merge
         if: steps.check_changes.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,20 +69,24 @@ jobs:
 
           # Create new branch, commit, and push
           git checkout -b "$BRANCH_NAME"
-          git add src/Defaults/baileys-version.json src/Defaults/index.ts src/Utils/generics.ts
+          git add .
           git commit -m "chore: update WhatsApp Web version"
           git push origin "$BRANCH_NAME"
 
-          # Create PR using GitHub CLI
-          gh pr create \
+          # Create PR using GitHub CLI and capture the URL
+          PR_URL=$(gh pr create \
             --title "chore: update WhatsApp Web version" \
             --body "Automated WhatsApp Web version update.
 
-          This PR updates the WhatsApp Web client revision to the latest version fetched from \`web.whatsapp.com\`.
-
-          **Files updated:**
-          - \`src/Defaults/baileys-version.json\`
-          - \`src/Defaults/index.ts\`
-          - \`src/Utils/generics.ts\`" \
+          This PR updates the WhatsApp Web client revision to the latest version fetched from \`web.whatsapp.com\`." \
             --base master \
-            --head "$BRANCH_NAME" || echo "PR already exists or could not be created"
+            --head "$BRANCH_NAME")
+
+          if [ -n "$PR_URL" ]; then
+            echo "PR Created: $PR_URL"
+            # Auto-merge the PR
+            gh pr merge "$PR_URL" --merge --delete-branch
+            echo "PR Merged successfully!"
+          else
+            echo "PR could not be created or already exists"
+          fi

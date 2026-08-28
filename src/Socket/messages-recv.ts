@@ -3,6 +3,7 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import Long from 'long'
 import { proto } from '../../WAProto/index.js'
+import { emitNewsletterRoleUpdate } from '../addons/newsletter-role-updates'
 import {
 	DEFAULT_CACHE_TTLS,
 	KEY_BUNDLE_TYPE,
@@ -417,17 +418,17 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				break
 
 			case 'NotificationNewsletterAdminPromote':
-				for (const update of updates) {
-					if (update.jid && update.user) {
-						ev.emit('newsletter-participants.update', {
-							id: update.jid,
-							author: node.attrs.from!,
-							user: update.user,
-							new_role: 'ADMIN',
-							action: 'promote'
-						})
-					}
-				}
+				emitNewsletterRoleUpdate(ev, updates, node.attrs.from, 'promote')
+
+				break
+
+			// Was previously routed here (see the opName switch above) but had
+			// no case of its own, so every demotion fell through to the
+			// "unhandled mex newsletter notification" default and never
+			// emitted 'newsletter-participants.update'. See
+			// addons/newsletter-role-updates.ts for the source/attribution.
+			case 'NotificationNewsletterAdminDemote':
+				emitNewsletterRoleUpdate(ev, updates, node.attrs.from, 'demote')
 
 				break
 
@@ -629,7 +630,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		return { id: callId, to: toJid }
 	}
 
-	const initiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
+	const WAInitiateCall = async (jid: string, options: WAInitiateCallOptions = {}): Promise<WAInitiateCallResult> => {
 		const meId = authState.creds.me?.id
 		if (!meId) throw new Boom('Not authenticated')
 		const isVideo = !!options.isVideo
@@ -1534,65 +1535,77 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 				// Shortcake headless handshake — only if signPasskeyAssertion is configured.
 				// Source: WhiskeySockets/Baileys PR #2689 (vinikjkkj — WB collaborator)
-				if (config.signPasskeyAssertion) {
-					if (node.attrs.type === 'passkey_prologue_request') {
-						try {
-							const { ephemeralPublicKey } = await beginShortcakeHandshake()
-							// Send prologue response with our ephemeral public key
-							await sendNode({
-								tag: 'iq',
-								attrs: {
-									to: S_WHATSAPP_NET,
-									type: 'set',
-									xmlns: 'passkey',
-									id: generateMessageTag()
-								},
-								content: [
-									{
-										tag: 'prologue_response',
-										attrs: {},
-										content: [
-											{
-												tag: 'client_ephemeral_public',
-												attrs: {},
-												content: Buffer.from(ephemeralPublicKey)
-											}
-										]
-									}
-								]
-							})
-							logger.debug('shortcake: sent prologue response')
-						} catch (err) {
-							abortShortcakeHandshake()
-							logger.warn({ err }, 'shortcake: prologue failed')
-						}
-					} else if (node.attrs.type === 'crsc_continuation') {
-						try {
-							const result = await completeShortcakeHandshake(node, config.signPasskeyAssertion)
-							if (result) {
-								await sendNode({
-									tag: 'iq',
-									attrs: {
-										to: S_WHATSAPP_NET,
-										type: 'set',
-										xmlns: 'passkey',
-										id: result.requestId
-									},
+				// Uses early `break`/`return`-style guard clauses to keep nesting shallow,
+				// intentionally inlined here rather than split into a separate function.
+				if (!config.signPasskeyAssertion) {
+					break
+				}
+
+				if (node.attrs.type === 'passkey_prologue_request') {
+					try {
+						const { ephemeralPublicKey } = await beginShortcakeHandshake()
+						// Send prologue response with our ephemeral public key
+						await sendNode({
+							tag: 'iq',
+							attrs: {
+								to: S_WHATSAPP_NET,
+								type: 'set',
+								xmlns: 'passkey',
+								id: generateMessageTag()
+							},
+							content: [
+								{
+									tag: 'prologue_response',
+									attrs: {},
 									content: [
 										{
-											tag: 'assertion',
+											tag: 'client_ephemeral_public',
 											attrs: {},
-											content: result.assertionPayload
+											content: Buffer.from(ephemeralPublicKey)
 										}
 									]
-								})
-								logger.info('shortcake: passkey linking assertion sent')
-							}
-						} catch (err) {
-							abortShortcakeHandshake()
-							logger.warn({ err }, 'shortcake: continuation failed')
-						}
+								}
+							]
+						})
+						logger.debug('shortcake: sent prologue response')
+					} catch (err) {
+						abortShortcakeHandshake()
+						logger.warn({ err }, 'shortcake: prologue failed')
 					}
+
+					break
+				}
+
+				if (node.attrs.type !== 'crsc_continuation') {
+					break
+				}
+
+				try {
+					const result = await completeShortcakeHandshake(node, config.signPasskeyAssertion)
+					if (!result) {
+						break
+					}
+
+					await sendNode({
+						tag: 'iq',
+						attrs: {
+							to: S_WHATSAPP_NET,
+							type: 'set',
+							xmlns: 'passkey',
+							id: result.requestId
+						},
+						content: [
+							{
+								tag: 'assertion',
+								attrs: {},
+								content: result.assertionPayload
+							}
+						]
+					})
+					logger.info('shortcake: passkey linking assertion sent')
+				} catch (err) {
+					abortShortcakeHandshake()
+					logger.warn({ err }, 'shortcake: continuation failed')
 				}
 
 				break
@@ -2598,7 +2611,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		sendMessageAck,
 		sendRetryRequest,
 		offerCall,
-		initiateCall,
+		WAInitiateCall,
 		cancelCall,
 		rejectCall,
 		acceptCall,

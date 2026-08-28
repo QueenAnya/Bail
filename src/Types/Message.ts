@@ -90,14 +90,7 @@ export type MessageWithContextInfo =
 export type DownloadableMessage = { mediaKey?: Uint8Array | null; directPath?: string | null; url?: string | null }
 
 export type MessageReceiptType =
-	| 'read'
-	| 'read-self'
-	| 'hist_sync'
-	| 'peer_msg'
-	| 'sender'
-	| 'inactive'
-	| 'played'
-	| undefined
+	'read' | 'read-self' | 'hist_sync' | 'peer_msg' | 'sender' | 'inactive' | 'played' | undefined
 
 export type MediaConnInfo = {
 	auth: string
@@ -114,6 +107,7 @@ export interface WAUrlInfo {
 	jpegThumbnail?: Buffer
 	highQualityThumbnail?: proto.Message.IImageMessage
 	originalThumbnailUrl?: string
+	linkPreviewMetadata?: proto.Message.ILinkPreviewMetadata
 }
 
 // types to generate WA messages
@@ -684,6 +678,8 @@ export type AnyRegularMessageContent = (
 	| ({
 			text: string
 			linkPreview?: WAUrlInfo | null
+			/** small icon shown alongside the link preview, e.g. a site favicon */
+			favicon?: WAMediaUpload
 	  } & Mentionable &
 			Contextable &
 			Buttonable &

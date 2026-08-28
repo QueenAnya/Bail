@@ -8,8 +8,14 @@
 import { CodeHighlightType, RichSubMessageType } from '../Types/RichType'
 export { CodeHighlightType, RichSubMessageType }
 
+import { createHash } from 'crypto'
+import { promises as fsp } from 'fs'
+import os from 'os'
+import path from 'path'
 import type { proto } from '../../WAProto/index.js'
+import type { WAMediaUploadFunction } from '../Types/Message'
 import { generateMessageID } from '../Utils/generics'
+import { getUrlFromDirectPath } from '../Utils/messages-media'
 
 // ── Keyword sets ──────────────────────────────────────────────────────────────
 
@@ -1049,6 +1055,49 @@ export const generateRichMessageContent = (
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted), unifiedResponse),
 		messageId: generateMessageID()
+	}
+}
+
+/**
+ * Renders a LaTeX expression to a PNG image via the codecogs.com public rendering API.
+ * Ported from @innovatorssoft/baileys (assets/examples/example.js dependency).
+ */
+export const renderLatexToPng = async (
+	latexExpr: string
+): Promise<{ buffer: Buffer; width: number; height: number }> => {
+	const encoded = encodeURIComponent(latexExpr)
+	const url = `https://latex.codecogs.com/png.image?%5Cdpi%7B1200%7D%5Cbg%7Bwhite%7D${encoded}`
+	const res = await fetch(url)
+	if (!res.ok) throw new Error(`[renderLatexToPng] HTTP ${res.status}`)
+	const buffer = Buffer.from(await res.arrayBuffer())
+	return { buffer, width: 1200, height: 600 }
+}
+
+/**
+ * Uploads a raw (unencrypted-at-rest) buffer — e.g. a rendered LaTeX/table PNG — to WA's media
+ * servers via the socket's `waUploadToServer`. Writes to a temp file, uploads, then cleans up.
+ * Ported from @innovatorssoft/baileys (assets/examples/example.js dependency).
+ */
+export const uploadUnencryptedToWA = async (
+	buffer: Buffer,
+	waUploadToServer: WAMediaUploadFunction
+): Promise<{ url: string; directPath: string }> => {
+	const sha256B64 = createHash('sha256').update(buffer).digest('base64')
+	const tmpPath = path.join(os.tmpdir(), `wa_upload_${Date.now()}.png`)
+	await fsp.writeFile(tmpPath, buffer)
+	try {
+		const result = await waUploadToServer(tmpPath, {
+			mediaType: 'image',
+			fileEncSha256B64: sha256B64
+		})
+		return {
+			url: result.mediaUrl || getUrlFromDirectPath(result.directPath),
+			directPath: result.directPath
+		}
+	} finally {
+		try {
+			await fsp.unlink(tmpPath)
+		} catch {}
 	}
 }
 

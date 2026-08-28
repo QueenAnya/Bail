@@ -1,6 +1,15 @@
 /**
- * Status / Broadcast Helpers
- * Source: @innovatorssoft/baileys status-posting.js
+ * status-helpers.ts
+ * Source: @innovatorssoft/baileys `Utils/status-posting.js`.
+ *
+ * This is a pure, unmodified-scope port — same core functions as
+ * `status-posting.ts` (STATUS_BACKGROUNDS, STATUS_FONTS, createTextStatus,
+ * createImageStatus, createVideoStatus, createAudioStatus, StatusHelper),
+ * without the extra StatusMentions mention-tagging support that
+ * `status-posting.ts` adds on top. Kept as a separate file for
+ * reference/audit purposes (rather than merged/overwritten), but
+ * deliberately NOT re-exported from `addons/index.ts` — its functions are
+ * already available via `status-posting.ts`, which is exported.
  */
 import { randomBytes } from 'crypto'
 import type makeWASocket from '../Socket/index.js'
@@ -47,8 +56,8 @@ export const STATUS_FONTS = {
 } as const
 export type StatusFont = (typeof STATUS_FONTS)[keyof typeof STATUS_FONTS]
 
-/** Generate a status message ID with 3EB0 prefix (matching WA format) */
-export const generateStatusMessageId = () => `3EB0${randomBytes(16).toString('hex').toUpperCase()}`
+/** Generate a status message ID with 4NY4W3B prefix (matching queenanya's branded ID format) */
+export const generateStatusMessageId = () => `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
 
 export type TextStatusOptions = {
 	text: string

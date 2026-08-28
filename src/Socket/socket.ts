@@ -26,6 +26,7 @@ import {
 	addTransactionCapability,
 	aesEncryptCTR,
 	bindWaitForConnectionUpdate,
+	buildCompanionRegNode,
 	buildPairingQRData,
 	bytesToCrockford,
 	configureSuccessfulPairing,
@@ -38,8 +39,10 @@ import {
 	getCompanionPlatformId,
 	getErrorCodeFromStreamError,
 	getNextPreKeysNode,
+	handleCompanionRegRefresh,
 	makeEventBuffer,
 	makeNoiseHandler,
+	makePairingQRRenderer,
 	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
@@ -329,7 +332,14 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
-		let usyncQuery = new USyncQuery()
+		// PR: innovatorssoft/baileys "Persist LID mappings in onWhatsApp
+		// lookup" — onWhatsApp already had to make a USync round-trip per
+		// number; running the same query with LID protocol lets us capture
+		// any PN<->LID mapping WhatsApp returns for free, and persist it into
+		// signalRepository.lidMapping instead of throwing it away. LID-only
+		// jids are still skipped from the query itself (existence checks
+		// don't accept them), matching prior behavior.
+		let usyncQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
 		for (const jid of phoneNumber) {
@@ -354,7 +364,14 @@ export const makeSocket = (config: SocketConfig) => {
 		const results = await executeUSyncQuery(usyncQuery)
 
 		if (results) {
-			return results.list.filter(a => !!a.contact).map(({ contact, id }) => ({ jid: id, exists: contact as boolean }))
+			const withLid = results.list.filter(a => !!a.lid)
+			if (withLid.length > 0) {
+				await signalRepository.lidMapping.storeLIDPNMappings(withLid.map(a => ({ pn: a.id, lid: a.lid as string })))
+			}
+
+			return results.list
+				.filter(a => !!a.contact)
+				.map(({ contact, id, lid }) => ({ jid: id, exists: contact as boolean, lid: lid as string | undefined }))
 		}
 	}
 
@@ -807,8 +824,18 @@ export const makeSocket = (config: SocketConfig) => {
 		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
 		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : browser[1] // 'Firefox'
 		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : browser[0] // 'Windows'
+		// config.companionPlatformDisplay lets integrators override this when
+		// their own browser[0] is a product name rather than a canonical OS
+		// name -- WhatsApp validates companion_platform_display and rejects
+		// unrecognised values with 400.
+		const pairingPlatformDisplay = config.companionPlatformDisplay ?? `${pairingPlatformName} (${pairingPlatformHost})`
 
-		await query({
+		// `query`, not `sendNode`: a rejected registration -- WhatsApp answers
+		// `400 bad-request` when it does not recognise `companion_platform_display`,
+		// or `429 rate-overlimit` when asked too often -- needs to surface as an
+		// error instead of leaving the caller with a pairing code that was never
+		// acknowledged by the server.
+		const registration = await query({
 			tag: 'iq',
 			attrs: {
 				to: S_WHATSAPP_NET,
@@ -817,43 +844,30 @@ export const makeSocket = (config: SocketConfig) => {
 				xmlns: 'md'
 			},
 			content: [
-				{
-					tag: 'link_code_companion_reg',
-					attrs: {
-						jid,
-						stage: 'companion_hello',
-						should_show_push_notification: 'true'
-					},
-					content: [
-						{
-							tag: 'link_code_pairing_wrapped_companion_ephemeral_pub',
-							attrs: {},
-							content: await generatePairingKey()
-						},
-						{
-							tag: 'companion_server_auth_key_pub',
-							attrs: {},
-							content: authState.creds.noiseKey.public
-						},
-						{
-							tag: 'companion_platform_id',
-							attrs: {},
-							content: pairingPlatformId
-						},
-						{
-							tag: 'companion_platform_display',
-							attrs: {},
-							content: `${pairingPlatformName} (${pairingPlatformHost})`
-						},
-						{
-							tag: 'link_code_pairing_nonce',
-							attrs: {},
-							content: '0'
-						}
-					]
-				}
+				buildCompanionRegNode({
+					jid,
+					wrappedEphemeralPub: await generatePairingKey(pairingCode),
+					serverAuthKeyPub: authState.creds.noiseKey.public,
+					browser,
+					platformDisplay: pairingPlatformDisplay,
+					platformId: pairingPlatformId
+				})
 			]
 		})
+
+		// A TIMEOUT LOOKS LIKE A SUCCESS HERE, SO IT HAS TO BE CHECKED.
+		//
+		// `waitForMessage` deliberately swallows its `timedOut` Boom and returns
+		// `undefined`, and `query` arms no outer timer when called without an
+		// explicit `timeoutMs` -- as here. So an unanswered registration IQ makes
+		// `query` resolve with `undefined` rather than throw. Without this check
+		// `creds.me` below would be persisted for a device the server never
+		// acknowledged.
+		if (!registration) {
+			throw new Boom('Companion registration timed out', {
+				statusCode: DisconnectReason.timedOut
+			})
+		}
 
 		authState.creds.me = { id: jid, name: '~' }
 		ev.emit('creds.update', authState.creds)
@@ -896,10 +910,14 @@ export const makeSocket = (config: SocketConfig) => {
 		})
 	}
 
-	async function generatePairingKey() {
+	// Takes the code as an argument rather than reading `authState.creds`: two
+	// overlapping calls would otherwise interleave on that shared field, and
+	// one could derive its payload from the other's code while returning its
+	// own.
+	async function generatePairingKey(pairingCode: string) {
 		const salt = randomBytes(32)
 		const randomIv = randomBytes(16)
-		const key = await derivePairingCodeKey(authState.creds.pairingCode!, salt)
+		const key = await derivePairingCodeKey(pairingCode, salt)
 		const ciphered = aesEncryptCTR(authState.creds.pairingEphemeralKeyPair.public, key, randomIv)
 		return Buffer.concat([salt, randomIv, ciphered])
 	}
@@ -939,6 +957,9 @@ export const makeSocket = (config: SocketConfig) => {
 		'CB:xmlstreamend',
 		() => void end(new Boom('Connection Terminated by Server', { statusCode: DisconnectReason.connectionClosed }))
 	)
+	// Re-render the QR currently on screen. Set while a pairing QR flow is
+	// live on this connection, undefined otherwise.
+	let refreshPairingQR: (() => void) | undefined
 	// QR gen
 	ws.on('CB:iq,type:set,pair-device', async (stanza: BinaryNode) => {
 		const iq: BinaryNode = {
@@ -955,7 +976,17 @@ export const makeSocket = (config: SocketConfig) => {
 		const refNodes = getBinaryNodeChildren(pairDeviceNode, 'ref')
 		const noiseKeyB64 = Buffer.from(creds.noiseKey.public).toString('base64')
 		const identityKeyB64 = Buffer.from(creds.signedIdentityKey.public).toString('base64')
-		const advB64 = creds.advSecretKey
+
+		const renderer = makePairingQRRenderer(
+			refNodes.map(refNode => (refNode.content as Buffer).toString('utf-8')),
+			// creds.advSecretKey is read per render rather than captured once: a
+			// companion_reg_refresh rotates it mid-flow.
+			ref =>
+				ev.emit('connection.update', {
+					qr: buildPairingQRData(ref, noiseKeyB64, identityKeyB64, creds.advSecretKey, browser)
+				})
+		)
+		refreshPairingQR = () => void renderer.refresh()
 
 		let qrMs = qrTimeout || 60_000 // time to let a QR live
 		const genPairQR = () => {
@@ -963,16 +994,10 @@ export const makeSocket = (config: SocketConfig) => {
 				return
 			}
 
-			const refNode = refNodes.shift()
-			if (!refNode) {
+			if (!renderer.next()) {
 				void end(new Boom('QR refs attempts ended', { statusCode: DisconnectReason.timedOut }))
 				return
 			}
-
-			const ref = (refNode.content as Buffer).toString('utf-8')
-			const qr = buildPairingQRData(ref, noiseKeyB64, identityKeyB64, advB64, browser)
-
-			ev.emit('connection.update', { qr })
 
 			qrTimer = setTimeout(genPairQR, qrMs)
 			qrMs = qrTimeout || 20_000 // shorter subsequent qrs
@@ -989,6 +1014,19 @@ export const makeSocket = (config: SocketConfig) => {
 			pendingPairingReject = undefined
 			resolve()
 		}
+	})
+	// the server retiring an unpaired companion's registration material
+	ws.on('CB:notification,type:companion_reg_refresh', (node: BinaryNode) => {
+		handleCompanionRegRefresh(node, {
+			creds,
+			emitCredsUpdate: update => ev.emit('creds.update', update),
+			// Deliberately re-renders the ref already on screen and leaves
+			// qrTimer alone: that ref has not expired, only the secret it
+			// advertises changed. Spending a ref here would drain the pool the
+			// server allotted and end the flow with 'QR refs attempts ended'.
+			refreshQR: () => refreshPairingQR?.(),
+			logger
+		})
 	})
 	// device paired for the first time
 	// if device pairs successfully, the server asks to restart the connection

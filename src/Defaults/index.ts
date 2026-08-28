@@ -2,9 +2,10 @@ import { proto } from '../../WAProto/index.js'
 import { makeLibSignalRepository } from '../Signal/libsignal'
 import type { AuthenticationState, SocketConfig, WAVersion } from '../Types'
 import { Browsers } from '../Utils/browser-utils'
+import { defaultCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1043861459] // anya: kept newer version
+const version = [2, 3000, 1045624538] // client_revision from https://web.whatsapp.com/sw.js
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -60,7 +61,8 @@ export const DEFAULT_CACHE_TTLS = {
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
-	browser: Browsers.iOS('Chrome'),
+	browser: Browsers.ubuntu('Firefox'),
+	companionPlatformDisplay: defaultCompanionPlatformDisplay(Browsers.ubuntu('Firefox')),
 	waWebSocketUrl: 'wss://web.whatsapp.com/ws/chat',
 	connectTimeoutMs: 20_000,
 	keepAliveIntervalMs: 30_000,

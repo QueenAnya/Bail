@@ -6,9 +6,9 @@
 
 import { proto } from '../../WAProto/index.js'
 import type { AnyMessageContent, MiscMessageGenerationOptions, WAMessage } from '../Types'
-import { toUnified, wrapToBotForwardedMessage } from './bot-forwarded-message.js'
 import type { RichSubMessage } from './message-composer.js'
 import { RichSubMessageType, tokenizeCode } from './message-composer.js'
+import { toUnified, wrapToBotForwardedMessage } from './rich-message-utils.js'
 
 type SendFn = (jid: string, content: AnyMessageContent, options?: MiscMessageGenerationOptions) => Promise<any>
 
