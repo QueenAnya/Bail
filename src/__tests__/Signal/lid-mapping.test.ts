@@ -27,8 +27,7 @@ describe('LIDMappingStore', () => {
 			const lidWithHostedDevice = `12345:${HOSTED_DEVICE_ID}@lid`
 			const pnUser = '54321'
 
-			// @ts-ignore
-			mockKeys.get.mockResolvedValue({ [`12345_reverse`]: pnUser } as SignalDataTypeMap['lid-mapping'])
+			mockKeys.get.mockResolvedValue({ [`12345_reverse`]: pnUser } as unknown as SignalDataTypeMap['lid-mapping'])
 
 			const result = await lidMappingStore.getPNForLID(lidWithHostedDevice)
 			expect(result).toBe(`${pnUser}:${HOSTED_DEVICE_ID}@s.whatsapp.net`)
@@ -37,8 +36,7 @@ describe('LIDMappingStore', () => {
 		it('should return null if no reverse mapping is found', async () => {
 			const lid = 'nonexistent@lid'
 
-			// @ts-ignore
-			mockKeys.get.mockResolvedValue({} as SignalDataTypeMap['lid-mapping']) // Simulate not found in DB
+			mockKeys.get.mockResolvedValue({} as unknown as SignalDataTypeMap['lid-mapping']) // Simulate not found in DB
 
 			const result = await lidMappingStore.getPNForLID(lid)
 			expect(result).toBeNull()
