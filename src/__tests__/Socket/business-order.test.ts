@@ -29,8 +29,8 @@ const logger: ILogger = {
 	error: jest.fn()
 }
 
-const query = jest.fn(
-	async (/*_node: BinaryNode*/): Promise<BinaryNode> => ({
+const query = jest.fn<(node: BinaryNode) => Promise<BinaryNode>>(
+	async (): Promise<BinaryNode> => ({
 		tag: 'iq',
 		attrs: {},
 		content: [
