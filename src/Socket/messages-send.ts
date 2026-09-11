@@ -1,0 +1,2053 @@
+import NodeCache from '@cacheable/node-cache'
+import { Boom } from '@hapi/boom'
+import { randomBytes } from 'crypto'
+import { proto } from '../../WAProto/index.js'
+import { execSendStatusMentions } from '../addons/from-messages-send'
+import {
+	type CapturedUnifiedResponse,
+	type ExtractOptions,
+	extractUnifiedResponse,
+	generateCodeBlockContent,
+	generateLatexContent,
+	generateLatexImageContent,
+	generateLatexInlineImageContent,
+	generateListContent,
+	generateMarkdownContent,
+	generateRichHtmlContent,
+	type GenerateRichHtmlOptions,
+	generateRichMessageContent,
+	type GenerateRichMessageOptions,
+	generateTableContent,
+	generateUnifiedResponseContent,
+	type LatexExpression,
+	type RichSubMessage
+} from '../addons/message-composer'
+import { getButtonArgs, getButtonType } from '../addons/message-utils'
+import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../addons/stickerpack.js'
+import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
+import type {
+	AnyMessageContent,
+	MediaConnInfo,
+	MessageReceiptType,
+	MessageRelayOptions,
+	MiscMessageGenerationOptions,
+	SocketConfig,
+	WAMediaUpload,
+	WAMessage,
+	WAMessageKey
+} from '../Types'
+import {
+	aggregateMessageKeysNotFromMe,
+	assertMediaContent,
+	assertMeId,
+	bindWaitForEvent,
+	decryptMediaRetryData,
+	DEF_MEDIA_HOST,
+	delay,
+	encodeNewsletterMessage,
+	encodeSignedDeviceIdentity,
+	encodeWAMessage,
+	encryptMediaRetryRequest,
+	extractDeviceJids,
+	generateMessageIDV2,
+	generateParticipantHashV2,
+	generateWAMessage,
+	generateWAMessageFromContent,
+	getStatusCodeForMediaRetry,
+	getUrlFromDirectPath,
+	getWAUploadToServer,
+	hasValidAlbumMedia,
+	MessageRetryManager,
+	normalizeMessageContent,
+	parseAndInjectE2ESessions,
+	unixTimestampSeconds
+} from '../Utils'
+import { getUrlInfo } from '../Utils/link-preview'
+import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
+import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
+import {
+	buildMergedTcTokenIndexWrite,
+	isTcTokenExpired,
+	resolveIssuanceJid,
+	resolveTcTokenJid,
+	shouldSendNewTcToken,
+	storeTcTokensFromIqResult
+} from '../Utils/tc-token-utils'
+import {
+	areJidsSameUser,
+	type BinaryNode,
+	type BinaryNodeAttributes,
+	type FullJid,
+	getBinaryFilteredBizBot,
+	getBinaryFilteredButtons,
+	getBinaryNodeChild,
+	getBinaryNodeChildren,
+	getBizBinaryNode,
+	isHostedLidUser,
+	isHostedPnUser,
+	isJidBot,
+	isJidGroup,
+	isJidMetaAI,
+	isJidNewsletter,
+	isLidUser,
+	isPnUser,
+	jidDecode,
+	jidEncode,
+	jidNormalizedUser,
+	type JidWithDevice,
+	PSA_WID,
+	S_WHATSAPP_NET,
+	shouldIncludeBizBinaryNode
+} from '../WABinary'
+import { USyncQuery, USyncUser } from '../WAUSync'
+import { makeNewsletterSocket } from './newsletter'
+
+/**
+ * Resolves a PN or hosted-PN JID to its mapped LID for outbound sends.
+ * Uses local-only store lookup — does NOT trigger USync / network.
+ * For cold (unmapped) contacts the original jid is returned unchanged.
+ * Source: PR #2692 (frndchagas)
+ */
+export type MessageSendJid = {
+	/** The JID to actually send to (may be LID if mapped) */
+	jid: string
+	/** Original PN JID preserved as alternate addressing metadata */
+	remoteJidAlt?: string
+	/** 'lid' when routed to a LID, undefined otherwise */
+	addressingMode?: 'lid'
+	/** Additional stanza attributes for LID addressing */
+	additionalAttributes?: Record<string, string>
+}
+
+export const resolveMessageSendJid = async (
+	jid: string,
+	getStoredLIDForPN: (pn: string) => Promise<string | null>
+): Promise<MessageSendJid> => {
+	// Only resolve for PN and hosted-PN JIDs
+	if (!isPnUser(jid) && !isHostedPnUser(jid)) {
+		return { jid }
+	}
+
+	let lid: string | null = null
+	try {
+		lid = await getStoredLIDForPN(jid)
+	} catch {
+		// getStoredLIDForPN can fail on keystore error — fall back to original PN
+		return { jid }
+	}
+
+	if (!lid || (!isLidUser(lid) && !isHostedLidUser(lid))) {
+		return { jid }
+	}
+
+	const remoteJidAlt = jidNormalizedUser(jid)
+	return {
+		jid: lid,
+		remoteJidAlt,
+		addressingMode: 'lid',
+		additionalAttributes: {
+			addressing_mode: 'lid',
+			recipient_pn: remoteJidAlt
+		}
+	}
+}
+
+export const makeMessagesSocket = (config: SocketConfig) => {
+	const {
+		logger,
+		linkPreviewImageThumbnailWidth,
+		generateHighQualityLinkPreview,
+		options: httpRequestOptions,
+		patchMessageBeforeSending,
+		cachedGroupMetadata,
+		enableRecentMessageCache,
+		maxMsgRetryCount
+	} = config
+	const sock = makeNewsletterSocket(config)
+	const {
+		ev,
+		authState,
+		messageMutex,
+		signalRepository,
+		upsertMessage,
+		query,
+		fetchPrivacySettings,
+		sendNode,
+		groupMetadata,
+		groupToggleEphemeral,
+		registerSocketEndHandler
+	} = sock
+
+	// PR #2748: when a contact's identity key changes mid-session, the
+	// per-device sender-key cache (`senderKeyMap` below) can go stale — the
+	// recipient's re-established session no longer has our sender key, but we
+	// still think we've already distributed it. `markIdentityChanged` records
+	// a short grace window during which the sender-key cache is bypassed and
+	// the key is redistributed. A Map (not a Set) is used so a second change
+	// for the same JID resets the timer instead of the earlier timeout wiping
+	// out a later one.
+	const recentlyChangedIdentities = new Map<string, ReturnType<typeof setTimeout>>()
+	const IDENTITY_CHANGE_GRACE_MS = 60_000
+
+	const markIdentityChanged = (jid: string) => {
+		const existing = recentlyChangedIdentities.get(jid)
+		if (existing) clearTimeout(existing)
+
+		const timer = setTimeout(() => {
+			recentlyChangedIdentities.delete(jid)
+		}, IDENTITY_CHANGE_GRACE_MS)
+		// don't keep the process alive just for this cleanup timer
+		timer.unref?.()
+		recentlyChangedIdentities.set(jid, timer)
+	}
+
+	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
+	// PR #2692 routing disabled (broke private-chat delivery) — binding kept commented
+	// for whoever re-investigates this, rather than deleted outright.
+	// const getStoredLIDForPN = signalRepository.lidMapping.getStoredLIDForPN.bind(signalRepository.lidMapping)
+
+	/**
+	 * Set of tctoken storage JIDs with a fire-and-forget `issuePrivacyTokens` IQ in flight.
+	 * Prevents duplicate IQs from rapid back-to-back sends before `senderTimestamp` persists.
+	 * Entries are always removed in `.finally()`, so the set is bounded by concurrency.
+	 */
+	const inFlightTcTokenIssuance = new Set<string>()
+
+	const userDevicesCache =
+		config.userDevicesCache ||
+		new NodeCache<JidWithDevice[]>({
+			stdTTL: DEFAULT_CACHE_TTLS.USER_DEVICES, // 5 minutes
+			useClones: false
+		})
+	/** Serializes writes to userDevicesCache across USync refresh and device-notification handling. */
+	const devicesMutex = makeMutex()
+
+	// Initialize message retry manager if enabled
+	const messageRetryManager = enableRecentMessageCache ? new MessageRetryManager(logger, maxMsgRetryCount) : null
+
+	// Prevent race conditions in Signal session encryption by user
+	const encryptionMutex = makeKeyedMutex()
+	// Prevent race conditions when refreshMediaConn is called concurrently
+	// (e.g. two messages sent at once both find the cached conn expired) —
+	// without this, both calls would independently refetch and race to
+	// assign the shared `mediaConn` variable.
+	const mediaConnMutex = makeKeyedMutex()
+
+	let mediaConn: Promise<MediaConnInfo> | undefined
+	/** Per-socket media host; updated whenever media_conn is fetched. Defaults to the public WhatsApp host. */
+	let mediaHost: string = DEF_MEDIA_HOST
+	const refreshMediaConn = async (forceGet = false): Promise<MediaConnInfo> => {
+		return mediaConnMutex.mutex('media-conn', async () => {
+			const media = await mediaConn
+			if (!media || forceGet || new Date().getTime() - media.fetchDate.getTime() > media.ttl * 1000) {
+				mediaConn = (async () => {
+					const result = await query({
+						tag: 'iq',
+						attrs: {
+							type: 'set',
+							xmlns: 'w:m',
+							to: S_WHATSAPP_NET
+						},
+						content: [{ tag: 'media_conn', attrs: {} }]
+					})
+					const mediaConnNode = getBinaryNodeChild(result, 'media_conn')!
+					// TODO: explore full length of data that whatsapp provides
+					const node: MediaConnInfo = {
+						hosts: getBinaryNodeChildren(mediaConnNode, 'host').map(({ attrs }) => ({
+							hostname: attrs.hostname!,
+							maxContentLengthBytes: +attrs.maxContentLengthBytes!
+						})),
+						auth: mediaConnNode.attrs.auth!,
+						ttl: +mediaConnNode.attrs.ttl!,
+						fetchDate: new Date()
+					}
+					logger.debug('fetched media conn')
+					if (node.hosts[0]) {
+						mediaHost = node.hosts[0].hostname
+					}
+
+					return node
+				})()
+			}
+
+			return mediaConn!
+		})
+	}
+
+	/**
+	 * generic send receipt function
+	 * used for receipts of phone call, read, delivery etc.
+	 * */
+	const sendReceipt = async (
+		jid: string,
+		participant: string | undefined,
+		messageIds: string[],
+		type: MessageReceiptType
+	) => {
+		if (!messageIds || messageIds.length === 0) {
+			throw new Boom('missing ids in receipt')
+		}
+
+		const node: BinaryNode = {
+			tag: 'receipt',
+			attrs: {
+				id: messageIds[0]!
+			}
+		}
+		const isReadReceipt = type === 'read' || type === 'read-self'
+		if (isReadReceipt) {
+			node.attrs.t = unixTimestampSeconds().toString()
+		}
+
+		if (type === 'sender' && (isPnUser(jid) || isLidUser(jid))) {
+			node.attrs.recipient = jid
+			node.attrs.to = participant!
+		} else {
+			node.attrs.to = jid
+			if (participant) {
+				node.attrs.participant = participant
+			}
+		}
+
+		if (type) {
+			node.attrs.type = type
+		}
+
+		const remainingMessageIds = messageIds.slice(1)
+		if (remainingMessageIds.length) {
+			node.content = [
+				{
+					tag: 'list',
+					attrs: {},
+					content: remainingMessageIds.map(id => ({
+						tag: 'item',
+						attrs: { id }
+					}))
+				}
+			]
+		}
+
+		logger.debug({ attrs: node.attrs, messageIds }, 'sending receipt for messages')
+		await sendNode(node)
+	}
+
+	/** Correctly bulk send receipts to multiple chats, participants */
+	const sendReceipts = async (keys: WAMessageKey[], type: MessageReceiptType) => {
+		const recps = aggregateMessageKeysNotFromMe(keys)
+		for (const { jid, participant, messageIds } of recps) {
+			await sendReceipt(jid, participant, messageIds, type)
+		}
+	}
+
+	/** Bulk read messages. Keys can be from different chats & participants */
+	const readMessages = async (keys: WAMessageKey[]) => {
+		const privacySettings = await fetchPrivacySettings()
+		// based on privacy settings, we have to change the read type
+		const readType = privacySettings.readreceipts === 'all' ? 'read' : 'read-self'
+		await sendReceipts(keys, readType)
+	}
+
+	/** Device info with wire JID */
+	type DeviceWithJid = JidWithDevice & {
+		jid: string
+	}
+
+	/** Fetch all the devices we've to send a message to */
+	const getUSyncDevices = async (
+		jids: string[],
+		useCache: boolean,
+		ignoreZeroDevices: boolean
+	): Promise<DeviceWithJid[]> => {
+		const deviceResults: DeviceWithJid[] = []
+
+		if (!useCache) {
+			logger.debug('not using cache for devices')
+		}
+
+		const toFetch: string[] = []
+
+		const jidsWithUser = jids
+			.map(jid => {
+				const decoded = jidDecode(jid)
+				const user = decoded?.user
+				const device = decoded?.device
+				const isExplicitDevice = typeof device === 'number' && device >= 0
+
+				if (isExplicitDevice && user) {
+					deviceResults.push({
+						user,
+						device,
+						jid
+					})
+					return null
+				}
+
+				jid = jidNormalizedUser(jid)
+				return { jid, user }
+			})
+			.filter(jid => jid !== null)
+
+		let mgetDevices: undefined | Record<string, FullJid[] | undefined>
+
+		if (useCache && userDevicesCache.mget) {
+			const usersToFetch = jidsWithUser.map(j => j?.user).filter(Boolean) as string[]
+			mgetDevices = await userDevicesCache.mget(usersToFetch)
+		}
+
+		for (const { jid, user } of jidsWithUser) {
+			if (useCache) {
+				const devices =
+					mgetDevices?.[user!] ||
+					(userDevicesCache.mget ? undefined : ((await userDevicesCache.get(user!)) as FullJid[]))
+				if (devices) {
+					const devicesWithJid = devices.map(d => ({
+						...d,
+						jid: jidEncode(d.user, d.server, d.device)
+					}))
+					deviceResults.push(...devicesWithJid)
+
+					logger.trace({ user }, 'using cache for devices')
+				} else {
+					toFetch.push(jid)
+				}
+			} else {
+				toFetch.push(jid)
+			}
+		}
+
+		if (!toFetch.length) {
+			return deviceResults
+		}
+
+		const requestedLidUsers = new Set<string>()
+		for (const jid of toFetch) {
+			if (isLidUser(jid) || isHostedLidUser(jid)) {
+				const user = jidDecode(jid)?.user
+				if (user) requestedLidUsers.add(user)
+			}
+		}
+
+		const query = new USyncQuery().withContext('message').withDeviceProtocol().withLIDProtocol()
+
+		for (const jid of toFetch) {
+			query.withUser(new USyncUser().withId(jid)) // todo: investigate - the idea here is that <user> should have an inline lid field with the lid being the pn equivalent
+		}
+
+		const result = await sock.executeUSyncQuery(query)
+
+		if (result) {
+			// TODO: LID MAP this stuff (lid protocol will now return lid with devices)
+			const lidResults = result.list.filter(a => !!a.lid)
+			if (lidResults.length > 0) {
+				logger.trace('Storing LID maps from device call')
+				await signalRepository.lidMapping.storeLIDPNMappings(lidResults.map(a => ({ lid: a.lid as string, pn: a.id })))
+
+				// Force-refresh sessions for newly mapped LIDs to align identity addressing
+				try {
+					const lids = lidResults.map(a => a.lid as string)
+					if (lids.length) {
+						await assertSessions(lids, true)
+					}
+				} catch (e) {
+					logger.warn({ e, count: lidResults.length }, 'failed to assert sessions for newly mapped LIDs')
+				}
+			}
+
+			const extracted = extractDeviceJids(
+				result?.list,
+				authState.creds.me!.id,
+				authState.creds.me!.lid!,
+				ignoreZeroDevices
+			)
+			const deviceMap: { [_: string]: FullJid[] } = {}
+
+			for (const item of extracted) {
+				deviceMap[item.user] = deviceMap[item.user] || []
+				deviceMap[item.user]?.push(item)
+			}
+
+			// Process each user's devices as a group for bulk LID migration
+			for (const [user, userDevices] of Object.entries(deviceMap)) {
+				const isLidUser = requestedLidUsers.has(user)
+
+				// Process all devices for this user
+				for (const item of userDevices) {
+					const finalJid = isLidUser
+						? jidEncode(user, item.server, item.device)
+						: jidEncode(item.user, item.server, item.device)
+
+					deviceResults.push({
+						...item,
+						jid: finalJid
+					})
+
+					logger.debug(
+						{
+							user: item.user,
+							device: item.device,
+							finalJid,
+							usedLid: isLidUser
+						},
+						'Processed device with LID priority'
+					)
+				}
+			}
+
+			await devicesMutex.mutex(async () => {
+				if (userDevicesCache.mset) {
+					// if the cache supports mset, we can set all devices in one go
+					await userDevicesCache.mset(Object.entries(deviceMap).map(([key, value]) => ({ key, value })))
+				} else {
+					for (const key in deviceMap) {
+						if (deviceMap[key]) await userDevicesCache.set(key, deviceMap[key])
+					}
+				}
+			})
+
+			const userDeviceUpdates: { [userId: string]: string[] } = {}
+			for (const [userId, devices] of Object.entries(deviceMap)) {
+				if (devices && devices.length > 0) {
+					userDeviceUpdates[userId] = devices.map(d => d.device?.toString() || '0')
+				}
+			}
+
+			if (Object.keys(userDeviceUpdates).length > 0) {
+				try {
+					await authState.keys.set({ 'device-list': userDeviceUpdates })
+					logger.debug(
+						{ userCount: Object.keys(userDeviceUpdates).length },
+						'stored user device lists for bulk migration'
+					)
+				} catch (error) {
+					logger.warn({ error }, 'failed to store user device lists')
+				}
+			}
+		}
+
+		return deviceResults
+	}
+
+	/**
+	 * Update Member Label
+	 */
+	const updateMemberLabel = (jid: string, memberLabel: string) => {
+		if (!isJidGroup(jid)) {
+			throw new Error('Jid must a group jid!')
+		}
+
+		return relayMessage(
+			jid,
+			{
+				protocolMessage: {
+					type: proto.Message.ProtocolMessage.Type.GROUP_MEMBER_LABEL_CHANGE,
+					memberLabel: {
+						label: memberLabel?.slice(0, 30),
+						labelTimestamp: unixTimestampSeconds()
+					}
+				}
+			},
+			{
+				additionalNodes: [
+					{
+						tag: 'meta',
+						attrs: {
+							tag_reason: 'user_update',
+							appdata: 'member_tag'
+						},
+						content: undefined
+					}
+				]
+			}
+		)
+	}
+
+	const assertSessions = async (jids: string[], force?: boolean) => {
+		let didFetchNewSession = false
+		const uniqueJids = [...new Set(jids)]
+		const jidsRequiringFetch: string[] = []
+
+		logger.debug({ jids }, 'assertSessions call with jids')
+
+		for (const jid of uniqueJids) {
+			if (!force) {
+				const sessionValidation = await signalRepository.validateSession(jid)
+				if (sessionValidation.exists) {
+					continue
+				}
+			}
+
+			jidsRequiringFetch.push(jid)
+		}
+
+		if (jidsRequiringFetch.length) {
+			// LID if mapped, otherwise original
+			const wireJids = [
+				...jidsRequiringFetch.filter(jid => !!isLidUser(jid) || !!isHostedLidUser(jid)),
+				...(
+					(await signalRepository.lidMapping.getLIDsForPNs(
+						jidsRequiringFetch.filter(jid => !!isPnUser(jid) || !!isHostedPnUser(jid))
+					)) || []
+				).map(a => a.lid)
+			]
+
+			logger.debug({ jidsRequiringFetch, wireJids }, 'fetching sessions')
+			const result = await query({
+				tag: 'iq',
+				attrs: {
+					xmlns: 'encrypt',
+					type: 'get',
+					to: S_WHATSAPP_NET
+				},
+				content: [
+					{
+						tag: 'key',
+						attrs: {},
+						content: wireJids.map(jid => {
+							const attrs: { [key: string]: string } = { jid }
+							if (force) attrs.reason = 'identity'
+							return { tag: 'user', attrs }
+						})
+					}
+				]
+			})
+			await parseAndInjectE2ESessions(result, signalRepository)
+			didFetchNewSession = true
+		}
+
+		return didFetchNewSession
+	}
+
+	const sendPeerDataOperationMessage = async (
+		pdoMessage: proto.Message.IPeerDataOperationRequestMessage
+	): Promise<string> => {
+		//TODO: for later, abstract the logic to send a Peer Message instead of just PDO - useful for App State Key Resync with phone
+		if (!authState.creds.me?.id) {
+			throw new Boom('Not authenticated')
+		}
+
+		const protocolMessage: proto.IMessage = {
+			protocolMessage: {
+				peerDataOperationRequestMessage: pdoMessage,
+				type: proto.Message.ProtocolMessage.Type.PEER_DATA_OPERATION_REQUEST_MESSAGE
+			}
+		}
+
+		const meJid = jidNormalizedUser(authState.creds.me.id)
+
+		const msgId = await relayMessage(meJid, protocolMessage, {
+			additionalAttributes: {
+				category: 'peer',
+
+				push_priority: 'high_force'
+			},
+			additionalNodes: [
+				{
+					tag: 'meta',
+					attrs: { appdata: 'default' }
+				}
+			]
+		})
+
+		return msgId
+	}
+
+	const createParticipantNodes = async (
+		recipientJids: string[],
+		message: proto.IMessage,
+		extraAttrs?: BinaryNode['attrs'],
+		dsmMessage?: proto.IMessage
+	) => {
+		if (!recipientJids.length) {
+			return { nodes: [] as BinaryNode[], shouldIncludeDeviceIdentity: false }
+		}
+
+		const patched = await patchMessageBeforeSending(message, recipientJids)
+		const patchedMessages = Array.isArray(patched)
+			? patched
+			: recipientJids.map(jid => ({ recipientJid: jid, message: patched }))
+
+		let shouldIncludeDeviceIdentity = false
+		const meId = authState.creds.me!.id
+		const meLid = authState.creds.me?.lid
+		const meLidUser = meLid ? jidDecode(meLid)?.user : null
+
+		const encryptionPromises = (patchedMessages as any).map(
+			async ({ recipientJid: jid, message: patchedMessage }: any) => {
+				try {
+					if (!jid) return null
+
+					let msgToEncrypt = patchedMessage
+
+					if (dsmMessage) {
+						const { user: targetUser } = jidDecode(jid)!
+						const { user: ownPnUser } = jidDecode(meId)!
+						const ownLidUser = meLidUser
+
+						const isOwnUser = targetUser === ownPnUser || (ownLidUser && targetUser === ownLidUser)
+						const isExactSenderDevice = jid === meId || (meLid && jid === meLid)
+
+						if (isOwnUser && !isExactSenderDevice) {
+							msgToEncrypt = dsmMessage
+							logger.debug({ jid, targetUser }, 'Using DSM for own device')
+						}
+					}
+
+					const bytes = encodeWAMessage(msgToEncrypt)
+					const mutexKey = jid
+
+					const node = await encryptionMutex.mutex(mutexKey, async () => {
+						const { type, ciphertext } = await signalRepository.encryptMessage({ jid, data: bytes })
+
+						if (type === 'pkmsg') {
+							shouldIncludeDeviceIdentity = true
+						}
+
+						return {
+							tag: 'to',
+							attrs: { jid },
+							content: [
+								{
+									tag: 'enc',
+									attrs: { v: '2', type, ...(extraAttrs || {}) },
+									content: ciphertext
+								}
+							]
+						}
+					})
+
+					return node
+				} catch (err) {
+					logger.error({ jid, err }, 'Failed to encrypt for recipient')
+					return null
+				}
+			}
+		)
+
+		const nodes = (await Promise.all(encryptionPromises)).filter(node => node !== null) as BinaryNode[]
+
+		if (recipientJids.length > 0 && nodes.length === 0) {
+			throw new Boom('All encryptions failed', { statusCode: 500 })
+		}
+
+		return { nodes, shouldIncludeDeviceIdentity }
+	}
+
+	const relayMessage = async (
+		jid: string,
+		message: proto.IMessage,
+		{
+			messageId: msgId,
+			participant,
+			additionalAttributes,
+			additionalNodes,
+			useUserDevicesCache,
+			useCachedGroupMetadata,
+			statusJidList,
+			AI = false,
+			secureMetaServiceLabel = false
+		}: MessageRelayOptions & { AI?: boolean; secureMetaServiceLabel?: boolean }
+	) => {
+		const meId = assertMeId(authState.creds)
+		const meLid = authState.creds.me?.lid
+		const isRetryResend = Boolean(participant?.jid)
+		let shouldIncludeDeviceIdentity = isRetryResend
+		let didPushAdditional = false
+		const statusJid = 'status@broadcast'
+
+		const { user, server } = jidDecode(jid)!
+		const isGroup = server === 'g.us'
+		const isPrivate = server === 's.whatsapp.net'
+		const isStatus = jid === statusJid
+		const isLid = server === 'lid'
+		const isNewsletter = server === 'newsletter'
+		const isGroupOrStatus = isGroup || isStatus
+		const finalJid = jid
+
+		msgId = msgId || generateMessageIDV2(meId)
+		useUserDevicesCache = useUserDevicesCache !== false
+		useCachedGroupMetadata = useCachedGroupMetadata !== false && !isStatus
+
+		const participants: BinaryNode[] = []
+		const destinationJid = !isStatus ? finalJid : statusJid
+		const binaryNodeContent: BinaryNode[] = []
+		const devices: DeviceWithJid[] = []
+		let reportingMessage: proto.IMessage | undefined
+
+		const meMsg: proto.IMessage = {
+			deviceSentMessage: {
+				destinationJid,
+				message
+			},
+			messageContextInfo: message.messageContextInfo
+		}
+
+		const extraAttrs: BinaryNodeAttributes = {}
+
+		// normalizeMessageContent BEFORE transaction — exact addons pattern
+		const messages = normalizeMessageContent(message) || message
+		const buttonType = getButtonType(messages)
+		const pollMessage =
+			messages.pollCreationMessage ||
+			messages.pollCreationMessageV2 ||
+			messages.pollCreationMessageV3 ||
+			messages.pollCreationMessageV6
+
+		if (participant) {
+			if (!isGroup && !isStatus) {
+				additionalAttributes = { ...additionalAttributes, device_fanout: 'false' }
+			}
+
+			const { user, device } = jidDecode(participant.jid)!
+			devices.push({
+				user,
+				device,
+				jid: participant.jid
+			})
+		}
+
+		await authState.keys.transaction(async () => {
+			const mediaType = getMediaType(messages)
+			if (mediaType) {
+				extraAttrs['mediatype'] = mediaType
+			}
+
+			if (isNewsletter) {
+				const patched = patchMessageBeforeSending ? await patchMessageBeforeSending(message, []) : message
+				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
+				binaryNodeContent.push({
+					tag: 'plaintext',
+					attrs: mediaType ? { mediatype: mediaType } : {},
+					content: bytes
+				})
+				const stanza: BinaryNode = {
+					tag: 'message',
+					attrs: {
+						to: jid,
+						id: msgId,
+						type: getMessageType(message),
+						...(additionalAttributes || {})
+					},
+					content: binaryNodeContent
+				}
+				logger.debug({ msgId }, `sending newsletter message to ${jid}`)
+				await sendNode(stanza)
+				return
+			}
+
+			if (
+				messages.pinInChatMessage ||
+				messages.keepInChatMessage ||
+				messages.reactionMessage ||
+				messages.protocolMessage?.editedMessage
+			) {
+				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
+			}
+
+			if (isGroupOrStatus && !isRetryResend) {
+				const [groupData, senderKeyMap] = await Promise.all([
+					(async () => {
+						let groupData = useCachedGroupMetadata && cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined // todo: should we rely on the cache specially if the cache is outdated and the metadata has new fields?
+						if (groupData && Array.isArray(groupData?.participants)) {
+							logger.trace({ jid, participants: groupData.participants.length }, 'using cached group metadata')
+						} else if (!isStatus) {
+							groupData = await groupMetadata(jid) // TODO: start storing group participant list + addr mode in Signal & stop relying on this
+						}
+
+						return groupData
+					})(),
+					(async () => {
+						if (!participant && !isStatus) {
+							// what if sender memory is less accurate than the cached metadata
+							// on participant change in group, we should do sender memory manipulation
+							const result = await authState.keys.get('sender-key-memory', [jid]) // TODO: check out what if the sender key memory doesn't include the LID stuff now?
+							return result[jid] || {}
+						}
+
+						return {}
+					})()
+				])
+
+				const participantsList = groupData ? groupData.participants.map(p => p.id) : []
+
+				if (groupData?.ephemeralDuration && groupData.ephemeralDuration > 0) {
+					additionalAttributes = {
+						...additionalAttributes,
+						expiration: groupData.ephemeralDuration.toString()
+					}
+				}
+
+				if (isStatus && statusJidList) {
+					participantsList.push(...statusJidList)
+				}
+
+				const additionalDevices = await getUSyncDevices(participantsList, !!useUserDevicesCache, false)
+				devices.push(...additionalDevices)
+
+				if (isGroup) {
+					additionalAttributes = {
+						...additionalAttributes,
+						addressing_mode: groupData?.addressingMode || 'lid'
+					}
+				}
+
+				const patched = await patchMessageBeforeSending(message)
+				if (Array.isArray(patched)) {
+					throw new Boom('Per-jid patching is not supported in groups')
+				}
+
+				const bytes = encodeWAMessage(patched)
+				reportingMessage = patched
+				const groupAddressingMode = additionalAttributes?.['addressing_mode'] || groupData?.addressingMode || 'lid'
+				const groupSenderIdentity = groupAddressingMode === 'lid' && meLid ? meLid : meId
+
+				const { ciphertext, senderKeyDistributionMessage } = await signalRepository.encryptGroupMessage({
+					group: destinationJid,
+					data: bytes,
+					meId: groupSenderIdentity
+				})
+
+				const senderKeyRecipients: string[] = []
+				for (const device of devices) {
+					const deviceJid = device.jid
+					// PR #2748: a stale `true` in senderKeyMap survives an identity
+					// change even though the recipient's re-established session no
+					// longer holds our sender key — force redistribution during the
+					// grace window instead of trusting the cache.
+					const identityRecentlyChanged = recentlyChangedIdentities.has(jidNormalizedUser(deviceJid))
+					const hasKey = !identityRecentlyChanged && !!senderKeyMap[deviceJid]
+					if (
+						(!hasKey || !!participant) &&
+						!isHostedLidUser(deviceJid) &&
+						!isHostedPnUser(deviceJid) &&
+						device.device !== 99
+					) {
+						//todo: revamp all this logic
+						// the goal is to follow with what I said above for each group, and instead of a true false map of ids, we can set an array full of those the app has already sent pkmsgs
+						senderKeyRecipients.push(deviceJid)
+						senderKeyMap[deviceJid] = true
+					}
+				}
+
+				if (senderKeyRecipients.length) {
+					logger.debug({ senderKeyJids: senderKeyRecipients }, 'sending new sender key')
+
+					const senderKeyMsg: proto.IMessage = {
+						senderKeyDistributionMessage: {
+							axolotlSenderKeyDistributionMessage: senderKeyDistributionMessage,
+							groupId: destinationJid
+						}
+					}
+
+					const senderKeySessionTargets = senderKeyRecipients
+					await assertSessions(senderKeySessionTargets)
+
+					const result = await createParticipantNodes(senderKeyRecipients, senderKeyMsg, extraAttrs)
+					shouldIncludeDeviceIdentity = shouldIncludeDeviceIdentity || result.shouldIncludeDeviceIdentity
+
+					participants.push(...result.nodes)
+				}
+
+				binaryNodeContent.push({
+					tag: 'enc',
+					attrs: { v: '2', type: 'skmsg', ...extraAttrs },
+					content: ciphertext
+				})
+
+				await authState.keys.set({ 'sender-key-memory': { [jid]: senderKeyMap } })
+			} else {
+				// ADDRESSING CONSISTENCY: Match own identity to conversation context
+				// TODO: investigate if this is true
+				let ownId = meId
+				if (isLid && meLid) {
+					ownId = meLid
+					logger.debug({ to: jid, ownId }, 'Using LID identity for @lid conversation')
+				} else {
+					logger.debug({ to: jid, ownId }, 'Using PN identity for @s.whatsapp.net conversation')
+				}
+
+				const { user: ownUser } = jidDecode(ownId)!
+				if (!participant) {
+					const patchedForReporting = await patchMessageBeforeSending(message, [jid])
+					reportingMessage = Array.isArray(patchedForReporting)
+						? patchedForReporting.find(item => item.recipientJid === jid) || patchedForReporting[0]
+						: patchedForReporting
+				}
+
+				if (!isRetryResend) {
+					const targetUserServer = isLid ? 'lid' : 's.whatsapp.net'
+					devices.push({
+						user,
+						device: 0,
+						jid: jidEncode(user, targetUserServer, 0) // rajeh, todo: this entire logic is convoluted and weird.
+					})
+
+					if (user !== ownUser) {
+						const ownUserServer = isLid ? 'lid' : 's.whatsapp.net'
+						const ownUserForAddressing = isLid && meLid ? jidDecode(meLid)!.user : jidDecode(meId)!.user
+
+						devices.push({
+							user: ownUserForAddressing,
+							device: 0,
+							jid: jidEncode(ownUserForAddressing, ownUserServer, 0)
+						})
+					}
+
+					if (additionalAttributes?.['category'] !== 'peer') {
+						// Clear placeholders and enumerate actual devices
+						devices.length = 0
+
+						// Use conversation-appropriate sender identity
+						const senderIdentity =
+							isLid && meLid
+								? jidEncode(jidDecode(meLid)?.user!, 'lid', undefined)
+								: jidEncode(jidDecode(meId)?.user!, 's.whatsapp.net', undefined)
+
+						// Enumerate devices for sender and target with consistent addressing
+						const sessionDevices = await getUSyncDevices([senderIdentity, jid], true, false)
+						devices.push(...sessionDevices)
+
+						logger.debug(
+							{
+								deviceCount: devices.length,
+								devices: devices.map(d => `${d.user}:${d.device}@${jidDecode(d.jid)?.server}`)
+							},
+							'Device enumeration complete with unified addressing'
+						)
+					}
+				}
+
+				const allRecipients: string[] = []
+				const meRecipients: string[] = []
+				const otherRecipients: string[] = []
+				const { user: mePnUser } = jidDecode(meId)!
+				const { user: meLidUser } = meLid ? jidDecode(meLid)! : { user: null }
+
+				for (const { user, jid } of devices) {
+					const isExactSenderDevice = jid === meId || (meLid && jid === meLid)
+					if (isExactSenderDevice) {
+						logger.debug({ jid, meId, meLid }, 'Skipping exact sender device (whatsmeow pattern)')
+						continue
+					}
+
+					// Check if this is our device (could match either PN or LID user)
+					const isMe = user === mePnUser || user === meLidUser
+
+					if (isMe) {
+						meRecipients.push(jid)
+					} else {
+						otherRecipients.push(jid)
+					}
+
+					allRecipients.push(jid)
+				}
+
+				await assertSessions(allRecipients)
+
+				const [
+					{ nodes: meNodes, shouldIncludeDeviceIdentity: s1 },
+					{ nodes: otherNodes, shouldIncludeDeviceIdentity: s2 }
+				] = await Promise.all([
+					// For own devices: use DSM if available (1:1 chats only)
+					createParticipantNodes(meRecipients, meMsg || message, extraAttrs),
+					createParticipantNodes(otherRecipients, message, extraAttrs, meMsg)
+				])
+				participants.push(...meNodes)
+				participants.push(...otherNodes)
+
+				if (meRecipients.length > 0 || otherRecipients.length > 0) {
+					extraAttrs['phash'] = generateParticipantHashV2([...meRecipients, ...otherRecipients])
+				}
+
+				shouldIncludeDeviceIdentity = shouldIncludeDeviceIdentity || s1 || s2
+			}
+
+			if (isRetryResend) {
+				const isParticipantLid = isLidUser(participant!.jid)
+				const isMe = areJidsSameUser(participant!.jid, isParticipantLid ? meLid : meId)
+
+				let messageToSend = message
+				if (isGroupOrStatus) {
+					let groupSenderIdentity: string | undefined
+					if (meLid && (await signalRepository.hasSenderKey({ group: destinationJid, meId: meLid }))) {
+						groupSenderIdentity = meLid
+					} else if (await signalRepository.hasSenderKey({ group: destinationJid, meId })) {
+						groupSenderIdentity = meId
+					}
+
+					if (groupSenderIdentity) {
+						try {
+							const skdm = await signalRepository.getSenderKeyDistributionMessage({
+								group: destinationJid,
+								meId: groupSenderIdentity
+							})
+							messageToSend = {
+								...message,
+								senderKeyDistributionMessage: {
+									groupId: destinationJid,
+									axolotlSenderKeyDistributionMessage: skdm
+								}
+							}
+						} catch (err) {
+							logger.warn({ err, jid: destinationJid }, 'failed to build SKDM for retry, sending without it')
+						}
+					}
+				}
+
+				const encodedMessageToSend = isMe
+					? encodeWAMessage({
+							deviceSentMessage: {
+								destinationJid,
+								message: messageToSend
+							}
+						})
+					: encodeWAMessage(messageToSend)
+
+				const { type, ciphertext: encryptedContent } = await signalRepository.encryptMessage({
+					data: encodedMessageToSend,
+					jid: participant!.jid
+				})
+
+				binaryNodeContent.push({
+					tag: 'enc',
+					attrs: {
+						v: '2',
+						type,
+						count: participant!.count.toString()
+					},
+					content: encryptedContent
+				})
+			}
+
+			if (participants.length) {
+				if (additionalAttributes?.['category'] === 'peer') {
+					const peerNode = participants[0]?.content?.[0] as BinaryNode
+					if (peerNode) {
+						binaryNodeContent.push(peerNode) // push only enc
+					}
+				} else {
+					binaryNodeContent.push({
+						tag: 'participants',
+						attrs: {},
+
+						content: participants
+					})
+				}
+			}
+
+			const stanza: BinaryNode = {
+				tag: 'message',
+				attrs: {
+					id: msgId,
+					to: destinationJid,
+					type: getMessageType(message),
+					...(additionalAttributes || {})
+				},
+				content: binaryNodeContent
+			}
+
+			// if the participant to send to is explicitly specified (generally retry recp)
+			// ensure the message is only sent to that person
+			// if a retry receipt is sent to everyone -- it'll fail decryption for everyone else who received the msg
+			if (participant) {
+				if (isJidGroup(destinationJid)) {
+					stanza.attrs.to = destinationJid
+					stanza.attrs.participant = participant.jid
+				} else if (areJidsSameUser(participant.jid, meId)) {
+					stanza.attrs.to = participant.jid
+					stanza.attrs.recipient = destinationJid
+				} else {
+					stanza.attrs.to = participant.jid
+				}
+			} else {
+				stanza.attrs.to = destinationJid
+			}
+
+			if (shouldIncludeDeviceIdentity) {
+				;(stanza.content as BinaryNode[]).push({
+					tag: 'device-identity',
+					attrs: {},
+					content: encodeSignedDeviceIdentity(authState.creds.account!, true)
+				})
+
+				logger.debug({ jid }, 'adding device identity')
+			}
+
+			if (
+				!isNewsletter &&
+				!isRetryResend &&
+				reportingMessage?.messageContextInfo?.messageSecret &&
+				shouldIncludeReportingToken(reportingMessage)
+			) {
+				try {
+					const encoded = encodeWAMessage(reportingMessage)
+					const reportingKey: WAMessageKey = {
+						id: msgId,
+						fromMe: true,
+						remoteJid: destinationJid,
+						participant: participant?.jid
+					}
+					const reportingNode = await getMessageReportingToken(encoded, reportingMessage, reportingKey)
+					if (reportingNode) {
+						;(stanza.content as BinaryNode[]).push(reportingNode)
+						logger.trace({ jid }, 'added reporting token to message')
+					}
+				} catch (error: any) {
+					logger.warn({ jid, trace: error?.stack }, 'failed to attach reporting token')
+				}
+			}
+
+			// WA Web never attaches tctoken to peer (AppStateSync) messages — server rejects with 479
+			const isPeerMessage = additionalAttributes?.['category'] === 'peer'
+			const is1on1Send = !isGroup && !isRetryResend && !isStatus && !isNewsletter && !isPeerMessage
+
+			// Resolve destination to LID for tctoken storage — matches Signal session key pattern
+			const tcTokenJid = is1on1Send ? await resolveTcTokenJid(destinationJid, getLIDForPN) : destinationJid
+			const contactTcTokenData = is1on1Send ? await authState.keys.get('tctoken', [tcTokenJid]) : {}
+			const existingTokenEntry = contactTcTokenData[tcTokenJid]
+			let tcTokenBuffer = existingTokenEntry?.token
+
+			// Treat expired tokens the same as missing — clear from cache
+			if (tcTokenBuffer?.length && isTcTokenExpired(existingTokenEntry?.timestamp)) {
+				logger.debug({ jid: destinationJid, timestamp: existingTokenEntry?.timestamp }, 'tctoken expired, clearing')
+				tcTokenBuffer = undefined
+				// Preserve senderTimestamp so the fire-and-forget issuance dedupe survives cleanup.
+				const cleared =
+					existingTokenEntry?.senderTimestamp !== undefined
+						? { token: Buffer.alloc(0), senderTimestamp: existingTokenEntry.senderTimestamp }
+						: null
+				try {
+					await authState.keys.set({ tctoken: { [tcTokenJid]: cleared } })
+				} catch (err: any) {
+					logger.debug({ jid: destinationJid, err: err?.message }, 'failed to persist tctoken expiry cleanup')
+				}
+			}
+
+			if (tcTokenBuffer?.length && sock.serverProps.privacyTokenOn1to1) {
+				;(stanza.content as BinaryNode[]).push({
+					tag: 'tctoken',
+					attrs: {},
+					content: tcTokenBuffer
+				})
+			}
+
+			// Inject poll/event meta node directly in relayMessage
+			// (handles direct relayMessage calls, not just sendMessage)
+			if (pollMessage || messages.eventMessage) {
+				const hasPollMeta = (additionalNodes ?? []).some(
+					(n: BinaryNode) => n.tag === 'meta' && ('polltype' in n.attrs || 'event_type' in n.attrs)
+				)
+				if (!hasPollMeta) {
+					const metaAttrs: Record<string, string> = messages.eventMessage
+						? { event_type: 'creation' }
+						: isNewsletter
+							? {
+									polltype: 'creation',
+									contenttype: (pollMessage as any)?.pollContentType === 2 ? 'image' : 'text'
+								}
+							: { polltype: 'creation' }
+					;(stanza.content as BinaryNode[]).push({ tag: 'meta', attrs: metaAttrs })
+				}
+			}
+
+			// Inject <biz> node for button messages
+			// Works for: WhatsApp Messenger + WhatsApp Business, Android + iOS
+			if (!isJidNewsletter(destinationJid) && buttonType) {
+				const buttonsNode = getButtonArgs(messages)
+				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
+
+				if (filteredButtons) {
+					;(stanza.content as BinaryNode[]).push(...additionalNodes!)
+					didPushAdditional = true
+				} else {
+					;(stanza.content as BinaryNode[]).push(buttonsNode)
+				}
+
+				// bot node: required for buttons to be interactive in private chats
+				// (independent of AI flag; matches button-helper behaviour)
+				if (isPrivate) {
+					const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
+					const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
+					if (filteredBizBot) {
+						if (!didPushAdditional) {
+							;(stanza.content as BinaryNode[]).push(...additionalNodes!)
+							didPushAdditional = true
+						}
+					} else {
+						;(stanza.content as BinaryNode[]).push(botNode)
+					}
+				}
+			}
+
+			// Smart biz node — auto-inject for button/list/template/nativeFlow messages,
+			// or when secureMetaServiceLabel is explicitly requested. Without this, WhatsApp won't
+			// correctly render/deliver those interactive message types.
+			// Use normalizeMessageContent so wrapped messages (viewOnce, ephemeral) are unwrapped first.
+			{
+				const innerMessage = normalizeMessageContent(message) ?? message
+				const alreadyHasBizNode = !secureMetaServiceLabel && additionalNodes?.some(n => n.tag === 'biz')
+				if ((!alreadyHasBizNode && shouldIncludeBizBinaryNode(innerMessage)) || secureMetaServiceLabel) {
+					;(stanza.content as BinaryNode[]).push(getBizBinaryNode(innerMessage))
+				}
+			}
+
+			// AI icon feature — adds bot node for non-button messages with AI flag
+			if (AI && isPrivate && !buttonType) {
+				const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
+				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
+
+				if (filteredBizBot) {
+					;(stanza.content as BinaryNode[]).push(...additionalNodes!)
+					didPushAdditional = true
+				} else {
+					;(stanza.content as BinaryNode[]).push(botNode)
+				}
+			}
+
+			// secure Meta service label — tags the message as coming from a
+			// verified/official-service style sender (badge on the bubble)
+			if (secureMetaServiceLabel) {
+				;(stanza.content as BinaryNode[]).push({
+					tag: 'meta_secure_service',
+					attrs: { service_type: 'secure' }
+				})
+			}
+
+			if (!didPushAdditional && additionalNodes && additionalNodes.length > 0) {
+				;(stanza.content as BinaryNode[]).push(...additionalNodes)
+			}
+
+			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
+
+			await sendNode(stanza)
+
+			// Fire-and-forget: issue our token to the contact AFTER message send.
+			// WA Web skips protocol messages and PSA/bot contacts (TcTokenChatAction: isRegularUser)
+			const isProtocolMsg = !!normalizeMessageContent(message)?.protocolMessage
+			const isBotOrPSA = destinationJid === PSA_WID || isJidBot(destinationJid) || isJidMetaAI(destinationJid)
+			if (
+				is1on1Send &&
+				!isProtocolMsg &&
+				!isBotOrPSA &&
+				shouldSendNewTcToken(existingTokenEntry?.senderTimestamp) &&
+				!inFlightTcTokenIssuance.has(tcTokenJid)
+			) {
+				inFlightTcTokenIssuance.add(tcTokenJid)
+				const issueTimestamp = unixTimestampSeconds()
+				const getPNForLID = signalRepository.lidMapping.getPNForLID.bind(signalRepository.lidMapping)
+				resolveIssuanceJid(destinationJid, sock.serverProps.lidTrustedTokenIssueToLid, getLIDForPN, getPNForLID)
+					.then(issueJid => issuePrivacyTokens([issueJid], issueTimestamp))
+					.then(async result => {
+						await storeTcTokensFromIqResult({
+							result,
+							fallbackJid: tcTokenJid,
+							keys: authState.keys,
+							getLIDForPN
+						})
+
+						const currentData = await authState.keys.get('tctoken', [tcTokenJid])
+						const currentEntry = currentData[tcTokenJid]
+						const indexWrite = await buildMergedTcTokenIndexWrite(authState.keys, [tcTokenJid])
+						await authState.keys.set({
+							tctoken: {
+								[tcTokenJid]: {
+									token: Buffer.alloc(0),
+									...currentEntry,
+									senderTimestamp: issueTimestamp
+								},
+								...indexWrite
+							}
+						})
+					})
+					.catch(err => {
+						logger.debug({ jid: destinationJid, err: err?.message }, 'fire-and-forget tctoken issuance failed')
+					})
+					.finally(() => {
+						inFlightTcTokenIssuance.delete(tcTokenJid)
+					})
+			}
+
+			// Add message to retry cache if enabled
+			if (messageRetryManager && !participant) {
+				messageRetryManager.addRecentMessage(destinationJid, msgId, message)
+			}
+		}, meId)
+
+		return msgId
+	}
+
+	const getMessageType = (message: proto.IMessage) => {
+		const normalizedMessage = normalizeMessageContent(message)
+		if (!normalizedMessage) return 'text'
+
+		if (normalizedMessage.reactionMessage || normalizedMessage.encReactionMessage) {
+			return 'reaction'
+		}
+
+		if (
+			normalizedMessage.pollCreationMessage ||
+			normalizedMessage.pollCreationMessageV2 ||
+			normalizedMessage.pollCreationMessageV3 ||
+			normalizedMessage.pollCreationMessageV6 ||
+			normalizedMessage.pollUpdateMessage
+		) {
+			return 'poll'
+		}
+
+		if (normalizedMessage.eventMessage) {
+			return 'event'
+		}
+
+		if (getMediaType(normalizedMessage) !== '') {
+			return 'media'
+		}
+
+		return 'text'
+	}
+
+	const getMediaType = (message: proto.IMessage) => {
+		if (message.imageMessage) {
+			return 'image'
+		} else if (message.videoMessage) {
+			return message.videoMessage.gifPlayback ? 'gif' : 'video'
+		} else if (message.audioMessage) {
+			return message.audioMessage.ptt ? 'ptt' : 'audio'
+		} else if (message.contactMessage) {
+			return 'vcard'
+		} else if (message.documentMessage) {
+			return 'document'
+		} else if (message.contactsArrayMessage) {
+			return 'contact_array'
+		} else if (message.liveLocationMessage) {
+			return 'livelocation'
+		} else if (message.albumMessage) {
+			// Album container routing
+			return 'collection'
+		} else if (message.stickerPackMessage) {
+			// StickerPack message type routing
+			return 'sticker_pack'
+		} else if (message.stickerMessage) {
+			return 'sticker'
+		} else if (message.listMessage) {
+			return 'list'
+		} else if (message.listResponseMessage) {
+			return 'list_response'
+		} else if (message.buttonsResponseMessage) {
+			return 'buttons_response'
+		} else if (message.orderMessage) {
+			return 'order'
+		} else if (message.productMessage) {
+			return 'product'
+		} else if (message.interactiveResponseMessage) {
+			return 'native_flow_response'
+		} else if (message.groupInviteMessage) {
+			return 'url'
+		}
+
+		return ''
+	}
+
+	const issuePrivacyTokens = async (jids: string[], timestamp?: number) => {
+		const t = (timestamp ?? unixTimestampSeconds()).toString()
+		const result = await query({
+			tag: 'iq',
+			attrs: {
+				to: S_WHATSAPP_NET,
+				type: 'set',
+				xmlns: 'privacy'
+			},
+			content: [
+				{
+					tag: 'tokens',
+					attrs: {},
+					content: jids.map(jid => ({
+						tag: 'token',
+						attrs: {
+							jid: jidNormalizedUser(jid),
+							t,
+							type: 'trusted_contact'
+						}
+					}))
+				}
+			]
+		})
+
+		return result
+	}
+
+	const waUploadToServer = getWAUploadToServer(config, refreshMediaConn)
+
+	const waitForMsgMediaUpdate = bindWaitForEvent(ev, 'messages.media-update')
+
+	registerSocketEndHandler(() => {
+		if (!config.userDevicesCache && userDevicesCache.close) {
+			userDevicesCache.close()
+		}
+
+		mediaConn = undefined
+		if (messageRetryManager) {
+			messageRetryManager.clear()
+		}
+
+		for (const timer of recentlyChangedIdentities.values()) {
+			clearTimeout(timer)
+		}
+
+		recentlyChangedIdentities.clear()
+	})
+
+	return {
+		...sock,
+		userDevicesCache,
+		devicesMutex,
+		issuePrivacyTokens,
+		assertSessions,
+		relayMessage,
+		sendReceipt,
+		sendReceipts,
+		readMessages,
+		markIdentityChanged,
+		recentlyChangedIdentities,
+		refreshMediaConn,
+		// Function (not getter) so the spread in chats.ts preserves the live closure binding.
+		getMediaHost: () => mediaHost,
+		waUploadToServer,
+		fetchPrivacySettings,
+		sendPeerDataOperationMessage,
+
+		/**
+		 * Request the paired phone to generate a high-quality link preview for a URL.
+		 * The phone resolves the URL natively and returns metadata via a PDO response,
+		 * which is handled in process-message and emitted as a 'link-preview.update' event.
+		 * Falls back to local link-preview-js when `generateHighQualityLinkPreview` is false.
+		 * Source: PR #2701 (frndchagas)
+		 */
+		requestPhoneLinkPreview: async (url: string): Promise<string> => {
+			const pdoMessage: proto.Message.IPeerDataOperationRequestMessage = {
+				peerDataOperationRequestType: proto.Message.PeerDataOperationRequestType.GENERATE_LINK_PREVIEW,
+				// requestUrlPreview is the real WAProto field (not linkPreviewRequest)
+				requestUrlPreview: [{ url, includeHqThumbnail: true }]
+			}
+			return sendPeerDataOperationMessage(pdoMessage)
+		},
+		createParticipantNodes,
+		getUSyncDevices,
+		messageRetryManager,
+		updateMemberLabel,
+		updateMediaMessage: async (message: WAMessage) => {
+			const content = assertMediaContent(message.message)
+			const mediaKey = content.mediaKey!
+			const meId = authState.creds.me!.id
+			const node = encryptMediaRetryRequest(message.key, mediaKey, meId)
+
+			let error: Error | undefined = undefined
+			await Promise.all([
+				sendNode(node),
+				waitForMsgMediaUpdate(async update => {
+					const result = update.find(c => c.key.id === message.key.id)
+					if (result) {
+						if (result.error) {
+							error = result.error
+						} else {
+							try {
+								const media = decryptMediaRetryData(result.media!, mediaKey, result.key.id!)
+								if (media.result !== proto.MediaRetryNotification.ResultType.SUCCESS) {
+									const resultStr = proto.MediaRetryNotification.ResultType[media.result!]
+									throw new Boom(`Media re-upload failed by device (${resultStr})`, {
+										data: media,
+										statusCode: getStatusCodeForMediaRetry(media.result!) || 404
+									})
+								}
+
+								content.directPath = media.directPath
+								content.url = getUrlFromDirectPath(content.directPath!, mediaHost)
+
+								logger.debug({ directPath: media.directPath, key: result.key }, 'media update successful')
+							} catch (err: any) {
+								error = err
+							}
+						}
+
+						return true
+					}
+				})
+			])
+
+			if (error) {
+				throw error
+			}
+
+			ev.emit('messages.update', [{ key: message.key, update: { message: message.message } }])
+
+			return message
+		},
+		sendMessage: async (
+			jid: string | string[],
+			content: AnyMessageContent,
+			options: MiscMessageGenerationOptions = {}
+		): Promise<WAMessage | undefined> => {
+			// Passing an array as `jid` is shorthand for a "status mention" —
+			// posts a single `status@broadcast` update and mentions every jid
+			// in the array (group jids are expanded to their participants).
+			// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+			// (the same helper `sock.sendStatusMentions` already uses).
+			if (Array.isArray(jid)) {
+				return execSendStatusMentions(content, jid, {
+					meId: authState.creds.me!.id,
+					logger,
+					groupMetadata: sock.groupMetadata,
+					cachedGroupMetadata: config.cachedGroupMetadata,
+					relayMessage,
+					waUploadToServer,
+					getUrlInfo,
+					config,
+					linkPreviewImageThumbnailWidth,
+					generateHighQualityLinkPreview,
+					httpRequestOptions
+				})
+			}
+
+			const userJid = authState.creds.me!.id
+
+			// ── Dual content/options flags — groupStatus, isLottie, spoiler,
+			// secureMetaServiceLabel, ai, and ephemeral can each be set either as
+			// a content-level property (e.g. `{ image: {...}, spoiler: true }`)
+			// or as an options-level property (e.g. `sock.sendMessage(jid, { image:
+			// {...} }, { spoiler: true })`) — whichever is set wins; if both are
+			// set, content takes priority. This mutates both objects in place so
+			// every existing content-based (`hasOptionalProperty(message, ...)`)
+			// and options-based (`options.ai`, `options.secureMetaServiceLabel`,
+			// etc.) check keeps working unmodified either way.
+			if (typeof content === 'object' && content !== null) {
+				const c = content as Record<string, unknown>
+				const o = options as Record<string, unknown>
+
+				for (const flag of [
+					'groupStatus',
+					'isLottie',
+					'spoiler',
+					'secureMetaServiceLabel',
+					'ai',
+					'ephemeral'
+				] as const) {
+					const merged = c[flag] ?? o[flag]
+					if (merged !== undefined) {
+						c[flag] = !!merged
+						o[flag] = !!merged
+					}
+				}
+
+				// `ephemeral: true` shorthand → default disappearing-message
+				// expiration, unless an explicit `ephemeralExpiration` was
+				// already given (which always takes priority).
+				if (c.ephemeral && !o.ephemeralExpiration) {
+					o.ephemeralExpiration = WA_DEFAULT_EPHEMERAL
+				}
+			}
+
+			if (options.ai && !(isPnUser(jid) || isHostedPnUser(jid) || isLidUser(jid) || isHostedLidUser(jid))) {
+				// AI icon on message is only supported in private (1:1) chats.
+				throw new Boom('AI icon on message is only allowed in private chat', { statusCode: 400 })
+			}
+
+			if (
+				typeof content === 'object' &&
+				'disappearingMessagesInChat' in content &&
+				typeof content['disappearingMessagesInChat'] !== 'undefined' &&
+				isJidGroup(jid)
+			) {
+				const { disappearingMessagesInChat } = content
+				const value =
+					typeof disappearingMessagesInChat === 'boolean'
+						? disappearingMessagesInChat
+							? WA_DEFAULT_EPHEMERAL
+							: 0
+						: disappearingMessagesInChat
+				await groupToggleEphemeral(jid, value)
+			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
+				// Album message — matches addons prepareAlbumMessageContent
+				const albumItems = (content as any).album as Array<{
+					image?: WAMediaUpload
+					video?: WAMediaUpload
+					caption?: string
+				}>
+
+				// WhatsApp requires at least 2 media items in an album; a
+				// 0- or 1-item "album" is a malformed message.
+				if (albumItems.length < 2) {
+					throw new Boom('Minimum provide 2 media to upload album message', { statusCode: 400 })
+				}
+
+				const albumMsg = generateWAMessageFromContent(
+					jid,
+					{
+						albumMessage: {
+							expectedImageCount: albumItems.filter((i: any) => 'image' in i).length,
+							expectedVideoCount: albumItems.filter((i: any) => 'video' in i).length
+						}
+					},
+					{ userJid, ...options }
+				)
+
+				await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
+
+				const mediaMsgs = []
+				for (const item of albumItems) {
+					const mediaContent =
+						'image' in item ? { image: item.image, ...(item as any) } : { video: (item as any).video, ...(item as any) }
+
+					const mediaMsg = await generateWAMessage(jid, mediaContent as AnyMessageContent, {
+						logger,
+						userJid,
+						upload: async (encFilePath: string, opts: any) => {
+							const up = await waUploadToServer(encFilePath, { ...opts, newsletter: isJidNewsletter(jid) })
+							return up
+						},
+						...options
+					})
+
+					// Validate each album item is image or video
+					if (!hasValidAlbumMedia(normalizeMessageContent(mediaMsg.message))) {
+						throw new Boom('Invalid message type for album — only image or video allowed', { statusCode: 400 })
+					}
+
+					if (mediaMsg.message) {
+						mediaMsg.message.messageContextInfo = {
+							messageSecret: randomBytes(32),
+							messageAssociation: {
+								associationType: 1,
+								parentMessageKey: albumMsg.key
+							}
+						}
+					}
+
+					mediaMsgs.push(mediaMsg)
+					const { delayMs = 800 } = options as any
+					await delay(delayMs)
+					await relayMessage(jid, mediaMsg.message!, {
+						messageId: mediaMsg.key.id!,
+						useCachedGroupMetadata: options.useCachedGroupMetadata,
+						statusJidList: options.statusJidList,
+						AI: (options as any).ai,
+						secureMetaServiceLabel: (options as any).secureMetaServiceLabel
+					})
+				}
+
+				return mediaMsgs[0]
+			} else {
+				// PR #2692 (PN → LID routing) DISABLED — caused private-chat (1:1) messages
+				// to silently fail to deliver while group/channel sends kept working.
+				// Root cause suspected: sending to the resolved LID JID via relayMessage
+				// requires an already-established Signal session for that LID identity;
+				// LID and PN are separate Signal sessions in WA's multi-device model, and
+				// if only the PN session existed, encryption for the LID jid could be
+				// silently wrong (recipient never decrypts) rather than erroring loudly.
+				// Groups/channels are unaffected because resolveMessageSendJid's guard
+				// (`isPnUser(jid) || isHostedPnUser(jid)`) only ever matches 1:1 JIDs.
+				// resolveMessageSendJid() is left defined above for future investigation —
+				// just not called from the default send path until verified safe.
+				const resolvedJid = jid
+				const lidRemoteJidAlt: string | undefined = undefined
+				const lidAttrs: Record<string, string> | undefined = undefined
+
+				const fullMsg = await generateWAMessage(resolvedJid, content, {
+					logger,
+					userJid,
+					getUrlInfo: text =>
+						getUrlInfo(text, {
+							thumbnailWidth: linkPreviewImageThumbnailWidth,
+							fetchOpts: {
+								timeout: 3_000,
+								...(httpRequestOptions || {})
+							},
+							logger,
+							uploadImage: generateHighQualityLinkPreview ? waUploadToServer : undefined
+						}),
+					//TODO: CACHE
+					getProfilePicUrl: sock.profilePictureUrl,
+					getCallLink: sock.createCallLink,
+					upload: waUploadToServer,
+					mediaCache: config.mediaCache,
+					options: config.options,
+					messageId:
+						(('groupStatus' in content && (content as any).groupStatus) ||
+							('cards' in content && (content as any)?.cards)) &&
+						!options.messageId
+							? `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+							: generateMessageIDV2(sock.user?.id),
+					...options
+				})
+				const isEventMsg = 'event' in content && !!content.event
+				const isDeleteMsg = 'delete' in content && !!content.delete
+				const isKeepMsg = 'keep' in content && !!(content as any).keep
+				const isEditMsg = 'edit' in content && !!content.edit
+				const isPinMsg = 'pin' in content && !!content.pin
+				const isPollMessage = 'poll' in content && !!content.poll
+				const additionalAttributes: BinaryNodeAttributes = {}
+				const additionalNodes: BinaryNode[] = []
+				// required for delete
+				if (isDeleteMsg || isKeepMsg) {
+					// if the chat is a group, and I am not the author, then delete the message as an admin
+					const deleteKey = isDeleteMsg ? content.delete : undefined
+					if (isJidGroup(deleteKey?.remoteJid as string) && !deleteKey?.fromMe) {
+						additionalAttributes.edit = '8'
+					} else {
+						additionalAttributes.edit = '7'
+					}
+				} else if (isEditMsg) {
+					// Edited messages inside newsletters use a different edit
+					// code than regular chats.
+					additionalAttributes.edit = isJidNewsletter(jid) ? '3' : '1'
+				} else if (isPinMsg) {
+					additionalAttributes.edit = '2'
+				} else if (isPollMessage) {
+					// Newsletter polls need a contenttype attr ('image' or 'text')
+					// for cross-client compatibility
+					const isNewsletterMsg = isJidNewsletter(jid)
+					const pollContent = (content as any).poll
+					const isQuizMsg = pollContent?.pollType === 1
+					if (isQuizMsg && !isNewsletterMsg) {
+						// Quiz polls are only supported inside newsletters (channels)
+						// on the WhatsApp protocol level.
+						throw new Boom('Quiz polls are only allowed for newsletters', { statusCode: 400 })
+					}
+
+					const pollAttrs: Record<string, string> = { polltype: isQuizMsg ? 'quiz_creation' : 'creation' }
+					if (isNewsletterMsg) {
+						pollAttrs.contenttype = pollContent?.pollContentType === 2 ? 'image' : 'text'
+					}
+
+					additionalNodes.push({
+						tag: 'meta',
+						attrs: pollAttrs
+					})
+				} else if (isEventMsg) {
+					additionalNodes.push({
+						tag: 'meta',
+						attrs: {
+							event_type: 'creation'
+						}
+					})
+				}
+
+				// PR #2692 — set alternate addressing on key when routed to LID
+				if (lidRemoteJidAlt) {
+					fullMsg.key.remoteJidAlt = lidRemoteJidAlt
+					fullMsg.key.addressingMode = 'lid'
+				}
+
+				await relayMessage(resolvedJid, fullMsg.message!, {
+					messageId: fullMsg.key.id!,
+					useCachedGroupMetadata: options.useCachedGroupMetadata,
+					additionalAttributes: { ...additionalAttributes, ...(lidAttrs || {}) },
+					statusJidList: options.statusJidList,
+					additionalNodes,
+					AI: options.ai,
+					secureMetaServiceLabel: options.secureMetaServiceLabel
+				})
+				if (config.emitOwnEvents) {
+					process.nextTick(async () => {
+						await messageMutex.mutex(() => upsertMessage(fullMsg, 'append'))
+					})
+				}
+
+				return fullMsg
+			}
+		},
+
+		/**
+		 * Build and send a sticker pack via the alternate builder
+		 * (`prepareStickerPackMessage`, addons/stickerpack.ts) — kept as a
+		 * distinct implementation from the one `sock.sendMessage(jid, {
+		 * stickerPack: {...} })` uses. Use whichever produces the result you
+		 * need; both are fully supported.
+		 */
+		sendStickerPack: async (
+			jid: string,
+			stickerPack: StickerPackInput,
+			options: MiscMessageGenerationOptions & { mediaCache?: StickerPackOptions['mediaCache'] } = {}
+		) => {
+			const stickerPackMessage = await prepareStickerPackMessage(stickerPack, {
+				upload: waUploadToServer as StickerPackOptions['upload'],
+				logger,
+				mediaUploadTimeoutMs: options.mediaUploadTimeoutMs,
+				mediaCache: options.mediaCache
+			})
+			return relayMessage(
+				jid,
+				{ stickerPackMessage },
+				{
+					messageId: options.messageId,
+					additionalNodes: options.additionalNodes
+				}
+			)
+		},
+
+		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
+			return execSendStatusMentions(content, jids, {
+				meId: authState.creds.me!.id,
+				logger,
+				groupMetadata: sock.groupMetadata,
+				cachedGroupMetadata: config.cachedGroupMetadata,
+				relayMessage,
+				waUploadToServer,
+				getUrlInfo,
+				config,
+				linkPreviewImageThumbnailWidth,
+				generateHighQualityLinkPreview,
+				httpRequestOptions
+			})
+		},
+
+		/**
+		 * Send a rich table via botForwardedMessage → richResponseMessage.
+		 */
+		sendTable: async (
+			jid: string,
+			title: string,
+			headers: string[],
+			rows: string[][],
+			quoted?: any,
+			options: { headerText?: string; footer?: string } = {}
+		) => {
+			const { message, messageId } = generateTableContent(title, headers, rows, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a rich list (single-column table).
+		 */
+		sendList: async (
+			jid: string,
+			title: string,
+			items: string[] | string[][],
+			quoted?: any,
+			options: { headerText?: string; footer?: string } = {}
+		) => {
+			const { message, messageId } = generateListContent(title, items, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a syntax-highlighted code block.
+		 */
+		sendCodeBlock: async (
+			jid: string,
+			code: string,
+			quoted?: any,
+			options: { title?: string; footer?: string; language?: string } = {}
+		) => {
+			const { message, messageId } = generateCodeBlockContent(code, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a rich HTML message (GenAI unified-response HTML primitive),
+		 * forwarded as a bot-style message.
+		 */
+		sendRichHtml: async (jid: string, html: string, quoted?: any, options: GenerateRichHtmlOptions = {}) => {
+			const { message, messageId } = generateRichHtmlContent(html, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a LaTeX expression as text (no image rendering).
+		 */
+		sendLatex: async (
+			jid: string,
+			quoted: any,
+			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string }
+		) => {
+			const { message, messageId } = generateLatexContent(quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Render LaTeX to PNG images, upload, and send.
+		 */
+		sendLatexImage: async (
+			jid: string,
+			quoted: any,
+			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+			renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
+			uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
+		) => {
+			const { message, messageId } = await generateLatexImageContent(quoted, options, uploadFn, renderLatexToPng)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Render LaTeX to PNG inline image blocks, upload, and send.
+		 */
+		sendLatexInlineImage: async (
+			jid: string,
+			quoted: any,
+			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
+			renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
+			uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
+		) => {
+			const { message, messageId } = await generateLatexInlineImageContent(quoted, options, uploadFn, renderLatexToPng)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a rich markdown text message formatted natively via Meta AI primitives.
+		 * WA's richResponse text field already supports its own native markdown-like
+		 * syntax (*bold*, _italic_, ~strike~, ```code```), so this is a thin wrapper
+		 * around the TEXT rich-submessage primitive — it does not do a full CommonMark
+		 * parse, just passes the string straight through as a single TEXT submessage.
+		 *
+		 * `options` also controls inline entity extraction: `[text](url)` becomes a
+		 * clickable hyperlink, `[](url)` becomes a citation, and `[expr|w|h|fh|pad](url)`
+		 * becomes a rendered latex reference. Pass `{ extract: false }` to disable, or
+		 * `{ hyperlink: false }` / `{ citation: false }` / `{ latex: false }` to disable
+		 * a specific kind (all default to `true`).
+		 */
+		sendMarkdown: async (jid: string, markdown: string, quoted?: any, options?: ExtractOptions) => {
+			const { message, messageId } = generateMarkdownContent(markdown, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Send a fully custom rich message from a raw submessages array.
+		 * Pass { useMarkdown: true } to render TEXT/TABLE/CODE submessages
+		 * as native WhatsApp rich-content primitives via unifiedResponse.
+		 * When useMarkdown is set, `extract`/`hyperlink`/`citation`/`latex` also
+		 * control inline entity extraction from TEXT and TABLE cell contents,
+		 * same as `sendMarkdown`.
+		 */
+		sendRichMessage: async (
+			jid: string,
+			submessages: RichSubMessage[],
+			quoted?: any,
+			options?: GenerateRichMessageOptions
+		) => {
+			const { message, messageId } = generateRichMessageContent(submessages, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Capture the unifiedResponse payload from an incoming Meta AI message.
+		 * Returns null if the message is not a rich response.
+		 */
+		extractUnifiedResponse,
+
+		/**
+		 * Re-send a captured unifiedResponse to a new JID.
+		 */
+		sendUnifiedResponse: async (jid: string, quoted: any, captured: CapturedUnifiedResponse) => {
+			const { message, messageId } = generateUnifiedResponseContent(quoted, captured)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		}
+	}
+}

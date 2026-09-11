@@ -1,0 +1,115 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'vm*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetching tags
+        run: git fetch --tags -f || true
+
+      - name: Get previous version
+        id: get_previous_version
+        run: |
+          git checkout HEAD~1 package.json || true
+          PREV_VERSION=$(node -p "require('./package.json').version")
+          git checkout HEAD package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Check if version is a prerelease (beta, alpha, rc, etc.) and
+          # extract its tag label — matches 1.2.3-beta, 1.2.3-beta.0,
+          # 1.2.3-beta.1, 1.2.3-alpha.2, 1.2.3-rc.1, and so on.
+          if [[ "$CURRENT_VERSION" == *-* ]]; then
+            PRERELEASE_TAG=$(echo "$CURRENT_VERSION" | sed -E 's/^[^-]+-([a-zA-Z]+).*/\1/')
+            echo "is_beta=true" >> $GITHUB_OUTPUT
+            echo "prerelease_tag=$PRERELEASE_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+            echo "prerelease_tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log version changes
+        run: |
+          echo "Previous version: ${{ steps.get_previous_version.outputs.prev_version }}"
+          echo "Current version: ${{ steps.get_previous_version.outputs.current_version }}"
+          echo "Is prerelease version: ${{ steps.get_previous_version.outputs.is_beta }}"
+          echo "Publish tag: ${{ steps.get_previous_version.outputs.prerelease_tag }}"
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm to a version that supports Trusted Publishers
+        run: npm install -g npm@latest
+
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Restore Yarn Cache
+        uses: actions/cache@v6
+        id: yarn-cache
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Dependencies
+        run: yarn install --immutable
+
+      - name: Publish in NPM
+        run: npm publish --access public --provenance --tag ${{ steps.get_previous_version.outputs.prerelease_tag }}
+
+      - name: Publish in NPM (teamolduser scope)
+        run: |
+          npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
+          npm publish --access public --tag ${{ steps.get_previous_version.outputs.prerelease_tag }} --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          if [ "${{ steps.get_previous_version.outputs.is_beta }}" == "false" ]; then
+            npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          fi
+          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Generate Changelog
+        id: generate_changelog
+        run: |
+          changelog=$(npm run changelog:last --silent)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "${changelog}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Make Package
+        run: yarn pack -o baileys.tgz
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ github.ref_name }}
+          body: ${{ steps.generate_changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+          files: |
+            baileys.tgz

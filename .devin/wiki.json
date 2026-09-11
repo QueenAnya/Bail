@@ -1,0 +1,301 @@
+{
+  "repo_notes": [
+    {
+      "content": ""
+    }
+  ],
+  "pages": [
+    {
+      "title": "Repository Overview",
+      "purpose": "High-level introduction to @queenanya/baileys — what it is, its architecture, key capabilities, and how the major subsystems relate. Links to all child sections for deeper reading.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Getting Started",
+      "purpose": "Step-by-step guide for installing the library, meeting Node.js ≥20 requirements, initializing makeWASocket, handling QR/pairing-code authentication, and wiring up the event emitter for a minimal working bot.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Configuration Reference",
+      "purpose": "Detailed reference for SocketConfig / UserFacingSocketConfig options: auth state, logger (Pino), browser identity, keepAlive, media cache, cache backends, and all tunable parameters.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Connection & Authentication",
+      "purpose": "Overview of how the library establishes and maintains a secure connection to WhatsApp servers, covering the Noise Protocol handshake, credential lifecycle, and multi-device pairing. Links to child pages for details.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "WebSocket & Noise Protocol Handshake",
+      "purpose": "Deep dive into makeSocket and the WebSocketClient: how the Noise Protocol XX handshake is performed, frame encoding/decoding, keep-alive pings, connection teardown, and the event-buffer optimization for offline message processing.",
+      "parent": "Connection & Authentication",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Authentication State & Credential Management",
+      "purpose": "Explains AuthenticationCreds, SignalKeyStore, and the three auth-state backends (useMultiFileAuthState, useSingleFileAuthState, useMongoFileAuthState). Covers initAuthCreds, addTransactionCapability, makeCacheableSignalKeyStore, and how to persist keys correctly to avoid decryption errors.",
+      "parent": "Connection & Authentication",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Device Pairing & Registration",
+      "purpose": "Covers QR-code pairing vs. pairing-code flow, generateRegistrationNode, generateLoginNode, configureSuccessfulPairing, ADVSignedDeviceIdentity HMAC verification, and pre-key upload lifecycle.",
+      "parent": "Connection & Authentication",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Messaging Architecture",
+      "purpose": "Overview of the full message pipeline from high-level sendMessage calls down to encrypted binary stanzas, and from incoming stanzas up to typed WAMessage events. Links to child pages for send, receive, and content construction.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Sending Messages",
+      "purpose": "Detailed coverage of makeMessagesSocket: sendMessage, relayMessage, createParticipantNodes, getUSyncDevices, assertSessions, the encryption mutex, LID-priority logic, sender-key distribution for groups, newsletter plaintext path, TC Token, and media retry flow.",
+      "parent": "Messaging Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Receiving Messages & Incoming Stanzas",
+      "purpose": "Covers makeMessagesRecvSocket: CB:message / CB:receipt / CB:notification / CB:call handlers, decryption retry lifecycle, offline batch processing, newsletter MEX notifications, identity-change handling, and the processingMutex.",
+      "parent": "Messaging Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Message Content Construction",
+      "purpose": "Explains generateWAMessage, generateWAMessageContent, prepareWAMessageMedia, the media encryption/upload pipeline (encryptedStream, fileEncSha256, mediaKey), link-preview generation, poll versioning, contextInfo/quoting, and getBizBinaryNode for interactive messages.",
+      "parent": "Messaging Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Rich & Interactive Messages",
+      "purpose": "Documents the rich message composer: generateTableContent, generateListContent, generateCodeBlockContent, generateLatexContent, generateMarkdownContent, generateRichMessageContent, botForwardedMessage, unifiedResponse UX primitives, nativeFlow buttons, carousel, and interactive templates.",
+      "parent": "Messaging Architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "End-to-End Encryption & Signal Protocol",
+      "purpose": "Overview of the cryptographic stack: Signal Protocol sessions, group sender keys, LID migration, and app-state LTHash. Links to child pages for the Signal layer and app-state sync.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Signal Session Management",
+      "purpose": "Covers libsignal integration, SignalRepository, pre-key generation and upload, session creation/migration from PN to LID, the Group sender-key sub-system (SenderKeyRecord, GroupSessionBuilder, GroupCipher), and the encryptionMutex pattern.",
+      "parent": "End-to-End Encryption & Signal Protocol",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "App-State Sync & LTHash",
+      "purpose": "Explains the app-state synchronization system: SyncAction patches, CollectionName buckets (REGULAR, CRITICAL_BLOCK, etc.), LTHash differential verification, resyncAppState, and how settings/contacts/chat metadata are mutated across devices.",
+      "parent": "End-to-End Encryption & Signal Protocol",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Protocol Buffers (WAProto)",
+      "purpose": "Overview of the WAProto directory: how .proto files are organized, generated, and consumed. Links to child pages covering the major proto namespaces.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Proto Extraction & Generation Pipeline",
+      "purpose": "Documents the automated scripts/index.js pipeline: scraping WhatsApp Web service worker for client_revision, AST parsing with acorn to extract internalSpec/internalDefaults, cross-reference resolution, .proto file generation, pbts TypeScript declaration generation, and the GitHub Actions workflow schedule.",
+      "parent": "Protocol Buffers (WAProto)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "E2E & Web Message Schemas",
+      "purpose": "Reference for the core proto namespaces: E2E.proto (all message content types, polls, events, AI messages, LIDMigrationMappingSyncMessage), Web.proto (WebMessageInfo lifecycle, MessageAddOn, KeepInChat, PollUpdate, WebFeatures), and MdStorageMsgRowOpaqueData (flat storage schema).",
+      "parent": "Protocol Buffers (WAProto)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "History Sync, AI, & Auxiliary Protos",
+      "purpose": "Covers HistorySync.proto (history sync types, progress tracking), AICommon.proto (AI query/response structures), AICommonDeprecated, SyncAction.proto (full mutation catalog), StatusAttributions, CompanionReg, DeviceCapabilities, Adv, Cert, Ephemeral, and other auxiliary proto packages.",
+      "parent": "Protocol Buffers (WAProto)",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Socket Layer & Feature Modules",
+      "purpose": "Overview of the Socket directory's layered composition pattern and the feature-specific socket modules. Links to child pages for groups/communities, newsletters, business, and USync.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Groups & Communities",
+      "purpose": "Documents makeGroupsSocket and makeCommunitiesSocket: group creation, participant management (add/remove/promote/demote), invite codes (V3/V4), ephemeral settings, join-approval mode, member-add mode, community-linked groups, and extractGroupMetadata binary parsing.",
+      "parent": "Socket Layer & Feature Modules",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Newsletters (Channels)",
+      "purpose": "Covers makeNewsletterSocket: creating, following, muting, and deleting newsletters; admin management (adminCount, changeOwner, demote); fetching messages and updates; reaction modes; MEX/GraphQL queries for newsletter metadata; and newsletter-specific incoming notification handling.",
+      "parent": "Socket Layer & Feature Modules",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Business, Chats & Profile",
+      "purpose": "Documents business socket methods (getCatalog, productCreate/Update/Delete, getBusinessProfile), chat management (chatModify, star, clearMessage, labels), privacy settings (updateLastSeenPrivacy, updateOnlinePrivacy, etc.), profile updates, and the chats socket (appPatch, resyncAppState, cleanDirtyBits).",
+      "parent": "Socket Layer & Feature Modules",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "USync Protocol & Username System",
+      "purpose": "Explains the USync (Universal Sync) protocol: USyncQuery builder, USyncUser, all protocol handlers (Contact, LID, Device, Status, Username, BotProfile, DisappearingMode), executeUSyncQuery, and the username socket (checkUsername, setUsername, findUserByUsername) via Mex/GraphQL.",
+      "parent": "Socket Layer & Feature Modules",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "VoIP & Voice Calls",
+      "purpose": "Overview of the VoIP subsystem and call signaling. Links to child pages for the WASM engine and the call signaling/transport layer.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "WASM Engine & PThread Pool",
+      "purpose": "Deep dive into WasmEngine (wasm-engine.mjs): loading whatsapp.wasm in a vm.Context, the 20-worker PThread pool using SharedArrayBuffer, Atomics proxy to prevent event-loop blocking, the custom module registry (__d/require), initVoipStack, audio capture (PCM 16kHz/Mono/Float32 via malloc/sendAudioData), and audio playback loop.",
+      "parent": "VoIP & Voice Calls",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "VoipClient, Signaling & Transport",
+      "purpose": "Covers VoipClient lifecycle (connect, initWithSocket, call), SignalingBridge (offer/accept/terminate/transport stanzas), RelayRtcTransport for media relay, AudioFeeder, TC Token requirement, LID/PN resolution for calls, and the call signaling flow in makeMessagesRecvSocket (offerCall, acceptCall, terminateCall, sendTransport).",
+      "parent": "VoIP & Voice Calls",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "State Management & Storage",
+      "purpose": "Overview of how the library manages in-memory and persistent state. Links to child pages for the in-memory store, anti-delete, and the WABinary encoding layer.",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "In-Memory Store & Cache Backends",
+      "purpose": "Documents makeInMemoryStore (bind, loadMessages, writeToFile/readFromFile, KeyedDB ordering), makeCacheManagerStore, makeOrderedDictionary, ObjectRepository, and how the store reacts to BaileysEventEmitter events (messaging-history.set, chats.upsert, messages.upsert, group-participants.update).",
+      "parent": "State Management & Storage",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Anti-Delete & Message Retention",
+      "purpose": "Explains the MessageStore class: storeMessage with maxMessagesPerChat eviction, TTL-based cleanup, markAsDeleted, createAntiDeleteHandler listening for REVOKE protocol messages, and the deletedMessages recovery map.",
+      "parent": "State Management & Storage",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    }
+  ]
+}

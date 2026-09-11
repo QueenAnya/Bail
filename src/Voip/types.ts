@@ -1,0 +1,152 @@
+/**
+ * Shared type definitions for baileys-caller.
+ *
+ * @author ShellTear
+ */
+
+/** Audio stream configuration reported by the WASM. */
+export type AudioConfig = {
+	sampleRate: number
+	channels: number
+	bitsPerSample: number
+	framesPerChunk: number
+}
+
+/** Options for placing a call. */
+export type CallOptions = {
+	/** Phone number, digits only (e.g. `"12345678901"`). */
+	to: string
+	/** Audio source: file path to MP3/WAV, or `"silence"` for an empty uplink. */
+	audioSource?: string
+	/** Auto-hangup after N ms (default: 120000). */
+	durationMs?: number
+	durationMS?: number
+	/** Repeat/loop the audio source continuously until durationMs is reached. */
+	repeatAudio?: boolean
+	repeat?: boolean
+	/** Whether this is a video call (default: false). */
+	isVideo?: boolean
+	/** Video source: file path to MP4/MKV/MOV/AVI video file. */
+	videoSource?: string
+	videoWidth?: number
+	width?: number
+	videoHeight?: number
+	height?: number
+	videoFps?: number
+	fps?: number
+	videoLoop?: boolean
+	repeatVideo?: boolean
+	loop?: boolean
+	isHorizontal?: boolean
+	horizontal?: boolean
+	orientation?: number
+	videoOrientation?: number
+	/** Timeout waiting for remote device to confirm ringing in ms (default: 20000). */
+	preRingingTimeoutMs?: number
+}
+
+/** High-level deterministic call status strings. */
+export type CallStatus =
+	| 'idle'
+	| 'initiating'
+	| 'signaling'
+	| 'ringing'
+	| 'accepted'
+	| 'media_connecting'
+	| 'connected'
+	| 'audio_ready'
+	| 'streaming'
+	| 'ending'
+	| 'ended'
+	| 'failed'
+	| 'unreachable'
+	| 'rejected'
+	| 'timeout'
+
+/** Request object for batch call initiation. */
+export type CallRequest = {
+	jid: string
+	options?: CallOptions
+}
+
+/** Safe public descriptor of an active or recent call. */
+export type CallSummary = {
+	id: string
+	jid: string
+	status: CallStatus
+	state: CallState
+	startedAt: number
+	connectedAt: number | null
+	endedAt: number | null
+	durationMs: number
+	audioSource: string
+	repeatAudio: boolean
+	isVideo: boolean
+	isHorizontal: boolean
+	videoOrientation: number
+	videoSource: string | null
+}
+
+/** VoIP Manager configuration options. */
+export type VoipConfigOptions = {
+	maxConcurrentCalls?: number
+}
+
+/** Events emitted by an `ActiveCall`. */
+export type CallEvents = {
+	ringing: () => void
+	accepted: () => void
+	connected: () => void
+	audioReady: () => void
+	streaming: () => void
+	videoStarted: () => void
+	videoEnded: () => void
+	videoError: (err: Error) => void
+	stateChange: (status: CallStatus) => void
+	/** 16 kHz mono Float32 PCM frame from the remote peer. */
+	audio: (pcm: Float32Array) => void
+	/** Reason: `"completed"` | `"hangup"` | `"timeout"` | `"unreachable"` | `"rejected"` | `"remote_end"` | `"disconnect"` | etc. */
+	ended: (reason: string) => void
+	error: (err: Error) => void
+}
+
+/** Top-level SDK configuration. */
+export type VoipSdkConfig = {
+	/** Path to a Baileys multi-file auth state directory. */
+	authDir: string
+}
+
+/** Mirrors the WhatsApp WASM `CallState` enum. */
+export const CallState = {
+	Idle: 0,
+	Calling: 1,
+	PreacceptReceived: 2,
+	ReceivedCall: 3,
+	AcceptSent: 4,
+	AcceptReceived: 5,
+	Active: 6,
+	ActiveElsewhere: 7,
+	Ending: 13
+} as const
+export type CallState = (typeof CallState)[keyof typeof CallState]
+
+/** Relay list update payload from WASM call event 156. */
+export type RelayListUpdate = {
+	relay_key: string
+	relay_tokens: string[]
+	auth_tokens?: string[]
+	enable_edgeray_dtls_active_mode?: boolean
+	relays: ReadonlyArray<{
+		relay_id: number
+		relay_name: string
+		token_id: number
+		auth_token_id?: number
+		addresses: ReadonlyArray<{
+			protocol: number
+			ipv4?: string
+			ipv6?: string
+			port?: number
+			port_v6?: number
+		}>
+	}>
+}

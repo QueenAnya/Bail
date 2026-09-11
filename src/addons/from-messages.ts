@@ -1,0 +1,394 @@
+/**
+ * from-messages.ts
+ * Source: src/Utils/messages.ts
+ *
+ * Message content builder functions ported from baileys.
+ * These are imported back into generateWAMessageContent in messages.ts.
+ */
+import { Boom } from '@hapi/boom'
+import { zipSync } from 'fflate'
+import { promises as fs } from 'fs'
+import { gunzipSync, gzipSync } from 'zlib'
+import { proto } from '../../WAProto/index.js'
+import type { MessageContentGenerationOptions } from '../Types'
+import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, PaymentMessageOptions, StickerPack } from '../Types/Message'
+import { sha256 } from '../Utils/crypto'
+import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
+import {
+	encryptedStream,
+	generateThumbnail,
+	getImageProcessingLibrary,
+	getStream,
+	toBuffer
+} from '../Utils/messages-media'
+
+// ── adminInvite → newsletterAdminInviteMessage ─────────────────────────────
+
+/**
+ * Build newsletterAdminInviteMessage from adminInvite content
+ */
+export async function buildAdminInviteMessage(
+	adminInvite: AdminInviteInfo,
+	contextInfo: any,
+	options: MessageContentGenerationOptions
+): Promise<proto.Message.INewsletterAdminInviteMessage> {
+	const msg: proto.Message.INewsletterAdminInviteMessage = {
+		newsletterJid: adminInvite.jid,
+		newsletterName: adminInvite.name,
+		caption: adminInvite.caption,
+		inviteExpiration: adminInvite.expiration,
+		contextInfo
+	}
+	if (options.getProfilePicUrl) {
+		try {
+			const pfpUrl = await options.getProfilePicUrl(adminInvite.jid, 'preview')
+			if (pfpUrl) {
+				const { thumbnail } = await generateThumbnail(pfpUrl, 'image', {})
+				if (thumbnail) msg.jpegThumbnail = Buffer.from(thumbnail, 'base64')
+			}
+		} catch {}
+	}
+
+	return msg
+}
+
+// ── call → scheduledCallCreationMessage ───────────────────────────────────
+
+/**
+ * Build scheduledCallCreationMessage from call content, including the
+ * 'Call Creation' default title.
+ */
+export function buildCallMessage(call: CallCreationInfo): proto.Message.IScheduledCallCreationMessage {
+	return {
+		scheduledTimestampMs: call.time ?? Date.now(),
+		callType: call.type ?? 1,
+		title: call.name ?? 'Call Creation'
+	}
+}
+
+// ── paymentInvite → paymentInviteMessage ──────────────────────────────────
+
+/**
+ * Build paymentInviteMessage from paymentInvite content
+ */
+export function buildPaymentInviteMessage(paymentInvite: PaymentInviteInfo): proto.Message.IPaymentInviteMessage {
+	return {
+		expiryTimestamp: paymentInvite.expiry ?? 0,
+		serviceType: paymentInvite.type ?? 2
+	}
+}
+
+// ── payment → requestPaymentMessage ───────────────────────────────────────
+
+/**
+ * Build requestPaymentMessage from payment content. `amount` is in the
+ * currency's smallest unit (e.g. cents) — both the legacy `amount1000`
+ * field and the modern `Money` shape are populated for compatibility.
+ */
+export function buildPaymentMessage(payment: PaymentMessageOptions): proto.Message.IRequestPaymentMessage {
+	return {
+		noteMessage: payment.note ? { conversation: payment.note } : undefined,
+		currencyCodeIso4217: payment.currency,
+		amount1000: Math.round(payment.amount * 10),
+		amount: { value: payment.amount, offset: 100, currencyCode: payment.currency },
+		requestFrom: payment.receiverJid,
+		expiryTimestamp: payment.expiry ?? 0
+	}
+}
+
+// ── stickerPack → stickerPackMessage ──────────────────────────────────────
+
+/**
+ * Check if buffer is a valid WebP file (magic bytes: RIFF....WEBP)
+ * Source: PR #84 rsalcara/InfiniteAPI
+ */
+export function isWebPBuffer(buffer: Buffer): boolean {
+	if (buffer.length < 12) return false
+	const riffHeader = buffer.toString('ascii', 0, 4)
+	const webpHeader = buffer.toString('ascii', 8, 12)
+	return riffHeader === 'RIFF' && webpHeader === 'WEBP'
+}
+
+/**
+ * Detect animated WebP by checking VP8X chunk animation flag
+ * Source: PR #84 rsalcara/InfiniteAPI
+ */
+export function isAnimatedWebP(buffer: Buffer): boolean {
+	if (!isWebPBuffer(buffer)) return false
+	// VP8X chunk starts at offset 12 for extended WebP
+	try {
+		let offset = 12
+		while (offset + 8 <= buffer.length) {
+			const chunkId = buffer.toString('ascii', offset, offset + 4)
+			const chunkSize = buffer.readUInt32LE(offset + 4)
+			if (chunkId === 'VP8X') {
+				// flags byte at offset+8, bit 1 (0x02) = animation
+				const flags = buffer[offset + 8] ?? 0
+				return (flags & 0x02) !== 0
+			}
+
+			offset += 8 + chunkSize + (chunkSize % 2)
+		}
+	} catch {}
+
+	return false
+}
+
+/**
+ * Detect Lottie/WAS format (gzip-compressed or raw Lottie JSON)
+ * WAS = WhatsApp Animated Sticker = gzip-compressed Lottie JSON
+ * Source: PR #260 rsalcara/InfiniteAPI
+ */
+export function isLottieBuffer(buffer: Buffer): boolean {
+	if (buffer.length < 2) return false
+	let jsonBuffer: Buffer
+
+	if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
+		// gzip-compressed
+		try {
+			jsonBuffer = gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 })
+		} catch {
+			return false
+		}
+	} else if (buffer[0] === 0x7b) {
+		// raw JSON starts with '{'
+		jsonBuffer = buffer
+	} else {
+		return false
+	}
+
+	try {
+		const str = jsonBuffer.toString('utf8', 0, Math.min(jsonBuffer.length, 4096))
+		return str.includes('"v"') && str.includes('"layers"') && str.includes('"ip"') && str.includes('"op"')
+	} catch {
+		return false
+	}
+}
+
+/**
+ * Build stickerPackMessage following PR #1561 + PR #84 + PR #260 approach:
+ *
+ * Architecture:
+ * 1. Process stickers → WebP/WAS buffers (with Lottie support from PR #260)
+ * 2. Cover (tray icon) → add to ZIP as ${packId}.webp inside ZIP
+ * 3. ZIP everything → encrypt → upload as 'sticker-pack'
+ * 4. Generate 252x252 JPEG thumbnail from cover → encrypt with SAME mediaKey → upload as 'thumbnail-sticker-pack'
+ * 5. Return full IStickerPackMessage with both upload results
+ *
+ * KEY FIXES vs old implementation:
+ * - Cover goes INSIDE ZIP (not uploaded separately as image)
+ * - Thumbnail is separate 252x252 JPEG upload with same mediaKey
+ * - stickerPackOrigin: USER_CREATED (not THIRD_PARTY)
+ * - thumbnail-sticker-pack media type for thumbnail
+ */
+/** Max concurrent stickers processed at once — avoids CPU/memory spikes on large packs */
+const STICKER_PACK_CONCURRENCY_LIMIT = 15
+/** WhatsApp's sticker pack limit */
+const MAX_STICKERS_PER_PACK = 60
+/** Per-sticker WebP size limit enforced by WhatsApp clients */
+const MAX_STICKER_SIZE_BYTES = 1024 * 1024
+
+export async function buildStickerPackMessage(
+	stickerPack: StickerPack,
+	options: MessageContentGenerationOptions
+): Promise<proto.Message.IStickerPackMessage> {
+	const { stickers, cover, name, publisher, packId, description } = stickerPack
+	const stickerPackId = packId || generateMessageIDV2()
+	const stickerData: Record<string, any> = {}
+
+	// ── Step 1: Process stickers ──────────────────────────────────────────
+	const validStickers = (stickers as any[]).filter(s => s !== null && s !== undefined)
+	if (validStickers.length < 1) {
+		throw new Error('Sticker pack must contain at least one sticker')
+	}
+
+	if (validStickers.length > MAX_STICKERS_PER_PACK) {
+		throw new Boom(`Sticker pack exceeds the maximum limit of ${MAX_STICKERS_PER_PACK} stickers`, { statusCode: 400 })
+	}
+
+	const stickerMetadata: any[] = new Array(validStickers.length)
+	for (let i = 0; i < validStickers.length; i += STICKER_PACK_CONCURRENCY_LIMIT) {
+		const chunkEnd = Math.min(i + STICKER_PACK_CONCURRENCY_LIMIT, validStickers.length)
+		const chunkResults = await Promise.all(
+			validStickers.slice(i, chunkEnd).map(async (s: any, offset: number) => {
+				const index = i + offset
+				const raw = s.data ?? s.sticker
+				if (!raw) {
+					throw new Error(`Sticker at index ${index} is missing media — provide either 'data' or 'sticker'`)
+				}
+
+				const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
+				const { stream } = await getStream(normalized)
+				const buffer = (await toBuffer(stream)) as Buffer
+
+				// Lottie/WAS detection (PR #260)
+				const detectedLottie = s.isLottie !== undefined ? s.isLottie : isLottieBuffer(buffer)
+				let finalBuffer = buffer
+
+				if (detectedLottie) {
+					// Raw Lottie JSON → gzip to WAS
+					if (buffer[0] === 0x7b) {
+						finalBuffer = gzipSync(buffer)
+					}
+				} else if (isWebPBuffer(buffer)) {
+					finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
+				} else {
+					// Non-WebP sticker — needs sharp/@napi-rs/image to convert (jimp can't output WebP)
+					const lib = await getImageProcessingLibrary()
+					if (lib?.sharp) {
+						finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
+					} else if (lib?.image) {
+						finalBuffer = await new lib.image.Transformer(buffer).webp()
+					} else {
+						throw new Boom(
+							`Sticker ${index + 1}: No image processing library (sharp or @napi-rs/image) available for converting to WebP. Either install one of them or provide stickers in WebP format.`,
+							{ statusCode: 400 }
+						)
+					}
+				}
+
+				if (finalBuffer.length > MAX_STICKER_SIZE_BYTES) {
+					throw new Boom(`Sticker at index ${index} exceeds the 1MB size limit`, { statusCode: 400 })
+				}
+
+				const isAnimated = detectedLottie ? true : isAnimatedWebP(finalBuffer)
+				const extension = detectedLottie ? 'was' : 'webp'
+				// Use sha256 hash for filename (deduplication) — RFC 4648 base64url
+				const hash = sha256(finalBuffer).toString('base64url')
+				const fileName = `${hash}.${extension}`
+
+				// Dedup: only add if not already in stickerData
+				if (!stickerData[fileName]) {
+					stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 as 0 }]
+				}
+
+				return {
+					fileName,
+					mimetype: detectedLottie ? 'application/was' : 'image/webp',
+					isAnimated,
+					isLottie: detectedLottie,
+					emojis: s.emojis || [],
+					accessibilityLabel: s.accessibilityLabel || ''
+				}
+			})
+		)
+		for (let j = 0; j < chunkResults.length; j++) {
+			stickerMetadata[i + j] = chunkResults[j]
+		}
+	}
+
+	// ── Step 2: Process cover (tray icon) → add INSIDE ZIP ───────────────
+	const coverRaw = Buffer.isBuffer(cover) ? cover : typeof cover === 'string' ? { url: cover } : cover
+	const { stream: coverStream } = await getStream(coverRaw)
+	const coverBuffer = (await toBuffer(coverStream)) as Buffer
+
+	// Cover as WebP in ZIP (tray icon)
+	let coverWebP: Buffer
+	if (isWebPBuffer(coverBuffer)) {
+		coverWebP = coverBuffer
+	} else {
+		const lib = await getImageProcessingLibrary()
+		if (lib?.sharp) {
+			coverWebP = await lib.sharp.default(coverBuffer).webp().toBuffer()
+		} else if (lib?.image) {
+			coverWebP = await new lib.image.Transformer(coverBuffer).webp()
+		} else {
+			throw new Boom(
+				'No image processing library (sharp or @napi-rs/image) available for converting cover to WebP. Either install one of them or provide cover in WebP format.',
+				{ statusCode: 400 }
+			)
+		}
+	}
+
+	const trayIconFileName = `${stickerPackId}.webp`
+	stickerData[trayIconFileName] = [new Uint8Array(coverWebP), { level: 0 as 0 }]
+
+	// ── Step 3: ZIP + encrypt + upload as 'sticker-pack' ─────────────────
+	const zipBuffer = Buffer.from(zipSync(stickerData))
+
+	const stickerPackEncrypted = await encryptedStream(zipBuffer, 'sticker-pack', {
+		logger: options.logger,
+		opts: options.options
+	})
+
+	const stickerPackResult = await options.upload(stickerPackEncrypted.encFilePath, {
+		fileEncSha256B64: stickerPackEncrypted.fileEncSha256.toString('base64'),
+		mediaType: 'sticker-pack',
+		timeoutMs: options.mediaUploadTimeoutMs
+	})
+
+	// Cleanup temp file
+	try {
+		await fs.unlink(stickerPackEncrypted.encFilePath)
+	} catch {}
+
+	// ── Step 4: Generate 252x252 JPEG thumbnail + upload as 'thumbnail-sticker-pack'
+	// CRITICAL: same mediaKey as ZIP upload (required by WhatsApp protocol)
+	let thumbnailBuffer: Buffer
+	try {
+		const lib = await getImageProcessingLibrary()
+		if (lib?.sharp) {
+			thumbnailBuffer = await lib.sharp.default(coverBuffer).resize(252, 252).jpeg().toBuffer()
+		} else if (lib?.image) {
+			thumbnailBuffer = await new lib.image.Transformer(coverBuffer).resize(252, 252).jpeg()
+		} else if (lib?.jimp) {
+			const jimpImage = await lib.jimp.Jimp.read(coverBuffer)
+			thumbnailBuffer = await jimpImage.resize({ w: 252, h: 252 }).getBuffer('image/jpeg')
+		} else {
+			throw new Error('No image processing library available for thumbnail generation')
+		}
+
+		if (!thumbnailBuffer || thumbnailBuffer.length === 0) {
+			throw new Error('Failed to generate thumbnail buffer')
+		}
+	} catch {
+		thumbnailBuffer = coverBuffer
+	}
+
+	const thumbEncrypted = await encryptedStream(thumbnailBuffer, 'thumbnail-sticker-pack', {
+		logger: options.logger,
+		opts: options.options,
+		mediaKey: stickerPackEncrypted.mediaKey // SAME mediaKey — protocol requirement!
+	})
+
+	const thumbResult = await options.upload(thumbEncrypted.encFilePath, {
+		fileEncSha256B64: thumbEncrypted.fileEncSha256.toString('base64'),
+		mediaType: 'thumbnail-sticker-pack',
+		timeoutMs: options.mediaUploadTimeoutMs
+	})
+
+	// Cleanup thumb temp file
+	try {
+		await fs.unlink(thumbEncrypted.encFilePath)
+	} catch {}
+
+	// ── Step 5: Return complete IStickerPackMessage ───────────────────────
+	return {
+		name,
+		publisher,
+		stickerPackId,
+		packDescription: description,
+		stickerPackOrigin: proto.Message.StickerPackMessage.StickerPackOrigin.USER_CREATED,
+		stickerPackSize: zipBuffer.length,
+		stickers: stickerMetadata,
+
+		// ZIP upload fields
+		fileSha256: stickerPackEncrypted.fileSha256,
+		fileEncSha256: stickerPackEncrypted.fileEncSha256,
+		mediaKey: stickerPackEncrypted.mediaKey,
+		directPath: stickerPackResult.directPath,
+		fileLength: zipBuffer.length,
+		mediaKeyTimestamp: unixTimestampSeconds(),
+
+		// Tray icon (cover filename inside ZIP)
+		trayIconFileName,
+
+		// Thumbnail upload fields (separate 252x252 JPEG, same mediaKey)
+		thumbnailDirectPath: thumbResult.directPath,
+		thumbnailSha256: thumbEncrypted.fileSha256,
+		thumbnailEncSha256: thumbEncrypted.fileEncSha256,
+		thumbnailHeight: 252,
+		thumbnailWidth: 252,
+		imageDataHash: sha256(thumbnailBuffer).toString('base64')
+	}
+}
