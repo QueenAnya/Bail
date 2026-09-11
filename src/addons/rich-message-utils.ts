@@ -301,7 +301,7 @@ export const prepareRichResponseMessage = (content: RichContent) => {
 							}
 						}
 					]
-				} as unknown as RichSubMessage)
+				})
 			})
 		}
 

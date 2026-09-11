@@ -11,7 +11,13 @@ import { promises as fs } from 'fs'
 import { gunzipSync, gzipSync } from 'zlib'
 import { proto } from '../../WAProto/index.js'
 import type { MessageContentGenerationOptions } from '../Types'
-import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, PaymentMessageOptions, StickerPack } from '../Types/Message'
+import type {
+	AdminInviteInfo,
+	CallCreationInfo,
+	PaymentInviteInfo,
+	PaymentMessageOptions,
+	StickerPack
+} from '../Types/Message'
 import { sha256 } from '../Utils/crypto'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
 import {
