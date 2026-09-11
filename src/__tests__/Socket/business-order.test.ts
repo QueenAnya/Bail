@@ -30,7 +30,7 @@ const logger: ILogger = {
 }
 
 const query = jest.fn(
-	async (_node: BinaryNode): Promise<BinaryNode> => ({
+	async (/*_node: BinaryNode*/): Promise<BinaryNode> => ({
 		tag: 'iq',
 		attrs: {},
 		content: [
