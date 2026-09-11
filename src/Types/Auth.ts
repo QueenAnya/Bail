@@ -93,11 +93,30 @@ export type SignalKeyStore = {
 	set(data: SignalDataSet): Awaitable<void>
 	/** clear all the data in the store */
 	clear?(): Awaitable<void>
+	/**
+	 * Enumerate every (id, value) pair for a type. Optional — required by
+	 * `migrateAuthState` and bulk operations. Stream rather than buffer.
+	 */
+	list?<T extends keyof SignalDataTypeMap>(type: T): AsyncIterable<readonly [id: string, value: SignalDataTypeMap[T]]>
+	/**
+	 * Ids-only fast path. Optional. Adapters that can satisfy this without
+	 * reading values (e.g. SQL `SELECT id`) should implement it.
+	 */
+	listIds?<T extends keyof SignalDataTypeMap>(type: T): AsyncIterable<string>
 }
 
 export type SignalKeyStoreWithTransaction = SignalKeyStore & {
 	isInTransaction: () => boolean
 	transaction<T>(exec: () => Promise<T>, key: string): Promise<T>
+}
+
+/** Names of the typed records a {@link SignalKeyStore} holds. */
+export type SignalDataType = keyof SignalDataTypeMap
+
+/** Identifies one (type, id) record in the key store — the unit of locking. */
+export type RecordRef = {
+	type: SignalDataType
+	id: string
 }
 
 export type TransactionCapabilityOptions = {
