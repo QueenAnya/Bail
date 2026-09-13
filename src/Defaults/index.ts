@@ -5,7 +5,7 @@ import { Browsers } from '../Utils/browser-utils'
 import { defaultCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1045624538] // client_revision from https://web.whatsapp.com/sw.js
+const version = [2, 3000, 1047408320] // client_revision from https://web.whatsapp.com/sw.js
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 

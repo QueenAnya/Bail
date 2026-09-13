@@ -2,7 +2,7 @@ import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import type Long from 'long'
 import { proto } from '../../WAProto/index.js'
-const baileysVersion = [2, 3000, 1045624538] // fallback WA client version — client_revision from https://web.whatsapp.com/sw.js
+const baileysVersion = [2, 3000, 1047408320] // fallback WA client version — client_revision from https://web.whatsapp.com/sw.js
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
