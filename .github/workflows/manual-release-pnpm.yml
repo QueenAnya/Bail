@@ -1,0 +1,46 @@
+name: Manual Release PNPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        type: string
+        description: 'Must be: patch, minor, major, pre* or <version>'
+        required: true
+        default: 'patch'
+
+permissions: write-all
+
+jobs:
+  manual-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.PERSONAL_TOKEN }}
+
+      - name: Setup GIT
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup pnpm & Node
+        uses: pnpm/setup@v2
+        with:
+          version: latest
+          runtime: node@lts
+          cache: true
+
+      - name: Install Dependencies
+        run: |
+          pnpm store prune
+          rm -rf pnpm-lock.yaml
+          pnpm install
+          pnpm lint:fix
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Release
+        run: 'npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}'

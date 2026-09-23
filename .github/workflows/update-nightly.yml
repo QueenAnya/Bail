@@ -1,0 +1,83 @@
+name: Update Nightly
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  update-nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetching tags
+        run: git fetch --tags -f || true
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Restore Yarn Cache
+        uses: actions/cache@v6
+        id: yarn-cache
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Dependencies
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+
+      - name: Update version to alpha
+        run: npm version prerelease --preid=alpha --no-git-tag-version
+
+      - name: Build NPM package
+        run: yarn pack -o baileys-nightly.tgz
+
+      - name: Generate Changelog
+        id: generate_changelog
+        run: |
+          changelog=$(yarn run --silent changelog:preview)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "${changelog}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update Nightly TAG
+        uses: richardsimko/update-tag@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly
+
+      - name: Update Nightly Release
+        uses: softprops/action-gh-release@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: nightly
+          target_commitish: ${{ github.sha }}
+          name: Nightly Release
+          body: ${{ steps.generate_changelog.outputs.changelog }}
+          draft: false
+          prerelease: true
+          files: |
+            baileys-nightly.tgz
