@@ -1580,6 +1580,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	// raw handling. Assigned right after the object literal closes, so by
 	// the time any of these helpers actually get called (always after this
 	// function has returned), it's fully populated.
+	// eslint-disable-next-line prefer-const -- assigned once, after the
+	// object literal below closes; must be `let` since it's referenced
+	// (read, not written) from inside that same object literal's closures,
+	// before this declaration's one-and-only assignment runs.
 	let finalSock: any
 
 	const result = {
@@ -2155,8 +2159,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			textOrOptions?: string | ({ text?: string } & Partial<WAUrlInfo>),
 			sendOptions?: MiscMessageGenerationOptions
 		) => {
-			const { text, ...overrides } =
-				typeof textOrOptions === 'string' ? { text: textOrOptions } : textOrOptions || {}
+			const { text, ...overrides } = typeof textOrOptions === 'string' ? { text: textOrOptions } : textOrOptions || {}
 
 			const fetched = await getUrlInfo(url, {
 				thumbnailWidth: linkPreviewImageThumbnailWidth,
