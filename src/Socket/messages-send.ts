@@ -1684,7 +1684,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			jid: string | string[],
 			content: AnyMessageContent,
 			options: MiscMessageGenerationOptions = {}
-		): Promise<WAMessage | undefined> => {
+		): Promise<
+			| WAMessage
+			| { fullMsg: WAMessage; relaymessage: Awaited<ReturnType<typeof relayMessage>> }
+			| undefined
+		> => {
 			// Passing an array as `jid` is shorthand for a "status mention" —
 			// posts a single `status@broadcast` update and mentions every jid
 			// in the array (group jids are expanded to their participants).
@@ -1936,7 +1940,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					fullMsg.key.addressingMode = 'lid'
 				}
 
-				await relayMessage(resolvedJid, fullMsg.message!, {
+				const relaymessage = await relayMessage(resolvedJid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes: { ...additionalAttributes, ...(lidAttrs || {}) },
@@ -1951,7 +1955,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return fullMsg
+				return { fullMsg, relaymessage }
 			}
 		},
 
