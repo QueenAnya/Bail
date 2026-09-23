@@ -1,22 +1,15 @@
 /**
  * rich-message-utils.ts
  *
- * Ported from @innovatorssoft/baileys (`Utils/rich-message-utils.js`) —
- * confirmed logically identical to the source for all 6 exported functions:
- * `tokenizeCode`, `toUnified`, `prepareRichResponseMessage`,
- * `botMetadataSignature`, `botMetadataCertificate`, `wrapToBotForwardedMessage`.
- *
- * `tokenizeCode` is NOT redefined here — innovatorssoft's own source
- * duplicates it verbatim in both `message-composer.js` and
- * `rich-message-utils.js`; this file instead imports it from
- * `message-composer.ts` (which already has a faithful port) to avoid that
- * redundancy. Everything else in this file — the botForwardedMessage
- * envelope (with verification-metadata stubs) and the `unifiedResponse`
- * buffer builder — is defined directly below, matching innovatorssoft 1:1.
+ * `tokenizeCode` is NOT redefined here — this file instead imports it from
+ * `message-composer.ts` (which already has a faithful implementation) to
+ * avoid duplicating it. Everything else in this file — the
+ * botForwardedMessage envelope (with verification-metadata stubs) and the
+ * `unifiedResponse` buffer builder — is defined directly below.
  *
  * (This file was previously named `bot-forwarded-message.ts` — renamed to
- * match the upstream source filename once full function-by-function parity
- * was confirmed.)
+ * match its actual purpose once full function-by-function parity was
+ * confirmed.)
  */
 
 import { getRandomValues, randomUUID } from 'crypto'
@@ -308,7 +301,7 @@ export const prepareRichResponseMessage = (content: RichContent) => {
 							}
 						}
 					]
-				} as unknown as RichSubMessage)
+				})
 			})
 		}
 

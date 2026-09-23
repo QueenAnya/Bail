@@ -8,10 +8,6 @@
  *   - `favicon` — a small image shown alongside the preview, separate
  *     from the main high-quality thumbnail.
  *
- * Source: innovatorssoft/Baileys commit fc139c8 ("feat: implement
- * linkPreviewMetadata and favicon support in messages, add example
- * command !linkpreview").
- *
  * `generateWAMessageContent` calls `applyLinkPreviewMetadata` and
  * `buildFaviconMMSMetadata` at the point it builds the extended-text
  * message content; both are pure/self-contained so they live here rather

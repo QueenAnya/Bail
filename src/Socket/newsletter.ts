@@ -234,12 +234,12 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 			await executeWMexQuery({ newsletter_id: jid }, QueryIds.DELETE, XWAPaths.xwa2_newsletter_delete_v2)
 		},
 
-		/** Source: itsliaaa/baileys — fetch all newsletters this account is subscribed to (like groupFetchAllParticipating, but for newsletters) */
+		/** Fetch all newsletters this account is subscribed to (like groupFetchAllParticipating, but for newsletters) */
 		newsletterSubscribed: async () => {
 			return executeWMexQuery({}, QueryIdd.SUBSCRIBED, XWAPaths.xwa2_newsletter_subscribed)
 		},
 
-		/** Source: innovatorssoft/Baileys — set who can react to newsletter posts ('all' | 'admin' | 'none' / 'blocklist') */
+		/** Set who can react to newsletter posts ('all' | 'admin' | 'none' / 'blocklist') */
 		newsletterReactionMode: async (jid: string, mode: string) => {
 			await executeWMexQuery(
 				{ newsletter_id: jid, updates: { settings: { reaction_codes: { value: mode } } } },
@@ -248,15 +248,15 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 			)
 		},
 
-		/** Source: innovatorssoft/Baileys — generic dispatch to any QueryIds action by name (e.g. 'follow', 'unfollow', 'mute') */
+		/** Generic dispatch to any QueryIds action by name (e.g. 'follow', 'unfollow', 'mute') */
 		newsletterAction: async (jid: string, type: keyof typeof QueryIds) => {
 			await executeWMexQuery({ newsletter_id: jid }, QueryIds[type], 'xwa2_newsletter_update')
 		},
 
 		/**
-		 * Source: innovatorssoft/Baileys — fetch newsletter message_updates (state
-		 * changes like reactions/views on existing messages, as opposed to
-		 * newsletterFetchMessages which fetches the message content itself).
+		 * Fetch newsletter message_updates (state changes like reactions/views
+		 * on existing messages, as opposed to newsletterFetchMessages which
+		 * fetches the message content itself).
 		 */
 		newsletterFetchUpdates: async (jid: string, count: number, after?: number, since?: number) => {
 			const result = await query({

@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto'
 import type { AuthenticationCreds, WABrowserDescription } from '../Types'
 import type { BinaryNode } from '../WABinary'
 import { getBinaryNodeChild } from '../WABinary'
+import { getPairingCodeOsDisplay, getPlatformDisplayName } from './browser-utils'
 import type { ILogger } from './logger'
 
 export enum CompanionWebClientType {
@@ -26,6 +27,22 @@ const BROWSER_TO_COMPANION_WEB_CLIENT: Record<string, CompanionWebClientType> = 
 	Safari: CompanionWebClientType.SAFARI
 }
 
+const DEFAULT_PAIRING_CODE_BROWSER_PLATFORM = { id: '2', displayName: 'Firefox' }
+
+const PAIRING_CODE_BROWSER_PLATFORM: Record<string, { id: string; displayName: string }> = {
+	Chrome: { id: '1', displayName: 'Chrome' },
+	Firefox: DEFAULT_PAIRING_CODE_BROWSER_PLATFORM,
+	IE: { id: '3', displayName: 'IE' },
+	Opera: { id: '4', displayName: 'Opera' },
+	Safari: { id: '5', displayName: 'Safari' },
+	Edge: { id: '6', displayName: 'Edge' }
+}
+
+export type PairingCodePlatform = {
+	id: string
+	display: string
+}
+
 export const getCompanionWebClientType = ([os, browserName]: WABrowserDescription): CompanionWebClientType => {
 	if (browserName === 'Desktop') {
 		return os === 'Windows' ? CompanionWebClientType.UWP : CompanionWebClientType.ELECTRON
@@ -36,6 +53,39 @@ export const getCompanionWebClientType = ([os, browserName]: WABrowserDescriptio
 
 export const getCompanionPlatformId = (browser: WABrowserDescription): string => {
 	return getCompanionWebClientType(browser).toString()
+}
+
+/**
+ * Canonicalized `companion_platform_display` fallback for whenever a socket
+ * is created without an explicit `config.companionPlatformDisplay` -- used by
+ * `Socket/index.ts` to fill in a value from whatever `browser` ends up in
+ * effect (default or overridden), computed fresh after each config merge so
+ * it never goes stale for an overridden `browser` the way a value baked
+ * directly into `DEFAULT_CONNECTION_CONFIG` would.
+ *
+ * Deliberately distinct from `defaultCompanionPlatformDisplay`, which mirrors
+ * `browser` verbatim by design (matching upstream's simpler override PR) --
+ * this instead mirrors `requestPairingCode()`'s own fallback logic: a
+ * non-browser client name or custom OS label is mapped to a WhatsApp-accepted
+ * canonical browser/OS pair rather than echoed raw, since the server rejects
+ * unrecognised `companion_platform_display` values with 400.
+ */
+export const deriveCanonicalCompanionPlatformDisplay = (browser: WABrowserDescription): string => {
+	const rawPlatformId = parseInt(getCompanionPlatformId(browser))
+	const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
+	const platformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : browser[1]
+	const platformHost = getPairingCodeOsDisplay(browser[0])
+	return `${platformName} (${platformHost})`
+}
+
+export const getPairingCodePlatform = ([os, browserName]: WABrowserDescription): PairingCodePlatform => {
+	const browser = PAIRING_CODE_BROWSER_PLATFORM[browserName] || DEFAULT_PAIRING_CODE_BROWSER_PLATFORM
+	const osDisplay = getPairingCodeOsDisplay(os)
+
+	return {
+		id: browser.id,
+		display: `${browser.displayName} (${osDisplay})`
+	}
 }
 
 export const buildPairingQRData = (

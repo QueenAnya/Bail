@@ -1,5 +1,5 @@
 import type { USyncQueryProtocol } from '../Types/USync'
-import { type BinaryNode, getBinaryNodeChild } from '../WABinary'
+import { type BinaryNode, getBinaryNodeChild, jidNormalizedUser } from '../WABinary'
 import { USyncBotProfileProtocol } from './Protocols/UsyncBotProfileProtocol'
 import { USyncLIDProtocol } from './Protocols/UsyncLIDProtocol'
 import {
@@ -7,6 +7,7 @@ import {
 	USyncDeviceProtocol,
 	USyncDisappearingModeProtocol,
 	USyncStatusProtocol,
+	USyncTextStatusProtocol,
 	USyncUsernameProtocol
 } from './Protocols'
 import { USyncUser } from './USyncUser'
@@ -90,7 +91,38 @@ export class USyncQuery {
 									.filter(([, b]) => b !== null) as [string, unknown][]
 							)
 						: {}
-					acc.push({ ...data, id })
+					const errorNode = Array.isArray(node?.content) ? node.content.find(c => c?.tag === 'error') : undefined
+					const rawLid = node?.attrs?.lid || (data as any)?.lid
+					const lid = rawLid ? (String(rawLid).includes('@') ? String(rawLid) : `${rawLid}@lid`) : undefined
+					let rawPn =
+						node?.attrs?.pn_jid ||
+						node?.attrs?.pn ||
+						node?.attrs?.phone_number ||
+						node?.attrs?.phone ||
+						(data as any)?.pn
+
+					if (!rawPn && Array.isArray(node?.content)) {
+						for (const child of node.content) {
+							const cp = child?.attrs?.phone_number || child?.attrs?.pn || child?.attrs?.pn_jid || child?.attrs?.phone
+
+							if (cp) {
+								rawPn = cp
+								break
+							}
+						}
+					}
+
+					const pn = rawPn
+						? jidNormalizedUser(String(rawPn).includes('@') ? String(rawPn) : `${rawPn}@s.whatsapp.net`)
+						: undefined
+
+					acc.push({
+						...data,
+						id,
+						...(lid ? { lid } : {}),
+						...(pn ? { pn } : {}),
+						...(errorNode ? { error: errorNode.attrs } : {})
+					})
 				}
 
 				return acc
@@ -134,6 +166,11 @@ export class USyncQuery {
 
 	withUsernameProtocol() {
 		this.protocols.push(new USyncUsernameProtocol())
+		return this
+	}
+
+	withTextStatusProtocol() {
+		this.protocols.push(new USyncTextStatusProtocol())
 		return this
 	}
 }

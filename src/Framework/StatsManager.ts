@@ -11,7 +11,7 @@
  *  - P2: observeMessage moved inside try block to prevent SQLite failures from
  *        skipping all middleware for that message.
  *
- * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
+ * Source: PR #2710 (LuferOS) — enterprise bot framework
  */
 
 import { Boom } from '@hapi/boom'

@@ -11,7 +11,13 @@ import { promises as fs } from 'fs'
 import { gunzipSync, gzipSync } from 'zlib'
 import { proto } from '../../WAProto/index.js'
 import type { MessageContentGenerationOptions } from '../Types'
-import type { AdminInviteInfo, CallCreationInfo, PaymentInviteInfo, StickerPack } from '../Types/Message'
+import type {
+	AdminInviteInfo,
+	CallCreationInfo,
+	PaymentInviteInfo,
+	PaymentMessageOptions,
+	StickerPack
+} from '../Types/Message'
 import { sha256 } from '../Utils/crypto'
 import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
 import {
@@ -26,8 +32,6 @@ import {
 
 /**
  * Build newsletterAdminInviteMessage from adminInvite content
- * Source: innovatorssoft/Baileys (inline in generateWAMessageContent's
- * 'adminInvite' branch) — verified field-for-field match.
  */
 export async function buildAdminInviteMessage(
 	adminInvite: AdminInviteInfo,
@@ -57,9 +61,7 @@ export async function buildAdminInviteMessage(
 // ── call → scheduledCallCreationMessage ───────────────────────────────────
 
 /**
- * Build scheduledCallCreationMessage from call content
- * Source: innovatorssoft/Baileys (inline in generateWAMessageContent's
- * 'call' branch) — verified field-for-field match, including the
+ * Build scheduledCallCreationMessage from call content, including the
  * 'Call Creation' default title.
  */
 export function buildCallMessage(call: CallCreationInfo): proto.Message.IScheduledCallCreationMessage {
@@ -74,13 +76,29 @@ export function buildCallMessage(call: CallCreationInfo): proto.Message.ISchedul
 
 /**
  * Build paymentInviteMessage from paymentInvite content
- * Source: innovatorssoft/Baileys (inline in generateWAMessageContent's
- * 'paymentInvite' branch) — verified field-for-field match.
  */
 export function buildPaymentInviteMessage(paymentInvite: PaymentInviteInfo): proto.Message.IPaymentInviteMessage {
 	return {
 		expiryTimestamp: paymentInvite.expiry ?? 0,
 		serviceType: paymentInvite.type ?? 2
+	}
+}
+
+// ── payment → requestPaymentMessage ───────────────────────────────────────
+
+/**
+ * Build requestPaymentMessage from payment content. `amount` is in the
+ * currency's smallest unit (e.g. cents) — both the legacy `amount1000`
+ * field and the modern `Money` shape are populated for compatibility.
+ */
+export function buildPaymentMessage(payment: PaymentMessageOptions): proto.Message.IRequestPaymentMessage {
+	return {
+		noteMessage: payment.note ? { conversation: payment.note } : undefined,
+		currencyCodeIso4217: payment.currency,
+		amount1000: Math.round(payment.amount * 10),
+		amount: { value: payment.amount, offset: 100, currencyCode: payment.currency },
+		requestFrom: payment.receiverJid,
+		expiryTimestamp: payment.expiry ?? 0
 	}
 }
 
@@ -154,7 +172,7 @@ export function isLottieBuffer(buffer: Buffer): boolean {
 }
 
 /**
- * Build stickerPackMessage following PR #1561 (WhiskeySockets) + PR #84 + PR #260 approach:
+ * Build stickerPackMessage following PR #1561 + PR #84 + PR #260 approach:
  *
  * Architecture:
  * 1. Process stickers → WebP/WAS buffers (with Lottie support from PR #260)
@@ -169,7 +187,7 @@ export function isLottieBuffer(buffer: Buffer): boolean {
  * - stickerPackOrigin: USER_CREATED (not THIRD_PARTY)
  * - thumbnail-sticker-pack media type for thumbnail
  */
-/** Max concurrent stickers processed at once (matches itsliaaa/baileys) — avoids CPU/memory spikes on large packs */
+/** Max concurrent stickers processed at once — avoids CPU/memory spikes on large packs */
 const STICKER_PACK_CONCURRENCY_LIMIT = 15
 /** WhatsApp's sticker pack limit */
 const MAX_STICKERS_PER_PACK = 60
@@ -187,7 +205,7 @@ export async function buildStickerPackMessage(
 	// ── Step 1: Process stickers ──────────────────────────────────────────
 	const validStickers = (stickers as any[]).filter(s => s !== null && s !== undefined)
 	if (validStickers.length < 1) {
-		throw new Error('Sticker pack must contain at least one sticker')
+		throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
 	}
 
 	if (validStickers.length > MAX_STICKERS_PER_PACK) {

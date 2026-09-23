@@ -1,17 +1,17 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/innovatorssoft/Baileys/main/assets/media/logo.png" width="150" height="150" />
+  <img src="https://raw.githubusercontent.com/QueenAnya/Bail/main/assets/media/logo.png" width="150" height="150" />
 
-  # INNOVATORS SOFT
+  # QUEENANYA
   ## Baileys - WhatsApp Web API
-  **Typescript/Javascript WhatsApp Web API Modificatios by [Innovators Soft](https://innovatorssoftpk.com/)**
+  **Typescript/Javascript WhatsApp Web API Modificatios by [QueenAnya](https://github.com/QueenAnya/Bail)**
 </div>
 
 <p align="center">
-<a href="https://www.npmjs.com/package/@innovatorssoft/baileys"><img src="https://img.shields.io/npm/v/@innovatorssoft/baileys?style=for-the-badge&logo=npm" alt="npm version" /></a>
-<a href="https://www.npmjs.com/package/@innovatorssoft/baileys"><img src="https://img.shields.io/npm/dt/@innovatorssoft/baileys?style=for-the-badge&logo=npm" alt="npm downloads" /></a>
-<a href="https://github.com/innovatorssoft/Baileys/stargazers"><img src="https://img.shields.io/github/stars/innovatorssoft/Baileys?style=for-the-badge&logo=github" alt="github stars" /></a>
-<a href="https://github.com/innovatorssoft/Baileys/network/members"><img src="https://img.shields.io/github/forks/innovatorssoft/Baileys?style=for-the-badge&logo=github" alt="github forks" /></a>
-<a href="https://github.com/innovatorssoft/Baileys/blob/main/LICENSE"><img src="https://img.shields.io/github/license/innovatorssoft/Baileys?style=for-the-badge&logo=github" alt="license" /></a>
+<a href="https://www.npmjs.com/package/@queenanya/baileys"><img src="https://img.shields.io/npm/v/@queenanya/baileys?style=for-the-badge&logo=npm" alt="npm version" /></a>
+<a href="https://www.npmjs.com/package/@queenanya/baileys"><img src="https://img.shields.io/npm/dt/@queenanya/baileys?style=for-the-badge&logo=npm" alt="npm downloads" /></a>
+<a href="https://github.com/QueenAnya/Bail/stargazers"><img src="https://img.shields.io/github/stars/QueenAnya/Bail?style=for-the-badge&logo=github" alt="github stars" /></a>
+<a href="https://github.com/QueenAnya/Bail/network/members"><img src="https://img.shields.io/github/forks/QueenAnya/Bail?style=for-the-badge&logo=github" alt="github forks" /></a>
+<a href="https://github.com/QueenAnya/Bail/blob/main/LICENSE"><img src="https://img.shields.io/github/license/QueenAnya/Bail?style=for-the-badge&logo=github" alt="license" /></a>
 </p>
 
 ### Important Note
@@ -24,31 +24,32 @@ The maintainers of Baileys do not in any way condone the use of this application
 ##
 > [!IMPORTANT]
 > This is the only official repository and is maintained by the community.
-> # **[Join the Discord](https://discord.gg/G3RfM6FDHS)**
+> # **[Join the Discord](https://discord.gg/WeJM5FP9GG)**
  
 ## Install
 
 Use the stable version:
 ```
-yarn add @innovatorssoft/baileys
+yarn add @queenanya/baileys
 ```
 
 Use the edge version (no guarantee of stability, but latest fixes + features)
 ```
-yarn add github:innovatorssoft/baileys
+yarn add github:QueenAnya/Bail
 ```
 
 Then import your code using:
 ```ts 
-import makeWASocket from '@innovatorssoft/baileys'
+import makeWASocket from '@queenanya/baileys'
 ```
 
 # Links
-- [Innovators](https://discord.gg/G3RfM6FDHS)    
+- [Innovators](https://discord.gg/G3RfM6FDHS)
 - [Itsukichan](https://discord.gg/nqssuNjjSH)
+- [QueenAnya Discord](https://discord.gg/WeJM5FP9GG)
 - [Original Guide](https://guide.whiskeysockets.io/)
-- [Baileys Guide](https://innovatorssoftpk.com/)
-- [Deep Wiki](https://deepwiki.com/innovatorssoft/Baileys)
+- [Baileys Guide](https://github.com/QueenAnya/Bail)
+- [Deep Wiki](https://deepwiki.com/QueenAnya/Bail)
 
 # Index
 
@@ -219,15 +220,15 @@ WhatsApp provides a multi-device API that allows Baileys to be authenticated as 
 > **[Here](#example-to-start) is a simple example of event handling**
 
 > [!TIP]
-> **You can see all supported socket configs [here](https://innovatorssoftpk.com/docs/important-notes-about-socket-config) (Recommended)**
+> **You can see all supported socket configs [here](https://github.com/QueenAnya/Bail) (Recommended)**
 
 ### Starting socket with **QR-CODE**
 
 > [!TIP]
-> You can customize browser name if you connect with **QR-CODE**, with `Browser` constant, we have some browsers config, **see [here](https://innovatorssoftpk.com/docs/important-notes-about-socket-config)**
+> You can customize browser name if you connect with **QR-CODE**, with `Browser` constant, we have some browsers config, **see [here](https://github.com/QueenAnya/Bail)**
 
 ```ts
-import makeWASocket from '@innovatorssoft/baileys'
+import makeWASocket from '@queenanya/baileys'
 
 const sock = makeWASocket({
     // can provide additional config here
@@ -247,7 +248,7 @@ If the connection is successful, you will see a QR code printed on your terminal
 The phone number can't have `+` or `()` or `-`, only numbers, you must provide country code
 
 ```ts
-import makeWASocket from '@innovatorssoft/baileys'
+import makeWASocket from '@queenanya/baileys'
 
 const sock = makeWASocket({
     // can provide additional config here
@@ -320,7 +321,7 @@ You obviously don't want to keep scanning the QR code every time you want to con
 
 So, you can load the credentials to log back in:
 ```ts
-import makeWASocket, { useMultiFileAuthState } from '@innovatorssoft/baileys'
+import makeWASocket, { useMultiFileAuthState } from '@queenanya/baileys'
 
 const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys')
 
@@ -344,7 +345,7 @@ sock.ev.on('creds.update', saveCreds)
 They're all nicely typed up, so you shouldn't have any issues with an Intellisense editor like VS Code.
 
 > [!IMPORTANT]
-> **The events are [these](https://innovatorssoftpk.com/docs/handling-events)**, it's important you see all events
+> **The events are [these](https://github.com/QueenAnya/Bail)**, it's important you see all events
 
 You can listen to these events like this:
 ```ts
@@ -360,7 +361,7 @@ sock.ev.on('messages.upsert', ({ messages }) => {
 > This example includes basic auth storage too
 
 ```ts
-import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@innovatorssoft/baileys'
+import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@queenanya/baileys'
 import { Boom } from '@hapi/boom'
 
 async function connectToWhatsApp () {
@@ -401,7 +402,7 @@ connectToWhatsApp()
 
 ### For example if you use useSingleFileAuthState and useMongoFileAuthState
 ```ts
-import makeWASocket, { useSingleFileAuthState, useMongoFileAuthState } from '@innovatorssoft/baileys'
+import makeWASocket, { useSingleFileAuthState, useMongoFileAuthState } from '@queenanya/baileys'
 
 // Single Auth
 const { state, saveState } = await useSingleFileAuthState('./auth_info_baileys.json') 
@@ -426,7 +427,7 @@ const connectAuth = async() => {
     })
 }
   await client.connect()
-  const collection = client.db("@innovatorssoftn").collection("sessions")
+  const collection = client.db("@queenanya").collection("sessions")
   return collection
 }
 
@@ -448,9 +449,9 @@ sock.ev.on('creds.update', saveCreds)
 - By default poll votes are encrypted and handled in `messages.update`
 ```ts
 import pino from "pino"
-import { makeInMemoryStore, getAggregateVotesInPollMessage } from '@innovatorssoft/baileys'
+import { makeInMemoryStore, getAggregateVotesInPollMessage } from '@queenanya/baileys'
 
-const logger = pino({ timestamp: () => `,"time":"${new Date().toJSON()}"` }).child({ class: "@innovatorssoftn" })
+const logger = pino({ timestamp: () => `,"time":"${new Date().toJSON()}"` }).child({ class: "@queenanya" })
 logger.level = "fatal"
 const store = makeInMemoryStore({ logger })
 
@@ -492,7 +493,7 @@ sock.ev.on("messages.update", async (chatUpdate) => {
 Keyword/pattern-based automatic response handler with built-in **typing simulation** — shows a "typing..." indicator before sending each reply to feel more human.
 
 ```ts
-import { createAutoReply } from '@innovatorssoft/baileys'
+import { createAutoReply } from '@queenanya/baileys'
 ```
 
 ### Setup with Typing Simulation
@@ -608,7 +609,7 @@ autoReply.clearRules()
 It can be used as follows:
 
 ```ts
-import makeWASocket, { makeInMemoryStore } from '@innovatorssoft/baileys'
+import makeWASocket, { makeInMemoryStore } from '@queenanya/baileys'
 // the store maintains the data of the WA connection in memory
 // can be written out to a file & read from it
 const store = makeInMemoryStore({ })
@@ -657,10 +658,10 @@ The store also provides some simple functions such as `loadMessages` that utiliz
 - `getSenderPn`, get your own phone number info from creds
 
 ### JID Plotting & LID Support
-InnovatorsSoft Baileys has advanced JID plotting utilities to handle WhatsApp's Linked IDs (LID).
+QueenAnya Baileys has advanced JID plotting utilities to handle WhatsApp's Linked IDs (LID).
 
 ```ts
-import { parseJid, plotJid, normalizePhoneToJid } from '@innovatorssoft/baileys'
+import { parseJid, plotJid, normalizePhoneToJid } from '@queenanya/baileys'
 
 // Parse JID info
 const info = parseJid('1234567890@s.whatsapp.net')
@@ -679,7 +680,7 @@ const plotted = plotJid('1234567890@s.whatsapp.net')
 Schedule WhatsApp messages to be automatically sent at a specific future time (or after a delay). The scheduler is exported directly from the package — no external dependencies required.
 
 ```ts
-import { createMessageScheduler } from '@innovatorssoft/baileys'
+import { createMessageScheduler } from '@queenanya/baileys'
 ```
 
 ### Setup
@@ -793,7 +794,7 @@ Every `schedule()` / `scheduleDelay()` call returns a `ScheduledMessage`:
 The Anti-Delete system allows you to store messages and recover them if they are revoked (deleted for everyone) by the sender.
 
 ```ts
-import { MessageStore, createMessageStoreHandler, createAntiDeleteHandler } from '@innovatorssoft/baileys'
+import { MessageStore, createMessageStoreHandler, createAntiDeleteHandler } from '@queenanya/baileys'
 
 // Initialize the store
 const store = new MessageStore({
@@ -822,8 +823,8 @@ sock.ev.on('messages.update', (updates) => {
 ## Sending Messages
 
 - Send all types of messages with a single function
-    - **[Here](https://innovatorssoftpk.com/docs/sending-messages) you can see all message contents supported, like text message**
-    - **[Here](https://innovatorssoftpk.com/docs/sending-messages) you can see all options supported, like quote message**
+    - **[Here](https://github.com/QueenAnya/Bail) you can see all message contents supported, like text message**
+    - **[Here](https://github.com/QueenAnya/Bail) you can see all options supported, like quote message**
 
     ```ts
     const jid: string
@@ -849,7 +850,7 @@ import {
     createTemplateManager, 
     renderTemplate, 
     PRESET_TEMPLATES 
-} from '@innovatorssoft/baileys'
+} from '@queenanya/baileys'
 
 // Create a manager and load the presets (includePresets = true)
 const templates = createTemplateManager(true)
@@ -975,7 +976,7 @@ await sock.sendMessage(
     id,
     { 
         contacts: { 
-            displayName: 'innovatorssoftn', 
+            displayName: 'queenanya', 
             contacts: [{ vcard }] 
         }
     }
@@ -992,7 +993,7 @@ import {
     createContactCard, 
     createContactCards,
     generateVCard 
-} from '@innovatorssoft/baileys'
+} from '@queenanya/baileys'
 ```
 
 ### Sending a Single Contact
@@ -1296,7 +1297,7 @@ await sock.sendMessage(
     {
         stickerPack: {
             name: 'Hiii', 
-            publisher: 'By innovatorssoftn', 
+            publisher: 'By queenanya', 
             description: 'Hello', 
             cover: Buffer, // Image buffer
             stickers: [{
@@ -1434,7 +1435,7 @@ await sock.sendMessage(jid, {
       url: './path/to/image.jpg'
    },
    caption: '👆🏻 Buttons and Native Flow!',
-   footer: '@innovatorssoft/baileys',
+   footer: '@queenanya/baileys',
    buttons: [{
       text: '👋🏻 Rating',
       id: '#Rating'
@@ -1476,7 +1477,7 @@ import {
     generateCopyCodeButton,
     generateUrlButtonMessage,
     generateQuickReplyButtons
-} from '@innovatorssoft/baileys'
+} from '@queenanya/baileys'
 
 // Quick Reply Buttons
 const quickButtons = generateQuickReplyButtons(
@@ -1684,7 +1685,7 @@ await sock.sendMessage(
 ```ts
 sock.sendMessage(jid, {
    text: '🗂️ Interactive with Carousel!',
-   footer: '@innovatorssoft/baileys',
+   footer: '@queenanya/baileys',
    cards: [{
       image: {
          url: './path/to/image.jpg'
@@ -1693,7 +1694,7 @@ sock.sendMessage(jid, {
       footer: '🏷️️ Pinterest',
       nativeFlow: [{
          text: '🌐 Source',
-         url: 'https://github.com/innovatorssoft/Baileys',
+         url: 'https://github.com/QueenAnya/Bail',
          useWebview: true
       }]
    }, {
@@ -1703,12 +1704,12 @@ sock.sendMessage(jid, {
       caption: '🖼️ Image 2',
       footer: '🏷️ Pinterest',
       offerText: '🏷️ New Coupon!',
-      offerCode: '@innovatorssoft/baileys',
-      offerUrl: 'https://github.com/innovatorssoft/Baileys',
+      offerCode: '@queenanya/baileys',
+      offerUrl: 'https://github.com/QueenAnya/Bail',
       offerExpiration: Date.now() + 3_600_000,
       nativeFlow: [{
          text: '🌐 Source',
-         url: 'https://github.com/innovatorssoft/Baileys'
+         url: 'https://github.com/QueenAnya/Bail'
       }]
    }, {
       image: {
@@ -1719,8 +1720,8 @@ sock.sendMessage(jid, {
       optionText: '👉🏻 Select Options',
       optionTitle: '👉🏻 Select Options',
       offerText: '🏷️ New Coupon!',
-      offerCode: '@innovatorssoft/baileys',
-      offerUrl: 'https://github.com/innovatorssoft/Baileys',
+      offerCode: '@queenanya/baileys',
+      offerUrl: 'https://github.com/QueenAnya/Bail',
       offerExpiration: Date.now() + 3_600_000,
       nativeFlow: [{
          text: '🛒 Product',
@@ -1728,7 +1729,7 @@ sock.sendMessage(jid, {
          icon: 'default'
       }, {
          text: '🌐 Source',
-         url: 'https://github.com/innovatorssoft/Baileys'
+         url: 'https://github.com/QueenAnya/Bail'
       }]
    }]
 }, {
@@ -1841,7 +1842,7 @@ await sock.sendMessage(
                     flow_message_version: '3', 
                     flow_token: '1:1307913409923914:293680f87029f5a13d1ec5e35e718af3',
                     flow_id: '1307913409923914',
-                    flow_cta: 'innovatorssoftn kawaii >\\<', 
+                    flow_cta: 'queenanya kawaii >\\<', 
                     flow_action: 'navigate', 
                     flow_action_payload: {
                     	screen: 'QUESTION_ONE',
@@ -2004,7 +2005,7 @@ await sock.sendMessage(
             description: 'Description',
             currencyCode: 'IDR',
             priceAmount1000: '283xxx',
-            retailerId: 'innovatorssoftn',
+            retailerId: 'queenanya',
             url: 'https://example.com',
             productImageCount: 1
         },
@@ -2041,8 +2042,8 @@ await sock.sendMessage(
                 payment_settings: [{ 
                    type: "pix_static_code", 
                    pix_static_code:  { 
-                      merchant_name: 'innovatorssoftn kawaii >\\\\\\<', 
-                      key: 'example@innovatorssoft.com', 
+                      merchant_name: 'queenanya kawaii >\\\\\\<', 
+                      key: 'example@queenanya.com', 
                       key_type: 'EMAIL' // PHONE || EMAIL || CPF || EVP 
                    } 
                }] 
@@ -2085,7 +2086,7 @@ await sock.sendMessage(
                     order_type: 'PAYMENT_REQUEST', 
                     items: [{
                         retailer_id: 'your_retailer_id', 
-                        name: 'innovatorssoftn Kawaii >\\\<', 
+                        name: 'queenanya Kawaii >\\\<', 
                         amount: {
                             value: '999999999', 
                             offset: '100'
@@ -2093,7 +2094,7 @@ await sock.sendMessage(
                         quantity: '1', 
                     }]
                 }, 
-                additional_note: 'innovatorssoftn Kawaii >\\\<', 
+                additional_note: 'queenanya Kawaii >\\\<', 
                 native_payment_methods: [], 
                 share_payment_status: false
             }) 
@@ -2330,12 +2331,12 @@ await sock.sendLatexInlineImage(jid, null, {
 
 ### sendMarkdown
 
-Send a rich markdown text message formatted natively via Meta AI primitives:
+Send a rich markdown text message formatted natively via Meta AI primitives (supporting headings, formatting, citations, and clickable hyperlinks `[comment](url)`):
 
 ```js
 await sock.sendMarkdown(
     jid,
-    '# H1\n## H2\n==Highlighted==\n_Italics_ and **Bold**!',
+    '# H1\n## H2\n==Highlighted==\n_Italics_ and **Bold**!\n\n🔗 Visit our [Official Website](https://example.com) for more details.',
     null  // quoted message (or null)
 )
 ```
@@ -2401,6 +2402,44 @@ if (captured) {
 ```
 
 `captureUnifiedResponse` returns `null` if the message is not a rich AI response.
+
+---
+
+### sendRichHtml (GenAI Interactive HTML)
+
+Send rich interactive HTML payloads (including full HTML5/CSS/JavaScript interactive web views, canvas games, custom UI cards, dashboards, etc.) directly rendered via WhatsApp's native GenAI UI engine:
+
+```js
+// Option A: Send via socket method
+await sock.sendRichHtml(
+    jid,
+    {
+        id: 'dashboard-001',
+        title: 'Sales Dashboard',
+        html: `
+            <div style="padding: 16px; font-family: sans-serif; background: #0f172a; color: #fff; border-radius: 12px;">
+                <h2 style="color: #38bdf8; margin: 0 0 8px;">🚀 Q3 Performance</h2>
+                <p style="color: #94a3b8; font-size: 14px;">Total Revenue: <b style="color: #4ade80;">$124,500</b> (+18%)</p>
+                <div style="background: #1e293b; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: center;">
+                    <span style="color: #facc15; font-weight: bold;">Conversion Rate: 4.8%</span>
+                </div>
+            </div>
+        `,
+        source: 'dashboard_service' // optional trusted source identifier
+    },
+    null // optional quoted message
+)
+
+// Option B: Import and use standalone function
+import { sendRichHtml } from '@queenanya/baileys'
+
+await sendRichHtml(sock, jid, {
+    id: 'interactive-card',
+    title: 'Interactive Card',
+    html: `<div style="padding: 15px; background: #2563eb; color: #fff; border-radius: 10px;">Hello from Rich HTML!</div>`,
+    source: 'custom_source'
+})
+```
 
 ---
 
@@ -2518,7 +2557,7 @@ await sock.sendMessage(
             description: 'Description',
             currencyCode: 'IDR',
             priceAmount1000: '283xxx',
-            retailerId: 'innovatorssoftn',
+            retailerId: 'queenanya',
             url: 'https://example.com',
             productImageCount: 1
         },
@@ -2655,7 +2694,7 @@ await sock.sendMessage(
             description: 'Description',
             currencyCode: 'IDR',
             priceAmount1000: '283xxx',
-            retailerId: 'innovatorssoftn',
+            retailerId: 'queenanya',
             url: 'https://example.com',
             productImageCount: 1
         },
@@ -2788,13 +2827,13 @@ await sock.sendMessage(jid, {
 4. Send a link:
 ```ts
 // --- Send a text message with a link preview
-const urlA = 'https://github.com/innovatorssoft/baileys'
+const urlA = 'https://github.com/queenanya/baileys'
 
 sock.sendMessage(jid, {
    text: urlA + ' 👆🏻 Check it out!',
    linkPreview: {
       'matched-text': urlA,
-      title: '🌱 @innovatorssoft/baileys',
+      title: '🌱 @queenanya/baileys',
       description: 'Modified Baileys Fork',
       previewType: 0, // --- Use 1 for video playback in the link preview
       jpegThumbnail: fs.readFileSync('./path/to/image.jpg')
@@ -2802,9 +2841,9 @@ sock.sendMessage(jid, {
 })
 
 // --- Send a text message with a large link preview and favicon
-import { prepareWAMessageMedia } from '@innovatorssoft/baileys'
+import { prepareWAMessageMedia } from '@queenanya/baileys'
 
-const urlB = 'https://github.com/innovatorssoft/baileys#readme'
+const urlB = 'https://github.com/queenanya/baileys#readme'
 
 const { imageMessage: image } = await prepareWAMessageMedia({
    image: {
@@ -2823,7 +2862,7 @@ sock.sendMessage(jid, {
    text: urlB + ' 👆🏻 Check it out!',
    linkPreview: {
       'matched-text': urlB,
-      title: '🌱 @innovatorssoft/baileys',
+      title: '🌱 @queenanya/baileys',
       description: 'Modified Baileys Fork',
       previewType: 0,
       jpegThumbnail: fs.readFileSync('./path/to/image.jpg'),
@@ -2973,7 +3012,7 @@ await sock.sendMessage(
     { 
         album: [{
         	image: {
-        		url: 'https://example.com/innovatorssoft.jpg'
+        		url: 'https://example.com/queenanya.jpg'
         	}, 
         	caption: 'Hay'
         }, {
@@ -2981,7 +3020,7 @@ await sock.sendMessage(
         	caption: 'Hay'
         }, {
         	video: {
-        		url: 'https://example.com/innovatorssoft.mp4'
+        		url: 'https://example.com/queenanya.mp4'
         	}, 
         	caption: 'Hay'
         }, {
@@ -3041,7 +3080,7 @@ await sock.sendMessage(jid, {
 If you want to save the media you received
 ```ts
 import { createWriteStream } from 'fs'
-import { downloadMediaMessage, getContentType } from '@innovatorssoft/baileys'
+import { downloadMediaMessage, getContentType } from '@queenanya/baileys'
 
 sock.ev.on('messages.upsert', async ({ [m] }) => {
     if (!m.message) return // if there is no text or media message
@@ -3137,7 +3176,7 @@ await sock.sendPresenceUpdate('available', jid)
 Use `createTypingIndicator` for manual or standalone typing/recording presence control — without needing the auto-reply system.
 
 ```ts
-import { createTypingIndicator } from '@innovatorssoft/baileys'
+import { createTypingIndicator } from '@queenanya/baileys'
 
 const typing = createTypingIndicator(
     (jid, presence) => sock.sendPresenceUpdate(presence, jid)
@@ -3188,7 +3227,7 @@ await sock.sendMessage(jid, { text: 'Hello!' })
 A centralized tracker for handling read receipts (blue ticks) programmatically. It allows you to configure automatic delays (simulating human reaction time), configure global enable/disable states, and completely block specific JIDs from receiving blue ticks.
 
 ```ts
-import { createReadReceiptController } from '@innovatorssoft/baileys'
+import { createReadReceiptController } from '@queenanya/baileys'
 
 const readReceipts = createReadReceiptController(
     (jid, participant, messageIds) => sock.readMessages([{ remoteJid: jid, id: messageIds[0] }]),
@@ -3406,7 +3445,7 @@ await sock.presenceSubscribe(jid)
 Search and filter stored arrays of messages using a fast client-side indexing manager.
 
 ```ts
-import { createMessageSearch, searchMessages } from '@innovatorssoft/baileys'
+import { createMessageSearch, searchMessages } from '@queenanya/baileys'
 
 // Initialize the search manager
 const search = createMessageSearch()
@@ -3735,7 +3774,7 @@ import {
     StatusHelper, 
     STATUS_BACKGROUNDS,
     STATUS_FONTS
-} from '@innovatorssoft/baileys'
+} from '@queenanya/baileys'
 
 // JIDs of contacts or groups who should see the status
 const jidList = [
@@ -3754,7 +3793,7 @@ const status = StatusHelper.text('Hello World! 🌍', STATUS_BACKGROUNDS.solid.p
 await StatusHelper.send(sock, status, jidList)
 
 // 2. A fully customized text status
-import { createTextStatus } from '@innovatorssoft/baileys'
+import { createTextStatus } from '@queenanya/baileys'
 
 const customStatus = createTextStatus({
     text: 'Custom styled status!',
@@ -3927,16 +3966,16 @@ await sock.sendMessage(jid, {
 ## Acknowledgements
 
 - [Original baileys](https://github.com/WhiskeySockets/baileys)
-- [Special thanks to](https://github.com/Itsukichann/Baileys)
-- [Follow Innovators Soft](https://facebook.com/innovatorssoft)
 
 ---
-# Support the Project
 
-> **NOTE**
->
-> **This project is completely free and open-source. If it saved you time or helped your business, consider supporting us!**
+## Follow QueenAnya (@queenanya)
 
-[![Support on Patreon](https://img.shields.io/badge/Support-Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white)](https://patreon.com/innovatorssoft7)
+- [Facebook](https://facebook.com/queenanya)
+- [Twitter / X](https://twitter.com/queenanya)
+- [Instagram](https://instagram.com/queenanya)
+- [Discord](https://discord.gg/queenanya)
+
+---
 
 ---

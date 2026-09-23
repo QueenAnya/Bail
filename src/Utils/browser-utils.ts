@@ -110,9 +110,26 @@ export const getPlatformId = (browser: string) => {
 
 /**
  * Returns the display name for the given browser type.
- * Falls back to 'Chrome' if browser type is not a known platform type.
+ * Falls back to 'Firefox' if browser type is not a known platform type.
  */
 export const getPlatformDisplayName = (browser: string) => {
 	const platformType = proto.DeviceProps.PlatformType[browser.toUpperCase() as any]
-	return platformType !== undefined ? browser : 'Chrome'
+	return platformType !== undefined ? browser : 'Firefox'
 }
+
+/**
+ * OS names WhatsApp's pairing-code registration endpoint recognises for
+ * `companion_platform_display`'s "(<os>)" part. Anything else gets rejected
+ * with a 400, so a non-canonical `browser[0]` (e.g. a custom product name
+ * like "Aidy Staging") must fall back to one of these instead of being sent
+ * verbatim (PR: Baileys-fix-pairing-code-regression-upstream).
+ */
+const PAIRING_CODE_OS_DISPLAY = new Set(['Mac OS', 'Windows', 'Ubuntu'])
+
+/**
+ * A recognised `os`/`browserName` (e.g. from `Browsers.macOS('Chrome')` or
+ * `Browsers.windows('Chrome')`) is always kept as-is -- only a genuinely
+ * unrecognised value (a custom product name in `browser[0]`, or a browser
+ * name WhatsApp's platform-type enum doesn't know) falls back to 'Ubuntu'.
+ */
+export const getPairingCodeOsDisplay = (os: string): string => (PAIRING_CODE_OS_DISPLAY.has(os) ? os : 'Ubuntu')

@@ -1,6 +1,6 @@
 /**
  * from-messages-recv.ts
- * Source: addons/baileys + WhiskeySockets/Baileys + PR #2375
+ * Source: addons/baileys + PR #2375
  *
  * All call functions as a factory — makeCallHandlers(deps) injects
  * socket-bound dependencies and returns all call functions ready to use.
@@ -44,7 +44,7 @@ export function makeCallHandlers(deps: CallHandlerDeps) {
 		callOfferCache
 	} = deps
 
-	/** Reject an incoming call (WhiskeySockets) */
+	/** Reject an incoming call */
 	const rejectCall = async (callId: string, callFrom: string) => {
 		await query({
 			tag: 'call',

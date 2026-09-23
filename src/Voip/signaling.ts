@@ -7,7 +7,7 @@
  *
  * Ported from baileys-caller (https://github.com/SheIITear/baileys-caller,
  * MIT, by ShellTear) for single-session use inside this fork: instead of
- * dynamically importing a separate `@whiskeysockets/baileys` install just to
+ * dynamically importing a separate external install just to
  * reach its internal helpers, we import them directly — this file runs
  * inside the same package that defines them.
  *
@@ -80,7 +80,16 @@ const parseCountAttr = (value: unknown, fallback = 0): number => {
 
 export class SignalingBridge {
 	readonly #sock: BaileysSocket
-	#voip: any = null
+	/** default/primary engine — used for calls that don't have their own isolated engine registered (e.g. inbound calls, or the single-call default flow) */
+	#primaryVoip: any = null
+	/** callId that currently owns the primary slot, so we know when to clear/promote it */
+	#primaryCallId: string | null = null
+	/** per-callId engines — set for calls started via a dedicated isolated WasmEngine (concurrent outgoing calls) */
+	readonly #voipByCallId = new Map<string, any>()
+	/** Fires on raw signaling tags (terminate/reject/preaccept/accept/receipt) — usually faster than a WASM state round-trip. */
+	#eventListener: ((tag: string, reason: string, callId: string, peerJid: string) => void) | null = null
+	/** Fires on signaling-layer failures (ack timeout, non-zero ack error, etc). */
+	#errorListener: ((tag: string, errorType: string, peerJid: string, callId: string) => void) | null = null
 
 	readonly #observedTcTokens = new Map<string, { token: Uint8Array; timestamp: string }>()
 	readonly #pendingTcTokenWaiters = new Map<string, ((token: Uint8Array | undefined) => void)[]>()
@@ -97,9 +106,57 @@ export class SignalingBridge {
 		this.#sock = config.sock
 	}
 
-	/** Hand the WASM engine in so we can dispatch ack callbacks back to it. */
+	/** Hand the WASM engine in so we can dispatch ack callbacks back to it.
+	 *  Explicit calls always take the primary slot (used for the single-call
+	 *  default flow); see `registerCallEngine` for the auto-fallback case. */
 	attachEngine = (voip: any): void => {
-		this.#voip = voip
+		this.#primaryVoip = voip
+		this.#primaryCallId = null
+	}
+
+	/** Register an isolated per-call engine (used for concurrent outgoing calls) so
+	 *  acks for that specific callId route back to its own WASM engine instead of
+	 *  the shared/primary one. Also claims the primary slot, but ONLY if nothing
+	 *  already holds it — otherwise every new concurrent call would silently
+	 *  steal inbound-offer routing away from whichever call got there first. */
+	registerCallEngine = (callId: string, voip: any): void => {
+		if (!callId) return
+		this.#voipByCallId.set(callId, voip)
+		if (!this.#primaryVoip) {
+			this.#primaryVoip = voip
+			this.#primaryCallId = callId
+		}
+	}
+
+	/** Drop a per-call engine registration once that call has ended. If that
+	 *  call happened to be holding the primary slot, promote another still-open
+	 *  call (if any) instead of leaving `#primaryVoip` pointing at a destroyed
+	 *  engine. */
+	unregisterCallEngine = (callId: string): void => {
+		if (!callId) return
+		this.#voipByCallId.delete(callId)
+		if (this.#primaryCallId === callId) {
+			const next = this.#voipByCallId.entries().next()
+			if (!next.done) {
+				this.#primaryCallId = next.value[0]
+				this.#primaryVoip = next.value[1]
+			} else {
+				this.#primaryCallId = null
+				this.#primaryVoip = null
+			}
+		}
+	}
+
+	#resolveEngine = (callId: string): any => (callId && this.#voipByCallId.get(callId)) || this.#primaryVoip
+
+	/** Register a callback for raw signaling tags (terminate/reject/preaccept/accept/receipt). */
+	setSignalingEventListener = (cb: (tag: string, reason: string, callId: string, peerJid: string) => void): void => {
+		this.#eventListener = cb
+	}
+
+	/** Register a callback for signaling-layer failures (ack timeout, non-zero ack error). */
+	setSignalingErrorListener = (cb: (tag: string, errorType: string, peerJid: string, callId: string) => void): void => {
+		this.#errorListener = cb
 	}
 
 	init = async (): Promise<void> => {
@@ -280,7 +337,7 @@ export class SignalingBridge {
 
 			if (includeDeviceIdentity) this.#appendDeviceIdentity(voipNode)
 
-			await this.#sendCallStanza(this.#toBareJid(peerJid), voipNode, signalingTag, effectivePeerJid, peerJid)
+			await this.#sendCallStanza(this.#toBareJid(peerJid), voipNode, signalingTag, effectivePeerJid, peerJid, callId)
 			return
 		}
 
@@ -293,7 +350,7 @@ export class SignalingBridge {
 				replaceNodeChild(voipNode, 'enc', encrypted.encNode)
 				if (encrypted.shouldIncludeDeviceIdentity) this.#appendDeviceIdentity(voipNode)
 
-				await this.#sendCallStanza(targetJid, voipNode, signalingTag, effectivePeerJid, peerJid)
+				await this.#sendCallStanza(targetJid, voipNode, signalingTag, effectivePeerJid, peerJid, callId)
 				return
 			}
 		}
@@ -303,7 +360,7 @@ export class SignalingBridge {
 			signalingTag !== 'offer' && signalingTag !== 'enc_rekey'
 				? this.#toBareJid(effectivePeerJid)
 				: this.#toCallDeviceJid(effectivePeerJid)
-		await this.#sendCallStanza(routeTo, voipNode, signalingTag, effectivePeerJid, peerJid)
+		await this.#sendCallStanza(routeTo, voipNode, signalingTag, effectivePeerJid, peerJid, callId)
 	}
 
 	/**
@@ -315,7 +372,8 @@ export class SignalingBridge {
 		voipNode: any,
 		signalingTag: string,
 		effectivePeerJid: string,
-		callbackPeerJid: string
+		callbackPeerJid: string,
+		callId = ''
 	): Promise<void> => {
 		const stanzaId = this.#sock.generateMessageTag()
 		await this.#sock.sendNode({
@@ -327,11 +385,22 @@ export class SignalingBridge {
 		void (async () => {
 			try {
 				const ackNode = await this.#sock.waitForMessage(stanzaId, ACK_TIMEOUT_MS)
-				if (!ackNode || !this.#voip) return
+				const voip = this.#resolveEngine(callId)
+				if (!ackNode) {
+					this.#errorListener?.(signalingTag, 'ack_timeout', effectivePeerJid, callId)
+					return
+				}
+
+				const ackError = String(ackNode.attrs?.error ?? '0')
+				if (ackError !== '0') {
+					this.#errorListener?.(signalingTag, `error_${ackError}`, effectivePeerJid, callId)
+				}
+
+				if (!voip) return
 				const ackPayload = Buffer.from(encodeBinaryNode(ackNode)).toString('base64')
 				const tcToken = await this.ensureTcToken(effectivePeerJid, callbackPeerJid)
 				try {
-					this.#voip.handleSignalingAck({
+					voip.handleSignalingAck({
 						payload: ackPayload,
 						ackError: ackNode.attrs?.error ?? '0',
 						msgType: ackNode.attrs?.type ?? signalingTag,
@@ -436,6 +505,14 @@ export class SignalingBridge {
 					this.#remoteXmppRoutePeerByCallId.delete(callIdForRouting)
 				}
 
+				if (this.#eventListener) {
+					const reasonChild = getBinaryNodeChild(usableNode, 'reason')
+					const reasonText = String(
+						usableNode.attrs.reason ?? reasonChild?.attrs?.text ?? reasonChild?.attrs?.type ?? ''
+					)
+					this.#eventListener(usableNode.tag, reasonText, callIdForRouting || '', routedPeerJid || '')
+				}
+
 				break
 		}
 	}
@@ -459,6 +536,8 @@ export class SignalingBridge {
 			peerJid: routedPeerJid,
 			tcToken
 		})
+
+		this.#eventListener?.('receipt', '', callIdForRouting || '', routedPeerJid || '')
 	}
 
 	#maybeDecryptEnc = async (voipNode: any, peerJid: string): Promise<any> => {

@@ -34,11 +34,16 @@ jobs:
             echo "version_increased=false" >> $GITHUB_OUTPUT
           fi
 
-          # Check if version is beta
-          if [[ "$CURRENT_VERSION" == *-beta* ]]; then
+          # Check if version is a prerelease (beta, alpha, rc, etc.) and
+          # extract its tag label — matches 1.2.3-beta, 1.2.3-beta.0,
+          # 1.2.3-beta.1, 1.2.3-alpha.2, 1.2.3-rc.1, and so on.
+          if [[ "$CURRENT_VERSION" == *-* ]]; then
+            PRERELEASE_TAG=$(echo "$CURRENT_VERSION" | sed -E 's/^[^-]+-([a-zA-Z]+).*/\1/')
             echo "is_beta=true" >> $GITHUB_OUTPUT
+            echo "prerelease_tag=$PRERELEASE_TAG" >> $GITHUB_OUTPUT
           else
             echo "is_beta=false" >> $GITHUB_OUTPUT
+            echo "prerelease_tag=" >> $GITHUB_OUTPUT
           fi
 
       - name: Log version changes
@@ -46,7 +51,8 @@ jobs:
           echo "Previous version: ${{ steps.get_previous_version.outputs.prev_version }}"
           echo "Current version: ${{ steps.get_previous_version.outputs.current_version }}"
           echo "Version increased: ${{ steps.get_previous_version.outputs.version_increased }}"
-          echo "Is beta version: ${{ steps.get_previous_version.outputs.is_beta }}"
+          echo "Is prerelease version: ${{ steps.get_previous_version.outputs.is_beta }}"
+          echo "Prerelease tag: ${{ steps.get_previous_version.outputs.prerelease_tag }}"
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -101,22 +107,20 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (as @queenanya/baileys in beta)
+      - name: Publish in NPM (as @queenanya/baileys in prerelease)
         # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
         if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
-          npm publish --access public --provenance --tag beta
-          npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          npm publish --access public --provenance --tag ${{ steps.get_previous_version.outputs.prerelease_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (@teamolduser/baileys in beta)
+      - name: Publish in NPM (@teamolduser/baileys in prerelease)
         # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
         if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
           npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          npm publish --access public --provenance --tag beta --//registry.npmjs.org/:_authToken=$NPM_TOKEN
-          npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          npm publish --access public --provenance --tag ${{ steps.get_previous_version.outputs.prerelease_tag }} --//registry.npmjs.org/:_authToken=$NPM_TOKEN
           npx json -I -f package.json -e "this.name='@queenanya/baileys'"
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -136,7 +140,7 @@ jobs:
         run: mv *.tgz baileys-anya.tgz
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: ${{ github.ref_name }}

@@ -18,7 +18,7 @@ import { createSignalIdentity } from './signal'
  * macOS Desktop with syncFullHistory must advertise MACOS platform —
  * WA server rejects Desktop full-history payloads (status 428) unless
  * macOS Desktop uses MACOS + DARWIN combination. Fixes issue #2677.
- * Source: WhiskeySockets/Baileys PR #2693 (frndchagas)
+ * Source: PR #2693 (frndchagas)
  */
 const getUserAgentPlatform = (config: SocketConfig): proto.ClientPayload.UserAgent.Platform => {
 	if (config.browser[1].toLocaleLowerCase().includes('android')) {
@@ -59,7 +59,7 @@ const PLATFORM_MAP = {
 	// WIN32 is the legacy Electron WhatsApp Desktop. Since ~2026-06-30 the server
 	// rejects the handshake that advertises it, closing with 428 before any QR is
 	// emitted. The modern native Desktop advertises WIN_HYBRID.
-	// Source: WhiskeySockets/Baileys PR #2741 (fixes #2677)
+	// Source: PR #2741 (fixes #2677)
 	Windows: proto.ClientPayload.WebInfo.WebSubPlatform.WIN_HYBRID,
 	Android: proto.ClientPayload.WebInfo.WebSubPlatform.WIN_HYBRID
 }
@@ -101,7 +101,7 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 		...getClientPayload(config),
 		// passive: false — WA server rejects existing companion sessions with 428
 		// when passive: true is used on reconnect. Registration already uses false.
-		// Source: WhiskeySockets/Baileys PR #2682 (gobeyondpty)
+		// Source: PR #2682 (gobeyondpty)
 		passive: false,
 		pull: true,
 		username: +user,

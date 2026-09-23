@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto'
-import type { AnyMessageContent, GroupMetadata, WAMediaUpload, WAMessage } from '../Types'
+import type { GroupMetadata, WAMediaUpload, WAMessage } from '../Types'
 import { delay, generateWAMessage, generateWAMessageFromContent } from '../Utils'
 import { getUrlInfo } from '../Utils/link-preview'
 import type { ILogger } from '../Utils/logger'
@@ -44,7 +44,7 @@ export const STATUS_FONTS = {
 	EXOTWO: 9
 }
 
-export const generateStatusMessageId = () => `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+export const generateStatusMessageId = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase() // `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
 
 export const getStatusJid = () => STATUS_BROADCAST_JID
 
@@ -114,9 +114,8 @@ export const StatusHelper = {
 
 		if (groups.length > 0) {
 			// Ship BOTH field placements defensively:
-			//  - `groupStatus: true` (top-level) — matches innovatorssoft's
-			//    status-posting.js exactly; this is the one WA's server is
-			//    confirmed to expect.
+			//  - `groupStatus: true` (top-level) — this is the one WA's
+			//    server is confirmed to expect.
 			//  - `isGroupStatus: true` (nested in contextInfo) — the original
 			//    queenanya field/placement, kept alongside in case any code
 			//    path (older WA client versions, other tooling) reads it from
@@ -273,7 +272,7 @@ export const makeStatusMentionsAddon = (ctx: StatusMentionsContext) => {
 
 		let msg: WAMessage
 		try {
-			msg = await generateWAMessage(STORIES_JID, messageContent as AnyMessageContent, {
+			msg = await generateWAMessage(STORIES_JID, messageContent, {
 				logger,
 				userJid,
 				getUrlInfo: (text: string) =>

@@ -5,7 +5,7 @@ import { Browsers } from '../Utils/browser-utils'
 import { defaultCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1045624538] // client_revision from https://web.whatsapp.com/sw.js
+const version = [2, 3000, 1047543106] // client_revision from https://web.whatsapp.com/sw.js
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -36,6 +36,12 @@ export const NOISE_WA_HEADER = Buffer.from([87, 65, 6, DICT_VERSION]) // last is
 /** from: https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url */
 export const URL_REGEX = /https:\/\/(?![^:@\/\s]+:[^:@\/\s]+@)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?/g
 
+/** Fallback link used when a caller triggers an offer/ad-reply feature
+ *  (native-flow limited-time-offer, externalAdReply shorthand) without
+ *  supplying their own URL. Point this at your own project/site — update
+ *  freely. */
+export const FALLBACK_LINK_URL = 'https://github.com/QueenAnya/Bail/'
+
 export const WA_CERT_DETAILS = {
 	SERIAL: 0,
 	ISSUER: 'WhatsAppLongTerm1',
@@ -56,7 +62,9 @@ export const DEFAULT_CACHE_TTLS = {
 	SIGNAL_STORE: 5 * 60, // 5 minutes
 	MSG_RETRY: 60 * 60, // 1 hour
 	CALL_OFFER: 5 * 60, // 5 minutes
-	USER_DEVICES: 5 * 60 // 5 minutes
+	USER_DEVICES: 5 * 60, // 5 minutes
+	USERNAME: 24 * 60 * 60, // 24 hours
+	USERNAME_NEGATIVE: 5 * 60 // 5 minutes
 }
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
@@ -177,12 +185,11 @@ export const LEXER_REGEX =
 	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\b[a-zA-Z_]\w*\b)(?=\s*\()|(\b[a-zA-Z_]\w*\b)|(\b\d+(?:\.\d+)?\b)|(\s+|[^\w\s]+)/g
 
 /** Fallback donate/reference URL used by rich-message link entities. */
-export const DONATE_URL = 'https://github.com/WhiskeySockets/Baileys'
+export const DONATE_URL = 'https://github.com/QueenAnya/Bail'
 
 /**
  * Support payload for AI/Bot messages — injected into messageContextInfo.supportPayload.
  * Signals to WA servers that this is an AI bot message.
- * Ported from @itsliaaa/baileys (Lia@Changes)
  */
 export const BIZ_BOT_SUPPORT_PAYLOAD =
 	'{"version":1,"is_ai_message":true,"should_upload_client_logs":false,"should_show_system_message":false,"ticket_id":"7004947587700716","citation_items":[],"ticket_locale":"us"}'

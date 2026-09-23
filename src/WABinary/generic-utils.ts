@@ -166,7 +166,7 @@ export function binaryNodeToString(node: BinaryNode | BinaryNode['content'], i =
 	return tag + content
 }
 
-// ─── Biz Binary Node (itsliaa port) ───────────────────────────────────────────
+// ─── Biz Binary Node ───────────────────────────────────────────
 
 const FLOWS_MAP: { [k: string]: boolean } = {
 	mpm: true,

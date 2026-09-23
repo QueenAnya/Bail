@@ -30,6 +30,31 @@ export type PossiblyExtendedCacheStore = CacheStore & {
 
 export type PatchedMessageWithRecipientJID = proto.IMessage & { recipientJid?: string }
 
+export type WAUsernameQuery =
+	| string
+	| {
+			username: string
+			usernameKey?: string
+			lid?: string
+	  }
+
+export type WAUsernameLookupResult = {
+	username: string
+	jid: string
+	exists: boolean
+	/** Populated when the resolved user has a LID (only via the
+	 *  `resolveUsername`-backed lookup — the raw USync-only path doesn't
+	 *  carry this). */
+	lid?: string
+	/** Populated alongside `lid` when a PN↔LID mapping is known. */
+	pn?: string
+}
+
+export type WAUsernameInfo = {
+	jid: string
+	username?: string
+}
+
 export type SocketConfig = {
 	/** the WS url to connect to WA */
 	waWebSocketUrl: string | URL
@@ -95,6 +120,8 @@ export type SocketConfig = {
 	markOnlineOnConnect: boolean
 	/** alphanumeric country code (USA -> US) for the number used */
 	countryCode: string
+	/** cache to store username resolution mappings */
+	usernameCache?: PossiblyExtendedCacheStore
 	/** provide a cache to store media, so does not have to be re-uploaded */
 	mediaCache?: CacheStore
 	/**
@@ -129,7 +156,7 @@ export type SocketConfig = {
 	 *
 	 * Without this callback, the `passkeyRequest` connection.update is still
 	 * emitted but the handshake is not completed automatically.
-	 * Source: WhiskeySockets/Baileys PR #2689 (vinikjkkj — WB collaborator)
+	 * Source: PR #2689 (vinikjkkj — WB collaborator)
 	 */
 	signPasskeyAssertion?: (challenge: Uint8Array) => Promise<Uint8Array>
 

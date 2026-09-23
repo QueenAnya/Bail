@@ -1,8 +1,7 @@
 /**
  * SQLite-backed Authentication State
  *
- * Source: @itsliaaa/baileys (use-sqlite-auth-state)
- * Rewritten as clean TypeScript with full types and JSDoc.
+ * Clean TypeScript with full types and JSDoc.
  *
  * Uses `better-sqlite3` for synchronous, transactional key storage.
  * `better-sqlite3` is a hard dependency of this package (pulled in for the

@@ -1,21 +1,22 @@
 /**
  * message-composer.ts (addons)
  * Rich message builders for Meta AI / Bot botForwardedMessage payloads.
- * Ported from WhiskeySockets/Baileys main (April 2026).
+ * Ported from upstream main (April 2026).
  */
 
 // Import into local scope AND re-export for consumers
-import { CodeHighlightType, RichSubMessageType } from '../Types/RichType'
-export { CodeHighlightType, RichSubMessageType }
-
-import { createHash } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import { promises as fsp } from 'fs'
 import os from 'os'
 import path from 'path'
 import type { proto } from '../../WAProto/index.js'
 import type { WAMediaUploadFunction } from '../Types/Message'
+import { CodeHighlightType, RichSubMessageType } from '../Types/RichType'
 import { generateMessageID } from '../Utils/generics'
 import { getUrlFromDirectPath } from '../Utils/messages-media'
+import { convertLatexToPng, convertLatexToSvg, renderLatexToPng as renderLatexToPngLocal } from './mathjax'
+
+export { CodeHighlightType, RichSubMessageType }
 
 // ── Keyword sets ──────────────────────────────────────────────────────────────
 
@@ -693,6 +694,40 @@ export type RichSubMessage = {
 		imageText?: string
 		alignment?: number
 	}
+	inlineEntities?: InlineEntityItem[]
+}
+
+/** Options controlling `extractIE`'s inline-entity extraction from markdown text. */
+export type ExtractOptions = {
+	extract?: boolean
+	hyperlink?: boolean
+	citation?: boolean
+	latex?: boolean
+}
+
+export interface InlineEntityItem {
+	key: string
+	metadata: {
+		display_name?: string
+		is_trusted?: boolean
+		url?: string
+		reference_id?: number
+		reference_url?: string
+		reference_title?: string
+		reference_display_name?: string
+		sources?: unknown[]
+		latex_expression?: string
+		latex_image?: { url?: string; width?: number; height?: number }
+		font_height?: number
+		padding?: number
+		__typename?: string
+	}
+}
+
+export interface ExtractedIE {
+	text: string
+	ie: Array<{ type: string; ie: Record<string, unknown> }>
+	inline_entities: InlineEntityItem[]
 }
 
 export type RichMessageContent = { message: proto.IMessage; messageId: string }
@@ -787,6 +822,165 @@ export const tokenizeCode = (codeStr: string, language = 'javascript'): CodeToke
 	}
 
 	return blocks
+}
+
+// ── Inline entity extraction ────────────────────────────────────────────────
+
+/**
+ * Extract inline entities (hyperlinks, citations, latex) from markdown text.
+ * Recognizes `[text](url)` as a hyperlink, `[](url)` as a citation, and
+ * `[latex|width|height|fontHeight|padding](url)` (angle brackets) as a
+ * latex-image reference, replacing each with a `{{KEY}}...{{/KEY}}` tag and
+ * returning the matching WhatsApp inline_entities metadata.
+ */
+export const extractIE = (
+	text: string,
+	{ extract = true, hyperlink = true, citation = true, latex = true }: ExtractOptions = {}
+): ExtractedIE => {
+	if (!text || typeof text !== 'string' || !extract) {
+		return { text: text || '', ie: [], inline_entities: [] }
+	}
+
+	const createIE = (type: string, entityData: Record<string, any>): InlineEntityItem | null => {
+		if (type === 'hyperlink') {
+			return {
+				key: entityData.key,
+				metadata: {
+					display_name: entityData.text,
+					is_trusted: entityData.is_trusted,
+					url: entityData.url,
+					__typename: 'GenAIInlineLinkItem'
+				}
+			}
+		}
+
+		if (type === 'citation') {
+			return {
+				key: entityData.key,
+				metadata: {
+					reference_id: entityData.reference_id,
+					reference_url: entityData.url,
+					reference_title: entityData.url,
+					reference_display_name: entityData.url,
+					sources: [],
+					__typename: 'GenAISearchCitationItem'
+				}
+			}
+		}
+
+		if (type === 'latex') {
+			return {
+				key: entityData.key,
+				metadata: {
+					latex_expression: entityData.text,
+					latex_image: {
+						url: entityData.url,
+						width: Number(entityData.width) || 100,
+						height: Number(entityData.height) || 100
+					},
+					font_height: Number(entityData.font_height) || 83.333333333333,
+					padding: Number(entityData.padding) || 15,
+					__typename: 'GenAILatexItem'
+				}
+			}
+		}
+
+		return null
+	}
+
+	let citation_index = 1
+	let hyperlink_index = 0
+	let latex_index = 0
+
+	/** Builds the {key, tag, data} triple for one matched [text](url)/[text]<url> span, or null to skip it (type disabled via options). */
+	const buildInlineEntityMatch = (
+		type: 'link' | 'latex',
+		raw: string,
+		rawUrl: string
+	): { key: string; tag: string; data: { type: string; ie: Record<string, unknown> } } | null => {
+		let url = rawUrl
+
+		if (type === 'latex') {
+			if (!latex) return null
+			const [txt = '', width = null, height = null, font_height = null, padding = null] = raw.split('|')
+			const key = `LATEX_${latex_index++}`
+			const tag = `{{${key}}}${txt || 'image'}{{/${key}}}`
+			return { key, tag, data: { type: 'latex', ie: { key, text: txt, url, width, height, font_height, padding } } }
+		}
+
+		if (raw) {
+			if (!hyperlink) return null
+			const trusted = !url.startsWith('!')
+			if (!trusted) url = url.slice(1)
+			const key = `HYPERLINK_${hyperlink_index++}`
+			const tag = `{{${key}}}${url}{{/${key}}}`
+			return { key, tag, data: { type: 'hyperlink', ie: { key, text: raw, url, is_trusted: trusted } } }
+		}
+
+		if (!citation) return null
+		const key = `CITATION_${citation_index - 1}`
+		const tag = `{{${key}}}${url}{{/${key}}}`
+		return { key, tag, data: { type: 'citation', ie: { reference_id: citation_index++, key, text: '', url } } }
+	}
+
+	const ie: Array<{ type: string; ie: Record<string, unknown> }> = []
+	const inline_entities: InlineEntityItem[] = []
+	let result = ''
+	let last = 0
+	const stack: number[] = []
+
+	/** Finds the index just past the matching close bracket, accounting for escapes and nested pairs. */
+	const findMatchingClose = (str: string, from: number, open: string, close: string): number => {
+		let end = from
+		let depth = 1
+		while (end < str.length && depth > 0) {
+			if (str[end] === open && str[end - 1] !== '\\') depth++
+			else if (str[end] === close && str[end - 1] !== '\\') depth--
+			end++
+		}
+
+		return depth > 0 ? -1 : end
+	}
+
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '[' && text[i - 1] !== '\\') {
+			stack.push(i)
+		} else if (text[i] === ']' && text[i - 1] !== '\\') {
+			if (text[i + 1] === '(' || text[i + 1] === '<') {
+				const start = stack.pop()
+				if (start === undefined) continue
+
+				const open = text[i + 1] as '(' | '<'
+				const close = open === '(' ? ')' : '>'
+				const type = open === '(' ? 'link' : 'latex'
+				const end = findMatchingClose(text, i + 2, open, close)
+
+				if (end === -1) continue
+
+				const raw = text.slice(start + 1, i).trim()
+				const url = text.slice(i + 2, end - 1).trim()
+
+				const match = buildInlineEntityMatch(type, raw, url)
+				if (!match) continue
+				const { tag, data } = match
+
+				result += text.slice(last, start) + tag
+				last = end
+
+				ie.push(data)
+				const entity = createIE(data.type, data.ie)
+				if (entity) inline_entities.push(entity)
+
+				i = end - 1
+			} else {
+				stack.pop()
+			}
+		}
+	}
+
+	result += text.slice(last)
+
+	return { text: result, ie, inline_entities }
 }
 
 // ── Context / wrapper helpers ─────────────────────────────────────────────────
@@ -990,9 +1184,9 @@ export const generateUnifiedResponseContent = (
 
 /**
  * Converts submessages into WhatsApp's native unifiedResponse primitive
- * sections (matches innovatorssoft's rich-message-utils.js toUnified).
+ * sections.
  */
-const buildUnifiedResponseSections = (submessages: RichSubMessage[]) => ({
+const buildUnifiedResponseSections = (submessages: RichSubMessage[], extractOptions: ExtractOptions = {}) => ({
 	response_id: generateMessageID(),
 	sections: submessages.map(sm => {
 		if (sm.messageType === RichSubMessageType.CODE && sm.codeMetadata) {
@@ -1019,7 +1213,12 @@ const buildUnifiedResponseSections = (submessages: RichSubMessage[]) => ({
 						rows: sm.tableMetadata.rows.map(r => ({
 							is_header: !!r.isHeading,
 							cells: r.items,
-							markdown_cells: r.items.map(item => ({ text: item }))
+							markdown_cells: r.items.map(item => {
+								const extracted = extractIE(item, extractOptions)
+								return extracted.inline_entities.length
+									? { text: extracted.text, inline_entities: extracted.inline_entities }
+									: { text: extracted.text }
+							})
 						})),
 						__typename: 'GenATableUXPrimitive'
 					},
@@ -1029,11 +1228,13 @@ const buildUnifiedResponseSections = (submessages: RichSubMessage[]) => ({
 		}
 
 		// TEXT (and default fallback)
+		const extracted = extractIE((sm as { messageText?: string }).messageText ?? '', extractOptions)
+		const providedEntities = (sm as { inlineEntities?: InlineEntityItem[] }).inlineEntities ?? []
 		return {
 			view_model: {
 				primitive: {
-					text: (sm as { messageText?: string }).messageText ?? '',
-					inline_entities: (sm as { inlineEntities?: unknown[] }).inlineEntities ?? [],
+					text: extracted.text,
+					inline_entities: [...providedEntities, ...extracted.inline_entities],
 					__typename: 'GenAIMarkdownTextUXPrimitive'
 				},
 				__typename: 'GenAISingleLayoutViewModel'
@@ -1042,7 +1243,7 @@ const buildUnifiedResponseSections = (submessages: RichSubMessage[]) => ({
 	})
 })
 
-export type GenerateRichMessageOptions = { useMarkdown?: boolean }
+export type GenerateRichMessageOptions = { useMarkdown?: boolean } & ExtractOptions
 
 export const generateRichMessageContent = (
 	submessages: RichSubMessage[],
@@ -1050,7 +1251,7 @@ export const generateRichMessageContent = (
 	options: GenerateRichMessageOptions = {}
 ): RichMessageContent => {
 	const unifiedResponse = options.useMarkdown
-		? { data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages))).toString('base64') }
+		? { data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages, options))).toString('base64') }
 		: undefined
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted), unifiedResponse),
@@ -1058,25 +1259,80 @@ export const generateRichMessageContent = (
 	}
 }
 
-/**
- * Renders a LaTeX expression to a PNG image via the codecogs.com public rendering API.
- * Ported from @innovatorssoft/baileys (assets/examples/example.js dependency).
- */
-export const renderLatexToPng = async (
-	latexExpr: string
-): Promise<{ buffer: Buffer; width: number; height: number }> => {
-	const encoded = encodeURIComponent(latexExpr)
-	const url = `https://latex.codecogs.com/png.image?%5Cdpi%7B1200%7D%5Cbg%7Bwhite%7D${encoded}`
-	const res = await fetch(url)
-	if (!res.ok) throw new Error(`[renderLatexToPng] HTTP ${res.status}`)
-	const buffer = Buffer.from(await res.arrayBuffer())
-	return { buffer, width: 1200, height: 600 }
+export type GenerateRichHtmlOptions = {
+	id?: string
+	title?: string
+	source?: string
+	trusted_sources?: string | string[]
+	typename?: string
+	headerText?: string
+	footer?: string
 }
+
+/**
+ * Generate a rich HTML message payload — renders arbitrary HTML inside a
+ * GenAI unified-response primitive, forwarded as a bot-style message.
+ */
+export const generateRichHtmlContent = (
+	html: string,
+	quoted?: QuotedMsg,
+	options: GenerateRichHtmlOptions = {}
+): RichMessageContent => {
+	const { id, title, source, trusted_sources, headerText, footer, typename } = options
+	const responseId = id ? `${id}-${Date.now()}` : randomUUID()
+	const trusted = trusted_sources
+		? Array.isArray(trusted_sources)
+			? trusted_sources
+			: [trusted_sources]
+		: source
+			? [source]
+			: []
+	const primitiveTypename = typename || 'GenAIHtmlPrimitive'
+
+	const submessages: RichSubMessage[] = []
+	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })
+	if (title) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: title })
+	if (footer) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: footer })
+
+	const payload = {
+		response_id: responseId,
+		sections: [
+			{
+				view_model: {
+					primitive: {
+						__typename: primitiveTypename,
+						payload: html,
+						trusted_sources: trusted
+					},
+					__typename: 'GenAISingleLayoutViewModel'
+				}
+			}
+		]
+	}
+
+	const unifiedResponse = { data: Buffer.from(JSON.stringify(payload)).toString('base64') }
+	const message: proto.IMessage = {
+		...buildBotForwardedMessage(submessages, buildRichContextInfo(quoted), unifiedResponse),
+		messageContextInfo: {
+			deviceListMetadata: {},
+			deviceListMetadataVersion: 2,
+			botMetadata: { messageDisclaimerText: '', botResponseId: responseId }
+		}
+	}
+
+	return {
+		message,
+		messageId: generateMessageID()
+	}
+}
+
+/** Renders LaTeX locally with MathJax + Sharp (no external rendering API). */
+export { convertLatexToSvg, convertLatexToPng }
+export const renderLatexToPng = renderLatexToPngLocal
 
 /**
  * Uploads a raw (unencrypted-at-rest) buffer — e.g. a rendered LaTeX/table PNG — to WA's media
  * servers via the socket's `waUploadToServer`. Writes to a temp file, uploads, then cleans up.
- * Ported from @innovatorssoft/baileys (assets/examples/example.js dependency).
  */
 export const uploadUnencryptedToWA = async (
 	buffer: Buffer,
@@ -1101,11 +1357,15 @@ export const uploadUnencryptedToWA = async (
 	}
 }
 
-/** Always builds native markdown unifiedResponse (matches innovatorssoft's dedicated generateMarkdownContent) */
-export const generateMarkdownContent = (text: string, quoted?: QuotedMsg): RichMessageContent => {
+/** Always builds native markdown unifiedResponse */
+export const generateMarkdownContent = (
+	text: string,
+	quoted?: QuotedMsg,
+	options: ExtractOptions = {}
+): RichMessageContent => {
 	const submessages: RichSubMessage[] = [{ messageType: RichSubMessageType.TEXT, messageText: text }]
 	const unifiedResponse = {
-		data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages))).toString('base64')
+		data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages, options))).toString('base64')
 	}
 	return {
 		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted), unifiedResponse),

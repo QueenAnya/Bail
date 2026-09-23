@@ -1,8 +1,7 @@
 /**
  * Chat Control Utilities
  *
- * Source: @innovatorssoft/baileys (chat-control.js)
- * Rewritten as clean TypeScript with full types and JSDoc.
+ * Clean TypeScript with full types and JSDoc.
  *
  * Three components:
  *  - TypingIndicator  — composing / recording presence helpers

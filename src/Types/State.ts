@@ -49,7 +49,7 @@ export type ConnectionState = {
 	/**
 	 * Set when WhatsApp sends a passkey companion-linking notification
 	 * (passkey_prologue_request or crsc_continuation) during pairing.
-	 * Source: WhiskeySockets/Baileys PR #2696 (frndchagas)
+	 * Source: PR #2696 (frndchagas)
 	 */
 	passkeyRequest?: {
 		type: 'passkey_prologue_request' | 'crsc_continuation'

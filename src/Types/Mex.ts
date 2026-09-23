@@ -15,7 +15,8 @@ export enum XWAPaths {
 	xwa2_newsletter_delete_v2 = 'xwa2_newsletter_delete_v2',
 	xwa2_newsletter_subscribed = 'xwa2_newsletter_subscribed',
 	xwa2_fetch_account_reachout_timelock = 'xwa2_fetch_account_reachout_timelock',
-	xwa2_message_capping_info = 'xwa2_message_capping_info'
+	xwa2_message_capping_info = 'xwa2_message_capping_info',
+	xwa2_update_text_status = 'xwa2_update_text_status'
 }
 
 export enum QueryIds {
@@ -33,14 +34,27 @@ export enum QueryIds {
 	DELETE = '30062808666639665',
 	REACHOUT_TIMELOCK = '23983697327930364',
 	MESSAGE_CAPPING_INFO = '24503548349331633',
-	/** Source: innovatorssoft/Baileys — used by newsletterReactionMode/newsletterAction */
-	JOB_MUTATION = '7150902998257522'
+	/** Used by newsletterReactionMode/newsletterAction */
+	JOB_MUTATION = '7150902998257522',
+	UPDATE_TEXT_STATUS = '9152604461510864'
+}
+
+/** Object form accepted by updateProfileStatus, alongside a plain string. */
+export type TextStatusInput = {
+	text?: string | null
+	emoji?: string | null
+	ephemeralDuration?: number | null
+}
+
+export type TextStatusUpdateResponse = {
+	result: boolean | string
 }
 export type NewsletterUpdate = {
 	name?: string
 	description?: string
 	picture?: string
 }
+
 export interface NewsletterCreateResponse {
 	id: string
 	state: { type: string }

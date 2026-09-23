@@ -8,7 +8,7 @@
  *    round-trips correctly — raw string storage causes type corruption on retrieve.
  *  - P2: set(key, undefined) → delegates to del(key) instead of crashing.
  *
- * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
+ * Source: PR #2710 (LuferOS) — enterprise bot framework
  */
 
 import Database from 'better-sqlite3'

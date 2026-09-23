@@ -1,14 +1,18 @@
 /**
  * username.ts
  * WhatsApp Username socket layer — check, set, pin, find, and recommend usernames.
- * Ported from @innovatorssoft/baileys (CJS → TypeScript ESM)
  *
  * NOTE: All USERNAME_QUERY_IDS are captured from live WA Web sessions.
  * They may rotate with WA updates — use the proto-extract tool to refresh them.
  */
 
-import type { SocketConfig } from '../Types'
+import NodeCache from '@cacheable/node-cache'
+import { DEFAULT_CACHE_TTLS } from '../Defaults'
+import type { SocketConfig, UsernameCacheEntry, UsernameResolutionResult, WAUsernameLookupResult, WAUsernameQuery } from '../Types'
+import { UsernameInvalidError, UsernameResolutionError } from '../Types/Username'
+import { normalizeUsername, validateUsername } from '../Utils/username'
 import { attachVoipToSocket } from '../Voip/voip-engine'
+import { isLidUser, isPnUser, jidNormalizedUser } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeCommunitiesSocket } from './communities'
 import { executeWMexQuery } from './mex'
@@ -65,10 +69,106 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 	const mexQuery = <T = any>(variables: Record<string, unknown>, queryId: string, dataPath: string): Promise<T> =>
 		executeWMexQuery<T>(variables, queryId, dataPath, query, generateMessageTag)
 
+	const usernameCache = config.usernameCache || new NodeCache({ stdTTL: DEFAULT_CACHE_TTLS.USERNAME, useClones: false })
+
+	const resolvePNForLID = async (lid: string): Promise<string | undefined> => {
+		if (!isLidUser(lid)) return undefined
+		try {
+			const mapped = await sock.signalRepository?.lidMapping?.getPNForLID?.(lid)
+			if (mapped && isPnUser(mapped)) return jidNormalizedUser(mapped)
+		} catch {}
+
+		return undefined
+	}
+
+	const resolveUsername = async (username: string): Promise<UsernameResolutionResult | null> => {
+		const normalized = validateUsername(normalizeUsername(username))
+		const key = `user:${normalized}`
+		const cached = (await usernameCache.get<UsernameCacheEntry>(key)) as UsernameCacheEntry | undefined
+		if (cached) return cached.notFound ? null : cached
+		try {
+			const q = new USyncQuery()
+				.withContactProtocol()
+				.withUsernameProtocol()
+				.withUser(new USyncUser().withUsername(normalized))
+			const entry: any = (await executeUSyncQuery(q))?.list?.[0]
+
+			if (!entry || entry.error || (!entry.id && !entry.lid && !entry.pn)) {
+				await usernameCache.set(
+					key,
+					{ username: normalized, resolvedAt: Date.now(), notFound: true },
+					DEFAULT_CACHE_TTLS.USERNAME_NEGATIVE
+				)
+				return null
+			}
+
+			const lid = entry.lid || (entry.id && isLidUser(entry.id) ? entry.id : undefined)
+			let pn = entry.pn || (entry.id && isPnUser(entry.id) ? entry.id : undefined)
+			if (lid && !pn) pn = await resolvePNForLID(lid)
+
+			const resolution = {
+				username: normalized,
+				jid: pn || lid || entry.id,
+				...(lid ? { lid } : {}),
+				...(pn ? { pn: jidNormalizedUser(pn) } : {})
+			}
+
+			if (resolution.lid && resolution.pn) {
+				await sock.signalRepository?.lidMapping?.storeLIDPNMappings?.([{ lid: resolution.lid, pn: resolution.pn }])
+			}
+
+			await usernameCache.set(key, { ...resolution, resolvedAt: Date.now() }, DEFAULT_CACHE_TTLS.USERNAME)
+			return resolution
+		} catch (error) {
+			if (error instanceof UsernameInvalidError) throw error
+			throw new UsernameResolutionError(normalized, error)
+		}
+	}
+
+	const resolveUsernames = async (usernames: string[]) => {
+		if (!Array.isArray(usernames)) throw new UsernameInvalidError(String(usernames), 'Usernames must be an array')
+		return Promise.all(usernames.map(username => resolveUsername(username)))
+	}
+
+	/**
+	 * `onWhatsApp`-style username lookup, backed by `resolveUsernames` so
+	 * results carry `lid`/`pn` (matching innovatorssoft's real
+	 * implementation: `(await resolveUsernames(usernames.flat())).filter(Boolean)`).
+	 * This replaces the raw-USync version from the earlier socket layer,
+	 * which only returned `{username, jid, exists}` with no lid/pn.
+	 * Not-found usernames are dropped from the results, same as upstream.
+	 */
+	const onWhatsAppUsername = async (...queries: WAUsernameQuery[]): Promise<WAUsernameLookupResult[]> => {
+		const usernames = queries.flat().map(q => (typeof q === 'string' ? q : q.username))
+		const resolved = await resolveUsernames(usernames)
+		return resolved
+			.filter((r): r is UsernameResolutionResult => r !== null)
+			.map(r => ({ username: r.username, jid: r.jid || '', exists: true, ...(r.lid ? { lid: r.lid } : {}), ...(r.pn ? { pn: r.pn } : {}) }))
+	}
+
+	const invalidateUsername = async (username: string) => {
+		await usernameCache.del(`user:${normalizeUsername(username)}`)
+	}
+
+	const refreshUsername = async (username: string) => {
+		await invalidateUsername(username)
+		return resolveUsername(username)
+	}
+
 	// ── VoIP calling (ported from baileys-caller, single-session — see Voip/) ──
 	// Lazily initializes the WASM engine on first `initiateCall()`; bots that
 	// never call it never pay the worker-pool/WASM-compile startup cost.
-	const { initiateCall, disconnectVoip } = attachVoipToSocket(sock)
+	const {
+		initiateCall,
+		initiateCalls,
+		getActiveCalls,
+		getCall,
+		getActiveCallCount,
+		endCall,
+		endAllCalls,
+		setVoipOptions,
+		disconnectVoip
+	} = attachVoipToSocket(sock)
 	sock.registerSocketEndHandler(() => disconnectVoip())
 
 	// ── 1. Check username availability ────────────────────────────────────────
@@ -186,6 +286,11 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		return mexQuery<any>(variables, USERNAME_QUERY_IDS.GET_RECOMMENDATIONS, 'xwa2_username_get_recommendations')
 	}
 
+	// Fill in the override hook from the earlier socket layer, so the
+	// existing `onWhatsApp`/`onWhatsAppMixed` (defined in Socket/socket.ts,
+	// before resolveUsername existed) picks up lid/pn automatically.
+	;(sock as any).usernameLookupOverride.fn = onWhatsAppUsername
+
 	return {
 		...sock,
 		// Username management
@@ -198,12 +303,27 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		findUserByUsername,
 		fetchContactUsernames,
 		getUsernameRecommendations,
+		usernameCache,
+		resolveUsername,
+		resolveUsernames,
+		invalidateUsername,
+		refreshUsername,
+		// Overrides the raw-USync-only version from the earlier socket
+		// layer — this one carries lid/pn (see comment at its declaration).
+		onWhatsAppUsername,
 		// Constants (expose for consumers)
 		USERNAME_QUERY_IDS,
 		USERNAME_CHECK_RESULT,
 		USERNAME_SOURCE,
 		// VoIP calling
 		initiateCall,
+		initiateCalls,
+		getActiveCalls,
+		getCall,
+		getActiveCallCount,
+		endCall,
+		endAllCalls,
+		setVoipOptions,
 		disconnectVoip
 	}
 }

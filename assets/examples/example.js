@@ -1,5 +1,5 @@
 // NOTE: @queenanya/baileys is a pure ESM package ("type": "module"), so unlike
-// @innovatorssoft/baileys's CommonJS example this file uses `import` instead of
+// Since the original CommonJS example this file is based on uses `require`, this file uses `import` instead of
 // `require`. Everything below this block is otherwise unchanged from the original.
 import {
     makeWASocket,
@@ -12,14 +12,20 @@ import {
     getUrlFromDirectPath,
     renderLatexToPng,
     prepareWAMessageMedia,
-    uploadUnencryptedToWA
+    uploadUnencryptedToWA,
+    generateWAMessageFromContent
 } from '../../lib/index.js';
 import { Boom } from '@hapi/boom';
 import qrcode from 'qrcode-terminal';
 import fs from 'fs';
 import path from 'path';
 import pino from 'pino';
+import util from 'util';
 import { fileURLToPath } from 'url';
+import { createSamplePage } from './page.js';
+import { createSnakePage } from './snake.js';
+import { createLivePage } from './live_page.js';
+import { createSlotsPage } from './slots.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -140,7 +146,7 @@ async function startBot() {
     sock.ev.on('messages.upsert', async (update) => {
         /*
         console.log(" \n")
-        console.log("Update : ", require('util').inspect(update, { depth: null, colors: true }))
+        console.log("Update : ", util.inspect(update, { depth: null, colors: true }))
         console.log(" \n")
         console.log(`[messages.upsert] Event received. Type: ${update.type}, Messages count: ${update.messages?.length || 0}`);
         */
@@ -163,7 +169,7 @@ async function startBot() {
             if (message.message?.protocolMessage) return;
 
             const msgContent = message.message || {};
-            const jid = message.key.remoteJidAlt;
+            const jid = message.key.remoteJidAlt || message.key.remoteJid;
             if (!jid) return;
 
             // Helper to normalize JIDs (e.g., removing device sub-IDs)
@@ -217,26 +223,6 @@ async function startBot() {
                     await sock.sendMessage(normalizedJid, { text: 'pong! 🏓' }, { quoted: message });
                     break;
                 }
-                case '!call': {
-                    try {
-                        await sock.sendMessage(normalizedJid, { text: '📞 Initiating voice call with audio stream...' }, { quoted: message });
-
-                        // Place a voice call and stream an audio file:
-                        const call = await sock.initiateCall(normalizedJid, {
-                            audioSource: args || './audio.mp3', // MP3/WAV file path or "silence"
-                            durationMs: 30000                   // Optional duration
-                        });
-                        call.on('ringing', () => console.log('Call is ringing...'));
-                        call.on('connected', () => console.log('Connected & streaming audio!'));
-                        call.on('audio', (pcmChunk) => { /* Incoming 16 kHz Float32Array PCM */ });
-                        call.on('ended', (reason) => console.log('Call ended:', reason));
-                        call.on('error', (err) => console.log('Call error:', err));
-                    } catch (err) {
-                        console.log(err.message);
-                        await sock.sendMessage(normalizedJid, { text: `Error starting call: ${err.message}` }, { quoted: message });
-                    }
-                    break;
-                }
                 case '!table': {
                     await sock.sendTable(normalizedJid, 'Developer Team Metrics', ['Name', 'Role', 'Status', 'Tasks Completed'], [
                         ['Member 1', 'Frontend Lead', 'Active', '45'],
@@ -245,7 +231,7 @@ async function startBot() {
                         ['Member 4', 'Product Owner', 'Meeting', '12']
                     ], message, {
                         headerText: 'Here is the current team status table:',
-                        footer: 'Generated automatically by Innovators Baileys V2 Bot.'
+                        footer: 'Generated automatically by QueenAnya Baileys V2 Bot.'
                     });
                     break;
                 }
@@ -287,7 +273,13 @@ async function startBot() {
                         '!viewoncev2   - Send image as view-once V2',
                         '!viewonceext  - Send image as view-once V2 Ext',
                         '!interactivemsg - Send custom interactive buttons (text, image, or location)',
-                        '!call         - Place a voice call and stream audio'
+                        '!call         - Place a voice call and stream audio',
+                        '!html         - Send interactive rich HTML UI card with background audio (GenAI HTML)',
+                        '!snake        - Play CyberSnake HTML5 Canvas Game (GenAI HTML)',
+                        '!slots        - Play Fruit Bonanza Slots Game (GenAI HTML)',
+                        '!page         - Show interactive CyberPulse GenAI sample page (HTML/CSS/JS)',
+                        '!tikdown      - Render live TikDown web app from public URL (GenAI HTML)',
+                        '!livepage     - Render any public web page (e.g. !livepage https://...) (GenAI HTML)'
                     ], message, {
                         headerText: 'Available commands:',
                         footer: 'Type any of these commands to test.'
@@ -309,7 +301,7 @@ async function startBot() {
                     break;
                 }
                 case '!markdown': {
-                    const mdText = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n\n___\n\n> To use a horizontal line, you need to have two "\\n" above and below the "___"\n==Highlighted text==\n# By the way, ^you^ can _mix_ ==multiple markdowns== for a **richer response**\n###### Try different combinations... ';
+                    const mdText = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n\n___\n\n> To use a horizontal line, you need to have two "\\n" above and below the "___"\n==Highlighted text==\n# By the way, ^you^ can _mix_ ==multiple markdowns== for a **richer response**\n🔗 [Click here to visit Google](https://google.com)\n🔗 [GitHub Repository](https://github.com/QueenAnya/Bail)\n###### Try different combinations... ';
                     await sock.sendMarkdown(normalizedJid, mdText, message);
                     break;
                 }
@@ -366,7 +358,7 @@ async function startBot() {
                                 title: 'Product Prices',
                                 rows: [
                                     { items: ['Product', 'Price', 'Stock'], isHeading: true },
-                                    { items: ['Innovators Baileys Pro', '$49.99', 'In Stock'] },
+                                    { items: ['QueenAnya Baileys Pro', '$49.99', 'In Stock'] },
                                     { items: ['Rust WASM Plugin', '$19.99', 'Low Stock'] }
                                 ]
                             }
@@ -414,19 +406,19 @@ async function startBot() {
                             { buttonId: 'btn2', buttonText: { displayText: 'Option 2' }, type: 1 }
                         ],
                         text: 'Pick an option:',
-                        footer: 'Powered by Innovators Baileys'
+                        footer: 'Powered by QueenAnya Baileys'
                     }, { quoted: message });
                     break;
                 }
                 case '!template': {
                     await sock.sendMessage(normalizedJid, {
                         templateButtons: [
-                            { text: '🌐 Visit Link', url: 'https://github.com/innovatorssoft/baileys' },
+                            { text: '🌐 Visit Link', url: 'https://github.com/QueenAnya/Bail' },
                             { text: '📞 Call Support', call: '+91XXXXXXXXXX' },
                             { text: '👋🏻 Quick Reply', id: 'id1' }
                         ],
                         text: 'Template message body example:',
-                        footer: 'Powered by Innovators Baileys'
+                        footer: 'Powered by QueenAnya Baileys'
                     }, { quoted: message });
                     break;
                 }
@@ -435,11 +427,11 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, {
                             interactiveButtons: [
                                 { text: '👋🏻 Greeting', id: '#Greeting' },
-                                { text: '📋 Copy Code', copy: '@innovatorssoft/baileys' },
-                                { text: '🌐 Source', url: 'https://github.com/innovatorssoft/baileys' }
+                                { text: '📋 Copy Code', copy: '@queenanya/baileys' },
+                                { text: '🌐 Source', url: 'https://github.com/QueenAnya/Bail' }
                             ],
                             body: { text: 'Are you sure you want to proceed?' },
-                            footer: { text: 'Innovators Baileys interactive' }
+                            footer: { text: 'QueenAnya Baileys interactive' }
                         }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
@@ -459,7 +451,7 @@ async function startBot() {
                         ],
                         title: 'Interactive Sections List',
                         text: 'List body text here',
-                        footer: 'Innovators Baileys footer',
+                        footer: 'QueenAnya Baileys footer',
                         buttonText: 'Open List Options'
                     }, { quoted: message });
                     break;
@@ -492,7 +484,7 @@ async function startBot() {
                 }
                 case '!linkpreview': {
                     try {
-                        const urlA = 'https://github.com/innovatorssoft/baileys';
+                        const urlA = 'https://github.com/QueenAnya/Bail';
                         const logoPath = path.join(__dirname, 'logo.png');
                         const faviconPath = path.join(__dirname, 'favicon.png');
 
@@ -503,7 +495,7 @@ async function startBot() {
                             text: urlA + ' 👆🏻 Check it out!',
                             linkPreview: {
                                 'matched-text': urlA,
-                                title: '🌱 @innovatorssoft/baileys',
+                                title: '🌱 @queenanya/baileys',
                                 description: 'Modified Baileys Fork',
                                 previewType: 0, // --- Use 1 for video playback in the link preview
                                 jpegThumbnail: fs.readFileSync(logoPath)
@@ -512,7 +504,7 @@ async function startBot() {
 
                         await sock.sendMessage(normalizedJid, { text: 'Sending large link preview with favicon...' }, { quoted: message });
 
-                        const urlB = 'https://github.com/innovatorssoft/baileys#readme';
+                        const urlB = 'https://github.com/QueenAnya/Bail#readme';
 
                         const { imageMessage: image } = await prepareWAMessageMedia({
                             image: {
@@ -531,7 +523,7 @@ async function startBot() {
                             text: urlB + ' 👆🏻 Check it out!',
                             linkPreview: {
                                 'matched-text': urlB,
-                                title: '🌱 @innovatorssoft/baileys',
+                                title: '🌱 @queenanya/baileys',
                                 description: 'Modified Baileys Fork',
                                 previewType: 0,
                                 jpegThumbnail: fs.readFileSync(logoPath),
@@ -667,7 +659,7 @@ async function startBot() {
                         const logoPath = path.join(__dirname, 'logo.png');
                         await sock.sendMessage(normalizedJid, {
                             text: '🗂️ Interactive with Carousel!',
-                            footer: 'Innovators Baileys V2 Carousel',
+                            footer: 'QueenAnya Baileys V2 Carousel',
                             cards: [
                                 {
                                     image: { url: logoPath },
@@ -675,7 +667,7 @@ async function startBot() {
                                     footer: '🏷️ Pinterest',
                                     nativeFlow: [{
                                         text: '🌐 Source',
-                                        url: 'https://github.com/innovatorssoft/baileys',
+                                        url: 'https://github.com/QueenAnya/Bail',
                                         useWebview: true
                                     }]
                                 },
@@ -684,12 +676,12 @@ async function startBot() {
                                     caption: '🖼️ Image 2',
                                     footer: '🏷️ Pinterest',
                                     offerText: '🏷️ New Coupon!',
-                                    offerCode: '@innovatorssoft/baileys',
-                                    offerUrl: 'https://github.com/innovatorssoft/baileys',
+                                    offerCode: '@queenanya/baileys',
+                                    offerUrl: 'https://github.com/QueenAnya/Bail',
                                     offerExpiration: Date.now() + 3600000,
                                     nativeFlow: [{
                                         text: '🌐 Source',
-                                        url: 'https://github.com/innovatorssoft/baileys'
+                                        url: 'https://github.com/QueenAnya/Bail'
                                     }]
                                 },
                                 {
@@ -699,8 +691,8 @@ async function startBot() {
                                     optionText: '👉🏻 Select Options',
                                     optionTitle: '👉🏻 Select Options',
                                     offerText: '🏷️ New Coupon!',
-                                    offerCode: '@innovatorssoft/baileys',
-                                    offerUrl: 'https://github.com/innovatorssoft/baileys',
+                                    offerCode: '@queenanya/baileys',
+                                    offerUrl: 'https://github.com/QueenAnya/Bail',
                                     offerExpiration: Date.now() + 3600000,
                                     nativeFlow: [
                                         {
@@ -710,7 +702,7 @@ async function startBot() {
                                         },
                                         {
                                             text: '🌐 Source',
-                                            url: 'https://github.com/innovatorssoft/baileys'
+                                            url: 'https://github.com/QueenAnya/Bail'
                                         }
                                     ]
                                 }
@@ -727,7 +719,7 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, {
                             image: { url: logoPath },
                             caption: '👆🏻 Buttons and Native Flow!',
-                            footer: 'Innovators Baileys V2',
+                            footer: 'QueenAnya Baileys V2',
                             buttons: [
                                 {
                                     text: '👋🏻 Rating',
@@ -882,7 +874,7 @@ async function startBot() {
                                 caption: 'This is an Interactive Message with an Image Header!',
                                 title: 'Interactive Image',
                                 subtitle: 'Image Subtitle',
-                                footer: 'Innovators Baileys V2',
+                                footer: 'QueenAnya Baileys V2',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -900,12 +892,12 @@ async function startBot() {
                                 location: {
                                     degreesLatitude: -6.200000,
                                     degreesLongitude: 106.816666,
-                                    name: 'InnovatorsSoft HQ'
+                                    name: 'QueenAnya HQ'
                                 },
                                 caption: 'This is an Interactive Message with a Location Header!',
                                 title: 'HQ Location',
                                 subtitle: 'Jakarta, Indonesia',
-                                footer: 'Innovators Baileys V2',
+                                footer: 'QueenAnya Baileys V2',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -922,7 +914,7 @@ async function startBot() {
                                 text: 'This is a text-based Interactive message showing all native flow buttons!',
                                 title: 'Native Flow Showcase',
                                 subtitle: 'Subtitle Example',
-                                footer: 'Powered by Innovators Baileys V2',
+                                footer: 'Powered by QueenAnya Baileys V2',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -943,7 +935,7 @@ async function startBot() {
                                         name: 'cta_copy',
                                         buttonParamsJson: JSON.stringify({
                                             display_text: 'Copy Coupon',
-                                            copy_code: 'INNOVATORS_PRO_50'
+                                            copy_code: 'QUEENANYA_PRO_50'
                                         })
                                     },
                                     {
@@ -989,7 +981,7 @@ async function startBot() {
                                                     rows: [
                                                         {
                                                             header: 'Service A',
-                                                            title: 'Innovators Baileys Fork',
+                                                            title: 'QueenAnya Baileys Fork',
                                                             description: 'Custom features & stability fixes',
                                                             id: 'service_baileys_id'
                                                         },
@@ -1009,6 +1001,363 @@ async function startBot() {
                         }
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!call': {
+                    try {
+                        const parts = args && args.trim() ? args.trim().split(/\s+/) : [];
+                        let targetJid = normalizedJid;
+                        let targetAudio = './audio.mp3';
+
+                        if (parts.length > 0) {
+                            if (parts[0].endsWith('.mp3') || parts[0].endsWith('.wav') || parts[0].endsWith('.ogg')) {
+                                targetAudio = parts[0];
+                                if (parts[1]) {
+                                    targetJid = parts[1].includes('@') ? parts[1] : `${parts[1].replace(/\D/g, '')}@s.whatsapp.net`;
+                                }
+                            } else {
+                                targetJid = parts[0].includes('@') ? parts[0] : `${parts[0].replace(/\D/g, '')}@s.whatsapp.net`;
+                                if (parts[1]) {
+                                    targetAudio = parts[1];
+                                }
+                            }
+                        }
+
+                        await sock.sendMessage(normalizedJid, { text: `📞 Initiating voice call to ${targetJid} (audio: ${targetAudio})...` }, { quoted: message });
+                        const call = await sock.initiateCall(targetJid, {
+                            audioSource: targetAudio,
+                            durationMs: 42 * 1000,
+                            repeatAudio: true
+                        });
+                        call.on('ringing', () => console.log(`[Example] Call ${call.callId} is ringing...`));
+                        call.on('accepted', () => console.log(`[Example] Call ${call.callId} accepted by recipient`));
+                        call.on('connected', () => console.log(`[Example] Call ${call.callId} connected!`));
+                        call.on('audioReady', () => console.log(`[Example] Call ${call.callId} audio pipeline ready`));
+                        call.on('streaming', () => console.log(`[Example] Call ${call.callId} streaming audio`));
+                        call.on('ended', (reason) => console.log(`[Example] Call ${call.callId} ended: ${reason}`));
+                        call.on('error', (err) => console.error(`[Example] Call error:`, err));
+                    } catch (err) {
+                        console.log(err)
+                        await sock.sendMessage(normalizedJid, { text: `Call error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!vcall': {
+                    try {
+                        const parts = args && args.trim() ? args.trim().split(/\s+/) : [];
+                        let targetJid = normalizedJid;
+                        let targetVideo = './example.mp4';
+
+                        if (parts.length > 0) {
+                            if (parts[0].endsWith('.mp4') || parts[0].endsWith('.mkv') || parts[0].endsWith('.mov') || parts[0].endsWith('.avi')) {
+                                targetVideo = parts[0];
+                                if (parts[1]) {
+                                    targetJid = parts[1].includes('@') ? parts[1] : `${parts[1].replace(/\D/g, '')}@s.whatsapp.net`;
+                                }
+                            } else {
+                                targetJid = parts[0].includes('@') ? parts[0] : `${parts[0].replace(/\D/g, '')}@s.whatsapp.net`;
+                                if (parts[1]) {
+                                    targetVideo = parts[1];
+                                }
+                            }
+                        }
+
+                        await sock.sendMessage(normalizedJid, { text: `📹 Initiating video call to ${targetJid} (video: ${targetVideo})...` }, { quoted: message });
+                        const call = await sock.initiateCall(targetJid, {
+                            isVideo: true,
+                            videoSource: targetVideo,
+                            audioSource: './audio.mp3',
+                            videoFps: 15,
+                            isHorizontal: true, // true for horizontal/landscape, false for vertical/portrait
+                            durationMs: 30 * 1000,
+                            repeatAudio: true,
+                            videoLoop: true
+                        });
+
+                        call.on('ringing', () => console.log(`[Example] Video Call ${call.callId} is ringing...`));
+                        call.on('accepted', () => console.log(`[Example] Video Call ${call.callId} accepted by recipient`));
+                        call.on('connected', () => console.log(`[Example] Video Call ${call.callId} connected!`));
+                        call.on('videoStarted', () => console.log(`[Example] Video Call ${call.callId} video stream started`));
+                        call.on('videoEnded', () => console.log(`[Example] Video Call ${call.callId} video stream ended`));
+                        call.on('audioReady', () => console.log(`[Example] Video Call ${call.callId} audio pipeline ready`));
+                        call.on('streaming', () => console.log(`[Example] Video Call ${call.callId} streaming media`));
+                        call.on('ended', (reason) => console.log(`[Example] Video Call ${call.callId} ended: ${reason}`));
+                        call.on('error', (err) => console.error(`[Example] Video Call error:`, err));
+                    } catch (err) {
+                        console.log(err);
+                        await sock.sendMessage(normalizedJid, { text: `Video Call error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!callinfo': {
+                    try {
+                        const active = await sock.getActiveCalls();
+                        if (!active || active.length === 0) {
+                            await sock.sendMessage(normalizedJid, { text: `📞 No active VoIP calls.` }, { quoted: message });
+                        } else {
+                            const list = active.map(c => `• [${c.id.slice(0, 8)}] -> ${c.jid} (${c.status}) [started: ${new Date(c.startedAt).toLocaleTimeString()}]`).join('\n');
+                            await sock.sendMessage(normalizedJid, { text: `📞 Active Calls (${active.length}):\n\n${list}` }, { quoted: message });
+                        }
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!calls': {
+                    try {
+                        const targets = args && args.trim() ? args.trim().split(/\s+/) : [normalizedJid];
+                        await sock.sendMessage(normalizedJid, { text: `📞 Initiating concurrent calls to ${targets.length} recipients...` }, { quoted: message });
+                        const requests = targets.map(target => ({
+                            jid: target.includes('@') ? target : `${target.replace(/\D/g, '')}@s.whatsapp.net`,
+                            options: {
+                                audioSource: './audio.mp3',
+                                durationMs: 30000,
+                                repeatAudio: true
+                            }
+                        }));
+                        const calls = await sock.initiateCalls(requests);
+                        for (const call of calls) {
+                            call.on('ringing', () => console.log(`[Example] Call ${call.callId} is ringing...`));
+                            call.on('connected', () => console.log(`[Example] Call ${call.callId} connected!`));
+                            call.on('ended', (reason) => console.log(`[Example] Call ${call.callId} ended: ${reason}`));
+                        }
+                        await sock.sendMessage(normalizedJid, { text: `✅ Successfully initiated ${calls.length} concurrent calls!` }, { quoted: message });
+                    } catch (err) {
+                        console.log(err)
+                        await sock.sendMessage(normalizedJid, { text: `Multi-call error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!endcall': {
+                    try {
+                        const targetCallId = args && args.trim() ? args.trim() : '';
+                        if (!targetCallId) {
+                            await sock.sendMessage(normalizedJid, { text: `Usage: !endcall <callId>` }, { quoted: message });
+                        } else {
+                            await sock.endCall(targetCallId);
+                            await sock.sendMessage(normalizedJid, { text: `📞 Terminated call ${targetCallId}` }, { quoted: message });
+                        }
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `End call error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!endallcalls': {
+                    try {
+                        const count = await sock.getActiveCallCount();
+                        await sock.endAllCalls();
+                        await sock.sendMessage(normalizedJid, { text: `📞 Terminated all ${count} active calls.` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!snake': {
+                    try {
+                        const userName = message.pushName || 'Player';
+                        const snakePayload = createSnakePage(userName);
+                        const msg = generateWAMessageFromContent(normalizedJid, snakePayload, { quoted: message });
+                        await sock.relayMessage(normalizedJid, msg.message, { messageId: msg.key.id });
+                    } catch (err) {
+                        console.error('[SNAKE]', err);
+                        await sock.sendMessage(normalizedJid, {
+                            text: `❌ Snake Game failed\n\n${err?.message || String(err)}`
+                        }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!slots': {
+                    try {
+                        const slotsPayload = createSlotsPage();
+                        const msg = generateWAMessageFromContent(normalizedJid, slotsPayload, { quoted: message });
+                        await sock.relayMessage(normalizedJid, msg.message, { messageId: msg.key.id });
+                    } catch (err) {
+                        console.error('[SLOTS]', err);
+                        await sock.sendMessage(normalizedJid, {
+                            text: `❌ Slots Game failed\n\n${err?.message || String(err)}`
+                        }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!page': {
+                    try {
+                        const userName = message.pushName || 'Commander';
+                        const pagePayload = createSamplePage(userName);
+                        const msg = generateWAMessageFromContent(normalizedJid, pagePayload, { quoted: message });
+                        await sock.relayMessage(normalizedJid, msg.message, { messageId: msg.key.id });
+                    } catch (err) {
+                        console.error('[PAGE]', err);
+                        await sock.sendMessage(normalizedJid, {
+                            text: `❌ Sample Page failed\n\n${err?.message || String(err)}`
+                        }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!tikdown':
+                case '!livepage': {
+                    try {
+                        const targetUrl = args || 'https://tikdown.example.com/';
+                        const title = targetUrl.includes('tikdown') ? 'TikDown Downloader' : 'Live Web Page';
+                        const livePayload = createLivePage(targetUrl, title);
+                        const msg = generateWAMessageFromContent(normalizedJid, livePayload, { quoted: message });
+                        await sock.relayMessage(normalizedJid, msg.message, { messageId: msg.key.id });
+                    } catch (err) {
+                        console.error('[LIVE_PAGE]', err);
+                        await sock.sendMessage(normalizedJid, {
+                            text: `❌ Live Page failed\n\n${err?.message || String(err)}`
+                        }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!html': {
+                    try {
+                        const userName = message.pushName || 'User';
+                        const audioPath = path.resolve(__dirname, 'audio.mp3');
+                        let audioBase64 = '';
+                        if (fs.existsSync(audioPath)) {
+                            audioBase64 = fs.readFileSync(audioPath).toString('base64');
+                        } else {
+                            const fallbackPath = path.resolve(process.cwd(), 'assets/examples/audio.mp3');
+                            if (fs.existsSync(fallbackPath)) {
+                                audioBase64 = fs.readFileSync(fallbackPath).toString('base64');
+                            }
+                        }
+
+                        const customHtml = `
+                            <div id="cardContainer" style="padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a); color: #f8fafc; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); user-select: none;">
+                                <style>
+                                    @keyframes eqBounce {
+                                        0% { height: 3px; }
+                                        50% { height: 12px; }
+                                        100% { height: 6px; }
+                                    }
+                                    .eq-anim-1 { animation: eqBounce 0.7s ease-in-out infinite alternate; }
+                                    .eq-anim-2 { animation: eqBounce 0.5s ease-in-out infinite alternate 0.2s; }
+                                    .eq-anim-3 { animation: eqBounce 0.8s ease-in-out infinite alternate 0.4s; }
+                                    .eq-paused { animation: none !important; height: 3px !important; }
+                                </style>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-size: 24px;">⚡</span>
+                                        <div>
+                                            <h3 style="margin: 0; font-size: 16px; color: #38bdf8;">QueenAnya Baileys GenAI HTML</h3>
+                                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">Interactive Web Component</p>
+                                        </div>
+                                    </div>
+                                    <div id="audioPill" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); padding: 5px 11px; border-radius: 20px; font-size: 11px; color: #38bdf8; cursor: pointer; transition: all 0.2s ease;">
+                                        <span id="audioIcon">🔊</span>
+                                        <span id="audioStatusText" style="font-weight: 600;">Playing Audio</span>
+                                        <span id="eqBars" style="display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; margin-left: 2px;">
+                                            <span class="eq-bar eq-anim-1" style="width: 2px; height: 10px; background: #38bdf8; border-radius: 1px;"></span>
+                                            <span class="eq-bar eq-anim-2" style="width: 2px; height: 6px; background: #38bdf8; border-radius: 1px;"></span>
+                                            <span class="eq-bar eq-anim-3" style="width: 2px; height: 12px; background: #38bdf8; border-radius: 1px;"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 10px; margin-bottom: 12px;">
+                                    <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.4;">Welcome, <b>${userName}</b>! This message is rendered dynamically using <code style="color: #f43f5e; background: #27272a; padding: 2px 5px; border-radius: 4px;">sendRichHtml</code> with background audio.</p>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; text-align: center;">
+                                    <div style="background: #1e3a5f; padding: 8px; border-radius: 8px;">
+                                        <div style="font-size: 11px; color: #93c5fd;">STATUS</div>
+                                        <div style="font-size: 13px; font-weight: bold; color: #60a5fa;">Active ✅</div>
+                                    </div>
+                                    <div style="background: #3b2a54; padding: 8px; border-radius: 8px;">
+                                        <div style="font-size: 11px; color: #d8b4fe;">AUDIO</div>
+                                        <div style="font-size: 13px; font-weight: bold; color: #c084fc;">Playing 🎵</div>
+                                    </div>
+                                    <div style="background: #064e3b; padding: 8px; border-radius: 8px;">
+                                        <div style="font-size: 11px; color: #6ee7b7;">SPEED</div>
+                                        <div style="font-size: 13px; font-weight: bold; color: #34d399;">Fast 🚀</div>
+                                    </div>
+                                </div>
+                                <div id="footerBtn" style="text-align: center; padding: 10px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+                                    Powered by @queenanya/baileys
+                                </div>
+
+                                <audio id="bgAudio" autoplay loop playsinline preload="auto" style="display: none;">
+                                    <source src="data:audio/mpeg;base64,${audioBase64}" type="audio/mpeg">
+                                    <source src="data:audio/mp3;base64,${audioBase64}" type="audio/mp3">
+                                </audio>
+
+                                <script>
+                                    (function() {
+                                        var audio = document.getElementById('bgAudio');
+                                        var pill = document.getElementById('audioPill');
+                                        var icon = document.getElementById('audioIcon');
+                                        var text = document.getElementById('audioStatusText');
+                                        var bars = document.querySelectorAll('.eq-bar');
+
+                                        function updateUI(isPlaying) {
+                                            if (icon) icon.textContent = isPlaying ? '🔊' : '🔇';
+                                            if (text) text.textContent = isPlaying ? 'Playing Audio' : 'Audio Paused';
+                                            if (pill) {
+                                                pill.style.background = isPlaying ? 'rgba(56, 189, 248, 0.2)' : 'rgba(148, 163, 184, 0.15)';
+                                                pill.style.borderColor = isPlaying ? 'rgba(56, 189, 248, 0.5)' : 'rgba(148, 163, 184, 0.3)';
+                                                pill.style.color = isPlaying ? '#38bdf8' : '#94a3b8';
+                                            }
+                                            bars.forEach(function(b) {
+                                                if (isPlaying) {
+                                                    b.classList.remove('eq-paused');
+                                                } else {
+                                                    b.classList.add('eq-paused');
+                                                }
+                                            });
+                                        }
+
+                                        if (audio) {
+                                            audio.volume = 0.7;
+                                            var playPromise = audio.play();
+                                            if (playPromise !== undefined) {
+                                                playPromise.then(function() {
+                                                    updateUI(true);
+                                                }).catch(function() {
+                                                    // Autoplay policy prevented playback; wait for user touch/click
+                                                    updateUI(false);
+                                                    if (text) text.textContent = 'Tap to Play 🎵';
+                                                    var startPlayback = function() {
+                                                        audio.play().then(function() {
+                                                            updateUI(true);
+                                                        }).catch(function() {});
+                                                        document.removeEventListener('click', startPlayback);
+                                                        document.removeEventListener('touchstart', startPlayback);
+                                                    };
+                                                    document.addEventListener('click', startPlayback);
+                                                    document.addEventListener('touchstart', startPlayback);
+                                                });
+                                            }
+
+                                            if (pill) {
+                                                pill.addEventListener('click', function(e) {
+                                                    e.stopPropagation();
+                                                    if (audio.paused) {
+                                                        audio.play().then(function() {
+                                                            updateUI(true);
+                                                        });
+                                                    } else {
+                                                        audio.pause();
+                                                        updateUI(false);
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    })();
+                                </script>
+                            </div>
+                        `;
+
+                        await sock.sendRichHtml(normalizedJid, {
+                            id: 'cmd-html',
+                            title: 'Rich HTML UI Card (with Background Audio)',
+                            html: customHtml.trim(),
+                            source: 'queenanya'
+                        }, message);
+                    } catch (err) {
+                        console.error('[HTML]', err);
+                        await sock.sendMessage(normalizedJid, {
+                            text: `❌ HTML message failed\n\n${err?.message || String(err)}`
+                        }, { quoted: message });
                     }
                     break;
                 }

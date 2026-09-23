@@ -1,7 +1,6 @@
 /**
  * RichType.ts
  * Standalone enums for rich message sub-message types and code highlight types.
- * Ported from @innovatorssoft/baileys + @itsliaaa/baileys
  */
 
 export enum CodeHighlightType {

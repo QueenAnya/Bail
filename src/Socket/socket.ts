@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto'
 import { URL } from 'url'
 import { promisify } from 'util'
 import { proto } from '../../WAProto/index.js'
+import { splitJidsByType } from '../addons/lid-support'
 import {
 	DEF_CALLBACK_PREFIX,
 	DEF_TAG_PREFIX,
@@ -19,7 +20,10 @@ import {
 	QueryIds,
 	ReachoutTimelockEnforcementType,
 	type ReachoutTimelockState,
-	type SocketConfig
+	type SocketConfig,
+	type WAUsernameInfo,
+	type WAUsernameLookupResult,
+	type WAUsernameQuery
 } from '../Types'
 import { DisconnectReason, XWAPaths } from '../Types'
 import {
@@ -48,7 +52,8 @@ import {
 	signedKeyPair,
 	xmppSignedPreKey
 } from '../Utils'
-import { getPlatformDisplayName } from '../Utils/browser-utils'
+import { getPairingCodeOsDisplay, getPlatformDisplayName } from '../Utils/browser-utils'
+import { isValidUsername } from '../Utils/username'
 import {
 	assertNodeErrorFree,
 	type BinaryNode,
@@ -58,8 +63,10 @@ import {
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	isLidUser,
+	isPnUser,
 	jidDecode,
 	jidEncode,
+	jidNormalizedUser,
 	S_WHATSAPP_NET
 } from '../WABinary'
 import { BinaryInfo } from '../WAM/BinaryInfo.js'
@@ -332,17 +339,33 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	const onWhatsApp = async (...phoneNumber: string[]) => {
-		// PR: innovatorssoft/baileys "Persist LID mappings in onWhatsApp
-		// lookup" — onWhatsApp already had to make a USync round-trip per
-		// number; running the same query with LID protocol lets us capture
+		// "Persist LID mappings in onWhatsApp lookup" — onWhatsApp already
+		// had to make a USync round-trip per number; running the same query with LID protocol lets us capture
 		// any PN<->LID mapping WhatsApp returns for free, and persist it into
 		// signalRepository.lidMapping instead of throwing it away. LID-only
-		// jids are still skipped from the query itself (existence checks
-		// don't accept them), matching prior behavior.
+		// jids are resolved to their PN form (via lidMapping.getPNForLID) and
+		// existence-checked the same way as any other number; if no PN
+		// mapping is known for a given LID, it's reported as not existing
+		// rather than guessing. Source: addons/lid-support.ts.
+		const { pnJids, lidJids } = splitJidsByType(phoneNumber)
+
+		const lidResults: { jid: string; exists: boolean; lid: string | undefined; pn?: string }[] = []
+		const resolvedPnFromLid: { pn: string; lid: string }[] = []
+		for (const lidJid of lidJids) {
+			const normalizedLid = jidNormalizedUser(lidJid)
+			const pn = await signalRepository.lidMapping.getPNForLID(normalizedLid)
+			if (pn) {
+				resolvedPnFromLid.push({ pn: jidNormalizedUser(pn), lid: normalizedLid })
+			} else {
+				logger?.warn({ jid: lidJid }, 'no known PN mapping for LID, cannot verify onWhatsApp existence')
+				lidResults.push({ jid: lidJid, exists: false, lid: normalizedLid })
+			}
+		}
+
 		let usyncQuery = new USyncQuery().withLIDProtocol()
 
 		let contactEnabled = false
-		for (const jid of phoneNumber) {
+		for (const jid of [...pnJids, ...resolvedPnFromLid.map(r => r.pn)]) {
 			if (isLidUser(jid)) {
 				logger?.warn('LIDs are not supported with onWhatsApp')
 				continue
@@ -358,7 +381,7 @@ export const makeSocket = (config: SocketConfig) => {
 		}
 
 		if (usyncQuery.users.length === 0) {
-			return [] // return early without forcing an empty query
+			return lidResults.length > 0 ? lidResults : [] // return early without forcing an empty query
 		}
 
 		const results = await executeUSyncQuery(usyncQuery)
@@ -369,10 +392,151 @@ export const makeSocket = (config: SocketConfig) => {
 				await signalRepository.lidMapping.storeLIDPNMappings(withLid.map(a => ({ pn: a.id, lid: a.lid as string })))
 			}
 
-			return results.list
+			const pnResults = results.list
 				.filter(a => !!a.contact)
-				.map(({ contact, id, lid }) => ({ jid: id, exists: contact as boolean, lid: lid as string | undefined }))
+				.map(({ contact, id, lid }) => ({
+					jid: id,
+					exists: contact as boolean,
+					lid: lid as string | undefined,
+					pn: isPnUser(id as string) ? (id as string) : undefined
+				}))
+
+			// Re-key the resolved-from-LID results back to their original LID
+			// jid, so callers get back what they asked for.
+			const lidPnSet = new Map(resolvedPnFromLid.map(r => [r.pn, r.lid]))
+			const rekeyedPnResults = pnResults.map(r => {
+				const originalLid = lidPnSet.get(jidNormalizedUser(r.jid))
+				// When rekeyed, `r.jid`/`r.pn` still held the resolved PN before
+				// the jid slot gets overwritten with the original LID — keep it
+				// as `pn` rather than losing it.
+				return originalLid ? { ...r, jid: originalLid, lid: originalLid, pn: r.pn ?? r.jid } : r
+			})
+
+			return rekeyedPnResults.concat(lidResults.map(r => ({ ...r, pn: undefined })))
 		}
+
+		return lidResults.length > 0 ? lidResults.map(r => ({ ...r, pn: undefined })) : []
+	}
+
+	const normalizeUsernameQuery = (query: WAUsernameQuery) => {
+		const username = (typeof query === 'string' ? query : query.username).trim().replace(/^@/, '')
+		if (!username) {
+			throw new Boom('Username cannot be empty', { statusCode: 400 })
+		}
+
+		return {
+			username,
+			usernameKey: typeof query === 'string' ? undefined : query.usernameKey,
+			lid: typeof query === 'string' ? undefined : query.lid
+		}
+	}
+
+	/** Look up whether one or more usernames exist / resolve to a jid (PR #2680). */
+	const onWhatsAppUsername = async (...queries: WAUsernameQuery[]): Promise<WAUsernameLookupResult[]> => {
+		const usernameQueries = queries.map(normalizeUsernameQuery)
+		if (usernameQueries.length === 0) {
+			return []
+		}
+
+		const usyncQuery = new USyncQuery().withContactProtocol().withUsernameProtocol()
+		for (const { username, usernameKey, lid } of usernameQueries) {
+			const user = new USyncUser().withUsername(username)
+			if (usernameKey) {
+				user.withUsernameKey(usernameKey)
+			}
+
+			if (lid) {
+				user.withLid(lid)
+			}
+
+			usyncQuery.withUser(user)
+		}
+
+		const results = await executeUSyncQuery(usyncQuery)
+		if (!results) {
+			return []
+		}
+
+		return results.list.map((result, index) => ({
+			username: typeof result.username === 'string' ? result.username : usernameQueries[index]?.username || '',
+			jid: result.id,
+			exists: result.contact === true
+		}))
+	}
+
+	/**
+	 * `onWhatsAppUsername` here only has raw-USync data (no lid/pn — that
+	 * needs `resolveUsername`, which is defined in a later socket layer,
+	 * `Socket/username.ts`, composed on top of this one). That layer fills
+	 * this ref in with a `resolveUsernames`-backed version once it's built,
+	 * so `onWhatsAppMixed` below picks up the richer result automatically
+	 * without this file needing to know about the later layer.
+	 */
+	const usernameLookupOverride: { fn: ((...queries: WAUsernameQuery[]) => Promise<WAUsernameLookupResult[]>) | null } = {
+		fn: null
+	}
+
+	/** Mixed onWhatsApp lookup: phone numbers, LIDs, @usernames and target objects. */
+	const onWhatsAppMixed = async (...targets: any[]) => {
+		const flat = targets.flat()
+		const usernames: WAUsernameQuery[] = []
+		const phones: string[] = []
+		for (const target of flat) {
+			if (!target) continue
+			if (typeof target === 'object') {
+				if (target.type === 'username' || typeof target.username === 'string') {
+					usernames.push({ username: target.username })
+					continue
+				}
+
+				if (target.type === 'lid' && typeof target.lid === 'string') {
+					phones.push(target.lid)
+					continue
+				}
+
+				if (typeof target.jid === 'string') {
+					phones.push(target.jid)
+					continue
+				}
+			}
+
+			if (typeof target === 'string') {
+				const value = target.trim()
+				if (value.startsWith('@')) usernames.push(value)
+				else if (!value.includes('@') && isValidUsername(value)) usernames.push(value)
+				else phones.push(value)
+			}
+		}
+
+		const usernameLookup = usernameLookupOverride.fn || onWhatsAppUsername
+
+		const [phoneResults, usernameResults] = await Promise.all([
+			phones.length ? onWhatsApp(...phones) : Promise.resolve([]),
+			usernames.length ? usernameLookup(...usernames) : Promise.resolve([])
+		])
+		return [...phoneResults, ...usernameResults]
+	}
+
+	/** Fetch the username(s) associated with one or more jids (PR #2680). */
+	const fetchUsername = async (...jids: string[]): Promise<WAUsernameInfo[]> => {
+		const usyncQuery = new USyncQuery().withUsernameProtocol()
+		for (const jid of jids) {
+			usyncQuery.withUser(new USyncUser().withId(jid))
+		}
+
+		if (usyncQuery.users.length === 0) {
+			return []
+		}
+
+		const results = await executeUSyncQuery(usyncQuery)
+		if (!results) {
+			return []
+		}
+
+		return results.list.map(({ id, username }) => ({
+			jid: id,
+			username: typeof username === 'string' ? username : undefined
+		}))
 	}
 
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
@@ -811,6 +975,10 @@ export const makeSocket = (config: SocketConfig) => {
 			throw new Error('Custom pairing code must be exactly 8 chars')
 		}
 
+		// Saved so a rejected/timed-out registration below can put it back --
+		// a caller who reads creds.pairingCode after a failed request should
+		// see it wasn't persisted, not the code that was never acknowledged.
+		const previousPairingCode = authState.creds.pairingCode
 		authState.creds.pairingCode = pairingCode
 
 		const jid = jidEncode(phoneNumber, 's.whatsapp.net')
@@ -823,7 +991,7 @@ export const makeSocket = (config: SocketConfig) => {
 		const isBrowserPlatform = rawPlatformId >= 1 && rawPlatformId <= 6
 		const pairingPlatformId = (isBrowserPlatform ? rawPlatformId : 1).toString()
 		const pairingPlatformName = isBrowserPlatform ? getPlatformDisplayName(browser[1]) : browser[1] // 'Firefox'
-		const pairingPlatformHost = browser[0] === 'Mac OS' || browser[0] === 'Windows' ? browser[0] : browser[0] // 'Windows'
+		const pairingPlatformHost = getPairingCodeOsDisplay(browser[0]) // custom browser[0] falls back to 'Ubuntu'
 		// config.companionPlatformDisplay lets integrators override this when
 		// their own browser[0] is a product name rather than a canonical OS
 		// name -- WhatsApp validates companion_platform_display and rejects
@@ -835,25 +1003,31 @@ export const makeSocket = (config: SocketConfig) => {
 		// or `429 rate-overlimit` when asked too often -- needs to surface as an
 		// error instead of leaving the caller with a pairing code that was never
 		// acknowledged by the server.
-		const registration = await query({
-			tag: 'iq',
-			attrs: {
-				to: S_WHATSAPP_NET,
-				type: 'set',
-				id: generateMessageTag(),
-				xmlns: 'md'
-			},
-			content: [
-				buildCompanionRegNode({
-					jid,
-					wrappedEphemeralPub: await generatePairingKey(pairingCode),
-					serverAuthKeyPub: authState.creds.noiseKey.public,
-					browser,
-					platformDisplay: pairingPlatformDisplay,
-					platformId: pairingPlatformId
-				})
-			]
-		})
+		let registration: Awaited<ReturnType<typeof query>>
+		try {
+			registration = await query({
+				tag: 'iq',
+				attrs: {
+					to: S_WHATSAPP_NET,
+					type: 'set',
+					id: generateMessageTag(),
+					xmlns: 'md'
+				},
+				content: [
+					buildCompanionRegNode({
+						jid,
+						wrappedEphemeralPub: await generatePairingKey(pairingCode),
+						serverAuthKeyPub: authState.creds.noiseKey.public,
+						browser,
+						platformDisplay: pairingPlatformDisplay,
+						platformId: pairingPlatformId
+					})
+				]
+			})
+		} catch (error) {
+			authState.creds.pairingCode = previousPairingCode
+			throw error
+		}
 
 		// A TIMEOUT LOOKS LIKE A SUCCESS HERE, SO IT HAS TO BE CHECKED.
 		//
@@ -864,6 +1038,7 @@ export const makeSocket = (config: SocketConfig) => {
 		// `creds.me` below would be persisted for a device the server never
 		// acknowledged.
 		if (!registration) {
+			authState.creds.pairingCode = previousPairingCode
 			throw new Boom('Companion registration timed out', {
 				statusCode: DisconnectReason.timedOut
 			})
@@ -1172,7 +1347,7 @@ export const makeSocket = (config: SocketConfig) => {
 		// if name has just been received — guard on non-empty string so partial
 		// creds.update (pre-key churn, incoming message handling) doesn't emit
 		// a typeless <presence/> that marks the account as online unexpectedly.
-		// Fixes: WhiskeySockets/Baileys#2553 (PR #2740)
+		// Fixes: #2553 (PR #2740)
 		if (typeof name === 'string' && name && creds.me?.name !== name) {
 			logger.debug({ name }, 'updated pushName')
 			sendNode({
@@ -1309,7 +1484,11 @@ export const makeSocket = (config: SocketConfig) => {
 		waitForConnectionUpdate: bindWaitForConnectionUpdate(ev),
 		sendWAMBuffer,
 		executeUSyncQuery,
-		onWhatsApp,
+		onWhatsApp: onWhatsAppMixed,
+		onWhatsAppUsername,
+		/** Internal — see comment at its declaration above. */
+		usernameLookupOverride,
+		fetchUsername,
 		fetchAccountReachoutTimelock,
 		fetchNewChatMessageCap
 	}

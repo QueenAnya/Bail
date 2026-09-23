@@ -7,18 +7,28 @@ import type { ChatLabelAssociationActionBody } from './LabelAssociation'
 import type { MessageLabelAssociationActionBody } from './LabelAssociation'
 import type { MinimalMessage, WAMessageKey } from './Message'
 
-/** privacy settings in WhatsApp Web */
-export type WAPrivacyValue = 'all' | 'contacts' | 'contact_blacklist' | 'none'
+/**
+ * privacy settings in WhatsApp Web.
+ *
+ * `'nobody'` and `'everyone'` are accepted as friendlier aliases for the
+ * wire-protocol values `'none'` and `'all'` -- WhatsApp's privacy XML only
+ * ever sees `'none'`/`'all'`, since Socket/chats.ts normalizes the alias
+ * before sending. They're only added to a given union where the canonical
+ * value they alias (`'none'` or `'all'`) is itself already valid for that
+ * setting -- e.g. WAPrivacyMessagesValue has no `'none'` equivalent
+ * upstream, so it gets `'everyone'` but not `'nobody'`.
+ */
+export type WAPrivacyValue = 'all' | 'everyone' | 'contacts' | 'contact_blacklist' | 'none' | 'nobody'
 
-export type WAPrivacyOnlineValue = 'all' | 'match_last_seen'
+export type WAPrivacyOnlineValue = 'all' | 'everyone' | 'match_last_seen'
 
-export type WAPrivacyGroupAddValue = 'all' | 'contacts' | 'contact_blacklist'
+export type WAPrivacyGroupAddValue = 'all' | 'everyone' | 'contacts' | 'contact_blacklist'
 
-export type WAReadReceiptsValue = 'all' | 'none'
+export type WAReadReceiptsValue = 'all' | 'everyone' | 'none' | 'nobody'
 
-export type WAPrivacyCallValue = 'all' | 'known'
+export type WAPrivacyCallValue = 'all' | 'everyone' | 'known'
 
-export type WAPrivacyMessagesValue = 'all' | 'contacts'
+export type WAPrivacyMessagesValue = 'all' | 'everyone' | 'contacts'
 
 /** set of statuses visible to other people; see updatePresence() in WhatsAppWeb.Send */
 export type WAPresence = 'unavailable' | 'available' | 'composing' | 'recording' | 'paused'

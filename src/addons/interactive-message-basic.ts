@@ -1,9 +1,8 @@
 /**
  * interactive-message-basic.ts
- * Source: @innovatorssoft/baileys `Utils/interactive-message.js`.
  *
- * This is a pure, unmodified-scope port — the exact 8 functions
- * innovatorssoft ships (`generateInteractiveButtonMessage`,
+ * This is a pure, unmodified-scope alternate implementation — the exact 8
+ * functions (`generateInteractiveButtonMessage`,
  * `generateInteractiveListMessage`, `generateTemplateMessage`,
  * `generateNativeFlowMessage`, `generateCopyCodeButton`,
  * `generateUrlButtonMessage`, `generateQuickReplyButtons`,

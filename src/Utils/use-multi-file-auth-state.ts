@@ -7,7 +7,6 @@ import { initAuthCreds } from './auth-utils'
 import { BufferJSON } from './generics'
 
 // We need to lock files due to the fact that we are using async functions to read and write files
-// https://github.com/WhiskeySockets/Baileys/issues/794
 // https://github.com/nodejs/node/issues/26338
 // Use a Map to store mutexes for each file path
 const fileLocks = new Map<string, Mutex>()

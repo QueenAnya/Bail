@@ -68,7 +68,7 @@ export function normalizeStatusContent(content: AnyMessageContent): {
 	}
 
 	return {
-		msgContent: msgContent as AnyMessageContent,
+		msgContent: msgContent,
 		font: !isMedia ? ((content as any).font ?? Math.floor(Math.random() * 9)) : undefined,
 		textColor: !isMedia ? ((content as any).textColor ?? getRandomHex()) : undefined,
 		backgroundColor: !isMedia || isAudio ? ((content as any).backgroundColor ?? getRandomHex()) : undefined,

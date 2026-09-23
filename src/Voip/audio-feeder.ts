@@ -30,7 +30,8 @@ export class AudioFeeder {
 		private readonly channels: number,
 		private readonly framesPerChunk: number,
 		private readonly onChunk: (chunk: Float32Array) => void,
-		private readonly source = 'silence'
+		private readonly source = 'silence',
+		private readonly repeat = false
 	) {}
 
 	start = (): void => {
@@ -75,15 +76,9 @@ export class AudioFeeder {
 			}
 		})
 
-		this.#proc.stderr.on('data', (chunk: Buffer) => {
-			process.stderr.write(`[AudioFeeder] ${chunk.toString().trim()}\n`)
-		})
+		this.#proc.stderr?.on('data', () => {})
 
-		this.#proc.on('exit', (code: number | null) => {
-			if (code !== 0 && code !== null) {
-				process.stderr.write(`[AudioFeeder] ffmpeg exited with code=${code}\n`)
-			}
-
+		this.#proc.on('exit', () => {
 			this.#proc = null
 		})
 
@@ -112,6 +107,10 @@ export class AudioFeeder {
 
 		if (this.source.startsWith('lavfi:')) {
 			return ['-f', 'lavfi', '-i', this.source.slice('lavfi:'.length)]
+		}
+
+		if (this.repeat) {
+			return ['-stream_loop', '-1', '-i', this.source]
 		}
 
 		return ['-i', this.source]

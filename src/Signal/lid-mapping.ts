@@ -330,7 +330,7 @@ export class LIDMappingStore {
 	 * Returns the stored LID for a PN from the local cache/keystore only.
 	 * Unlike getLIDForPN, this does NOT trigger USync for unmapped contacts.
 	 * Used in the outbound send path to avoid implicit network calls.
-	 * Source: WhiskeySockets/Baileys PR #2692 (frndchagas)
+	 * Source: PR #2692 (frndchagas)
 	 */
 	async getStoredLIDForPN(pn: string): Promise<string | null> {
 		const decoded = jidDecode(pn)

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package proto;
 
-/// WhatsApp Version: 2.3000.1045624538
+/// WhatsApp Version: 2.3000.1047543106
 
 message ADVDeviceIdentity {
     optional uint32 rawId = 1;
@@ -3314,7 +3314,9 @@ message Message {
         optional Message.PollContentType pollContentType = 6;
         optional Message.PollType pollType = 7;
         optional Option correctAnswer = 8;
+        optional int64 endTime = 9; // poll expiration timestamp
         optional bool hideVoterNames = 10; // reverse-engineered: true when poll creator hid voter names (PR #2725)
+        optional bool allowAddOption = 11; // allow participants to add their own options
         message Option {
             optional string optionName = 1;
             optional string optionHash = 2;
@@ -5667,8 +5669,8 @@ message WebNotificationsInfo {
 // available for encode/decode but no send/receive helpers reference them.
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ─── Source: github.com/itsliaaa/baileys (commit b1c3b684, 28 Jun 2026) ───
-// Field numbers reconstructed from compiled WAProto/index.js encode functions.
+// ─── Extra schema types beyond upstream ───
+// Field numbers reconstructed from compiled encode functions.
 message AIMediaCollectionMessage {
     optional string collectionId = 1;
     optional uint32 expectedMediaCount = 2;
@@ -6089,8 +6091,8 @@ message WASARootSecretAction {
     repeated RootSecretEntry secrets = 1;
 }
 
-// ─── Source: github.com/innovatorssoft/Baileys (commit df20fd7a, 26 Jul 2026) ───
-// Field numbers taken directly from their WAProto/*/*.proto source files.
+// ─── Extra schema types beyond upstream ───
+// Field numbers taken directly from verified .proto source files.
 message AIProvenance {
     optional AIProvenanceMetadata c2PaMetadata = 1;
     optional AIProvenanceMetadata iptcMetadata = 2;

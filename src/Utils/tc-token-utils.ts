@@ -252,7 +252,7 @@ export type StoreTcTokenFromMessageParams = {
  * `fallbackJid`), but before requiring successful decryption — capture must
  * not depend on the message body actually decrypting.
  *
- * Source: WhiskeySockets/Baileys PR #2752 (sahilashraff)
+ * Source: PR #2752 (sahilashraff)
  * Fixes applied vs the PR (reviewer-flagged):
  *  - P2: read-compare-write serialized per storageJid via makeKeyedMutex
  *    (prevents a race where an older token clobbers a newer one)

@@ -1,8 +1,7 @@
 /**
  * status-helpers.ts
- * Source: @innovatorssoft/baileys `Utils/status-posting.js`.
  *
- * This is a pure, unmodified-scope port — same core functions as
+ * This is a pure, unmodified-scope alternate implementation — same core functions as
  * `status-posting.ts` (STATUS_BACKGROUNDS, STATUS_FONTS, createTextStatus,
  * createImageStatus, createVideoStatus, createAudioStatus, StatusHelper),
  * without the extra StatusMentions mention-tagging support that
@@ -56,8 +55,7 @@ export const STATUS_FONTS = {
 } as const
 export type StatusFont = (typeof STATUS_FONTS)[keyof typeof STATUS_FONTS]
 
-/** Generate a status message ID with 4NY4W3B prefix (matching queenanya's branded ID format) */
-export const generateStatusMessageId = () => `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+export const generateStatusMessageId = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase() // `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
 
 export type TextStatusOptions = {
 	text: string

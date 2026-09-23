@@ -285,6 +285,112 @@ export function decryptEventResponse(
 	}
 }
 
+type EditContext = {
+	/** normalised jid of the person that sent the original (pre-edit) message */
+	originalSenderJid: string
+	/** ID of the original message */
+	originalMsgId: string
+	/** original message's enc key (messageContextInfo.messageSecret) */
+	editEncKey: Uint8Array
+	/** jid of the person that sent the edit */
+	editorJid: string
+}
+
+/**
+ * Decrypt an E2EE message edit envelope (`secretEncryptedMessage` with
+ * `secretEncType: MESSAGE_EDIT`, new in 2026-05). Replaces the older
+ * `protocolMessage.editedMessage` path for direct text edits.
+ *
+ * Same HKDF-style derivation as decryptEventResponse/decryptPollVote above:
+ *   info = msgId || origSenderJid || editorJid || "Message Edit"
+ *   aad  = (empty)              <-- differs from Poll Vote / Event Response
+ *   key  = HKDF-SHA256(salt=zeros, ikm=messageSecret, info, L=32)
+ *
+ * The decrypted plaintext is a regular `proto.Message` whose
+ * `protocolMessage.editedMessage` field holds the new content — same
+ * shape as the legacy edit path, so consumers can treat the result
+ * identically.
+ *
+ * @param edit encrypted edit payload (encPayload + encIv from SecretEncryptedMessage)
+ * @param ctx info about the original message required for decryption
+ * @returns decoded outer Message whose protocolMessage.editedMessage carries the new content
+ */
+export function decryptMessageEdit(
+	{ encPayload, encIv }: proto.Message.IPollEncValue,
+	{ originalSenderJid, originalMsgId, editEncKey, editorJid }: EditContext
+) {
+	const sign = Buffer.concat([
+		toBinary(originalMsgId),
+		toBinary(originalSenderJid),
+		toBinary(editorJid),
+		toBinary('Message Edit'),
+		new Uint8Array([1])
+	])
+
+	const key0 = hmacSign(editEncKey, new Uint8Array(32), 'sha256')
+	const decKey = hmacSign(sign, key0, 'sha256')
+	// AAD is intentionally empty for MESSAGE_EDIT -- unlike Poll Vote and
+	// Event Response, WA does not include `${msgId}\0${editor}` in the AAD here.
+	const aad = Buffer.alloc(0)
+
+	const decrypted = aesDecryptGCM(encPayload!, decKey, encIv!, aad)
+	return proto.Message.decode(decrypted)
+
+	function toBinary(txt: string) {
+		return Buffer.from(txt)
+	}
+}
+
+type BuildEditUpdateArgs = proto.Message.IPollEncValue &
+	EditContext & {
+		messageKey: WAMessageKey
+		targetKeyId: string
+		fallbackTimestamp: number
+		logger?: ILogger
+		targetKey: WAMessageKey
+	}
+
+/**
+ * Decrypts a MESSAGE_EDIT secretEncryptedMessage and builds the
+ * `messages.update` payload for it, or returns null (after logging) if the
+ * decrypted envelope doesn't actually carry an edit.
+ */
+const buildEditUpdate = (args: BuildEditUpdateArgs) => {
+	const editedInner = decryptMessageEdit(
+		{ encPayload: args.encPayload, encIv: args.encIv },
+		{
+			editEncKey: args.editEncKey,
+			originalSenderJid: args.originalSenderJid,
+			originalMsgId: args.originalMsgId,
+			editorJid: args.editorJid
+		}
+	)
+
+	const editProtocol = editedInner.protocolMessage
+	const innerEdited = editProtocol?.editedMessage
+	if (!innerEdited) {
+		args.logger?.warn(
+			{ targetKey: args.targetKey },
+			'decrypted MESSAGE_EDIT plaintext had no protocolMessage.editedMessage — skipping update'
+		)
+		return null
+	}
+
+	return {
+		key: { ...args.messageKey, id: args.targetKeyId },
+		update: {
+			message: {
+				editedMessage: {
+					message: innerEdited
+				}
+			},
+			messageTimestamp: editProtocol?.timestampMs
+				? Math.floor(toNumber(editProtocol.timestampMs) / 1000)
+				: args.fallbackTimestamp
+		}
+	}
+}
+
 const processMessage = async (
 	message: WAMessage,
 	{
@@ -301,6 +407,53 @@ const processMessage = async (
 ) => {
 	const meId = creds.me!.id
 	const { accountSettings } = creds
+
+	/**
+	 * Decrypts a MESSAGE_EDIT secretEncryptedMessage against its target
+	 * message and emits the resulting messages.update, or logs and does
+	 * nothing if the original message carries no messageSecret.
+	 * Pulled out of the secretEncryptedMessage branch below purely to keep
+	 * that branch's nesting depth within lint limits.
+	 */
+	const handleMessageEditNotification = async (
+		targetMsg: proto.IMessage,
+		targetKey: WAMessageKey,
+		message: WAMessage,
+		secEnc: proto.Message.ISecretEncryptedMessage
+	) => {
+		const meIdNormalised = jidNormalizedUser(meId)
+		const origSenderRaw = targetKey.participant || targetKey.remoteJid!
+		const origSenderPn = isLidUser(origSenderRaw)
+			? await signalRepository.lidMapping.getPNForLID(origSenderRaw)
+			: origSenderRaw
+		const originalSenderJid = getKeyAuthor(
+			{ remoteJid: jidNormalizedUser(origSenderPn!), fromMe: meIdNormalised === origSenderPn },
+			meIdNormalised
+		)
+		const editorJid = getKeyAuthor(message.key, meIdNormalised)
+		const editEncKey = targetMsg?.messageContextInfo?.messageSecret
+		if (!editEncKey) {
+			logger?.warn({ targetKey }, 'message edit: missing messageSecret on original message — cannot decrypt')
+			return
+		}
+
+		const update = buildEditUpdate({
+			editEncKey,
+			encPayload: secEnc.encPayload!,
+			encIv: secEnc.encIv!,
+			originalSenderJid,
+			originalMsgId: targetKey.id!,
+			editorJid,
+			messageKey: message.key,
+			targetKeyId: targetKey.id!,
+			fallbackTimestamp: toNumber(message.messageTimestamp),
+			logger,
+			targetKey
+		})
+		if (update) {
+			ev.emit('messages.update', [update])
+		}
+	}
 
 	const chat: Partial<Chat> = { id: jidNormalizedUser(getChatId(message.key)) }
 	const isRealMsg = isRealMessage(message)
@@ -585,6 +738,27 @@ const processMessage = async (
 				key: content.reactionMessage?.key!
 			}
 		])
+	} else if (
+		content?.secretEncryptedMessage?.secretEncType === proto.Message.SecretEncryptedMessage.SecretEncType.MESSAGE_EDIT
+	) {
+		// E2EE message edit envelope (new in 2026-05). Replaces the older
+		// protocolMessage.editedMessage path for direct text edits.
+		// We fetch the target message to obtain its messageSecret, derive the
+		// decryption key, and surface the decoded inner Message via the same
+		// messages.update event used by the legacy edit path so consumers do
+		// not need a new event type.
+		const secEnc = content.secretEncryptedMessage
+		const targetKey = secEnc.targetMessageKey!
+		const targetMsg = await getMessage(targetKey)
+		if (targetMsg) {
+			try {
+				await handleMessageEditNotification(targetMsg, targetKey, message, secEnc)
+			} catch (err) {
+				logger?.warn({ err, targetKey }, 'failed to decrypt message edit')
+			}
+		} else {
+			logger?.warn({ targetKey }, 'original message not found, cannot decrypt edit')
+		}
 	} else if (content?.encEventResponseMessage) {
 		const encEventResponse = content.encEventResponseMessage
 		const creationMsgKey = encEventResponse.eventCreationMessageKey!

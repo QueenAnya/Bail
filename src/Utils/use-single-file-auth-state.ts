@@ -5,7 +5,6 @@
  *   - Mutex to prevent race conditions on concurrent writes
  *   - Debounced atomic write (temp → rename) with 3s flush timeout
  *     so disk I/O is batched, not triggered on every key change
- * Ported from @itsliaaa/baileys (Lia@Changes 22-04-26 / 26-04-26)
  */
 
 import { Mutex } from 'async-mutex'

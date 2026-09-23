@@ -1,6 +1,7 @@
 import type { Readable } from 'stream'
 import type { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
+import type { RichContent } from '../addons/rich-message-utils.js'
 import type { MediaType } from '../Defaults'
 import type { BinaryNode } from '../WABinary'
 import type { GroupMetadata } from './GroupMetadata'
@@ -42,6 +43,12 @@ export type WAGenericMediaMessage =
 	| proto.Message.IStickerMessage
 export const WAMessageStubType = proto.WebMessageInfo.StubType
 export const WAMessageStatus = proto.WebMessageInfo.Status
+/** Convenience aliases for commonly-used proto enums — same values as
+ *  e.g. `WAProto.Message.ButtonsMessage.HeaderType`, just shorter to type. */
+export const ButtonHeaderType = proto.Message.ButtonsMessage.HeaderType
+export const ButtonType = proto.Message.ButtonsMessage.Button.Type
+export const CarouselCardType = proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType
+export const ProtocolType = proto.Message.ProtocolMessage.Type
 import type { ILogger } from '../Utils/logger'
 export type WAMediaPayloadURL = { url: URL | string }
 export type WAMediaPayloadStream = { stream: Readable }
@@ -108,6 +115,8 @@ export interface WAUrlInfo {
 	highQualityThumbnail?: proto.Message.IImageMessage
 	originalThumbnailUrl?: string
 	linkPreviewMetadata?: proto.Message.ILinkPreviewMetadata
+	/** e.g. request video playback for the preview instead of a static image; defaults to 0 (NONE) */
+	previewType?: proto.Message.ExtendedTextMessage.PreviewType
 }
 
 // types to generate WA messages
@@ -141,7 +150,14 @@ type Buttonable = {
 
 /** Attach template buttons (quickReply / url / call) to a message */
 type Templatable = {
-	templateButtons?: proto.IHydratedTemplateButton[]
+	/**
+	 * Either fully-formed `IHydratedTemplateButton`s, or shorthand objects:
+	 * `{ text, id }` → quickReplyButton, `{ text, url }` → urlButton,
+	 * `{ text, call }` → callButton.
+	 */
+	templateButtons?: (
+		proto.IHydratedTemplateButton | { text?: string; buttonText?: string; id?: string; url?: string; call?: string }
+	)[]
 	footer?: string
 }
 
@@ -152,6 +168,17 @@ type Interactiveable = {
 	subtitle?: string
 	footer?: string
 	hasMediaAttachment?: boolean
+	/** limited-time-offer banner shown above the buttons */
+	offerText?: string
+	offerCode?: string
+	offerUrl?: string
+	/** offer expiry, in ms (converted to epoch seconds on send) */
+	offerExpiration?: number
+	/** adds a "view more" bottom sheet listing the buttons */
+	optionText?: string
+	optionTitle?: string
+	/** audio footer instead of a text footer */
+	audioFooter?: WAMediaUpload
 }
 
 /** Attach a single-select list to a text message */
@@ -332,12 +359,15 @@ export type PaymentMessageOptions = {
 	currency: string
 	/** Note/memo for the payment */
 	note?: string
-	/** Receiver JID */
-	receiverJid: string
+	/** Who this payment is being requested from — optional; defaults to the
+	 *  chat this message is sent to (the `jid` passed to `sendMessage`) */
+	receiverJid?: string
 	/** Request or send */
 	type?: 'request' | 'send'
 	/** Background color (hex) */
 	backgroundColor?: string
+	/** Expiry timestamp (ms since epoch) */
+	expiry?: number
 }
 
 export type PaymentInviteInfoo = {
@@ -501,6 +531,43 @@ export type PollMessageOptions = {
 	 * PR #2725 — reverse-engineered from live WhatsApp.
 	 */
 	hideVoterNames?: boolean
+	/** poll expiration timestamp; after this the poll can no longer be voted on */
+	endDate?: Date
+	/** allow participants to add their own options to the poll */
+	canAddOption?: boolean
+	/**
+	 * makes this a quiz poll instead of a regular poll — requires
+	 * `correctAnswer`, and is only supported when sending to a newsletter.
+	 */
+	pollType?: 1
+	/** the option text that is the correct answer, required when pollType is 1 (quiz) */
+	correctAnswer?: string
+}
+
+/**
+ * Send a poll-results summary message — e.g. a bot posting the final tally
+ * of an earlier poll. This is a standalone display message, not an actual
+ * connection to the original poll's live vote state.
+ */
+export type PollResultOptions = {
+	name: string
+	votes: { name: string; voteCount: number | string }[]
+	/** makes this a quiz-result snapshot instead of a regular poll result */
+	pollType?: 1
+}
+
+/**
+ * Send a raw, already-encrypted poll vote update. Advanced/low-level API —
+ * the caller is responsible for producing a valid encrypted `vote` payload
+ * themselves (see `Utils/crypto.ts` `encryptPollVote` for the encryption
+ * this mirrors on the receiving side).
+ */
+export type PollUpdateOptions = {
+	/** the key of the original poll creation message being voted on */
+	key: WAMessageKey
+	/** the encrypted vote payload */
+	vote: proto.Message.IPollEncValue
+	metadata?: proto.Message.IPollUpdateMessageMetadata
 }
 
 export type EventMessageOptions = {
@@ -564,7 +631,7 @@ export type AnyMediaMessageContent = (
 	| ({
 			sticker: WAMediaUpload
 			isAnimated?: boolean
-			/** wrap the sticker into a lottieStickerMessage (itsliaa/baileys style) */
+			/** wrap the sticker into a lottieStickerMessage */
 			isLottie?: boolean
 	  } & WithDimensions)
 	| ({
@@ -637,7 +704,7 @@ export type ProductListSection = {
 }
 
 export type StickerPackSticker = {
-	/** sticker media — itsliaa/baileys style field name (preferred) */
+	/** sticker media — alternate field name (preferred) */
 	data?: WAMediaUpload
 	/** @deprecated use `data` instead — kept for backward compatibility */
 	sticker?: WAMediaUpload
@@ -677,7 +744,11 @@ export type PaymentInviteInfo = {
 export type AnyRegularMessageContent = (
 	| ({
 			text: string
-			linkPreview?: WAUrlInfo | null
+			/** Pass a `WAUrlInfo` to use it as-is, a bare URL string to
+			 *  fetch+generate a preview for that URL specifically (instead of
+			 *  whatever URL is in `text`), `true` or omit for auto-detection
+			 *  from `text`, or `null` to force no preview at all. */
+			linkPreview?: WAUrlInfo | string | true | null
 			/** small icon shown alongside the link preview, e.g. a site favicon */
 			favicon?: WAMediaUpload
 	  } & Mentionable &
@@ -704,6 +775,8 @@ export type AnyRegularMessageContent = (
 			Cardsable &
 			Listable &
 			Editable)
+	| { pollResult: PollResultOptions }
+	| { pollUpdate: PollUpdateOptions }
 	| ({
 			album: AlbumMessageOptions
 	  } & Contextable &
@@ -727,6 +800,16 @@ export type AnyRegularMessageContent = (
 	  }
 	| {
 			listReply: Omit<proto.Message.IListResponseMessage, 'contextInfo'>
+	  }
+	| {
+			/** reply to a native-flow interactive message */
+			flowReply: {
+				text: string
+				name: string
+				paramsJson: string
+				format?: proto.Message.InteractiveResponseMessage.Body.Format
+				version?: number
+			}
 	  }
 	| {
 			pin: WAMessageKey
@@ -789,16 +872,8 @@ export type AnyRegularMessageContent = (
 	| { hdImage: WAMediaUpload; caption?: string; mimetype?: string }
 	| { hdVideo: WAMediaUpload; caption?: string; mimetype?: string }
 	| { callMessage: proto.Message.IScheduledCallCreationMessage }
-	| { pollResult: proto.Message.IPollResultSnapshotMessage }
 	// | { richMessage: RichMessageOptions }
-	| {
-			richResponse: {
-				text: string
-				code?: string
-				language?: string
-				botJid?: string
-			}
-	  }
+	| RichContent
 ) &
 	ViewOnce
 
@@ -823,14 +898,65 @@ export type AnyMessageContent =
 			 * Send as a group status (story visible to group members).
 			 * Set to `true` to wrap the message in groupStatusMessageV2.
 			 * The jid should be a group JID (e.g. `120363xxxxxxxx@g.us`).
+			 * Can also be set via `options.groupStatus` instead.
 			 * @example
 			 * await sock.sendMessage('120363xxx@g.us', { text: 'Hello group!', groupStatus: true })
 			 */
 			groupStatus: boolean
 	  }
 	| {
+			/** Attach an external-ad-reply preview to the message, without
+			 *  needing to build `contextInfo` yourself first.
+			 *  @example
+			 *  await sock.sendMessage(jid, { text: 'Hi', externalAdReply: { title: 'Ad', thumbnail, sourceApp: 'whatsapp' } })
+			 */
+			externalAdReply: proto.ContextInfo.IExternalAdReplyInfo & {
+				/** Shorthand for mediaUrl + sourceUrl + thumbnailUrl (any of those set explicitly wins over this) */
+				url?: string
+				/** Shorthand for renderLargerThumbnail */
+				largeThumbnail?: boolean
+			}
+	  }
+	| {
+			/**
+			 * If true, show the AI icon on the message bubble. Only supported
+			 * in private (1:1) chats. Can also be set via `options.ai` instead.
+			 * @example
+			 * await sock.sendMessage(jid, { image: {...}, ai: true })
+			 */
+			ai: boolean
+	  }
+	| {
+			/**
+			 * Attach a "secure" Meta service label badge to the message.
+			 * Can also be set via `options.secureMetaServiceLabel` instead.
+			 * @example
+			 * await sock.sendMessage(jid, { text: 'Label', secureMetaServiceLabel: true })
+			 */
+			secureMetaServiceLabel: boolean
+	  }
+	| {
+			/**
+			 * Attach an invoice note to an image or document message.
+			 * Only valid alongside `image` or `document` content.
+			 * @example
+			 * await sock.sendMessage(jid, { image: {...}, invoiceNote: '🏷️ Invoice' })
+			 */
+			invoiceNote: string
+	  }
+	| {
+			/**
+			 * Send as a disappearing message using the default expiration.
+			 * Same as `options.ephemeral` / `options.ephemeralExpiration`.
+			 * @example
+			 * await sock.sendMessage(jid, { image: {...}, ephemeral: true })
+			 */
+			ephemeral: boolean
+	  }
+	| {
 			/**
 			 * Blur the attached media until the recipient taps to reveal it.
+			 * Can also be set via `options.spoiler` instead.
 			 * @example
 			 * await sock.sendMessage(jid, { image: {...}, spoiler: true })
 			 */
@@ -846,6 +972,7 @@ export type AnyMessageContent =
 			 */
 			raw: proto.IMessage
 	  }
+	| (proto.IMessage & { raw: true })
 
 export type GroupMetadataParticipants = Pick<GroupMetadata, 'participants'>
 
@@ -891,11 +1018,25 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 	newsletter?: boolean
 	/** additional binary nodes to attach to the message */
 	additionalNodes?: BinaryNode[]
-	/** if true, show AI icon on the message bubble */
+	/** if true, show AI icon on the message bubble. Same as content-level `ai` */
 	ai?: boolean
 	/** attach a "secure" Meta service label badge to the message (e.g. for
-	 *  verified-business / official-service style bubbles) */
+	 *  verified-business / official-service style bubbles). Same as
+	 *  content-level `secureMetaServiceLabel` */
 	secureMetaServiceLabel?: boolean
+	/** wrap the message in `groupStatusMessageV2` (group chats only). Same as
+	 *  content-level `groupStatus` */
+	groupStatus?: boolean
+	/** mark a sticker message as a Lottie/animated sticker. Same as
+	 *  content-level `isLottie` */
+	isLottie?: boolean
+	/** blur the attached media until the recipient taps to reveal it. Same as
+	 *  content-level `spoiler` */
+	spoiler?: boolean
+	/** shorthand for `ephemeralExpiration` using the default expiration —
+	 *  set to `true` to send as a disappearing message. Same as content-level
+	 *  `ephemeral`. Ignored if `ephemeralExpiration` is also given. */
+	ephemeral?: boolean
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
@@ -942,6 +1083,11 @@ export type MessageContentGenerationOptions = MediaGenerationOptions & {
 	getProfilePicUrl?: (jid: string, type: 'image' | 'preview') => Promise<string | undefined>
 	getCallLink?: (type: 'audio' | 'video', event?: { startTime: number }) => Promise<string | undefined>
 	jid?: string
+	/** Sender's own jid — used to auto-populate `statusAttributions[0].groupStatus.authorJid`
+	 *  when building a `groupStatus` message (already flows through from
+	 *  `generateWAMessage`/`generateWAMessageFromContent`'s options; declared
+	 *  here too so this layer can read it without an `any` cast). */
+	userJid?: string
 }
 export type MessageGenerationOptions = MessageContentGenerationOptions & MessageGenerationOptionsFromContent
 

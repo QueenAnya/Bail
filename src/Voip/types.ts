@@ -20,15 +20,92 @@ export type CallOptions = {
 	audioSource?: string
 	/** Auto-hangup after N ms (default: 120000). */
 	durationMs?: number
+	durationMS?: number
+	/** Repeat/loop the audio source continuously until durationMs is reached. */
+	repeatAudio?: boolean
+	repeat?: boolean
+	/** Whether this is a video call (default: false). */
+	isVideo?: boolean
+	/** Video source: file path to MP4/MKV/MOV/AVI video file. */
+	videoSource?: string
+	videoWidth?: number
+	width?: number
+	videoHeight?: number
+	height?: number
+	videoFps?: number
+	fps?: number
+	videoLoop?: boolean
+	repeatVideo?: boolean
+	loop?: boolean
+	isHorizontal?: boolean
+	horizontal?: boolean
+	orientation?: number
+	videoOrientation?: number
+	/** Timeout waiting for remote device to confirm ringing in ms (default: 20000). */
+	preRingingTimeoutMs?: number
+}
+
+/** High-level deterministic call status strings. */
+export type CallStatus =
+	| 'idle'
+	| 'initiating'
+	| 'signaling'
+	| 'ringing'
+	| 'accepted'
+	| 'media_connecting'
+	| 'connected'
+	| 'audio_ready'
+	| 'streaming'
+	| 'ending'
+	| 'ended'
+	| 'failed'
+	| 'unreachable'
+	| 'rejected'
+	| 'timeout'
+
+/** Request object for batch call initiation. */
+export type CallRequest = {
+	jid: string
+	options?: CallOptions
+}
+
+/** Safe public descriptor of an active or recent call. */
+export type CallSummary = {
+	id: string
+	jid: string
+	status: CallStatus
+	state: CallState
+	startedAt: number
+	connectedAt: number | null
+	endedAt: number | null
+	durationMs: number
+	audioSource: string
+	repeatAudio: boolean
+	isVideo: boolean
+	isHorizontal: boolean
+	videoOrientation: number
+	videoSource: string | null
+}
+
+/** VoIP Manager configuration options. */
+export type VoipConfigOptions = {
+	maxConcurrentCalls?: number
 }
 
 /** Events emitted by an `ActiveCall`. */
 export type CallEvents = {
 	ringing: () => void
+	accepted: () => void
 	connected: () => void
+	audioReady: () => void
+	streaming: () => void
+	videoStarted: () => void
+	videoEnded: () => void
+	videoError: (err: Error) => void
+	stateChange: (status: CallStatus) => void
 	/** 16 kHz mono Float32 PCM frame from the remote peer. */
 	audio: (pcm: Float32Array) => void
-	/** Reason: `"hangup"` | `"timeout"` | `"rejected"` | `"remote_end"` | `"disconnect"` | etc. */
+	/** Reason: `"completed"` | `"hangup"` | `"timeout"` | `"unreachable"` | `"rejected"` | `"remote_end"` | `"disconnect"` | etc. */
 	ended: (reason: string) => void
 	error: (err: Error) => void
 }

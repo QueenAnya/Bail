@@ -12,11 +12,9 @@
  * default and never emitted an event. `emitNewsletterRoleUpdate` covers
  * both promote and demote from one place so that gap can't reopen.
  *
- * Source: innovatorssoft/Baileys commit 170c5af ("Handle newsletter role
- * updates safely") — ported the author/user empty-string fallback from
- * that fix; the missing Demote case itself is specific to this fork's
- * handleLegacyMexNewsletterNotification split, not something upstream
- * needed to fix.
+ * Also carries forward an author/user empty-string fallback for cases
+ * where the server omits them, so downstream consumers don't have to
+ * separately guard against undefined.
  */
 import type { BaileysEventEmitter } from '../Types'
 

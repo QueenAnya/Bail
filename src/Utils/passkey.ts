@@ -2,7 +2,7 @@
  * passkey.ts
  * Helper to extract passkey request state from WA notification nodes.
  * Used to emit `connection.update.passkeyRequest` during companion linking.
- * Source: WhiskeySockets/Baileys PR #2696 (frndchagas)
+ * Source: PR #2696 (frndchagas)
  */
 
 import type { BinaryNode } from '../WABinary'

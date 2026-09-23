@@ -1,12 +1,9 @@
 /**
  * Call Handler Addon
- * Source: @innovatorssoft/baileys Socket/messages-recv.js (call-handling block,
- * embedded inline in their recv pipeline — extracted here as a standalone addon).
- * Verified against innovatorssoft/Baileys main branch: all 15 functions below
- * (offerCall, initiateCall, acceptCall, cancelCall, preacceptCall, terminateCall,
- * muteCall, joinCallLink, queryCallLink, sendCallDuration, sendHeartbeat,
- * sendRelayLatency, sendTransport, sendVideoState, sendEncRekey) plus
- * sanitizeCallerPn match their compiled source with identical names and signatures.
+ * All 15 functions below (offerCall, WAInitiateCall, acceptCall, cancelCall,
+ * preacceptCall, terminateCall, muteCall, joinCallLink, queryCallLink,
+ * sendCallDuration, sendHeartbeat, sendRelayLatency, sendTransport,
+ * sendVideoState, sendEncRekey) plus sanitizeCallerPn.
  *
  * Full outgoing call support: initiate, accept, cancel, mute, terminate,
  * join via link, query link, send heartbeat/transport/video-state/relay-latency/enc-rekey.
@@ -207,7 +204,7 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 	 * Initiate a voice or video call to `jid`.
 	 * @returns `{ callId, to, isVideo }`
 	 */
-	const initiateCall = async (
+	const WAInitiateCall = async (
 		jid: string,
 		options: { isVideo?: boolean } = {}
 	): Promise<{ callId: string; to: string; isVideo: boolean }> => {
@@ -471,7 +468,7 @@ export const makeCallHandlerAddon = (ctx: CallHandlerContext) => {
 
 	return {
 		sanitizeCallerPn,
-		initiateCall,
+		WAInitiateCall,
 		acceptCall,
 		cancelCall,
 		muteCall,

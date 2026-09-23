@@ -32,7 +32,18 @@ export const makeGroupsSocket = (config: SocketConfig) => {
 
 	const groupMetadata = async (jid: string) => {
 		const result = await groupQuery(jid, 'get', [{ tag: 'query', attrs: { request: 'interactive' } }])
-		return extractGroupMetadata(result)
+		const metadata = extractGroupMetadata(result)
+		const mappings = metadata.participants
+			.filter(p => p.lid && p.phoneNumber)
+			.map(p => ({ lid: p.lid!, pn: p.phoneNumber! }))
+
+		if (mappings.length && sock.signalRepository?.lidMapping?.storeLIDPNMappings) {
+			try {
+				await sock.signalRepository.lidMapping.storeLIDPNMappings(mappings)
+			} catch {}
+		}
+
+		return metadata
 	}
 
 	const groupFetchAllParticipating = async () => {

@@ -594,7 +594,7 @@ export function convertToInteractiveMessage(content: Record<string, unknown>): R
 					name: btn.name ?? 'quick_reply',
 					buttonParamsJson: btn.buttonParamsJson
 				})),
-				messageParamsJson: ''
+				messageParamsJson: '{}'
 			}
 		}
 

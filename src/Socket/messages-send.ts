@@ -5,6 +5,7 @@ import { proto } from '../../WAProto/index.js'
 import { execSendStatusMentions } from '../addons/from-messages-send'
 import {
 	type CapturedUnifiedResponse,
+	type ExtractOptions,
 	extractUnifiedResponse,
 	generateCodeBlockContent,
 	generateLatexContent,
@@ -12,13 +13,21 @@ import {
 	generateLatexInlineImageContent,
 	generateListContent,
 	generateMarkdownContent,
+	generateRichHtmlContent,
+	type GenerateRichHtmlOptions,
 	generateRichMessageContent,
+	type GenerateRichMessageOptions,
 	generateTableContent,
 	generateUnifiedResponseContent,
 	type LatexExpression,
-	type RichSubMessage
+	renderLatexToPng as defaultRenderLatexToPng,
+	type RichSubMessage,
+	uploadUnencryptedToWA
 } from '../addons/message-composer'
 import { getButtonArgs, getButtonType } from '../addons/message-utils'
+import { sendGroupStatus as sendGroupStatusAddon } from '../addons/send-group-status'
+import { sendGroupStatusV2 as sendGroupStatusV2Addon } from '../addons/send-group-status-v2'
+import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../addons/stickerpack.js'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
@@ -101,7 +110,7 @@ import { makeNewsletterSocket } from './newsletter'
  * Resolves a PN or hosted-PN JID to its mapped LID for outbound sends.
  * Uses local-only store lookup — does NOT trigger USync / network.
  * For cold (unmapped) contacts the original jid is returned unchanged.
- * Source: WhiskeySockets/Baileys PR #2692 (frndchagas)
+ * Source: PR #2692 (frndchagas)
  */
 export type MessageSendJid = {
 	/** The JID to actually send to (may be LID if mapped) */
@@ -222,44 +231,51 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 	// Prevent race conditions in Signal session encryption by user
 	const encryptionMutex = makeKeyedMutex()
+	// Prevent race conditions when refreshMediaConn is called concurrently
+	// (e.g. two messages sent at once both find the cached conn expired) —
+	// without this, both calls would independently refetch and race to
+	// assign the shared `mediaConn` variable.
+	const mediaConnMutex = makeKeyedMutex()
 
 	let mediaConn: Promise<MediaConnInfo> | undefined
 	/** Per-socket media host; updated whenever media_conn is fetched. Defaults to the public WhatsApp host. */
 	let mediaHost: string = DEF_MEDIA_HOST
 	const refreshMediaConn = async (forceGet = false): Promise<MediaConnInfo> => {
-		const media = await mediaConn
-		if (!media || forceGet || new Date().getTime() - media.fetchDate.getTime() > media.ttl * 1000) {
-			mediaConn = (async () => {
-				const result = await query({
-					tag: 'iq',
-					attrs: {
-						type: 'set',
-						xmlns: 'w:m',
-						to: S_WHATSAPP_NET
-					},
-					content: [{ tag: 'media_conn', attrs: {} }]
-				})
-				const mediaConnNode = getBinaryNodeChild(result, 'media_conn')!
-				// TODO: explore full length of data that whatsapp provides
-				const node: MediaConnInfo = {
-					hosts: getBinaryNodeChildren(mediaConnNode, 'host').map(({ attrs }) => ({
-						hostname: attrs.hostname!,
-						maxContentLengthBytes: +attrs.maxContentLengthBytes!
-					})),
-					auth: mediaConnNode.attrs.auth!,
-					ttl: +mediaConnNode.attrs.ttl!,
-					fetchDate: new Date()
-				}
-				logger.debug('fetched media conn')
-				if (node.hosts[0]) {
-					mediaHost = node.hosts[0].hostname
-				}
+		return mediaConnMutex.mutex('media-conn', async () => {
+			const media = await mediaConn
+			if (!media || forceGet || new Date().getTime() - media.fetchDate.getTime() > media.ttl * 1000) {
+				mediaConn = (async () => {
+					const result = await query({
+						tag: 'iq',
+						attrs: {
+							type: 'set',
+							xmlns: 'w:m',
+							to: S_WHATSAPP_NET
+						},
+						content: [{ tag: 'media_conn', attrs: {} }]
+					})
+					const mediaConnNode = getBinaryNodeChild(result, 'media_conn')!
+					// TODO: explore full length of data that whatsapp provides
+					const node: MediaConnInfo = {
+						hosts: getBinaryNodeChildren(mediaConnNode, 'host').map(({ attrs }) => ({
+							hostname: attrs.hostname!,
+							maxContentLengthBytes: +attrs.maxContentLengthBytes!
+						})),
+						auth: mediaConnNode.attrs.auth!,
+						ttl: +mediaConnNode.attrs.ttl!,
+						fetchDate: new Date()
+					}
+					logger.debug('fetched media conn')
+					if (node.hosts[0]) {
+						mediaHost = node.hosts[0].hostname
+					}
 
-				return node
-			})()
-		}
+					return node
+				})()
+			}
 
-		return mediaConn!
+			return mediaConn!
+		})
 	}
 
 	/**
@@ -802,9 +818,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			if (isNewsletter) {
 				const patched = patchMessageBeforeSending ? await patchMessageBeforeSending(message, []) : message
 				const bytes = encodeNewsletterMessage(patched as proto.IMessage)
+				if (additionalNodes && additionalNodes.length > 0) {
+					binaryNodeContent.push(...additionalNodes)
+				}
+
 				binaryNodeContent.push({
 					tag: 'plaintext',
-					attrs: mediaType ? { mediatype: mediaType } : {},
+					attrs: extraAttrs,
 					content: bytes
 				})
 				const stanza: BinaryNode = {
@@ -829,6 +849,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				messages.protocolMessage?.editedMessage
 			) {
 				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
+			}
+
+			if (messages.interactiveResponseMessage?.nativeFlowResponseMessage) {
+				extraAttrs['native_flow_name'] = messages.interactiveResponseMessage.nativeFlowResponseMessage.name!
 			}
 
 			if (isGroupOrStatus && !isRetryResend) {
@@ -1219,7 +1243,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			// Inject poll/event meta node directly in relayMessage
-			// (mirrors innovators — handles direct relayMessage calls, not just sendMessage)
+			// (handles direct relayMessage calls, not just sendMessage)
 			if (pollMessage || messages.eventMessage) {
 				const hasPollMeta = (additionalNodes ?? []).some(
 					(n: BinaryNode) => n.tag === 'meta' && ('polltype' in n.attrs || 'event_type' in n.attrs)
@@ -1251,7 +1275,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 
 				// bot node: required for buttons to be interactive in private chats
-				// (independent of AI flag — matches innovators + button-helper behaviour)
+				// (independent of AI flag; matches button-helper behaviour)
 				if (isPrivate) {
 					const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
 					const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
@@ -1266,7 +1290,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
-			// Smart biz node (itsliaa port) — auto-inject for button/list/template/nativeFlow messages,
+			// Smart biz node — auto-inject for button/list/template/nativeFlow messages,
 			// or when secureMetaServiceLabel is explicitly requested. Without this, WhatsApp won't
 			// correctly render/deliver those interactive message types.
 			// Use normalizeMessageContent so wrapped messages (viewOnce, ephemeral) are unwrapped first.
@@ -1408,10 +1432,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		} else if (message.liveLocationMessage) {
 			return 'livelocation'
 		} else if (message.albumMessage) {
-			// Ported from @itsliaaa/baileys — album container routing
+			// Album container routing
 			return 'collection'
 		} else if (message.stickerPackMessage) {
-			// Ported from @itsliaaa/baileys — StickerPack message type routing
+			// StickerPack message type routing
 			return 'sticker_pack'
 		} else if (message.stickerMessage) {
 			return 'sticker'
@@ -1464,6 +1488,72 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 	const waUploadToServer = getWAUploadToServer(config, refreshMediaConn)
 
+	/**
+	 * Normalizes the flexible `sendLatexImage`/`sendLatexInlineImage` call
+	 * shape — bare LaTeX string, `{formula}`/`{latex}`/`{text}`, a bare
+	 * expressions array, or the full `{expressions: LatexExpression[]}` —
+	 * into the strict shape the generators need, and lets `quoted` be
+	 * skipped entirely when the 2nd arg doesn't look like a message-quote
+	 * object. `renderLatexToPng`/`uploadFn` default to qb2's own local
+	 * MathJax renderer and upload helper when the caller doesn't supply
+	 * their own.
+	 */
+	const normalizeLatexArgs = (
+		quoted: any,
+		options: any,
+		renderLatexToPng: ((latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>) | undefined,
+		uploadFn: ((buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>) | undefined
+	) => {
+		if (
+			quoted &&
+			!quoted.key &&
+			(typeof quoted === 'string' ||
+				Array.isArray(quoted) ||
+				quoted.expressions ||
+				quoted.text ||
+				quoted.formula ||
+				quoted.latex)
+		) {
+			uploadFn = renderLatexToPng as any
+			renderLatexToPng = options
+			options = quoted
+			quoted = undefined
+		}
+
+		let headerText: string | undefined
+		let footer: string | undefined
+		let text: string | undefined
+		const expressions: LatexExpression[] = []
+
+		const pushExpr = (e: string | LatexExpression) => {
+			if (typeof e === 'string') expressions.push({ latexExpression: e })
+			else if (e?.latexExpression) expressions.push(e)
+		}
+
+		if (typeof options === 'string') {
+			pushExpr(options)
+		} else if (Array.isArray(options)) {
+			options.forEach(pushExpr)
+		} else if (options && typeof options === 'object') {
+			headerText = options.headerText
+			footer = options.footer
+			text = options.text
+			if (options.formula) pushExpr(options.formula)
+			else if (options.latex) pushExpr(options.latex)
+			else if (options.expressions?.length) options.expressions.forEach(pushExpr)
+			else if (options.text) pushExpr(options.text)
+		}
+
+		if (expressions.length === 0) expressions.push({ latexExpression: 'E=mc^2' })
+
+		return {
+			quoted,
+			options: { text, headerText, footer, expressions },
+			renderLatexToPng: renderLatexToPng || defaultRenderLatexToPng,
+			uploadFn: uploadFn || (async (buffer: Buffer) => uploadUnencryptedToWA(buffer, waUploadToServer))
+		}
+	}
+
 	const waitForMsgMediaUpdate = bindWaitForEvent(ev, 'messages.media-update')
 
 	registerSocketEndHandler(() => {
@@ -1507,7 +1597,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * The phone resolves the URL natively and returns metadata via a PDO response,
 		 * which is handled in process-message and emitted as a 'link-preview.update' event.
 		 * Falls back to local link-preview-js when `generateHighQualityLinkPreview` is false.
-		 * Source: WhiskeySockets/Baileys PR #2701 (frndchagas)
+		 * Source: PR #2701 (frndchagas)
 		 */
 		requestPhoneLinkPreview: async (url: string): Promise<string> => {
 			const pdoMessage: proto.Message.IPeerDataOperationRequestMessage = {
@@ -1568,12 +1658,82 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return message
 		},
+		sendGroupStatus: async (groupJid: string, content: Record<string, any>, options: Record<string, any> = {}) => {
+			return sendGroupStatusAddon(sock, groupJid, content, options)
+		},
+		sendGroupStatusV2: async (groupJid: string, content: AnyMessageContent, options: Record<string, any> = {}) => {
+			return sendGroupStatusV2Addon(sock, groupJid, content, options)
+		},
+
 		sendMessage: async (
-			jid: string,
+			jid: string | string[],
 			content: AnyMessageContent,
 			options: MiscMessageGenerationOptions = {}
 		): Promise<WAMessage | undefined> => {
+			// Passing an array as `jid` is shorthand for a "status mention" —
+			// posts a single `status@broadcast` update and mentions every jid
+			// in the array (group jids are expanded to their participants).
+			// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+			// (the same helper `sock.sendStatusMentions` already uses).
+			if (Array.isArray(jid)) {
+				return execSendStatusMentions(content, jid, {
+					meId: authState.creds.me!.id,
+					logger,
+					groupMetadata: sock.groupMetadata,
+					cachedGroupMetadata: config.cachedGroupMetadata,
+					relayMessage,
+					waUploadToServer,
+					getUrlInfo,
+					config,
+					linkPreviewImageThumbnailWidth,
+					generateHighQualityLinkPreview,
+					httpRequestOptions
+				})
+			}
+
 			const userJid = authState.creds.me!.id
+
+			// ── Dual content/options flags — groupStatus, isLottie, spoiler,
+			// secureMetaServiceLabel, ai, and ephemeral can each be set either as
+			// a content-level property (e.g. `{ image: {...}, spoiler: true }`)
+			// or as an options-level property (e.g. `sock.sendMessage(jid, { image:
+			// {...} }, { spoiler: true })`) — whichever is set wins; if both are
+			// set, content takes priority. This mutates both objects in place so
+			// every existing content-based (`hasOptionalProperty(message, ...)`)
+			// and options-based (`options.ai`, `options.secureMetaServiceLabel`,
+			// etc.) check keeps working unmodified either way.
+			if (typeof content === 'object' && content !== null) {
+				const c = content as Record<string, unknown>
+				const o = options as Record<string, unknown>
+
+				for (const flag of [
+					'groupStatus',
+					'isLottie',
+					'spoiler',
+					'secureMetaServiceLabel',
+					'ai',
+					'ephemeral'
+				] as const) {
+					const merged = c[flag] ?? o[flag]
+					if (merged !== undefined) {
+						c[flag] = !!merged
+						o[flag] = !!merged
+					}
+				}
+
+				// `ephemeral: true` shorthand → default disappearing-message
+				// expiration, unless an explicit `ephemeralExpiration` was
+				// already given (which always takes priority).
+				if (c.ephemeral && !o.ephemeralExpiration) {
+					o.ephemeralExpiration = WA_DEFAULT_EPHEMERAL
+				}
+			}
+
+			if (options.ai && !(isPnUser(jid) || isHostedPnUser(jid) || isLidUser(jid) || isHostedLidUser(jid))) {
+				// AI icon on message is only supported in private (1:1) chats.
+				throw new Boom('AI icon on message is only allowed in private chat', { statusCode: 400 })
+			}
+
 			if (
 				typeof content === 'object' &&
 				'disappearingMessagesInChat' in content &&
@@ -1595,6 +1755,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					video?: WAMediaUpload
 					caption?: string
 				}>
+
+				// WhatsApp requires at least 2 media items in an album; a
+				// 0- or 1-item "album" is a malformed message.
+				if (albumItems.length < 2) {
+					throw new Boom('Minimum provide 2 media to upload album message', { statusCode: 400 })
+				}
+
 				const albumMsg = generateWAMessageFromContent(
 					jid,
 					{
@@ -1623,7 +1790,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						...options
 					})
 
-					// Validate each album item is image or video — ported from @itsliaaa/baileys
+					// Validate each album item is image or video
 					if (!hasValidAlbumMedia(normalizeMessageContent(mediaMsg.message))) {
 						throw new Boom('Invalid message type for album — only image or video allowed', { statusCode: 400 })
 					}
@@ -1690,35 +1857,48 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						(('groupStatus' in content && (content as any).groupStatus) ||
 							('cards' in content && (content as any)?.cards)) &&
 						!options.messageId
-							? `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
-							: generateMessageIDV2(sock.user?.id),
+							? '3EB0' + randomBytes(18).toString('hex').toUpperCase()
+							: // `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+								generateMessageIDV2(sock.user?.id),
 					...options
 				})
 				const isEventMsg = 'event' in content && !!content.event
 				const isDeleteMsg = 'delete' in content && !!content.delete
+				const isKeepMsg = 'keep' in content && !!(content as any).keep
 				const isEditMsg = 'edit' in content && !!content.edit
 				const isPinMsg = 'pin' in content && !!content.pin
 				const isPollMessage = 'poll' in content && !!content.poll
 				const additionalAttributes: BinaryNodeAttributes = {}
 				const additionalNodes: BinaryNode[] = []
 				// required for delete
-				if (isDeleteMsg) {
+				if (isDeleteMsg || isKeepMsg) {
 					// if the chat is a group, and I am not the author, then delete the message as an admin
-					if (isJidGroup(content.delete?.remoteJid as string) && !content.delete?.fromMe) {
+					const deleteKey = isDeleteMsg ? content.delete : undefined
+					if (isJidGroup(deleteKey?.remoteJid as string) && !deleteKey?.fromMe) {
 						additionalAttributes.edit = '8'
 					} else {
 						additionalAttributes.edit = '7'
 					}
 				} else if (isEditMsg) {
-					additionalAttributes.edit = '1'
+					// Edited messages inside newsletters use a different edit
+					// code than regular chats.
+					additionalAttributes.edit = isJidNewsletter(jid) ? '3' : '1'
 				} else if (isPinMsg) {
 					additionalAttributes.edit = '2'
 				} else if (isPollMessage) {
 					// Newsletter polls need a contenttype attr ('image' or 'text')
-					// matching innovators behaviour for cross-client compatibility
-					const pollAttrs: Record<string, string> = { polltype: 'creation' }
-					if (isJidNewsletter(jid)) {
-						const pollContent = (content as any).poll
+					// for cross-client compatibility
+					const isNewsletterMsg = isJidNewsletter(jid)
+					const pollContent = (content as any).poll
+					const isQuizMsg = pollContent?.pollType === 1
+					if (isQuizMsg && !isNewsletterMsg) {
+						// Quiz polls are only supported inside newsletters (channels)
+						// on the WhatsApp protocol level.
+						throw new Boom('Quiz polls are only allowed for newsletters', { statusCode: 400 })
+					}
+
+					const pollAttrs: Record<string, string> = { polltype: isQuizMsg ? 'quiz_creation' : 'creation' }
+					if (isNewsletterMsg) {
 						pollAttrs.contenttype = pollContent?.pollContentType === 2 ? 'image' : 'text'
 					}
 
@@ -1758,6 +1938,34 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 				return fullMsg
 			}
+		},
+
+		/**
+		 * Build and send a sticker pack via the alternate builder
+		 * (`prepareStickerPackMessage`, addons/stickerpack.ts) — kept as a
+		 * distinct implementation from the one `sock.sendMessage(jid, {
+		 * stickerPack: {...} })` uses. Use whichever produces the result you
+		 * need; both are fully supported.
+		 */
+		sendStickerPack: async (
+			jid: string,
+			stickerPack: StickerPackInput,
+			options: MiscMessageGenerationOptions & { mediaCache?: StickerPackOptions['mediaCache'] } = {}
+		) => {
+			const stickerPackMessage = await prepareStickerPackMessage(stickerPack, {
+				upload: waUploadToServer as StickerPackOptions['upload'],
+				logger,
+				mediaUploadTimeoutMs: options.mediaUploadTimeoutMs,
+				mediaCache: options.mediaCache
+			})
+			return relayMessage(
+				jid,
+				{ stickerPackMessage },
+				{
+					messageId: options.messageId,
+					additionalNodes: options.additionalNodes
+				}
+			)
 		},
 
 		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
@@ -1823,6 +2031,16 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		},
 
 		/**
+		 * Send a rich HTML message (GenAI unified-response HTML primitive),
+		 * forwarded as a bot-style message.
+		 */
+		sendRichHtml: async (jid: string, html: string, quoted?: any, options: GenerateRichHtmlOptions = {}) => {
+			const { message, messageId } = generateRichHtmlContent(html, quoted, options)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
 		 * Send a LaTeX expression as text (no image rendering).
 		 */
 		sendLatex: async (
@@ -1837,30 +2055,48 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		/**
 		 * Render LaTeX to PNG images, upload, and send.
+		 * Accepts a bare LaTeX string, `{formula}`/`{latex}`/`{text}`, a bare
+		 * expressions array, or the full `{expressions}` form as `options`,
+		 * and `quoted`/`renderLatexToPng`/`uploadFn` are all optional —
+		 * defaults to qb2's own local MathJax renderer + upload helper when
+		 * omitted, e.g. `sock.sendLatexImage(jid, null, 'E=mc^2')`.
 		 */
 		sendLatexImage: async (
 			jid: string,
-			quoted: any,
-			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
-			renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
-			uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
+			quoted?: any,
+			options?: any,
+			renderLatexToPng?: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
+			uploadFn?: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
 		) => {
-			const { message, messageId } = await generateLatexImageContent(quoted, options, uploadFn, renderLatexToPng)
+			const normalized = normalizeLatexArgs(quoted, options, renderLatexToPng, uploadFn)
+			const { message, messageId } = await generateLatexImageContent(
+				normalized.quoted,
+				normalized.options,
+				normalized.uploadFn,
+				normalized.renderLatexToPng
+			)
 			await relayMessage(jid, message, { messageId })
 			return { message, messageId }
 		},
 
 		/**
 		 * Render LaTeX to PNG inline image blocks, upload, and send.
+		 * Same flexible call shape as `sendLatexImage` — see above.
 		 */
 		sendLatexInlineImage: async (
 			jid: string,
-			quoted: any,
-			options: { text?: string; expressions: LatexExpression[]; headerText?: string; footer?: string },
-			renderLatexToPng: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
-			uploadFn: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
+			quoted?: any,
+			options?: any,
+			renderLatexToPng?: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
+			uploadFn?: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
 		) => {
-			const { message, messageId } = await generateLatexInlineImageContent(quoted, options, uploadFn, renderLatexToPng)
+			const normalized = normalizeLatexArgs(quoted, options, renderLatexToPng, uploadFn)
+			const { message, messageId } = await generateLatexInlineImageContent(
+				normalized.quoted,
+				normalized.options,
+				normalized.uploadFn,
+				normalized.renderLatexToPng
+			)
 			await relayMessage(jid, message, { messageId })
 			return { message, messageId }
 		},
@@ -1871,9 +2107,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * syntax (*bold*, _italic_, ~strike~, ```code```), so this is a thin wrapper
 		 * around the TEXT rich-submessage primitive — it does not do a full CommonMark
 		 * parse, just passes the string straight through as a single TEXT submessage.
+		 *
+		 * `options` also controls inline entity extraction: `[text](url)` becomes a
+		 * clickable hyperlink, `[](url)` becomes a citation, and `[expr|w|h|fh|pad](url)`
+		 * becomes a rendered latex reference. Pass `{ extract: false }` to disable, or
+		 * `{ hyperlink: false }` / `{ citation: false }` / `{ latex: false }` to disable
+		 * a specific kind (all default to `true`).
 		 */
-		sendMarkdown: async (jid: string, markdown: string, quoted?: any) => {
-			const { message, messageId } = generateMarkdownContent(markdown, quoted)
+		sendMarkdown: async (jid: string, markdown: string, quoted?: any, options?: ExtractOptions) => {
+			const { message, messageId } = generateMarkdownContent(markdown, quoted, options)
 			await relayMessage(jid, message, { messageId })
 			return { message, messageId }
 		},
@@ -1882,12 +2124,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * Send a fully custom rich message from a raw submessages array.
 		 * Pass { useMarkdown: true } to render TEXT/TABLE/CODE submessages
 		 * as native WhatsApp rich-content primitives via unifiedResponse.
+		 * When useMarkdown is set, `extract`/`hyperlink`/`citation`/`latex` also
+		 * control inline entity extraction from TEXT and TABLE cell contents,
+		 * same as `sendMarkdown`.
 		 */
 		sendRichMessage: async (
 			jid: string,
 			submessages: RichSubMessage[],
 			quoted?: any,
-			options?: { useMarkdown?: boolean }
+			options?: GenerateRichMessageOptions
 		) => {
 			const { message, messageId } = generateRichMessageContent(submessages, quoted, options)
 			await relayMessage(jid, message, { messageId })

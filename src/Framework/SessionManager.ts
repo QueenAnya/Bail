@@ -5,7 +5,7 @@
  * Fixes applied vs PR #2710:
  *  - P2: Generic defaults changed from `any` to `unknown` for type safety.
  *
- * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
+ * Source: PR #2710 (LuferOS) — enterprise bot framework
  */
 
 import type { SQLiteStore } from './Store/SQLiteStore'

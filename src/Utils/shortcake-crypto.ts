@@ -3,8 +3,7 @@
  * Low-level X25519 / HKDF / AES-GCM / SHA-256 helpers for the Shortcake
  * (CRSC — Cross-device Registration via Shortcake Companion) passkey linking flow.
  *
- * Source: WhiskeySockets/Baileys PR #2689 (vinikjkkj — WB collaborator)
- * PR source: https://github.com/WhiskeySockets/Baileys/pull/2689
+ * Source: PR #2689 (vinikjkkj — WB collaborator)
  */
 
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'crypto'

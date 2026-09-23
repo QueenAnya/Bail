@@ -213,7 +213,6 @@ describe('processHistoryMessage', () => {
 
 		it('should extract mapping from userReceipt when pnJid is missing and chat.id is LID', () => {
 			// Based on real-world case: LID chat without pnJid but userReceipt contains PN
-			// See: https://github.com/WhiskeySockets/Baileys/pull/2282#issuecomment-3777941679
 			const historySync: proto.IHistorySync = {
 				syncType: proto.HistorySync.HistorySyncType.INITIAL_BOOTSTRAP,
 				conversations: [

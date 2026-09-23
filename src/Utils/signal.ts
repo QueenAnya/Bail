@@ -189,9 +189,11 @@ export const extractDeviceJids = (
 	const extracted: FullJid[] = []
 
 	for (const userResult of result) {
-		const { devices, id } = userResult as { devices: ParsedDeviceInfo; id: string }
-		const decoded = jidDecode(id)!,
-			{ user, server } = decoded
+		const { devices, id } = userResult as { devices?: ParsedDeviceInfo; id?: string }
+		if (!id) continue
+		const decoded = jidDecode(id)
+		if (!decoded) continue
+		const { user, server } = decoded
 		let { domainType } = decoded
 		const deviceList = devices?.deviceList as DeviceListData[]
 		if (!Array.isArray(deviceList)) continue

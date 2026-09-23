@@ -43,7 +43,24 @@ export const getUrlInfo = async (
 		let retries = 0
 		const maxRetry = 5
 
-		const { getLinkPreview } = await import('link-preview-js')
+		let getLinkPreview: (typeof import('link-preview-js'))['getLinkPreview']
+		try {
+			;({ getLinkPreview } = await import('link-preview-js'))
+		} catch {
+			// `link-preview-js` is an OPTIONAL peer dependency — not installed
+			// by default. Surface this loudly (not just at debug/warn level
+			// via the outer catch below) since a missing-dependency setup
+			// issue silently producing "no link preview, no error" is a
+			// confusing footgun otherwise.
+			opts.logger?.warn(
+				'link-preview-js is not installed — link previews for plain-text ' +
+					"URLs won't be generated until you run `npm install link-preview-js` " +
+					'(or `yarn add link-preview-js`). The message will still send, just ' +
+					'without a preview.'
+			)
+			return undefined
+		}
+
 		let previewLink = text
 		if (!text.startsWith('https://') && !text.startsWith('http://')) {
 			previewLink = 'https://' + previewLink
@@ -114,7 +131,7 @@ export const getUrlInfo = async (
 /**
  * Converts a WA PDO link-preview response result into a WAUrlInfo object.
  * Called when the phone responds to a GENERATE_LINK_PREVIEW PDO request.
- * Source: WhiskeySockets/Baileys PR #2701
+ * Source: PR #2701
  */
 export const linkPreviewResponseToUrlInfo = (
 	result: proto.Message.PeerDataOperationRequestResponseMessage.IPeerDataOperationResult

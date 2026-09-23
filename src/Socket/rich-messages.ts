@@ -1,6 +1,5 @@
 /**
  * Rich message helpers re-exported from addons layer
- * Source: @innovatorssoft/baileys Socket/rich-messages.js
  */
 export {
 	generateTableContent,

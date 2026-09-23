@@ -2,11 +2,11 @@
 
 ## Reporting a Vulnerability
 
-**Do not file security issues as public GitHub issues, Discord posts, or PRs.** A public report is itself an exploit broadcast — many downstream projects pull Baileys directly from `master` or from `github:WhiskeySockets/Baileys`, so a vulnerable version is in the wild within minutes.
+**Do not file security issues as public GitHub issues, Discord posts, or PRs.** A public report is itself an exploit broadcast — many downstream projects pull Baileys directly from `master` or from `github:QueenAnya/Bail`, so a vulnerable version is in the wild within minutes.
 
 Use either of these private channels:
 
-1. **Preferred:** [GitHub Security Advisories](https://github.com/WhiskeySockets/Baileys/security/advisories/new) on this repository. This gives us a private workspace to coordinate the fix, draft a CVE, and notify downstream projects.
+1. **Preferred:** [GitHub Security Advisories](https://github.com/QueenAnya/Bail/security/advisories/new) on this repository. This gives us a private workspace to coordinate the fix, draft a CVE, and notify downstream projects.
 2. **Email:** **rajeh@reforward.dev** — Rajeh Taher, current maintainer. Use this if GitHub Advisories is unavailable, or if the report involves the maintainer's keys / accounts directly.
 
 If you don't get an acknowledgement within **72 hours**, please re-send — mail filtering does occasionally swallow security reports.
@@ -73,6 +73,6 @@ A few notes for downstream users — these aren't vulnerabilities in Baileys, bu
 - **`baileys_auth_info/` is equivalent to a long-lived credential.** Store it like an SSH private key. Don't commit it. Don't put it in container images. Encrypt it at rest if you can.
 - **Logs leak.** The default logger emits debug-level information that includes JIDs and message metadata. Set `level: 'silent'` or filter aggressively in production.
 - **Don't paste auth state into AI tools, screenshots, or support tickets.** It's not redactable — anyone with the directory contents can hijack the session.
-- **Pin a release.** Pulling `github:WhiskeySockets/Baileys` always grabs `master`. Use a tagged release in production.
+- **Pin a release.** Pulling `github:QueenAnya/Bail` always grabs `master`. Use a tagged release in production.
 
 For non-security questions, see Discord (https://discord.gg/WeJM5FP9GG) or the wiki (https://baileys.wiki).

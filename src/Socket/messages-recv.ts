@@ -559,7 +559,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const sendMessageAck = async (node: BinaryNode, errorCode?: number) => {
 		// Use optional chaining — creds.me is undefined before pairing completes.
 		// buildAckStanza already handles undefined meId (only used in a guarded branch).
-		// Fixes: WhiskeySockets/Baileys#2738 (PR #2749)
+		// Fixes: #2738 (PR #2749)
 		const stanza = buildAckStanza(node, errorCode, authState.creds.me?.id)
 		logger.debug({ recv: { tag: node.tag, attrs: node.attrs }, sent: stanza.attrs }, 'sent ack')
 		await sendNode(stanza)
@@ -1526,7 +1526,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			case 'passkey_prologue_request':
 			case 'crsc_continuation': {
 				// Surface passkey companion-linking step via connection.update.
-				// Source: WhiskeySockets/Baileys PR #2696 (frndchagas)
+				// Source: PR #2696 (frndchagas)
 				const passkeyRequest = getPasskeyRequestState(node)
 				if (passkeyRequest) {
 					logger.info({ type: passkeyRequest.type }, 'passkey companion-linking step required')
@@ -1534,7 +1534,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				}
 
 				// Shortcake headless handshake — only if signPasskeyAssertion is configured.
-				// Source: WhiskeySockets/Baileys PR #2689 (vinikjkkj — WB collaborator)
+				// Source: PR #2689 (vinikjkkj — WB collaborator)
 				// Uses early `break`/`return`-style guard clauses to keep nesting shallow,
 				// intentionally inlined here rather than split into a separate function.
 				if (!config.signPasskeyAssertion) {
@@ -2185,7 +2185,17 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							}
 
 							acked = true
-							await sendMessageAck(node, NACK_REASONS.UnhandledError)
+							// Undecryptable statuses: ack without a NACK reason. A NACK makes the
+							// server keep the stanza and re-deliver it on every (re)connect, and
+							// while it is pending the rest of the offline queue is withheld —
+							// one undecryptable fresh status stalls delivery of every queued
+							// message. Statuses are best-effort content; dropping one is far
+							// better than freezing the account's message delivery.
+							if (isJidStatusBroadcast(msg.key.remoteJid!)) {
+								await sendMessageAck(node)
+							} else {
+								await sendMessageAck(node, NACK_REASONS.UnhandledError)
+							}
 						})
 					}
 				} else {

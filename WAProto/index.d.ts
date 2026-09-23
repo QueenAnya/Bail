@@ -11574,7 +11574,9 @@ export namespace proto {
             pollContentType?: (proto.Message.PollContentType|null);
             pollType?: (proto.Message.PollType|null);
             correctAnswer?: (proto.Message.PollCreationMessage.Option.$Properties|null);
+            endTime?: (number|Long|null);
             hideVoterNames?: (boolean|null);
+            allowAddOption?: (boolean|null);
             static create(properties: proto.Message.PollCreationMessage.$Shape): proto.Message.PollCreationMessage & proto.Message.PollCreationMessage.$Shape;
             static create(properties?: proto.Message.PollCreationMessage.$Properties): proto.Message.PollCreationMessage;
             static encode(m: proto.Message.PollCreationMessage.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -11595,7 +11597,9 @@ export namespace proto {
                 pollContentType?: (proto.Message.PollContentType|null);
                 pollType?: (proto.Message.PollType|null);
                 correctAnswer?: (proto.Message.PollCreationMessage.Option.$Properties|null);
+                endTime?: (number|Long|null);
                 hideVoterNames?: (boolean|null);
+                allowAddOption?: (boolean|null);
                 $unknowns?: Uint8Array[];
             }
             type $Shape = {
@@ -11607,7 +11611,9 @@ export namespace proto {
               pollContentType?: proto.Message.PollContentType|null;
               pollType?: proto.Message.PollType|null;
               correctAnswer?: proto.Message.PollCreationMessage.Option.$Shape|null;
+              endTime?: number|Long|null;
               hideVoterNames?: boolean|null;
+              allowAddOption?: boolean|null;
               $unknowns?: Uint8Array[];
             };
 

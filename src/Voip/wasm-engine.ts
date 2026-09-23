@@ -698,6 +698,34 @@ export class WasmEngine {
 		} catch {}
 	}
 
+	/**
+	 * Send a raw YUV420p video frame into the call. `ptr` must be a buffer
+	 * pre-allocated (via `malloc`) large enough for `data.byteLength` — same
+	 * calling convention as `sendAudioData`. `format`/`orientation` are
+	 * passed straight through to the engine (0 = default/portrait).
+	 */
+	sendVideoFrame = (
+		data: Uint8Array,
+		ptr: number,
+		width: number,
+		height: number,
+		fps = 15,
+		format = 0,
+		orientation = 0
+	): void => {
+		this.#ensureInitialized()
+		if (!data || data.byteLength === 0 || !ptr || width <= 0 || height <= 0) return
+		const sendFrameFn = this.#instance.onVideoDataFromJs ?? this.#instance.onDesktopCaptureDataFromJs
+		if (typeof sendFrameFn !== 'function') return
+		try {
+			const heapU8 = this.#instance.GROWABLE_HEAP_U8?.() ?? this.#instance.HEAPU8
+			if (!heapU8) return
+			if (ptr < 0 || ptr + data.byteLength > heapU8.length) return
+			heapU8.set(data, ptr)
+			sendFrameFn.call(this.#instance, ptr, data.byteLength, width, height, fps, format, orientation)
+		} catch {}
+	}
+
 	malloc = (size: number): number => {
 		this.#ensureInitialized()
 		return this.#instance._malloc(size)

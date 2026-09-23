@@ -1,8 +1,7 @@
 /**
  * Bot-forwarded rich response wrapper.
  *
- * Ported from the anya-bail merge session (@itsliaaa/baileys lineage) — this
- * file adds ONLY the functionality that was genuinely missing from the
+ * This file adds ONLY the functionality that was genuinely missing from the
  * existing `message-composer.ts` / `rich-response.ts` pair: the
  * botForwardedMessage envelope (with verification-metadata stubs) and the
  * `unifiedResponse` buffer builder that makes tables/code blocks render
@@ -299,7 +298,7 @@ export const prepareRichResponseMessage = (content: RichContent) => {
 							}
 						}
 					]
-				} as unknown as RichSubMessage)
+				})
 			})
 		}
 

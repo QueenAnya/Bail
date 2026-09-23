@@ -11,7 +11,7 @@
  *  - P2: Sticker EXIF payload length is now correctly serialized (P2 pack metadata).
  *  - P2: err types changed from `any` to `unknown`.
  *
- * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
+ * Source: PR #2710 (LuferOS) — enterprise bot framework
  */
 
 import { randomBytes } from 'crypto'

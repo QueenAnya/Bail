@@ -1,9 +1,8 @@
 /**
  * addon: stickerpack
  * Source patch: Baileys-feat-add-stickerpack-support (shell/metadata functions)
- * + itsliaaa/baileys (convertToWebP — auto-converts Buffer/URL/Stream input
- *   to a WhatsApp-ready WebP sticker buffer, extracted from their inline
- *   prepareStickerPackMessage conversion logic into a standalone function).
+ * — convertToWebP auto-converts Buffer/URL/Stream input to a WhatsApp-ready
+ *   WebP sticker buffer, extracted into a standalone function.
  *
  * Adds support for sending WhatsApp Sticker Pack messages.
  * Sticker and StickerPack types are the canonical definitions in Types/Message.ts.
@@ -13,7 +12,7 @@
  *   - generateStickerPackId() — generates a random pack ID
  *   - STICKER_PACK_MESSAGE_TYPE — the message type string 'sticker_pack'
  *   - convertToWebP() — converts a Buffer, URL string, or Stream into a WebP
- *     sticker buffer (passthrough if already WebP), matching itsliaaa's
+ *     sticker buffer (passthrough if already WebP), via a
  *     sharp → @napi-rs/image → jimp fallback chain.
  */
 
@@ -28,9 +27,9 @@ export type { Sticker, StickerPack } from '../Types'
 /**
  * Convert a Buffer, URL string, or Stream into a WebP sticker buffer.
  * If the input is already a valid WebP, it's returned untouched (and
- * `isAnimated` reflects whether it's an animated WebP).
- * Source: itsliaaa/baileys — sharp → @napi-rs/image → jimp fallback chain,
- * 512x512 'inside' fit, quality 80.
+ * `isAnimated` reflects whether it's an animated WebP). Uses a
+ * sharp → @napi-rs/image → jimp fallback chain, 512x512 'inside' fit,
+ * quality 80.
  *
  * @example
  * const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
@@ -106,12 +105,11 @@ export const buildStickerPackProto = (pack: {
 export const STICKER_PACK_MESSAGE_TYPE = 'sticker_pack' as const
 
 // ═══════════════════════════════════════════════════════════════════════════
-// itsliaaa/baileys full sticker-pack builder — kept as a distinct alternative
-// alongside the WhiskeySockets-PR-based buildStickerPackMessage() in
-// from-messages.ts. Ported directly from their compiled Utils/messages.js
-// prepareStickerPackMessage, including: media caching, per-sticker
-// count/size limits, 15-way concurrency batching, cover→trayIcon-in-ZIP,
-// and separate 252×252 JPEG thumbnail generation.
+// Full sticker-pack builder — kept as a distinct alternative alongside the
+// PR-based buildStickerPackMessage() in from-messages.ts.
+// Includes: media caching, per-sticker count/size limits, 15-way
+// concurrency batching, cover→trayIcon-in-ZIP, and separate 252×252 JPEG
+// thumbnail generation.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { zip } from 'fflate'
@@ -122,23 +120,23 @@ import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics.js'
 import type { ILogger } from '../Utils/logger.js'
 import { encryptedStream } from '../Utils/messages-media.js'
 
-const ITSL_CONCURRENCY_LIMIT = 15
+const STICKER_PACK_CONCURRENCY_LIMIT = 15
 
-export type ItsliaaaStickerInput = {
+export type StickerInput = {
 	data: WAMediaUpload
 	emojis?: string[]
 	accessibilityLabel?: string
 }
 
-export type ItsliaaaStickerPackInput = {
+export type StickerPackInput = {
 	cover: WAMediaUpload
-	stickers: ItsliaaaStickerInput[]
+	stickers: StickerInput[]
 	name?: string
 	publisher?: string
 	description?: string
 }
 
-export type ItsliaaaStickerPackOptions = {
+export type StickerPackOptions = {
 	logger?: ILogger
 	upload: (
 		filePath: string,
@@ -151,21 +149,19 @@ export type ItsliaaaStickerPackOptions = {
 
 /**
  * Build a complete, ready-to-send stickerPackMessage (ZIP built, encrypted,
- * and uploaded) — itsliaaa/baileys's implementation, function-for-function.
- * Source: itsliaaa/baileys Utils/messages.js prepareStickerPackMessage
- * (credits their own comment: sticker-pack field validity work by @jlucaso1,
- * based on WhiskeySockets/Baileys PR #1561).
+ * and uploaded). Sticker-pack field validity work credited to @jlucaso1,
+ * based on PR #1561.
  */
-export const prepareStickerPackMessageItsliaaa = async (
-	message: ItsliaaaStickerPackInput,
-	options: ItsliaaaStickerPackOptions
+export const prepareStickerPackMessage = async (
+	message: StickerPackInput,
+	options: StickerPackOptions
 ): Promise<proto.Message.IStickerPackMessage> => {
 	const {
 		cover,
 		stickers = [],
 		name = '📦 Sticker Pack',
-		publisher = 'GitHub: itsliaaa',
-		description = '🏷️ itsliaaa/baileys'
+		publisher = '@queenanya/baileys',
+		description = '🏷️ QB2 Sticker Pack'
 	} = message
 
 	if (stickers.length > 60) {
@@ -214,8 +210,8 @@ export const prepareStickerPackMessageItsliaaa = async (
 	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
 	const stickerMetadata: any[] = new Array(stickers.length)
 
-	for (let i = 0; i < stickers.length; i += ITSL_CONCURRENCY_LIMIT) {
-		const chunkEnd = Math.min(i + ITSL_CONCURRENCY_LIMIT, stickers.length)
+	for (let i = 0; i < stickers.length; i += STICKER_PACK_CONCURRENCY_LIMIT) {
+		const chunkEnd = Math.min(i + STICKER_PACK_CONCURRENCY_LIMIT, stickers.length)
 		const promises: Promise<void>[] = []
 		for (let j = i; j < chunkEnd; j++) {
 			promises.push(

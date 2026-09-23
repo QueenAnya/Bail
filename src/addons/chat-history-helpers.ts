@@ -2,11 +2,10 @@
  * addon: chat-history-helpers
  *
  * Small convenience helpers that were referenced as "implement this on your
- * end" stubs in innovatorssoft's README examples (getLastMessageInChat /
- * getOldestMessageInChat / copyNForward). This addon provides real
- * implementations, built on top of this fork's SimpleInMemoryStore and the
- * existing generateForwardMessageContent utility — not ported from any
- * upstream source, since none of the forks actually implement these.
+ * end" stubs elsewhere (getLastMessageInChat / getOldestMessageInChat /
+ * copyNForward). This addon provides real implementations, built on top of
+ * this fork's SimpleInMemoryStore and the existing
+ * generateForwardMessageContent utility.
  */
 
 import type { WAMessage } from '../Types/index.js'

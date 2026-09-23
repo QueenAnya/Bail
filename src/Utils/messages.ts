@@ -7,15 +7,16 @@ import {
 	buildAdminInviteMessage,
 	buildCallMessage,
 	buildPaymentInviteMessage,
+	buildPaymentMessage,
 	buildStickerPackMessage,
 	isWebPBuffer
 } from '../addons/from-messages'
 import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../addons/link-preview-extras'
-import type { RichContent } from '../addons/rich-message-utils.js'
 import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
 import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
+	FALLBACK_LINK_URL,
 	MEDIA_KEYS,
 	type MediaType,
 	URL_REGEX,
@@ -428,8 +429,107 @@ export const hasNonNullishProperty = <K extends PropertyKey>(
 	)
 }
 
+/**
+ * Builds the `limited_time_offer`/`bottom_sheet` messageParamsJson blob for
+ * a native_flow message, or undefined if neither offer nor option fields
+ * were supplied.
+ *
+ * Was previously inline-only inside the carousel `cards` branch of
+ * `generateWAMessageContent`; pulled out so the standalone
+ * `interactiveButtons` path can offer the same limited-time-offer /
+ * bottom-sheet params — used on both paths, not just carousels.
+ */
 function hasOptionalProperty<T, K extends PropertyKey>(obj: T, key: K): obj is WithKey<T, K> {
 	return typeof obj === 'object' && obj !== null && key in obj && (obj as any)[key] !== null
+}
+
+function buildNativeFlowMessageParamsJson(
+	offerText: string | undefined,
+	offerCode: string | undefined,
+	offerUrl: string | undefined,
+	offerExpiration: number | undefined,
+	optionText: string | undefined,
+	optionTitle: string | undefined,
+	buttonCount: number
+): string | undefined {
+	const cardParams: Record<string, unknown> = {}
+	if (offerText || offerCode || offerUrl || offerExpiration) {
+		cardParams.limited_time_offer = {
+			offer_text: offerText,
+			offer_code: offerCode,
+			offer_url: offerUrl || FALLBACK_LINK_URL,
+			offer_expiration_timestamp_secs: offerExpiration ? Math.floor(offerExpiration / 1000) : undefined
+		}
+	}
+
+	if (optionText || optionTitle) {
+		cardParams.bottom_sheet = {
+			in_thread_buttons_limit: 1,
+			divider_indices: Array.from({ length: buttonCount }, (_, i) => i),
+			list_title: optionTitle || optionText,
+			button_title: optionText
+		}
+	}
+
+	return Object.keys(cardParams).length > 0 ? JSON.stringify(cardParams) : undefined
+}
+
+/**
+ * Converts shorthand button objects (`{ text, url }`, `{ text, copy }`,
+ * `{ text, call }`, `{ text, sections }`, or the default `{ text, id }`
+ * quick-reply shape) into native_flow `{ name, buttonParamsJson }` form.
+ * A button that already has `name`/`buttonParamsJson` is passed through
+ * unchanged.
+ *
+ * Was previously duplicated inline only inside the carousel `cards` branch
+ * of `generateWAMessageContent`; pulled out here so the standalone
+ * `interactiveButtons` path gets the same shorthand convenience instead of
+ * requiring fully-formed native_flow objects.
+ * Convenience-shorthand style for button objects.
+ * prepareNativeFlowButtons (their offer/bottom_sheet messageParamsJson
+ * wrapping is carousel-card-specific and stays where it already was).
+ */
+function convertNativeFlowButtons(rawButtons: any[]): any[] {
+	return rawButtons.map((b: any) => {
+		if (b.name && b.buttonParamsJson) return b // already native
+		const icon = b.icon ? String(b.icon).toUpperCase() : undefined
+		if (b.url) {
+			return {
+				name: 'cta_url',
+				buttonParamsJson: JSON.stringify({
+					display_text: b.text,
+					url: b.url,
+					merchant_url: b.url,
+					webview_interaction: b.useWebview ?? false,
+					icon
+				})
+			}
+		}
+
+		if (b.copy) {
+			return {
+				name: 'cta_copy',
+				buttonParamsJson: JSON.stringify({ display_text: b.text, copy_code: b.copy, icon })
+			}
+		}
+
+		if (b.call) {
+			return {
+				name: 'cta_call',
+				buttonParamsJson: JSON.stringify({ display_text: b.text, phone_number: b.call, icon })
+			}
+		}
+
+		if (b.sections) {
+			return {
+				name: 'single_select',
+				buttonParamsJson: JSON.stringify({ title: b.text, sections: b.sections, icon })
+			}
+		}
+
+		// default: quick_reply shorthand ({ text, id })
+		return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: b.text, id: b.id, icon }) }
+	})
 }
 
 export const generateWAMessageContent = async (
@@ -441,8 +541,19 @@ export const generateWAMessageContent = async (
 		const extContent = { text: message.text } as WATextMessage
 
 		let urlInfo = message.linkPreview
-		if (typeof urlInfo === 'undefined') {
+		if (typeof urlInfo === 'undefined' || urlInfo === true) {
+			// `undefined` (omitted) and explicit `linkPreview: true` both mean
+			// "auto-detect from `text`" — previously `true` fell through to
+			// the object-shape branch below with none of the expected
+			// properties, producing a silently empty/broken preview.
 			urlInfo = await generateLinkPreviewIfRequired(message.text, options.getUrlInfo, options.logger)
+		} else if (typeof urlInfo === 'string') {
+			// Bare string shorthand — fetch a preview for *this* URL rather
+			// than whatever's in `message.text`. Previously a string was
+			// passed straight through as if it were already a full
+			// WAUrlInfo object, so `.title`/`.description`/`.jpegThumbnail`
+			// were all silently undefined and the preview rendered empty.
+			urlInfo = await generateLinkPreviewIfRequired(urlInfo, options.getUrlInfo, options.logger)
 		}
 
 		if (urlInfo) {
@@ -450,7 +561,7 @@ export const generateWAMessageContent = async (
 			extContent.jpegThumbnail = urlInfo.jpegThumbnail
 			extContent.description = urlInfo.description
 			extContent.title = urlInfo.title
-			extContent.previewType = 0
+			extContent.previewType = urlInfo.previewType ?? 0
 
 			const img = urlInfo.highQualityThumbnail
 			if (img) {
@@ -503,6 +614,10 @@ export const generateWAMessageContent = async (
 		}
 	} else if (hasNonNullishProperty(message, 'raw')) {
 		// bypass content generation entirely — send the caller-provided proto.IMessage as-is
+		if (message.raw === true || typeof message.raw !== 'object') {
+			throw new Boom('raw must be a proto.IMessage object', { statusCode: 400 })
+		}
+
 		m = message.raw
 	} else if (hasNonNullishProperty(message, 'forward')) {
 		m = generateForwardMessageContent(message.forward, message.force)
@@ -543,6 +658,19 @@ export const generateWAMessageContent = async (
 		m.pinInChatMessage.senderTimestampMs = Date.now()
 
 		m.messageContextInfo.messageAddOnDurationInSecs = message.type === 1 ? message.time || 86400 : 0
+	} else if (hasNonNullishProperty(message, 'flowReply')) {
+		// Reply to a native-flow interactive message (interactiveResponseMessage).
+		m.interactiveResponseMessage = {
+			body: {
+				text: message.flowReply.text,
+				format: message.flowReply.format ?? WAProto.Message.InteractiveResponseMessage.Body.Format.DEFAULT
+			},
+			nativeFlowResponseMessage: {
+				name: message.flowReply.name,
+				paramsJson: message.flowReply.paramsJson || '{}',
+				version: message.flowReply.version || 1
+			}
+		}
 	} else if (hasNonNullishProperty(message, 'buttonReply')) {
 		switch (message.type) {
 			case 'template':
@@ -587,6 +715,14 @@ export const generateWAMessageContent = async (
 		const { videoMessage } = await prepareWAMessageMedia({ video: message.video }, options)
 		m.ptvMessage = videoMessage
 	} else if (hasNonNullishProperty(message, 'product')) {
+		// WhatsApp rejects a product message with no owning business JID;
+		// catching it here gives a clear error instead of silently sending a
+		// malformed productMessage (a fork-specific currencyCode/priceAmount1000/
+		// title default was deliberately not carried over here).
+		if (!message.businessOwnerJid) {
+			throw new Boom('"businessOwnerJid" is missing from the content', { statusCode: 400 })
+		}
+
 		const { imageMessage } = await prepareWAMessageMedia({ image: message.product.productImage }, options)
 		m.productMessage = WAProto.Message.ProductMessage.create({
 			...message,
@@ -635,21 +771,35 @@ export const generateWAMessageContent = async (
 
 		// messageSecret must NOT be set for newsletter polls —
 		// newsletters handle encryption differently and a secret causes send failures
+		let pollMessageSecret: Uint8Array | undefined
 		if (!options.jid || !isJidNewsletter(options.jid)) {
 			const providedSecret = message.poll.messageSecret
-			const messageSecret =
+			pollMessageSecret =
 				providedSecret instanceof Uint8Array && providedSecret.length === 32 ? providedSecret : randomBytes(32)
-			m.messageContextInfo = { messageSecret }
 		}
 
 		const pollCreationMessage = {
 			name: message.poll.name,
 			selectableOptionsCount: message.poll.selectableCount,
 			options: message.poll.values.map(optionName => ({ optionName })),
-			hideVoterNames: message.poll.hideVoterNames ?? false
+			hideVoterNames: message.poll.hideVoterNames ?? false,
+			endTime: message.poll.endDate ? message.poll.endDate.getTime() : undefined,
+			allowAddOption: message.poll.canAddOption ?? false
 		}
 
-		if (message.poll.hideVoterNames) {
+		if (message.poll.pollType === 1) {
+			// quiz poll — newsletter-only, per WhatsApp
+			if (!message.poll.correctAnswer) {
+				throw new Boom('No "correctAnswer" provided for quiz', { statusCode: 400 })
+			}
+
+			m.pollCreationMessageV5 = {
+				...pollCreationMessage,
+				correctAnswer: { optionName: message.poll.correctAnswer },
+				pollType: WAProto.Message.PollType.QUIZ,
+				selectableOptionsCount: 1
+			}
+		} else if (message.poll.hideVoterNames) {
 			// V6 — hidden-voter-names poll (PR #2725, reverse-engineered from live WA)
 			m.pollCreationMessageV6 = pollCreationMessage
 		} else if (message.poll.toAnnouncementGroup) {
@@ -663,6 +813,51 @@ export const generateWAMessageContent = async (
 				// poll for multiple choice polls
 				m.pollCreationMessage = pollCreationMessage
 			}
+		}
+
+		// Set AFTER the pollCreationMessage* field, not before — several
+		// downstream steps (groupStatus/spoiler/externalAdReply/mentions/
+		// ephemeral) detect "the message type" via Object.keys(m)[0]; setting
+		// messageContextInfo first made that resolve to 'messageContextInfo'
+		// instead of the actual poll field, silently misplacing that data.
+		if (pollMessageSecret) {
+			m.messageContextInfo = { messageSecret: pollMessageSecret }
+		}
+	} else if (hasNonNullishProperty(message, 'pollResult')) {
+		// Send a poll-results summary — e.g. a bot posting the final tally of
+		// an earlier poll. Standalone display message, not a live connection
+		// to the original poll's vote state.
+		const pollResultSnapshotMessage: proto.Message.IPollResultSnapshotMessage = {
+			name: message.pollResult.name,
+			pollVotes: message.pollResult.votes.map(vote => ({
+				optionName: vote.name,
+				optionVoteCount: typeof vote.voteCount === 'string' ? parseInt(vote.voteCount, 10) : vote.voteCount
+			}))
+		}
+
+		if (message.pollResult.pollType === 1) {
+			pollResultSnapshotMessage.pollType = WAProto.Message.PollType.QUIZ
+			m.pollResultSnapshotMessageV3 = pollResultSnapshotMessage
+		} else {
+			pollResultSnapshotMessage.pollType = WAProto.Message.PollType.POLL
+			m.pollResultSnapshotMessage = pollResultSnapshotMessage
+		}
+	} else if (hasNonNullishProperty(message, 'pollUpdate')) {
+		// Send a raw, pre-encrypted poll vote update. Advanced/low-level API;
+		// see PollUpdateOptions' doc comment.
+		if (!message.pollUpdate.key) {
+			throw new Boom('Message key is required', { statusCode: 400 })
+		}
+
+		if (!message.pollUpdate.vote) {
+			throw new Boom('Encrypted vote payload is required', { statusCode: 400 })
+		}
+
+		m.pollUpdateMessage = {
+			metadata: message.pollUpdate.metadata,
+			pollCreationMessageKey: message.pollUpdate.key,
+			senderTimestampMs: Date.now(),
+			vote: message.pollUpdate.vote
 		}
 	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
 		// addons/from-messages.ts → buildAdminInviteMessage
@@ -688,6 +883,10 @@ export const generateWAMessageContent = async (
 	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
 		// addons/from-messages.ts → buildPaymentInviteMessage
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
+	} else if ('payment' in message && !!(message as any).payment) {
+		// nested style — sock.sendMessage(jid, { payment: { note, currency, amount, expiry } })
+		// addons/from-messages.ts → buildPaymentMessage
+		m.requestPaymentMessage = buildPaymentMessage((message as any).payment)
 	} else if (hasNonNullishProperty(message, 'paymentInviteServiceType')) {
 		// flat style — sock.sendMessage(jid, { paymentInviteServiceType: 1, expiry })
 		// serviceType: Facebook Pay=1, Apple Pay=2, Stripe=3
@@ -749,10 +948,10 @@ export const generateWAMessageContent = async (
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// nested style (InnovatorsSoft) — addons/from-messages.ts → buildStickerPackMessage
+		// nested style — addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
 	} else if ('stickers' in message && !!(message as any).stickers && 'cover' in message) {
-		// flat, top-level style (itsliaa/baileys) — same builder, different entry point
+		// flat, top-level style — same builder, different entry point
 		// sock.sendMessage(jid, { cover, stickers: [{ data }], name, publisher, description })
 		const { cover, stickers, name, publisher, description, packId } = message as any
 		m.stickerPackMessage = await buildStickerPackMessage(
@@ -762,13 +961,21 @@ export const generateWAMessageContent = async (
 	} else if ('code' in message || 'table' in message || 'links' in message || 'richResponse' in message) {
 		// sock.sendMessage(jid, { richResponse: { text, code, language, ... } })
 		// or the flat shorthand: { code, table, links, headerText, contentText, footerText, ... }
-		m = prepareRichResponseMessage(message as unknown as RichContent)
+		m = prepareRichResponseMessage(message)
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 
 		// ── isLottie → wrap stickerMessage in lottieStickerMessage ────────────────
-		// itsliaa/baileys style: sock.sendMessage(jid, { sticker: {...}, isLottie: true })
-		if (m.stickerMessage && (message as any).isLottie) {
+		// e.g. sock.sendMessage(jid, { sticker: {...}, isLottie: true })
+		// Also auto-detects by mimetype: Lottie animated stickers (.was) must be
+		// sent via lottieStickerMessage, not a plain stickerMessage — mobile
+		// WhatsApp clients silently drop Lottie payloads delivered inside a plain
+		// stickerMessage (field 26), even when isLottie is set on it, whereas Web
+		// tolerates it. So callers who forget to pass isLottie explicitly still
+		// get wrapped correctly as long as the sticker's mimetype gives it away.
+		if (m.stickerMessage && (m.stickerMessage.mimetype === 'application/was' || (message as any).isLottie)) {
+			m.stickerMessage.isAnimated = true
+			m.stickerMessage.isLottie = true
 			m = { lottieStickerMessage: { message: m } }
 		}
 	}
@@ -827,10 +1034,34 @@ export const generateWAMessageContent = async (
 	// ── buttons → buttonsMessage ──────────────────────────────────────────────
 	else if ('buttons' in message && !!message.buttons) {
 		const buttonsMessage: proto.Message.IButtonsMessage = {
-			buttons: message.buttons.map((b: any) => ({
-				...b,
-				type: proto.Message.ButtonsMessage.Button.Type.RESPONSE
-			}))
+			// sections/name shorthand routes to a native_flow button (same
+			// convenience as carousel/interactive buttons); anything else
+			// falls back to a classic RESPONSE button.
+			buttons: message.buttons.map((b: any) => {
+				const buttonText = b.text || b.buttonText
+				if ('sections' in b && b.sections) {
+					return {
+						nativeFlowInfo: {
+							name: 'single_select',
+							paramsJson: JSON.stringify({ title: buttonText, sections: b.sections })
+						},
+						type: proto.Message.ButtonsMessage.Button.Type.NATIVE_FLOW
+					}
+				}
+
+				if ('name' in b && b.name) {
+					return {
+						nativeFlowInfo: { name: b.name, paramsJson: b.paramsJson },
+						type: proto.Message.ButtonsMessage.Button.Type.NATIVE_FLOW
+					}
+				}
+
+				return {
+					buttonId: b.id || b.buttonId,
+					buttonText: typeof buttonText === 'string' ? { displayText: buttonText } : buttonText,
+					type: b.type || proto.Message.ButtonsMessage.Button.Type.RESPONSE
+				}
+			})
 		}
 
 		if ('text' in message) {
@@ -871,7 +1102,30 @@ export const generateWAMessageContent = async (
 	// ── templateButtons → TemplateMessage ─────────────────────────────────────
 	else if ('templateButtons' in message && !!message.templateButtons) {
 		const hydratedTemplate: proto.Message.TemplateMessage.IHydratedFourRowTemplate = {
-			hydratedButtons: message.templateButtons
+			// Shorthand: {text,id} → quickReplyButton, {text,url} → urlButton,
+			// {text,call} → callButton. Already-fully-formed buttons (with
+			// quickReplyButton/urlButton/callButton set) pass through
+			// unchanged.
+			hydratedButtons: (message.templateButtons as any[]).map((button: any, i: number) => {
+				if (button.quickReplyButton || button.urlButton || button.callButton) {
+					return button
+				}
+
+				const buttonText = button.text || button.buttonText
+				if ('id' in button && button.id) {
+					return { index: i, quickReplyButton: { displayText: buttonText || '👉🏻 Click', id: button.id } }
+				}
+
+				if ('url' in button && button.url) {
+					return { index: i, urlButton: { displayText: buttonText || '🌐 Visit', url: button.url } }
+				}
+
+				if ('call' in button && button.call) {
+					return { index: i, callButton: { displayText: buttonText || '📞 Call', phoneNumber: button.call } }
+				}
+
+				return button
+			})
 		}
 
 		if ('text' in message) {
@@ -896,9 +1150,22 @@ export const generateWAMessageContent = async (
 
 	// ── interactiveButtons → InteractiveMessage native flow (Android + iOS) ──
 	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
+		const convertedButtons = convertNativeFlowButtons((message as any).interactiveButtons)
+		const messageParamsJson = buildNativeFlowMessageParamsJson(
+			(message as any).offerText,
+			(message as any).offerCode,
+			(message as any).offerUrl,
+			(message as any).offerExpiration,
+			(message as any).optionText,
+			(message as any).optionTitle,
+			convertedButtons.length
+		)
 		const interactiveMessage: proto.Message.IInteractiveMessage = {
 			// FIX Bug 2: messageParamsJson: '' is required — without it iOS doesn't render buttons
-			nativeFlowMessage: { buttons: (message as any).interactiveButtons, messageParamsJson: '' }
+			nativeFlowMessage: {
+				buttons: convertedButtons,
+				messageParamsJson: messageParamsJson ?? ''
+			}
 		}
 
 		if ('text' in message) {
@@ -923,7 +1190,13 @@ export const generateWAMessageContent = async (
 			}
 		}
 
-		if ('footer' in message && !!message.footer) {
+		// An audio footer takes priority over a text footer, matching the
+		// carousel-card footer precedence (previously only available on
+		// carousel cards, not standalone interactive messages).
+		if (hasOptionalProperty(message, 'audioFooter') && message.audioFooter) {
+			const { audioMessage } = await prepareWAMessageMedia({ audio: message.audioFooter }, options)
+			interactiveMessage.footer = { audioMessage, hasMediaAttachment: true }
+		} else if ('footer' in message && !!message.footer) {
 			interactiveMessage.footer = { text: message.footer }
 		}
 
@@ -1094,65 +1367,17 @@ export const generateWAMessageContent = async (
 				}
 
 				const rawButtons: any[] = nativeFlow ?? buttons ?? []
-				const convertedButtons = rawButtons.map((b: any) => {
-					if (b.name && b.buttonParamsJson) return b // already native
-					const icon = b.icon ? String(b.icon).toUpperCase() : undefined
-					if (b.url) {
-						return {
-							name: 'cta_url',
-							buttonParamsJson: JSON.stringify({
-								display_text: b.text,
-								url: b.url,
-								merchant_url: b.url,
-								webview_interaction: b.useWebview ?? false,
-								icon
-							})
-						}
-					}
+				const convertedButtons = convertNativeFlowButtons(rawButtons)
 
-					if (b.copy) {
-						return {
-							name: 'cta_copy',
-							buttonParamsJson: JSON.stringify({ display_text: b.text, copy_code: b.copy, icon })
-						}
-					}
-
-					if (b.call) {
-						return {
-							name: 'cta_call',
-							buttonParamsJson: JSON.stringify({ display_text: b.text, phone_number: b.call, icon })
-						}
-					}
-
-					if (b.sections) {
-						return {
-							name: 'single_select',
-							buttonParamsJson: JSON.stringify({ title: b.text, sections: b.sections, icon })
-						}
-					}
-
-					// default: quick_reply shorthand ({ text, id })
-					return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: b.text, id: b.id, icon }) }
-				})
-
-				const cardParams: Record<string, unknown> = {}
-				if (offerText || offerCode || offerUrl || offerExpiration) {
-					cardParams.limited_time_offer = {
-						offer_text: offerText,
-						offer_code: offerCode,
-						offer_url: offerUrl,
-						offer_expiration_timestamp_secs: offerExpiration ? Math.floor(offerExpiration / 1000) : undefined
-					}
-				}
-
-				if (optionText || optionTitle) {
-					cardParams.bottom_sheet = {
-						in_thread_buttons_limit: 1,
-						divider_indices: Array.from({ length: convertedButtons.length }, (_, i) => i),
-						list_title: optionTitle || optionText,
-						button_title: optionText
-					}
-				}
+				const messageParamsJson = buildNativeFlowMessageParamsJson(
+					offerText,
+					offerCode,
+					offerUrl,
+					offerExpiration,
+					optionText,
+					optionTitle,
+					convertedButtons.length
+				)
 
 				return WAProto.Message.InteractiveMessage.create({
 					header: WAProto.Message.InteractiveMessage.Header.create(headerProps),
@@ -1160,7 +1385,7 @@ export const generateWAMessageContent = async (
 					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
 					nativeFlowMessage: WAProto.Message.InteractiveMessage.NativeFlowMessage.create({
 						buttons: convertedButtons,
-						messageParamsJson: Object.keys(cardParams).length > 0 ? JSON.stringify(cardParams) : undefined
+						messageParamsJson
 					})
 				})
 			})
@@ -1206,25 +1431,66 @@ export const generateWAMessageContent = async (
 	if (hasOptionalProperty(message, 'viewOnceExt') && !!(message as any).viewOnceExt) {
 		m = { viewOnceMessageV2Extension: { message: m } }
 	} else if (hasOptionalProperty(message, 'viewOnceV2Extension') && !!(message as any).viewOnceV2Extension) {
-		// itsliaa-style alias for viewOnceExt
+		// alias for viewOnceExt
 		m = { viewOnceMessageV2Extension: { message: m } }
 	} else if (hasOptionalProperty(message, 'viewOnceV2') && !!(message as any).viewOnceV2) {
-		// itsliaa-style — plain viewOnceMessageV2 (no Extension)
+		// plain viewOnceMessageV2 (no Extension)
 		m = { viewOnceMessageV2: { message: m } }
 	}
 
 	// ── groupStatus → groupStatusMessageV2 ────────────────────────────────────
+	// Just setting `isGroupStatus: true` builds a message that's structurally
+	// a group status, but WhatsApp clients also expect `statusAttributions`
+	// (who posted it), `featureEligibilities` (reshare/multi-react
+	// permission), and `pairedMediaType` to be set for it to behave like a
+	// real group status rather than an inert one — so default all of those
+	// in too, without clobbering anything the caller already set explicitly.
 	if (hasOptionalProperty(message, 'groupStatus') && !!message.groupStatus) {
 		const messageType = Object.keys(m)[0] as string
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const key = (m as any)[messageType]
-		if (key && 'contextInfo' in key && !!key.contextInfo) {
-			key.contextInfo.isGroupStatus = message.groupStatus
-		} else if (key) {
-			key.contextInfo = { isGroupStatus: message.groupStatus }
+		if (key) {
+			const contextInfo = (key.contextInfo ??= {})
+			contextInfo.isGroupStatus = message.groupStatus
+			contextInfo.pairedMediaType ??= 0
+			contextInfo.forwardingScore ??= 0
+			contextInfo.featureEligibilities ??= { canBeReshared: true, canReceiveMultiReact: true }
+			if (options.userJid && !contextInfo.statusAttributions?.length) {
+				contextInfo.statusAttributions = [{ type: 5 /* GROUP_STATUS */, groupStatus: { authorJid: options.userJid } }]
+			}
 		}
 
 		m = { groupStatusMessageV2: { message: m } }
+	}
+
+	// ── externalAdReply → contextInfo.externalAdReply (direct top-level
+	// shorthand — no need to build contextInfo yourself first).
+	if (hasOptionalProperty(message, 'externalAdReply') && !!(message as any).externalAdReply) {
+		const msgType = Object.keys(m)[0] as string
+		const key = (m as any)[msgType]
+		const { url, largeThumbnail, ...adReply } = (message as any).externalAdReply
+
+		if ('thumbnail' in adReply && adReply.thumbnail !== undefined && !Buffer.isBuffer(adReply.thumbnail)) {
+			throw new Boom('Thumbnail must be a Buffer', { statusCode: 400 })
+		}
+
+		// Friendly shorthand fields — `url` and `largeThumbnail` aren't real
+		// proto fields (proto.ContextInfo.ExternalAdReplyInfo only has
+		// mediaUrl/sourceUrl/thumbnailUrl and renderLargerThumbnail), so map
+		// them across rather than letting them get silently dropped on
+		// encode. An explicit proto-named field the caller already set
+		// always wins over the shorthand.
+		const resolvedUrl = url ?? FALLBACK_LINK_URL
+
+		adReply.mediaUrl ??= resolvedUrl
+		adReply.sourceUrl ??= resolvedUrl
+		adReply.thumbnailUrl ??= resolvedUrl
+
+		if (largeThumbnail !== undefined) {
+			adReply.renderLargerThumbnail ??= largeThumbnail
+		}
+
+		key.contextInfo = { ...(key.contextInfo || {}), externalAdReply: adReply }
 	}
 
 	// ── spoiler → wrap media with isSpoiler contextInfo + spoilerMessage ──────
@@ -1240,6 +1506,40 @@ export const generateWAMessageContent = async (
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		m = { ...({ spoilerMessage: { message: m } } as any) }
+	}
+
+	// ── invoiceNote → wraps an already-built image/document message into an
+	// invoiceMessage carrying the note + the media's upload metadata.
+	// sock.sendMessage(jid, { image: {...}, invoiceNote: '...' })
+	if (hasOptionalProperty(message, 'invoiceNote') && !!(message as { invoiceNote?: string }).invoiceNote) {
+		const msgType = Object.keys(m)[0] as string
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const attachment = (m as any)[msgType]
+		const attachmentKind = msgType.replace('Message', '').toUpperCase()
+
+		if (!attachment || (attachmentKind !== 'IMAGE' && attachmentKind !== 'DOCUMENT')) {
+			throw new Boom('Invalid media type for invoice message', { statusCode: 400 })
+		}
+
+		const { directPath, fileEncSha256, fileSha256, jpegThumbnail, mediaKey, mediaKeyTimestamp, mimetype } = attachment
+
+		m = {
+			invoiceMessage: {
+				attachmentType:
+					attachmentKind === 'DOCUMENT'
+						? WAProto.Message.InvoiceMessage.AttachmentType.PDF
+						: WAProto.Message.InvoiceMessage.AttachmentType.IMAGE,
+				note: message.invoiceNote,
+				attachmentDirectPath: directPath,
+				attachmentFileEncSha256: fileEncSha256,
+				attachmentFileSha256: fileSha256,
+				attachmentJpegThumbnail: jpegThumbnail ?? undefined,
+				attachmentMediaKey: mediaKey,
+				attachmentMediaKeyTimestamp: mediaKeyTimestamp,
+				attachmentMimetype: mimetype,
+				token: generateMessageIDV2()
+			}
+		}
 	}
 
 	// ── interactiveAsTemplate → templateMessage.interactiveMessageTemplate ────
@@ -1338,7 +1638,9 @@ export const generateWAMessageFromContent = (
 	const timestamp = unixTimestampSeconds(options.timestamp)
 	const { quoted, userJid } = options
 
-	if (quoted && !isJidNewsletter(jid)) {
+	const isNewsletter = isJidNewsletter(jid)
+
+	if (quoted) {
 		const participant = quoted.key.fromMe
 			? userJid // TODO: Add support for LIDs
 			: quoted.participant || quoted.key.participant || quoted.key.remoteJid
@@ -1361,7 +1663,11 @@ export const generateWAMessageFromContent = (
 
 		// if a participant is quoted, then it must be a group
 		// hence, remoteJid of group must also be entered
-		if (jid !== quoted.key.remoteJid) {
+		// -- newsletters (channels) skip this: quoting inside a newsletter
+		// doesn't carry cross-chat remoteJid the way group quoting does, and
+		// previously quoting was skipped for newsletters entirely for this
+		// reason.
+		if (!isNewsletter && jid !== quoted.key.remoteJid) {
 			contextInfo.remoteJid = quoted.key.remoteJid
 		}
 
@@ -1772,7 +2078,6 @@ export const downloadMediaMessage = async <Type extends 'buffer' | 'stream'>(
 /**
  * Checks whether a message has valid album media (image or video).
  * Used in album send pipeline to validate individual album items.
- * Ported from @itsliaaa/baileys
  */
 export const hasValidAlbumMedia = (message: proto.IMessage | null | undefined): boolean => {
 	return !!(message?.imageMessage || message?.videoMessage)
@@ -1781,7 +2086,6 @@ export const hasValidAlbumMedia = (message: proto.IMessage | null | undefined): 
 /**
  * Checks whether a message has valid interactive header media.
  * Used to validate carousel/interactive message headers.
- * Ported from @itsliaaa/baileys
  */
 export const hasValidInteractiveHeader = (message: proto.IMessage | null | undefined): boolean => {
 	return !!(

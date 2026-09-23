@@ -24,9 +24,9 @@ const childContent = (node: BinaryNode, tag: string) => getBinaryNodeChild(node,
 
 describe('buildCompanionRegNode', () => {
 	it('derives companion_platform_display from the browser when no override is given', () => {
-		const node = build(['Ubuntu', 'Chrome', '22.04.4'])
+		const node = build(['Ubuntu', 'Firefox', '22.04.4'])
 
-		expect(childContent(node, 'companion_platform_display')).toBe('Chrome (Ubuntu)')
+		expect(childContent(node, 'companion_platform_display')).toBe('Firefox (Ubuntu)')
 	})
 
 	it('sends the override as companion_platform_display when one is given', () => {

@@ -10,8 +10,7 @@
  *  4. Client calls `completeShortcakeHandshake()` — derives shared secret, signs assertion
  *  5. Client sends assertion back; linking completes
  *
- * Source: WhiskeySockets/Baileys PR #2689 (vinikjkkj — WB collaborator)
- * PR: https://github.com/WhiskeySockets/Baileys/pull/2689
+ * Source: PR #2689 (vinikjkkj — WB collaborator)
  */
 
 import type { BinaryNode } from '../WABinary'

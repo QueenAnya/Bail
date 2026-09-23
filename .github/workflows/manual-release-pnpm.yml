@@ -26,15 +26,12 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
+      - name: Setup pnpm & Node
+        uses: pnpm/setup@v2
         with:
           version: latest
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: lts/*
+          runtime: node@lts
+          cache: true
 
       - name: Install Dependencies
         run: |

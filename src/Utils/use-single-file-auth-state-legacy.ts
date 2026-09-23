@@ -1,8 +1,7 @@
 /**
  * use-single-file-auth-state-legacy.ts
  *
- * Ported from @innovatorssoft/baileys (`Utils/use-single-file-auth-state.js`),
- * which is itself the original upstream WhiskeySockets/Baileys reference
+ * This is the original upstream reference
  * implementation — kept here as a SEPARATE file rather than overwriting
  * `use-single-file-auth-state.ts` because the two differ fundamentally:
  *
@@ -17,7 +16,7 @@
  * @deprecated Use `useMultiFileAuthState` (or the default
  * `useSingleFileAuthState` in `use-single-file-auth-state.ts`, which fixes
  * all the caveats below) instead. This is kept only for parity with
- * upstream/innovatorssoft for anyone specifically relying on its exact
+ * upstream for anyone specifically relying on its exact
  * behavior. Per the original upstream comment: **DO NOT USE IN A PRODUCTION
  * ENVIRONMENT** — every `set()` call synchronously rewrites the entire file
  * with no debouncing, no atomic temp-file swap, and no concurrency guard,
@@ -35,7 +34,7 @@ import type { ILogger } from './logger'
 // do not use in your own systems please
 // NOTE: only covers the original 6 signal-data types this file shipped with
 // upstream — newer types (lid-mapping, device-list, tctoken, identity-key)
-// are intentionally NOT mapped here, matching innovatorssoft's source exactly.
+// are intentionally NOT mapped here, matching the original source exactly.
 const KEY_MAP: Partial<Record<keyof SignalDataTypeMap, string>> = {
 	'pre-key': 'preKeys',
 	session: 'sessions',

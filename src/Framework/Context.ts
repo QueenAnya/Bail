@@ -11,7 +11,7 @@
  *        missing instead of silently no-op'ing, so callers don't assume a
  *        message went out when it never did.
  *
- * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
+ * Source: PR #2710 (LuferOS) — enterprise bot framework
  */
 
 // P1 FIX: import type — makeWASocket is used only as a type reference

@@ -1,6 +1,5 @@
 /**
  * Cache-Manager Auth State (redis, memcached, in-memory, etc.)
- * Source: @innovatorssoft/baileys make-cache-manager-store.js
  */
 import { proto } from '../../WAProto/index.js'
 import type { AuthenticationState } from '../Types/index.js'

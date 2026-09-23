@@ -21,6 +21,35 @@ jobs:
       - name: Fetching tags
         run: git fetch --tags -f || true
 
+      - name: Get previous version
+        id: get_previous_version
+        run: |
+          git checkout HEAD~1 package.json || true
+          PREV_VERSION=$(node -p "require('./package.json').version")
+          git checkout HEAD package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Check if version is a prerelease (beta, alpha, rc, etc.) and
+          # extract its tag label — matches 1.2.3-beta, 1.2.3-beta.0,
+          # 1.2.3-beta.1, 1.2.3-alpha.2, 1.2.3-rc.1, and so on.
+          if [[ "$CURRENT_VERSION" == *-* ]]; then
+            PRERELEASE_TAG=$(echo "$CURRENT_VERSION" | sed -E 's/^[^-]+-([a-zA-Z]+).*/\1/')
+            echo "is_beta=true" >> $GITHUB_OUTPUT
+            echo "prerelease_tag=$PRERELEASE_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+            echo "prerelease_tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log version changes
+        run: |
+          echo "Previous version: ${{ steps.get_previous_version.outputs.prev_version }}"
+          echo "Current version: ${{ steps.get_previous_version.outputs.current_version }}"
+          echo "Is prerelease version: ${{ steps.get_previous_version.outputs.is_beta }}"
+          echo "Publish tag: ${{ steps.get_previous_version.outputs.prerelease_tag }}"
+
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
@@ -47,14 +76,19 @@ jobs:
       - name: Install Dependencies
         run: yarn install --immutable
 
-      - name: Publish in NPM (as `baileys`)
-        run: npm publish --access public --provenance --tag latest
+      - name: Publish in NPM
+        run: npm publish --access public --provenance --tag ${{ steps.get_previous_version.outputs.prerelease_tag }}
 
-      - name: Publish in NPM (whiskeysockets scope)
+      - name: Publish in NPM (teamolduser scope)
         run: |
-          npx json -I -f package.json -e "this.name='@whiskeysockets/baileys'"
-          npm publish --access public --provenance --tag latest
-          npx json -I -f package.json -e "this.name='baileys'"
+          npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
+          npm publish --access public --tag ${{ steps.get_previous_version.outputs.prerelease_tag }} --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+          if [ "${{ steps.get_previous_version.outputs.is_beta }}" == "false" ]; then
+            npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          fi
+          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Generate Changelog
         id: generate_changelog
@@ -68,7 +102,7 @@ jobs:
         run: yarn pack -o baileys.tgz
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref_name }}

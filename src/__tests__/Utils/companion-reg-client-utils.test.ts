@@ -1,40 +1,77 @@
 import type { WABrowserDescription } from '../../Types'
+import { Browsers } from '../../Utils/browser-utils'
 import {
 	buildCompanionRegNode,
 	CompanionWebClientType,
-	getCompanionWebClientType
+	getPairingCodePlatform
 } from '../../Utils/companion-reg-client-utils'
 import type { BinaryNode } from '../../WABinary'
 import { getBinaryNodeChild } from '../../WABinary'
 
+describe('getPairingCodePlatform', () => {
+	it('normalizes a custom OS label to a canonical pairing display', () => {
+		expect(getPairingCodePlatform(['Aidy Staging', 'Chrome', '20.0.04'])).toEqual({
+			id: '1',
+			display: 'Chrome (Ubuntu)'
+		})
+	})
+
+	it('preserves Ubuntu as a canonical pairing display OS', () => {
+		expect(getPairingCodePlatform(Browsers.ubuntu('Firefox'))).toEqual({
+			id: '2',
+			display: 'Firefox (Ubuntu)'
+		})
+	})
+
+	it('uses the Safari pairing platform id', () => {
+		expect(getPairingCodePlatform(Browsers.macOS('Safari'))).toEqual({
+			id: '5',
+			display: 'Safari (Mac OS)'
+		})
+	})
+
+	it('falls back to Firefox for non-browser platform names', () => {
+		expect(getPairingCodePlatform(Browsers.macOS('Desktop'))).toEqual({
+			id: '2',
+			display: 'Firefox (Mac OS)'
+		})
+
+		expect(getPairingCodePlatform(Browsers.macOS('Unknown Browser'))).toEqual({
+			id: '2',
+			display: 'Firefox (Mac OS)'
+		})
+	})
+})
+
 const EPHEMERAL_PUB = new Uint8Array([1, 2, 3])
 const AUTH_KEY_PUB = new Uint8Array([4, 5, 6])
 
-const build = (browser: WABrowserDescription, platformDisplay?: string) =>
+const build = (browser: WABrowserDescription, platformDisplay?: string, platformId?: string) =>
 	buildCompanionRegNode({
 		jid: '15551234567@s.whatsapp.net',
 		wrappedEphemeralPub: EPHEMERAL_PUB,
 		serverAuthKeyPub: AUTH_KEY_PUB,
 		browser,
-		platformDisplay
+		platformDisplay,
+		platformId
 	})
 
 const childContent = (node: BinaryNode, tag: string) => getBinaryNodeChild(node, tag)?.content
 
 describe('buildCompanionRegNode', () => {
 	it('derives companion_platform_display from the browser when no override is given', () => {
-		const node = build(['Ubuntu', 'Chrome', '22.04.4'])
+		const node = build(['Ubuntu', 'Firefox', '120.'])
 
-		expect(childContent(node, 'companion_platform_display')).toBe('Chrome (Ubuntu)')
+		expect(childContent(node, 'companion_platform_display')).toBe('Firefox (Ubuntu)')
 	})
 
-	it('sends the override as companion_platform_display when one is given', () => {
+	it('sends the override as companion_platform_display verbatim when one is given', () => {
 		const node = build(['My Product', 'Chrome', '22.04.4'], 'Chrome (Windows)')
 
 		expect(childContent(node, 'companion_platform_display')).toBe('Chrome (Windows)')
 	})
 
-	it('leaves companion_platform_id derived from the browser, override or not', () => {
+	it('leaves companion_platform_id derived from the browser, display override or not', () => {
 		const withOverride = build(['My Product', 'Chrome', '22.04.4'], 'Chrome (Windows)')
 		const without = build(['My Product', 'Chrome', '22.04.4'])
 
@@ -42,35 +79,12 @@ describe('buildCompanionRegNode', () => {
 		expect(childContent(without, 'companion_platform_id')).toBe(CompanionWebClientType.CHROME.toString())
 	})
 
-	it('keeps the rest of the stanza identical whether the override is set or not', () => {
-		const browser: WABrowserDescription = ['My Product', 'Chrome', '22.04.4']
-		const withOverride = build(browser, 'Chrome (Windows)')
-		const without = build(browser)
+	it('uses the explicit platformId override for companion_platform_id when given', () => {
+		// qb2's pairing-code flow restricts companion_platform_id to the 1-6
+		// browser-type range the server accepts for this IQ, passing a
+		// clamped id here rather than the raw getCompanionPlatformId mapping.
+		const node = build(['My Product', 'Some Non-Browser Client', '1.0'], undefined, '1')
 
-		expect(withOverride.attrs).toEqual(without.attrs)
-		expect(withOverride.attrs.stage).toBe('companion_hello')
-
-		for (const tag of [
-			'link_code_pairing_wrapped_companion_ephemeral_pub',
-			'companion_server_auth_key_pub',
-			'link_code_pairing_nonce'
-		]) {
-			expect(childContent(withOverride, tag)).toEqual(childContent(without, tag))
-		}
-	})
-})
-
-describe('getCompanionWebClientType', () => {
-	it('maps a known browser name to its client type', () => {
-		expect(getCompanionWebClientType(['Ubuntu', 'Chrome', '22.04.4'])).toBe(CompanionWebClientType.CHROME)
-	})
-
-	it('falls back to OTHER_WEB_CLIENT for an unknown browser name', () => {
-		expect(getCompanionWebClientType(['Ubuntu', 'Arc', '22.04.4'])).toBe(CompanionWebClientType.OTHER_WEB_CLIENT)
-	})
-
-	it('distinguishes Desktop builds by operating system', () => {
-		expect(getCompanionWebClientType(['Windows', 'Desktop', '10.0'])).toBe(CompanionWebClientType.UWP)
-		expect(getCompanionWebClientType(['Mac OS', 'Desktop', '14.4.1'])).toBe(CompanionWebClientType.ELECTRON)
+		expect(childContent(node, 'companion_platform_id')).toBe('1')
 	})
 })

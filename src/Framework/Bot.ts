@@ -11,7 +11,7 @@
  *  - P2: reconnect timer stored as handle so it can be cancelled on restart
  *  - P0: creds.update listener guidance moved to AFTER bot.start() in example
  *
- * Source: WhiskeySockets/Baileys PR #2710 (LuferOS) — enterprise bot framework
+ * Source: PR #2710 (LuferOS) — enterprise bot framework
  */
 
 import { Boom } from '@hapi/boom'

@@ -1,10 +1,8 @@
 # F_merge — Fork-Exclusive Features Usage Guide
 
 This document covers every feature in this fork that **does not exist in
-real `@whiskeysockets/baileys`**. For source attribution and verification
-details (which fork, which commit, what was checked), see
-[`src/addons/README.md`](src/addons/README.md). This file is
-usage-focused — code examples for how to actually use each feature.
+real `@whiskeysockets/baileys`**. This file is usage-focused — code
+examples for how to actually use each feature.
 
 All examples assume `sock = makeWASocket(...)`.
 
@@ -89,7 +87,7 @@ captureUnifiedResponse(someIncomingMessage)
 const captured = getCapturedResponses()
 ```
 
-**Source:** innovatorssoft/Baileys. Underlying machinery:
+**Source:** another upstream fork. Underlying machinery:
 `generateRichMessageContent`, `generateMarkdownContent`, `generateTableContent`,
 `generateCodeBlockContent` (`src/addons/message-composer.ts`), and
 `prepareRichResponseMessage`/`toUnified` (`src/addons/bot-forwarded-message.ts`).
@@ -136,7 +134,7 @@ await sock.sendMessage(jid, {
 })
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/interactive-message.ts`).
+**Source:** another upstream fork (`src/addons/interactive-message.ts`).
 
 ---
 
@@ -177,9 +175,9 @@ await sock.sendMessage(jid, {
 })
 ```
 
-**Source:** innovatorssoft/Baileys (`src/Utils/messages.ts`, `cards` content-type
+**Source:** another upstream fork (`src/Utils/messages.ts`, `cards` content-type
 dispatch). Fix for carousel messages not sending their required `biz` binary
-node is from innovatorssoft commit `ad6be86`.
+node is from another upstream fork commit `ad6be86`.
 
 ---
 
@@ -206,15 +204,15 @@ await sock.sendMessage(jid, {
 })
 ```
 
-Limits enforced (ported from itsliaaa): max 60 stickers/pack, 1MB/sticker,
+Limits enforced (ported from an upstream fork): max 60 stickers/pack, 1MB/sticker,
 processed in batches of 15 concurrently.
 
-### B. itsliaaa's full builder (standalone, returns ready-to-send message)
+### B. the upstream fork's full builder (standalone, returns ready-to-send message)
 
 ```ts
-import { prepareStickerPackMessageItsliaaa } from '@queenanya/baileys'
+import { prepareStickerPackMessage } from '@queenanya/baileys'
 
-const stickerPackMessage = await prepareStickerPackMessageItsliaaa(
+const stickerPackMessage = await prepareStickerPackMessage(
 	{
 		cover: coverBuffer,
 		stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
@@ -240,7 +238,7 @@ const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png'
 ```
 
 **Source:** shell/proto from `Baileys-feat-add-stickerpack-support` (real
-WhiskeySockets PR); `convertToWebP` and safety limits from itsliaaa/baileys.
+WhiskeySockets PR); `convertToWebP` and safety limits from an upstream fork.
 
 ---
 
@@ -255,8 +253,8 @@ await sock.newsletterAction(newsletterJid, 'FOLLOW') // generic QueryIds dispatc
 await sock.newsletterFetchUpdates(newsletterJid, 50) // fetch state-update events (not message content)
 ```
 
-**Source:** `newsletterSubscribed` from itsliaaa; the other three from
-innovatorssoft/Baileys.
+**Source:** `newsletterSubscribed` from an upstream fork; the other three from
+another upstream fork.
 
 ---
 
@@ -275,7 +273,7 @@ await copyNForward(sock, targetJid, someMessage) // re-send/forward a message
 ```
 
 Note: these three didn't exist in either fork — they were "implement this
-yourself" stubs in innovatorssoft's docs, implemented here for real on top
+yourself" stubs in the other upstream fork's docs, implemented here for real on top
 of the store + `generateForwardMessageContent`.
 
 ---
@@ -302,7 +300,7 @@ sock.ev.on('messages.upsert', ({ messages }) => {
 })
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/auto-reply.ts`).
+**Source:** another upstream fork (`src/addons/auto-reply.ts`).
 
 ---
 
@@ -320,7 +318,7 @@ scheduler.schedule(jid, { text: 'Happy New Year!' }, new Date('2027-01-01T00:00:
 scheduler.scheduleDelay(jid, { text: 'Reminder' }, 60_000) // in 1 minute
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/scheduling.ts`).
+**Source:** another upstream fork (`src/addons/scheduling.ts`).
 
 ---
 
@@ -336,7 +334,7 @@ const antiDelete = createAntiDeleteHandler(store, { notifyJid: yourOwnJid })
 sock.ev.on('messages.update', updates => antiDelete.handleUpdates(updates, sock))
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/anti-delete.ts`).
+**Source:** another upstream fork (`src/addons/anti-delete.ts`).
 
 ---
 
@@ -360,7 +358,7 @@ pinned.pin(jid, messageKey, DISAPPEARING_DURATIONS.ONE_DAY)
 const receipts = createReadReceiptController(sock.readMessages)
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/chat-control.ts`).
+**Source:** another upstream fork (`src/addons/chat-control.ts`).
 
 ---
 
@@ -383,7 +381,7 @@ await sock.sendMessage('status@broadcast', StatusHelper.createVideoStatus(buffer
 await sock.sendMessage('status@broadcast', StatusHelper.gif(buffer)) // video status marked as gifPlayback
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/status-helpers.ts`). Colors
+**Source:** another upstream fork (`src/addons/status-helpers.ts`). Colors
 and font IDs verified byte-identical.
 
 ---
@@ -415,7 +413,7 @@ const quick = renderTemplate('Hi {{name}}, your order #{{orderId}} is {{status:p
 Built-in presets: `ORDER_CONFIRMATION`, `WELCOME`, `REMINDER`,
 `SUPPORT_TICKET`, `BIRTHDAY`, `INVOICE`.
 
-**Source:** innovatorssoft/Baileys (`src/addons/templates.ts`).
+**Source:** another upstream fork (`src/addons/templates.ts`).
 
 ---
 
@@ -434,7 +432,7 @@ await sock.sendMessage(jid, createContactCard({ fullName: 'John Doe', phones: [.
 await sock.sendMessage(jid, createContactCards([contact1, contact2]))
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/vcard.ts`).
+**Source:** another upstream fork (`src/addons/vcard.ts`).
 
 ---
 
@@ -447,17 +445,17 @@ const search = createMessageSearch(store) // pass your message store
 const results = search.searchMessages(jid, 'invoice', { limit: 10 })
 ```
 
-**Source:** innovatorssoft/Baileys (`src/addons/message-search.ts`).
+**Source:** another upstream fork (`src/addons/message-search.ts`).
 
 ---
 
 ## 15. Alternate Auth State Backends
 
 ```ts
-import { useSqliteAuthState } from '@queenanya/baileys' // itsliaaa
-import { useCacheManagerAuthState } from '@queenanya/baileys' // innovatorssoft — Redis/Memcached/etc via cache-manager v5
+import { useSqliteAuthState } from '@queenanya/baileys'
+import { useCacheManagerAuthState } from '@queenanya/baileys'// Redis/Memcached/etc via cache-manager v5
 import { useMongoFileAuthState } from '@queenanya/baileys'
-import { useSingleFileAuthState } from '@queenanya/baileys' // itsliaaa
+import { useSingleFileAuthState } from '@queenanya/baileys'
 
 const { state, saveCreds } = await useSqliteAuthState({ database: './auth.db' })
 ```
@@ -477,7 +475,7 @@ await sock.muteCall(callId, callFrom, muted)
 await sock.joinCallLink(link)
 ```
 
-**Source:** innovatorssoft/Baileys (`Socket/messages-recv.js`'s embedded call
+**Source:** another upstream fork (`Socket/messages-recv.js`'s embedded call
 block, extracted into `src/addons/call-handler.ts`). Includes
 `sanitizeCallerPn` for a Brazilian-landline caller-ID quirk.
 
@@ -491,7 +489,7 @@ import { getSenderPn, normalizePhoneToJid, plotJid, onWhatsAppWithLidSupport } f
 const result = await onWhatsAppWithLidSupport(sock, ['1234567890', '5511@lid'])
 ```
 
-**Source:** `jid-plotting.ts` from innovatorssoft (leaked real `.ts` source,
+**Source:** `jid-plotting.ts` from another upstream fork (leaked real `.ts` source,
 verified 100% match); LID support from the real
 `Baileys-fix-on-whatsapp-lid-support` WhiskeySockets PR branch.
 
@@ -506,7 +504,7 @@ makeWASocket({ browser: Browsers.android('Chrome') })
 makeWASocket({ browser: Browsers.solaris('Chrome') })
 ```
 
-`solaris` preset is exclusive to this fork (sourced from innovatorssoft).
+`solaris` preset is exclusive to this fork (sourced from another upstream fork).
 `android` preset + `ANDROID_PHONE` PlatformType fallback are from real
 WhiskeySockets PR branches (`Baileys-android-browser`,
 `InfiniteAPI-feat-android-browser-upstream`).
@@ -532,12 +530,11 @@ These are core-file patches, not addons — no import needed, they just work:
 ## 20. WAProto Schema Extensions
 
 74 extra message types beyond real WhiskeySockets/Baileys (61 from
-itsliaaa, 13 from innovatorssoft) — bots, polls-add-option, split-payments,
+an upstream fork, 13 from another upstream fork) — bots, polls-add-option, split-payments,
 event-invites, chat-theming, subscription/broadcast app-state-sync actions,
 and more. **Schema-only** — encode/decode works
 (`proto.SplitPaymentMessage.create({...})`), but no `Socket` helper sends
-or recognizes them automatically yet. Full list in
-[`src/addons/README.md`](src/addons/README.md#waproto-schema-extensions).
+or recognizes them automatically yet.
 
 ---
 

@@ -1,3 +1,4 @@
+import { mergeMissingProtoTypes } from './merge.js';
 /*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-mixed-operators, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, default-case, jsdoc/require-param*/
 import $protobuf from "protobufjs/minimal.js";
 
@@ -69524,7 +69525,9 @@ export const proto = $root.proto = (() => {
             PollCreationMessage.prototype.pollContentType = null;
             PollCreationMessage.prototype.pollType = null;
             PollCreationMessage.prototype.correctAnswer = null;
+            PollCreationMessage.prototype.endTime = null;
             PollCreationMessage.prototype.hideVoterNames = null;
+            PollCreationMessage.prototype.allowAddOption = null;
 
             let $oneOfFields;
 
@@ -69571,8 +69574,20 @@ export const proto = $root.proto = (() => {
             });
 
             // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PollCreationMessage.prototype, "_endTime", {
+                get: $util.oneOfGetter($oneOfFields = ["endTime"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
             $Object.defineProperty(PollCreationMessage.prototype, "_hideVoterNames", {
                 get: $util.oneOfGetter($oneOfFields = ["hideVoterNames"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PollCreationMessage.prototype, "_allowAddOption", {
+                get: $util.oneOfGetter($oneOfFields = ["allowAddOption"]),
                 set: $util.oneOfSetter($oneOfFields)
             });
 
@@ -69605,8 +69620,12 @@ export const proto = $root.proto = (() => {
                     w.uint32(56).int32(m.pollType);
                 if (m.correctAnswer != null && $Object.hasOwnProperty.call(m, "correctAnswer"))
                     $root.proto.Message.PollCreationMessage.Option.encode(m.correctAnswer, w.uint32(66).fork(), q + 1).ldelim();
+                if (m.endTime != null && $Object.hasOwnProperty.call(m, "endTime"))
+                    w.uint32(72).int64(m.endTime);
                 if (m.hideVoterNames != null && $Object.hasOwnProperty.call(m, "hideVoterNames"))
                     w.uint32(80).bool(m.hideVoterNames);
+                if (m.allowAddOption != null && $Object.hasOwnProperty.call(m, "allowAddOption"))
+                    w.uint32(88).bool(m.allowAddOption);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -69687,11 +69706,25 @@ export const proto = $root.proto = (() => {
                             m._correctAnswer = "correctAnswer";
                             continue;
                         }
+                    case 9: {
+                            if (u !== 0)
+                                break;
+                            m.endTime = r.int64();
+                            m._endTime = "endTime";
+                            continue;
+                        }
                     case 10: {
                             if (u !== 0)
                                 break;
                             m.hideVoterNames = r.bool();
                             m._hideVoterNames = "hideVoterNames";
+                            continue;
+                        }
+                    case 11: {
+                            if (u !== 0)
+                                break;
+                            m.allowAddOption = r.bool();
+                            m._allowAddOption = "allowAddOption";
                             continue;
                         }
                     }
@@ -69778,8 +69811,21 @@ export const proto = $root.proto = (() => {
                         throw $TypeError(".proto.Message.PollCreationMessage.correctAnswer: object expected");
                     m.correctAnswer = $root.proto.Message.PollCreationMessage.Option.fromObject(d.correctAnswer, q + 1);
                 }
+                if (d.endTime != null) {
+                    if ($util.Long)
+                        m.endTime = $util.Long.fromValue(d.endTime, false);
+                    else if (typeof d.endTime === "string")
+                        m.endTime = $parseInt(d.endTime, 10);
+                    else if (typeof d.endTime === "number")
+                        m.endTime = d.endTime;
+                    else if (typeof d.endTime === "object")
+                        m.endTime = new $util.LongBits(d.endTime.low >>> 0, d.endTime.high >>> 0).toNumber();
+                }
                 if (d.hideVoterNames != null) {
                     m.hideVoterNames = $Boolean(d.hideVoterNames);
+                }
+                if (d.allowAddOption != null) {
+                    m.allowAddOption = $Boolean(d.allowAddOption);
                 }
                 return m;
             };
@@ -69822,8 +69868,19 @@ export const proto = $root.proto = (() => {
                 if (m.correctAnswer != null && $Object.hasOwnProperty.call(m, "correctAnswer")) {
                     d.correctAnswer = $root.proto.Message.PollCreationMessage.Option.toObject(m.correctAnswer, o, q + 1);
                 }
+                if (m.endTime != null && $Object.hasOwnProperty.call(m, "endTime")) {
+                    if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                        d.endTime = typeof m.endTime === "number" ? $BigInt(m.endTime) : $util.Long.fromBits(m.endTime.low >>> 0, m.endTime.high >>> 0, false).toBigInt();
+                    else if (typeof m.endTime === "number")
+                        d.endTime = o.longs === $String ? $String(m.endTime) : m.endTime;
+                    else
+                        d.endTime = o.longs === String ? longToString(m.endTime) : o.longs === Number ? longToNumber(m.endTime) : m.endTime;
+                }
                 if (m.hideVoterNames != null && $Object.hasOwnProperty.call(m, "hideVoterNames")) {
                     d.hideVoterNames = m.hideVoterNames;
+                }
+                if (m.allowAddOption != null && $Object.hasOwnProperty.call(m, "allowAddOption")) {
+                    d.allowAddOption = m.allowAddOption;
                 }
                 return d;
             };
@@ -131544,6 +131601,8 @@ export const proto = $root.proto = (() => {
 
         return UnauthenticatedBusinessMetadata;
     })();
+
+    mergeMissingProtoTypes(proto);
 
     return proto;
 })();
