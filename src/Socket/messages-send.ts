@@ -1932,7 +1932,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					fullMsg.key.addressingMode = 'lid'
 				}
 
-				fullMsg.relayMessage = await relayMessage(resolvedJid, fullMsg.message!, {
+				const relaymessage = await relayMessage(resolvedJid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes: { ...additionalAttributes, ...(lidAttrs || {}) },
@@ -1947,7 +1947,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return fullMsg
+				return { fullMsg, relaymessage }
 			}
 		},
 
@@ -2179,7 +2179,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				throw new Boom(`Could not generate a link preview for ${url}`, { statusCode: 400 })
 			}
 
-			return await sendMessage(jid, { text: text ?? url, linkPreview: urlInfo }, sendOptions)
+			return await this.sendMessage(jid, { text: text ?? url, linkPreview: urlInfo }, sendOptions)
 		},
 
 		/**
