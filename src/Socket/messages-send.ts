@@ -1584,9 +1584,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	// object literal below closes; must be `let` since it's referenced
 	// (read, not written) from inside that same object literal's closures,
 	// before this declaration's one-and-only assignment runs.
-	let finalSock: any
-
-	const result = {
+	   return {
 		...sock,
 		userDevicesCache,
 		devicesMutex,
@@ -1934,7 +1932,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					fullMsg.key.addressingMode = 'lid'
 				}
 
-				await relayMessage(resolvedJid, fullMsg.message!, {
+				fullMsg.relayMessage = await relayMessage(resolvedJid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes: { ...additionalAttributes, ...(lidAttrs || {}) },
@@ -2181,7 +2179,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				throw new Boom(`Could not generate a link preview for ${url}`, { statusCode: 400 })
 			}
 
-			return finalSock.sendMessage(jid, { text: text ?? url, linkPreview: urlInfo }, sendOptions)
+			return await sendMessage(jid, { text: text ?? url, linkPreview: urlInfo }, sendOptions)
 		},
 
 		/**
@@ -2218,7 +2216,4 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return { message, messageId }
 		}
 	}
-
-	finalSock = result
-	return result
 }
