@@ -1584,7 +1584,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	// object literal below closes; must be `let` since it's referenced
 	// (read, not written) from inside that same object literal's closures,
 	// before this declaration's one-and-only assignment runs.
-	   return {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- can't
+	// name this function's own return type here without a circular
+	// reference; `any` is the pragmatic escape hatch for the self-call.
+	let self: any
+	const socket = {
 		...sock,
 		userDevicesCache,
 		devicesMutex,
@@ -1932,7 +1936,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					fullMsg.key.addressingMode = 'lid'
 				}
 
-				const relaymessage = await relayMessage(resolvedJid, fullMsg.message!, {
+				await relayMessage(resolvedJid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes: { ...additionalAttributes, ...(lidAttrs || {}) },
@@ -1947,7 +1951,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return { fullMsg, relaymessage }
+				return fullMsg
 			}
 		},
 
@@ -2179,7 +2183,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				throw new Boom(`Could not generate a link preview for ${url}`, { statusCode: 400 })
 			}
 
-			return await this.sendMessage(jid, { text: text ?? url, linkPreview: urlInfo }, sendOptions)
+			return await self.sendMessage(jid, { text: text ?? url, linkPreview: urlInfo }, sendOptions)
 		},
 
 		/**
@@ -2216,4 +2220,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return { message, messageId }
 		}
 	}
+
+	self = socket
+	return socket
 }
