@@ -1579,14 +1579,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	// `sendMessage` itself rather than duplicate its groupStatus/ai/spoiler/
 	// raw handling. Assigned right after the object literal closes, so by
 	// the time any of these helpers actually get called (always after this
-	// function has returned), it's fully populated.
-	// eslint-disable-next-line prefer-const -- assigned once, after the
-	// object literal below closes; must be `let` since it's referenced
-	// (read, not written) from inside that same object literal's closures,
-	// before this declaration's one-and-only assignment runs.
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- can't
-	// name this function's own return type here without a circular
-	// reference; `any` is the pragmatic escape hatch for the self-call.
+	// function has returned), it's fully populated. Must be `let` (not
+	// `const`) since it's read from inside that same object literal's
+	// closures before this one-and-only assignment runs, and typed `any`
+	// since this function's own return type can't be named here without a
+	// circular reference.
+	// eslint-disable-next-line prefer-const, @typescript-eslint/no-explicit-any
 	let self: any
 	const socket = {
 		...sock,
