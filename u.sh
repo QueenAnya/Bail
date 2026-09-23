@@ -28,8 +28,8 @@ rm -rf */*/*.bak
 # rm -rf .git
 git init
 git add .
-git config --global user.email "97tgvojcty@mail.com"
-git config --global user.name "369"
+git config --global user.email "khushijain2901@mail.com"
+git config --global user.name "Its-me-001"
 git commit -m "$cmit"
 git branch -M master
 git remote add origin https://github.com/ITS-ME-001/Queen-Anya_Baileys2.git

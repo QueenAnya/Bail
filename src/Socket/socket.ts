@@ -398,7 +398,7 @@ export const makeSocket = (config: SocketConfig) => {
 					jid: id,
 					exists: contact as boolean,
 					lid: lid as string | undefined,
-					pn: isPnUser(id as string) ? (id as string) : undefined
+					pn: isPnUser(id) ? id : undefined
 				}))
 
 			// Re-key the resolved-from-LID results back to their original LID
@@ -472,7 +472,9 @@ export const makeSocket = (config: SocketConfig) => {
 	 * so `onWhatsAppMixed` below picks up the richer result automatically
 	 * without this file needing to know about the later layer.
 	 */
-	const usernameLookupOverride: { fn: ((...queries: WAUsernameQuery[]) => Promise<WAUsernameLookupResult[]>) | null } = {
+	const usernameLookupOverride: {
+		fn: ((...queries: WAUsernameQuery[]) => Promise<WAUsernameLookupResult[]>) | null
+	} = {
 		fn: null
 	}
 

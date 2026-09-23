@@ -495,6 +495,29 @@ sock.sendMessage(jid, {
 > link-preview-js`) once, or the message still sends fine but silently
 > without a preview. A one-line warning is logged if it's missing.
 
+#### `sock.sendLinkPreviewFor()` — fetch + send a preview for a specific URL
+
+A reusable helper for "fetch a real preview for this URL and send it",
+rather than hand-rolling `getUrlInfo` + `prepareWAMessageMedia` +
+`generateWAMessageFromContent` + `relayMessage` yourself each time:
+
+```javascript
+// Just the URL — message text defaults to the URL itself
+await sock.sendLinkPreviewFor(jid, 'https://github.com/WhiskeySockets/Baileys')
+
+// Custom message text, real fetched preview
+await sock.sendLinkPreviewFor(jid, url, '🚀 Check this out!')
+
+// Keep the real fetched OG image/description, override just the title
+await sock.sendLinkPreviewFor(jid, url, { text: '🚀 Check this out!', title: 'My own title' })
+```
+
+Unlike the auto-detect-from-`text` path (which fails silently by
+design — a preview is a nice-to-have, it shouldn't block sending), this
+throws if the URL genuinely can't be resolved, since here you explicitly
+asked for a preview of it. Same optional-`link-preview-js`/
+`generateHighQualityLinkPreview` behavior applies underneath.
+
 // --- Send a text message with a large link preview and favicon
 import { prepareWAMessageMedia } from '@queenanya/baileys'
 

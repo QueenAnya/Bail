@@ -8,7 +8,13 @@
 
 import NodeCache from '@cacheable/node-cache'
 import { DEFAULT_CACHE_TTLS } from '../Defaults'
-import type { SocketConfig, UsernameCacheEntry, UsernameResolutionResult, WAUsernameLookupResult, WAUsernameQuery } from '../Types'
+import type {
+	SocketConfig,
+	UsernameCacheEntry,
+	UsernameResolutionResult,
+	WAUsernameLookupResult,
+	WAUsernameQuery
+} from '../Types'
 import { UsernameInvalidError, UsernameResolutionError } from '../Types/Username'
 import { normalizeUsername, validateUsername } from '../Utils/username'
 import { attachVoipToSocket } from '../Voip/voip-engine'
@@ -143,7 +149,13 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		const resolved = await resolveUsernames(usernames)
 		return resolved
 			.filter((r): r is UsernameResolutionResult => r !== null)
-			.map(r => ({ username: r.username, jid: r.jid || '', exists: true, ...(r.lid ? { lid: r.lid } : {}), ...(r.pn ? { pn: r.pn } : {}) }))
+			.map(r => ({
+				username: r.username,
+				jid: r.jid || '',
+				exists: true,
+				...(r.lid ? { lid: r.lid } : {}),
+				...(r.pn ? { pn: r.pn } : {})
+			}))
 	}
 
 	const invalidateUsername = async (username: string) => {

@@ -38,7 +38,8 @@ import type {
 	SocketConfig,
 	WAMediaUpload,
 	WAMessage,
-	WAMessageKey
+	WAMessageKey,
+	WAUrlInfo
 } from '../Types'
 import {
 	aggregateMessageKeysNotFromMe,
@@ -1573,7 +1574,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		recentlyChangedIdentities.clear()
 	})
 
-	return {
+	// Self-reference to the fully-composed socket this function returns —
+	// used by helpers below (e.g. sendLinkPreviewFor) that need to call
+	// `sendMessage` itself rather than duplicate its groupStatus/ai/spoiler/
+	// raw handling. Assigned right after the object literal closes, so by
+	// the time any of these helpers actually get called (always after this
+	// function has returned), it's fully populated.
+	let finalSock: any
+
+	const result = {
 		...sock,
 		userDevicesCache,
 		devicesMutex,
@@ -2121,6 +2130,58 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		},
 
 		/**
+		 * Fetch a real link preview for `url` (regardless of what, if
+		 * anything, is in the message text) and send it — the reusable,
+		 * general-purpose version of the "fetch a preview, build the
+		 * message, send it" pattern, rather than a one-off script hardcoded
+		 * to a single URL/title/thumbnail.
+		 *
+		 * `textOrOptions` — a plain string sets the message text (defaults
+		 * to `url` itself if omitted); an object sets the text via `.text`
+		 * and can override any fetched `WAUrlInfo` field (title,
+		 * description, thumbnail, etc.) — e.g. keep the real OG image but
+		 * swap the title:
+		 *   sock.sendLinkPreviewFor(jid, url, { title: 'My own title' })
+		 *
+		 * Throws if the URL couldn't be resolved at all (unlike the normal
+		 * auto-detect-from-text path, which fails silently by design since
+		 * that's a "preview if we can, don't block sending" convenience —
+		 * here the caller explicitly asked for a preview of this URL, so a
+		 * failure should be visible).
+		 */
+		sendLinkPreviewFor: async (
+			jid: string,
+			url: string,
+			textOrOptions?: string | ({ text?: string } & Partial<WAUrlInfo>),
+			sendOptions?: MiscMessageGenerationOptions
+		) => {
+			const { text, ...overrides } =
+				typeof textOrOptions === 'string' ? { text: textOrOptions } : textOrOptions || {}
+
+			const fetched = await getUrlInfo(url, {
+				thumbnailWidth: linkPreviewImageThumbnailWidth,
+				fetchOpts: {
+					timeout: 3_000,
+					...(httpRequestOptions || {})
+				},
+				logger,
+				uploadImage: generateHighQualityLinkPreview ? waUploadToServer : undefined
+			})
+
+			const urlInfo: WAUrlInfo | undefined = fetched
+				? { ...fetched, ...overrides }
+				: Object.keys(overrides).length
+					? ({ 'matched-text': url, ...overrides } as WAUrlInfo)
+					: undefined
+
+			if (!urlInfo) {
+				throw new Boom(`Could not generate a link preview for ${url}`, { statusCode: 400 })
+			}
+
+			return finalSock.sendMessage(jid, { text: text ?? url, linkPreview: urlInfo }, sendOptions)
+		},
+
+		/**
 		 * Send a fully custom rich message from a raw submessages array.
 		 * Pass { useMarkdown: true } to render TEXT/TABLE/CODE submessages
 		 * as native WhatsApp rich-content primitives via unifiedResponse.
@@ -2154,4 +2215,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return { message, messageId }
 		}
 	}
+
+	finalSock = result
+	return result
 }
