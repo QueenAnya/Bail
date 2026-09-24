@@ -1786,9 +1786,12 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					{ userJid, ...options }
 				)
 
-				await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
+				// relayMessage output #1 — the album container itself
+				const relayMessage1 = await relayMessage(jid, albumMsg.message!, { messageId: albumMsg.key.id! })
 
 				const mediaMsgs = []
+				const albumRelayResults: Record<string, unknown> = { relayMessage1 }
+				let relayIndex = 2 // 1 is taken by the album container relay above
 				for (const item of albumItems) {
 					const mediaContent =
 						'image' in item ? { image: item.image, ...(item as any) } : { video: (item as any).video, ...(item as any) }
@@ -1821,16 +1824,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					mediaMsgs.push(mediaMsg)
 					const { delayMs = 800 } = options as any
 					await delay(delayMs)
-					await relayMessage(jid, mediaMsg.message!, {
+					// relayMessage output #2, #3, #4... — one per album media item, in order
+					const relayResult = await relayMessage(jid, mediaMsg.message!, {
 						messageId: mediaMsg.key.id!,
 						useCachedGroupMetadata: options.useCachedGroupMetadata,
 						statusJidList: options.statusJidList,
 						AI: (options as any).ai,
 						secureMetaServiceLabel: (options as any).secureMetaServiceLabel
 					})
+					albumRelayResults[`relayMessage${relayIndex}`] = relayResult
+					relayIndex++
 				}
 
-				return mediaMsgs[0]
+				// Still a WAMessage (mediaMsgs[0]) — relayMessage1..N outputs are
+				// attached as extra properties so existing callers (fullMsg.key,
+				// fullMsg.message, etc.) keep working unmodified.
+				return Object.assign(mediaMsgs[0]!, albumRelayResults)
 			} else {
 				// PR #2692 (PN → LID routing) DISABLED — caused private-chat (1:1) messages
 				// to silently fail to deliver while group/channel sends kept working.
@@ -1934,7 +1943,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					fullMsg.key.addressingMode = 'lid'
 				}
 
-				await relayMessage(resolvedJid, fullMsg.message!, {
+				// relayMessage output #1 — the only relayMessage call on this (non-album) path
+				const relayMessage1 = await relayMessage(resolvedJid, fullMsg.message!, {
 					messageId: fullMsg.key.id!,
 					useCachedGroupMetadata: options.useCachedGroupMetadata,
 					additionalAttributes: { ...additionalAttributes, ...(lidAttrs || {}) },
@@ -1949,7 +1959,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					})
 				}
 
-				return fullMsg
+				// Still a WAMessage (fullMsg) — relayMessage1 output is attached
+				// as an extra property so existing callers keep working unmodified.
+				return Object.assign(fullMsg, { relayMessage1 })
 			}
 		},
 

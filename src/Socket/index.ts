@@ -1,6 +1,6 @@
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
 import type { UserFacingSocketConfig } from '../Types'
-// import { deriveCanonicalCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
+import { deriveCanonicalCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
 import { makeUsernameSocket } from './username'
 
 // export the last socket layer
@@ -18,13 +18,16 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 	// `deriveCanonicalCompanionPlatformDisplay` maps it to a canonical
 	// browser/OS pair the server accepts rather than echoing a custom
 	// browser[0]/browser[1] verbatim.
-
-	// Commented out for now — keeping this here in case I need it again later
-	/***
 	if (!config.companionPlatformDisplay) {
 		newConfig.companionPlatformDisplay = deriveCanonicalCompanionPlatformDisplay(newConfig.browser)
 	}
-	*/
+
+	// Rebrand only the platform/product slot (browser[0]) shown under Linked
+	// devices; browserName/version (browser[1]/browser[2]) stay untouched so
+	// deriveCanonicalCompanionPlatformDisplay above still works off the
+	// caller's real browser, and so `browser` stays a valid tuple.
+	const browser = newConfig.browser
+	newConfig.browser = ['OLDUSER BAILEYS', browser[1], browser[2]]
 
 	return makeUsernameSocket(newConfig)
 }
