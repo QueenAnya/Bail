@@ -55,7 +55,7 @@ export const STATUS_FONTS = {
 } as const
 export type StatusFont = (typeof STATUS_FONTS)[keyof typeof STATUS_FONTS]
 
-export const generateStatusMessageId = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase() // `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+export const generateStatusMessageId = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase().substring(0, 18)
 
 export type TextStatusOptions = {
 	text: string

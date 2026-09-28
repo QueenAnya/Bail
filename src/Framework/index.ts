@@ -3,7 +3,7 @@
  * Enterprise Bot Framework exports.
  *
  * Source: PR #2710 (LuferOS) — enterprise bot framework
- * All P0/P1/P2/P3 bugs fixed before inclusion in @queenanya/baileys.
+ * All P0/P1/P2/P3 bugs fixed before inclusion in @teamolduser/baileys.
  */
 
 export { Bot } from './Bot'

@@ -1662,7 +1662,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 	 * Fetch a broadcast list's name and recipient list.
 	 *
 	 * ⚠️ EXPERIMENTAL / UNVERIFIED: this was documented in
-	 * `@queenanya/baileys`'s upstream reference docs but was never actually
+	 * `@teamolduser/baileys`'s upstream reference docs but was never actually
 	 * implemented there either (confirmed against its compiled source — it
 	 * only existed as a commented-out TODO). There is no known-working
 	 * reference implementation to copy, so this follows the same IQ-query

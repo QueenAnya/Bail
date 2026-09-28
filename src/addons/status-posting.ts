@@ -44,7 +44,7 @@ export const STATUS_FONTS = {
 	EXOTWO: 9
 }
 
-export const generateStatusMessageId = () => '3EB0' + randomBytes(18).toString('hex').toUpperCase() // `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
+export const generateStatusMessageId = () => '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase().substring(0, 18)
 
 export const getStatusJid = () => STATUS_BROADCAST_JID
 
@@ -117,7 +117,7 @@ export const StatusHelper = {
 			//  - `groupStatus: true` (top-level) — this is the one WA's
 			//    server is confirmed to expect.
 			//  - `isGroupStatus: true` (nested in contextInfo) — the original
-			//    queenanya field/placement, kept alongside in case any code
+			//    teamolduser field/placement, kept alongside in case any code
 			//    path (older WA client versions, other tooling) reads it from
 			//    there instead. Harmless extra data if unused.
 			const groupContent = {

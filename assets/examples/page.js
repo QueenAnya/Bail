@@ -507,7 +507,7 @@ input:checked + .slider::before { transform: translateX(20px); }
   </div>
 
   <div class="footer">
-    ⚡ QUEENANYA BAILEYS · GENAI UNIFIED WEB PRIMITIVE
+    ⚡ TEAMOLDUSER BAILEYS · GENAI UNIFIED WEB PRIMITIVE
   </div>
 </div>
 

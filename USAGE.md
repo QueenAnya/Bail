@@ -70,7 +70,7 @@ await sock.sendMarkdown(jid, '# H1\n## H2\n==Highlighted==\n_Italics_ and **Bold
 ### Fully custom — raw submessages + native rendering
 
 ```ts
-import { RichSubMessageType } from '@queenanya/baileys'
+import { RichSubMessageType } from '@teamolduser/baileys'
 
 await sock.sendRichMessage(jid, [
   { messageType: RichSubMessageType.TEXT, messageText: 'Report:' },
@@ -81,7 +81,7 @@ await sock.sendRichMessage(jid, [
 ### Capturing AI-style unified responses (for logging/analytics)
 
 ```ts
-import { captureUnifiedResponse, sendUnifiedResponse, getCapturedResponses } from '@queenanya/baileys'
+import { captureUnifiedResponse, sendUnifiedResponse, getCapturedResponses } from '@teamolduser/baileys'
 
 captureUnifiedResponse(someIncomingMessage)
 const captured = getCapturedResponses()
@@ -99,7 +99,7 @@ const captured = getCapturedResponses()
 ### Shorthand builder (recommended)
 
 ```ts
-import { generateCombinedButtons } from '@queenanya/baileys'
+import { generateCombinedButtons } from '@teamolduser/baileys'
 
 const msg = generateCombinedButtons(
 	'Choose an option:',
@@ -143,7 +143,7 @@ await sock.sendMessage(jid, {
 ```ts
 await sock.sendMessage(jid, {
 	text: 'Check out these products!',
-	footer: '@queenanya/baileys',
+	footer: '@teamolduser/baileys',
 	cards: [
 		{
 			image: { url: 'https://example.com/1.jpg' },
@@ -210,7 +210,7 @@ processed in batches of 15 concurrently.
 ### B. the upstream fork's full builder (standalone, returns ready-to-send message)
 
 ```ts
-import { prepareStickerPackMessage } from '@queenanya/baileys'
+import { prepareStickerPackMessage } from '@teamolduser/baileys'
 
 const stickerPackMessage = await prepareStickerPackMessage(
 	{
@@ -231,7 +231,7 @@ await sock.relayMessage(jid, { stickerPackMessage }, {})
 ### Standalone WebP converter
 
 ```ts
-import { convertToWebP } from '@queenanya/baileys'
+import { convertToWebP } from '@teamolduser/baileys'
 
 const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
 // or: await convertToWebP(fs.readFileSync('./sticker.jpg'))
@@ -261,7 +261,7 @@ another upstream fork.
 ## 6. Chat History Helpers
 
 ```ts
-import { getLastMessageInChat, getOldestMessageInChat, copyNForward, makeSimpleInMemoryStore } from '@queenanya/baileys'
+import { getLastMessageInChat, getOldestMessageInChat, copyNForward, makeSimpleInMemoryStore } from '@teamolduser/baileys'
 
 const store = makeSimpleInMemoryStore()
 store.bind(sock.ev)
@@ -281,7 +281,7 @@ of the store + `generateForwardMessageContent`.
 ## 7. Auto-Reply System
 
 ```ts
-import { createAutoReply } from '@queenanya/baileys'
+import { createAutoReply } from '@teamolduser/baileys'
 
 const autoReply = createAutoReply(sock.sendMessage, (jid, presence) => sock.sendPresenceUpdate(presence, jid), {
 	simulateTyping: true,
@@ -307,7 +307,7 @@ sock.ev.on('messages.upsert', ({ messages }) => {
 ## 8. Message Scheduler
 
 ```ts
-import { createMessageScheduler } from '@queenanya/baileys'
+import { createMessageScheduler } from '@teamolduser/baileys'
 
 const scheduler = createMessageScheduler(sock.sendMessage, {
 	onSent: (s, msg) => console.log(`Sent to ${s.jid}`),
@@ -325,7 +325,7 @@ scheduler.scheduleDelay(jid, { text: 'Reminder' }, 60_000) // in 1 minute
 ## 9. Anti-Delete
 
 ```ts
-import { createAntiDeleteHandler, makeInMemoryStore } from '@queenanya/baileys'
+import { createAntiDeleteHandler, makeInMemoryStore } from '@teamolduser/baileys'
 
 const store = makeInMemoryStore()
 store.bind(sock.ev)
@@ -346,7 +346,7 @@ import {
 	createPinnedMessagesManager,
 	createReadReceiptController,
 	DISAPPEARING_DURATIONS
-} from '@queenanya/baileys'
+} from '@teamolduser/baileys'
 
 const typing = createTypingIndicator(sock.sendPresenceUpdate)
 await typing.start(jid)
@@ -365,7 +365,7 @@ const receipts = createReadReceiptController(sock.readMessages)
 ## 11. Status Posting (StatusHelper)
 
 ```ts
-import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from '@queenanya/baileys'
+import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from '@teamolduser/baileys'
 
 await sock.sendMessage(
 	'status@broadcast',
@@ -389,7 +389,7 @@ and font IDs verified byte-identical.
 ## 12. Message Templates
 
 ```ts
-import { createTemplateManager, renderTemplate, PRESET_TEMPLATES } from '@queenanya/baileys'
+import { createTemplateManager, renderTemplate, PRESET_TEMPLATES } from '@teamolduser/baileys'
 
 const templates = createTemplateManager(true) // true = load built-in presets
 
@@ -420,7 +420,7 @@ Built-in presets: `ORDER_CONFIRMATION`, `WELCOME`, `REMINDER`,
 ## 13. vCard Contact Builder
 
 ```ts
-import { generateVCard, createContactCard, createContactCards } from '@queenanya/baileys'
+import { generateVCard, createContactCard, createContactCards } from '@teamolduser/baileys'
 
 const vcard = generateVCard({
   fullName: 'John Doe',
@@ -439,7 +439,7 @@ await sock.sendMessage(jid, createContactCards([contact1, contact2]))
 ## 14. Message Search (client-side index)
 
 ```ts
-import { createMessageSearch } from '@queenanya/baileys'
+import { createMessageSearch } from '@teamolduser/baileys'
 
 const search = createMessageSearch(store) // pass your message store
 const results = search.searchMessages(jid, 'invoice', { limit: 10 })
@@ -452,10 +452,10 @@ const results = search.searchMessages(jid, 'invoice', { limit: 10 })
 ## 15. Alternate Auth State Backends
 
 ```ts
-import { useSqliteAuthState } from '@queenanya/baileys'
-import { useCacheManagerAuthState } from '@queenanya/baileys'// Redis/Memcached/etc via cache-manager v5
-import { useMongoFileAuthState } from '@queenanya/baileys'
-import { useSingleFileAuthState } from '@queenanya/baileys'
+import { useSqliteAuthState } from '@teamolduser/baileys'
+import { useCacheManagerAuthState } from '@teamolduser/baileys'// Redis/Memcached/etc via cache-manager v5
+import { useMongoFileAuthState } from '@teamolduser/baileys'
+import { useSingleFileAuthState } from '@teamolduser/baileys'
 
 const { state, saveCreds } = await useSqliteAuthState({ database: './auth.db' })
 ```
@@ -465,7 +465,7 @@ const { state, saveCreds } = await useSqliteAuthState({ database: './auth.db' })
 ## 16. Call Handling (Full)
 
 ```ts
-import { makeCallHandlerAddon } from '@queenanya/baileys'
+import { makeCallHandlerAddon } from '@teamolduser/baileys'
 
 // Injected into the socket at build time; exposes:
 await sock.offerCall(jid, isVideo)
@@ -484,7 +484,7 @@ block, extracted into `src/addons/call-handler.ts`). Includes
 ## 17. JID Utilities & LID Support
 
 ```ts
-import { getSenderPn, normalizePhoneToJid, plotJid, onWhatsAppWithLidSupport } from '@queenanya/baileys'
+import { getSenderPn, normalizePhoneToJid, plotJid, onWhatsAppWithLidSupport } from '@teamolduser/baileys'
 
 const result = await onWhatsAppWithLidSupport(sock, ['1234567890', '5511@lid'])
 ```
@@ -498,7 +498,7 @@ verified 100% match); LID support from the real
 ## 18. Browser Presets
 
 ```ts
-import { Browsers } from '@queenanya/baileys'
+import { Browsers } from '@teamolduser/baileys'
 
 makeWASocket({ browser: Browsers.android('Chrome') })
 makeWASocket({ browser: Browsers.solaris('Chrome') })

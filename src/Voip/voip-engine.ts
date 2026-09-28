@@ -1,6 +1,6 @@
 /**
  * VoIP call orchestration — wires the WASM VoIP stack onto an EXISTING,
- * already-connected queenanya socket (single session), instead of creating
+ * already-connected teamolduser socket (single session), instead of creating
  * a separate standalone connection the way upstream baileys-caller's
  * `VoipClient.connect()` does.
  *
@@ -22,7 +22,7 @@
  *   call.on('error', (err) => ...)
  *
  * @author ShellTear (original signaling/WASM/relay/audio design),
- *         adapted for single-session use in @queenanya/baileys
+ *         adapted for single-session use in @teamolduser/baileys
  */
 import { createHmac, randomBytes } from 'crypto'
 import { EventEmitter } from 'events'
@@ -457,7 +457,7 @@ export type InitiateCallOptions = {
 }
 
 /**
- * Attaches VoIP calling to an already-connected queenanya socket.
+ * Attaches VoIP calling to an already-connected teamolduser socket.
  * Called once per socket (see Socket/socket.ts) — sets up the WASM engine,
  * signaling bridge, and relay transport, then exposes `sock.initiateCall()`.
  *

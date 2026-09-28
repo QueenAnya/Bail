@@ -12,7 +12,7 @@
  *   own listeners (see Bot.ts). Consumers should register `creds.update` AFTER
  *   `start()` resolves, once `bot.socket` is guaranteed to exist.
  *
- * Source: PR #2710 (LuferOS) — fixed for @queenanya/baileys
+ * Source: PR #2710 (LuferOS) — fixed for @teamolduser/baileys
  */
 
 import pino from 'pino'

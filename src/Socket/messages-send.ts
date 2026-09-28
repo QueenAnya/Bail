@@ -3,6 +3,8 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import { execSendStatusMentions } from '../addons/from-messages-send'
+import { GroupStatus as GroupStatusAddon } from '../addons/group-status'
+import { GroupStatusV2 as GroupStatusV2Addon } from '../addons/group-status-v2'
 import {
 	type CapturedUnifiedResponse,
 	type ExtractOptions,
@@ -25,12 +27,19 @@ import {
 	uploadUnencryptedToWA
 } from '../addons/message-composer'
 import { getButtonArgs, getButtonType } from '../addons/message-utils'
+import { monitorPresence as monitorPresenceAddon, type PresenceMonitorOptions } from '../addons/presence-monitor'
 import { sendGroupStatus as sendGroupStatusAddon } from '../addons/send-group-status'
 import { sendGroupStatusV2 as sendGroupStatusV2Addon } from '../addons/send-group-status-v2'
+import {
+	sendGroupInvite as sendGroupInviteAddon,
+	sendGroupV4Invite as sendGroupV4InviteAddon,
+	type SendGroupV4InviteDeps
+} from '../addons/send-group-v4-invite'
 import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../addons/stickerpack.js'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
+	GroupV4InviteContent,
 	MediaConnInfo,
 	MessageReceiptType,
 	MessageRelayOptions,
@@ -1586,6 +1595,21 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	// circular reference.
 	// eslint-disable-next-line prefer-const, @typescript-eslint/no-explicit-any
 	let self: any
+	/**
+	 * Builds the deps object `sendGroupV4InviteAddon`/`sendGroupInviteAddon`
+	 * (src/addons/send-group-v4-invite.ts) need — computed fresh on each call
+	 * since `authState.creds.me!.id` isn't necessarily set yet at socket
+	 * construction time.
+	 */
+	const groupV4InviteDeps = (): SendGroupV4InviteDeps => ({
+		meId: authState.creds.me!.id,
+		relayMessage,
+		groupMetadata: sock.groupMetadata,
+		profilePictureUrl: sock.profilePictureUrl,
+		groupParticipantsUpdate: sock.groupParticipantsUpdate,
+		httpRequestOptions
+	})
+
 	const socket = {
 		...sock,
 		userDevicesCache,
@@ -1677,6 +1701,58 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		sendGroupStatusV2: async (groupJid: string, content: AnyMessageContent, options: Record<string, any> = {}) => {
 			return sendGroupStatusV2Addon(sock, groupJid, content, options)
 		},
+		sendGroupV4Invite: (
+			groupJid: string,
+			participant: string,
+			inviteCode: string,
+			inviteExpiration?: number,
+			groupName?: string,
+			caption?: string,
+			jpegThumbnail?: Buffer,
+			options?: MiscMessageGenerationOptions
+		) =>
+			sendGroupV4InviteAddon(
+				groupV4InviteDeps(),
+				groupJid,
+				participant,
+				inviteCode,
+				inviteExpiration,
+				groupName,
+				caption,
+				jpegThumbnail,
+				options
+			),
+		// Alias — some bot frameworks call it this way round; identical behavior.
+		sendGroupInviteV4: (
+			groupJid: string,
+			participant: string,
+			inviteCode: string,
+			inviteExpiration?: number,
+			groupName?: string,
+			caption?: string,
+			jpegThumbnail?: Buffer,
+			options?: MiscMessageGenerationOptions
+		) =>
+			sendGroupV4InviteAddon(
+				groupV4InviteDeps(),
+				groupJid,
+				participant,
+				inviteCode,
+				inviteExpiration,
+				groupName,
+				caption,
+				jpegThumbnail,
+				options
+			),
+		// Add-then-fallback-to-invite helper: tries groupParticipantsUpdate(..., 'add')
+		// first, and only sends a v4 invite (via sendGroupV4InviteAddon above) to
+		// participants WhatsApp refuses with a 403.
+		sendGroupInvite: (groupJid: string, user: string) => sendGroupInviteAddon(groupV4InviteDeps(), groupJid, user),
+		// Convenience wrapper so callers can do `sock.monitorPresence(jid, opts)`
+		// instead of importing monitorPresence separately and passing `sock` in.
+		// (src/addons/presence-monitor.ts)
+		monitorPresence: (targets: string | string[], options?: PresenceMonitorOptions) =>
+			monitorPresenceAddon(sock, targets, options),
 
 		sendMessage: async (
 			jid: string | string[],
@@ -1761,6 +1837,27 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 							: 0
 						: disappearingMessagesInChat
 				await groupToggleEphemeral(jid, value)
+			} else if (
+				typeof content === 'object' &&
+				('sendGroupV4Invite' in content || 'sendGroupInviteV4' in content) &&
+				((content as any).sendGroupV4Invite || (content as any).sendGroupInviteV4)
+			) {
+				// sendMessage(jid, { sendGroupV4Invite / sendGroupInviteV4 }) shorthand —
+				// `jid` here is the participant being invited, matching
+				// sock.sendGroupV4Invite(groupJid, participant, ...)'s `participant` arg.
+				const invite = ((content as any).sendGroupV4Invite ??
+					(content as any).sendGroupInviteV4) as GroupV4InviteContent
+				return sendGroupV4InviteAddon(
+					groupV4InviteDeps(),
+					invite.groupJid,
+					jid,
+					invite.inviteCode,
+					invite.inviteExpiration,
+					invite.groupName,
+					invite.caption,
+					invite.jpegThumbnail,
+					options
+				)
 			} else if (typeof content === 'object' && 'album' in content && (content as any).album) {
 				// Album message — matches addons prepareAlbumMessageContent
 				const albumItems = (content as any).album as Array<{
@@ -1879,9 +1976,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						(('groupStatus' in content && (content as any).groupStatus) ||
 							('cards' in content && (content as any)?.cards)) &&
 						!options.messageId
-							? '3EB0' + randomBytes(18).toString('hex').toUpperCase()
-							: // `4NY4W3B${randomBytes(16).toString('hex').toUpperCase()}`
-								generateMessageIDV2(sock.user?.id),
+							? '4NY4W3B' + randomBytes(18).toString('hex').toUpperCase().substring(0, 18)
+							: generateMessageIDV2(sock.user?.id),
 					...options
 				})
 				const isEventMsg = 'event' in content && !!content.event
@@ -2228,6 +2324,13 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			const { message, messageId } = generateUnifiedResponseContent(quoted, captured)
 			await relayMessage(jid, message, { messageId })
 			return { message, messageId }
+		},
+
+		GroupStatus: async (groupJid: string, content: Record<string, any>, options: Record<string, any> = {}) => {
+			return GroupStatusAddon(sock, groupJid, content, options)
+		},
+		GroupStatusV2: async (groupJid: string, content: AnyMessageContent, options: Record<string, any> = {}) => {
+			return GroupStatusV2Addon(sock, groupJid, content, options)
 		}
 	}
 

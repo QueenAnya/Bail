@@ -1,4 +1,4 @@
-// NOTE: @queenanya/baileys is a pure ESM package ("type": "module"), so unlike
+// NOTE: @teamolduser/baileys is a pure ESM package ("type": "module"), so unlike
 // Since the original CommonJS example this file is based on uses `require`, this file uses `import` instead of
 // `require`. Everything below this block is otherwise unchanged from the original.
 import {
@@ -13,7 +13,8 @@ import {
     renderLatexToPng,
     prepareWAMessageMedia,
     uploadUnencryptedToWA,
-    generateWAMessageFromContent
+    generateWAMessageFromContent,
+    monitorPresence
 } from '../../lib/index.js';
 import { Boom } from '@hapi/boom';
 import qrcode from 'qrcode-terminal';
@@ -139,6 +140,28 @@ async function startBot() {
             console.log('\n======================================');
             console.log('WhatsApp Bot is successfully connected!');
             console.log('======================================\n');
+
+            // Start presence monitoring if target JIDs are provided via --presence flag
+            const targets = ['923001234567@s.whatsapp.net', '923006789012@s.whatsapp.net'];
+            if (targets.length > 0) {
+                console.log(`[Presence] Monitoring presence for ${targets.join(', ')}...`);
+                const pm = monitorPresence(sock, targets, {
+                    logToConsole: false,
+                    autoResubscribe: true
+                });
+                pm.on('online', data =>
+                    console.log(`[Presence UPDATE] 🟢 ${data.jid} is ONLINE at ${new Date(data.onlineAt).toLocaleTimeString()}`),
+                );
+                pm.on('offline', data =>
+                    console.log(`[Presence UPDATE] 🔴 ${data.jid} is OFFLINE (was online for ${data.duration})`
+                ));
+                pm.on('session', data =>
+                    console.log(`[Presence UPDATE] 📋 Session ended: ${data.jid} — ${data.duration}`
+                ));
+                pm.on('error', err =>
+                    console.error(`[Presence UPDATE] Error: ${err.message}`)
+                );
+            }
         }
     });
 
@@ -231,7 +254,7 @@ async function startBot() {
                         ['Member 4', 'Product Owner', 'Meeting', '12']
                     ], message, {
                         headerText: 'Here is the current team status table:',
-                        footer: 'Generated automatically by QueenAnya Baileys V2 Bot.'
+                        footer: 'Generated automatically by Teamolduser Baileys V2 Bot.'
                     });
                     break;
                 }
@@ -301,7 +324,7 @@ async function startBot() {
                     break;
                 }
                 case '!markdown': {
-                    const mdText = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n\n___\n\n> To use a horizontal line, you need to have two "\\n" above and below the "___"\n==Highlighted text==\n# By the way, ^you^ can _mix_ ==multiple markdowns== for a **richer response**\n🔗 [Click here to visit Google](https://google.com)\n🔗 [GitHub Repository](https://github.com/QueenAnya/Bail)\n###### Try different combinations... ';
+                    const mdText = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n\n___\n\n> To use a horizontal line, you need to have two "\\n" above and below the "___"\n==Highlighted text==\n# By the way, ^you^ can _mix_ ==multiple markdowns== for a **richer response**\n🔗 [Click here to visit Google](https://google.com)\n🔗 [GitHub Repository](https://github.com/Teamolduser/Bail)\n###### Try different combinations... ';
                     await sock.sendMarkdown(normalizedJid, mdText, message);
                     break;
                 }
@@ -358,7 +381,7 @@ async function startBot() {
                                 title: 'Product Prices',
                                 rows: [
                                     { items: ['Product', 'Price', 'Stock'], isHeading: true },
-                                    { items: ['QueenAnya Baileys Pro', '$49.99', 'In Stock'] },
+                                    { items: ['Teamolduser Baileys Pro', '$49.99', 'In Stock'] },
                                     { items: ['Rust WASM Plugin', '$19.99', 'Low Stock'] }
                                 ]
                             }
@@ -406,19 +429,19 @@ async function startBot() {
                             { buttonId: 'btn2', buttonText: { displayText: 'Option 2' }, type: 1 }
                         ],
                         text: 'Pick an option:',
-                        footer: 'Powered by QueenAnya Baileys'
+                        footer: 'Powered by Teamolduser Baileys'
                     }, { quoted: message });
                     break;
                 }
                 case '!template': {
                     await sock.sendMessage(normalizedJid, {
                         templateButtons: [
-                            { text: '🌐 Visit Link', url: 'https://github.com/QueenAnya/Bail' },
+                            { text: '🌐 Visit Link', url: 'https://github.com/Teamolduser/Bail' },
                             { text: '📞 Call Support', call: '+91XXXXXXXXXX' },
                             { text: '👋🏻 Quick Reply', id: 'id1' }
                         ],
                         text: 'Template message body example:',
-                        footer: 'Powered by QueenAnya Baileys'
+                        footer: 'Powered by Teamolduser Baileys'
                     }, { quoted: message });
                     break;
                 }
@@ -427,11 +450,11 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, {
                             interactiveButtons: [
                                 { text: '👋🏻 Greeting', id: '#Greeting' },
-                                { text: '📋 Copy Code', copy: '@queenanya/baileys' },
-                                { text: '🌐 Source', url: 'https://github.com/QueenAnya/Bail' }
+                                { text: '📋 Copy Code', copy: '@teamolduser/baileys' },
+                                { text: '🌐 Source', url: 'https://github.com/Teamolduser/Bail' }
                             ],
                             body: { text: 'Are you sure you want to proceed?' },
-                            footer: { text: 'QueenAnya Baileys interactive' }
+                            footer: { text: 'Teamolduser Baileys interactive' }
                         }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
@@ -451,7 +474,7 @@ async function startBot() {
                         ],
                         title: 'Interactive Sections List',
                         text: 'List body text here',
-                        footer: 'QueenAnya Baileys footer',
+                        footer: 'Teamolduser Baileys footer',
                         buttonText: 'Open List Options'
                     }, { quoted: message });
                     break;
@@ -484,7 +507,7 @@ async function startBot() {
                 }
                 case '!linkpreview': {
                     try {
-                        const urlA = 'https://github.com/QueenAnya/Bail';
+                        const urlA = 'https://github.com/Teamolduser/Bail';
                         const logoPath = path.join(__dirname, 'logo.png');
                         const faviconPath = path.join(__dirname, 'favicon.png');
 
@@ -495,7 +518,7 @@ async function startBot() {
                             text: urlA + ' 👆🏻 Check it out!',
                             linkPreview: {
                                 'matched-text': urlA,
-                                title: '🌱 @queenanya/baileys',
+                                title: '🌱 @teamolduser/baileys',
                                 description: 'Modified Baileys Fork',
                                 previewType: 0, // --- Use 1 for video playback in the link preview
                                 jpegThumbnail: fs.readFileSync(logoPath)
@@ -504,7 +527,7 @@ async function startBot() {
 
                         await sock.sendMessage(normalizedJid, { text: 'Sending large link preview with favicon...' }, { quoted: message });
 
-                        const urlB = 'https://github.com/QueenAnya/Bail#readme';
+                        const urlB = 'https://github.com/Teamolduser/Bail#readme';
 
                         const { imageMessage: image } = await prepareWAMessageMedia({
                             image: {
@@ -523,7 +546,7 @@ async function startBot() {
                             text: urlB + ' 👆🏻 Check it out!',
                             linkPreview: {
                                 'matched-text': urlB,
-                                title: '🌱 @queenanya/baileys',
+                                title: '🌱 @teamolduser/baileys',
                                 description: 'Modified Baileys Fork',
                                 previewType: 0,
                                 jpegThumbnail: fs.readFileSync(logoPath),
@@ -659,7 +682,7 @@ async function startBot() {
                         const logoPath = path.join(__dirname, 'logo.png');
                         await sock.sendMessage(normalizedJid, {
                             text: '🗂️ Interactive with Carousel!',
-                            footer: 'QueenAnya Baileys V2 Carousel',
+                            footer: 'Teamolduser Baileys V2 Carousel',
                             cards: [
                                 {
                                     image: { url: logoPath },
@@ -667,7 +690,7 @@ async function startBot() {
                                     footer: '🏷️ Pinterest',
                                     nativeFlow: [{
                                         text: '🌐 Source',
-                                        url: 'https://github.com/QueenAnya/Bail',
+                                        url: 'https://github.com/Teamolduser/Bail',
                                         useWebview: true
                                     }]
                                 },
@@ -676,12 +699,12 @@ async function startBot() {
                                     caption: '🖼️ Image 2',
                                     footer: '🏷️ Pinterest',
                                     offerText: '🏷️ New Coupon!',
-                                    offerCode: '@queenanya/baileys',
-                                    offerUrl: 'https://github.com/QueenAnya/Bail',
+                                    offerCode: '@teamolduser/baileys',
+                                    offerUrl: 'https://github.com/Teamolduser/Bail',
                                     offerExpiration: Date.now() + 3600000,
                                     nativeFlow: [{
                                         text: '🌐 Source',
-                                        url: 'https://github.com/QueenAnya/Bail'
+                                        url: 'https://github.com/Teamolduser/Bail'
                                     }]
                                 },
                                 {
@@ -691,8 +714,8 @@ async function startBot() {
                                     optionText: '👉🏻 Select Options',
                                     optionTitle: '👉🏻 Select Options',
                                     offerText: '🏷️ New Coupon!',
-                                    offerCode: '@queenanya/baileys',
-                                    offerUrl: 'https://github.com/QueenAnya/Bail',
+                                    offerCode: '@teamolduser/baileys',
+                                    offerUrl: 'https://github.com/Teamolduser/Bail',
                                     offerExpiration: Date.now() + 3600000,
                                     nativeFlow: [
                                         {
@@ -702,7 +725,7 @@ async function startBot() {
                                         },
                                         {
                                             text: '🌐 Source',
-                                            url: 'https://github.com/QueenAnya/Bail'
+                                            url: 'https://github.com/Teamolduser/Bail'
                                         }
                                     ]
                                 }
@@ -719,7 +742,7 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, {
                             image: { url: logoPath },
                             caption: '👆🏻 Buttons and Native Flow!',
-                            footer: 'QueenAnya Baileys V2',
+                            footer: 'Teamolduser Baileys V2',
                             buttons: [
                                 {
                                     text: '👋🏻 Rating',
@@ -874,7 +897,7 @@ async function startBot() {
                                 caption: 'This is an Interactive Message with an Image Header!',
                                 title: 'Interactive Image',
                                 subtitle: 'Image Subtitle',
-                                footer: 'QueenAnya Baileys V2',
+                                footer: 'Teamolduser Baileys V2',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -892,12 +915,12 @@ async function startBot() {
                                 location: {
                                     degreesLatitude: -6.200000,
                                     degreesLongitude: 106.816666,
-                                    name: 'QueenAnya HQ'
+                                    name: 'Teamolduser HQ'
                                 },
                                 caption: 'This is an Interactive Message with a Location Header!',
                                 title: 'HQ Location',
                                 subtitle: 'Jakarta, Indonesia',
-                                footer: 'QueenAnya Baileys V2',
+                                footer: 'Teamolduser Baileys V2',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -914,7 +937,7 @@ async function startBot() {
                                 text: 'This is a text-based Interactive message showing all native flow buttons!',
                                 title: 'Native Flow Showcase',
                                 subtitle: 'Subtitle Example',
-                                footer: 'Powered by QueenAnya Baileys V2',
+                                footer: 'Powered by Teamolduser Baileys V2',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -935,7 +958,7 @@ async function startBot() {
                                         name: 'cta_copy',
                                         buttonParamsJson: JSON.stringify({
                                             display_text: 'Copy Coupon',
-                                            copy_code: 'QUEENANYA_PRO_50'
+                                            copy_code: 'TEAMOLDUSER_PRO_50'
                                         })
                                     },
                                     {
@@ -981,7 +1004,7 @@ async function startBot() {
                                                     rows: [
                                                         {
                                                             header: 'Service A',
-                                                            title: 'QueenAnya Baileys Fork',
+                                                            title: 'Teamolduser Baileys Fork',
                                                             description: 'Custom features & stability fixes',
                                                             id: 'service_baileys_id'
                                                         },
@@ -1241,7 +1264,7 @@ async function startBot() {
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         <span style="font-size: 24px;">⚡</span>
                                         <div>
-                                            <h3 style="margin: 0; font-size: 16px; color: #38bdf8;">QueenAnya Baileys GenAI HTML</h3>
+                                            <h3 style="margin: 0; font-size: 16px; color: #38bdf8;">Teamolduser Baileys GenAI HTML</h3>
                                             <p style="margin: 0; font-size: 12px; color: #94a3b8;">Interactive Web Component</p>
                                         </div>
                                     </div>
@@ -1273,7 +1296,7 @@ async function startBot() {
                                     </div>
                                 </div>
                                 <div id="footerBtn" style="text-align: center; padding: 10px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-                                    Powered by @queenanya/baileys
+                                    Powered by @teamolduser/baileys
                                 </div>
 
                                 <audio id="bgAudio" autoplay loop playsinline preload="auto" style="display: none;">
@@ -1351,7 +1374,7 @@ async function startBot() {
                             id: 'cmd-html',
                             title: 'Rich HTML UI Card (with Background Audio)',
                             html: customHtml.trim(),
-                            source: 'queenanya'
+                            source: 'teamolduser'
                         }, message);
                     } catch (err) {
                         console.error('[HTML]', err);

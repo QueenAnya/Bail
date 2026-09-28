@@ -11,7 +11,7 @@
  * reach its internal helpers, we import them directly — this file runs
  * inside the same package that defines them.
  *
- * @author ShellTear (original), adapted for @queenanya/baileys
+ * @author ShellTear (original), adapted for @teamolduser/baileys
  */
 import { proto } from '../../WAProto/index.js'
 import type { SignalRepositoryWithLIDStore } from '../Types'
@@ -23,7 +23,7 @@ import { encodeBinaryNode } from '../WABinary/encode'
 import { getAllBinaryNodeChildren, getBinaryNodeChild } from '../WABinary/generic-utils'
 import { jidDecode, jidEncode, jidNormalizedUser } from '../WABinary/jid-utils'
 
-/** Structural surface of the queenanya socket this bridge needs. Any layer
+/** Structural surface of the teamolduser socket this bridge needs. Any layer
  *  of the socket (Socket/socket.ts, messages-send.ts, messages-recv.ts, or
  *  the fully-composed sock) satisfies this — see Voip/voip-engine.ts. */
 export type BaileysSocket = {
@@ -239,7 +239,7 @@ export class SignalingBridge {
 	}
 
 	discoverPeerDevices = async (peerLidJid: string): Promise<string[]> => {
-		// queenanya's getUSyncDevices is (jids, useCache, ignoreZeroDevices) —
+		// teamolduser's getUSyncDevices is (jids, useCache, ignoreZeroDevices) —
 		// different param order/semantics than upstream baileys-caller's
 		// (jids, ignoreZeroDevices, forceQuery). useCache: true (don't force a
 		// fresh query), ignoreZeroDevices: true (skip users reporting 0 devices).

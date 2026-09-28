@@ -1,6 +1,6 @@
 /**
  * button-sender.ts
- * Ported from @ryuu-reinzz/button-helper v2.2.5 → TypeScript/ESM for @queenanya/baileys
+ * Ported from @ryuu-reinzz/button-helper v2.2.5 → TypeScript/ESM for @teamolduser/baileys
  *
  * Provides runtime helpers to send WhatsApp interactive / native-flow button
  * messages via relayMessage directly, bypassing sendMessage's validation path
@@ -28,7 +28,7 @@
  * this repo — no duplication).
  *
  * Usage:
- *   import { sendButtons, sendInteractiveMessage } from '@queenanya/baileys'
+ *   import { sendButtons, sendInteractiveMessage } from '@teamolduser/baileys'
  *
  *   await sendButtons(sock, jid, {
  *     text: 'Choose an option',
@@ -579,7 +579,7 @@ export function validateInteractiveMessageContent(content: unknown): ValidationR
 /**
  * Convert the high-level authoring shape:
  *   { text, footer?, title?, subtitle?, interactiveButtons: [...] }
- * into the exact structure @queenanya/baileys / WAProto expects:
+ * into the exact structure @teamolduser/baileys / WAProto expects:
  *   { interactiveMessage: { nativeFlowMessage: { buttons: [...] }, body?, header?, footer? } }
  *
  * Authoring-only fields are stripped so they don't leak into
@@ -649,7 +649,7 @@ export function convertToInteractiveMessage(content: Record<string, unknown>): R
  *  single_select, payment flows, mpm/catalog/location specials, standard
  *  native_flow (mixed), list, carousel/cards — each with the correct node tree.
  *
- * @param sock     Active @queenanya/baileys socket instance.
+ * @param sock     Active @teamolduser/baileys socket instance.
  * @param jid      Destination chat JID.
  * @param content  Authoring payload (may include interactiveButtons).
  * @param options  Pass-through relay options (additionalNodes, etc.).
@@ -697,7 +697,7 @@ export async function sendInteractiveMessage(
 
 	if (cWarn.length) console.warn('[button-sender] Interactive content warnings:', cWarn)
 
-	// Step 3 — build WAMessage (uses internal @queenanya/baileys helpers directly)
+	// Step 3 — build WAMessage (uses internal @teamolduser/baileys helpers directly)
 	const userJid: string = sock.authState?.creds?.me?.id ?? sock.user?.id ?? ''
 	const fullMsg = generateWAMessageFromContent(jid, convertedContent, {
 		userJid,
@@ -822,7 +822,7 @@ export async function sendInteractiveMessageV2(
 	if ((hasThumb || hasFilePath || hasFileUrl || shouldForce) && !content.document && !content.image && !content.video) {
 		try {
 			let fileBuffer: Buffer
-			let fileName = 'QueenAnya.pdf'
+			let fileName = 'Teamolduser.pdf'
 			let mimeType = 'application/pdf'
 
 			if (hasFilePath) {
@@ -870,7 +870,7 @@ export async function sendInteractiveMessageV2(
 				// v2.2.3 field — marks this as an auto-reply card
 				containsAutoReply: true,
 				title: (existingEar.title ??
-					`© ${(globalThis as Record<string, unknown>).ownername ?? 'QueenAnya'} - 2025`) as string,
+					`© ${(globalThis as Record<string, unknown>).ownername ?? 'Teamolduser'} - 2025`) as string,
 				body: (existingEar.body ?? 'Virtual Assistant') as string,
 				sourceUrl: (existingEar.sourceUrl ?? 'https://example.com') as string,
 				// v2.2.5 fields — reliable thumbnail display on all clients

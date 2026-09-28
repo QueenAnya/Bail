@@ -13,7 +13,7 @@ import { generateWAMessage } from '../Utils/messages.js'
  * The normal `sendMessage(..., { groupStatus: true })` API remains supported.
  * This helper is useful when callers want an explicit socket method.
  */
-export async function sendGroupStatus(
+export async function GroupStatus(
 	sock: any,
 	groupJid: string,
 	content: Record<string, any>,
@@ -55,10 +55,19 @@ export async function sendGroupStatus(
 	const inner = (innerMessage as any)[messageType]
 
 	if (inner && typeof inner === 'object') {
-		inner.contextInfo = {
-			...(inner.contextInfo || {}),
-			isGroupStatus: true
+		const contextInfo = { ...(inner.contextInfo || {}) }
+		contextInfo.isGroupStatus = true
+		if (contextInfo.pairedMediaType === undefined) contextInfo.pairedMediaType = 0
+		if (contextInfo.forwardingScore === undefined) contextInfo.forwardingScore = 0
+		if (!contextInfo.featureEligibilities) {
+			contextInfo.featureEligibilities = { canBeReshared: true, canReceiveMultiReact: true }
 		}
+
+		if (sock.user?.id && !contextInfo.statusAttributions?.length) {
+			contextInfo.statusAttributions = [{ type: 5 /* GROUP_STATUS */, groupStatus: { authorJid: sock.user.id } }]
+		}
+
+		inner.contextInfo = contextInfo
 	}
 
 	const wrappedMessage = proto.Message.create({

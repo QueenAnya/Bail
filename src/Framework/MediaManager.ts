@@ -102,7 +102,7 @@ export class MediaManager {
 			// author metadata silently failed to attach.
 			if (metadata?.packname || metadata?.author) {
 				const exifJson = JSON.stringify({
-					'sticker-pack-id': `com.queenanya.sticker.${randomBytes(4).toString('hex')}`,
+					'sticker-pack-id': `com.teamolduser.sticker.${randomBytes(4).toString('hex')}`,
 					'sticker-pack-name': metadata.packname || '',
 					'sticker-pack-publisher': metadata.author || '',
 					emojis: ['🤖']

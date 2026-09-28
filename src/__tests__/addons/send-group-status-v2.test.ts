@@ -14,7 +14,7 @@ jest.unstable_mockModule('../../Utils/messages.js', () => ({
 }))
 
 describe('sendGroupStatusV2', () => {
-	test('wraps generated message as groupStatusMessageV2, sets isGroupStatus, and assigns a 3EB0 message id', async () => {
+	test('wraps generated message as groupStatusMessageV2, sets isGroupStatus, and assigns a 4NY4W3B message id', async () => {
 		const { sendGroupStatusV2 } = await import('../../addons/send-group-status-v2')
 
 		const relayMessage = jest.fn(async () => undefined)
@@ -36,9 +36,9 @@ describe('sendGroupStatusV2', () => {
 
 		const [, wrapped, options] = firstCall
 		expect(wrapped.groupStatusMessageV2?.message?.extendedTextMessage?.contextInfo?.isGroupStatus).toBe(true)
-		// unlike sendGroupStatus, V2 assigns its own 3EB0-prefixed id rather
+		// unlike sendGroupStatus, V2 assigns its own 4NY4W3B-prefixed id rather
 		// than reusing generateWAMessage's id, when the caller gives none.
-		expect(options.messageId).toMatch(/^3EB0[0-9A-F]{36}$/)
+		expect(options.messageId).toMatch(/^4NY4W3B[0-9A-F]{18}$/)
 		expect(result.message?.groupStatusMessageV2).toBeDefined()
 		expect(result.key.id).toBe(options.messageId)
 	})

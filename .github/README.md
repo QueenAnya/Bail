@@ -1,15 +1,15 @@
-# 🌱 @queenanya/baileys
+# 🌱 @teamolduser/baileys
 
 <h1 align='center'><img alt="Baileys logo" src="Media/logo.png" height="75"/></h1>
 
 <p align="center">
    An extended fork of Baileys — the WebSockets-based TypeScript library for the WhatsApp Web API — with 35+ addon modules, interactive messages, albums, LaTeX rendering, rich responses, and additional message types.
    <br><br>
-   <a href="https://www.npmjs.com/package/@queenanya/baileys">
-      <img src="https://img.shields.io/npm/v/@queenanya/baileys?style=for-the-badge&logo=npm"/>
+   <a href="https://www.npmjs.com/package/@teamolduser/baileys">
+      <img src="https://img.shields.io/npm/v/@teamolduser/baileys?style=for-the-badge&logo=npm"/>
    </a>
-   <a href="https://github.com/QueenAnya/Bail">
-      <img src="https://img.shields.io/github/stars/QueenAnya/Bail?style=for-the-badge&logo=github"/>
+   <a href="https://github.com/Teamolduser/Bail">
+      <img src="https://img.shields.io/github/stars/Teamolduser/Bail?style=for-the-badge&logo=github"/>
    </a>
    <a href="LICENSE">
       <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge"/>
@@ -20,7 +20,7 @@
    <a href="#">
       <img src="https://img.shields.io/badge/ESM-only?logo=javascript&labelColor=yellow&logoColor=black&style=for-the-badge"/>
    </a>
-   <a href="https://deepwiki.com/QueenAnya/Bail">
+   <a href="https://deepwiki.com/Teamolduser/Bail">
       <img src="https://deepwiki.com/badge.svg" alt="Ask Deep-Wiki"/>
    </a>
 </p>
@@ -56,20 +56,20 @@ community forks (credited inline throughout this README and in
 ### 📥 Install
 
 ```
-yarn add @queenanya/baileys
+yarn add @teamolduser/baileys
 ```
 
 or
 
 ```
-npm install @queenanya/baileys
+npm install @teamolduser/baileys
 ```
 
 For the latest unreleased fixes/features straight from source, clone this
 repository and install locally:
 
 ```
-git clone https://github.com/QueenAnya/Bail
+git clone https://github.com/Teamolduser/Bail
 cd Bail
 yarn install
 yarn build
@@ -78,7 +78,7 @@ yarn build
 Then import your code using:
 
 ```ts
-import makeWASocket from '@queenanya/baileys'
+import makeWASocket from '@teamolduser/baileys'
 ```
 
 Do check out & run [example.ts](Example/example.ts) or
@@ -92,7 +92,7 @@ more).
 Connect, listen for messages, and auto-reply — in under 15 lines:
 
 ```ts
-import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@queenanya/baileys'
+import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@teamolduser/baileys'
 import { Boom } from '@hapi/boom'
 
 async function connect() {
@@ -273,12 +273,12 @@ documented in full below, in
 ```json
 # NPM
 "dependencies": {
-   "@queenanya/baileys": "latest"
+   "@teamolduser/baileys": "latest"
 }
 
 # GitHub
 "dependencies": {
-   "@queenanya/baileys": "github:QueenAnya/Bail"
+   "@teamolduser/baileys": "github:Teamolduser/Bail"
 }
 ```
 
@@ -286,26 +286,26 @@ documented in full below, in
 
 ```bash
 # NPM
-npm i @queenanya/baileys@latest
+npm i @teamolduser/baileys@latest
 
 # GitHub
-npm i github:QueenAnya/Bail
+npm i github:Teamolduser/Bail
 ```
 
 #### 🧩 Import (ESM & CJS)
 
 ```javascript
 // --- ESM
-import { makeWASocket } from '@queenanya/baileys'
+import { makeWASocket } from '@teamolduser/baileys'
 
 // --- CJS (tested and working on Node.js 24 ✅)
-const { makeWASocket } = require('@queenanya/baileys')
+const { makeWASocket } = require('@teamolduser/baileys')
 ```
 
 ### 🌐 Connect to WhatsApp (Quick Step)
 
 ```javascript
-import { makeWASocket, delay, DisconnectReason, useMultiFileAuthState } from '@queenanya/baileys'
+import { makeWASocket, delay, DisconnectReason, useMultiFileAuthState } from '@teamolduser/baileys'
 import { Boom } from '@hapi/boom'
 import pino from 'pino'
 
@@ -369,7 +369,7 @@ connectToWhatsApp()
 > I highly recommend building your own data store, as keeping an entire chat history in memory can lead to excessive RAM usage.
 
 ```javascript
-import { makeWASocket, makeInMemoryStore, delay, DisconnectReason, useMultiFileAuthState } from '@queenanya/baileys'
+import { makeWASocket, makeInMemoryStore, delay, DisconnectReason, useMultiFileAuthState } from '@teamolduser/baileys'
 import { Boom } from '@hapi/boom'
 import pino from 'pino'
 
@@ -462,23 +462,66 @@ sock.sendMessage(jid, {
 })
 
 // --- Send a text message with a link preview
-const urlA = 'https://www.npmjs.com/package/@queenanya/baileys'
+const urlA = 'https://www.npmjs.com/package/@teamolduser/baileys'
 
 sock.sendMessage(jid, {
    text: urlA + ' 👆🏻 Check it out!',
    linkPreview: {
       'matched-text': urlA,
-      title: '🌱 @queenanya/baileys',
+      title: '🌱 @teamolduser/baileys',
       description: 'Underrated Baileys Fork',
       previewType: 0, // --- Use 1 for video playback in the link preview
       jpegThumbnail: fs.readFileSync('./path/to/image.jpg')
    }
 })
 
-// --- Send a text message with a large link preview and favicon
-import { prepareWAMessageMedia } from '@queenanya/baileys'
+> [!NOTE]
+> **`linkPreview` field shapes:**
+> - Omit it, or pass `linkPreview: true` → auto-detects the first URL in
+>   `text` and fetches a preview for it automatically. (`true` used to fall
+>   through and silently produce a broken, empty preview — fixed to behave
+>   the same as omitting it.)
+> - A full object (as above) → used as-is, no fetch.
+> - A bare string, e.g. `linkPreview: 'https://example.com'` → fetches a
+>   preview for *that* URL specifically, even if it differs from what's in
+>   `text`. (Passing a string used to silently produce a broken, empty
+>   preview — fixed to actually fetch now.)
+> - `null` → forces no preview at all, even if `text` contains a URL.
+>
+> **Auto-detection requires `link-preview-js` to be installed** —
+> it's an optional peer dependency (not pulled in automatically by
+> `npm install @teamolduser/baileys`), since not everyone needs link
+> previews. Run `npm install link-preview-js` (or `yarn add
+> link-preview-js`) once, or the message still sends fine but silently
+> without a preview. A one-line warning is logged if it's missing.
 
-const urlB = 'https://www.npmjs.com/package/@queenanya/baileys#readme'
+#### `sock.sendLinkPreviewFor()` — fetch + send a preview for a specific URL
+
+A reusable helper for "fetch a real preview for this URL and send it",
+rather than hand-rolling `getUrlInfo` + `prepareWAMessageMedia` +
+`generateWAMessageFromContent` + `relayMessage` yourself each time:
+
+```javascript
+// Just the URL — message text defaults to the URL itself
+await sock.sendLinkPreviewFor(jid, 'https://github.com/WhiskeySockets/Baileys')
+
+// Custom message text, real fetched preview
+await sock.sendLinkPreviewFor(jid, url, '🚀 Check this out!')
+
+// Keep the real fetched OG image/description, override just the title
+await sock.sendLinkPreviewFor(jid, url, { text: '🚀 Check this out!', title: 'My own title' })
+```
+
+Unlike the auto-detect-from-`text` path (which fails silently by
+design — a preview is a nice-to-have, it shouldn't block sending), this
+throws if the URL genuinely can't be resolved, since here you explicitly
+asked for a preview of it. Same optional-`link-preview-js`/
+`generateHighQualityLinkPreview` behavior applies underneath.
+
+// --- Send a text message with a large link preview and favicon
+import { prepareWAMessageMedia } from '@teamolduser/baileys'
+
+const urlB = 'https://www.npmjs.com/package/@teamolduser/baileys#readme'
 
 const { imageMessage: image } = await prepareWAMessageMedia({
    image: {
@@ -497,7 +540,7 @@ sock.sendMessage(jid, {
    text: urlB + ' 👆🏻 Check it out!',
    linkPreview: {
       'matched-text': urlB,
-      title: '🌱 @queenanya/baileys',
+      title: '🌱 @teamolduser/baileys',
       description: 'Underrated Baileys Fork',
       previewType: 0,
       jpegThumbnail: fs.readFileSync('./path/to/image.jpg'),
@@ -643,7 +686,7 @@ const inviteCode = groupUrl
    ?.split('?')[0]
 
 const groupJid = '1201111111111@g.us'
-const groupName = '@queenanya/baileys'
+const groupName = '@teamolduser/baileys'
 
 sock.sendMessage(jid, {
    groupInvite: {
@@ -658,6 +701,55 @@ sock.sendMessage(jid, {
 })
 ```
 
+#### 👥 Group Invite (v4, direct to a participant)
+
+Lower-level than `content.groupInvite` above — it doesn't auto-fetch the
+group's profile picture, so pass `jpegThumbnail` yourself if you want one
+shown. Available both as dedicated functions and as `sendMessage` content
+keys; `sendGroupV4Invite`/`sock.sendGroupV4Invite` and
+`sendGroupInviteV4`/`sock.sendGroupInviteV4` are identical aliases of each
+other, so use whichever name reads better to you.
+
+```javascript
+// --- As a dedicated function call
+await sock.sendGroupV4Invite(
+   groupJid,          // --- The group's jid
+   participantJid,    // --- Who to send the invite to
+   inviteCode,
+   Date.now() + 86400000, // --- inviteExpiration, optional
+   groupName,          // --- optional
+   '👋🏻 Hello, we invite you to join our group.', // --- caption, optional
+   jpegThumbnail        // --- Buffer, optional
+)
+
+// --- Alias, same signature
+await sock.sendGroupInviteV4(groupJid, participantJid, inviteCode)
+
+// --- As sendMessage content-key shorthand
+sock.sendMessage(participantJid, {
+   sendGroupV4Invite: {
+      groupJid,
+      inviteCode,
+      inviteExpiration: Date.now() + 86400000, // --- Optional
+      groupName,                                // --- Optional
+      caption: '👋🏻 Hello, we invite you to join our group.', // --- Optional
+      jpegThumbnail                             // --- Buffer, optional
+   }
+})
+
+// --- Same, via the sendGroupInviteV4 alias key
+sock.sendMessage(participantJid, {
+   sendGroupInviteV4: {
+      groupJid,
+      inviteCode,
+      inviteExpiration: Date.now() + 86400000,
+      groupName,
+      caption: '👋🏻 Hello, we invite you to join our group.',
+      jpegThumbnail
+   }
+})
+```
+
 #### 🛍️ Product
 
 ```javascript
@@ -668,7 +760,7 @@ sock.sendMessage(jid, {
       url: './path/to/image.jpg'
    },
    body: '👋🏻 Check my product here!',
-   footer: '@queenanya/baileys',
+   footer: '@teamolduser/baileys',
    product: {
       currencyCode: 'IDR',
       description: '🛍️ Interesting product!',
@@ -676,9 +768,9 @@ sock.sendMessage(jid, {
       productId: randomUUID(),
       productImageCount: 1,
       salePriceAmount1000: 65_000_000,
-      signedUrl: 'https://www.npmjs.com/package/@queenanya/baileys',
+      signedUrl: 'https://www.npmjs.com/package/@teamolduser/baileys',
       title: '📦 QB2 Store (Premium)',
-      url: 'https://www.npmjs.com/package/@queenanya/baileys'
+      url: 'https://www.npmjs.com/package/@teamolduser/baileys'
    },
    businessOwnerJid: '0@s.whatsapp.net'
 })
@@ -845,7 +937,7 @@ sock.sendMessage(jid, {
 > You can easily add syntax highlighting by importing `tokenizeCode` directly from Baileys.
 
 ```javascript
-import { tokenizeCode } from '@queenanya/baileys'
+import { tokenizeCode } from '@teamolduser/baileys'
 
 const language = 'javascript'
 const code = 'console.log("Hello, World!")'
@@ -899,7 +991,7 @@ sock.sendMessage(jid, {
    }, {
       text: '3. Modded Baileys',
       title: 'Underrated Baileys Fork',
-      url: 'https://www.npmjs.com/package/@queenanya/baileys'
+      url: 'https://www.npmjs.com/package/@teamolduser/baileys'
    }],
    footerText: '---'
 })
@@ -1076,7 +1168,7 @@ sock.sendMessage(jid, {
    }],
    name: '📦 My Sticker Pack',
    publisher: '🌟 QB2 Store',
-   description: '@queenanya/baileys'
+   description: '@teamolduser/baileys'
 }, {
    quoted: message
 })
@@ -1090,7 +1182,7 @@ sock.sendMessage(jid, {
 // --- Regular buttons message
 sock.sendMessage(jid, {
    text: '👆🏻 Buttons!',
-   footer: '@queenanya/baileys',
+   footer: '@teamolduser/baileys',
    buttons: [{
       text: '👋🏻 SignUp',
       id: '#SignUp'
@@ -1105,7 +1197,7 @@ sock.sendMessage(jid, {
       url: './path/to/image.jpg'
    },
    caption: '👆🏻 Buttons and Native Flow!',
-   footer: '@queenanya/baileys',
+   footer: '@teamolduser/baileys',
    buttons: [{
       text: '👋🏻 Rating',
       id: '#Rating'
@@ -1143,7 +1235,7 @@ sock.sendMessage(jid, {
 ```javascript
 sock.sendMessage(jid, {
    text: '📋 List!',
-   footer: '@queenanya/baileys',
+   footer: '@teamolduser/baileys',
    buttonText: '📋 Select',
    title: '👋🏻 Hello',
    sections: [{
@@ -1175,12 +1267,12 @@ sock.sendMessage(jid, {
       url: './path/to/image.jpg'
    },
    caption: '🗄️️ Interactive!',
-   footer: '@queenanya/baileys',
+   footer: '@teamolduser/baileys',
    optionText: '👉🏻 Select Options', // --- Optional, wrap all native flow into a single list
    optionTitle: '📄 Select Options', // --- Optional
    offerText: '🏷️ Newest Coupon!', // --- Optional, add an offer into message
-   offerCode: '@queenanya/baileys', // --- Optional
-   offerUrl: 'https://www.npmjs.com/package/@queenanya/baileys', // --- Optional
+   offerCode: '@teamolduser/baileys', // --- Optional
+   offerUrl: 'https://www.npmjs.com/package/@teamolduser/baileys', // --- Optional, falls back to FALLBACK_LINK_URL if omitted
    offerExpiration: Date.now() + 3_600_000, // --- Optional
    nativeFlow: [{
       text: '👋🏻 Greeting',
@@ -1191,10 +1283,10 @@ sock.sendMessage(jid, {
       call: '628123456789'
    }, {
       text: '📋 Copy',
-      copy: '@queenanya/baileys'
+      copy: '@teamolduser/baileys'
    }, {
       text: '🌐 Source',
-      url: 'https://www.npmjs.com/package/@queenanya/baileys',
+      url: 'https://www.npmjs.com/package/@teamolduser/baileys',
       useWebview: true // --- Optional
    }, {
       text: '📋 Select',
@@ -1226,7 +1318,7 @@ sock.sendMessage(jid, {
 // --- Carousel & Native Flow
 sock.sendMessage(jid, {
    text: '🗂️ Interactive with Carousel!',
-   footer: '@queenanya/baileys',
+   footer: '@teamolduser/baileys',
    cards: [{
       image: {
          url: './path/to/image.jpg'
@@ -1235,7 +1327,7 @@ sock.sendMessage(jid, {
       footer: '🏷️️ Pinterest',
       nativeFlow: [{
          text: '🌐 Source',
-         url: 'https://www.npmjs.com/package/@queenanya/baileys',
+         url: 'https://www.npmjs.com/package/@teamolduser/baileys',
          useWebview: true
       }]
    }, {
@@ -1245,12 +1337,12 @@ sock.sendMessage(jid, {
       caption: '🖼️ Image 2',
       footer: '🏷️ Pinterest',
       offerText: '🏷️ New Coupon!',
-      offerCode: '@queenanya/baileys',
-      offerUrl: 'https://www.npmjs.com/package/@queenanya/baileys',
+      offerCode: '@teamolduser/baileys',
+      offerUrl: 'https://www.npmjs.com/package/@teamolduser/baileys',
       offerExpiration: Date.now() + 3_600_000,
       nativeFlow: [{
          text: '🌐 Source',
-         url: 'https://www.npmjs.com/package/@queenanya/baileys'
+         url: 'https://www.npmjs.com/package/@teamolduser/baileys'
       }]
    }, {
       image: {
@@ -1261,8 +1353,8 @@ sock.sendMessage(jid, {
       optionText: '👉🏻 Select Options',
       optionTitle: '👉🏻 Select Options',
       offerText: '🏷️ New Coupon!',
-      offerCode: '@queenanya/baileys',
-      offerUrl: 'https://www.npmjs.com/package/@queenanya/baileys',
+      offerCode: '@teamolduser/baileys',
+      offerUrl: 'https://www.npmjs.com/package/@teamolduser/baileys',
       offerExpiration: Date.now() + 3_600_000,
       nativeFlow: [{
          text: '🛒 Product',
@@ -1270,7 +1362,7 @@ sock.sendMessage(jid, {
          icon: 'default'
       }, {
          text: '🌐 Source',
-         url: 'https://www.npmjs.com/package/@queenanya/baileys'
+         url: 'https://www.npmjs.com/package/@teamolduser/baileys'
       }]
    }]
 }, {
@@ -1306,13 +1398,13 @@ sock.sendMessage(jid, {
       url: './path/to/image.jpg'
    },
    caption: '🫙 Template!',
-   footer: '@queenanya/baileys',
+   footer: '@teamolduser/baileys',
    templateButtons: [{
       text: '👉?? Tap Here',
       id: '#Order'
    }, {
       text: '🌐 Source',
-      url: 'https://www.npmjs.com/package/@queenanya/baileys'
+      url: 'https://www.npmjs.com/package/@teamolduser/baileys'
    }, {
       text: '📞 Call',
       call: '628123456789'
@@ -1423,12 +1515,24 @@ sock.sendMessage(jid, {
       body: '❓ I dont know',
       thumbnail: fs.readFileSync('./path/to/image.jpg'), // --- Must in buffer format
       largeThumbnail: false, // --- Or true for bigger thumbnail
-      url: 'https://www.npmjs.com/package/@queenanya/baileys' // --- Optional, used for WhatsApp internal thumbnail caching and direct URL
+      url: 'https://www.npmjs.com/package/@teamolduser/baileys' // --- Optional, used for WhatsApp internal thumbnail caching and direct URL
    }
 }, {
    quoted: message
 })
 ```
+
+> [!NOTE]
+> `url` and `largeThumbnail` are friendly shorthand — the real WhatsApp
+> proto has no such fields, only `mediaUrl`/`sourceUrl`/`thumbnailUrl` and
+> `renderLargerThumbnail`. `url` maps to all three URL fields at once, and
+> `largeThumbnail` maps to `renderLargerThumbnail`. If you already set one
+> of the real proto field names explicitly, it always wins over the
+> shorthand. If you omit `url` entirely, it falls back to
+> [`FALLBACK_LINK_URL`](src/Defaults/index.ts) (defaults to this repo's
+> own link) rather than leaving the ad-reply's link fields empty — change
+> that constant if you want a different default, or always pass your own
+> `url` to avoid the fallback.
 
 #### 🧑‍🧑‍🧒 Group Status
 
@@ -1444,6 +1548,18 @@ sock.sendMessage(jid, {
    groupStatus: true
 })
 ```
+
+> [!NOTE]
+> Besides `contextInfo.isGroupStatus`, `groupStatus: true` also auto-fills
+> `statusAttributions` (crediting you as the author — needs `sendMessage`'s
+> own `userJid`, which is always available when called through the socket),
+> `featureEligibilities` (`canBeReshared`/`canReceiveMultiReact`, both
+> `true`), and `pairedMediaType`/`forwardingScore` (both `0`) — a group
+> status built with only `isGroupStatus` set doesn't get these, and some
+> WhatsApp clients then don't treat it as fully reshare/react-eligible.
+> Set any of these fields yourself in advance (e.g. via `relayMessage`
+> with hand-built content) if you need different values — an explicit
+> value always wins over these defaults.
 
 #### 🐱 Lottie Sticker
 
@@ -1474,7 +1590,7 @@ sock.sendMessage(jid, {
       text: '📃 Built manually from scratch using the raw WhatsApp proto structure',
       contextInfo: {
          externalAdReply: {
-            title: '@queenanya/baileys',
+            title: '@teamolduser/baileys',
             thumbnail: fs.readFileSync('./path/to/image.jpg'),
             sourceApp: 'whatsapp',
             showAdAttribution: true,
@@ -1638,7 +1754,7 @@ console.log('🔗 Pairing code', ':', customPairingCode)
 > Automatically use available image processing library: `sharp`, `@napi-rs/image`, or `jimp`
 
 ```javascript
-import { getImageProcessingLibrary } from '@queenanya/baileys'
+import { getImageProcessingLibrary } from '@teamolduser/baileys'
 import { readFile } from 'fs/promises'
 
 const lib = await getImageProcessingLibrary()
@@ -1692,7 +1808,7 @@ console.dir(output, { depth: null })
 
 ```javascript
 // --- Create a new one
-sock.newsletterCreate('@queenanya/baileys', '📣 Fresh updates weekly')
+sock.newsletterCreate('@teamolduser/baileys', '📣 Fresh updates weekly')
 
 // --- Get info
 const metadata = sock.newsletterMetadata('1231111111111@newsletter')
@@ -1717,10 +1833,10 @@ sock.newsletterDemote('1231111111111@newsletter', '6281111111111@s.whatsapp.net'
 sock.newsletterChangeOwner('1231111111111@newsletter', '6281111111111@s.whatsapp.net')
 
 // --- Update newsletter
-sock.newsletterUpdate('1231111111111@newsletter', { name: '@queenanya/baileys' })
+sock.newsletterUpdate('1231111111111@newsletter', { name: '@teamolduser/baileys' })
 
 // --- Change name
-sock.newsletterUpdateName('1231111111111@newsletter', '📦 @queenanya/baileys')
+sock.newsletterUpdateName('1231111111111@newsletter', '📦 @teamolduser/baileys')
 
 // --- Change description
 sock.newsletterUpdateDescription('1231111111111@newsletter', '📣 Fresh updates weekly')
@@ -1755,7 +1871,7 @@ sock.newsletterDelete('1231111111111@newsletter')
 
 ```javascript
 // --- Create a new one and add participants using their JIDs
-const group = sock.groupCreate('@queenanya/baileys', ['628123456789@s.whatsapp.net'])
+const group = sock.groupCreate('@teamolduser/baileys', ['628123456789@s.whatsapp.net'])
 console.dir(group, { depth: null })
 
 // --- Get info
@@ -1779,6 +1895,15 @@ sock.groupLeave(jid)
 // --- Add participants
 sock.groupParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'add')
 
+// --- Add a participant, automatically falling back to a v4 group invite
+// (see "👥 Group Invite (v4, direct to a participant)" above) for anyone
+// WhatsApp refuses to add directly (status 403). Returns one result per
+// participant: { jid, status, invited, message }. `invited: true` means a
+// v4 invite was sent instead of a direct add; other non-200 statuses
+// (401, 404, 409, ...) are reported with their own message and no invite sent.
+const inviteResults = await sock.sendGroupInvite(jid, '628123456789@s.whatsapp.net')
+console.dir(inviteResults, { depth: null })
+
 // --- Remove participants
 sock.groupParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'remove')
 
@@ -1792,7 +1917,7 @@ sock.groupParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'demote')
 sock.groupRequestParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'approve')
 
 // --- Change name
-sock.groupUpdateSubject(jid, '📦 @queenanya/baileys')
+sock.groupUpdateSubject(jid, '📦 @teamolduser/baileys')
 
 // --- Change description
 sock.groupUpdateDescription(jid, 'Updated description')
@@ -1846,14 +1971,14 @@ const group = await sock.groupGetInviteInfo('ABC123456789')
 console.log('👥 Got group info from invite code', ':', group)
 
 // --- Update bot member label
-sock.updateMemberLabel(jid, '@queenanya/baileys')
+sock.updateMemberLabel(jid, '@teamolduser/baileys')
 ```
 
 #### 👥 Community Management
 
 ```javascript
 // --- Create a new one and add description
-const community = await sock.communityCreate('@queenanya/baileys', '📣 Fresh updates weekly')
+const community = await sock.communityCreate('@teamolduser/baileys', '📣 Fresh updates weekly')
 console.dir(community, { depth: null })
 
 // --- Create a subgroup for community and add participants using their JIDs
@@ -1886,7 +2011,7 @@ sock.communityLeave(jid)
 sock.communityRequestParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'approve')
 
 // --- Change name
-sock.communityUpdateSubject(jid, '📦 @queenanya/baileys')
+sock.communityUpdateSubject(jid, '📦 @teamolduser/baileys')
 
 // --- Change description
 sock.communityUpdateDescription(jid, 'Updated description')
@@ -2074,7 +2199,7 @@ const orderForJid = await sock.getOrderDetails(orderId, tokenBase64, sellerJid)
 await sock.updateBusinessProfile({
    address: 'Jakarta, Indonesia',
    description: '🛒 Official QB2 Store',
-   websites: ['https://www.npmjs.com/package/@queenanya/baileys'],
+   websites: ['https://www.npmjs.com/package/@teamolduser/baileys'],
    email: 'store@example.com',
    hours: {
       timezone: 'Asia/Jakarta',
@@ -2182,7 +2307,7 @@ sock.ev.on('settings.update', (update) => {})
 
 ### 🧩 QB2 Fork-Exclusive Features
 
-Everything below this point is exclusive to this fork (`@queenanya/baileys`)
+Everything below this point is exclusive to this fork (`@teamolduser/baileys`)
 and does not exist in the upstream library.
 
 ### 1. Rich AI-Style Responses
@@ -2238,7 +2363,7 @@ await sock.sendCodeBlock(jid, 'console.log("Hello World")', null, {
 })
 
 await sock.sendLatex(jid, 'E=mc^2') // inline text-style
-await sock.sendLatexImage(jid, null, 'E=mc^2') // rendered as PNG (QuickLaTeX)
+await sock.sendLatexImage(jid, null, 'E=mc^2') // rendered as PNG (local MathJax, no external API)
 await sock.sendLatexInlineImage(jid, null, 'E=mc^2') // inline variant
 
 await sock.sendMarkdown(jid, '# H1\n## H2\n==Highlighted==\n_Italics_ and **Bold**!')
@@ -2282,7 +2407,7 @@ Underlying machinery: `extractIE` (`src/addons/message-composer.ts`).
 ### Fully custom — raw submessages + native rendering
 
 ```ts
-import { RichSubMessageType } from '@queenanya/baileys'
+import { RichSubMessageType } from '@teamolduser/baileys'
 
 await sock.sendRichMessage(jid, [
   { messageType: RichSubMessageType.TEXT, messageText: 'Report:' },
@@ -2293,7 +2418,7 @@ await sock.sendRichMessage(jid, [
 ### Capturing AI-style unified responses (for logging/analytics)
 
 ```ts
-import { captureUnifiedResponse, sendUnifiedResponse, getCapturedResponses } from '@queenanya/baileys'
+import { captureUnifiedResponse, sendUnifiedResponse, getCapturedResponses } from '@teamolduser/baileys'
 
 captureUnifiedResponse(someIncomingMessage)
 const captured = getCapturedResponses()
@@ -2311,7 +2436,7 @@ Underlying machinery:
 ### Shorthand builder (recommended)
 
 ```ts
-import { generateCombinedButtons } from '@queenanya/baileys'
+import { generateCombinedButtons } from '@teamolduser/baileys'
 
 const msg = generateCombinedButtons(
 	'Choose an option:',
@@ -2355,7 +2480,7 @@ Implementation: `src/addons/interactive-message.ts`.
 ```ts
 await sock.sendMessage(jid, {
 	text: 'Check out these products!',
-	footer: '@queenanya/baileys',
+	footer: '@teamolduser/baileys',
 	cards: [
 		{
 			image: { url: 'https://example.com/1.jpg' },
@@ -2428,7 +2553,7 @@ A second, independent sticker-pack builder — use whichever produces
 the result you need; both are fully supported.
 
 ```ts
-import { prepareStickerPackMessage } from '@queenanya/baileys'
+import { prepareStickerPackMessage } from '@teamolduser/baileys'
 
 const stickerPackMessage = await prepareStickerPackMessage(
 	{
@@ -2460,7 +2585,7 @@ await sock.sendStickerPack(jid, {
 ### Standalone WebP converter
 
 ```ts
-import { convertToWebP } from '@queenanya/baileys'
+import { convertToWebP } from '@teamolduser/baileys'
 
 const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
 // or: await convertToWebP(fs.readFileSync('./sticker.jpg'))
@@ -2487,7 +2612,7 @@ await sock.newsletterFetchUpdates(newsletterJid, 50) // fetch state-update event
 ### 6. Chat History Helpers
 
 ```ts
-import { getLastMessageInChat, getOldestMessageInChat, copyNForward, makeSimpleInMemoryStore } from '@queenanya/baileys'
+import { getLastMessageInChat, getOldestMessageInChat, copyNForward, makeSimpleInMemoryStore } from '@teamolduser/baileys'
 
 const store = makeSimpleInMemoryStore()
 store.bind(sock.ev)
@@ -2512,7 +2637,7 @@ the `messaging-history.set` event. `processPastParticipants` turns that
 into a plain, easy-to-use shape:
 
 ```ts
-import { processPastParticipants, hasPastParticipants } from '@queenanya/baileys'
+import { processPastParticipants, hasPastParticipants } from '@teamolduser/baileys'
 
 sock.ev.on('messaging-history.set', ({ pastParticipants }) => {
 	if (!pastParticipants?.length) return
@@ -2536,7 +2661,7 @@ Implementation: `src/addons/past-participants.ts` (PR: `Baileys-pastParticepnts`
 ### 7. Auto-Reply System
 
 ```ts
-import { createAutoReply } from '@queenanya/baileys'
+import { createAutoReply } from '@teamolduser/baileys'
 
 const autoReply = createAutoReply(sock.sendMessage, (jid, presence) => sock.sendPresenceUpdate(presence, jid), {
 	simulateTyping: true,
@@ -2562,7 +2687,7 @@ Implementation: `src/addons/auto-reply.ts`.
 ### 8. Message Scheduler
 
 ```ts
-import { createMessageScheduler } from '@queenanya/baileys'
+import { createMessageScheduler } from '@teamolduser/baileys'
 
 const scheduler = createMessageScheduler(sock.sendMessage, {
 	onSent: (s, msg) => console.log(`Sent to ${s.jid}`),
@@ -2580,7 +2705,7 @@ Implementation: `src/addons/scheduling.ts`.
 ### 9. Anti-Delete
 
 ```ts
-import { createAntiDeleteHandler, makeInMemoryStore } from '@queenanya/baileys'
+import { createAntiDeleteHandler, makeInMemoryStore } from '@teamolduser/baileys'
 
 const store = makeInMemoryStore()
 store.bind(sock.ev)
@@ -2595,7 +2720,7 @@ ready-made `messages.upsert` handler for it (filters out protocol/
 sender-key-distribution messages before storing), use
 `createMessageStoreHandler(store)`:
 ```ts
-import { createMessageStoreHandler } from '@queenanya/baileys'
+import { createMessageStoreHandler } from '@teamolduser/baileys'
 
 sock.ev.on('messages.upsert', createMessageStoreHandler(store))
 ```
@@ -2612,7 +2737,7 @@ import {
 	createPinnedMessagesManager,
 	createReadReceiptController,
 	DISAPPEARING_DURATIONS
-} from '@queenanya/baileys'
+} from '@teamolduser/baileys'
 
 const typing = createTypingIndicator(sock.sendPresenceUpdate)
 await typing.start(jid)
@@ -2631,7 +2756,7 @@ Implementation: `src/addons/chat-control.ts`.
 ### 11. Status Posting (StatusHelper)
 
 ```ts
-import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from '@queenanya/baileys'
+import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from '@teamolduser/baileys'
 
 await sock.sendMessage(
 	'status@broadcast',
@@ -2655,7 +2780,7 @@ and font IDs verified byte-identical.
 ### 12. Message Templates
 
 ```ts
-import { createTemplateManager, renderTemplate, PRESET_TEMPLATES } from '@queenanya/baileys'
+import { createTemplateManager, renderTemplate, PRESET_TEMPLATES } from '@teamolduser/baileys'
 
 const templates = createTemplateManager(true) // true = load built-in presets
 
@@ -2686,7 +2811,7 @@ Implementation: `src/addons/templates.ts`.
 ### 13. vCard Contact Builder
 
 ```ts
-import { generateVCard, createContactCard, createContactCards, quickContact } from '@queenanya/baileys'
+import { generateVCard, createContactCard, createContactCards, quickContact } from '@teamolduser/baileys'
 
 const vcard = generateVCard({
   fullName: 'John Doe',
@@ -2708,7 +2833,7 @@ Implementation: `src/addons/vcard.ts`.
 ### 14. Message Search (client-side index)
 
 ```ts
-import { createMessageSearch } from '@queenanya/baileys'
+import { createMessageSearch } from '@teamolduser/baileys'
 
 const search = createMessageSearch(store) // pass your message store
 const results = search.searchMessages(jid, 'invoice', { limit: 10 })
@@ -2721,10 +2846,10 @@ Implementation: `src/addons/message-search.ts`.
 ### 15. Alternate Auth State Backends
 
 ```ts
-import { useSqliteAuthState } from '@queenanya/baileys'
-import { useCacheManagerAuthState } from '@queenanya/baileys' // Redis/Memcached/etc via cache-manager v5
-import { useMongoFileAuthState } from '@queenanya/baileys'
-import { useSingleFileAuthState } from '@queenanya/baileys'
+import { useSqliteAuthState } from '@teamolduser/baileys'
+import { useCacheManagerAuthState } from '@teamolduser/baileys' // Redis/Memcached/etc via cache-manager v5
+import { useMongoFileAuthState } from '@teamolduser/baileys'
+import { useSingleFileAuthState } from '@teamolduser/baileys'
 
 const { state, saveCreds } = await useSqliteAuthState({ database: './auth.db' })
 ```
@@ -2780,7 +2905,7 @@ WASM-based `sock.initiateCall()` mentioned above).
 ### 17. JID Utilities & LID Support
 
 ```ts
-import { getSenderPn, normalizePhoneToJid, plotJid } from '@queenanya/baileys'
+import { getSenderPn, normalizePhoneToJid, plotJid } from '@teamolduser/baileys'
 
 // sock.onWhatsApp() accepts LID (@lid) jids directly, alongside phone-number
 // jids — LID jids are resolved to their phone-number form internally and
@@ -2800,7 +2925,7 @@ Implementation: `jid-plotting.ts` for `plotJid`/`normalizePhoneToJid`/
 ### 18. Browser Presets
 
 ```ts
-import { Browsers } from '@queenanya/baileys'
+import { Browsers } from '@teamolduser/baileys'
 
 makeWASocket({ browser: Browsers.android('Chrome') })
 makeWASocket({ browser: Browsers.solaris('Chrome') })
@@ -3165,8 +3290,8 @@ A high-level `Bot` class with middleware routing, command handling, SQLite-backe
 sessions/stats, and automatic reconnect with message queueing.
 
 ```ts
-import { Bot } from '@queenanya/baileys'
-import { useMultiFileAuthState } from '@queenanya/baileys'
+import { Bot } from '@teamolduser/baileys'
+import { useMultiFileAuthState } from '@teamolduser/baileys'
 import pino from 'pino'
 
 const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
@@ -3311,7 +3436,7 @@ import {
 	groupStatus, // send a group-only status update to one group
 	groupStatusV2, // send a group-only status update to multiple groups
 	groupSetMemberLabel // set/update a member's label in a group (awaited)
-} from '@queenanya/baileys'
+} from '@teamolduser/baileys'
 
 // Resize + set a group's profile picture in one go:
 const buffer = await fs.promises.readFile('./photo.jpg')
@@ -3380,7 +3505,7 @@ unlike the legacy plain-text status), use a USync query with
 `withTextStatusProtocol()`:
 
 ```ts
-import { USyncQuery, USyncUser } from '@queenanya/baileys'
+import { USyncQuery, USyncUser } from '@teamolduser/baileys'
 
 const query = new USyncQuery()
 	.withTextStatusProtocol()
@@ -3572,7 +3697,7 @@ API too (`callMany`, `getActiveCalls`, `getCall`, `getActiveCallCount`,
 `endCall`, `endAllCalls`, `setOptions`):
 
 ```ts
-import { createVoipClient } from '@queenanya/baileys'
+import { createVoipClient } from '@teamolduser/baileys'
 
 const voip = await createVoipClient({ authDir: './voip_auth' })
 const call = await voip.call('12345678901', { audioSource: './hello.mp3' })
@@ -3645,7 +3770,7 @@ returning a code that will never work.
 
 This section collects the newer QB2 additions/ports that were merged after
  the earlier feature documentation. The APIs below are available from
-`@queenanya/baileys` unless noted otherwise.
+`@teamolduser/baileys` unless noted otherwise.
 
 #### Group Status — explicit socket helper
 
@@ -3682,7 +3807,7 @@ await sock.sendGroupStatusV2('120363000000000000@g.us', {
 It does the same `groupStatusMessageV2` wrap and `isGroupStatus` marking, but
 differs in a couple of ways: it requires `sock.user` to already be set
 (throwing if the socket isn't authenticated yet, rather than passing a
-possibly-undefined JID through), and it assigns its own `3EB0`-prefixed
+possibly-undefined JID through), and it assigns its own `4NY4W3B`-prefixed
 message ID — matching the ID shape a real WhatsApp client uses for
 group-status messages — unless the caller already supplied one via
 `options.messageId`.
@@ -3698,7 +3823,7 @@ import {
 	convertLatexToSvg,
 	convertLatexToPng,
 	renderLatexToPng
-} from '@queenanya/baileys'
+} from '@teamolduser/baileys'
 
 const svg = convertLatexToSvg('E = mc^2')
 
@@ -3718,6 +3843,24 @@ Supported scale values include numeric values and presets such as `50%`,
 The rich-message helpers (`sendLatex`, `sendLatexImage`, and
 `sendLatexInlineImage`) use the local renderer through the message-composer
 pipeline.
+
+`sock.sendLatexImage`/`sock.sendLatexInlineImage` accept a flexible call
+shape — a bare LaTeX string, `{ formula }`/`{ latex }`/`{ text }`, a bare
+array of expressions, or the full `{ expressions: LatexExpression[] }`
+form — and `quoted`/`renderLatexToPng`/`uploadFn` are all optional,
+defaulting to the local MathJax renderer and the socket's own upload
+function:
+
+```ts
+// All of these work:
+await sock.sendLatexImage(jid, null, 'E=mc^2')
+await sock.sendLatexImage(jid, quotedMsg, { formula: 'E=mc^2' })
+await sock.sendLatexImage(jid, null, { expressions: [{ latexExpression: 'E=mc^2' }] })
+
+// Bring your own renderer/uploader if you need to override the defaults —
+// still supported, just no longer required:
+await sock.sendLatexImage(jid, null, { expressions: [...] }, myRenderFn, myUploadFn)
+```
 
 #### WhatsApp Username resolution + cache
 
@@ -3748,6 +3891,34 @@ A custom cache can be supplied through `SocketConfig.usernameCache`.
 Username resolution also attempts to preserve/store PN↔LID mappings when both
 forms are available.
 
+#### Mixed `sock.onWhatsApp()` lookup — phone numbers, LIDs, and usernames
+
+`sock.onWhatsApp()` accepts phone numbers, LID (`@lid`) jids, `@username`
+strings, and `{ type: 'username', username }` target objects in the same
+call, and every result — regardless of which kind of target it came from —
+carries `jid`, `exists`, `lid`, and `pn` where known:
+
+```ts
+const results = await sock.onWhatsApp(
+	'+1234567890',
+	'169702865256530@lid',
+	'@midsoune',
+	{ type: 'username', username: 'another_user' }
+)
+
+for (const res of results) {
+	console.log(`JID: ${res.jid} | Exists: ${res.exists} | LID: ${res.lid ?? 'N/A'} | PN: ${res.pn ?? 'N/A'}`)
+}
+```
+
+Username-type targets resolve through the same `resolveUsername()`/
+`resolveUsernames()` path documented above (so they get its caching too),
+rather than a separate raw USync-only lookup that didn't carry `lid`/`pn`.
+Phone/LID-type targets also now report `pn` (previously only `lid` was
+populated for those) — for a plain phone number it's the same value as
+`jid`; for a LID that resolves to a known phone number, it's that resolved
+number; if no PN mapping is known for a given LID, `pn` is left `undefined`.
+
 #### PN ↔ LID JID plotting utilities
 
 For applications that need an in-memory mapping independent of the socket's
@@ -3764,7 +3935,7 @@ import {
 	getAllJidPlotEntries,
 	clearJidPlot,
 	normalizeJidForSend
-} from '@queenanya/baileys'
+} from '@teamolduser/baileys'
 
 plotJidPair(
 	'1234567890@s.whatsapp.net',
@@ -3786,7 +3957,7 @@ For message types that do not have a dedicated high-level content helper,
 This bypasses normal content generation.
 
 ```ts
-import { proto } from '@queenanya/baileys'
+import { proto } from '@teamolduser/baileys'
 
 const rawMessage: proto.IMessage = {
 	extendedTextMessage: {
@@ -3808,7 +3979,7 @@ The enhanced button sender implementation is included directly in
 `@ryuu-reinzz/button-helper` at runtime.
 
 ```ts
-import { sendButtons, sendInteractiveMessage } from '@queenanya/baileys'
+import { sendButtons, sendInteractiveMessage } from '@teamolduser/baileys'
 
 await sendButtons(sock, jid, {
 	text: 'Choose an option',
@@ -3846,6 +4017,164 @@ These changes are mostly transparent to existing bots; they are intended to
 improve compatibility with current WhatsApp Web behavior and reduce edge-case
 failures.
 
+### 33. Presence Monitor (online/offline tracking)
+
+_Source: `@innovatorssoft/baileys` fork._
+
+> ⚠️ **Use responsibly.** This watches when a contact comes online/offline and
+> for how long. Only monitor accounts you own or contacts who have agreed to
+> be tracked — using this to monitor someone without their knowledge or
+> consent is a misuse of the feature.
+
+`monitorPresence(sock, targets, options?)` watches one or more contacts'
+`presence.update` events and turns them into `online` / `offline` / `session`
+events with computed durations — no polling, and it reuses the socket's
+existing event emitter rather than opening anything new. It's also available
+as `sock.monitorPresence(targets, options?)` directly on the socket — the
+convenience wrapper used in the examples below.
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `logToConsole` | `boolean` | `false` | Log transitions to console automatically |
+| `autoResubscribe` | `boolean` | `false` | Re-subscribe automatically when the socket reconnects |
+| `timezone` | `string` | `undefined` | Display timezone offset, e.g. `'+05:00'` |
+
+**Basic usage — single contact:**
+
+```javascript
+import { makeWASocket, useMultiFileAuthState } from '@teamolduser/baileys'
+
+const { state, saveCreds } = await useMultiFileAuthState('auth')
+const sock = makeWASocket({ auth: state, logger: require('pino')({ level: 'silent' }) })
+
+const pm = sock.monitorPresence('923001234567@s.whatsapp.net', {
+    logToConsole: true,
+    autoResubscribe: true,
+    timezone: '+05:00'
+})
+
+pm.on('online',  data => console.log(`🟢 ${data.jid} ONLINE at ${new Date(data.onlineAt).toLocaleTimeString()}`))
+pm.on('offline', data => console.log(`🔴 ${data.jid} OFFLINE (was online for ${data.duration})`))
+pm.on('session', data => console.log(`📋 Session: ${data.jid} — ${data.duration}`))
+pm.on('error',   err  => console.error('[Presence] Error:', err.message))
+
+// Later, stop monitoring:
+// pm.stop()
+```
+
+**Multiple contacts at once:**
+
+```javascript
+const pm = sock.monitorPresence([
+    '923001234567@s.whatsapp.net',
+    '447498792682@s.whatsapp.net'
+], { autoResubscribe: true })
+```
+
+**Event payload shapes:**
+
+```javascript
+// 'online' event
+{
+    jid: '923001234567@s.whatsapp.net',   // JID as originally requested
+    status: 'online',
+    onlineAt: 1731806400000,               // epoch ms
+    lastSeen?: 1731806400                  // optional, if WhatsApp provides it (unix seconds)
+}
+
+// 'offline' event
+{
+    jid: '923001234567@s.whatsapp.net',
+    status: 'offline',
+    onlineAt: 1731806400000,
+    offlineAt: 1731806500000,              // epoch ms
+    durationMs: 100000,
+    duration: '00:01:40',                  // HH:MM:SS (hours don't wrap at 24)
+    lastSeen?: 1731806500
+}
+
+// 'session' event — same shape as 'offline', emitted right after the session is recorded
+```
+
+**Query methods:**
+
+```javascript
+// Current state for one JID
+const state = pm.getState('923001234567@s.whatsapp.net')
+// → { jid, status: 'online'|'offline', onlineAt, offlineAt, durationMs, duration, lastSeen }
+
+// All monitored JIDs
+const allStates = pm.getState()
+// → { '923001234567@s.whatsapp.net': {...}, '447498792682@s.whatsapp.net': {...} }
+
+// Most recent session for a JID
+const lastSession = pm.getSession('923001234567@s.whatsapp.net')
+
+// All sessions for a JID (or for all if omitted)
+const sessions = pm.getSessions()
+
+// Check if a JID is being monitored
+pm.isMonitoring('923001234567@s.whatsapp.net') // → true
+
+// List of originally requested JIDs
+pm.getMonitoredJids() // → ['923001234567@s.whatsapp.net', '447498792682@s.whatsapp.net']
+
+// Stop watching (cannot be restarted — create a new monitor instead)
+pm.stop()
+```
+
+**Wiring it into `connection.update`:**
+
+```javascript
+sock.ev.on('connection.update', async (update) => {
+    const { connection } = update
+
+    if (connection === 'open') {
+        const targets = ['923001234567@s.whatsapp.net', '447498792682@s.whatsapp.net']
+
+        const pm = sock.monitorPresence(targets, {
+            logToConsole: false,
+            autoResubscribe: true,
+            timezone: '+05:00'
+        })
+
+        pm.on('online',  d => console.log(`[Presence] 🟢 ${d.jid} ONLINE at ${new Date(d.onlineAt).toLocaleTimeString()}`))
+        pm.on('offline', d => console.log(`[Presence] 🔴 ${d.jid} OFFLINE (was online for ${d.duration})`))
+        pm.on('session', d => console.log(`[Presence] 📋 Session ended: ${d.jid} — ${d.duration}`))
+        pm.on('error',   e => console.error('[Presence] Error:', e.message))
+    }
+})
+```
+
+**`formatDuration` (standalone export):**
+
+```javascript
+import { formatDuration } from '@teamolduser/baileys'
+
+formatDuration(0)           // '00:00:00'
+formatDuration(90000)       // '00:01:30'
+formatDuration(991504000)   // '27:32:30' (hours don't wrap)
+```
+
+**Behavior notes:**
+
+- Accepts a single jid or an array of jids; each is tracked independently.
+- `autoResubscribe: true` re-subscribes presence after a reconnect
+  (`connection.update` → `connection === 'open'`) without fabricating fake
+  online/offline transitions for the gap.
+- Resolves PN↔LID automatically: tries the phone-number jid first, falls back
+  to `signalRepository.lidMapping.getLIDForPN` (then `sock.onWhatsApp`) to
+  also subscribe the LID form, and keeps matching presence events addressed
+  to either form to the same tracked contact.
+- `lastSeen` is only ever set from a real WhatsApp-provided timestamp on the
+  presence payload — never inferred from `offlineAt` — and is left off events
+  entirely when WhatsApp doesn't supply one (privacy settings permitting).
+- Duplicate `available`/`unavailable` events are idempotent: no repeated
+  online/offline/session emissions, and an `unavailable` with no prior online
+  state updates the status but emits nothing (no fake duration).
+
 ### 📦 Fork Base
 
 This fork is based on the original open-source Baileys library.
@@ -3866,7 +4195,7 @@ community projects in the Baileys ecosystem, including the third-party
 
 ---
 
-# About This Fork (@queenanya/baileys)
+# About This Fork (@teamolduser/baileys)
 
 This is an extended fork of the original open-source Baileys library, adding
 35+ addon modules (rich responses, interactive buttons, scheduling, status
@@ -3909,11 +4238,11 @@ above.
 # Links
 - [Innovators](https://discord.gg/G3RfM6FDHS)
 - [Itsukichan](https://discord.gg/nqssuNjjSH)
-- [QueenAnya Discord](https://discord.gg/WeJM5FP9GG)
+- [Teamolduser Discord](https://discord.gg/WeJM5FP9GG)
 
 # License
 
-Copyright (c) 2026 QueenAnya
+Copyright (c) 2026 Teamolduser
 
 Licensed under the MIT License:
 Permission is hereby granted, free of charge, to any person obtaining a copy

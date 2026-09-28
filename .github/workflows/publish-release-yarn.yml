@@ -87,27 +87,27 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (as @queenanya/baileys in regular)
+      - name: Publish in NPM (as @teamolduser/baileys in regular)
         # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
         if: steps.get_previous_version.outputs.is_beta == 'false'
         run: |
           npm publish --access public --provenance
-          npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+          npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (@teamolduser/baileys in regular)
-        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
-        if: steps.get_previous_version.outputs.is_beta == 'false'
-        run: |
-          npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          npm publish --access public --provenance --//registry.npmjs.org/:_authToken=$NPM_TOKEN
-          npm deprecate @teamolduser/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
-          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # - name: Publish in NPM (@queenanya/baileys in regular)
+      #   # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
+      #   if: steps.get_previous_version.outputs.is_beta == 'false'
+      #   run: |
+      #     npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+      #     npm publish --access public --provenance --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+      #     npm deprecate @queenanya/baileys@"< ${{ github.ref_name }}" "This version is outdated, please upgrade to the latest version."
+      #     npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+      #   env:
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (as @queenanya/baileys in prerelease)
+      - name: Publish in NPM (as @teamolduser/baileys in prerelease)
         # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
         if: steps.get_previous_version.outputs.is_beta == 'true'
         run: |
@@ -115,15 +115,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish in NPM (@teamolduser/baileys in prerelease)
-        # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
-        if: steps.get_previous_version.outputs.is_beta == 'true'
-        run: |
-          npx json -I -f package.json -e "this.name='@teamolduser/baileys'"
-          npm publish --access public --provenance --tag ${{ steps.get_previous_version.outputs.prerelease_tag }} --//registry.npmjs.org/:_authToken=$NPM_TOKEN
-          npx json -I -f package.json -e "this.name='@queenanya/baileys'"
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # - name: Publish in NPM (@queenanya/baileys in prerelease)
+      #   # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'true'
+      #   if: steps.get_previous_version.outputs.is_beta == 'true'
+      #   run: |
+      #     npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+      #     npm publish --access public --provenance --tag ${{ steps.get_previous_version.outputs.prerelease_tag }} --//registry.npmjs.org/:_authToken=$NPM_TOKEN
+      #     npx json -I -f package.json -e "this.name='@queenanya/baileys'"
+      #   env:
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Generate Changelog
         id: generate_changelog

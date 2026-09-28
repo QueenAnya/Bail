@@ -1,4 +1,4 @@
-// NOTE: @queenanya/baileys is a pure ESM package ("type": "module"), so unlike
+// NOTE: @teamolduser/baileys is a pure ESM package ("type": "module"), so unlike
 // Since the original CommonJS file this is based on uses `require`, this file uses `import` instead of
 // `require`. Everything below this block is otherwise unchanged from the original.
 import { makeWASocket, useMultiFileAuthState } from '../../lib/index.js';

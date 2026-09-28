@@ -66,6 +66,9 @@ export * from './vcard'
 export * from './status-posting'
 export * from './send-group-status'
 export * from './send-group-status-v2'
+export * from './send-group-v4-invite'
+export * from './group-status'
+export * from './group-status-v2'
 // status-helpers.ts is kept in this folder as a pure, unmodified-scope
 // alternate implementation (no StatusMentions extras) — but its 12 core functions
 // (createTextStatus, createImageStatus, StatusHelper, etc.) are exact
@@ -186,3 +189,7 @@ export * from './find-user-id'
 // ── Past Participants — process history-sync pastParticipants into a
 //    structured, easy-to-use shape ─────────────────────────────────────────
 export * from './past-participants'
+
+// ── Presence Monitor — online/offline transition tracking with sessions
+//    (ported from @innovatorssoft/baileys) ─────────────────────────────────
+export * from './presence-monitor'

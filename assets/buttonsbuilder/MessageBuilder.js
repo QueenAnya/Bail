@@ -2,7 +2,7 @@
 
 const VERSION = '4.6';
 
-// NOTE: @queenanya/baileys is a pure ESM package ("type": "module"), so unlike
+// NOTE: @teamolduser/baileys is a pure ESM package ("type": "module"), so unlike
 // Since the original CommonJS file this is based on uses `require`, this file uses `import` instead of
 // `require`. Everything below this block is otherwise unchanged from the original.
 import { generateWAMessageFromContent, prepareWAMessageMedia } from '../../lib/index.js';
@@ -10,7 +10,7 @@ import crypto from 'crypto';
 import ffmpeg from 'fluent-ffmpeg';
 import { PassThrough, Readable } from 'stream';
 // sharp is an *optional* peer dep (peerDependenciesMeta marks it optional) so that
-// @queenanya/baileys stays installable on platforms where sharp's native build fails —
+// @teamolduser/baileys stays installable on platforms where sharp's native build fails —
 // matches the lazy-import pattern already used in src/Utils/messages-media.ts. It's
 // loaded on demand below so this module doesn't hard-crash for consumers who never
 // call Toolkit.resize(). fluent-ffmpeg is a regular dependency (always installed).

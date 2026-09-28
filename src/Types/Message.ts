@@ -675,6 +675,33 @@ export type GroupInviteInfo = {
 	subject: string
 }
 
+/**
+ * Payload for the low-level v4 group-invite message, sent directly to a
+ * single participant (bypasses the auto profile-picture fetch that
+ * `content.groupInvite` does — pass `jpegThumbnail` yourself here).
+ * Used by `sock.sendGroupV4Invite` / `sock.sendGroupInviteV4`, and by
+ * `sock.sendMessage(jid, { sendGroupV4Invite: ... })` /
+ * `sock.sendMessage(jid, { sendGroupInviteV4: ... })`.
+ */
+export type GroupV4InviteContent = {
+	groupJid: string
+	inviteCode: string
+	inviteExpiration?: number
+	groupName?: string
+	caption?: string
+	jpegThumbnail?: Buffer
+}
+
+/** Per-participant outcome of `sock.sendGroupInvite(groupJid, user)`. */
+export type GroupInviteAttemptResult = {
+	jid: string
+	/** Raw status code from `groupParticipantsUpdate` ('200' on success, '403' when refused, etc.) */
+	status: string
+	/** true if a v4 group invite was sent as a fallback instead of a direct add. */
+	invited: boolean
+	message: string
+}
+
 export type WASendableProduct = Omit<proto.Message.ProductMessage.IProductSnapshot, 'productImage'> & {
 	productImage: WAMediaUpload
 }
@@ -797,6 +824,12 @@ export type AnyRegularMessageContent = (
 	  }
 	| {
 			groupInvite: GroupInviteInfo
+	  }
+	| {
+			sendGroupV4Invite: GroupV4InviteContent
+	  }
+	| {
+			sendGroupInviteV4: GroupV4InviteContent
 	  }
 	| {
 			listReply: Omit<proto.Message.IListResponseMessage, 'contextInfo'>

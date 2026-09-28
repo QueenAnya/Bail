@@ -41,13 +41,13 @@ jobs:
 
             ```
             # NPM
-            npm install @queenanya/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
+            npm install @teamolduser/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
 
             # Yarn (v2+)
-            yarn add @queenanya/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
+            yarn add @teamolduser/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
 
             # PNPM
-            pnpm add @queenanya/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
+            pnpm add @teamolduser/baileys@${{ github.event.pull_request.head.repo.full_name }}#${{ github.event.pull_request.head.ref }}
             ```
 
             If you encounter any issues or have feedback, feel free to comment as well.

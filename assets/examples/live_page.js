@@ -467,7 +467,7 @@ body {
   </div>
 
   <div class="footer">
-    ⚡ QUEENANYA BAILEYS · TIKDOWN LIVE GENAI WEB INTERFACE
+    ⚡ TEAMOLDUSER BAILEYS · TIKDOWN LIVE GENAI WEB INTERFACE
   </div>
 </div>
 

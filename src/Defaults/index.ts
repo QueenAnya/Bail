@@ -40,7 +40,7 @@ export const URL_REGEX = /https:\/\/(?![^:@\/\s]+:[^:@\/\s]+@)[a-zA-Z0-9.-]+\.[a
  *  (native-flow limited-time-offer, externalAdReply shorthand) without
  *  supplying their own URL. Point this at your own project/site — update
  *  freely. */
-export const FALLBACK_LINK_URL = 'https://github.com/QueenAnya/Bail/'
+export const FALLBACK_LINK_URL = 'https://github.com/Teamolduser/Bail/'
 
 export const WA_CERT_DETAILS = {
 	SERIAL: 0,
@@ -185,7 +185,7 @@ export const LEXER_REGEX =
 	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\b[a-zA-Z_]\w*\b)(?=\s*\()|(\b[a-zA-Z_]\w*\b)|(\b\d+(?:\.\d+)?\b)|(\s+|[^\w\s]+)/g
 
 /** Fallback donate/reference URL used by rich-message link entities. */
-export const DONATE_URL = 'https://github.com/QueenAnya/Bail'
+export const DONATE_URL = 'https://github.com/Teamolduser/Bail'
 
 /**
  * Support payload for AI/Bot messages — injected into messageContextInfo.supportPayload.

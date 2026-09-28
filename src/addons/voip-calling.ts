@@ -26,7 +26,7 @@
  * dependency required.
  *
  * ── Usage ─────────────────────────────────────────────────────────────────────
- *   import { createVoipClient } from '@queenanya/baileys'
+ *   import { createVoipClient } from '@teamolduser/baileys'
  *
  *   const voip = await createVoipClient({ authDir: './voip_auth' })
  *   const call = await voip.call('12345678901', { audioSource: './hello.mp3' })

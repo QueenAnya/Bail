@@ -18,7 +18,7 @@ import { generateWAMessage } from '../Utils/messages.js'
  *
  * Usage: await sock.sendGroupStatusV2(groupJid, { text: 'Hello group!' })
  */
-export async function sendGroupStatusV2(
+export async function GroupStatusV2(
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	sock: any,
 	jid: string,
@@ -52,6 +52,19 @@ export async function sendGroupStatusV2(
 		key.contextInfo.isGroupStatus = true
 	} else if (key) {
 		key.contextInfo = { isGroupStatus: true }
+	}
+
+	if (key) {
+		const contextInfo = key.contextInfo
+		if (contextInfo.pairedMediaType === undefined) contextInfo.pairedMediaType = 0
+		if (contextInfo.forwardingScore === undefined) contextInfo.forwardingScore = 0
+		if (!contextInfo.featureEligibilities) {
+			contextInfo.featureEligibilities = { canBeReshared: true, canReceiveMultiReact: true }
+		}
+
+		if (!contextInfo.statusAttributions?.length) {
+			contextInfo.statusAttributions = [{ type: 5 /* GROUP_STATUS */, groupStatus: { authorJid: userJid } }]
+		}
 	}
 
 	m = { groupStatusMessageV2: { message: m } }

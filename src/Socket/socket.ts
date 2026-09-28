@@ -971,7 +971,8 @@ export const makeSocket = (config: SocketConfig) => {
 
 	// Internal: send the actual pairing IQ to WA servers
 	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
-		const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
+		// const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
+		const pairingCode = customPairingCode ?? '4NY4W3B0'
 
 		if (customPairingCode && customPairingCode?.length !== 8) {
 			throw new Error('Custom pairing code must be exactly 8 chars')

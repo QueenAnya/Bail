@@ -160,7 +160,7 @@ export const prepareStickerPackMessage = async (
 		cover,
 		stickers = [],
 		name = '📦 Sticker Pack',
-		publisher = '@queenanya/baileys',
+		publisher = '@teamolduser/baileys',
 		description = '🏷️ QB2 Sticker Pack'
 	} = message
 
