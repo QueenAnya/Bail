@@ -66,8 +66,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f nightly
-          git push origin nightly --force
+          git tag -f nightly-build
+          git push origin nightly-build --force
 
       - name: Update Nightly Release
         uses: meeDamian/github-release@2.0
@@ -75,7 +75,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: nightly
+          tag: nightly-build
           commitish: ${{ github.sha }}
           name: Nightly Release
           body: ${{ steps.generate_changelog.outputs.changelog }}
