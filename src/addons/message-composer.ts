@@ -985,12 +985,16 @@ export const extractIE = (
 
 // ── Context / wrapper helpers ─────────────────────────────────────────────────
 
-export const buildRichContextInfo = (quoted?: QuotedMsg): Record<string, unknown> => {
+export const buildRichContextInfo = (
+	quoted?: QuotedMsg,
+	options: { botJid?: string; mentions?: string[] } = {}
+): Record<string, unknown> => {
 	const ctxInfo: Record<string, unknown> = {
 		forwardingScore: 1,
 		isForwarded: true,
-		forwardedAiBotMessageInfo: { botJid: '867051314767696@bot' },
-		forwardOrigin: 4
+		forwardedAiBotMessageInfo: { botJid: options.botJid ? options.botJid : '867051314767696@bot' },
+		forwardOrigin: 4,
+		...(options.mentions ? { mentionedJid: options.mentions } : {})
 	}
 	if (quoted?.key) {
 		ctxInfo.stanzaId = quoted.key.id
@@ -1008,9 +1012,15 @@ export const buildBotForwardedMessage = (
 ): proto.IMessage => {
 	const richResponse: Record<string, unknown> = { messageType: 1, submessages, contextInfo }
 	if (unifiedResponse) richResponse.unifiedResponse = unifiedResponse
+	// WhatsApp only renders a user-sent rich response when it is wrapped in the
+	// botForwardedMessage envelope; a bare top-level richResponseMessage is dropped.
 	return {
-		richResponseMessage: richResponse
-	}
+		botForwardedMessage: {
+			message: {
+				richResponseMessage: richResponse
+			}
+		}
+	} as proto.IMessage
 }
 
 // ── Generators ────────────────────────────────────────────────────────────────
@@ -1227,7 +1237,28 @@ const buildUnifiedResponseSections = (submessages: RichSubMessage[], extractOpti
 			}
 		}
 
-		// TEXT (and default fallback)
+		if (sm.messageType === RichSubMessageType.INLINE_IMAGE && (sm as any).imageMetadata) {
+			const img = (sm as any).imageMetadata
+			return {
+				view_model: {
+					primitive: {
+						media: {
+							url: img.imageUrl?.imageHighResUrl || img.imageUrl?.imagePreviewUrl,
+							mime_type: 'image/png'
+						},
+						imagine_type: 'IMAGE',
+						status: { status: 'READY' },
+						__typename: 'GenAIImaginePrimitive'
+					},
+					__typename: 'GenAISingleLayoutViewModel'
+				}
+			}
+		}
+
+		// submessage kinds that have no unified-response primitive are skipped, not sent as empty text
+		if (sm.messageType !== RichSubMessageType.TEXT && sm.messageType !== undefined) return null
+
+		// TEXT
 		const extracted = extractIE((sm as { messageText?: string }).messageText ?? '', extractOptions)
 		const providedEntities = (sm as { inlineEntities?: InlineEntityItem[] }).inlineEntities ?? []
 		return {
@@ -1240,7 +1271,7 @@ const buildUnifiedResponseSections = (submessages: RichSubMessage[], extractOpti
 				__typename: 'GenAISingleLayoutViewModel'
 			}
 		}
-	})
+	}).filter(Boolean)
 })
 
 export type GenerateRichMessageOptions = { useMarkdown?: boolean } & ExtractOptions
@@ -1250,11 +1281,19 @@ export const generateRichMessageContent = (
 	quoted?: QuotedMsg,
 	options: GenerateRichMessageOptions = {}
 ): RichMessageContent => {
-	const unifiedResponse = options.useMarkdown
-		? { data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages, options))).toString('base64') }
-		: undefined
+	// allow sendRichMessage(jid, submessages, { useMarkdown: true }) (options in the quoted slot)
+	if (quoted && !(quoted as any).key && !(quoted as any).message && typeof quoted === 'object') {
+		options = quoted as unknown as GenerateRichMessageOptions
+		quoted = undefined
+	}
+
+	const unifiedResponse =
+		(options as any).unifiedResponse ??
+		(options.useMarkdown
+			? { data: Buffer.from(JSON.stringify(buildUnifiedResponseSections(submessages, options))).toString('base64') }
+			: undefined)
 	return {
-		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted), unifiedResponse),
+		message: buildBotForwardedMessage(submessages, buildRichContextInfo(quoted, options as any), unifiedResponse),
 		messageId: generateMessageID()
 	}
 }

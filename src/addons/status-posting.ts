@@ -117,7 +117,6 @@ export const StatusHelper = {
 			//  - `groupStatus: true` (top-level) — this is the one WA's
 			//    server is confirmed to expect.
 			//  - `isGroupStatus: true` (nested in contextInfo) — the original
-			//    teamolduser field/placement, kept alongside in case any code
 			//    path (older WA client versions, other tooling) reads it from
 			//    there instead. Harmless extra data if unused.
 			const groupContent = {

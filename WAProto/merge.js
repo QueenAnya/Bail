@@ -1,5 +1,5 @@
 // Merge-only bridge for the innovatorssoft WAProto additions (AICommon, E2E,
-// HistorySync, etc.) -- existing qb2 proto message constructors are
+// HistorySync, etc.) -- existing proto message constructors are
 // deliberately preserved when a name collides.
 //
 // These subfolder modules are genuine ESM (regenerated via `pbjs -w es6`,

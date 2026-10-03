@@ -34,10 +34,12 @@ export class USyncUsernameProtocol implements USyncQueryProtocol {
 				return node.content
 			}
 
-			if (Buffer.isBuffer(node.content)) {
+			if (Buffer.isBuffer(node.content) || node.content instanceof Uint8Array) {
 				return Buffer.from(node.content as Uint8Array).toString('utf-8')
 			}
 
+			if (node.attrs?.val) return node.attrs.val
+			if (node.attrs?.username) return node.attrs.username
 			return null
 		}
 

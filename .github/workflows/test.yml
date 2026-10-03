@@ -43,5 +43,10 @@ jobs:
           yarn install --mode=update-lockfile
           yarn install --no-immutable
 
+      - name: Install ffmpeg (needed by Voip tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Run tests
         run: yarn test

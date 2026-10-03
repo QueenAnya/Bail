@@ -23,8 +23,7 @@ import { encodeBinaryNode } from '../WABinary/encode'
 import { getAllBinaryNodeChildren, getBinaryNodeChild } from '../WABinary/generic-utils'
 import { jidDecode, jidEncode, jidNormalizedUser } from '../WABinary/jid-utils'
 
-/** Structural surface of the teamolduser socket this bridge needs. Any layer
- *  of the socket (Socket/socket.ts, messages-send.ts, messages-recv.ts, or
+/**  of the socket (Socket/socket.ts, messages-send.ts, messages-recv.ts, or
  *  the fully-composed sock) satisfies this — see Voip/voip-engine.ts. */
 export type BaileysSocket = {
 	authState: { creds: any; keys: any }
@@ -239,7 +238,6 @@ export class SignalingBridge {
 	}
 
 	discoverPeerDevices = async (peerLidJid: string): Promise<string[]> => {
-		// teamolduser's getUSyncDevices is (jids, useCache, ignoreZeroDevices) —
 		// different param order/semantics than upstream baileys-caller's
 		// (jids, ignoreZeroDevices, forceQuery). useCache: true (don't force a
 		// fresh query), ignoreZeroDevices: true (skip users reporting 0 devices).

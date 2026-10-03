@@ -2,7 +2,7 @@ import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import type Long from 'long'
 import { proto } from '../../WAProto/index.js'
-const baileysVersion = [2, 3000, 1047543106] // fallback WA client version — client_revision from https://web.whatsapp.com/sw.js
+const baileysVersion = [2, 3000, 1048873846] // fallback WA client version — client_revision from https://web.whatsapp.com/sw.js
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -602,4 +602,28 @@ export function bytesToCrockford(buffer: Buffer): string {
 
 export function encodeNewsletterMessage(message: proto.IMessage): Uint8Array {
 	return proto.Message.encode(message).finish()
+}
+
+/** Escapes every character of a string into its `\uXXXX` unicode form */
+export function toUnicodeEscape(text: string): string {
+	return text
+		.split('')
+		.map(char => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'))
+		.join('')
+}
+
+/** Reverses {@link toUnicodeEscape} — decodes `\uXXXX` sequences back into characters */
+export function fromUnicodeEscape(escapedText: string): string {
+	return escapedText.replace(/\\u[\dA-Fa-f]{4}/g, match => String.fromCharCode(parseInt(match.slice(2), 16)))
+}
+
+/** Encodes a string into an array of char codes (ASCII values) */
+export function asciiEncode(text: string): number[] {
+	return text.split('').map(c => c.charCodeAt(0))
+}
+
+/** Decodes an array (or spread) of char codes back into a string */
+export function asciiDecode(...codes: number[] | [number[]]): string {
+	const codeArray = Array.isArray(codes[0]) ? (codes[0] as number[]) : (codes as number[])
+	return codeArray.map(c => String.fromCharCode(c)).join('')
 }

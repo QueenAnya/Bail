@@ -254,7 +254,7 @@ async function startBot() {
                         ['Member 4', 'Product Owner', 'Meeting', '12']
                     ], message, {
                         headerText: 'Here is the current team status table:',
-                        footer: 'Generated automatically by Teamolduser Baileys V2 Bot.'
+                        footer: 'Powered by @teamolduser/baileys'
                     });
                     break;
                 }
@@ -324,7 +324,7 @@ async function startBot() {
                     break;
                 }
                 case '!markdown': {
-                    const mdText = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n\n___\n\n> To use a horizontal line, you need to have two "\\n" above and below the "___"\n==Highlighted text==\n# By the way, ^you^ can _mix_ ==multiple markdowns== for a **richer response**\n🔗 [Click here to visit Google](https://google.com)\n🔗 [GitHub Repository](https://github.com/Teamolduser/Bail)\n###### Try different combinations... ';
+                    const mdText = '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n\n___\n\n> To use a horizontal line, you need to have two "\\n" above and below the "___"\n==Highlighted text==\n# By the way, ^you^ can _mix_ ==multiple markdowns== for a **richer response**\n🔗 [Click here to visit Google](https://google.com)\n🔗 [GitHub Repository](https://github.com/Teamolduser/Baileys)\n###### Try different combinations... ';
                     await sock.sendMarkdown(normalizedJid, mdText, message);
                     break;
                 }
@@ -381,7 +381,7 @@ async function startBot() {
                                 title: 'Product Prices',
                                 rows: [
                                     { items: ['Product', 'Price', 'Stock'], isHeading: true },
-                                    { items: ['Teamolduser Baileys Pro', '$49.99', 'In Stock'] },
+                                    { items: ['Powered by @teamolduser/baileys', '$49.99', 'In Stock'] },
                                     { items: ['Rust WASM Plugin', '$19.99', 'Low Stock'] }
                                 ]
                             }
@@ -429,19 +429,19 @@ async function startBot() {
                             { buttonId: 'btn2', buttonText: { displayText: 'Option 2' }, type: 1 }
                         ],
                         text: 'Pick an option:',
-                        footer: 'Powered by Teamolduser Baileys'
+                        footer: 'Powered by @teamolduser/baileys'
                     }, { quoted: message });
                     break;
                 }
                 case '!template': {
                     await sock.sendMessage(normalizedJid, {
                         templateButtons: [
-                            { text: '🌐 Visit Link', url: 'https://github.com/Teamolduser/Bail' },
+                            { text: '🌐 Visit Link', url: 'https://github.com/Teamolduser/Baileys' },
                             { text: '📞 Call Support', call: '+91XXXXXXXXXX' },
                             { text: '👋🏻 Quick Reply', id: 'id1' }
                         ],
                         text: 'Template message body example:',
-                        footer: 'Powered by Teamolduser Baileys'
+                        footer: 'Powered by @teamolduser/baileys'
                     }, { quoted: message });
                     break;
                 }
@@ -451,10 +451,10 @@ async function startBot() {
                             interactiveButtons: [
                                 { text: '👋🏻 Greeting', id: '#Greeting' },
                                 { text: '📋 Copy Code', copy: '@teamolduser/baileys' },
-                                { text: '🌐 Source', url: 'https://github.com/Teamolduser/Bail' }
+                                { text: '🌐 Source', url: 'https://github.com/Teamolduser/Baileys' }
                             ],
                             body: { text: 'Are you sure you want to proceed?' },
-                            footer: { text: 'Teamolduser Baileys interactive' }
+                            footer: { text: 'Powered by @teamolduser/baileys' }
                         }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
@@ -474,7 +474,7 @@ async function startBot() {
                         ],
                         title: 'Interactive Sections List',
                         text: 'List body text here',
-                        footer: 'Teamolduser Baileys footer',
+                        footer: 'Powered by @teamolduser/baileys',
                         buttonText: 'Open List Options'
                     }, { quoted: message });
                     break;
@@ -507,7 +507,7 @@ async function startBot() {
                 }
                 case '!linkpreview': {
                     try {
-                        const urlA = 'https://github.com/Teamolduser/Bail';
+                        const urlA = 'https://github.com/Teamolduser/Baileys';
                         const logoPath = path.join(__dirname, 'logo.png');
                         const faviconPath = path.join(__dirname, 'favicon.png');
 
@@ -527,7 +527,7 @@ async function startBot() {
 
                         await sock.sendMessage(normalizedJid, { text: 'Sending large link preview with favicon...' }, { quoted: message });
 
-                        const urlB = 'https://github.com/Teamolduser/Bail#readme';
+                        const urlB = 'https://github.com/Teamolduser/Baileys#readme';
 
                         const { imageMessage: image } = await prepareWAMessageMedia({
                             image: {
@@ -682,7 +682,7 @@ async function startBot() {
                         const logoPath = path.join(__dirname, 'logo.png');
                         await sock.sendMessage(normalizedJid, {
                             text: '🗂️ Interactive with Carousel!',
-                            footer: 'Teamolduser Baileys V2 Carousel',
+                            footer: 'Powered by @teamolduser/baileys',
                             cards: [
                                 {
                                     image: { url: logoPath },
@@ -690,7 +690,7 @@ async function startBot() {
                                     footer: '🏷️ Pinterest',
                                     nativeFlow: [{
                                         text: '🌐 Source',
-                                        url: 'https://github.com/Teamolduser/Bail',
+                                        url: 'https://github.com/Teamolduser/Baileys',
                                         useWebview: true
                                     }]
                                 },
@@ -700,11 +700,11 @@ async function startBot() {
                                     footer: '🏷️ Pinterest',
                                     offerText: '🏷️ New Coupon!',
                                     offerCode: '@teamolduser/baileys',
-                                    offerUrl: 'https://github.com/Teamolduser/Bail',
+                                    offerUrl: 'https://github.com/Teamolduser/Baileys',
                                     offerExpiration: Date.now() + 3600000,
                                     nativeFlow: [{
                                         text: '🌐 Source',
-                                        url: 'https://github.com/Teamolduser/Bail'
+                                        url: 'https://github.com/Teamolduser/Baileys'
                                     }]
                                 },
                                 {
@@ -715,7 +715,7 @@ async function startBot() {
                                     optionTitle: '👉🏻 Select Options',
                                     offerText: '🏷️ New Coupon!',
                                     offerCode: '@teamolduser/baileys',
-                                    offerUrl: 'https://github.com/Teamolduser/Bail',
+                                    offerUrl: 'https://github.com/Teamolduser/Baileys',
                                     offerExpiration: Date.now() + 3600000,
                                     nativeFlow: [
                                         {
@@ -725,7 +725,7 @@ async function startBot() {
                                         },
                                         {
                                             text: '🌐 Source',
-                                            url: 'https://github.com/Teamolduser/Bail'
+                                            url: 'https://github.com/Teamolduser/Baileys'
                                         }
                                     ]
                                 }
@@ -742,7 +742,7 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, {
                             image: { url: logoPath },
                             caption: '👆🏻 Buttons and Native Flow!',
-                            footer: 'Teamolduser Baileys V2',
+                            footer: 'Powered by @teamolduser/baileys',
                             buttons: [
                                 {
                                     text: '👋🏻 Rating',
@@ -897,7 +897,7 @@ async function startBot() {
                                 caption: 'This is an Interactive Message with an Image Header!',
                                 title: 'Interactive Image',
                                 subtitle: 'Image Subtitle',
-                                footer: 'Teamolduser Baileys V2',
+                                footer: 'Powered by @teamolduser/baileys',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -915,12 +915,12 @@ async function startBot() {
                                 location: {
                                     degreesLatitude: -6.200000,
                                     degreesLongitude: 106.816666,
-                                    name: 'Teamolduser HQ'
+                                    name: '@teamolduser/baileys HQ'
                                 },
                                 caption: 'This is an Interactive Message with a Location Header!',
                                 title: 'HQ Location',
                                 subtitle: 'Jakarta, Indonesia',
-                                footer: 'Teamolduser Baileys V2',
+                                footer: 'Powered by @teamolduser/baileys',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -937,7 +937,7 @@ async function startBot() {
                                 text: 'This is a text-based Interactive message showing all native flow buttons!',
                                 title: 'Native Flow Showcase',
                                 subtitle: 'Subtitle Example',
-                                footer: 'Powered by Teamolduser Baileys V2',
+                                footer: 'Powered by @teamolduser/baileys',
                                 interactiveButtons: [
                                     {
                                         name: 'quick_reply',
@@ -958,7 +958,7 @@ async function startBot() {
                                         name: 'cta_copy',
                                         buttonParamsJson: JSON.stringify({
                                             display_text: 'Copy Coupon',
-                                            copy_code: 'TEAMOLDUSER_PRO_50'
+                                            copy_code: '@teamolduser/baileys_PRO_50'
                                         })
                                     },
                                     {
@@ -1004,7 +1004,7 @@ async function startBot() {
                                                     rows: [
                                                         {
                                                             header: 'Service A',
-                                                            title: 'Teamolduser Baileys Fork',
+                                                            title: '@teamolduser/baileys Fork',
                                                             description: 'Custom features & stability fixes',
                                                             id: 'service_baileys_id'
                                                         },
@@ -1264,7 +1264,7 @@ async function startBot() {
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         <span style="font-size: 24px;">⚡</span>
                                         <div>
-                                            <h3 style="margin: 0; font-size: 16px; color: #38bdf8;">Teamolduser Baileys GenAI HTML</h3>
+                                            <h3 style="margin: 0; font-size: 16px; color: #38bdf8;">@teamolduser/baileys GenAI HTML</h3>
                                             <p style="margin: 0; font-size: 12px; color: #94a3b8;">Interactive Web Component</p>
                                         </div>
                                     </div>
@@ -1374,7 +1374,7 @@ async function startBot() {
                             id: 'cmd-html',
                             title: 'Rich HTML UI Card (with Background Audio)',
                             html: customHtml.trim(),
-                            source: 'teamolduser'
+                            source: '@teamolduser/baileys'
                         }, message);
                     } catch (err) {
                         console.error('[HTML]', err);

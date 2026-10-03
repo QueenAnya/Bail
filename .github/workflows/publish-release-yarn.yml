@@ -137,7 +137,7 @@ jobs:
         run: npm pack
 
       - name: Rename Pack
-        run: mv *.tgz baileys-anya.tgz
+        run: mv *.tgz baileys-olduser.tgz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -148,4 +148,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            baileys-anya.tgz
+            baileys-olduser.tgz

@@ -364,6 +364,7 @@ export const extractGroupMetadata = (result: BinaryNode) => {
 		ownerPn: group.attrs.creator_pn ? jidNormalizedUser(group.attrs.creator_pn) : undefined,
 		ownerUsername: group.attrs.creator_username || undefined,
 		owner_country_code: group.attrs.creator_country_code,
+		ownerCountry: group.attrs.creator_country_code,
 		desc,
 		descId,
 		descOwner,

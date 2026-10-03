@@ -292,7 +292,6 @@ export class WasmEngine {
 	constructor(config: WasmEngineConfig = {}) {
 		// BUG FIX: the original baileys-caller compiles flat into `dist/*.mjs`
 		// (one level under package root), so `path.resolve(__dirname, '..')`
-		// correctly reached the package root. teamolduser's build mirrors `src/`'s
 		// subfolder structure under `lib/` (tsconfig.build.json: outDir "lib",
 		// no rootDir override) — so this file compiles to `lib/Voip/wasm-engine.js`,
 		// two levels under package root, not one. Go up two levels to compensate.

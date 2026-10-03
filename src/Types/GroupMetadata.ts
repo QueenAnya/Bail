@@ -20,12 +20,15 @@ export interface GroupMetadata {
 	addressingMode?: WAMessageAddressingMode
 	owner: string | undefined
 	ownerPn?: string | undefined
+	ownerLid?: string | undefined
 	ownerUsername?: string | undefined
 	owner_country_code?: string | undefined
+	ownerCountry?: string | undefined
 	subject: string
 	/** group subject owner */
 	subjectOwner?: string
 	subjectOwnerPn?: string
+	subjectOwnerLid?: string
 	subjectOwnerUsername?: string
 	/** group subject modification date */
 	subjectTime?: number
@@ -33,6 +36,7 @@ export interface GroupMetadata {
 	desc?: string
 	descOwner?: string
 	descOwnerPn?: string
+	descOwnerLid?: string
 	descOwnerUsername?: string
 	descId?: string
 	descTime?: number

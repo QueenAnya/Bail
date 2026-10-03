@@ -207,7 +207,7 @@ export const handleCompanionRegRefresh = (
  * `platformDisplay` overrides `companion_platform_display`. WhatsApp validates
  * that field -- see `companionPlatformDisplay` in SocketConfig.
  *
- * `platformId` overrides `companion_platform_id` for callers (such as qb2's
+ * `platformId` overrides `companion_platform_id` for callers (such as
  * browser-type validation) that need a value other than the raw
  * `getCompanionPlatformId(browser)` mapping -- e.g. because the server only
  * accepts browser-type platform IDs in this particular IQ.

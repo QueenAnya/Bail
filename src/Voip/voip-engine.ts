@@ -1,6 +1,5 @@
 /**
  * VoIP call orchestration — wires the WASM VoIP stack onto an EXISTING,
- * already-connected teamolduser socket (single session), instead of creating
  * a separate standalone connection the way upstream baileys-caller's
  * `VoipClient.connect()` does.
  *
@@ -457,7 +456,6 @@ export type InitiateCallOptions = {
 }
 
 /**
- * Attaches VoIP calling to an already-connected teamolduser socket.
  * Called once per socket (see Socket/socket.ts) — sets up the WASM engine,
  * signaling bridge, and relay transport, then exposes `sock.initiateCall()`.
  *
@@ -603,7 +601,18 @@ export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (j
 					if (ctx.engine && ctx.capturePtr) ctx.engine.sendAudioData(chunk, ctx.capturePtr)
 				},
 				audioSource,
-				repeatAudio
+				repeatAudio,
+				{
+					// once a non-looping, non-silence audio source finishes playing, hang up —
+					// mirrors a real call ending when the caller stops talking
+					onEnd:
+						!repeatAudio && audioSource !== 'silence'
+							? () => {
+									if (!ctx.call?.ended) ctx.call?.end('completed')
+								}
+							: undefined,
+					durationMs: ctx.call?._durationMs
+				}
 			)
 			ctx.feeder.start()
 

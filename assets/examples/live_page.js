@@ -467,7 +467,7 @@ body {
   </div>
 
   <div class="footer">
-    ⚡ TEAMOLDUSER BAILEYS · TIKDOWN LIVE GENAI WEB INTERFACE
+    ⚡ @teamolduser/baileys · TIKDOWN LIVE GENAI WEB INTERFACE
   </div>
 </div>
 

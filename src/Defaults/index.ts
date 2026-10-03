@@ -5,7 +5,7 @@ import { Browsers } from '../Utils/browser-utils'
 import { defaultCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
 import logger from '../Utils/logger'
 
-const version = [2, 3000, 1047543106] // client_revision from https://web.whatsapp.com/sw.js
+const version = [2, 3000, 1048873846] // client_revision from https://web.whatsapp.com/sw.js
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -40,7 +40,7 @@ export const URL_REGEX = /https:\/\/(?![^:@\/\s]+:[^:@\/\s]+@)[a-zA-Z0-9.-]+\.[a
  *  (native-flow limited-time-offer, externalAdReply shorthand) without
  *  supplying their own URL. Point this at your own project/site — update
  *  freely. */
-export const FALLBACK_LINK_URL = 'https://github.com/Teamolduser/Bail/'
+export const FALLBACK_LINK_URL = 'https://github.com/Teamolduser/Baileys/'
 
 export const WA_CERT_DETAILS = {
 	SERIAL: 0,
@@ -161,6 +161,8 @@ export const MEDIA_KEYS = Object.keys(MEDIA_PATH_MAP) as MediaType[]
 export const HISTORY_SYNC_PAUSED_TIMEOUT_MS = 120_000
 
 export const MIN_PREKEY_COUNT = 5
+/** Minimum time (ms) between two pre-key uploads — see Socket/socket.ts uploadPreKeys. */
+export const MIN_UPLOAD_INTERVAL = 5_000
 
 export const INITIAL_PREKEY_COUNT = 812
 
@@ -185,7 +187,7 @@ export const LEXER_REGEX =
 	/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)|(\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[\s\S]*?`)|(\b[a-zA-Z_]\w*\b)(?=\s*\()|(\b[a-zA-Z_]\w*\b)|(\b\d+(?:\.\d+)?\b)|(\s+|[^\w\s]+)/g
 
 /** Fallback donate/reference URL used by rich-message link entities. */
-export const DONATE_URL = 'https://github.com/Teamolduser/Bail'
+export const DONATE_URL = 'https://github.com/Teamolduser/Baileys'
 
 /**
  * Support payload for AI/Bot messages — injected into messageContextInfo.supportPayload.

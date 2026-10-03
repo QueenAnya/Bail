@@ -92641,6 +92641,8 @@ export const proto = $root.proto = (() => {
             PendingPreKey.prototype.preKeyId = null;
             PendingPreKey.prototype.signedPreKeyId = null;
             PendingPreKey.prototype.baseKey = null;
+            PendingPreKey.prototype.kyberPreKeyId = null;
+            PendingPreKey.prototype.kyberCiphertext = null;
 
             let $oneOfFields;
 
@@ -92662,6 +92664,18 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PendingPreKey.prototype, "_kyberPreKeyId", {
+                get: $util.oneOfGetter($oneOfFields = ["kyberPreKeyId"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PendingPreKey.prototype, "_kyberCiphertext", {
+                get: $util.oneOfGetter($oneOfFields = ["kyberCiphertext"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             PendingPreKey.create = function(properties) {
                 return new PendingPreKey(properties);
             };
@@ -92679,6 +92693,10 @@ export const proto = $root.proto = (() => {
                     w.uint32(18).bytes(m.baseKey);
                 if (m.signedPreKeyId != null && $Object.hasOwnProperty.call(m, "signedPreKeyId"))
                     w.uint32(24).int32(m.signedPreKeyId);
+                if (m.kyberPreKeyId != null && $Object.hasOwnProperty.call(m, "kyberPreKeyId"))
+                    w.uint32(32).uint32(m.kyberPreKeyId);
+                if (m.kyberCiphertext != null && $Object.hasOwnProperty.call(m, "kyberCiphertext"))
+                    w.uint32(42).bytes(m.kyberCiphertext);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -92723,6 +92741,20 @@ export const proto = $root.proto = (() => {
                             m._baseKey = "baseKey";
                             continue;
                         }
+                    case 4: {
+                            if (u !== 0)
+                                break;
+                            m.kyberPreKeyId = r.uint32();
+                            m._kyberPreKeyId = "kyberPreKeyId";
+                            continue;
+                        }
+                    case 5: {
+                            if (u !== 2)
+                                break;
+                            m.kyberCiphertext = r.bytes();
+                            m._kyberCiphertext = "kyberCiphertext";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -92757,6 +92789,15 @@ export const proto = $root.proto = (() => {
                     else if (d.baseKey.length >= 0)
                         m.baseKey = d.baseKey;
                 }
+                if (d.kyberPreKeyId != null) {
+                    m.kyberPreKeyId = d.kyberPreKeyId >>> 0;
+                }
+                if (d.kyberCiphertext != null) {
+                    if (typeof d.kyberCiphertext === "string")
+                        $util.base64.decode(d.kyberCiphertext, m.kyberCiphertext = $util.newBuffer($util.base64.length(d.kyberCiphertext)), 0);
+                    else if (d.kyberCiphertext.length >= 0)
+                        m.kyberCiphertext = d.kyberCiphertext;
+                }
                 return m;
             };
 
@@ -92776,6 +92817,12 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.signedPreKeyId != null && $Object.hasOwnProperty.call(m, "signedPreKeyId")) {
                     d.signedPreKeyId = m.signedPreKeyId;
+                }
+                if (m.kyberPreKeyId != null && $Object.hasOwnProperty.call(m, "kyberPreKeyId")) {
+                    d.kyberPreKeyId = m.kyberPreKeyId;
+                }
+                if (m.kyberCiphertext != null && $Object.hasOwnProperty.call(m, "kyberCiphertext")) {
+                    d.kyberCiphertext = o.bytes === $String ? $util.base64.encode(m.kyberCiphertext, 0, m.kyberCiphertext.length) : o.bytes === $Array ? $Array.prototype.slice.call(m.kyberCiphertext) : m.kyberCiphertext;
                 }
                 return d;
             };

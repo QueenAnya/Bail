@@ -159,9 +159,9 @@ export const prepareStickerPackMessage = async (
 	const {
 		cover,
 		stickers = [],
-		name = '📦 Sticker Pack',
-		publisher = '@teamolduser/baileys',
-		description = '🏷️ QB2 Sticker Pack'
+		name = '📦 @teamolduser/baileys Sticker Pack System',
+		publisher = '🌟 @teamolduser/baileys Publisher System',
+		description = '🏷️ @teamolduser/baileys Description System'
 	} = message
 
 	if (stickers.length > 60) {

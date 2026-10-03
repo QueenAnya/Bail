@@ -491,7 +491,6 @@ matching). Findings and fixes:
    expects. `status-helpers.ts` already had this correct, which is how the
    discrepancy was caught. Final fix ships **both** placements defensively:
    `groupStatus: true` (top-level, confirmed-correct) AND
-   `isGroupStatus: true` (nested in `contextInfo`, the original teamolduser
    placement) side by side, so nothing that may have relied on the old
    field is silently broken — the extra field is harmless if unused.
 

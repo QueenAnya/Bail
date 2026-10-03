@@ -822,7 +822,7 @@ export async function sendInteractiveMessageV2(
 	if ((hasThumb || hasFilePath || hasFileUrl || shouldForce) && !content.document && !content.image && !content.video) {
 		try {
 			let fileBuffer: Buffer
-			let fileName = 'Teamolduser.pdf'
+			let fileName = '@teamolduser/baileys.pdf'
 			let mimeType = 'application/pdf'
 
 			if (hasFilePath) {
@@ -870,7 +870,7 @@ export async function sendInteractiveMessageV2(
 				// v2.2.3 field — marks this as an auto-reply card
 				containsAutoReply: true,
 				title: (existingEar.title ??
-					`© ${(globalThis as Record<string, unknown>).ownername ?? 'Teamolduser'} - 2025`) as string,
+					`© ${(globalThis as Record<string, unknown>).ownername ?? '@teamolduser/baileys'} - 2025`) as string,
 				body: (existingEar.body ?? 'Virtual Assistant') as string,
 				sourceUrl: (existingEar.sourceUrl ?? 'https://example.com') as string,
 				// v2.2.5 fields — reliable thumbnail display on all clients

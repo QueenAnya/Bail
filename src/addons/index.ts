@@ -1,6 +1,5 @@
 /**
- * anya-bail — src/addons
- * Queen-Anya structure with WS-patched features merged in
+ * src/addons
  *
  * Quick reference:
  *   Button sender         → sendButtons, sendInteractiveMessage, sendListMessage ...
@@ -33,7 +32,6 @@
  *   Typing indicator      → createTypingIndicator
  *   Read receipt control  → createReadReceiptController
  *
- *   From src/ re-exports (Anya originals):
  *     from-chats.ts         → chat socket helpers
  *     from-messages-recv.ts → messages-recv helpers
  *     from-messages-send.ts → StatusMentionDeps, normalizeStatusContent, buildStatusMentionNode
@@ -79,7 +77,7 @@ export * from './group-status-v2'
 // ── Message Templates ─────────────────────────────────────────────────────
 export * from './templates'
 
-// ── JID Plotting (anya-bail) ──────────────────────────────────────────────
+// ── JID Plotting ──────────────────────────────────────────────
 export * from './jid-plotting'
 
 // ── JID Plot ───────────────────────────────────────────────────────────────
@@ -110,7 +108,7 @@ export * from './interactive-message'
 // ── Call Handler ──────────────────────────────────────────────────────────
 export * from './call-handler'
 
-// ── Scheduler (anya-bail) ─────────────────────────────────────────────────
+// ── Scheduler ─────────────────────────────────────────────────
 export * from './scheduling'
 
 // ── Message Scheduler (alternate implementation) ──────────────────────────
@@ -127,7 +125,6 @@ export * from './rich-message-utils'
 // exist in an exported file, the clone is kept for reference/audit purposes
 // but is NOT itself re-exported here.
 
-// ── From src/ (Anya originals) ────────────────────────────────────────────
 export * from './from-chats'
 export * from './from-messages-recv'
 export * from './from-messages-send'

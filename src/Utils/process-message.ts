@@ -285,6 +285,157 @@ export function decryptEventResponse(
 	}
 }
 
+type EncActionContext = {
+	/** jid of the person that created the target message */
+	creatorJid: string
+	/** ID of the target message */
+	msgId: string
+	/** target message enc key (messageContextInfo.messageSecret) */
+	encKey: Uint8Array
+	/** jid of the person that reacted / commented */
+	actorJid: string
+}
+
+const decryptEncAction = (
+	{ encPayload, encIv }: proto.Message.IPollEncValue,
+	{ creatorJid, msgId, encKey, actorJid }: EncActionContext,
+	useCase: 'Enc Reaction' | 'Enc Comment'
+) => {
+	const sign = Buffer.concat([
+		Buffer.from(msgId),
+		Buffer.from(creatorJid),
+		Buffer.from(actorJid),
+		Buffer.from(useCase),
+		new Uint8Array([1])
+	])
+
+	const key0 = hmacSign(encKey, new Uint8Array(32), 'sha256')
+	const decKey = hmacSign(sign, key0, 'sha256')
+	return aesDecryptGCM(encPayload!, decKey, encIv!, Buffer.alloc(0))
+}
+
+/**
+ * Decrypt an encrypted reaction (`encReactionMessage`)
+ * @returns the decoded reaction message
+ */
+export function decryptReaction(enc: proto.Message.IPollEncValue, ctx: EncActionContext) {
+	return proto.Message.ReactionMessage.decode(decryptEncAction(enc, ctx, 'Enc Reaction'))
+}
+
+/**
+ * Decrypt an encrypted comment (`encCommentMessage`)
+ * @returns the decoded inner message
+ */
+export function decryptComment(enc: proto.Message.IPollEncValue, ctx: EncActionContext) {
+	return proto.Message.decode(decryptEncAction(enc, ctx, 'Enc Comment'))
+}
+
+/**
+ * Finds the target message + messageSecret for an encReactionMessage/
+ * encCommentMessage, builds the creator/actor jid candidates (both as they
+ * appear on the wire and PN-normalised, same derivation as poll votes/event
+ * responses), and tries decryptReaction/decryptComment against each until
+ * one succeeds. Throws if the target message, its messageSecret, or every
+ * candidate decryption attempt is unavailable.
+ */
+async function resolveEncAction(
+	enc: proto.Message.IEncReactionMessage,
+	isReaction: boolean,
+	message: WAMessage,
+	creationMsgKey: proto.IMessageKey,
+	meId: string,
+	creds: AuthenticationCreds,
+	signalRepository: SignalRepositoryWithLIDStore,
+	getMessage: SocketConfig['getMessage'],
+	label: string
+): Promise<proto.Message.ReactionMessage | proto.Message> {
+	const targetMsg = await getMessage(creationMsgKey)
+	if (!targetMsg) {
+		throw new Boom(`${label} target message not found, cannot decrypt`)
+	}
+
+	const encKey = targetMsg.messageContextInfo?.messageSecret
+	if (!encKey) {
+		throw new Boom(`${label}: missing messageSecret for decryption`)
+	}
+
+	const candidates = await buildEncActionJidCandidates(message, creationMsgKey, meId, creds, signalRepository)
+
+	let lastErr: unknown
+	for (const [creatorJid, actorJid] of candidates) {
+		try {
+			const ctx = { creatorJid, actorJid, encKey, msgId: creationMsgKey.id! }
+			return isReaction ? decryptReaction(enc, ctx) : decryptComment(enc, ctx)
+		} catch (err) {
+			lastErr = err
+		}
+	}
+
+	throw lastErr
+}
+
+async function buildEncActionJidCandidates(
+	message: WAMessage,
+	creationMsgKey: proto.IMessageKey,
+	meId: string,
+	creds: AuthenticationCreds,
+	signalRepository: SignalRepositoryWithLIDStore
+): Promise<Array<[string, string]>> {
+	const meIdNormalised = jidNormalizedUser(meId)
+	const meLidNormalised = jidNormalizedUser(creds.me!.lid || meId)
+
+	// candidate 1: jids as they appear on the wire (LID in LID chats)
+	const wireCreator = creationMsgKey.participant || message.key?.participant || meLidNormalised
+	const wireActor = message.key?.participant || creationMsgKey.participant || meLidNormalised
+
+	// candidate 2: PN-normalised jids (same derivation as poll votes / event responses)
+	const creatorKey = creationMsgKey.participant || creationMsgKey.remoteJid!
+	const creatorPn = isLidUser(creatorKey) ? await signalRepository.lidMapping.getPNForLID(creatorKey) : creatorKey
+	const pnCreator = creatorPn
+		? getKeyAuthor({ remoteJid: jidNormalizedUser(creatorPn), fromMe: meIdNormalised === creatorPn }, meIdNormalised)
+		: wireCreator
+	const actorKey = getKeyAuthor(message.key, meIdNormalised)
+	const actorPn = isLidUser(actorKey) ? await signalRepository.lidMapping.getPNForLID(actorKey) : actorKey
+	const pnActor = actorPn ? jidNormalizedUser(actorPn) : wireActor
+
+	const candidates: Array<[string, string]> = []
+	for (const c of new Set([wireCreator, pnCreator])) {
+		for (const a of new Set([wireActor, pnActor])) {
+			candidates.push([c, a])
+		}
+	}
+
+	return candidates
+}
+
+function emitDecryptedEncAction(
+	ev: BaileysEventEmitter,
+	isReaction: boolean,
+	message: WAMessage,
+	creationMsgKey: proto.IMessageKey,
+	decrypted: proto.Message.ReactionMessage | proto.Message
+) {
+	if (isReaction) {
+		const r = decrypted as proto.Message.ReactionMessage
+		ev.emit('messages.reaction', [
+			{
+				reaction: {
+					key: message.key,
+					text: r.text,
+					senderTimestampMs: r.senderTimestampMs,
+					groupingKey: r.groupingKey
+				},
+				key: creationMsgKey
+			}
+		])
+	} else {
+		ev.emit('messages.upsert', {
+			messages: [{ key: message.key, message: decrypted as proto.Message }],
+			type: 'append'
+		})
+	}
+}
+
 type EditContext = {
 	/** normalised jid of the person that sent the original (pre-edit) message */
 	originalSenderJid: string
@@ -812,6 +963,28 @@ const processMessage = async (
 			}
 		} else {
 			logger?.warn({ creationMsgKey }, 'event creation message not found, cannot decrypt response')
+		}
+	} else if (content?.encReactionMessage || content?.encCommentMessage) {
+		const isReaction = !!content.encReactionMessage
+		const enc = (content.encReactionMessage || content.encCommentMessage)! as proto.Message.IEncReactionMessage
+		const creationMsgKey = enc.targetMessageKey!
+		const label = isReaction ? 'reaction' : 'comment'
+
+		try {
+			const decrypted = await resolveEncAction(
+				enc,
+				isReaction,
+				message,
+				creationMsgKey,
+				meId,
+				creds,
+				signalRepository,
+				getMessage,
+				label
+			)
+			emitDecryptedEncAction(ev, isReaction, message, creationMsgKey, decrypted)
+		} catch (err) {
+			logger?.warn({ err, creationMsgKey }, `failed to decrypt ${label}`)
 		}
 	} else if (message.messageStubType) {
 		const jid = message.key?.remoteJid!

@@ -375,7 +375,7 @@ body {
   </div>
 
   <div class="footer">
-    ⚡ TEAMOLDUSER BAILEYS · HTML5 CANVAS SNAKE
+    ⚡ @teamolduser/baileys · HTML5 CANVAS SNAKE
   </div>
 </div>
 

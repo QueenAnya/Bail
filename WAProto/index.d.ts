@@ -15413,6 +15413,8 @@ export namespace proto {
             preKeyId?: (number|null);
             signedPreKeyId?: (number|null);
             baseKey?: (Uint8Array|null);
+            kyberPreKeyId?: (number|null);
+            kyberCiphertext?: (Uint8Array|null);
             static create(properties: proto.SessionStructure.PendingPreKey.$Shape): proto.SessionStructure.PendingPreKey & proto.SessionStructure.PendingPreKey.$Shape;
             static create(properties?: proto.SessionStructure.PendingPreKey.$Properties): proto.SessionStructure.PendingPreKey;
             static encode(m: proto.SessionStructure.PendingPreKey.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -15428,6 +15430,8 @@ export namespace proto {
                 preKeyId?: (number|null);
                 signedPreKeyId?: (number|null);
                 baseKey?: (Uint8Array|null);
+                kyberPreKeyId?: (number|null);
+                kyberCiphertext?: (Uint8Array|null);
                 $unknowns?: Uint8Array[];
             }
             type $Shape = proto.SessionStructure.PendingPreKey.$Properties;

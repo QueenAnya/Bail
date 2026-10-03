@@ -6,7 +6,6 @@
  * Ported from a user-supplied `media-set.js`, which imported its WA
  * primitives from the published `@teamolduser/baileys` package (as an
  * external consumer would). Since this file now lives *inside* the
- * teamolduser package itself, those imports were changed to relative
  * internal paths instead.
  *
  * NOTE ON DUPLICATE-LOOKING SETTERS: `updateProfilePictureFull` and

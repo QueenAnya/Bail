@@ -507,7 +507,7 @@ input:checked + .slider::before { transform: translateX(20px); }
   </div>
 
   <div class="footer">
-    ⚡ TEAMOLDUSER BAILEYS · GENAI UNIFIED WEB PRIMITIVE
+    ⚡ @teamolduser/baileys · GENAI UNIFIED WEB PRIMITIVE
   </div>
 </div>
 

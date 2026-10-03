@@ -4,7 +4,7 @@ import { QueryIdd, QueryIds, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
 import { getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'
-import { executeWMexQuery as genericExecuteWMexQuery } from './mex'
+import { executeWMexQuery as genericExecuteWMexQuery, wMexQuery } from './mex'
 
 const parseNewsletterCreateResponse = (response: NewsletterCreateResponse): NewsletterMetadata => {
 	const { id, thread_metadata: thread, viewer_metadata: viewer } = response
@@ -49,6 +49,17 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		return genericExecuteWMexQuery<T>(variables, queryId, dataPath, query, generateMessageTag)
 	}
 
+	/**
+	 * Raw w:mex query, returning the unparsed BinaryNode response — matches the
+	 * shape src/addons/message-utils.ts's MessageExtrasContext expects for
+	 * makeMessageExtrasAddon's newsletter-aware profilePictureUrl.
+	 */
+	const newsletterWMexQuery = (
+		variables: Record<string, unknown> | undefined,
+		queryId: string,
+		options: Record<string, unknown>
+	) => wMexQuery({ ...(variables || {}), ...options }, queryId, query, generateMessageTag)
+
 	const newsletterUpdate = async (jid: string, updates: NewsletterUpdate) => {
 		const variables = {
 			newsletter_id: jid,
@@ -62,6 +73,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 
 	return {
 		...sock,
+		newsletterWMexQuery,
 		newsletterCreate: async (name: string, description?: string): Promise<NewsletterMetadata> => {
 			const variables = {
 				input: {

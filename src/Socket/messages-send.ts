@@ -26,7 +26,7 @@ import {
 	type RichSubMessage,
 	uploadUnencryptedToWA
 } from '../addons/message-composer'
-import { getButtonArgs, getButtonType } from '../addons/message-utils'
+import { makeMessageExtrasAddon } from '../addons/message-utils'
 import { monitorPresence as monitorPresenceAddon, type PresenceMonitorOptions } from '../addons/presence-monitor'
 import { sendGroupStatus as sendGroupStatusAddon } from '../addons/send-group-status'
 import { sendGroupStatusV2 as sendGroupStatusV2Addon } from '../addons/send-group-status-v2'
@@ -93,7 +93,6 @@ import {
 	type BinaryNodeAttributes,
 	type FullJid,
 	getBinaryFilteredBizBot,
-	getBinaryFilteredButtons,
 	getBinaryNodeChild,
 	getBinaryNodeChildren,
 	getBizBinaryNode,
@@ -799,7 +798,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		// normalizeMessageContent BEFORE transaction — exact addons pattern
 		const messages = normalizeMessageContent(message) || message
-		const buttonType = getButtonType(messages)
 		const pollMessage =
 			messages.pollCreationMessage ||
 			messages.pollCreationMessageV2 ||
@@ -1271,35 +1269,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
-			// Inject <biz> node for button messages
-			// Works for: WhatsApp Messenger + WhatsApp Business, Android + iOS
-			if (!isJidNewsletter(destinationJid) && buttonType) {
-				const buttonsNode = getButtonArgs(messages)
-				const filteredButtons = getBinaryFilteredButtons(additionalNodes ? additionalNodes : [])
-
-				if (filteredButtons) {
-					;(stanza.content as BinaryNode[]).push(...additionalNodes!)
-					didPushAdditional = true
-				} else {
-					;(stanza.content as BinaryNode[]).push(buttonsNode)
-				}
-
-				// bot node: required for buttons to be interactive in private chats
-				// (independent of AI flag; matches button-helper behaviour)
-				if (isPrivate) {
-					const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
-					const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
-					if (filteredBizBot) {
-						if (!didPushAdditional) {
-							;(stanza.content as BinaryNode[]).push(...additionalNodes!)
-							didPushAdditional = true
-						}
-					} else {
-						;(stanza.content as BinaryNode[]).push(botNode)
-					}
-				}
-			}
-
 			// Smart biz node — auto-inject for button/list/template/nativeFlow messages,
 			// or when secureMetaServiceLabel is explicitly requested. Without this, WhatsApp won't
 			// correctly render/deliver those interactive message types.
@@ -1312,8 +1281,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
-			// AI icon feature — adds bot node for non-button messages with AI flag
-			if (AI && isPrivate && !buttonType) {
+			// AI icon feature — adds bot node when the AI flag is set (private/LID chats)
+			if (AI && (isPrivate || isLid)) {
 				const botNode: BinaryNode = { tag: 'bot', attrs: { biz_bot: '1' } }
 				const filteredBizBot = getBinaryFilteredBizBot(additionalNodes ? additionalNodes : [])
 
@@ -1504,7 +1473,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	 * expressions array, or the full `{expressions: LatexExpression[]}` —
 	 * into the strict shape the generators need, and lets `quoted` be
 	 * skipped entirely when the 2nd arg doesn't look like a message-quote
-	 * object. `renderLatexToPng`/`uploadFn` default to qb2's own local
+	 * object. `renderLatexToPng`/`uploadFn` default to a local
 	 * MathJax renderer and upload helper when the caller doesn't supply
 	 * their own.
 	 */
@@ -1610,6 +1579,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		httpRequestOptions
 	})
 
+	/**
+	 * makeMessageExtrasAddon (src/addons/message-utils.ts) — its
+	 * newsletter-aware profilePictureUrl needs a real newsletterWMexQuery,
+	 * which is now wired via Socket/newsletter.ts. Non-newsletter jids
+	 * fall through to the original, more complete sock.profilePictureUrl
+	 * (tcToken handling, type/timeoutMs, self-detection) below.
+	 */
+	const messageExtras = makeMessageExtrasAddon({
+		query: sock.query,
+		newsletterWMexQuery: sock.newsletterWMexQuery
+	})
+
 	const socket = {
 		...sock,
 		userDevicesCache,
@@ -1618,6 +1599,24 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		assertSessions,
 		relayMessage,
 		sendReceipt,
+		// Newsletter-aware profilePictureUrl: uses the w:mex-based lookup for
+		// @newsletter jids (the standard w:profile:picture IQ doesn't cover
+		// those), falls back to the original sock.profilePictureUrl for
+		// everything else and if the newsletter lookup itself fails.
+		profilePictureUrl: async (jid: string, type: 'preview' | 'image' = 'preview', timeoutMs?: number) => {
+			if (isJidNewsletter(jid)) {
+				try {
+					const url = await messageExtras.profilePictureUrl(jid)
+					if (url) return url
+				} catch (err) {
+					logger?.debug({ err, jid }, 'newsletter profilePictureUrl via w:mex failed, falling back')
+				}
+			}
+
+			return sock.profilePictureUrl(jid, type, timeoutMs)
+		},
+		// (src/addons/message-utils.ts → makeMessageExtrasAddon)
+		getEphemeralGroup: messageExtras.getEphemeralGroup,
 		sendReceipts,
 		readMessages,
 		markIdentityChanged,
@@ -2179,7 +2178,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * Accepts a bare LaTeX string, `{formula}`/`{latex}`/`{text}`, a bare
 		 * expressions array, or the full `{expressions}` form as `options`,
 		 * and `quoted`/`renderLatexToPng`/`uploadFn` are all optional —
-		 * defaults to qb2's own local MathJax renderer + upload helper when
+		 * defaults to a local MathJax renderer + upload helper when
 		 * omitted, e.g. `sock.sendLatexImage(jid, null, 'E=mc^2')`.
 		 */
 		sendLatexImage: async (

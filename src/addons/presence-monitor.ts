@@ -77,6 +77,13 @@ export interface PresenceMonitorOptions {
 	 * Only affects presentation formatting; timestamps remain as reliable epoch values.
 	 */
 	timezone?: string
+	/**
+	 * Treat an incoming message from a watched contact as an `available` presence signal
+	 * (useful when WhatsApp does not push presence updates for that contact).
+	 *
+	 * @default false
+	 */
+	trackMessagesAsPresence?: boolean
 }
 
 export interface PresenceOnlineEvent {
@@ -124,6 +131,29 @@ export interface PresenceStateView {
 	lastSeen: number | null
 }
 
+/** Session as returned by {@link PresenceMonitor.getStatus} (timestamps as `Date`). */
+export interface PresenceTrackerSession {
+	jid: string
+	onlineAt: Date
+	offlineAt: Date
+	durationMs: number
+	duration: string
+}
+
+/** Rich per-contact status returned by {@link PresenceMonitor.getStatus}. */
+export interface PresenceTrackerStatus {
+	jid: string
+	lid?: string
+	currentStatus: 'online' | 'offline' | 'unknown'
+	currentSessionStart?: Date
+	lastSeen?: Date
+	serverLastSeen?: Date
+	lastOfflineAt?: Date
+	lastDurationMs?: number
+	lastDuration?: string
+	sessions: PresenceTrackerSession[]
+}
+
 export type PresenceMonitorEvents = {
 	online: PresenceOnlineEvent
 	offline: PresenceOfflineEvent
@@ -162,6 +192,111 @@ export const formatDuration = (durationMs: number): string => {
 	return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
 }
 
+type ParsedTimezone = { offsetMs: number } | { iana: string }
+
+const parseTimezone = (zone?: string | number | null): ParsedTimezone => {
+	if (zone === undefined || zone === null || zone === '') return { offsetMs: 0 }
+	if (typeof zone === 'number') return { offsetMs: zone * 3600 * 1000 }
+	const str = zone.trim()
+	const match = /^([+-])?(\d{1,2})(?::?(\d{2}))?$/.exec(str)
+	if (match) {
+		const sign = match[1] === '-' ? -1 : 1
+		const minutes = parseInt(match[2]!, 10) * 60 + parseInt(match[3] || '0', 10)
+		return { offsetMs: sign * minutes * 60 * 1000 }
+	}
+
+	if (/^(utc|gmt|z)$/i.test(str)) return { offsetMs: 0 }
+	return { iana: str }
+}
+
+/** Accepts a `Date`, epoch milliseconds, or epoch seconds. */
+const toDate = (value: Date | number): Date => (value instanceof Date ? value : new Date(value > 1e11 ? value : value * 1000))
+
+const pad2 = (n: number) => n.toString().padStart(2, '0')
+
+/** Format as `HH:MM:SS` in the given timezone (`'+05:00'`, `'+5'`, `5` or an IANA name). */
+const formatClock = (value: Date | number | null | undefined, zone?: string | number | null): string => {
+	if (!value) return 'N/A'
+	const d = toDate(value)
+	const tz = parseTimezone(zone)
+	if ('offsetMs' in tz) {
+		const t = new Date(d.getTime() + tz.offsetMs)
+		return `${pad2(t.getUTCHours())}:${pad2(t.getUTCMinutes())}:${pad2(t.getUTCSeconds())}`
+	}
+
+	try {
+		return new Intl.DateTimeFormat('en-GB', {
+			timeZone: tz.iana,
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hour12: false
+		}).format(d)
+	} catch {
+		return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
+	}
+}
+
+/** Format as `YYYY-MM-DD HH:MM:SS` in the given timezone. */
+const formatDateAndClock = (value: Date | number | null | undefined, zone?: string | number | null): string => {
+	if (!value) return 'N/A'
+	const d = toDate(value)
+	const tz = parseTimezone(zone)
+	if ('offsetMs' in tz) {
+		const t = new Date(d.getTime() + tz.offsetMs)
+		return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())} ${formatClock(d, zone)}`
+	}
+
+	try {
+		return new Intl.DateTimeFormat('en-CA', {
+			timeZone: tz.iana,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hour12: false
+		})
+			.format(d)
+			.replace(/,/, '')
+	} catch {
+		return d.toLocaleString()
+	}
+}
+
+/** Human-readable relative time, e.g. `45s ago`, `3m ago`, `2h ago`, `4d ago`. */
+export const formatTimeAgo = (value: Date | number | null | undefined): string => {
+	if (!value) return 'N/A'
+	const diffMs = Date.now() - toDate(value).getTime()
+	if (diffMs < 0) return 'just now'
+	const diffSec = Math.floor(diffMs / 1000)
+	if (diffSec < 60) return `${diffSec}s ago`
+	const diffMin = Math.floor(diffSec / 60)
+	if (diffMin < 60) return `${diffMin}m ago`
+	const diffHour = Math.floor(diffMin / 60)
+	if (diffHour < 24) return `${diffHour}h ago`
+	return `${Math.floor(diffHour / 24)}d ago`
+}
+
+/**
+ * Normalize user input (`923001234567`, `...@c.us`, `...@whatsapp.net`, a LID, ...) into a
+ * valid WhatsApp user JID. Returns `''` for empty / non-string input.
+ */
+export const normalizeContactJid = (jid: string): string => {
+	if (!jid || typeof jid !== 'string') return ''
+	let clean = jid.trim()
+	if (clean.endsWith('@whatsapp.net')) {
+		clean = clean.replace('@whatsapp.net', '@s.whatsapp.net')
+	} else if (clean.endsWith('@c.us')) {
+		clean = clean.replace('@c.us', '@s.whatsapp.net')
+	} else if (!clean.includes('@')) {
+		clean = `${clean}@s.whatsapp.net`
+	}
+
+	return jidNormalizedUser(clean) || clean
+}
+
 const formatTimestamp = (timestampMs: number, timezone?: string): string => {
 	const date = new Date(timestampMs)
 	const pad = (n: number) => n.toString().padStart(2, '0')
@@ -196,6 +331,8 @@ interface InternalState {
 	offlineAt: number | null
 	durationMs: number | null
 	lastSeen: number | null
+	/** Last-seen value explicitly reported by the WhatsApp server (epoch seconds or ms). */
+	serverLastSeen?: number | null
 }
 
 /**
@@ -204,7 +341,7 @@ interface InternalState {
  */
 export class PresenceMonitor {
 	private readonly sock: MinimalSocket
-	private readonly options: Required<Pick<PresenceMonitorOptions, 'logToConsole' | 'autoResubscribe'>> &
+	private readonly options: Required<Pick<PresenceMonitorOptions, 'logToConsole' | 'autoResubscribe' | 'trackMessagesAsPresence'>> &
 		Pick<PresenceMonitorOptions, 'timezone'>
 	private readonly requestedJids: Map<string, string>
 	private readonly states = new Map<string, InternalState>()
@@ -216,6 +353,7 @@ export class PresenceMonitor {
 	private started = false
 	private stopped = false
 	private listenersAttached = false
+	private timezone: string | number | undefined
 
 	constructor(sock: MinimalSocket, targets: string | string[], options: PresenceMonitorOptions = {}) {
 		if (!sock?.ev || typeof sock.ev.on !== 'function') {
@@ -226,8 +364,10 @@ export class PresenceMonitor {
 		this.options = {
 			logToConsole: !!options.logToConsole,
 			autoResubscribe: !!options.autoResubscribe,
+			trackMessagesAsPresence: !!options.trackMessagesAsPresence,
 			timezone: options.timezone
 		}
+		this.timezone = options.timezone
 
 		const rawTargets = Array.isArray(targets) ? targets.slice() : [targets]
 		const normalizedRequested = new Map<string, string>()
@@ -255,6 +395,7 @@ export class PresenceMonitor {
 		this.onPresenceUpdate = this.onPresenceUpdate.bind(this)
 		this.onConnectionUpdate = this.onConnectionUpdate.bind(this)
 		this.onLidMappingUpdate = this.onLidMappingUpdate.bind(this)
+		this.onMessagesUpsert = this.onMessagesUpsert.bind(this)
 	}
 
 	/** Register an event listener */
@@ -360,6 +501,9 @@ export class PresenceMonitor {
 		}
 
 		this.sock.ev.on('lid-mapping.update', this.onLidMappingUpdate)
+		if (this.options.trackMessagesAsPresence) {
+			this.sock.ev.on('messages.upsert', this.onMessagesUpsert)
+		}
 	}
 
 	private detachListeners(): void {
@@ -368,6 +512,7 @@ export class PresenceMonitor {
 		this.sock.ev.off('presence.update', this.onPresenceUpdate)
 		this.sock.ev.off('connection.update', this.onConnectionUpdate)
 		this.sock.ev.off('lid-mapping.update', this.onLidMappingUpdate)
+		this.sock.ev.off('messages.upsert', this.onMessagesUpsert)
 	}
 
 	private async subscribeAll(): Promise<void> {
@@ -547,6 +692,20 @@ export class PresenceMonitor {
 		}
 	}
 
+	private onMessagesUpsert(update: {
+		messages?: Array<{ key?: { remoteJid?: string | null; participant?: string | null; fromMe?: boolean | null } }>
+	}): void {
+		if (!update?.messages) return
+		for (const msg of update.messages) {
+			if (!msg?.key || msg.key.fromMe) continue
+			const sender = msg.key.participant || msg.key.remoteJid
+			if (!sender) continue
+			const normalized = jidNormalizedUser(sender) || sender
+			if (!this.isWatched(normalized)) continue
+			this.handlePresenceForParticipant(normalized, { lastKnownPresence: 'available' } as PresenceData)
+		}
+	}
+
 	private handlePresenceForParticipant(participant: string, data: PresenceData): void {
 		const normalized = jidNormalizedUser(participant) || participant
 		let state = this.states.get(normalized)
@@ -563,6 +722,11 @@ export class PresenceMonitor {
 		}
 
 		const lastKnownPresence = data?.lastKnownPresence
+		const explicitLastSeen = (data as any)?.lastSeen
+		if (typeof explicitLastSeen === 'number' && explicitLastSeen > 0) {
+			state.serverLastSeen = explicitLastSeen
+		}
+
 		const lastSeen = typeof (data as any)?.lastSeen === 'number' ? (data as any).lastSeen : (state.lastSeen ?? null)
 		const isOnline = ONLINE_PRESENCES.has(lastKnownPresence)
 
@@ -738,6 +902,105 @@ export class PresenceMonitor {
 		}
 
 		return false
+	}
+
+	/** Change the display timezone (`'+05:00'`, `'+5'`, `5`, `'Asia/Karachi'`, `'UTC'`). */
+	setTimezone(zone: string | number): void {
+		this.timezone = zone
+		this.options.timezone = String(zone)
+	}
+
+	/** The display timezone currently used by `formatTime` / `formatDateTime`. */
+	getTimezone(): string {
+		return String(this.timezone ?? 'UTC')
+	}
+
+	/** `HH:MM:SS` in this monitor's timezone. Accepts a `Date`, epoch ms or epoch seconds. */
+	formatTime(date: Date | number | null | undefined): string {
+		return formatClock(date, this.timezone)
+	}
+
+	/** `YYYY-MM-DD HH:MM:SS` in this monitor's timezone. Accepts a `Date`, epoch ms or epoch seconds. */
+	formatDateTime(date: Date | number | null | undefined): string {
+		return formatDateAndClock(date, this.timezone)
+	}
+
+	/**
+	 * Rich status for one contact (`currentStatus` is `'unknown'` until the first presence
+	 * signal arrives), or `undefined` if the JID is not monitored.
+	 */
+	getStatus(jid: string): PresenceTrackerStatus | undefined {
+		const normalized = normalizeContactJid(jid)
+		if (!normalized) return undefined
+		const state = this.states.get(normalized) || this.findStateByUser(normalized)
+		if (!state) return undefined
+
+		const sessions: PresenceTrackerSession[] = (this.resolveSessions(normalized) ?? []).map(sess => ({
+			jid: sess.jid,
+			onlineAt: new Date(sess.onlineAt),
+			offlineAt: new Date(sess.offlineAt),
+			durationMs: sess.durationMs,
+			duration: sess.duration
+		}))
+		const known = state.onlineAt !== null || state.offlineAt !== null || state.lastSeen !== null || sessions.length > 0
+		const partner = this.pnLidPairs.get(normalized)
+		const status: PresenceTrackerStatus = {
+			jid: this.requestedJids.get(state.jid) || state.requestedJid || state.jid,
+			currentStatus: known ? state.status : 'unknown',
+			sessions
+		}
+		if (partner?.endsWith('@lid')) status.lid = partner
+		if (state.status === 'online' && state.onlineAt !== null) status.currentSessionStart = new Date(state.onlineAt)
+		if (state.lastSeen !== null) status.lastSeen = toDate(state.lastSeen)
+		if (state.serverLastSeen) status.serverLastSeen = toDate(state.serverLastSeen)
+		if (state.offlineAt !== null) status.lastOfflineAt = new Date(state.offlineAt)
+		if (state.durationMs !== null) {
+			status.lastDurationMs = state.durationMs
+			status.lastDuration = formatDuration(state.durationMs)
+		}
+
+		return status
+	}
+
+	/** Re-send the presence subscription for a contact (and its paired LID, if known). */
+	async resubscribe(jid: string): Promise<void> {
+		const normalized = normalizeContactJid(jid)
+		if (!normalized || !this.sock.presenceSubscribe) return
+		const targets = [normalized]
+		const partner = this.pnLidPairs.get(normalized)
+		if (partner) targets.push(partner)
+		for (const target of targets) {
+			try {
+				await this.sock.presenceSubscribe(target)
+			} catch {
+				/* best effort */
+			}
+		}
+	}
+
+	/** Start monitoring one or more additional contacts and subscribe to their presence. */
+	async subscribe(jid: string | string[]): Promise<void> {
+		const jids = Array.isArray(jid) ? jid : [jid]
+		for (const raw of jids) {
+			const normalized = normalizeContactJid(raw)
+			if (!normalized) continue
+			if (!this.requestedJids.has(normalized)) {
+				this.requestedJids.set(normalized, raw)
+				this.states.set(normalized, {
+					jid: normalized,
+					requestedJid: raw,
+					status: 'offline',
+					onlineAt: null,
+					offlineAt: null,
+					durationMs: null,
+					lastSeen: null
+				})
+				this.sessions.set(normalized, [])
+			}
+
+			this.subscribedJids.delete(normalized)
+			await this.subscribeOne(normalized).catch(err => this.emit('error', err))
+		}
 	}
 
 	/** The list of JIDs originally passed to `monitorPresence(...)` */

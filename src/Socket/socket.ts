@@ -9,6 +9,7 @@ import {
 	DEF_TAG_PREFIX,
 	INITIAL_PREKEY_COUNT,
 	MIN_PREKEY_COUNT,
+	MIN_UPLOAD_INTERVAL,
 	NOISE_WA_HEADER,
 	PROCESSABLE_HISTORY_TYPES,
 	TimeMs,
@@ -32,7 +33,7 @@ import {
 	bindWaitForConnectionUpdate,
 	buildCompanionRegNode,
 	buildPairingQRData,
-	bytesToCrockford,
+	//bytesToCrockford,
 	configureSuccessfulPairing,
 	Curve,
 	derivePairingCodeKey,
@@ -53,6 +54,7 @@ import {
 	xmppSignedPreKey
 } from '../Utils'
 import { getPairingCodeOsDisplay, getPlatformDisplayName } from '../Utils/browser-utils'
+import { makeKeepAlive } from '../Utils/keep-alive'
 import { isValidUsername } from '../Utils/username'
 import {
 	assertNodeErrorFree,
@@ -351,14 +353,58 @@ export const makeSocket = (config: SocketConfig) => {
 
 		const lidResults: { jid: string; exists: boolean; lid: string | undefined; pn?: string }[] = []
 		const resolvedPnFromLid: { pn: string; lid: string }[] = []
+		const unresolvedLids: { jid: string; lid: string }[] = []
 		for (const lidJid of lidJids) {
 			const normalizedLid = jidNormalizedUser(lidJid)
 			const pn = await signalRepository.lidMapping.getPNForLID(normalizedLid)
 			if (pn) {
 				resolvedPnFromLid.push({ pn: jidNormalizedUser(pn), lid: normalizedLid })
 			} else {
-				logger?.warn({ jid: lidJid }, 'no known PN mapping for LID, cannot verify onWhatsApp existence')
-				lidResults.push({ jid: lidJid, exists: false, lid: normalizedLid })
+				unresolvedLids.push({ jid: lidJid, lid: normalizedLid })
+			}
+		}
+
+		// LIDs with no known PN mapping: verify them directly with a USync LID/device query
+		// (like innovatorssoft) instead of reporting them as non-existent just because we have no PN yet.
+		if (unresolvedLids.length > 0) {
+			const verified = new Map<string, { lid: string; pn?: string }>()
+			try {
+				const lidQuery = new USyncQuery().withContext('interactive').withDeviceProtocol()
+				for (const { lid } of unresolvedLids) {
+					lidQuery.withUser(new USyncUser().withId(lid).withLid(lid))
+				}
+
+				const lidRes = await executeUSyncQuery(lidQuery)
+				const mappings: LIDMapping[] = []
+				for (const entry of (lidRes?.list ?? []) as any[]) {
+					if (!entry || entry.error) continue
+					const entryLid: string | undefined = entry.lid || (entry.id && isLidUser(entry.id) ? entry.id : undefined)
+					if (!entryLid) continue
+					let entryPn: string | undefined = entry.pn || (entry.id && isPnUser(entry.id) ? entry.id : undefined)
+					if (!entryPn) {
+						try {
+							const mapped = await signalRepository.lidMapping.getPNForLID(entryLid)
+							if (mapped && isPnUser(mapped)) entryPn = jidNormalizedUser(mapped)
+						} catch {}
+					}
+
+					if (entryPn) mappings.push({ pn: entryPn, lid: entryLid })
+					verified.set(jidNormalizedUser(entryLid), { lid: entryLid, ...(entryPn ? { pn: entryPn } : {}) })
+				}
+
+				if (mappings.length > 0) await signalRepository.lidMapping.storeLIDPNMappings(mappings)
+			} catch (error) {
+				logger?.error?.({ error }, 'Error verifying LIDs via USync')
+			}
+
+			for (const { jid, lid } of unresolvedLids) {
+				const hit = verified.get(lid)
+				if (hit) {
+					lidResults.push({ jid: hit.pn || hit.lid, exists: true, lid: hit.lid, ...(hit.pn ? { pn: hit.pn } : {}) })
+				} else {
+					logger?.warn({ jid }, 'LID could not be verified via USync')
+					lidResults.push({ jid, exists: false, lid })
+				}
 			}
 		}
 
@@ -412,10 +458,10 @@ export const makeSocket = (config: SocketConfig) => {
 				return originalLid ? { ...r, jid: originalLid, lid: originalLid, pn: r.pn ?? r.jid } : r
 			})
 
-			return rekeyedPnResults.concat(lidResults.map(r => ({ ...r, pn: undefined })))
+			return rekeyedPnResults.concat(lidResults.map(r => ({ ...r, pn: r.pn })))
 		}
 
-		return lidResults.length > 0 ? lidResults.map(r => ({ ...r, pn: undefined })) : []
+		return lidResults.length > 0 ? lidResults.map(r => ({ ...r, pn: r.pn })) : []
 	}
 
 	const normalizeUsernameQuery = (query: WAUsernameQuery) => {
@@ -541,6 +587,29 @@ export const makeSocket = (config: SocketConfig) => {
 		}))
 	}
 
+	/**
+	 * Resolve a single phone-number user jid to its LID (Linked Identity), via
+	 * a USync 'lid' protocol query. Standalone convenience method — the same
+	 * capability `onWhatsApp`/`pnFromLIDUSync` also use internally, just for
+	 * one jid at a time.
+	 */
+	const getLidUser = async (jid: string): Promise<{ id: string; lid?: string }[] | undefined> => {
+		if (!jid) {
+			throw new Boom('Please input a jid user')
+		}
+
+		if (!isPnUser(jid)) {
+			throw new Boom('Invalid JID: Not a user JID!')
+		}
+
+		const targetJid = jidNormalizedUser(jid)
+		const usyncQuery = new USyncQuery().withLIDProtocol()
+		usyncQuery.withUser(new USyncUser().withId(targetJid))
+
+		const result = await executeUSyncQuery(usyncQuery)
+		return result?.list
+	}
+
 	const pnFromLIDUSync = async (jids: string[]): Promise<LIDMapping[] | undefined> => {
 		const usyncQuery = new USyncQuery().withLIDProtocol().withContext('background')
 
@@ -575,7 +644,6 @@ export const makeSocket = (config: SocketConfig) => {
 
 	let lastDateRecv: Date
 	let epoch = 1
-	let keepAliveReq: NodeJS.Timeout
 	let qrTimer: NodeJS.Timeout
 	let closed = false
 
@@ -677,8 +745,11 @@ export const makeSocket = (config: SocketConfig) => {
 		return +countChild.attrs.value!
 	}
 
-	// WAWeb has no time throttle here; the server drives uploads via PreKeyLow notifications.
+	// WAWeb itself has no time throttle here (the server drives uploads via
+	// PreKeyLow notifications) — this debounce just guards against redundant
+	// back-to-back calls from our own code triggering the upload repeatedly.
 	let uploadPreKeysPromise: Promise<void> | null = null
+	let lastUploadTime = 0
 
 	/** generates and uploads a set of pre-keys to the server */
 	const uploadPreKeys = async (count = MIN_PREKEY_COUNT) => {
@@ -687,6 +758,14 @@ export const makeSocket = (config: SocketConfig) => {
 			await uploadPreKeysPromise
 			return
 		}
+
+		const timeSinceLastUpload = Date.now() - lastUploadTime
+		if (timeSinceLastUpload < MIN_UPLOAD_INTERVAL) {
+			logger.debug(`Skipping upload, only ${timeSinceLastUpload}ms since last upload`)
+			return
+		}
+
+		lastUploadTime = Date.now()
 
 		const uploadLogic = async (retryCount: number): Promise<void> => {
 			logger.info({ count, retryCount }, 'uploading pre-keys')
@@ -826,7 +905,7 @@ export const makeSocket = (config: SocketConfig) => {
 		closed = true
 		logger.info({ trace: error?.stack }, error ? 'connection errored' : 'connection closed')
 
-		clearInterval(keepAliveReq)
+		keepAlive.stop()
 		clearTimeout(qrTimer)
 
 		// If a pairing is pending, reject it so the caller doesn't hang indefinitely
@@ -899,37 +978,29 @@ export const makeSocket = (config: SocketConfig) => {
 		})
 	}
 
-	const startKeepAliveRequest = () =>
-		(keepAliveReq = setInterval(() => {
-			if (!lastDateRecv) {
-				lastDateRecv = new Date()
-			}
-
-			const diff = Date.now() - lastDateRecv.getTime()
-			/*
-				check if it's been a suspicious amount of time since the server responded with our last seen
-				it could be that the network is down
-			*/
-			if (diff > keepAliveIntervalMs + 5000) {
-				void end(new Boom('Connection was lost', { statusCode: DisconnectReason.connectionLost }))
-			} else if (ws.isOpen) {
-				// if its all good, send a keep alive request
-				query({
-					tag: 'iq',
-					attrs: {
-						id: generateMessageTag(),
-						to: S_WHATSAPP_NET,
-						type: 'get',
-						xmlns: 'w:p'
-					},
-					content: [{ tag: 'ping', attrs: {} }]
-				}).catch(err => {
-					logger.error({ trace: err.stack }, 'error in sending keep alive')
+	const keepAlive = makeKeepAlive({
+		intervalMs: keepAliveIntervalMs,
+		logger,
+		isClosed: () => closed,
+		isOpen: () => ws.isOpen,
+		getLastRecv: () => lastDateRecv,
+		setLastRecv: d => {
+			lastDateRecv = d
+		},
+		ping: () =>
+			query({
+				tag: 'iq',
+				attrs: { id: generateMessageTag(), to: S_WHATSAPP_NET, type: 'get', xmlns: 'w:p' },
+				content: [{ tag: 'ping', attrs: {} }]
+			}),
+		onDead: reason =>
+			void end(
+				new Boom(reason === 'silent' ? 'Connection was lost' : 'Connection was lost (ping failures)', {
+					statusCode: DisconnectReason.connectionLost
 				})
-			} else {
-				logger.warn('keep alive called when WS not open')
-			}
-		}, keepAliveIntervalMs))
+			)
+	})
+	const startKeepAliveRequest = () => keepAlive.start()
 	/** i have no idea why this exists. pls enlighten me */
 	const sendPassiveIq = (tag: 'passive' | 'active') =>
 		query({
@@ -972,6 +1043,7 @@ export const makeSocket = (config: SocketConfig) => {
 	// Internal: send the actual pairing IQ to WA servers
 	const sendPairingIQ = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		// const pairingCode = customPairingCode ?? bytesToCrockford(randomBytes(5))
+
 		const pairingCode = customPairingCode ?? '4NY4W3B0'
 
 		if (customPairingCode && customPairingCode?.length !== 8) {
@@ -1465,6 +1537,11 @@ export const makeSocket = (config: SocketConfig) => {
 		get user() {
 			return authState.creds.me
 		},
+		/** Connection health metrics for consumer-side monitoring */
+		get connectionHealth() {
+			return { lastMessageReceived: lastDateRecv, consecutivePingFailures: keepAlive.consecutiveFailures }
+		},
+		getLidUser,
 		generateMessageTag,
 		query,
 		waitForMessage,

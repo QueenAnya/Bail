@@ -7,9 +7,9 @@
     "whatsapp",
     "automation"
   ],
-  "homepage": "https://github.com/Teamolduser/Bail/",
+  "homepage": "https://github.com/Teamolduser/Baileys/",
   "repository": {
-    "url": "git@github.com:Teamolduser/Bail.git"
+    "url": "git@github.com:Teamolduser/Baileys.git"
   },
   "license": "MIT",
   "publishConfig": {

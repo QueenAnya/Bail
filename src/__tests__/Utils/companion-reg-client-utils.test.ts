@@ -80,7 +80,7 @@ describe('buildCompanionRegNode', () => {
 	})
 
 	it('uses the explicit platformId override for companion_platform_id when given', () => {
-		// qb2's pairing-code flow restricts companion_platform_id to the 1-6
+		// the pairing-code flow restricts companion_platform_id to the 1-6
 		// browser-type range the server accepts for this IQ, passing a
 		// clamped id here rather than the raw getCompanionPlatformId mapping.
 		const node = build(['My Product', 'Some Non-Browser Client', '1.0'], undefined, '1')

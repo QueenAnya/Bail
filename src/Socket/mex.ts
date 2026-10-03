@@ -2,7 +2,7 @@ import { Boom } from '@hapi/boom'
 import type { BinaryNode } from '../WABinary'
 import { getBinaryNodeChild, S_WHATSAPP_NET } from '../WABinary'
 
-const wMexQuery = (
+export const wMexQuery = (
 	variables: Record<string, unknown>,
 	queryId: string,
 	query: (node: BinaryNode) => Promise<BinaryNode>,
@@ -36,7 +36,15 @@ export const executeWMexQuery = async <T>(
 	const result = await wMexQuery(variables, queryId, query, generateMessageTag)
 	const child = getBinaryNodeChild(result, 'result')
 	if (child?.content) {
-		const data = JSON.parse(child.content.toString())
+		const contentStr = child.content.toString()
+		let data: any
+		try {
+			data = JSON.parse(contentStr)
+		} catch {
+			// raw non-JSON responses from the server (e.g. "Forbidden")
+			const statusCode = /forbidden/i.test(contentStr) ? 403 : 400
+			throw new Boom(`GraphQL server error: ${contentStr}`, { statusCode, data: contentStr })
+		}
 
 		if (data.errors && data.errors.length > 0) {
 			const errorMessages = data.errors.map((err: Error) => err.message || 'Unknown error').join(', ')

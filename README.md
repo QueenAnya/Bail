@@ -8,8 +8,8 @@
    <a href="https://www.npmjs.com/package/@teamolduser/baileys">
       <img src="https://img.shields.io/npm/v/@teamolduser/baileys?style=for-the-badge&logo=npm"/>
    </a>
-   <a href="https://github.com/Teamolduser/Bail">
-      <img src="https://img.shields.io/github/stars/Teamolduser/Bail?style=for-the-badge&logo=github"/>
+   <a href="https://github.com/Teamolduser/Baileys">
+      <img src="https://img.shields.io/github/stars/Teamolduser/Baileys?style=for-the-badge&logo=github"/>
    </a>
    <a href="LICENSE">
       <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge"/>
@@ -20,7 +20,7 @@
    <a href="#">
       <img src="https://img.shields.io/badge/ESM-only?logo=javascript&labelColor=yellow&logoColor=black&style=for-the-badge"/>
    </a>
-   <a href="https://deepwiki.com/Teamolduser/Bail">
+   <a href="https://deepwiki.com/Teamolduser/Baileys">
       <img src="https://deepwiki.com/badge.svg" alt="Ask Deep-Wiki"/>
    </a>
 </p>
@@ -69,7 +69,7 @@ For the latest unreleased fixes/features straight from source, clone this
 repository and install locally:
 
 ```
-git clone https://github.com/Teamolduser/Bail
+git clone https://github.com/Teamolduser/Baileys
 cd Bail
 yarn install
 yarn build
@@ -154,7 +154,7 @@ await sock.sendMessage(jid, { poll: { name: 'Best day?', values: ['Mon', 'Fri'],
 Every feature this fork adds beyond upstream Baileys — album send, sticker
 packs, rich AI-style responses, LaTeX, scheduling helpers, and more — is
 documented in full below, in
-[🧩 QB2 Fork-Exclusive Features](#-qb2-fork-exclusive-features).
+[🧩 @teamolduser/baileys Fork-Exclusive Features](#-teamolduserbaileys-fork-exclusive-features).
 
 ### 📋 Table of Contents
 - [🚀 Quick Start](#-quick-start)
@@ -232,7 +232,7 @@ documented in full below, in
    - [🛒 Business Management](#-business-management)
    - [🔐 Privacy Management](#-privacy-management)
    - [📡 Events](#-events)
-- [🧩 QB2 Fork-Exclusive Features](#-qb2-fork-exclusive-features)
+- [🧩 @teamolduser/baileys Fork-Exclusive Features](#-teamolduserbaileys-fork-exclusive-features)
 - [📦 Fork Base](#-fork-base)
 - [📣 Credits](#-credits)
 
@@ -278,7 +278,7 @@ documented in full below, in
 
 # GitHub
 "dependencies": {
-   "@teamolduser/baileys": "github:Teamolduser/Bail"
+   "@teamolduser/baileys": "github:Teamolduser/Baileys"
 }
 ```
 
@@ -289,7 +289,7 @@ documented in full below, in
 npm i @teamolduser/baileys@latest
 
 # GitHub
-npm i github:Teamolduser/Bail
+npm i github:Teamolduser/Baileys
 ```
 
 #### 🧩 Import (ESM & CJS)
@@ -769,7 +769,7 @@ sock.sendMessage(jid, {
       productImageCount: 1,
       salePriceAmount1000: 65_000_000,
       signedUrl: 'https://www.npmjs.com/package/@teamolduser/baileys',
-      title: '📦 QB2 Store (Premium)',
+      title: '📦 Store (Premium)',
       url: 'https://www.npmjs.com/package/@teamolduser/baileys'
    },
    businessOwnerJid: '0@s.whatsapp.net'
@@ -1166,9 +1166,9 @@ sock.sendMessage(jid, {
          url: './path/to/image.webp'
       }
    }],
-   name: '📦 My Sticker Pack',
-   publisher: '🌟 QB2 Store',
-   description: '@teamolduser/baileys'
+   name: '📦 @teamolduser/baileys Sticker Pack System',
+   publisher: '🌟 @teamolduser/baileys Publisher System',
+   description: '🏷️ @teamolduser/baileys Description System'
 }, {
    quoted: message
 })
@@ -2110,7 +2110,7 @@ sock.chatModify({
 sock.star(jid, [{ id: messageId, fromMe: true }], true)
 
 // --- Contact
-sock.addOrEditContact(jid, { displayName: 'QB2 Store' })
+sock.addOrEditContact(jid, { displayName: 'Store' })
 sock.removeContact(jid)
 
 // --- Label
@@ -2145,7 +2145,7 @@ console.log(`Name: ${bList.name}, Recipients: ${bList.recipients}`)
 ```javascript
 // --- Create a new product
 const product = await sock.productCreate({
-   name: '🧩 QB2 Store (Premium)',
+   name: '🧩 Store (Premium)',
    description: 'Get a full version of Starseed!',
    price: 100000,
    currency: 'IDR',
@@ -2161,7 +2161,7 @@ console.dir(product, { depth: null })
 
 // --- Update product
 await sock.productUpdate(productId, {
-   name: '🧩 QB2 Store (Premium)',
+   name: '🧩 Store (Premium)',
    description: 'Get a full version of Starseed with more features!',
    price: 75000,
    currency: 'IDR',
@@ -2198,7 +2198,7 @@ const orderForJid = await sock.getOrderDetails(orderId, tokenBase64, sellerJid)
 // --- Update business profile
 await sock.updateBusinessProfile({
    address: 'Jakarta, Indonesia',
-   description: '🛒 Official QB2 Store',
+   description: '🛒 Official Store',
    websites: ['https://www.npmjs.com/package/@teamolduser/baileys'],
    email: 'store@example.com',
    hours: {
@@ -2305,7 +2305,7 @@ sock.ev.on('newsletter-settings.update', (update) => {})
 sock.ev.on('settings.update', (update) => {})
 ```
 
-### 🧩 QB2 Fork-Exclusive Features
+### 🧩 @teamolduser/baileys Fork-Exclusive Features
 
 Everything below this point is exclusive to this fork (`@teamolduser/baileys`)
 and does not exist in the upstream library.
@@ -2530,8 +2530,8 @@ encrypt, upload) built into `sock.sendMessage`:
 ```ts
 await sock.sendMessage(jid, {
 	stickerPack: {
-		name: 'My Pack',
-		publisher: 'Me',
+		name: '📦 @teamolduser/baileys Sticker Pack System',
+		publisher: '🌟 @teamolduser/baileys Publisher System',
 		stickers: [
 			{ data: fs.readFileSync('./sticker1.png') },
 			{ data: 'https://example.com/sticker2.webp', emojis: ['😀'] }
@@ -2559,8 +2559,8 @@ const stickerPackMessage = await prepareStickerPackMessage(
 	{
 		cover: coverBuffer,
 		stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-		name: 'My Pack',
-		publisher: 'Me'
+		name: '📦 @teamolduser/baileys Sticker Pack System',
+		publisher: '🌟 @teamolduser/baileys Publisher System'
 	},
 	{
 		upload: sock.waUploadToServer, // required
@@ -2577,8 +2577,8 @@ Or use the dedicated socket method, which does the same thing in one call:
 await sock.sendStickerPack(jid, {
 	cover: coverBuffer,
 	stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-	name: 'My Pack',
-	publisher: 'Me'
+	name: '📦 @teamolduser/baileys Sticker Pack System',
+	publisher: '🌟 @teamolduser/baileys Publisher System'
 })
 ```
 
@@ -3181,8 +3181,8 @@ These are core-file patches, not addons — no import needed, they just work:
   await sock.sendStickerPack(jid, {
      cover: coverBuffer,
      stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-     name: 'My Pack',
-     publisher: 'Me'
+     name: '📦 @teamolduser/baileys Sticker Pack System',
+     publisher: '🌟 @teamolduser/baileys Publisher System'
   })
   ```
 - **Dual content/options flags** — `groupStatus`, `isLottie`, `spoiler`,
@@ -3308,7 +3308,7 @@ await bot.start()                          // creates bot.socket
 bot.socket!.ev.on('creds.update', saveCreds) // register AFTER start()
 
 bot.command('!sticker', async ctx => {
-    await ctx.replySticker(imageBuffer, { packname: 'My Pack', author: 'Me' })
+    await ctx.replySticker(imageBuffer, { packname: '📦 @teamolduser/baileys Sticker Pack System', author: '🌟 @teamolduser/baileys Publisher System' })
 })
 
 bot.command('!ghosts', async ctx => {
@@ -3768,7 +3768,7 @@ returning a code that will never work.
 
 ### 32. Recent Merged Updates & New APIs
 
-This section collects the newer QB2 additions/ports that were merged after
+This section collects the newer additions/ports that were merged after
  the earlier feature documentation. The APIs below are available from
 `@teamolduser/baileys` unless noted otherwise.
 
@@ -4175,6 +4175,224 @@ formatDuration(991504000)   // '27:32:30' (hours don't wrap)
   online/offline/session emissions, and an `unavailable` with no prior online
   state updates the status but emits nothing (no fake duration).
 
+### 34. Additional Message & Addon Recipes
+
+Small recipes that complement the sections above. Everything here is wired
+into the socket or exported from `@teamolduser/baileys`.
+
+#### HD image / video
+
+```ts
+await sock.sendMessage(jid, { image: { url: 'https://example.com/photo.jpg' }, caption: 'Full quality', hd: true })
+await sock.sendMessage(jid, { video: { url: 'https://example.com/video.mp4' }, caption: 'HD video', hd: true })
+```
+
+#### Scheduled call message
+
+```ts
+// Schedules a call entry in the chat (does not ring — use sock.initiateCall() for a real call)
+await sock.sendMessage(jid, { call: { name: 'Team Call', time: Date.now() + 3600000, type: 1 } }) // 1 = audio, 2 = video
+```
+
+#### Admin invite (newsletter)
+
+```ts
+await sock.sendMessage(jid, {
+  adminInvite: {
+    jid: '120363xxxxxx@newsletter',
+    name: 'My Channel',
+    caption: 'Join my channel!',
+    expiration: Date.now() + 604800000
+  }
+})
+```
+
+#### Share / request phone number
+
+```ts
+await sock.sendMessage(jid, { sharePhoneNumber: true })
+await sock.sendMessage(jid, { requestPhoneNumber: true })
+```
+
+#### Disappearing messages & clear message
+
+```ts
+await sock.sendMessage(jid, { disappearingMessagesInChat: true })   // 24h
+await sock.sendMessage(jid, { disappearingMessagesInChat: 604800 }) // 7 days
+await sock.sendMessage(jid, { disappearingMessagesInChat: false })  // off
+
+// Clear/delete a message for me only
+await sock.clearMessage(jid, messageKey, messageTimestamp)
+```
+
+#### Shop & Collection messages
+
+```ts
+await sock.sendMessage(jid, {
+  text: 'Welcome to our shop!',
+  title: 'Our Store',
+  footer: 'Shop Now',
+  shop: { surface: 1, id: 'https://example.com/shop' }
+})
+
+await sock.sendMessage(jid, {
+  text: 'Product Collection',
+  footer: 'Browse All',
+  collection: { bizJid: '628xxx@s.whatsapp.net', id: 'collection_id', version: 1 }
+})
+```
+
+#### Native-flow buttons: CTA, PAY, PIX
+
+```ts
+await sock.sendMessage(jid, {
+  image: { url: 'https://example.com/img.jpg' },
+  caption: 'Choose an action',
+  footer: 'Footer',
+  hasMediaAttachment: true,
+  interactiveButtons: [
+    { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '🌐 Visit', url: 'https://example.com' }) },
+    { name: 'cta_copy', buttonParamsJson: JSON.stringify({ display_text: '📋 Copy Code', copy_code: 'ABC123' }) },
+    { name: 'cta_call', buttonParamsJson: JSON.stringify({ display_text: '📞 Call', phone_number: '+911234567890' }) }
+  ]
+})
+
+// PAY — review_and_pay
+await sock.sendMessage(jid, {
+  text: 'Complete your payment',
+  interactiveButtons: [{
+    name: 'review_and_pay',
+    buttonParamsJson: JSON.stringify({
+      currency: 'IDR',
+      total_amount: { value: '100000', offset: '100' },
+      reference_id: 'REF123',
+      type: 'physical-goods',
+      payment_type: 'confirm',
+      payment_status: 'captured',
+      payment_timestamp: Math.floor(Date.now() / 1000),
+      order: {
+        status: 'completed',
+        order_type: 'PAYMENT_REQUEST',
+        subtotal: { value: '100000', offset: '100' },
+        items: [{ retailer_id: 'item_001', name: 'Product Name', amount: { value: '100000', offset: '100' }, quantity: '1' }]
+      }
+    })
+  }]
+})
+
+// PIX — payment_info
+await sock.sendMessage(jid, {
+  text: '',
+  interactiveButtons: [{
+    name: 'payment_info',
+    buttonParamsJson: JSON.stringify({
+      payment_settings: [{
+        type: 'pix_static_code',
+        pix_static_code: { merchant_name: 'My Store', key: 'example@email.com', key_type: 'EMAIL' } // PHONE | EMAIL | CPF | EVP
+      }]
+    })
+  }]
+})
+```
+
+#### Interactive helpers
+
+```ts
+import {
+  generateQuickReplyButtons,
+  generateUrlButtonMessage,
+  generateCopyCodeButton,
+  generateCombinedButtons,
+  generateInteractiveListMessage
+} from '@teamolduser/baileys'
+
+const qr = generateQuickReplyButtons('Choose an option:', [
+  { id: 'btn1', displayText: '✅ Accept' },
+  { id: 'btn2', displayText: '❌ Reject' }
+], { footer: 'Powered by Bot' })
+await sock.sendMessage(jid, qr.interactiveMessage)
+
+const url = generateUrlButtonMessage('Visit our website', [{ displayText: '🌐 Open', url: 'https://example.com' }], { title: 'Our Site', footer: 'Click to open' })
+await sock.sendMessage(jid, url.interactiveMessage)
+
+const copy = generateCopyCodeButton('Your OTP:', '483920', '📋 Copy OTP')
+await sock.sendMessage(jid, copy.interactiveMessage)
+
+const combined = generateCombinedButtons('What would you like?', [
+  { type: 'url', displayText: '🌐 Website', url: 'https://example.com' },
+  { type: 'reply', displayText: '💬 Chat', id: 'start_chat' },
+  { type: 'copy', displayText: '📋 Promo', copyCode: 'PROMO2025' },
+  { type: 'call', displayText: '📞 Call', phoneNumber: '+911234567890' }
+], { footer: 'Choose any option' })
+await sock.sendMessage(jid, combined.interactiveMessage)
+
+const list = generateInteractiveListMessage({
+  title: '📋 Menu',
+  buttonText: 'Open Menu',
+  description: 'Select an item',
+  footer: 'Bot',
+  sections: [{ title: 'Food', rows: [{ rowId: 'rice', title: 'Rice', description: '$2' }] }]
+})
+await sock.sendMessage(jid, list.listMessage)
+```
+
+#### Status to a specific audience
+
+```ts
+await sock.sendMessage(
+  'status@broadcast',
+  { text: 'Hello Everyone! 👋', backgroundColor: '#25D366', font: 2 },
+  { statusJidList: ['628xxx@s.whatsapp.net', '629xxx@s.whatsapp.net'] }
+)
+
+await sock.sendMessage(
+  'status@broadcast',
+  { image: { url: 'https://example.com/img.jpg' }, caption: 'Good morning! ☀️' },
+  { statusJidList: ['628xxx@s.whatsapp.net'] }
+)
+```
+
+#### Addon extras
+
+```ts
+// Message Scheduler (§8)
+scheduler.cancelForJid(jid) // cancel everything queued for one chat
+scheduler.clearAll()        // cancel all
+scheduler.stop(); scheduler.start()
+
+// Auto-Reply (§7)
+autoReply.setRuleActive('rule_id', false) // enable/disable a rule at runtime
+
+// Message Templates (§12)
+const { valid, missing } = manager.validate('order', { orderId: '123' })
+if (!valid) console.log('Missing:', missing)
+
+// Message Search (§14)
+const search = new MessageSearchManager()
+search.searchRegex(/\d{6}/, { limit: 5 })
+search.getByType('image')
+search.getByJid('group@g.us')
+
+// Chat Control (§10)
+await typing.startRecording(jid, { duration: 2000 }) // "recording audio…" indicator
+
+// JID helpers (§17)
+import { parseJid, isSameUser, formatJidDisplay, getJidVariants, createJidPlotter } from '@teamolduser/baileys'
+
+parseJid('628xxx@s.whatsapp.net')                       // { isPn, isGroup, user, ... }
+isSameUser('628xxx@s.whatsapp.net', '628xxx@lid')       // true when both map to one user
+formatJidDisplay('628xxx:2@s.whatsapp.net', { showDevice: true, showType: true })
+getJidVariants('628123456789')                          // all JID forms for a number
+
+const plotter = createJidPlotter(
+  pn => signalRepository.lidMapping.getLIDForPN(pn),
+  lid => signalRepository.lidMapping.getPNForLID(lid)
+)
+const { pn, lid } = await plotter.plotBidirectional('628xxx@s.whatsapp.net')
+```
+
+---
+
 ### 📦 Fork Base
 
 This fork is based on the original open-source Baileys library.
@@ -4201,7 +4419,7 @@ This is an extended fork of the original open-source Baileys library, adding
 35+ addon modules (rich responses, interactive buttons, scheduling, status
 posting, call handling, extra auth-state backends, and more), a WhatsApp
 username API, album send, sticker packs, and other fork-exclusive features
-documented in [Fork-Exclusive Features — Usage Guide](#fork-exclusive-features--usage-guide)
+documented in [@teamolduser/baileys Fork-Exclusive Features — Usage Guide](#fork-exclusive-features--usage-guide)
 above.
 
 ## Security Fixes (informational — no API surface)

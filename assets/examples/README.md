@@ -1,17 +1,17 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Teamolduser/Bail/main/assets/media/logo.png" width="150" height="150" />
+  <img src="https://raw.githubusercontent.com/Teamolduser/Baileys/main/assets/media/logo.png" width="150" height="150" />
 
-  # TEAMOLDUSER
+  # @teamolduser/baileys
   ## Baileys - WhatsApp Web API
-  **Typescript/Javascript WhatsApp Web API Modificatios by [Teamolduser](https://github.com/Teamolduser/Bail)**
+  **Typescript/Javascript WhatsApp Web API Modificatios by [@teamolduser/baileys](https://github.com/Teamolduser/Baileys)**
 </div>
 
 <p align="center">
 <a href="https://www.npmjs.com/package/@teamolduser/baileys"><img src="https://img.shields.io/npm/v/@teamolduser/baileys?style=for-the-badge&logo=npm" alt="npm version" /></a>
 <a href="https://www.npmjs.com/package/@teamolduser/baileys"><img src="https://img.shields.io/npm/dt/@teamolduser/baileys?style=for-the-badge&logo=npm" alt="npm downloads" /></a>
-<a href="https://github.com/Teamolduser/Bail/stargazers"><img src="https://img.shields.io/github/stars/Teamolduser/Bail?style=for-the-badge&logo=github" alt="github stars" /></a>
-<a href="https://github.com/Teamolduser/Bail/network/members"><img src="https://img.shields.io/github/forks/Teamolduser/Bail?style=for-the-badge&logo=github" alt="github forks" /></a>
-<a href="https://github.com/Teamolduser/Bail/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Teamolduser/Bail?style=for-the-badge&logo=github" alt="license" /></a>
+<a href="https://github.com/Teamolduser/Baileys/stargazers"><img src="https://img.shields.io/github/stars/Teamolduser/Baileys?style=for-the-badge&logo=github" alt="github stars" /></a>
+<a href="https://github.com/Teamolduser/Baileys/network/members"><img src="https://img.shields.io/github/forks/Teamolduser/Baileys?style=for-the-badge&logo=github" alt="github forks" /></a>
+<a href="https://github.com/Teamolduser/Baileys/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Teamolduser/Baileys?style=for-the-badge&logo=github" alt="license" /></a>
 </p>
 
 ### Important Note
@@ -35,7 +35,7 @@ yarn add @teamolduser/baileys
 
 Use the edge version (no guarantee of stability, but latest fixes + features)
 ```
-yarn add github:Teamolduser/Bail
+yarn add github:Teamolduser/Baileys
 ```
 
 Then import your code using:
@@ -46,10 +46,10 @@ import makeWASocket from '@teamolduser/baileys'
 # Links
 - [Innovators](https://discord.gg/G3RfM6FDHS)
 - [Itsukichan](https://discord.gg/nqssuNjjSH)
-- [Teamolduser Discord](https://discord.gg/WeJM5FP9GG)
+- [@teamolduser/baileys Discord](https://discord.gg/WeJM5FP9GG)
 - [Original Guide](https://guide.whiskeysockets.io/)
-- [Baileys Guide](https://github.com/Teamolduser/Bail)
-- [Deep Wiki](https://deepwiki.com/Teamolduser/Bail)
+- [Baileys Guide](https://github.com/Teamolduser/Baileys)
+- [Deep Wiki](https://deepwiki.com/Teamolduser/Baileys)
 
 # Index
 
@@ -220,12 +220,12 @@ WhatsApp provides a multi-device API that allows Baileys to be authenticated as 
 > **[Here](#example-to-start) is a simple example of event handling**
 
 > [!TIP]
-> **You can see all supported socket configs [here](https://github.com/Teamolduser/Bail) (Recommended)**
+> **You can see all supported socket configs [here](https://github.com/Teamolduser/Baileys) (Recommended)**
 
 ### Starting socket with **QR-CODE**
 
 > [!TIP]
-> You can customize browser name if you connect with **QR-CODE**, with `Browser` constant, we have some browsers config, **see [here](https://github.com/Teamolduser/Bail)**
+> You can customize browser name if you connect with **QR-CODE**, with `Browser` constant, we have some browsers config, **see [here](https://github.com/Teamolduser/Baileys)**
 
 ```ts
 import makeWASocket from '@teamolduser/baileys'
@@ -345,7 +345,7 @@ sock.ev.on('creds.update', saveCreds)
 They're all nicely typed up, so you shouldn't have any issues with an Intellisense editor like VS Code.
 
 > [!IMPORTANT]
-> **The events are [these](https://github.com/Teamolduser/Bail)**, it's important you see all events
+> **The events are [these](https://github.com/Teamolduser/Baileys)**, it's important you see all events
 
 You can listen to these events like this:
 ```ts
@@ -427,7 +427,7 @@ const connectAuth = async() => {
     })
 }
   await client.connect()
-  const collection = client.db("@teamolduser").collection("sessions")
+  const collection = client.db("@teamolduser/baileys").collection("sessions")
   return collection
 }
 
@@ -451,7 +451,7 @@ sock.ev.on('creds.update', saveCreds)
 import pino from "pino"
 import { makeInMemoryStore, getAggregateVotesInPollMessage } from '@teamolduser/baileys'
 
-const logger = pino({ timestamp: () => `,"time":"${new Date().toJSON()}"` }).child({ class: "@teamolduser" })
+const logger = pino({ timestamp: () => `,"time":"${new Date().toJSON()}"` }).child({ class: "@teamolduser/baileys" })
 logger.level = "fatal"
 const store = makeInMemoryStore({ logger })
 
@@ -658,7 +658,7 @@ The store also provides some simple functions such as `loadMessages` that utiliz
 - `getSenderPn`, get your own phone number info from creds
 
 ### JID Plotting & LID Support
-Teamolduser Baileys has advanced JID plotting utilities to handle WhatsApp's Linked IDs (LID).
+@teamolduser/baileys has advanced JID plotting utilities to handle WhatsApp's Linked IDs (LID).
 
 ```ts
 import { parseJid, plotJid, normalizePhoneToJid } from '@teamolduser/baileys'
@@ -823,8 +823,8 @@ sock.ev.on('messages.update', (updates) => {
 ## Sending Messages
 
 - Send all types of messages with a single function
-    - **[Here](https://github.com/Teamolduser/Bail) you can see all message contents supported, like text message**
-    - **[Here](https://github.com/Teamolduser/Bail) you can see all options supported, like quote message**
+    - **[Here](https://github.com/Teamolduser/Baileys) you can see all message contents supported, like text message**
+    - **[Here](https://github.com/Teamolduser/Baileys) you can see all options supported, like quote message**
 
     ```ts
     const jid: string
@@ -976,7 +976,7 @@ await sock.sendMessage(
     id,
     { 
         contacts: { 
-            displayName: 'teamolduser', 
+            displayName: '@teamolduser/baileys', 
             contacts: [{ vcard }] 
         }
     }
@@ -1297,7 +1297,7 @@ await sock.sendMessage(
     {
         stickerPack: {
             name: 'Hiii', 
-            publisher: 'By teamolduser', 
+            publisher: 'By @teamolduser/baileys', 
             description: 'Hello', 
             cover: Buffer, // Image buffer
             stickers: [{
@@ -1694,7 +1694,7 @@ sock.sendMessage(jid, {
       footer: '🏷️️ Pinterest',
       nativeFlow: [{
          text: '🌐 Source',
-         url: 'https://github.com/Teamolduser/Bail',
+         url: 'https://github.com/Teamolduser/Baileys',
          useWebview: true
       }]
    }, {
@@ -1705,11 +1705,11 @@ sock.sendMessage(jid, {
       footer: '🏷️ Pinterest',
       offerText: '🏷️ New Coupon!',
       offerCode: '@teamolduser/baileys',
-      offerUrl: 'https://github.com/Teamolduser/Bail',
+      offerUrl: 'https://github.com/Teamolduser/Baileys',
       offerExpiration: Date.now() + 3_600_000,
       nativeFlow: [{
          text: '🌐 Source',
-         url: 'https://github.com/Teamolduser/Bail'
+         url: 'https://github.com/Teamolduser/Baileys'
       }]
    }, {
       image: {
@@ -1721,7 +1721,7 @@ sock.sendMessage(jid, {
       optionTitle: '👉🏻 Select Options',
       offerText: '🏷️ New Coupon!',
       offerCode: '@teamolduser/baileys',
-      offerUrl: 'https://github.com/Teamolduser/Bail',
+      offerUrl: 'https://github.com/Teamolduser/Baileys',
       offerExpiration: Date.now() + 3_600_000,
       nativeFlow: [{
          text: '🛒 Product',
@@ -1729,7 +1729,7 @@ sock.sendMessage(jid, {
          icon: 'default'
       }, {
          text: '🌐 Source',
-         url: 'https://github.com/Teamolduser/Bail'
+         url: 'https://github.com/Teamolduser/Baileys'
       }]
    }]
 }, {
@@ -1842,7 +1842,7 @@ await sock.sendMessage(
                     flow_message_version: '3', 
                     flow_token: '1:1307913409923914:293680f87029f5a13d1ec5e35e718af3',
                     flow_id: '1307913409923914',
-                    flow_cta: 'teamolduser kawaii >\\<', 
+                    flow_cta: '@teamolduser/baileys kawaii >\\<', 
                     flow_action: 'navigate', 
                     flow_action_payload: {
                     	screen: 'QUESTION_ONE',
@@ -2005,7 +2005,7 @@ await sock.sendMessage(
             description: 'Description',
             currencyCode: 'IDR',
             priceAmount1000: '283xxx',
-            retailerId: 'teamolduser',
+            retailerId: '@teamolduser/baileys',
             url: 'https://example.com',
             productImageCount: 1
         },
@@ -2042,7 +2042,7 @@ await sock.sendMessage(
                 payment_settings: [{ 
                    type: "pix_static_code", 
                    pix_static_code:  { 
-                      merchant_name: 'teamolduser kawaii >\\\\\\<', 
+                      merchant_name: '@teamolduser/baileys kawaii >\\\\\\<', 
                       key: 'example@teamolduser.com', 
                       key_type: 'EMAIL' // PHONE || EMAIL || CPF || EVP 
                    } 
@@ -2086,7 +2086,7 @@ await sock.sendMessage(
                     order_type: 'PAYMENT_REQUEST', 
                     items: [{
                         retailer_id: 'your_retailer_id', 
-                        name: 'teamolduser Kawaii >\\\<', 
+                        name: '@teamolduser/baileys Kawaii >\\\<', 
                         amount: {
                             value: '999999999', 
                             offset: '100'
@@ -2094,7 +2094,7 @@ await sock.sendMessage(
                         quantity: '1', 
                     }]
                 }, 
-                additional_note: 'teamolduser Kawaii >\\\<', 
+                additional_note: '@teamolduser/baileys Kawaii >\\\<', 
                 native_payment_methods: [], 
                 share_payment_status: false
             }) 
@@ -2557,7 +2557,7 @@ await sock.sendMessage(
             description: 'Description',
             currencyCode: 'IDR',
             priceAmount1000: '283xxx',
-            retailerId: 'teamolduser',
+            retailerId: '@teamolduser/baileys',
             url: 'https://example.com',
             productImageCount: 1
         },
@@ -2694,7 +2694,7 @@ await sock.sendMessage(
             description: 'Description',
             currencyCode: 'IDR',
             priceAmount1000: '283xxx',
-            retailerId: 'teamolduser',
+            retailerId: '@teamolduser/baileys',
             url: 'https://example.com',
             productImageCount: 1
         },
@@ -3012,7 +3012,7 @@ await sock.sendMessage(
     { 
         album: [{
         	image: {
-        		url: 'https://example.com/teamolduser.jpg'
+        		url: 'https://example.com/@teamolduser/baileys.jpg'
         	}, 
         	caption: 'Hay'
         }, {
@@ -3020,7 +3020,7 @@ await sock.sendMessage(
         	caption: 'Hay'
         }, {
         	video: {
-        		url: 'https://example.com/teamolduser.mp4'
+        		url: 'https://example.com/@teamolduser/baileys.mp4'
         	}, 
         	caption: 'Hay'
         }, {
@@ -3969,12 +3969,12 @@ await sock.sendMessage(jid, {
 
 ---
 
-## Follow Teamolduser (@teamolduser)
+## Follow @teamolduser/baileys (@teamolduser/baileys)
 
-- [Facebook](https://facebook.com/teamolduser)
-- [Twitter / X](https://twitter.com/teamolduser)
-- [Instagram](https://instagram.com/teamolduser)
-- [Discord](https://discord.gg/teamolduser)
+- [Facebook](https://facebook.com/@teamolduser/baileys)
+- [Twitter / X](https://twitter.com/@teamolduser/baileys)
+- [Instagram](https://instagram.com/@teamolduser/baileys)
+- [Discord](https://discord.gg/@teamolduser/baileys)
 
 ---
 
