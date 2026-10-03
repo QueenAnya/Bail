@@ -947,20 +947,6 @@ export const generateWAMessageContent = async (
 		}
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
-	} else if (
-		('sections' in message && !!(message as any).sections) ||
-		('buttons' in message && !!(message as any).buttons) ||
-		('templateButtons' in message && !!(message as any).templateButtons) ||
-		('interactiveButtons' in message && !!(message as any).interactiveButtons) ||
-		('shop' in message && !!(message as any).shop) ||
-		('collection' in message && !!(message as any).collection) ||
-		('cards' in message && !!(message as any).cards)
-	) {
-		// sections/buttons/templateButtons/interactiveButtons/shop/collection/cards are
-		// all handled by the standalone if-chain below this function body — skip media
-		// prep here, or a caller that passes e.g. { body, interactiveButtons } (no text/
-		// image/video/etc key) would wrongly hit the generic prepareWAMessageMedia()
-		// fallback further down and throw "Invalid media type".
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
 		// nested style — addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
@@ -976,7 +962,10 @@ export const generateWAMessageContent = async (
 		// sock.sendMessage(jid, { richResponse: { text, code, language, ... } })
 		// or the flat shorthand: { code, table, links, headerText, contentText, footerText, ... }
 		m = prepareRichResponseMessage(message)
-	} else {
+	} else if (MEDIA_KEYS.some(key => key in message)) {
+		// Only treat the content as media when it actually carries a media key. Messages built by the
+		// later branches (interactiveButtons / buttons / sections / cards ... which may have no `text`)
+		// fall through with an empty `m` instead of throwing 'Invalid media type'.
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 
 		// ── isLottie → wrap stickerMessage in lottieStickerMessage ────────────────
@@ -1435,6 +1424,12 @@ export const generateWAMessageContent = async (
 		// Wrap in viewOnceMessage matching innovators pattern for correct WA rendering
 
 		m = { interactiveMessage }
+	}
+
+	// Nothing above produced a message (no media key and no recognised shorthand): keep the
+	// original 'Invalid media type' error rather than sending an empty message.
+	if (Object.keys(m).length === 0) {
+		throw new Boom('Invalid media type', { statusCode: 400 })
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
