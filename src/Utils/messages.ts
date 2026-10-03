@@ -947,6 +947,20 @@ export const generateWAMessageContent = async (
 		}
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
+	} else if (
+		('sections' in message && !!(message as any).sections) ||
+		('buttons' in message && !!(message as any).buttons) ||
+		('templateButtons' in message && !!(message as any).templateButtons) ||
+		('interactiveButtons' in message && !!(message as any).interactiveButtons) ||
+		('shop' in message && !!(message as any).shop) ||
+		('collection' in message && !!(message as any).collection) ||
+		('cards' in message && !!(message as any).cards)
+	) {
+		// sections/buttons/templateButtons/interactiveButtons/shop/collection/cards are
+		// all handled by the standalone if-chain below this function body — skip media
+		// prep here, or a caller that passes e.g. { body, interactiveButtons } (no text/
+		// image/video/etc key) would wrongly hit the generic prepareWAMessageMedia()
+		// fallback further down and throw "Invalid media type".
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
 		// nested style — addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
