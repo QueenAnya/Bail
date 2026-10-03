@@ -73,7 +73,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: nightly
+          tag_name: nightlyT
           target_commitish: ${{ github.sha }}
           name: Nightly Release
           body: ${{ steps.generate_changelog.outputs.changelog }}
