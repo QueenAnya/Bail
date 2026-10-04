@@ -25,7 +25,18 @@
  */
 import { createHmac, randomBytes } from 'crypto'
 import { EventEmitter } from 'events'
+import { encodeBinaryNode } from '../WABinary/encode'
 import { AudioFeeder } from './audio-feeder'
+import {
+	buildAcceptStanza,
+	buildMuteV2Stanza,
+	buildPreacceptStanza,
+	buildRejectStanza,
+	buildRelayLatencyStanza,
+	buildTransportStanza,
+	type OfferRelayEndpoint,
+	parseOfferRelays
+} from './incoming-call'
 import { type RelayListUpdatePayload, RelayRtcTransport } from './relay-transport'
 import { type BaileysSocket, SignalingBridge } from './signaling'
 import { CallState, type CallStatus, type CallSummary, type VoipConfigOptions } from './types'
@@ -121,6 +132,24 @@ export class ActiveCall extends EventEmitter {
 	/** @internal set by voip-engine once the video feeder is actually running */
 	videoFeeder: VideoFeeder | null = null
 
+	/** true for calls received from a peer (see `call.incoming`), false for calls we placed */
+	isIncoming = false
+	/** `'incoming'` for received calls, `'outgoing'` for calls we placed */
+	direction: 'incoming' | 'outgoing' = 'outgoing'
+	/** JID that created the call (incoming calls) */
+	callCreator = ''
+	/** caller's phone-number JID when WhatsApp provides one (incoming calls) */
+	callerPn = ''
+	/** incoming calls are never queued by this engine; kept for innovatorssoft API parity */
+	isWaiting = false
+	/** @internal true once `accept()` was called on an incoming call */
+	_accepted = false
+	/** @internal wired by attachVoipToSocket for incoming calls */
+	_acceptHandler: ((options: AcceptCallOptions) => Promise<ActiveCall>) | null = null
+	/** @internal wired by attachVoipToSocket for incoming calls */
+	_rejectHandler: ((reason?: string) => Promise<void>) | null = null
+	#seenNonIdleState = false
+
 	constructor(
 		public readonly callId: string,
 		public readonly peerJid: string,
@@ -183,6 +212,31 @@ export class ActiveCall extends EventEmitter {
 		this.videoFeeder = null
 	}
 
+	/** True while an incoming call can still be answered. */
+	get canAccept(): boolean {
+		return this.isIncoming && !this.#ended && !this._accepted
+	}
+
+	/**
+	 * Answers an incoming call and starts streaming `audioSource` to the caller.
+	 *
+	 *   sock.ev.on('call.incoming', async call => {
+	 *     await call.accept({ audioSource: './audio.mp3', repeatAudio: false })
+	 *   })
+	 */
+	accept = async (options: AcceptCallOptions = {}): Promise<ActiveCall> => {
+		if (!this._acceptHandler) throw new Error('Only incoming calls can be accepted')
+		return this._acceptHandler(options)
+	}
+
+	/** Declines an incoming call (`reason`: `'declined'` | `'busy'` …). */
+	reject = async (reason = 'declined'): Promise<void> => {
+		if (!this._rejectHandler) throw new Error('Only incoming calls can be rejected')
+		await this._rejectHandler(reason)
+	}
+
+	unmute = (): void => this.mute(false)
+
 	get state(): CallState {
 		return this.#state
 	}
@@ -210,7 +264,9 @@ export class ActiveCall extends EventEmitter {
 		isVideo: this.isVideo,
 		isHorizontal: this.isHorizontal,
 		videoOrientation: this._videoOrientation,
-		videoSource: this._videoSource
+		videoSource: this._videoSource,
+		direction: this.direction,
+		callerPn: this.callerPn || undefined
 	})
 
 	/** Ends the call. `reason` defaults to `'completed'`; for `'remote_end'`
@@ -218,6 +274,12 @@ export class ActiveCall extends EventEmitter {
 	 *  remote side already tore it down. */
 	end = (reason = 'completed'): void => {
 		if (this.#ended) return
+		// hanging up an incoming call that was never answered == declining it
+		if (this.isIncoming && !this._accepted && this._rejectHandler) {
+			void this._rejectHandler('declined')
+			return
+		}
+
 		this.#ended = true
 		this.endedAt = Date.now()
 		this.#clearTimers()
@@ -304,10 +366,34 @@ export class ActiveCall extends EventEmitter {
 	/** @internal — called by the engine wiring below on WASM call-state change */
 	_updateState = (state: number): void => {
 		this.#state = state as CallState
+		if (state !== CallState.Idle) this.#seenNonIdleState = true
 		if (state === CallState.PreacceptReceived) this.#confirmRinging()
 		else if (state === CallState.AcceptReceived) this.#confirmAccepted()
 		else if (state === CallState.Active) this.#confirmConnected()
-		else if (state === CallState.Idle || state === CallState.Ending) this._forceEnd('ended')
+		else if (state === CallState.Idle || state === CallState.Ending) {
+			// an incoming call's engine starts out Idle (it has not seen the offer yet) — that is not an end
+			if (this.isIncoming && !this.#seenNonIdleState) return
+			this._forceEnd('ended')
+		}
+	}
+
+	/** @internal — incoming call: mark as ringing (caller's phone shows "ringing") */
+	_markRinging = (): void => this.#confirmRinging()
+
+	/** @internal — incoming call: mark as answered */
+	_beginAccepted = (): void => {
+		this._accepted = true
+		this.#confirmAccepted()
+	}
+
+	/** @internal — incoming call: start the auto-hangup timer once answered (0 = no limit) */
+	_startDurationTimer = (durationMs: number): void => {
+		this._durationMs = durationMs
+		if (this.#endTimer) clearTimeout(this.#endTimer)
+		this.#endTimer = null
+		if (durationMs > 0 && !this.#ended) {
+			this.#endTimer = setTimeout(() => this.end('completed'), durationMs)
+		}
 	}
 
 	/** @internal — called on raw signaling tags (terminate/reject/preaccept/accept/receipt),
@@ -417,6 +503,23 @@ export class ActiveCall extends EventEmitter {
 	}
 }
 
+export type AcceptCallOptions = {
+	/** Audio streamed to the caller: file path to MP3/WAV, or `'silence'` (default). */
+	audioSource?: string
+	audio?: string
+	/** Loop `audioSource` for the life of the call instead of playing it once. */
+	repeatAudio?: boolean
+	repeat?: boolean
+	/** Video source for incoming video calls (file path, streamed via ffmpeg). */
+	videoSource?: string
+	video?: string
+	/** Auto-hangup after N ms (default: 120000, `0` = no limit). */
+	durationMs?: number
+	durationMS?: number
+	isMicEnabled?: boolean
+	isCameraEnabled?: boolean
+}
+
 export type InitiateCallOptions = {
 	/** Phone number or JID — optional here since it's normally the first arg to initiateCall(). */
 	to?: string
@@ -476,13 +579,31 @@ type CallContext = {
 	captureFramesPerChunk: number
 	feeder: AudioFeeder | null
 	videoPtr: number
+	/** incoming calls only */
+	incoming?: {
+		callNode: any
+		callKey?: Uint8Array
+		relays: OfferRelayEndpoint[]
+		/** resolves once the preaccept/relaylatency stanzas have been sent (or failed) */
+		ringing: Promise<void>
+	}
+	/** incoming calls: true once the offer has been fed to this call's engine */
+	offerFed: boolean
+	/** incoming calls: signaling nodes that arrived before the offer was fed (replayed after) */
+	pendingNodes: any[]
 }
 
-export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (jid: string) => Promise<void> }) => {
+export const attachVoipToSocket = (
+	sock: BaileysSocket & { presenceSubscribe: (jid: string) => Promise<void> },
+	voipConfig?: boolean | VoipConfigOptions
+) => {
 	let signaling: SignalingBridge | null = null
 	let signalingReadyPromise: Promise<void> | null = null
 	let callbacksWired = false
 	let maxConcurrentCalls = Number.POSITIVE_INFINITY
+	/** incoming calls are only handled when `voip` was passed in the socket config */
+	let incomingEnabled = Boolean(voipConfig)
+	const pendingIncoming = new Set<string>()
 
 	/** Every call this socket currently has open, keyed by callId — one
 	 *  entry whether there's a single call or several placed concurrently. */
@@ -512,6 +633,9 @@ export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (j
 			// matches that call, so this is safe even with several calls live.
 			sock.ws.on('CB:call', (node: any) => {
 				for (const ctx of calls.values()) {
+					// an incoming call whose offer has not been fed to its engine yet (still ringing) is
+					// routed by `routeRingingCallNode` instead — the engine knows nothing about it yet
+					if (ctx.call.isIncoming && !ctx.offerFed) continue
 					signaling!.processIncomingCall(node, ctx.engine, ctx.call.callId)
 				}
 			})
@@ -551,7 +675,9 @@ export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (j
 			captureChannels: 1,
 			captureFramesPerChunk: 320,
 			feeder: null,
-			videoPtr: 0
+			videoPtr: 0,
+			offerFed: false,
+			pendingNodes: []
 		}
 
 		const handleCallEvent = (eventType: number, eventData?: string): void => {
@@ -779,6 +905,221 @@ export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (j
 		return settled.filter((r): r is PromiseFulfilledResult<ActiveCall> => r.status === 'fulfilled').map(r => r.value)
 	}
 
+	// ─── incoming calls ───────────────────────────────────────────────────────
+
+	/** Answers an incoming call: feeds the offer to its engine, connects the relays, sends the
+	 *  accept signaling in the order WhatsApp expects and starts the media path. */
+	const acceptIncoming = async (ctx: CallContext, options: AcceptCallOptions = {}): Promise<ActiveCall> => {
+		const call = ctx.call
+		const incoming = ctx.incoming
+		if (!incoming) throw new Error('Not an incoming call')
+		if (call.ended) throw new Error(`Cannot accept call ${call.callId}: call has already ended.`)
+		if (!call.canAccept) throw new Error(`Call ${call.callId} cannot be accepted in state: ${call.status}`)
+		if (!incoming.callKey) {
+			throw new Error(`Cannot accept call ${call.callId}: the call key could not be decrypted.`)
+		}
+
+		// mark answered right away so an `accepted_elsewhere` echo during the async setup below
+		// does not end the call
+		call._beginAccepted()
+
+		call._audioSource = options.audioSource ?? options.audio ?? 'silence'
+		call._repeatAudio = Boolean(options.repeatAudio ?? options.repeat ?? false)
+		const videoSource = options.videoSource ?? options.video
+		if (videoSource) call._videoSource = videoSource
+		call._startDurationTimer(options.durationMs ?? options.durationMS ?? 120_000)
+
+		const bridge = await ensureSignalingReady()
+
+		// make sure the caller saw us ringing before we answer (bounded: never hang on a stuck send)
+		await Promise.race([incoming.ringing, new Promise<void>(resolve => setTimeout(resolve, 3000))])
+
+		// 1. feed the (already decrypted) offer to this call's WASM engine, then replay anything that arrived meanwhile
+		await bridge.processIncomingCallAndWait(incoming.callNode, ctx.engine, call.callId)
+		ctx.offerFed = true
+		if (call.ended) return call
+		for (const node of ctx.pendingNodes.splice(0)) {
+			bridge.processIncomingCall(node, ctx.engine, call.callId)
+		}
+
+		// 2. connect to the relays announced in the offer
+		try {
+			ctx.relay.connectRelays(incoming.relays)
+		} catch {}
+
+		// 3. accept signaling — our raw <accept> must be the first accept the caller's phone sees
+		await bridge.sendCallNode(buildMuteV2Stanza(call.callId, call.callCreator, call.peerJid))
+		await bridge.sendCallNode(buildTransportStanza(call.callId, call.callCreator, call.peerJid))
+		if (call.ended) return call
+
+		let encrypted: Awaited<ReturnType<SignalingBridge['encryptCallKeyFor']>> | undefined
+		for (const target of [call.peerJid, call.callCreator, call.callerPn].filter(Boolean)) {
+			try {
+				encrypted = await bridge.encryptCallKeyFor(target, incoming.callKey)
+				if (encrypted?.encNode) break
+			} catch {}
+		}
+
+		if (!encrypted?.encNode) {
+			throw new Error(`Failed to encrypt accept stanza for call ${call.callId}: could not encrypt the call key.`)
+		}
+
+		const acceptStanza = buildAcceptStanza(
+			call.callId,
+			call.callCreator,
+			call.peerJid,
+			call.isVideo,
+			encrypted.encNode,
+			encrypted.shouldIncludeDeviceIdentity ? bridge.getDeviceIdentityNode() : undefined
+		)
+		const ackPromise = bridge.waitForAck(acceptStanza.attrs.id, 5000).catch(() => undefined)
+		await bridge.sendCallNode(acceptStanza)
+
+		// pipe the server's ack into the engine for faster relay confirmation
+		void (async () => {
+			try {
+				const ack = await ackPromise
+				if (!ack || call.ended) return
+				const tcToken = await bridge.ensureTcToken(call.peerJid, call.callCreator)
+				ctx.engine.handleSignalingAck({
+					payload: Buffer.from(encodeBinaryNode(ack)).toString('base64'),
+					ackError: ack.attrs?.error ?? '0',
+					msgType: 'accept',
+					peerJid: call.peerJid,
+					extraData: tcToken
+				})
+			} catch {}
+		})()
+
+		if (call.ended) return call
+
+		// 4. start the media engine only after the caller has our accept on the wire
+		ctx.engine.acceptCall(options.isMicEnabled ?? true, options.isCameraEnabled ?? call.isVideo)
+		return call
+	}
+
+	/** Declines an incoming call. */
+	const rejectIncoming = async (ctx: CallContext, reason = 'declined'): Promise<void> => {
+		const call = ctx.call
+		if (call.ended) return
+		try {
+			const bridge = await ensureSignalingReady()
+			await bridge.sendCallNode(buildRejectStanza(call.callId, call.callCreator, call.peerJid, reason))
+		} catch {}
+
+		try {
+			ctx.engine.rejectCall()
+		} catch {}
+
+		call._handleRejected()
+	}
+
+	/** Handles a new `<call><offer>`: rings the caller, builds an isolated engine and emits `call.incoming`. */
+	const handleIncomingOffer = async (node: any, offer: any): Promise<void> => {
+		const callId = String(offer.attrs?.['call-id'] ?? offer.attrs?.call_id ?? '')
+		if (!callId || calls.has(callId) || pendingIncoming.has(callId)) return
+		pendingIncoming.add(callId)
+
+		try {
+			// ignore stale offers replayed from the offline queue
+			const sentAt = Number(offer.attrs?.t ?? node.attrs?.t ?? 0)
+			if (sentAt && Date.now() / 1000 - sentAt > 90) return
+
+			const callerJid = String(node.attrs?.from ?? '')
+			if (!callerJid) return
+			const callCreator = String(offer.attrs?.['call-creator'] ?? callerJid)
+			const callerPn = String(offer.attrs?.caller_pn ?? '')
+			const offerChildren: any[] = Array.isArray(offer.content) ? offer.content : []
+			const isVideo = offerChildren.some(c => c?.tag === 'video')
+
+			const bridge = await ensureSignalingReady()
+
+			if (calls.size >= maxConcurrentCalls) {
+				await bridge.sendCallNode(buildRejectStanza(callId, callCreator, callerJid, 'busy')).catch(() => {})
+				return
+			}
+
+			const { relays, participantJids } = parseOfferRelays(node)
+			const callKey = await bridge.decryptIncomingOfferKey(node, callerJid)
+
+			// tell the caller's phone we are ringing — sent in the background so a slow/blocked send never
+			// delays building the call; accept waits for it (see `incoming.ringing`)
+			const ringing = (async () => {
+				try {
+					await bridge.sendCallNode(buildPreacceptStanza(callId, callCreator, callerJid, isVideo))
+				} catch {}
+
+				if (relays.length) {
+					try {
+						await bridge.sendCallNode(
+							buildRelayLatencyStanza(callId, callCreator, toBareJid(callerJid), relays, participantJids)
+						)
+					} catch {}
+				}
+			})()
+
+			const ctx = await createCallContext(callId)
+			const call = new ActiveCall(callId, callerJid, ctx.engine, 0, callerPn || callerJid, 0)
+			call.isIncoming = true
+			call.direction = 'incoming'
+			call.callCreator = callCreator
+			call.callerPn = callerPn
+			call.isVideo = isVideo
+			call._acceptHandler = options => acceptIncoming(ctx, options)
+			call._rejectHandler = reason => rejectIncoming(ctx, reason)
+
+			ctx.call = call
+			ctx.incoming = { callNode: node, callKey, relays, ringing }
+			calls.set(callId, ctx)
+
+			// nobody answered: stop ringing after 90s (the caller normally hangs up first)
+			const ringTimer = setTimeout(() => {
+				if (call.canAccept) void rejectIncoming(ctx, 'timeout')
+			}, 90_000)
+			call.once('ended', () => {
+				clearTimeout(ringTimer)
+				teardownCallContext(callId, ctx)
+			})
+
+			call._markRinging()
+			sock.ev.emit('call.incoming', call)
+		} finally {
+			pendingIncoming.delete(callId)
+		}
+	}
+
+	/** Routes call stanzas for an incoming call that is still ringing (engine has not seen the offer). */
+	const routeRingingCallNode = (node: any, child: any): boolean => {
+		const callId = String(child?.attrs?.['call-id'] ?? child?.attrs?.call_id ?? '')
+		const ctx = callId ? calls.get(callId) : undefined
+		if (!ctx || !ctx.call?.isIncoming || ctx.offerFed) return false
+
+		if (child.tag === 'terminate' || child.tag === 'reject') {
+			const reasonChild = Array.isArray(child.content) ? child.content.find((c: any) => c?.tag === 'reason') : undefined
+			ctx.call._handleSignalingEvent(
+				child.tag,
+				String(child.attrs?.reason ?? reasonChild?.attrs?.text ?? reasonChild?.attrs?.type ?? '')
+			)
+		} else if (child.tag !== 'offer' && ctx.pendingNodes.length < 50) {
+			ctx.pendingNodes.push(node)
+		}
+
+		return true
+	}
+
+	// Lightweight raw listener: only does anything for offers (when incoming calls are enabled) and for
+	// stanzas of an incoming call that is still ringing. Does not start the WASM stack by itself.
+	sock.ws.on('CB:call', (node: any) => {
+		const child = Array.isArray(node?.content) ? node.content[0] : undefined
+		if (!child) return
+		if (child.tag === 'offer') {
+			if (incomingEnabled) void handleIncomingOffer(node, child).catch(() => {})
+			return
+		}
+
+		routeRingingCallNode(node, child)
+	})
+
 	/** Snapshot of every call currently open on this socket. */
 	const getActiveCalls = async () => Array.from(calls.values()).map(ctx => ctx.call.getSummary())
 
@@ -802,7 +1143,59 @@ export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (j
 		if (typeof options.maxConcurrentCalls === 'number' && options.maxConcurrentCalls > 0) {
 			maxConcurrentCalls = options.maxConcurrentCalls
 		}
+
+		incomingEnabled = true
 	}
+
+	/**
+	 * Snapshot of VoIP subsystem + process memory, shaped like the
+	 * `@innovatorssoft/baileys` `getVoipMemoryStats()` result so the same
+	 * `!voipstats` / `!callinfo` example code works unchanged.
+	 *
+	 * Only values this engine can genuinely observe are filled in. Anya runs
+	 * one isolated engine per call, so `activeWorkers`/`activeRelayConnections`
+	 * equal the number of open calls; there is no ffmpeg pool or shared
+	 * compiled-module cache, so those report 0.
+	 */
+	const getVoipMemoryStats = async () => {
+		const mem = process.memoryUsage()
+		const toMb = (bytes: number) => Math.round(bytes / 1024 / 1024)
+		const activeCalls = calls.size
+		return {
+			process: {
+				rssMb: toMb(mem.rss),
+				heapUsedMb: toMb(mem.heapUsed),
+				heapTotalMb: toMb(mem.heapTotal),
+				externalMb: toMb(mem.external)
+			},
+			calls: { activeCalls, maxConcurrentCalls: Number.isFinite(maxConcurrentCalls) ? maxConcurrentCalls : null },
+			resourceManager: {
+				activeWorkers: activeCalls,
+				activeRelayConnections: activeCalls,
+				activeFfmpegProcesses: 0,
+				compiledModulesCached: 0
+			}
+		}
+	}
+
+	/**
+	 * Lightweight VoIP client facade (`sock.getVoipClient()`), mirroring the
+	 * `@innovatorssoft/baileys` shape used by its example: a live `calls` map
+	 * (callId → call) plus the same call-control helpers. Calls here are
+	 * outbound-only — see `getVoipMemoryStats` note above.
+	 */
+	const getVoipClient = async () => ({
+		get calls(): Map<string, ActiveCall> {
+			return new Map(Array.from(calls, ([id, ctx]) => [id, ctx.call]))
+		},
+		getCall: (callId: string) => calls.get(callId)?.call,
+		getActiveCalls,
+		getActiveCallCount,
+		endCall,
+		endAllCalls,
+		setOptions: setVoipOptions,
+		getMemoryStats: getVoipMemoryStats
+	})
 
 	/** Tears down every open call and its isolated engine/relay (does not
 	 *  touch the underlying socket — that's owned by the caller, not by VoIP). */
@@ -817,6 +1210,8 @@ export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (j
 		callbacksWired = false
 	}
 
+	if (voipConfig && typeof voipConfig === 'object') void setVoipOptions(voipConfig)
+
 	return {
 		initiateCall,
 		initiateCalls,
@@ -826,6 +1221,8 @@ export const attachVoipToSocket = (sock: BaileysSocket & { presenceSubscribe: (j
 		endCall,
 		endAllCalls,
 		setVoipOptions,
+		getVoipMemoryStats,
+		getVoipClient,
 		disconnectVoip
 	}
 }

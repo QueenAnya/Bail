@@ -185,6 +185,56 @@ export class SignalingBridge {
 			.catch(() => {})
 	}
 
+	/** Same as `processIncomingCall`, but resolves once the node has actually been fed to the engine. */
+	processIncomingCallAndWait = (node: any, voip: any, activeCallId: string): Promise<void> => {
+		const next = this.#incomingSignalingQueue
+			.then(() => this.#doProcessIncomingCall(node, voip, activeCallId))
+			.catch(() => {})
+		this.#incomingSignalingQueue = next
+		return next
+	}
+
+	/**
+	 * Decrypts the call key out of an incoming `<call><offer>` stanza exactly once.
+	 * The offer's `enc` node is rewritten in place to carry the raw call key (what the WASM
+	 * engine expects) and flagged so later processing does not try to decrypt it again.
+	 * Returns a copy of the raw call key, or `undefined` if it could not be decrypted.
+	 */
+	decryptIncomingOfferKey = async (callNode: any, peerJid: string): Promise<Uint8Array | undefined> => {
+		const offer = getAllBinaryNodeChildren(callNode).find((c: any) => c?.tag === 'offer')
+		if (!offer) return undefined
+		const enc = getBinaryNodeChild(offer, 'enc')
+		if (!enc || !(enc.content instanceof Uint8Array)) return undefined
+		try {
+			await this.#maybeDecryptEnc(offer, peerJid)
+			;(offer as any).__callKeyDecrypted = true
+			return new Uint8Array(enc.content as Uint8Array)
+		} catch {
+			return undefined
+		}
+	}
+
+	/** Encrypts a raw call key for `targetJid` into the `<enc>` node an `<accept>` stanza needs. */
+	encryptCallKeyFor = (
+		targetJid: string,
+		rawCallKey: Uint8Array
+	): Promise<{ encNode: any; shouldIncludeDeviceIdentity: boolean }> => this.#encryptCallKey(targetJid, rawCallKey, 0)
+
+	/** `<device-identity>` node for stanzas that carry a pkmsg `<enc>`. */
+	getDeviceIdentityNode = (): any | undefined => {
+		const account = this.#sock.authState.creds.account
+		if (!account) return undefined
+		return { tag: 'device-identity', attrs: {}, content: encodeSignedDeviceIdentity(account, true) }
+	}
+
+	/** Sends a raw `<call>` stanza. */
+	sendCallNode = async (node: any): Promise<void> => {
+		await this.#sock.sendNode(node)
+	}
+
+	/** Waits for the server ack of a sent stanza (used to pipe accept acks into the engine). */
+	waitForAck = (tag: string, timeoutMs: number): Promise<any> => this.#sock.waitForMessage(tag, timeoutMs)
+
 	processIncomingReceipt = (node: any, voip: any, activeCallId: string): void => {
 		this.#incomingSignalingQueue = this.#incomingSignalingQueue
 			.then(() => this.#doProcessIncomingReceipt(node, voip, activeCallId))
@@ -539,6 +589,9 @@ export class SignalingBridge {
 	}
 
 	#maybeDecryptEnc = async (voipNode: any, peerJid: string): Promise<any> => {
+		// an incoming offer is decrypted once up front (see decryptIncomingOfferKey) — a Signal
+		// message can only be decrypted once, so never try again on the same node.
+		if (voipNode?.__callKeyDecrypted) return voipNode
 		const enc = getBinaryNodeChild(voipNode, 'enc')
 		if (!enc || !(enc.content instanceof Uint8Array)) return voipNode
 		const type = enc.attrs.type

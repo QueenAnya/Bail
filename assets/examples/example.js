@@ -14,7 +14,10 @@ import {
     prepareWAMessageMedia,
     uploadUnencryptedToWA,
     generateWAMessageFromContent,
-    monitorPresence
+    monitorPresence,
+    formatDuration,
+    formatTimeAgo,
+    normalizeContactJid
 } from '../../lib/index.js';
 import { Boom } from '@hapi/boom';
 import qrcode from 'qrcode-terminal';
@@ -59,7 +62,12 @@ async function startBot() {
         auth: state,
         syncFullHistory: false,
         logger: pino({ level: 'silent' }),
-        markOnlineOnConnect: true
+        markOnlineOnConnect: true,
+
+        // VoIP Configuration
+        voip: {
+            maxConcurrentCalls: 3 // Maximum concurrent VoIP calls allowed
+        }
     });
 
     const uploadToWA = async (buffer, type) => {
@@ -103,6 +111,72 @@ async function startBot() {
 
     sock.ev.on('creds.update', saveCreds);
 
+    // Track the latest incoming VoIP session for quick commands (!acceptcall, !rejectcall)
+    let lastIncomingSession = null;
+
+    // Register VoIP Incoming Call Event Listener (needs `voip` in the socket config)
+    sock.ev.on('call.incoming', async (session) => {
+        lastIncomingSession = session;
+        console.log(`\n📞 [VoIP] Incoming ${session.isVideo ? 'Video' : 'Voice'} Call!`);
+        console.log(`   Call ID: ${session.callId}`);
+        console.log(`   From: ${session.peerJid}`);
+        console.log(`   Caller PN: ${session.callerPn || 'N/A'}`);
+        console.log(`   Status: ${session.status} (waiting: ${session.isWaiting})`);
+
+        // Register lifecycle event listeners
+        session.on('stateChange', (state) => console.log(`[VoIP] Call ${session.callId} state: ${state}`));
+        session.on('accepted', () => console.log(`[VoIP] Call ${session.callId} accepted!`));
+        session.on('connected', () => console.log(`[VoIP] Call ${session.callId} connected! 🟢`));
+        session.on('audioReady', () => console.log(`[VoIP] Call ${session.callId} audio ready! 🎵`));
+        session.on('streaming', () => console.log(`[VoIP] Call ${session.callId} audio streaming active! 📡`));
+        session.on('error', (err) => console.log(`[VoIP] Call ${session.callId} error: ${err.message}`));
+        session.on('ended', (reason) => {
+            console.log(`[VoIP] Call ${session.callId} ended: ${reason}`);
+            if (lastIncomingSession?.callId === session.callId) {
+                lastIncomingSession = null;
+            }
+        });
+        session.on('audio', (pcmChunk) => {
+            // Inbound PCM audio chunk (16 kHz mono Float32Array) received from the caller
+        });
+
+        // Automatically accept the incoming call and play audio.mp3
+        const autoAcceptAndStream = async () => {
+            if (session.ended) return;
+            try {
+                const audioPath = path.resolve(__dirname, 'audio.mp3');
+                const audioSource = fs.existsSync(audioPath) ? audioPath : 'silence';
+                console.log(`[VoIP] Automatically accepting incoming call ${session.callId} with audio: ${audioSource}...`);
+                await session.accept({
+                    audioSource,
+                    repeatAudio: false
+                });
+                if (session.ended) return;
+                console.log(`[VoIP] Call ${session.callId} accepted automatically, streaming ${audioSource}.`);
+
+                // Notify caller that call was accepted and audio is streaming
+                await sock.sendMessage(session.peerJid, {
+                    text: `📞 *Incoming Call Automatically Accepted!*\n` +
+                        `• Call ID: \`${session.callId}\`\n` +
+                        `• Audio: Streaming 🎵\n\n` +
+                        `Commands to control:\n` +
+                        `• \`!endcall ${session.callId}\` - End call\n` +
+                        `• \`!mute\` / \`!unmute\` - Mute/unmute microphone`
+                });
+            } catch (err) {
+                if (!session.ended) {
+                    console.error(`[VoIP] Error auto-accepting call ${session.callId}:`, err);
+                }
+            }
+        };
+
+        void autoAcceptAndStream();
+    });
+
+    // Presence tracker (created once the connection opens)
+    let presenceMonitor = null;
+    const targetJid = ['923001234567@s.whatsapp.net', '923021234567@s.whatsapp.net'];
+
     // Register MEX Notification Dispatcher Event Listeners
     sock.ev.on('messaging-history.status', ({ syncType, status, explicit }) => {
         console.log(`[messaging-history.status] History sync status: ${status} (${syncType}) explicit=${explicit}`);
@@ -141,26 +215,34 @@ async function startBot() {
             console.log('WhatsApp Bot is successfully connected!');
             console.log('======================================\n');
 
-            // Start presence monitoring if target JIDs are provided via --presence flag
-            const targets = ['923001234567@s.whatsapp.net', '923006789012@s.whatsapp.net'];
-            if (targets.length > 0) {
-                console.log(`[Presence] Monitoring presence for ${targets.join(', ')}...`);
-                const pm = monitorPresence(sock, targets, {
+            // Start presence tracking for target JIDs
+            if (!presenceMonitor) {
+                console.log(`[Presence] Starting presence tracking for: ${targetJid.join(', ')}`);
+                presenceMonitor = monitorPresence(sock, targetJid, {
                     logToConsole: false,
-                    autoResubscribe: true
+                    autoResubscribe: true,
+                    timezone: '+05:00',
+                    trackMessagesAsPresence: false
                 });
-                pm.on('online', data =>
-                    console.log(`[Presence UPDATE] 🟢 ${data.jid} is ONLINE at ${new Date(data.onlineAt).toLocaleTimeString()}`),
-                );
-                pm.on('offline', data =>
-                    console.log(`[Presence UPDATE] 🔴 ${data.jid} is OFFLINE (was online for ${data.duration})`
-                ));
-                pm.on('session', data =>
-                    console.log(`[Presence UPDATE] 📋 Session ended: ${data.jid} — ${data.duration}`
-                ));
-                pm.on('error', err =>
-                    console.error(`[Presence UPDATE] Error: ${err.message}`)
-                );
+                presenceMonitor.on('online', (data) => {
+                    console.log(`🟢 Contact ${data.jid} is ONLINE at ${presenceMonitor.formatTime(data.onlineAt)}`);
+                });
+                presenceMonitor.on('offline', (data) => {
+                    console.log(`[Presence Event] 🟡 Contact ${data.jid} is OFFLINE at ${presenceMonitor.formatTime(data.offlineAt)}`);
+                    console.log(`[Presence Event] ⏱️ Duration: ${data.duration}`);
+                    if (data.lastSeen) {
+                        console.log(`[Presence Event] 👁️ Last Seen: ${presenceMonitor.formatTime(data.lastSeen)}`);
+                    }
+                });
+                presenceMonitor.on('session', (session) => {
+                    console.log(`[Presence Event] 🔴 Session completed for ${session.jid}:`);
+                    console.log(`  • ⏱️ Started : ${presenceMonitor.formatDateTime(session.onlineAt)}`);
+                    console.log(`  • ⏱️ Ended   : ${presenceMonitor.formatDateTime(session.offlineAt)}`);
+                    console.log(`  • ⏱️ Duration: ${session.duration} (${session.durationMs}ms)`);
+                });
+                presenceMonitor.on('error', (err) => {
+                    console.error(`[Presence UPDATE] Error: ${err.message}`);
+                });
             }
         }
     });
@@ -246,6 +328,111 @@ async function startBot() {
                     await sock.sendMessage(normalizedJid, { text: 'pong! 🏓' }, { quoted: message });
                     break;
                 }
+                case '!presence': {
+                    const rawArg = args ? args.trim() : '';
+                    if (!presenceMonitor) {
+                        await sock.sendMessage(normalizedJid, { text: '⚠️ Presence tracker is not initialized.' }, { quoted: message });
+                        break;
+                    }
+                    if (rawArg && rawArg.toLowerCase() !== 'all') {
+                        // Single contact query
+                        const target = normalizeContactJid(rawArg.replace(/[^0-9@a-z._-]/gi, ''));
+                        await presenceMonitor.resubscribe(target);
+                        const status = presenceMonitor.getStatus(target);
+                        if (!status) {
+                            await sock.sendMessage(normalizedJid, {
+                                text: `⚠️ No presence data tracked yet for ${target}.\nSubscribing now to monitor updates.`
+                            }, { quoted: message });
+                            await presenceMonitor.subscribe(target);
+                        } else {
+                            const isOnline = status.currentStatus === 'online';
+                            let text = `📊 *Presence Status for ${status.jid}*:\n\n`;
+                            text += `• Status: *${isOnline ? 'ONLINE 🟢' : 'OFFLINE 🔴'}*\n`;
+                            if (status.lid) {
+                                text += `• Linked LID: ${status.lid}\n`;
+                            }
+                            if (isOnline) {
+                                if (status.currentSessionStart) {
+                                    const activeMs = Math.max(0, Date.now() - status.currentSessionStart.getTime());
+                                    text += `• Online Since: ${presenceMonitor.formatTime(status.currentSessionStart)} (Active: ${formatDuration(activeMs)})\n`;
+                                }
+                            } else {
+                                if (status.lastSeen) {
+                                    text += `• Last Seen: ${presenceMonitor.formatDateTime(status.lastSeen)} (${formatTimeAgo(status.lastSeen)})\n`;
+                                }
+                                if (status.lastOfflineAt) {
+                                    text += `• Last Offline: ${presenceMonitor.formatDateTime(status.lastOfflineAt)} (${formatTimeAgo(status.lastOfflineAt)})\n`;
+                                }
+                                if (status.lastDuration) {
+                                    text += `• Last Online Duration: ${status.lastDuration}\n`;
+                                }
+                            }
+                            if (status.serverLastSeen) {
+                                text += `• WhatsApp Server Last Seen: ${presenceMonitor.formatDateTime(status.serverLastSeen)} (${formatTimeAgo(status.serverLastSeen)})\n`;
+                            }
+                            text += `• Timezone: ${presenceMonitor.getTimezone()}\n`;
+                            text += `• Total Sessions Recorded: ${status.sessions.length}`;
+                            await sock.sendMessage(normalizedJid, { text }, { quoted: message });
+                        }
+                    } else {
+                        // Multi-contact dashboard for all monitored contacts
+                        const allMonitored = Array.from(new Set([...targetJid, ...presenceMonitor.getMonitoredJids()]))
+                            .filter(j => !j.endsWith('@lid')); // Only display primary phone JIDs in summary
+                        let text = `📊 *Monitored Contacts Presence Dashboard* (${presenceMonitor.getTimezone()}):\n\n`;
+                        for (const jid of allMonitored) {
+                            await presenceMonitor.resubscribe(jid);
+                            const status = presenceMonitor.getStatus(jid);
+                            const cleanNum = jid.split('@')[0];
+                            if (!status || status.currentStatus === 'unknown') {
+                                text += `⚪ *${cleanNum}*: Unknown / Pending (Subscribing...)\n\n`;
+                                continue;
+                            }
+                            const isOnline = status.currentStatus === 'online';
+                            if (isOnline) {
+                                const activeMs = status.currentSessionStart ? Math.max(0, Date.now() - status.currentSessionStart.getTime()) : 0;
+                                text += `🟢 *${cleanNum}*: *ONLINE*\n`;
+                                text += `  • Online Since: ${status.currentSessionStart ? presenceMonitor.formatTime(status.currentSessionStart) : 'Now'} (Active: ${formatDuration(activeMs)})\n`;
+                                text += `  • Sessions: ${status.sessions.length}\n\n`;
+                            } else {
+                                text += `🔴 *${cleanNum}*: *OFFLINE*\n`;
+                                if (status.lastSeen) {
+                                    text += `  • Last Seen: ${presenceMonitor.formatDateTime(status.lastSeen)} (${formatTimeAgo(status.lastSeen)})\n`;
+                                } else {
+                                    text += `  • Last Seen: Hidden by privacy or not seen yet\n`;
+                                }
+                                if (status.lastDuration) {
+                                    text += `  • Last Duration: ${status.lastDuration}\n`;
+                                }
+                                text += `  • Sessions: ${status.sessions.length}\n\n`;
+                            }
+                        }
+                        text += `💡 _Tip: Use !presence <number> for details, or !timezone <+5|Asia/Karachi> to change zone._`;
+                        await sock.sendMessage(normalizedJid, { text }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!timezone':
+                case '!tz': {
+                    const newTz = args ? args.trim() : '';
+                    if (!presenceMonitor) {
+                        await sock.sendMessage(normalizedJid, { text: '⚠️ Presence tracker is not initialized.' }, { quoted: message });
+                        break;
+                    }
+                    if (!newTz) {
+                        const currentTz = presenceMonitor.getTimezone();
+                        const nowFormatted = presenceMonitor.formatDateTime(new Date());
+                        await sock.sendMessage(normalizedJid, {
+                            text: `🕒 *Current Timezone*: ${currentTz}\n• Local Time: *${nowFormatted}*\n\n_To change dynamically, send: !timezone +5, !timezone Asia/Karachi, or !timezone UTC_`
+                        }, { quoted: message });
+                    } else {
+                        presenceMonitor.setTimezone(newTz);
+                        const nowFormatted = presenceMonitor.formatDateTime(new Date());
+                        await sock.sendMessage(normalizedJid, {
+                            text: `✅ *Timezone dynamically updated to*: ${newTz}\n• Current Local Time: *${nowFormatted}*`
+                        }, { quoted: message });
+                    }
+                    break;
+                }
                 case '!table': {
                     await sock.sendTable(normalizedJid, 'Developer Team Metrics', ['Name', 'Role', 'Status', 'Tasks Completed'], [
                         ['Member 1', 'Frontend Lead', 'Active', '45'],
@@ -285,6 +472,10 @@ async function startBot() {
                         '!setpin       - Set or delete username PIN',
                         '!findusername - Find a user JID by username',
                         '!fetchusernames - Fetch usernames of JIDs',
+                        '!resolveusername - Resolve a username to JID/LID details',
+                        '!isonwhatsapp - Check if numbers/LIDs/usernames are on WhatsApp',
+                        '!presence     - Show tracked contacts presence (!presence [number])',
+                        '!timezone     - Show/change presence timezone (!tz +5 | Asia/Karachi)',
                         '!carousel     - Send an interactive carousel message',
                         '!mediabuttons - Send buttons with media & sections',
                         '!label        - Send text with secure Meta service label',
@@ -297,6 +488,16 @@ async function startBot() {
                         '!viewonceext  - Send image as view-once V2 Ext',
                         '!interactivemsg - Send custom interactive buttons (text, image, or location)',
                         '!call         - Place a voice call and stream audio',
+                        '!vcall        - Place a video call with video/audio feed',
+                        '!calls        - Place concurrent calls to multiple targets',
+                        '!callinfo     - Show active VoIP calls and memory stats',
+                        '!voipstats    - Show VoIP memory, worker & heap metrics',
+                        '!acceptcall   - Accept the last incoming call and stream audio.mp3',
+                        '!rejectcall   - Reject the last incoming call (!rejectcall [callId] [reason])',
+                        '!mute         - Mute an active VoIP call (!mute [callId])',
+                        '!unmute       - Unmute an active VoIP call (!unmute [callId])',
+                        '!endcall      - Hang up a specific call (!endcall <callId>)',
+                        '!endallcalls  - Hang up all active VoIP calls',
                         '!html         - Send interactive rich HTML UI card with background audio (GenAI HTML)',
                         '!snake        - Play CyberSnake HTML5 Canvas Game (GenAI HTML)',
                         '!slots        - Play Fruit Bonanza Slots Game (GenAI HTML)',
@@ -674,6 +875,40 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, { text: responseText.trim() }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error fetching usernames: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!resolveusername': {
+                    const uname = args || 'midsoune';
+                    try {
+                        const result = await sock.resolveUsername(uname);
+                        console.log('Resolved User Names ' + JSON.stringify(result, null, 2));
+                        await sock.sendMessage(normalizedJid, {
+                            text: result ? `🔍 Resolved @${uname}:\n` + JSON.stringify(result, null, 2) : `❌ User @${uname} not found.`
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error resolving username: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!isonwhatsapp': {
+                    const targets = (args || '169702865256530@lid').trim().split(/\s+/).filter(Boolean);
+                    try {
+                        const result = await sock.onWhatsApp(...targets);
+                        console.log(result);
+                        if (!result || result.length === 0) {
+                            await sock.sendMessage(normalizedJid, {
+                                text: `❌ No results found. Target(s) [${targets.join(', ')}] are not registered on WhatsApp.`
+                            }, { quoted: message });
+                            break;
+                        }
+                        let responseText = '📋 On WhatsApp Check Results:\n';
+                        for (const res of result) {
+                            responseText += `• ${res.jid} -> Exists: ${res.exists}, LID: ${res.lid || 'N/A'}, PN: ${res.pn || 'N/A'}, Username: ${res.username || 'N/A'}\n`;
+                        }
+                        await sock.sendMessage(normalizedJid, { text: responseText.trim() }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error checking WhatsApp status: ${err.message}` }, { quoted: message });
                     }
                     break;
                 }
@@ -1116,11 +1351,19 @@ async function startBot() {
                 case '!callinfo': {
                     try {
                         const active = await sock.getActiveCalls();
+                        const stats = await sock.getVoipMemoryStats();
+                        const rssMb = stats?.process?.rssMb ?? Math.round((stats?.rss || 0) / 1024 / 1024);
+                        const workers = stats?.resourceManager?.activeWorkers ?? stats?.activeWorkers ?? stats?.workerCount ?? 0;
+                        const relays = stats?.resourceManager?.activeRelayConnections ?? stats?.relayConnections ?? stats?.relayConnectionCount ?? 0;
                         if (!active || active.length === 0) {
-                            await sock.sendMessage(normalizedJid, { text: `📞 No active VoIP calls.` }, { quoted: message });
+                            await sock.sendMessage(normalizedJid, {
+                                text: `📞 No active VoIP calls.\n\n📊 *VoIP Resource Stats:*\n• RSS: ${rssMb} MB\n• Active Workers: ${workers}\n• Active Relays: ${relays}`
+                            }, { quoted: message });
                         } else {
-                            const list = active.map(c => `• [${c.id.slice(0, 8)}] -> ${c.jid} (${c.status}) [started: ${new Date(c.startedAt).toLocaleTimeString()}]`).join('\n');
-                            await sock.sendMessage(normalizedJid, { text: `📞 Active Calls (${active.length}):\n\n${list}` }, { quoted: message });
+                            const list = active.map(c => `• [${c.id.slice(0, 8)}] -> ${c.jid} (${c.status}) [${c.direction || 'outgoing'}] [started: ${new Date(c.startedAt).toLocaleTimeString()}]`).join('\n');
+                            await sock.sendMessage(normalizedJid, {
+                                text: `📞 *Active Calls (${active.length}):*\n\n${list}\n\n📊 *VoIP Resource Stats:*\n• RSS: ${rssMb} MB | Workers: ${workers}`
+                            }, { quoted: message });
                         }
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
@@ -1173,6 +1416,120 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, { text: `📞 Terminated all ${count} active calls.` }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!acceptcall': {
+                    try {
+                        const voip = await sock.getVoipClient();
+                        const targetCallId = args && args.trim() ? args.trim() : (lastIncomingSession?.callId || Array.from(voip?.calls?.values() || []).find(c => c.isIncoming && !c.ended)?.callId);
+                        if (!targetCallId) {
+                            await sock.sendMessage(normalizedJid, { text: `❌ No incoming call found to accept. Usage: !acceptcall [callId]` }, { quoted: message });
+                            break;
+                        }
+                        const existingSession = voip?.calls?.get(targetCallId) || (lastIncomingSession?.callId === targetCallId ? lastIncomingSession : null);
+                        if (existingSession && ['accepted', 'connected', 'audio_ready', 'streaming'].includes(existingSession.status)) {
+                            await sock.sendMessage(normalizedJid, { text: `ℹ️ Call ${targetCallId} is already accepted (status: ${existingSession.status}).` }, { quoted: message });
+                            break;
+                        }
+                        await sock.sendMessage(normalizedJid, { text: `📞 Accepting incoming call ${targetCallId}...` }, { quoted: message });
+                        const audioPath = path.resolve(__dirname, 'audio.mp3');
+                        await sock.acceptCall(targetCallId, undefined, false, {
+                            audio: fs.existsSync(audioPath) ? audioPath : 'silence'
+                        });
+                        await sock.sendMessage(normalizedJid, { text: `✅ Call ${targetCallId} accepted! Audio streaming.` }, { quoted: message });
+                    } catch (err) {
+                        console.error(err);
+                        await sock.sendMessage(normalizedJid, { text: `Accept call error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!rejectcall': {
+                    try {
+                        const voip = await sock.getVoipClient();
+                        const parts = args && args.trim() ? args.trim().split(/\s+/) : [];
+                        let targetCallId = parts[0];
+                        let reason = parts[1] || 'declined';
+                        if (!targetCallId || targetCallId === 'busy' || targetCallId === 'declined') {
+                            if (targetCallId === 'busy' || targetCallId === 'declined') {
+                                reason = targetCallId;
+                            }
+                            targetCallId = lastIncomingSession?.callId || Array.from(voip?.calls?.values() || []).find(c => c.isIncoming && !c.ended)?.callId;
+                        }
+                        if (!targetCallId) {
+                            await sock.sendMessage(normalizedJid, { text: `❌ No incoming call found to reject. Usage: !rejectcall [callId] [reason]` }, { quoted: message });
+                            break;
+                        }
+                        await sock.rejectCall(targetCallId, undefined, reason);
+                        await sock.sendMessage(normalizedJid, { text: `📞 Rejected call ${targetCallId} (reason: ${reason})` }, { quoted: message });
+                        if (lastIncomingSession?.callId === targetCallId) lastIncomingSession = null;
+                    } catch (err) {
+                        console.error(err);
+                        await sock.sendMessage(normalizedJid, { text: `Reject call error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!mute': {
+                    try {
+                        const voip = await sock.getVoipClient();
+                        const targetCallId = args && args.trim()
+                            ? args.trim()
+                            : (lastIncomingSession?.callId || Array.from(voip.calls.values()).find(c => !c.ended)?.callId);
+                        if (!targetCallId) {
+                            await sock.sendMessage(normalizedJid, { text: `❌ No active call to mute. Usage: !mute [callId]` }, { quoted: message });
+                            break;
+                        }
+                        const session = voip.calls.get(targetCallId);
+                        if (!session) {
+                            await sock.sendMessage(normalizedJid, { text: `❌ Call ${targetCallId} not found.` }, { quoted: message });
+                            break;
+                        }
+                        session.mute(true);
+                        await sock.sendMessage(normalizedJid, { text: `🔇 Call ${targetCallId} is now muted.` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Mute error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!unmute': {
+                    try {
+                        const voip = await sock.getVoipClient();
+                        const targetCallId = args && args.trim()
+                            ? args.trim()
+                            : (lastIncomingSession?.callId || Array.from(voip.calls.values()).find(c => !c.ended)?.callId);
+                        if (!targetCallId) {
+                            await sock.sendMessage(normalizedJid, { text: `❌ No active call to unmute. Usage: !unmute [callId]` }, { quoted: message });
+                            break;
+                        }
+                        const session = voip.calls.get(targetCallId);
+                        if (!session) {
+                            await sock.sendMessage(normalizedJid, { text: `❌ Call ${targetCallId} not found.` }, { quoted: message });
+                            break;
+                        }
+                        session.mute(false);
+                        await sock.sendMessage(normalizedJid, { text: `🔊 Call ${targetCallId} is now unmuted.` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Unmute error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!voipstats': {
+                    try {
+                        const stats = await sock.getVoipMemoryStats();
+                        if (!stats) {
+                            await sock.sendMessage(normalizedJid, { text: `VoIP subsystem not initialized.` }, { quoted: message });
+                            break;
+                        }
+                        const text = `📊 *VoIP Subsystem & Memory Stats:*\n\n` +
+                            `• *Process RSS:* ${stats.process.rssMb} MB\n` +
+                            `• *Heap Used:* ${stats.process.heapUsedMb} MB / ${stats.process.heapTotalMb} MB\n` +
+                            `• *External Memory:* ${stats.process.externalMb} MB\n` +
+                            `• *Active VoIP Calls:* ${stats.calls.activeCalls}\n` +
+                            `• *Active Workers:* ${stats.resourceManager.activeWorkers}\n` +
+                            `• *Active Relays:* ${stats.resourceManager.activeRelayConnections}`;
+                        await sock.sendMessage(normalizedJid, { text }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error fetching VoIP stats: ${err.message}` }, { quoted: message });
                     }
                     break;
                 }

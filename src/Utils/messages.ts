@@ -12,6 +12,14 @@ import {
 	isWebPBuffer
 } from '../addons/from-messages'
 import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../addons/link-preview-extras'
+import {
+	buildNativeFlowInteractiveMessage,
+	buildNativeFlowMessageParamsJson,
+	convertNativeFlowButtons,
+	hasRawInteractiveContent,
+	prepareRawInteractiveContent,
+	resolveButtonText
+} from '../addons/native-flow-interactive'
 import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
 import {
 	CALL_AUDIO_PREFIX,
@@ -194,8 +202,8 @@ export const prepareWAMessageMedia = async (
 	if (mediaType === 'sticker') {
 		const { stream } = await getStream(uploadData.media)
 		const buffer = await toBuffer(stream)
-		if (isWebPBuffer(buffer)) {
-			uploadData.media = buffer // already webp, keep as-is (preserves EXIF + animation)
+		if (isWebPBuffer(buffer) || (uploadData as any).isLottie || uploadData.mimetype === 'application/was') {
+			uploadData.media = buffer // already webp / lottie (.was) — keep as-is, no conversion
 		} else {
 			const lib = await getImageProcessingLibrary()
 			if (lib?.sharp) {
@@ -429,107 +437,10 @@ export const hasNonNullishProperty = <K extends PropertyKey>(
 	)
 }
 
-/**
- * Builds the `limited_time_offer`/`bottom_sheet` messageParamsJson blob for
- * a native_flow message, or undefined if neither offer nor option fields
- * were supplied.
- *
- * Was previously inline-only inside the carousel `cards` branch of
- * `generateWAMessageContent`; pulled out so the standalone
- * `interactiveButtons` path can offer the same limited-time-offer /
- * bottom-sheet params — used on both paths, not just carousels.
- */
+// NOTE: native-flow button conversion + offer/option params now live in
+// addons/native-flow-interactive.ts (shared by nativeFlow, interactiveButtons and carousel cards).
 function hasOptionalProperty<T, K extends PropertyKey>(obj: T, key: K): obj is WithKey<T, K> {
 	return typeof obj === 'object' && obj !== null && key in obj && (obj as any)[key] !== null
-}
-
-function buildNativeFlowMessageParamsJson(
-	offerText: string | undefined,
-	offerCode: string | undefined,
-	offerUrl: string | undefined,
-	offerExpiration: number | undefined,
-	optionText: string | undefined,
-	optionTitle: string | undefined,
-	buttonCount: number
-): string | undefined {
-	const cardParams: Record<string, unknown> = {}
-	if (offerText || offerCode || offerUrl || offerExpiration) {
-		cardParams.limited_time_offer = {
-			offer_text: offerText,
-			offer_code: offerCode,
-			offer_url: offerUrl || FALLBACK_LINK_URL,
-			offer_expiration_timestamp_secs: offerExpiration ? Math.floor(offerExpiration / 1000) : undefined
-		}
-	}
-
-	if (optionText || optionTitle) {
-		cardParams.bottom_sheet = {
-			in_thread_buttons_limit: 1,
-			divider_indices: Array.from({ length: buttonCount }, (_, i) => i),
-			list_title: optionTitle || optionText,
-			button_title: optionText
-		}
-	}
-
-	return Object.keys(cardParams).length > 0 ? JSON.stringify(cardParams) : undefined
-}
-
-/**
- * Converts shorthand button objects (`{ text, url }`, `{ text, copy }`,
- * `{ text, call }`, `{ text, sections }`, or the default `{ text, id }`
- * quick-reply shape) into native_flow `{ name, buttonParamsJson }` form.
- * A button that already has `name`/`buttonParamsJson` is passed through
- * unchanged.
- *
- * Was previously duplicated inline only inside the carousel `cards` branch
- * of `generateWAMessageContent`; pulled out here so the standalone
- * `interactiveButtons` path gets the same shorthand convenience instead of
- * requiring fully-formed native_flow objects.
- * Convenience-shorthand style for button objects.
- * prepareNativeFlowButtons (their offer/bottom_sheet messageParamsJson
- * wrapping is carousel-card-specific and stays where it already was).
- */
-function convertNativeFlowButtons(rawButtons: any[]): any[] {
-	return rawButtons.map((b: any) => {
-		if (b.name && b.buttonParamsJson) return b // already native
-		const icon = b.icon ? String(b.icon).toUpperCase() : undefined
-		if (b.url) {
-			return {
-				name: 'cta_url',
-				buttonParamsJson: JSON.stringify({
-					display_text: b.text,
-					url: b.url,
-					merchant_url: b.url,
-					webview_interaction: b.useWebview ?? false,
-					icon
-				})
-			}
-		}
-
-		if (b.copy) {
-			return {
-				name: 'cta_copy',
-				buttonParamsJson: JSON.stringify({ display_text: b.text, copy_code: b.copy, icon })
-			}
-		}
-
-		if (b.call) {
-			return {
-				name: 'cta_call',
-				buttonParamsJson: JSON.stringify({ display_text: b.text, phone_number: b.call, icon })
-			}
-		}
-
-		if (b.sections) {
-			return {
-				name: 'single_select',
-				buttonParamsJson: JSON.stringify({ title: b.text, sections: b.sections, icon })
-			}
-		}
-
-		// default: quick_reply shorthand ({ text, id })
-		return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: b.text, id: b.id, icon }) }
-	})
 }
 
 export const generateWAMessageContent = async (
@@ -947,6 +858,31 @@ export const generateWAMessageContent = async (
 		}
 	} else if ('productList' in message && !!(message as any).productList) {
 		// productList handled below after this block — just skip media
+	} else if (hasRawInteractiveContent(message)) {
+		// raw { interactiveMessage | buttonsMessage | listMessage | templateMessage }
+		// pass-through (innovatorssoft style) — normalised via proto fromObject.
+		m = prepareRawInteractiveContent(message)
+	} else if (
+		!MEDIA_KEYS.some(key => key in message) &&
+		(('sections' in message && !!(message as any).sections) ||
+			('buttons' in message && !!(message as any).buttons) ||
+			('templateButtons' in message && !!(message as any).templateButtons) ||
+			('interactiveButtons' in message && !!(message as any).interactiveButtons) ||
+			('nativeFlow' in message && !!(message as any).nativeFlow) ||
+			('shop' in message && !!(message as any).shop) ||
+			('collection' in message && !!(message as any).collection) ||
+			('cards' in message && !!(message as any).cards))
+	) {
+		// sections/buttons/templateButtons/interactiveButtons/nativeFlow/shop/collection/cards
+		// without any top-level media key are handled by the standalone if-chain below —
+		// skip media prep here, or a caller that passes e.g. { body, interactiveButtons }
+		// would wrongly hit the generic prepareWAMessageMedia() fallback and throw
+		// "Invalid media type".
+		//
+		// IMPORTANT: when a media key (image/video/document/…) IS present next to those
+		// keys, we must NOT skip: the generic fallback below has to prepare the media so
+		// buttons / templateButtons / nativeFlow / interactiveButtons can use it as their
+		// header. Skipping it silently dropped the image/video/document.
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
 		// nested style — addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
@@ -962,10 +898,7 @@ export const generateWAMessageContent = async (
 		// sock.sendMessage(jid, { richResponse: { text, code, language, ... } })
 		// or the flat shorthand: { code, table, links, headerText, contentText, footerText, ... }
 		m = prepareRichResponseMessage(message)
-	} else if (MEDIA_KEYS.some(key => key in message)) {
-		// Only treat the content as media when it actually carries a media key. Messages built by the
-		// later branches (interactiveButtons / buttons / sections / cards ... which may have no `text`)
-		// fall through with an empty `m` instead of throwing 'Invalid media type'.
+	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 
 		// ── isLottie → wrap stickerMessage in lottieStickerMessage ────────────────
@@ -991,7 +924,11 @@ export const generateWAMessageContent = async (
 
 		const listMessage: proto.Message.IListMessage = {
 			title: (message as any).title,
-			buttonText: (message as any).buttonText,
+			buttonText: resolveButtonText({
+				buttonText: (message as any).buttonText,
+				display_text: (message as any).display_text,
+				displayText: (message as any).displayText
+			}),
 			footerText: (message as any).footer,
 			description: (message as any).text,
 			productListInfo: {
@@ -1018,7 +955,11 @@ export const generateWAMessageContent = async (
 	if ('sections' in message && !!message.sections) {
 		const listMessage: proto.Message.IListMessage = {
 			title: (message as any).title,
-			buttonText: (message as any).buttonText,
+			buttonText: resolveButtonText({
+				buttonText: (message as any).buttonText,
+				display_text: (message as any).display_text,
+				displayText: (message as any).displayText
+			}),
 			footerText: (message as any).footer,
 			description: (message as any).text,
 			sections: message.sections,
@@ -1041,7 +982,7 @@ export const generateWAMessageContent = async (
 			// convenience as carousel/interactive buttons); anything else
 			// falls back to a classic RESPONSE button.
 			buttons: message.buttons.map((b: any) => {
-				const buttonText = b.text || b.buttonText
+				const buttonText = resolveButtonText(b)
 				if ('sections' in b && b.sections) {
 					return {
 						nativeFlowInfo: {
@@ -1114,7 +1055,7 @@ export const generateWAMessageContent = async (
 					return button
 				}
 
-				const buttonText = button.text || button.buttonText
+				const buttonText = resolveButtonText(button)
 				if ('id' in button && button.id) {
 					return { index: i, quickReplyButton: { displayText: buttonText || '👉🏻 Click', id: button.id } }
 				}
@@ -1131,85 +1072,69 @@ export const generateWAMessageContent = async (
 			})
 		}
 
-		if ('text' in message) {
+		if ('text' in message && message.text !== null && message.text !== undefined) {
 			hydratedTemplate.hydratedContentText = message.text
-		} else if ('caption' in message) {
-			hydratedTemplate.hydratedContentText = (message as { caption?: string }).caption
-			Object.assign(hydratedTemplate, m)
+		} else {
+			if ('caption' in message) {
+				hydratedTemplate.hydratedContentText = (message as { caption?: string }).caption
+			}
+
+			// media/location header prepared above (imageMessage / videoMessage /
+			// documentMessage / locationMessage)
+			Object.assign(hydratedTemplate, {
+				...(m.imageMessage ? { imageMessage: m.imageMessage } : {}),
+				...(m.videoMessage ? { videoMessage: m.videoMessage } : {}),
+				...(m.documentMessage ? { documentMessage: m.documentMessage } : {}),
+				...(m.locationMessage ? { locationMessage: m.locationMessage } : {})
+			})
+		}
+
+		// `hydratedTitleText` shares a protobuf `oneof title` with the media/location
+		// headers, so it may only be set when no media header was attached — otherwise
+		// it would silently replace the image/video/document.
+		if (
+			'title' in message &&
+			!!(message as any).title &&
+			!(m.imageMessage || m.videoMessage || m.documentMessage || m.locationMessage)
+		) {
+			hydratedTemplate.hydratedTitleText = (message as any).title
 		}
 
 		if ('footer' in message && !!message.footer) {
 			hydratedTemplate.hydratedFooterText = message.footer
 		}
 
-		;(hydratedTemplate as any).contextInfo = {
-			...((message as any).contextInfo || {}),
-			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
-			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
-		}
+		// WhatsApp needs a templateId; both fourRow + hydrated slots are filled
+		// (same shape the working forks send).
+		hydratedTemplate.templateId = (message as any).id || `template-${Date.now()}`
 
-		m = { templateMessage: { hydratedTemplate } }
+		m = {
+			templateMessage: {
+				hydratedFourRowTemplate: hydratedTemplate,
+				hydratedTemplate,
+				templateId: hydratedTemplate.templateId,
+				contextInfo: {
+					...((message as any).contextInfo || {}),
+					...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
+					...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
+				}
+			}
+		}
 	}
 
-	// ── interactiveButtons → InteractiveMessage native flow (Android + iOS) ──
-	else if ('interactiveButtons' in message && !!(message as any).interactiveButtons) {
-		const convertedButtons = convertNativeFlowButtons((message as any).interactiveButtons)
-		const messageParamsJson = buildNativeFlowMessageParamsJson(
-			(message as any).offerText,
-			(message as any).offerCode,
-			(message as any).offerUrl,
-			(message as any).offerExpiration,
-			(message as any).optionText,
-			(message as any).optionTitle,
-			convertedButtons.length
-		)
-		const interactiveMessage: proto.Message.IInteractiveMessage = {
-			// FIX Bug 2: messageParamsJson: '' is required — without it iOS doesn't render buttons
-			nativeFlowMessage: {
-				buttons: convertedButtons,
-				messageParamsJson: messageParamsJson ?? ''
-			}
-		}
-
-		if ('text' in message) {
-			interactiveMessage.body = { text: message.text }
-			interactiveMessage.header = {
-				title: (message as any).title,
-				subtitle: (message as any).subtitle,
-				hasMediaAttachment: false
-			}
-		} else if ('caption' in message) {
-			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
-			// FIX Bug 1: Object.assign(interactiveMessage, m) was mutating interactiveMessage
-			// AND spreading the whole corrupted object into header — completely broken.
-			// Correct fix: extract only the media fields from m and place them in header.
-			interactiveMessage.header = {
-				title: (message as any).title,
-				subtitle: (message as any).subtitle,
-				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
-				imageMessage: m.imageMessage ?? undefined,
-				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
-			}
-		}
-
-		// An audio footer takes priority over a text footer, matching the
-		// carousel-card footer precedence (previously only available on
-		// carousel cards, not standalone interactive messages).
-		if (hasOptionalProperty(message, 'audioFooter') && message.audioFooter) {
-			const { audioMessage } = await prepareWAMessageMedia({ audio: message.audioFooter }, options)
-			interactiveMessage.footer = { audioMessage, hasMediaAttachment: true }
-		} else if ('footer' in message && !!message.footer) {
-			interactiveMessage.footer = { text: message.footer }
-		}
-
-		interactiveMessage.contextInfo = {
-			...((message as any).contextInfo || {}),
-			...((message as any).mentions?.length ? { mentionedJid: (message as any).mentions } : {}),
-			...((message as any).mentionAll ? { nonJidMentions: 1 } : {})
-		}
-
-		m = { interactiveMessage }
+	// ── nativeFlow / interactiveButtons → InteractiveMessage native flow (Android + iOS) ──
+	// Accepts shorthand buttons ({ text, id | url | copy | call | sections }) as well as
+	// fully-formed { name, buttonParamsJson } buttons. Media (image/video/document/
+	// location/product) prepared above becomes the interactive header.
+	else if (
+		('nativeFlow' in message && !!(message as any).nativeFlow) ||
+		('interactiveButtons' in message && !!(message as any).interactiveButtons)
+	) {
+		const rawButtons = (message as any).nativeFlow ?? (message as any).interactiveButtons
+		m = await buildNativeFlowInteractiveMessage(message, m, rawButtons, {
+			prepareMedia: prepareWAMessageMedia as any,
+			options
+		})
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
@@ -1388,14 +1313,17 @@ export const generateWAMessageContent = async (
 					footer: WAProto.Message.InteractiveMessage.Footer.create({ text: footer }),
 					nativeFlowMessage: WAProto.Message.InteractiveMessage.NativeFlowMessage.create({
 						buttons: convertedButtons,
-						messageParamsJson
+						messageParamsJson: messageParamsJson ?? '{}'
 					})
 				})
 			})
 		)
 
 		const interactiveMessage: proto.Message.IInteractiveMessage = {
-			carouselMessage: WAProto.Message.InteractiveMessage.CarouselMessage.create({ cards: slides })
+			carouselMessage: WAProto.Message.InteractiveMessage.CarouselMessage.create({
+				cards: slides,
+				messageVersion: 1
+			})
 		}
 
 		if ('text' in message) {
@@ -1426,14 +1354,19 @@ export const generateWAMessageContent = async (
 		m = { interactiveMessage }
 	}
 
-	// Nothing above produced a message (no media key and no recognised shorthand): keep the
-	// original 'Invalid media type' error rather than sending an empty message.
-	if (Object.keys(m).length === 0) {
-		throw new Boom('Invalid media type', { statusCode: 400 })
-	}
-
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
 		m = { viewOnceMessage: { message: m } }
+	}
+
+	// V2 / V2-extension wrappers need the inner media flagged `viewOnce: true`
+	// (what @innovatorssoft/baileys sends) or the client shows it as a normal media message.
+	if (
+		(((message as any).viewOnceV2 || (message as any).viewOnceV2Extension || (message as any).viewOnceExt) &&
+			!hasOptionalProperty(message, 'viewOnce')) ||
+		false
+	) {
+		const inner: any = m.imageMessage || m.videoMessage || m.audioMessage
+		if (inner) inner.viewOnce = true
 	}
 
 	// ── viewOnceExt → viewOnceMessageV2Extension ──────────────────────────────
@@ -1448,25 +1381,15 @@ export const generateWAMessageContent = async (
 	}
 
 	// ── groupStatus → groupStatusMessageV2 ────────────────────────────────────
-	// Just setting `isGroupStatus: true` builds a message that's structurally
-	// a group status, but WhatsApp clients also expect `statusAttributions`
-	// (who posted it), `featureEligibilities` (reshare/multi-react
-	// permission), and `pairedMediaType` to be set for it to behave like a
-	// real group status rather than an inert one — so default all of those
-	// in too, without clobbering anything the caller already set explicitly.
+	// Same shape as itsliaaa/innovatorssoft: only contextInfo.isGroupStatus + wrapper.
+	// Extra contextInfo fields (statusAttributions, featureEligibilities, ...) made
+	// some clients (e.g. WA Business) show "update WhatsApp", so they are not added.
 	if (hasOptionalProperty(message, 'groupStatus') && !!message.groupStatus) {
 		const messageType = Object.keys(m)[0] as string
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const key = (m as any)[messageType]
 		if (key) {
-			const contextInfo = (key.contextInfo ??= {})
-			contextInfo.isGroupStatus = message.groupStatus
-			contextInfo.pairedMediaType ??= 0
-			contextInfo.forwardingScore ??= 0
-			contextInfo.featureEligibilities ??= { canBeReshared: true, canReceiveMultiReact: true }
-			if (options.userJid && !contextInfo.statusAttributions?.length) {
-				contextInfo.statusAttributions = [{ type: 5 /* GROUP_STATUS */, groupStatus: { authorJid: options.userJid } }]
-			}
+			key.contextInfo = { ...(key.contextInfo || {}), isGroupStatus: message.groupStatus }
 		}
 
 		m = { groupStatusMessageV2: { message: m } }
@@ -1788,6 +1711,7 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 			message?.associatedChildMessage ||
 			message?.groupStatusMessage ||
 			message?.groupStatusMessageV2 ||
+			message?.spoilerMessage ||
 			message?.lottieStickerMessage
 		)
 	}

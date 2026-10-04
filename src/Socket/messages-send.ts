@@ -1294,15 +1294,6 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
-			// secure Meta service label — tags the message as coming from a
-			// verified/official-service style sender (badge on the bubble)
-			if (secureMetaServiceLabel) {
-				;(stanza.content as BinaryNode[]).push({
-					tag: 'meta_secure_service',
-					attrs: { service_type: 'secure' }
-				})
-			}
-
 			if (!didPushAdditional && additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
@@ -2154,8 +2145,28 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * Send a rich HTML message (GenAI unified-response HTML primitive),
 		 * forwarded as a bot-style message.
 		 */
-		sendRichHtml: async (jid: string, html: string, quoted?: any, options: GenerateRichHtmlOptions = {}) => {
-			const { message, messageId } = generateRichHtmlContent(html, quoted, options)
+		sendRichHtml: async (
+			jid: string,
+			htmlOrOptions: string | (GenerateRichHtmlOptions & { html: string }),
+			quoted?: any,
+			options: GenerateRichHtmlOptions = {}
+		) => {
+			// accepts both `sendRichHtml(jid, '<div/>', quoted, opts)` and the
+			// @innovatorssoft/baileys form `sendRichHtml(jid, { id, title, html, source }, quoted)`
+			let html: string
+			let merged: GenerateRichHtmlOptions
+			if (typeof htmlOrOptions === 'string') {
+				html = htmlOrOptions
+				merged = { ...options }
+			} else if (htmlOrOptions && typeof htmlOrOptions === 'object') {
+				const { html: h, ...rest } = htmlOrOptions
+				html = h || ''
+				merged = { ...rest, ...options }
+			} else {
+				throw new Error('[sendRichHtml] options or html content must be provided')
+			}
+
+			const { message, messageId } = generateRichHtmlContent(html, quoted, merged)
 			await relayMessage(jid, message, { messageId })
 			return { message, messageId }
 		},
@@ -2315,6 +2326,8 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * Returns null if the message is not a rich response.
 		 */
 		extractUnifiedResponse,
+		/** alias of `extractUnifiedResponse` (name used by @innovatorssoft/baileys) */
+		captureUnifiedResponse: extractUnifiedResponse,
 
 		/**
 		 * Re-send a captured unifiedResponse to a new JID.

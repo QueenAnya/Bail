@@ -312,6 +312,46 @@ export class RelayRtcTransport {
 		}
 	}
 
+	/**
+	 * Connects to relay endpoints parsed straight from an incoming `<offer>`
+	 * (te2/token/auth_token/key nodes) — used for incoming calls, where the
+	 * engine may not have pushed a relay list yet. Mirrors
+	 * `@innovatorssoft/baileys` `RelayRtcTransport.connectRelays`.
+	 */
+	connectRelays = (
+		endpoints: Array<{
+			ip: string
+			port: number
+			token?: string
+			authToken?: string
+			key?: string
+			relayId?: number
+			relayName?: string
+		}>
+	): void => {
+		if (!Array.isArray(endpoints) || endpoints.length === 0) return
+		for (const ep of endpoints) {
+			if (!ep.ip || !ep.port) continue
+			const clientPort = USE_ORIGINAL_RELAY_PORTS ? ep.port : TRUE_WEB_CLIENT_RELAY_PORT
+			const id = getConnectionIdentifier(ep.ip, clientPort)
+			const info: RelayConnectionInfo = {
+				id,
+				relayId: ep.relayId ?? 0,
+				ip: ep.ip,
+				port: clientPort,
+				originalPort: ep.port,
+				isIPv6: ep.ip.includes(':'),
+				token: ep.token ?? '',
+				authToken: ep.authToken,
+				key: ep.key ?? '',
+				name: ep.relayName || `${ep.ip}:${clientPort}`,
+				enableEdgerayDtlsActiveMode: false
+			}
+			this.#relayInfoById.set(id, info)
+			void this.#ensureConnection(info)
+		}
+	}
+
 	send = (packet: Uint8Array | Buffer, ip: string, port: number): number => {
 		const requestedId = getConnectionIdentifier(ip, port)
 		const preferredPort = USE_ORIGINAL_RELAY_PORTS ? port : TRUE_WEB_CLIENT_RELAY_PORT

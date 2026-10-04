@@ -1,5 +1,6 @@
 import type { Boom } from '@hapi/boom'
 import { proto } from '../../WAProto/index.js'
+import type { ActiveCall } from '../Voip/voip-engine'
 import type { AuthenticationCreds, LIDMapping } from './Auth'
 import type { WACallEvent } from './Call'
 import type { Chat, ChatUpdate, PresenceData } from './Chat'
@@ -124,6 +125,8 @@ export type BaileysEventMap = {
 
 	/** Receive an update on a call, including when the call was received, rejected, accepted */
 	call: WACallEvent[]
+	/** An incoming call is ringing (needs `voip` in the socket config) — `call.accept({ audioSource })` / `call.reject()` */
+	'call.incoming': ActiveCall
 	'labels.edit': Label
 	'labels.association': { association: LabelAssociation; type: 'add' | 'remove' }
 

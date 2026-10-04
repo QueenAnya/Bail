@@ -63,6 +63,8 @@ export type LegacySendButton = {
 	id?: string
 	text?: string
 	displayText?: string
+	/** native-flow spelling — accepted as an alias of `text` / `displayText` */
+	display_text?: string
 }
 
 /** Old Baileys { buttonId, buttonText: { displayText } } */
@@ -311,7 +313,7 @@ function parseButtonParamsInternal(
  *
  * Accepted input shapes:
  *  1. Already native_flow : { name: string, buttonParamsJson: string }
- *  2. Simple legacy       : { id?: string, text?: string, displayText?: string }
+ *  2. Simple legacy       : { id?: string, text?: string, displayText?: string, display_text?: string }
  *  3. Old Baileys         : { buttonId: string, buttonText: { displayText: string } }
  *  4. Unknown             : passed through verbatim
  */
@@ -323,11 +325,11 @@ export function buildInteractiveButtons(buttons: AnyRawButton[] = []): NativeSen
 		if (btn['name'] && btn['buttonParamsJson']) return b as NativeSendButton
 
 		// 2. Legacy quick-reply
-		if (btn['id'] || btn['text'] || btn['displayText']) {
+		if (btn['id'] || btn['text'] || btn['displayText'] || btn['display_text']) {
 			return {
 				name: 'quick_reply',
 				buttonParamsJson: JSON.stringify({
-					display_text: (btn['text'] ?? btn['displayText'] ?? `Button ${i + 1}`) as string,
+					display_text: (btn['text'] ?? btn['display_text'] ?? btn['displayText'] ?? `Button ${i + 1}`) as string,
 					id: (btn['id'] ?? `quick_${i + 1}`) as string
 				})
 			}
@@ -394,7 +396,7 @@ export function validateAuthoringButtons(buttons: unknown): ValidationResult {
 			return b
 		}
 
-		if (btn['id'] || btn['text'] || btn['displayText']) return b
+		if (btn['id'] || btn['text'] || btn['displayText'] || btn['display_text']) return b
 		const oldBt = btn['buttonText'] as Record<string, unknown> | undefined
 		if (btn['buttonId'] && oldBt?.['displayText']) return b
 		warnings.push(`button[${idx}] unrecognized shape; passing through unchanged`)
@@ -431,8 +433,10 @@ export function validateSendButtonsPayload(data: unknown): ValidationResult {
 				return
 			}
 
-			if (b['id'] && b['text']) {
-				if (typeof b['id'] !== 'string' || typeof b['text'] !== 'string') {
+			// label may be spelled `text`, `display_text` or `displayText`
+			const label = b['text'] ?? b['display_text'] ?? b['displayText']
+			if (b['id'] && label) {
+				if (typeof b['id'] !== 'string' || typeof label !== 'string') {
 					errors.push(`button[${i}] legacy quick reply id/text must be strings`)
 				}
 

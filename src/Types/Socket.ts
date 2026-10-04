@@ -92,6 +92,14 @@ export type SocketConfig = {
 	 * typed, with nothing in the logs to say why.
 	 */
 	companionPlatformDisplay?: string
+	/**
+	 * VoIP options. Passing this (even `true`) turns on incoming-call handling: offers are answered
+	 * with a `preaccept` and emitted as `call.incoming` so you can `call.accept({ audioSource })`
+	 * or `call.reject()`. Outgoing calls (`sock.initiateCall`) work without it.
+	 *
+	 *   makeWASocket({ voip: { maxConcurrentCalls: 3, onLimit: 'reject' } })
+	 */
+	voip?: boolean | { maxConcurrentCalls?: number; onLimit?: 'reject' | 'queue' }
 	/** Initial pushName carried in the registration ClientPayload (used by mock servers for deterministic phone assignment). */
 	pushName?: string
 	/** agent used for fetch requests -- uploading/downloading media */

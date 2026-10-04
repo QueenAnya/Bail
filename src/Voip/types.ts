@@ -85,11 +85,16 @@ export type CallSummary = {
 	isHorizontal: boolean
 	videoOrientation: number
 	videoSource: string | null
+	/** `'incoming'` for calls we received, `'outgoing'` for calls we placed */
+	direction?: 'incoming' | 'outgoing'
+	callerPn?: string
 }
 
 /** VoIP Manager configuration options. */
 export type VoipConfigOptions = {
 	maxConcurrentCalls?: number
+	/** What to do with a call that arrives while at capacity: reject it as busy (default). `'queue'` behaves like `'reject'`. */
+	onLimit?: 'reject' | 'queue'
 }
 
 /** Events emitted by an `ActiveCall`. */

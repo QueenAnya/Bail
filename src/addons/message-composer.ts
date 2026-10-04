@@ -1198,80 +1198,82 @@ export const generateUnifiedResponseContent = (
  */
 const buildUnifiedResponseSections = (submessages: RichSubMessage[], extractOptions: ExtractOptions = {}) => ({
 	response_id: generateMessageID(),
-	sections: submessages.map(sm => {
-		if (sm.messageType === RichSubMessageType.CODE && sm.codeMetadata) {
-			return {
-				view_model: {
-					primitive: {
-						language: sm.codeMetadata.codeLanguage,
-						code_blocks: sm.codeMetadata.codeBlocks.map(b => ({
-							content: b.codeContent,
-							type: CodeHighlightType[b.highlightType] ?? 'DEFAULT'
-						})),
-						__typename: 'GenAICodeUXPrimitive'
-					},
-					__typename: 'GenAISingleLayoutViewModel'
-				}
-			}
-		}
-
-		if (sm.messageType === RichSubMessageType.TABLE && sm.tableMetadata) {
-			return {
-				view_model: {
-					primitive: {
-						title: sm.tableMetadata.title,
-						rows: sm.tableMetadata.rows.map(r => ({
-							is_header: !!r.isHeading,
-							cells: r.items,
-							markdown_cells: r.items.map(item => {
-								const extracted = extractIE(item, extractOptions)
-								return extracted.inline_entities.length
-									? { text: extracted.text, inline_entities: extracted.inline_entities }
-									: { text: extracted.text }
-							})
-						})),
-						__typename: 'GenATableUXPrimitive'
-					},
-					__typename: 'GenAISingleLayoutViewModel'
-				}
-			}
-		}
-
-		if (sm.messageType === RichSubMessageType.INLINE_IMAGE && (sm as any).imageMetadata) {
-			const img = (sm as any).imageMetadata
-			return {
-				view_model: {
-					primitive: {
-						media: {
-							url: img.imageUrl?.imageHighResUrl || img.imageUrl?.imagePreviewUrl,
-							mime_type: 'image/png'
+	sections: submessages
+		.map(sm => {
+			if (sm.messageType === RichSubMessageType.CODE && sm.codeMetadata) {
+				return {
+					view_model: {
+						primitive: {
+							language: sm.codeMetadata.codeLanguage,
+							code_blocks: sm.codeMetadata.codeBlocks.map(b => ({
+								content: b.codeContent,
+								type: CodeHighlightType[b.highlightType] ?? 'DEFAULT'
+							})),
+							__typename: 'GenAICodeUXPrimitive'
 						},
-						imagine_type: 'IMAGE',
-						status: { status: 'READY' },
-						__typename: 'GenAIImaginePrimitive'
+						__typename: 'GenAISingleLayoutViewModel'
+					}
+				}
+			}
+
+			if (sm.messageType === RichSubMessageType.TABLE && sm.tableMetadata) {
+				return {
+					view_model: {
+						primitive: {
+							title: sm.tableMetadata.title,
+							rows: sm.tableMetadata.rows.map(r => ({
+								is_header: !!r.isHeading,
+								cells: r.items,
+								markdown_cells: r.items.map(item => {
+									const extracted = extractIE(item, extractOptions)
+									return extracted.inline_entities.length
+										? { text: extracted.text, inline_entities: extracted.inline_entities }
+										: { text: extracted.text }
+								})
+							})),
+							__typename: 'GenATableUXPrimitive'
+						},
+						__typename: 'GenAISingleLayoutViewModel'
+					}
+				}
+			}
+
+			if (sm.messageType === RichSubMessageType.INLINE_IMAGE && (sm as any).imageMetadata) {
+				const img = (sm as any).imageMetadata
+				return {
+					view_model: {
+						primitive: {
+							media: {
+								url: img.imageUrl?.imageHighResUrl || img.imageUrl?.imagePreviewUrl,
+								mime_type: 'image/png'
+							},
+							imagine_type: 'IMAGE',
+							status: { status: 'READY' },
+							__typename: 'GenAIImaginePrimitive'
+						},
+						__typename: 'GenAISingleLayoutViewModel'
+					}
+				}
+			}
+
+			// submessage kinds that have no unified-response primitive are skipped, not sent as empty text
+			if (sm.messageType !== RichSubMessageType.TEXT && sm.messageType !== undefined) return null
+
+			// TEXT
+			const extracted = extractIE((sm as { messageText?: string }).messageText ?? '', extractOptions)
+			const providedEntities = (sm as { inlineEntities?: InlineEntityItem[] }).inlineEntities ?? []
+			return {
+				view_model: {
+					primitive: {
+						text: extracted.text,
+						inline_entities: [...providedEntities, ...extracted.inline_entities],
+						__typename: 'GenAIMarkdownTextUXPrimitive'
 					},
 					__typename: 'GenAISingleLayoutViewModel'
 				}
 			}
-		}
-
-		// submessage kinds that have no unified-response primitive are skipped, not sent as empty text
-		if (sm.messageType !== RichSubMessageType.TEXT && sm.messageType !== undefined) return null
-
-		// TEXT
-		const extracted = extractIE((sm as { messageText?: string }).messageText ?? '', extractOptions)
-		const providedEntities = (sm as { inlineEntities?: InlineEntityItem[] }).inlineEntities ?? []
-		return {
-			view_model: {
-				primitive: {
-					text: extracted.text,
-					inline_entities: [...providedEntities, ...extracted.inline_entities],
-					__typename: 'GenAIMarkdownTextUXPrimitive'
-				},
-				__typename: 'GenAISingleLayoutViewModel'
-			}
-		}
-	}).filter(Boolean)
+		})
+		.filter(Boolean)
 })
 
 export type GenerateRichMessageOptions = { useMarkdown?: boolean } & ExtractOptions
@@ -1317,6 +1319,12 @@ export const generateRichHtmlContent = (
 	quoted?: QuotedMsg,
 	options: GenerateRichHtmlOptions = {}
 ): RichMessageContent => {
+	// innovatorssoft-style flexible args: generateRichHtmlContent(html, { id, title, ... })
+	if (quoted && !(quoted as any).key && !(quoted as any).message && typeof quoted === 'object') {
+		options = quoted as GenerateRichHtmlOptions
+		quoted = undefined
+	}
+
 	const { id, title, source, trusted_sources, headerText, footer, typename } = options
 	const responseId = id ? `${id}-${Date.now()}` : randomUUID()
 	const trusted = trusted_sources
@@ -1326,7 +1334,7 @@ export const generateRichHtmlContent = (
 		: source
 			? [source]
 			: []
-	const primitiveTypename = typename || 'GenAIHtmlPrimitive'
+	const primitiveTypename = typename || 'GenAIaeacdsnwHtmlPrimitive' // same default as @innovatorssoft/baileys; override via options.typename
 
 	const submessages: RichSubMessage[] = []
 	if (headerText) submessages.push({ messageType: RichSubMessageType.TEXT, messageText: headerText })

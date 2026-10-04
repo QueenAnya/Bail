@@ -4413,6 +4413,130 @@ community projects in the Baileys ecosystem, including the third-party
 
 ---
 
+### 35. Interactive Messages — Buttons, List, Native Flow, Carousel, Template (fixed & unified)
+
+Ported/aligned with `@itsliaaa/baileys` and `@innovatorssoft/baileys`. Logic lives in
+`src/addons/native-flow-interactive.ts` and is used by `sock.sendMessage(...)` for every
+shape below (all examples were verified to build the right WhatsApp proto).
+
+| Key | Result | Notes |
+| --- | --- | --- |
+| `buttons` (+ optional `image`/`video`/`document`) | `buttonsMessage` | classic `{ buttonId, buttonText }` or shorthand `{ text, id }` / `{ text, sections }` |
+| `sections` + `buttonText` | `listMessage` | private chats only |
+| `nativeFlow` | `interactiveMessage` (native flow) | shorthand buttons, optional media header |
+| `interactiveButtons` | `interactiveMessage` (native flow) | shorthand **or** raw `{ name, buttonParamsJson }` |
+| `cards` | carousel `interactiveMessage` | each card needs `image`/`video`/`product`; `nativeFlow` or `buttons` |
+| `templateButtons` | `templateMessage` | `{ text, id \| url \| call }`; `title` only without media |
+| `interactiveAsTemplate: true` (+ `id`) | `templateMessage.interactiveMessageTemplate` | wraps any native-flow message |
+| `interactiveMessage` / `buttonsMessage` / `listMessage` / `templateMessage` | raw pass-through | normalised via proto `fromObject` |
+
+```javascript
+// Native flow shorthand (image header optional)
+await sock.sendMessage(jid, {
+   image: { url: './image.jpg' },
+   caption: 'Native flow!',
+   footer: '@teamolduser/baileys',
+   optionText: '👉🏻 Select Options',   // optional bottom sheet
+   offerText: '🏷️ Coupon', offerCode: 'CODE', offerUrl: 'https://example.com',
+   offerExpiration: Date.now() + 3_600_000, // ms, converted to seconds
+   nativeFlow: [
+      { text: 'Reply', id: '#reply' },
+      { text: 'Open', url: 'https://example.com', useWebview: true },
+      { text: 'Copy', copy: 'CODE' },
+      { text: 'Call', call: '628123456789' },
+      { text: 'Select', sections: [{ title: 'S1', rows: [{ title: 'Row', id: '#row' }] }] }
+   ]
+})
+
+// Raw pass-through + template wrapper
+await sock.sendMessage(jid, {
+   interactiveMessage: {
+      body: { text: 'Hello!' },
+      nativeFlowMessage: { buttons: [{ name: 'quick_reply', buttonParamsJson: '{"display_text":"Click","id":"1"}' }] }
+   },
+   interactiveAsTemplate: true,
+   id: 'my-template-001'
+})
+```
+
+Button labels accept `text`, `display_text`, `displayText` (and `buttonText`) interchangeably in
+`buttons`, `nativeFlow`, `cards`, `interactiveButtons`, `templateButtons` and `sendButtons()`;
+the list button accepts `buttonText` / `display_text`.
+
+Fixed in this release: `nativeFlow` was ignored; media sent next to `buttons` /
+`interactiveButtons` was dropped; raw `interactiveMessage` / `buttonsMessage` / `listMessage` /
+`templateMessage` threw "Invalid media type"; `offerText` used the wrong JSON keys;
+templates lacked `templateId`; carousels lacked `messageVersion`.
+
+### 36. Example Bot Parity with `@innovatorssoft/baileys` (`assets/examples/example.js`)
+
+`assets/examples/example.js` now has the same command set as the innovatorssoft example:
+`!presence [number]`, `!timezone` / `!tz`, `!isonwhatsapp`, `!resolveusername`,
+`!acceptcall`, `!rejectcall`, `!mute`, `!unmute`, `!voipstats`, and a `!callinfo` that
+includes VoIP resource stats, plus the `call.incoming` auto-answer handler. Presence tracking uses `monitorPresence(...)` with a
+timezone, and the helpers `formatDuration`, `formatTimeAgo`, `normalizeContactJid`.
+
+New socket helpers (same shape as innovatorssoft):
+
+```javascript
+const stats = await sock.getVoipMemoryStats()
+// { process: { rssMb, heapUsedMb, heapTotalMb, externalMb },
+//   calls: { activeCalls, maxConcurrentCalls },
+//   resourceManager: { activeWorkers, activeRelayConnections, activeFfmpegProcesses, compiledModulesCached } }
+
+const voip = await sock.getVoipClient()   // { calls: Map<callId, call>, getCall, endCall, endAllCalls, ... }
+voip.calls.get(callId)?.mute(true)
+```
+
+#### Incoming calls (answer + stream audio)
+
+Pass `voip` in the socket config to turn incoming-call handling on. Each incoming offer rings the
+caller (`preaccept`), gets its own isolated WASM engine, and is emitted as `call.incoming`.
+
+```javascript
+const sock = makeWASocket({ auth: state, voip: { maxConcurrentCalls: 3 } })
+
+sock.ev.on('call.incoming', async (session) => {
+   console.log(session.callId, session.peerJid, session.callerPn, session.isVideo, session.status)
+
+   session.on('connected', () => console.log('connected'))
+   session.on('audio', (pcm) => { /* 16 kHz mono Float32Array from the caller */ })
+   session.on('ended', (reason) => console.log('ended', reason))
+
+   await session.accept({ audioSource: './audio.mp3', repeatAudio: false }) // or 'silence'
+   // await session.reject('busy')                    // decline instead
+})
+
+// by id (works for incoming calls and falls back to plain signaling for others)
+await sock.acceptCall(callId, undefined, false, { audio: './audio.mp3' })
+await sock.rejectCall(callId, undefined, 'declined')
+
+const voip = await sock.getVoipClient()
+voip.calls.get(callId)?.mute(true)
+```
+
+| Option (`accept`) | Meaning |
+| --- | --- |
+| `audioSource` / `audio` | MP3/WAV path streamed to the caller, or `'silence'` (default) |
+| `repeatAudio` | loop the audio for the whole call |
+| `durationMs` | auto-hangup (default 120000, `0` = no limit) |
+| `videoSource` | video file for incoming video calls |
+
+Calls arriving while `maxConcurrentCalls` is reached are rejected as `busy`; offers older than
+90 s (offline replays) are ignored; an unanswered call is declined after 90 s.
+
+> [!NOTE]
+> Verified offline: ring → `call.incoming`, capacity/busy, stale-offer filtering, caller hang-up,
+> `reject`, and the real WASM engine accepting a fed offer. The accept → audio path itself follows
+> the same stanza order as `@innovatorssoft/baileys` (`mute_v2` → `transport` → `accept(enc)` →
+> engine accept) but needs a real WhatsApp call to confirm end-to-end on your account.
+
+`sock.sendRichHtml` accepts both forms: `sendRichHtml(jid, '<div/>', quoted, opts)` and the
+innovatorssoft form `sendRichHtml(jid, { id, title, html, source }, quoted)`. The default HTML
+primitive typename now matches `@innovatorssoft/baileys`; override with `typename`.
+`sock.captureUnifiedResponse` is an alias of `sock.extractUnifiedResponse`. `viewOnceV2` /
+`viewOnceV2Extension` now flag the inner media `viewOnce: true`.
+
 # About This Fork (@teamolduser/baileys)
 
 This is an extended fork of the original open-source Baileys library, adding

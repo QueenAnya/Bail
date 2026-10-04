@@ -162,8 +162,29 @@ type Templatable = {
 }
 
 /** Attach native-flow interactive buttons to a message */
+type NativeFlowShorthandButton = {
+	text?: string
+	buttonText?: string
+	icon?: string
+	id?: string
+	copy?: string
+	url?: string
+	useWebview?: boolean
+	call?: string
+	sections?: unknown[]
+}
+
 type Interactiveable = {
-	interactiveButtons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+	interactiveButtons?: (
+		proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton | NativeFlowShorthandButton
+	)[]
+	/** shorthand native-flow buttons: { text, id | url | copy | call | sections } or raw { name, buttonParamsJson } */
+	nativeFlow?: (proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton | NativeFlowShorthandButton)[]
+	/** wrap the built interactiveMessage into a templateMessage */
+	interactiveAsTemplate?: boolean
+	/** custom templateId for interactiveAsTemplate / hydrated templates */
+	id?: string
+	body?: string | proto.Message.InteractiveMessage.IBody
 	title?: string
 	subtitle?: string
 	footer?: string
@@ -716,8 +737,16 @@ export type Carousel = {
 	product?: WASendableProduct
 	title?: string
 	body?: string
+	caption?: string
 	footer?: string
 	buttons?: proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton[]
+	nativeFlow?: (proto.Message.InteractiveMessage.NativeFlowMessage.INativeFlowButton | NativeFlowShorthandButton)[]
+	offerText?: string
+	offerCode?: string
+	offerUrl?: string
+	offerExpiration?: number
+	optionText?: string
+	optionTitle?: string
 }
 
 /** Product entry for productList messages */
@@ -789,6 +818,16 @@ export type AnyRegularMessageContent = (
 			Listable &
 			Editable)
 	| AnyMediaMessageContent
+	| ({
+			/** raw WhatsApp interactive-family message, passed through via proto fromObject */
+			interactiveMessage?: proto.Message.IInteractiveMessage
+			buttonsMessage?: proto.Message.IButtonsMessage
+			listMessage?: proto.Message.IListMessage
+			templateMessage?: proto.Message.ITemplateMessage
+			interactiveAsTemplate?: boolean
+			id?: string
+	  } & Mentionable &
+			Contextable)
 	| { event: EventMessageOptions }
 	| ({
 			poll: PollMessageOptions

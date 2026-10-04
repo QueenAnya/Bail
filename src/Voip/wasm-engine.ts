@@ -552,6 +552,32 @@ export class WasmEngine {
 		this.#instance.endCall(reason, sendTerminate)
 	}
 
+	/**
+	 * Accepts the incoming call the engine was fed via `handleSignalingOffer`.
+	 * Starts the media path (audio capture/playback callbacks fire afterwards).
+	 * Ported from `@innovatorssoft/baileys` — same WASM binding, same call shape.
+	 */
+	acceptCall = (isMicEnabled = true, isCameraEnabled = false): unknown => {
+		this.#ensureInitialized()
+		try {
+			return this.#instance.acceptCall?.(Boolean(isMicEnabled), Boolean(isCameraEnabled))
+		} catch {
+			try {
+				return this.#instance.acceptCall?.()
+			} catch {}
+		}
+
+		return undefined
+	}
+
+	/** Rejects the incoming call currently held by this engine. */
+	rejectCall = (): void => {
+		if (!this.#initialized || !this.#instance) return
+		try {
+			this.#instance.rejectCall?.()
+		} catch {}
+	}
+
 	setMute = (muted: boolean): number => {
 		this.#ensureInitialized()
 		return this.#instance.setCallMute(muted)

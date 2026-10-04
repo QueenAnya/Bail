@@ -179,8 +179,10 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		endCall,
 		endAllCalls,
 		setVoipOptions,
+		getVoipMemoryStats,
+		getVoipClient,
 		disconnectVoip
-	} = attachVoipToSocket(sock)
+	} = attachVoipToSocket(sock, (config as { voip?: boolean | object }).voip as any)
 	sock.registerSocketEndHandler(() => disconnectVoip())
 
 	// ── 1. Check username availability ────────────────────────────────────────
@@ -303,6 +305,26 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 	// before resolveUsername existed) picks up lid/pn automatically.
 	;(sock as any).usernameLookupOverride.fn = onWhatsAppUsername
 
+	// ── incoming VoIP calls: sock.acceptCall / sock.rejectCall ─────────────────
+	// When the callId belongs to an incoming call tracked by the VoIP engine, answer it through that
+	// session (full signaling + audio streaming). Otherwise fall back to the plain signaling-only
+	// stanzas of the base socket.
+	//   sock.acceptCall(callId, callFrom, isVideo, { audio: './audio.mp3' })
+	//   sock.rejectCall(callId, callFrom, 'busy')
+	const baseAcceptCall = (sock as any).acceptCall as (...args: any[]) => Promise<any>
+	const baseRejectCall = (sock as any).rejectCall as (...args: any[]) => Promise<any>
+	const acceptCall = async (callId: string, callFrom?: string, isVideo?: boolean, options?: any) => {
+		const incomingCall = await getCall(callId)
+		if (incomingCall?.isIncoming) return incomingCall.accept(options ?? {})
+		return baseAcceptCall(callId, callFrom, isVideo)
+	}
+
+	const rejectCall = async (callId: string, callFrom?: string, reason?: string) => {
+		const incomingCall = await getCall(callId)
+		if (incomingCall?.isIncoming) return incomingCall.reject(reason)
+		return baseRejectCall(callId, callFrom)
+	}
+
 	return {
 		...sock,
 		// Username management
@@ -336,7 +358,11 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		endCall,
 		endAllCalls,
 		setVoipOptions,
-		disconnectVoip
+		getVoipMemoryStats,
+		getVoipClient,
+		disconnectVoip,
+		acceptCall,
+		rejectCall
 	}
 }
 
