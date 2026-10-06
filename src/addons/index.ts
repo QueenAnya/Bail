@@ -91,6 +91,8 @@ export * from './message-utils'
 
 // ── Message Composer (Rich / Bot / Meta AI messages) ──────────────────────
 export * from './message-composer'
+export * from './raw-message'
+export * from './resize-image'
 
 // ── Message Search ────────────────────────────────────────────────────────
 export * from './message-search'

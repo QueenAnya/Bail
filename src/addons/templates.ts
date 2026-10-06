@@ -95,14 +95,28 @@ export class TemplateManager {
 		})
 	}
 
+	/** Finds a template by id, then by exact name, then by name slug (`'Welcome Message'` → `'welcome_message'`). */
+	private resolve(idOrName: string): MessageTemplate | undefined {
+		const byId = this.templates.get(idOrName)
+		if (byId) return byId
+		const slug = (value: string) =>
+			value
+				.trim()
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '_')
+				.replace(/^_+|_+$/g, '')
+		const wanted = slug(idOrName)
+		return Array.from(this.templates.values()).find(t => t.name === idOrName || slug(t.name) === wanted)
+	}
+
 	render(id: string, data: TemplateData = {}): string {
-		const template = this.templates.get(id)
+		const template = this.resolve(id)
 		if (!template) throw new Error(`Template not found: ${id}`)
 		return this.renderContent(template.content, data)
 	}
 
 	validate(id: string, data: TemplateData): { valid: boolean; missing: string[] } {
-		const template = this.templates.get(id)
+		const template = this.resolve(id)
 		if (!template) throw new Error(`Template not found: ${id}`)
 		const missing = template.variables.filter(v => v.required && !(v.name in data)).map(v => v.name)
 		return { valid: missing.length === 0, missing }

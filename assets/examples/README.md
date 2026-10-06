@@ -3970,6 +3970,27 @@ await sock.sendMessage(jid, {
 
 ---
 
+## innovatorssoft README compatibility
+
+Everything from the `@innovatorssoft/baileys` README works in the same format (the upstream-style forms still work too). The full
+guide with code is in the root `README.md` ("innovatorssoft README compatibility"); `example.js` has a command for each:
+
+| Command | Shows |
+| --- | --- |
+| `!live` | live location (`live: true`) |
+| `!pin` | `pin: { key, type, time }` |
+| `!pollresult` | `pollResult` with `values` |
+| `!event` | `event` with `startTime` / `endTime` |
+| `!groupinvite` | `groupInvite` with `code` / `name` / `caption` (groups only) |
+| `!payment` | `payment` with `from`, `offset`, `image` |
+| `!shopproduct` | shop message with a product header |
+| `!raw` | `raw: true` (and the rejected mix with `text`) |
+| `!richhtml2` | standalone `sendRichHtml(sock, jid, ...)` |
+| `!resize` | `sock.resize` |
+| `!forward` | `sock.copyNForward` |
+| `!allstatuses` | `getAllStatuses()` |
+| `!templaterender` | template render by name slug |
+
 ## Acknowledgements
 
 - [Original baileys](https://github.com/WhiskeySockets/baileys)

@@ -96,13 +96,27 @@ export function buildPaymentInviteMessage(paymentInvite: PaymentInviteInfo): pro
  * field and the modern `Money` shape are populated for compatibility.
  */
 export function buildPaymentMessage(payment: PaymentMessageOptions): proto.Message.IRequestPaymentMessage {
+	// innovatorssoft form also passes `amount` as a string, `from` (= receiverJid), `offset` and `image`
+	// ({ placeholderArgb, textArgb, subtextArgb } → background)
+	const value = typeof payment.amount === 'string' ? Number(payment.amount) : payment.amount
+	const offset = payment.offset && payment.offset > 0 ? payment.offset : 100
+	const currency = payment.currency ?? 'IDR'
 	return {
 		noteMessage: payment.note ? { conversation: payment.note } : undefined,
-		currencyCodeIso4217: payment.currency,
-		amount1000: Math.round(payment.amount * 10),
-		amount: { value: payment.amount, offset: 100, currencyCode: payment.currency },
-		requestFrom: payment.receiverJid,
-		expiryTimestamp: payment.expiry ?? 0
+		currencyCodeIso4217: currency,
+		amount1000: Math.round((value * 1000) / offset),
+		amount: { value, offset, currencyCode: currency },
+		requestFrom: payment.receiverJid ?? payment.from,
+		expiryTimestamp: payment.expiry ?? 0,
+		...(payment.image
+			? {
+					background: {
+						placeholderArgb: payment.image.placeholderArgb,
+						textArgb: payment.image.textArgb,
+						subtextArgb: payment.image.subtextArgb
+					}
+				}
+			: {})
 	}
 }
 

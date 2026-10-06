@@ -4741,6 +4741,216 @@ import { PHONENUMBER_MCC } from '@teamolduser/baileys'
 PHONENUMBER_MCC['92']   // 410  (dialing prefix -> mobile country code; NANP territories use keys like '1-684')
 ```
 
+## innovatorssoft README compatibility
+
+Everything documented in the `@innovatorssoft/baileys` README works here in the same format. Where this fork already had its own
+shape (upstream style), **both forms are accepted** - nothing that worked before changed. The sections below show each form;
+`assets/examples/example.js` has a ready-to-run command for every one of them (listed at the end).
+
+### Live location
+
+```ts
+await sock.sendMessage(jid, {
+    location: { degreesLatitude: 24.121231, degreesLongitude: 55.1121221 },
+    live: true // sends a liveLocationMessage instead of a plain locationMessage
+})
+```
+
+### Pin message
+
+```ts
+// innovatorssoft form
+await sock.sendMessage(jid, { pin: { key: message.key, type: 1, time: 86400 } }) // type 2 = unpin
+// upstream form (still works)
+await sock.sendMessage(jid, { pin: message.key, type: 1, time: 86400 })
+```
+
+`time` is 86400 (24h), 604800 (7d) or 2592000 (30d).
+
+### Poll result
+
+```ts
+// innovatorssoft form
+await sock.sendMessage(jid, {
+    pollResult: { name: 'Favourite', values: [['Option 1', 1000], ['Option 2', 2000]] }
+})
+// upstream form (still works)
+await sock.sendMessage(jid, {
+    pollResult: { name: 'Favourite', votes: [{ name: 'Option 1', voteCount: 1000 }] }
+})
+```
+
+Without `values` or `votes` it throws `Invalid pollResult values` (400).
+
+### Event message
+
+```ts
+await sock.sendMessage(jid, {
+    event: {
+        name: 'Holiday together!',
+        description: 'Who wants to come along?',
+        startTime: Math.floor(Date.now() / 1000) + 3600, // unix seconds (milliseconds are accepted too)
+        endTime: Math.floor(Date.now() / 1000) + 7200,
+        isCanceled: false,                               // `isCancelled` works as well
+        location: { degreesLatitude: 24.121231, degreesLongitude: 55.1121221, name: 'Place' },
+        call: 'audio',                                   // 'audio' | 'video' (needs getCallLink)
+        extraGuestsAllowed: true
+    }
+})
+// upstream form (still works): startDate / endDate as Date objects
+```
+
+`startTime`/`startDate` is optional - it defaults to tomorrow.
+
+### Group invite message
+
+```ts
+// innovatorssoft form
+await sock.sendMessage(jid, {
+    groupInvite: {
+        jid: '123xxx@g.us',
+        name: 'group_name',
+        caption: 'Please join my WhatsApp group',
+        code: 'invite_code',
+        expiration: 86400,
+        jpegThumbnail: buffer // optional - when given, the profile picture is not fetched
+    }
+})
+// upstream form (still works): { inviteCode, inviteExpiration, text, jid, subject }
+```
+
+### Payment message
+
+```ts
+await sock.sendMessage(jid, {
+    payment: {
+        note: 'Hi!',
+        currency: 'IDR',             // default 'IDR'
+        amount: '10000',             // number or numeric string, in the currency's smallest unit
+        offset: 100,                 // optional, default 100 (0 / unset = 100)
+        expiry: 0,                   // optional
+        from: '628xxxx@s.whatsapp.net', // optional, same as `receiverJid`
+        image: {                     // optional - bubble background colours (ARGB numbers)
+            placeholderArgb: 4278190080,
+            textArgb: 4294967295,
+            subtextArgb: 4294967295
+        }
+    }
+})
+```
+
+> `amount` is interpreted in the currency's smallest unit (offset 100), so `'10000'` is shown as `100.00`.
+
+### Shop / Collection with location or product header
+
+`shop` and `collection` messages accept `image`, `video`, `document`, **`location`** and **`product`** as the header:
+
+```ts
+await sock.sendMessage(jid, {
+    product: { productImage: { url }, productId: '836xxx', title: 'Title', description: 'Description',
+               currencyCode: 'IDR', priceAmount1000: '283000', retailerId: 'shop', url: 'https://example.com', productImageCount: 1 },
+    businessOwnerJid: '628xxx@s.whatsapp.net',
+    caption: 'Body', title: 'Title', subtitle: 'Subtitle', footer: 'Footer',
+    shop: { surface: 1, id: 'https://example.com' },
+    viewOnce: true
+})
+```
+
+### Raw message (`raw: true`)
+
+Build a message straight from `proto.Message` keys:
+
+```ts
+await sock.sendMessage(jid, {
+    extendedTextMessage: {
+        text: 'Built manually from the raw WhatsApp proto structure',
+        contextInfo: { externalAdReply: { title: 'Title', thumbnail: buffer, sourceApp: 'whatsapp', showAdAttribution: true, mediaType: 1 } }
+    },
+    raw: true
+}, { quoted: message })
+```
+
+Rules (checked before anything else, so they cannot be bypassed by another content key):
+
+- `raw: true` is explicit - no guessing.
+- Every top-level key must be a valid `proto.Message` key, otherwise `Raw mode payload contains unsupported top-level keys: ...` (400).
+- Helper fields (`text`, `image`, `buttons`, `interactiveButtons`, `mentions`, ...) must **not** be mixed in: `Raw mode does not support helper fields: text` (400).
+- An empty payload throws `Raw mode payload must include at least one proto message key`.
+- The older `{ raw: { extendedTextMessage: { ... } } }` form still works.
+
+The helper is exported as `buildRawMessageContent` (`addons/raw-message.ts`).
+
+### `sendRichHtml`
+
+```ts
+import { sendRichHtml } from '@teamolduser/baileys'
+
+// socket method
+await sock.sendRichHtml(jid, { id: 'dashboard-001', title: 'Sales Dashboard', html: '<div>...</div>', source: 'dashboard_service' }, quoted)
+
+// standalone function: sendRichHtml(socket, jid, options, quoted?, relayOptions?)
+await sendRichHtml(sock, jid, { id: 'card', title: 'Card', html: '<div>Hello</div>', source: 'custom' }, null, { /* relayMessage options */ })
+```
+
+Both return `{ message, messageId }`.
+
+### `sock.resize`
+
+Resizes an image to exactly `width` x `height` and returns a JPEG `Buffer` - handy for `jpegThumbnail`:
+
+```ts
+const thumb = await sock.resize('https://example.com/pic.jpg', 320, 320) // URL, file path, Buffer, { url } or { stream }
+await sock.sendMessage(jid, { document: { url }, mimetype: 'image/jpeg', jpegThumbnail: thumb, caption: 'Body' })
+```
+
+Uses whichever image library is installed (`sharp`, `@napi-rs/image` or `jimp`); the same helper is exported as `resizeImage`.
+
+### `sock.copyNForward`
+
+```ts
+await sock.copyNForward(jid, message, forceForward /* default false */, options /* sendMessage options */)
+// same as sock.sendMessage(jid, { forward: message, force: forceForward }, options)
+```
+
+### Other small compatibility additions
+
+```ts
+// presence tracker: every monitored contact at once (Map keyed by the JID you passed in)
+const pm = monitorPresence(sock, ['923001234567@s.whatsapp.net'])
+const all = pm.getAllStatuses()
+
+// single-file auth: `saveState` is the same function as `saveCreds`
+const { state, saveState } = await useSingleFileAuthState('./auth.json')
+sock.ev.on('creds.update', saveState)
+
+// templates: render by id, by exact name or by name slug (an id match wins, e.g. the built-in preset ids)
+templates.create({ name: 'Promo Message', content: 'Hello {{name}}!', category: 'marketing' })
+templates.render('promo_message', { name: 'Budi' })
+
+// incoming calls: options may be the 2nd argument (ringing call.incoming sessions only)
+await sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false })
+```
+
+### Example commands
+
+`assets/examples/example.js` (send them to the bot as `!command`):
+
+| Command | Shows |
+| --- | --- |
+| `!live` | live location (`live: true`) |
+| `!pin` | pin the message you send (`pin: { key, type, time }`) |
+| `!pollresult` | `pollResult` with `values` |
+| `!event` | `event` with `startTime` / `endTime` |
+| `!groupinvite` | `groupInvite` with `code` / `name` / `caption` (groups only) |
+| `!payment` | `payment` with `from`, `offset`, `image` |
+| `!shopproduct` | shop message with a product header |
+| `!raw` | `raw: true` (and a rejected mix with `text`) |
+| `!richhtml2` | standalone `sendRichHtml(sock, jid, ...)` |
+| `!resize` | `sock.resize` |
+| `!forward` | `sock.copyNForward` |
+| `!allstatuses` | `getAllStatuses()` of the presence tracker |
+| `!templaterender` | template render by slug |
+
 # About This Fork (@teamolduser/baileys)
 
 This is an extended fork of the original open-source Baileys library, adding

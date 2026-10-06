@@ -15,6 +15,8 @@ import {
     uploadUnencryptedToWA,
     generateWAMessageFromContent,
     monitorPresence,
+    sendRichHtml,
+    createTemplateManager,
     formatDuration,
     formatTimeAgo,
     normalizeContactJid,
@@ -1163,6 +1165,220 @@ async function startBot() {
                             caption: '👁️ View Once V2 Extension message',
                             viewOnceV2Extension: true
                         }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                // ── innovatorssoft README compatibility (see README: "innovatorssoft README compatibility") ──
+                case '!live': {
+                    try {
+                        await sock.sendMessage(normalizedJid, {
+                            location: { degreesLatitude: 24.121231, degreesLongitude: 55.1121221 },
+                            live: true
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!pin': {
+                    try {
+                        // pins the message that carried this command for 24 hours
+                        await sock.sendMessage(normalizedJid, { pin: { key: message.key, type: 1, time: 86400 } });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!pollresult': {
+                    try {
+                        await sock.sendMessage(normalizedJid, {
+                            pollResult: { name: 'Favourite language', values: [['JavaScript', 1000], ['TypeScript', 2000]] }
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!event': {
+                    try {
+                        const now = Math.floor(Date.now() / 1000);
+                        await sock.sendMessage(normalizedJid, {
+                            event: {
+                                name: 'Holiday together!',
+                                description: 'Who wants to come along?',
+                                startTime: now + 3600,
+                                endTime: now + 7200,
+                                isCanceled: false,
+                                location: { degreesLatitude: 24.121231, degreesLongitude: 55.1121221, name: 'Meeting point' },
+                                extraGuestsAllowed: true
+                            }
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!groupinvite': {
+                    try {
+                        if (!normalizedJid.endsWith('@g.us')) {
+                            await sock.sendMessage(normalizedJid, { text: '❌ This command can only be used in group chats!' }, { quoted: message });
+                            break;
+                        }
+                        const metadata = await sock.groupMetadata(normalizedJid);
+                        const code = await sock.groupInviteCode(normalizedJid);
+                        await sock.sendMessage(normalizedJid, {
+                            groupInvite: {
+                                jid: normalizedJid,
+                                name: metadata.subject,
+                                caption: 'Please join my WhatsApp group',
+                                code,
+                                expiration: Math.floor(Date.now() / 1000) + 86400
+                            }
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!payment': {
+                    try {
+                        await sock.sendMessage(normalizedJid, {
+                            payment: {
+                                note: 'Payment request from @teamolduser/baileys',
+                                currency: 'IDR',
+                                amount: '10000',
+                                offset: 100,
+                                expiry: 0,
+                                from: message.key.participant || normalizedJid,
+                                image: { placeholderArgb: 4278190080, textArgb: 4294967295, subtextArgb: 4294967295 }
+                            }
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!shopproduct': {
+                    try {
+                        const logoPath = path.join(__dirname, 'logo.png');
+                        await sock.sendMessage(normalizedJid, {
+                            product: {
+                                productImage: { url: logoPath },
+                                productId: '836000000000001',
+                                title: 'Title',
+                                description: 'Description',
+                                currencyCode: 'IDR',
+                                priceAmount1000: '283000',
+                                retailerId: 'teamolduser',
+                                url: 'https://github.com/Teamolduser/Baileys',
+                                productImageCount: 1
+                            },
+                            businessOwnerJid: normalizedJid,
+                            caption: 'Body',
+                            title: 'Title',
+                            subtitle: 'Subtitle',
+                            footer: 'Footer',
+                            shop: { surface: 1, id: 'https://github.com/Teamolduser/Baileys' },
+                            viewOnce: true
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!raw': {
+                    try {
+                        // 1) raw mode: top-level keys are proto.Message keys + `raw: true`
+                        await sock.sendMessage(normalizedJid, {
+                            extendedTextMessage: {
+                                text: '📃 Built manually from scratch using the raw WhatsApp proto structure'
+                            },
+                            raw: true
+                        }, { quoted: message });
+
+                        // 2) mixing a helper field such as `text` with raw mode is rejected
+                        try {
+                            await sock.sendMessage(normalizedJid, {
+                                text: 'not allowed',
+                                extendedTextMessage: { text: 'raw' },
+                                raw: true
+                            });
+                        } catch (rejected) {
+                            await sock.sendMessage(normalizedJid, { text: `✅ Mixed payload rejected: ${rejected.message}` }, { quoted: message });
+                        }
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!richhtml2': {
+                    try {
+                        // standalone function form: sendRichHtml(sock, jid, options, quoted?, relayOptions?)
+                        await sendRichHtml(sock, normalizedJid, {
+                            id: 'standalone-card',
+                            title: 'Standalone sendRichHtml',
+                            html: '<div style="padding:15px;background:#2563eb;color:#fff;border-radius:10px;">Hello from the standalone sendRichHtml!</div>',
+                            source: 'custom_source'
+                        }, message);
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!resize': {
+                    try {
+                        const logoPath = path.join(__dirname, 'logo.png');
+                        const thumb = await sock.resize(logoPath, 320, 320);
+                        await sock.sendMessage(normalizedJid, {
+                            document: { url: logoPath },
+                            mimetype: 'image/png',
+                            fileName: 'logo.png',
+                            jpegThumbnail: thumb,
+                            caption: `🖼️ sock.resize → ${thumb.length} bytes JPEG (320x320 thumbnail)`
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!forward': {
+                    try {
+                        // forwards the message that carried this command back to the chat
+                        await sock.copyNForward(normalizedJid, message, true);
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!allstatuses': {
+                    try {
+                        if (!presenceMonitor) {
+                            await sock.sendMessage(normalizedJid, { text: '⚠️ Presence tracker is not initialized.' }, { quoted: message });
+                            break;
+                        }
+                        const all = presenceMonitor.getAllStatuses();
+                        const lines = [...all.entries()].map(([jid, st]) => `• ${jid}: ${st.currentStatus} (${st.sessions.length} sessions)`);
+                        await sock.sendMessage(normalizedJid, {
+                            text: lines.length ? `📊 Monitored contacts:\n${lines.join('\n')}` : '📊 No monitored contacts yet.'
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!templaterender': {
+                    try {
+                        const templates = createTemplateManager(true);
+                        templates.create({
+                            name: 'Promo Message',
+                            content: 'Hello {{name}}! 👋\nWelcome to {{company:@teamolduser/baileys}}!',
+                            category: 'marketing'
+                        });
+                        // rendered by name slug: 'Promo Message' → 'promo_message'
+                        const out = templates.render('promo_message', { name: args || 'friend' });
+                        await sock.sendMessage(normalizedJid, { text: out }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
                     }

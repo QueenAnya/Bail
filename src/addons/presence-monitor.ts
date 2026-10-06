@@ -987,6 +987,18 @@ export class PresenceMonitor {
 		return status
 	}
 
+	/** Rich status for every monitored contact, keyed by the originally requested JID. */
+	getAllStatuses(): Map<string, PresenceTrackerStatus> {
+		const result = new Map<string, PresenceTrackerStatus>()
+		for (const [internal, requested] of this.requestedJids) {
+			const publicJid = requested || internal
+			const status = this.getStatus(publicJid)
+			if (status) result.set(publicJid, status)
+		}
+
+		return result
+	}
+
 	/** Re-send the presence subscription for a contact (and its paired LID, if known). */
 	async resubscribe(jid: string): Promise<void> {
 		const normalized = normalizeContactJid(jid)

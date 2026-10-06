@@ -1373,6 +1373,27 @@ export const generateRichHtmlContent = (
 	}
 }
 
+/**
+ * Standalone `sendRichHtml(socket, jid, { id, title, html, source }, quoted, relayOptions)` — the
+ * @innovatorssoft/baileys form of `sock.sendRichHtml(jid, options, quoted)`.
+ */
+export const sendRichHtml = async (
+	socket: { relayMessage: (jid: string, message: proto.IMessage, options: any) => Promise<unknown> },
+	jid: string,
+	options: GenerateRichHtmlOptions & { html: string },
+	quoted?: QuotedMsg,
+	relayOptions: Record<string, unknown> = {}
+): Promise<RichMessageContent> => {
+	if (!options || typeof options.html !== 'string') {
+		throw new Error('[sendRichHtml] options or html content must be provided')
+	}
+
+	const { html, ...rest } = options
+	const { message, messageId } = generateRichHtmlContent(html, quoted, rest)
+	await socket.relayMessage(jid, message, { messageId, ...relayOptions })
+	return { message, messageId }
+}
+
 /** Renders LaTeX locally with MathJax + Sharp (no external rendering API). */
 export { convertLatexToSvg, convertLatexToPng }
 export const renderLatexToPng = renderLatexToPngLocal

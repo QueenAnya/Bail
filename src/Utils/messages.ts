@@ -21,6 +21,7 @@ import {
 	prepareRawInteractiveContent,
 	resolveButtonText
 } from '../addons/native-flow-interactive'
+import { buildRawMessageContent } from '../addons/raw-message'
 import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
 import {
 	CALL_AUDIO_PREFIX,
@@ -455,7 +456,12 @@ export const generateWAMessageContent = async (
 	options: MessageContentGenerationOptions
 ) => {
 	let m: WAMessageContent = {}
-	if (hasNonNullishProperty(message, 'text')) {
+	if ((message as { raw?: unknown }).raw === true) {
+		// innovatorssoft raw mode: `{ extendedTextMessage: {...}, raw: true }`. Checked first so that mixing in
+		// helper fields (`text`, `image`, ...) is rejected instead of being picked up by another branch.
+		// (addons/raw-message.ts → buildRawMessageContent)
+		m = buildRawMessageContent(message as Record<string, unknown>)
+	} else if (hasNonNullishProperty(message, 'text')) {
 		const extContent = { text: message.text } as WATextMessage
 
 		let urlInfo = message.linkPreview
@@ -518,7 +524,12 @@ export const generateWAMessageContent = async (
 			m.contactsArrayMessage = WAProto.Message.ContactsArrayMessage.create(message.contacts)
 		}
 	} else if (hasNonNullishProperty(message, 'location')) {
-		m.locationMessage = WAProto.Message.LocationMessage.create(message.location)
+		if ((message as { live?: boolean }).live) {
+			// `live: true` (innovatorssoft): send as a live-location message
+			m.liveLocationMessage = WAProto.Message.LiveLocationMessage.create(message.location as any)
+		} else {
+			m.locationMessage = WAProto.Message.LocationMessage.create(message.location)
+		}
 	} else if (hasNonNullishProperty(message, 'react')) {
 		if (!message.react.senderTimestampMs) {
 			message.react.senderTimestampMs = Date.now()
@@ -532,11 +543,11 @@ export const generateWAMessageContent = async (
 		}
 	} else if (hasNonNullishProperty(message, 'raw')) {
 		// bypass content generation entirely — send the caller-provided proto.IMessage as-is
-		if (message.raw === true || typeof message.raw !== 'object') {
+		if (typeof message.raw !== 'object') {
 			throw new Boom('raw must be a proto.IMessage object', { statusCode: 400 })
+		} else {
+			m = message.raw
 		}
-
-		m = message.raw
 	} else if (hasNonNullishProperty(message, 'forward')) {
 		m = generateForwardMessageContent(message.forward, message.force)
 	} else if (hasNonNullishProperty(message, 'disappearingMessagesInChat')) {
@@ -549,15 +560,19 @@ export const generateWAMessageContent = async (
 		m = prepareDisappearingMessageSettingContent(exp)
 	} else if (hasNonNullishProperty(message, 'groupInvite')) {
 		m.groupInviteMessage = {}
-		m.groupInviteMessage.inviteCode = message.groupInvite.inviteCode
-		m.groupInviteMessage.inviteExpiration = message.groupInvite.inviteExpiration
-		m.groupInviteMessage.caption = message.groupInvite.text
+		// accepts both `{ inviteCode, inviteExpiration, text, jid, subject }` and the innovatorssoft form
+		// `{ code, expiration, caption, jid, name, jpegThumbnail }`
+		const gi = message.groupInvite as any
+		m.groupInviteMessage.inviteCode = gi.inviteCode ?? gi.code
+		m.groupInviteMessage.inviteExpiration = gi.inviteExpiration ?? gi.expiration
+		m.groupInviteMessage.caption = gi.text ?? gi.caption
 
-		m.groupInviteMessage.groupJid = message.groupInvite.jid
-		m.groupInviteMessage.groupName = message.groupInvite.subject
+		m.groupInviteMessage.groupJid = gi.jid
+		m.groupInviteMessage.groupName = gi.subject ?? gi.name
+		if (gi.jpegThumbnail) m.groupInviteMessage.jpegThumbnail = gi.jpegThumbnail
 		//TODO: use built-in interface and get disappearing mode info etc.
 		//TODO: cache / use store!?
-		if (options.getProfilePicUrl) {
+		if (!gi.jpegThumbnail && options.getProfilePicUrl) {
 			const pfpUrl = await options.getProfilePicUrl(message.groupInvite.jid, 'preview')
 			if (pfpUrl) {
 				const resp = await fetch(pfpUrl, { method: 'GET', dispatcher: options?.options?.dispatcher })
@@ -571,11 +586,18 @@ export const generateWAMessageContent = async (
 		m.pinInChatMessage = {}
 		m.messageContextInfo = {}
 
-		m.pinInChatMessage.key = message.pin
-		m.pinInChatMessage.type = message.type
+		// accepts both `{ pin: key, type, time }` and the innovatorssoft form `{ pin: { key, type, time } }`
+		const pinArg = message.pin as any
+		const pinNested = !!pinArg && typeof pinArg === 'object' && !!pinArg.key && typeof pinArg.key === 'object'
+		const pinType = pinNested ? (pinArg.type ?? (message as any).type ?? 1) : (message as any).type
+		const pinTime = pinNested ? (pinArg.time ?? (message as any).time) : (message as any).time
+
+		m.pinInChatMessage.key = pinNested ? pinArg.key : message.pin
+		m.pinInChatMessage.type = pinType
 		m.pinInChatMessage.senderTimestampMs = Date.now()
 
-		m.messageContextInfo.messageAddOnDurationInSecs = message.type === 1 ? message.time || 86400 : 0
+		m.messageContextInfo.messageAddOnDurationInSecs = pinType === 1 ? pinTime || 86400 : 0
+		m.messageContextInfo.messageAddOnExpiryType = WAProto.MessageContextInfo.MessageAddonExpiryType.STATIC
 	} else if (hasNonNullishProperty(message, 'flowReply')) {
 		// Reply to a native-flow interactive message (interactiveResponseMessage).
 		m.interactiveResponseMessage = {
@@ -653,7 +675,18 @@ export const generateWAMessageContent = async (
 		m.listResponseMessage = { ...message.listReply }
 	} else if (hasNonNullishProperty(message, 'event')) {
 		m.eventMessage = {}
-		const startTime = Math.floor(message.event.startDate.getTime() / 1000)
+		// accepts `startDate`/`endDate` (Date) and the innovatorssoft form `startTime`/`endTime` (unix seconds,
+		// or milliseconds); startTime defaults to tomorrow when omitted
+		const eventOpts = message.event as any
+		const eventSeconds = (value: unknown): number | undefined => {
+			if (value === undefined || value === null) return undefined
+			if (value instanceof Date) return Math.floor(value.getTime() / 1000)
+			const num = Number(value)
+			if (!Number.isFinite(num)) return undefined
+			return Math.floor(num > 1e11 ? num / 1000 : num)
+		}
+
+		const startTime = eventSeconds(eventOpts.startDate ?? eventOpts.startTime) ?? unixTimestampSeconds() + 86400
 
 		if (message.event.call && options.getCallLink) {
 			const token = await options.getCallLink(message.event.call, { startTime })
@@ -668,8 +701,8 @@ export const generateWAMessageContent = async (
 		m.eventMessage.name = message.event.name
 		m.eventMessage.description = message.event.description
 		m.eventMessage.startTime = startTime
-		m.eventMessage.endTime = message.event.endDate ? message.event.endDate.getTime() / 1000 : undefined
-		m.eventMessage.isCanceled = message.event.isCancelled ?? false
+		m.eventMessage.endTime = eventSeconds(eventOpts.endDate ?? eventOpts.endTime)
+		m.eventMessage.isCanceled = eventOpts.isCancelled ?? eventOpts.isCanceled ?? false
 		m.eventMessage.extraGuestsAllowed = message.event.extraGuestsAllowed
 		m.eventMessage.isScheduleCall = message.event.isScheduleCall ?? false
 		m.eventMessage.location = message.event.location
@@ -745,9 +778,20 @@ export const generateWAMessageContent = async (
 		// Send a poll-results summary — e.g. a bot posting the final tally of
 		// an earlier poll. Standalone display message, not a live connection
 		// to the original poll's vote state.
+		// accepts `votes: [{ name, voteCount }]` and the innovatorssoft form `values: [[name, count], ...]`
+		const pollResultVotes: { name: string; voteCount: number | string }[] | undefined =
+			message.pollResult.votes ??
+			(message.pollResult as { values?: [string, number | string][] }).values?.map(([name, voteCount]) => ({
+				name,
+				voteCount
+			}))
+		if (!Array.isArray(pollResultVotes)) {
+			throw new Boom('Invalid pollResult values', { statusCode: 400 })
+		}
+
 		const pollResultSnapshotMessage: proto.Message.IPollResultSnapshotMessage = {
 			name: message.pollResult.name,
-			pollVotes: message.pollResult.votes.map(vote => ({
+			pollVotes: pollResultVotes.map(vote => ({
 				optionName: vote.name,
 				optionVoteCount: typeof vote.voteCount === 'string' ? parseInt(vote.voteCount, 10) : vote.voteCount
 			}))
@@ -1169,7 +1213,9 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
+				documentMessage: m.documentMessage ?? undefined,
+				locationMessage: m.locationMessage ?? undefined,
+				productMessage: m.productMessage ?? undefined
 			}
 		}
 
@@ -1212,7 +1258,9 @@ export const generateWAMessageContent = async (
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
-				documentMessage: m.documentMessage ?? undefined
+				documentMessage: m.documentMessage ?? undefined,
+				locationMessage: m.locationMessage ?? undefined,
+				productMessage: m.productMessage ?? undefined
 			}
 		}
 

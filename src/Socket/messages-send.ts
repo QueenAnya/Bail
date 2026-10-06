@@ -28,6 +28,7 @@ import {
 } from '../addons/message-composer'
 import { makeMessageExtrasAddon } from '../addons/message-utils'
 import { monitorPresence as monitorPresenceAddon, type PresenceMonitorOptions } from '../addons/presence-monitor'
+import { resizeImage } from '../addons/resize-image'
 import { sendGroupStatus as sendGroupStatusAddon } from '../addons/send-group-status'
 import { sendGroupStatusV2 as sendGroupStatusV2Addon } from '../addons/send-group-status-v2'
 import {
@@ -2099,6 +2100,18 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			)
 		},
+
+		// addons/resize-image.ts — `jpegThumbnail: await sock.resize(url, 320, 320)`
+		resize: (media: WAMediaUpload | string, width?: number, height?: number): Promise<Buffer> =>
+			resizeImage(media, width, height),
+
+		// Forward a message object to `jid` (innovatorssoft `sock.copyNForward`)
+		copyNForward: async (
+			jid: string,
+			message: WAMessage,
+			forceForward: boolean | number = false,
+			options: MiscMessageGenerationOptions = {}
+		): Promise<any> => (socket as any).sendMessage(jid, { forward: message, force: forceForward }, options),
 
 		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
 		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {

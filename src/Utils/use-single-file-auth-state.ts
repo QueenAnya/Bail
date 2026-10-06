@@ -21,7 +21,7 @@ const FLUSH_TIMEOUT_MS = 3000
 
 export const useSingleFileAuthState = async (
 	fileName: string
-): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
+): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void>; saveState: () => Promise<void> }> => {
 	// ── LRU Cache (fast in-memory reads) ──────────────────────────────────────
 	const cache = new LRUCache<string, any>({
 		max: 20000,
@@ -145,6 +145,8 @@ export const useSingleFileAuthState = async (
 				}
 			}
 		},
-		saveCreds: async () => writeKey('creds', creds)
+		saveCreds: async () => writeKey('creds', creds),
+		// innovatorssoft name for saveCreds: `sock.ev.on('creds.update', saveState)`
+		saveState: async () => writeKey('creds', creds)
 	}
 }

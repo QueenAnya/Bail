@@ -374,10 +374,16 @@ export type InteractiveMessagePAYOptions = InteractiveMessageOptions & {
 }
 
 export type PaymentMessageOptions = {
-	/** Amount in smallest currency unit (e.g. cents) */
-	amount: number
-	/** Currency code (e.g. "USD", "BRL") */
-	currency: string
+	/** Amount in smallest currency unit (e.g. cents); a numeric string is accepted too */
+	amount: number | string
+	/** Currency code (e.g. "USD", "BRL"); defaults to "IDR" */
+	currency?: string
+	/** innovatorssoft alias of `receiverJid` */
+	from?: string
+	/** Amount offset (default 100) */
+	offset?: number
+	/** Payment bubble colours (ARGB numbers) → `background` */
+	image?: { placeholderArgb?: number; textArgb?: number; subtextArgb?: number }
 	/** Note/memo for the payment */
 	note?: string
 	/** Who this payment is being requested from — optional; defaults to the
@@ -572,7 +578,9 @@ export type PollMessageOptions = {
  */
 export type PollResultOptions = {
 	name: string
-	votes: { name: string; voteCount: number | string }[]
+	/** `votes` or the innovatorssoft form `values: [[name, count], ...]` */
+	votes?: { name: string; voteCount: number | string }[]
+	values?: [string, number | string][]
 	/** makes this a quiz-result snapshot instead of a regular poll result */
 	pollType?: 1
 }
@@ -594,8 +602,13 @@ export type PollUpdateOptions = {
 export type EventMessageOptions = {
 	name: string
 	description?: string
-	startDate: Date
+	/** `startDate` (Date) or the innovatorssoft form `startTime` (unix seconds / ms); defaults to tomorrow */
+	startDate?: Date
 	endDate?: Date
+	startTime?: number
+	endTime?: number
+	/** innovatorssoft spelling of `isCancelled` */
+	isCanceled?: boolean
 	location?: WALocationMessage
 	call?: 'audio' | 'video'
 	isCancelled?: boolean
@@ -688,13 +701,24 @@ export type ButtonReplyInfo = {
 	}
 }
 
-export type GroupInviteInfo = {
-	inviteCode: string
-	inviteExpiration: number
-	text: string
-	jid: string
-	subject: string
-}
+export type GroupInviteInfo =
+	| {
+			inviteCode: string
+			inviteExpiration: number
+			text: string
+			jid: string
+			subject: string
+			jpegThumbnail?: Buffer | Uint8Array
+	  }
+	| {
+			/** innovatorssoft form */
+			jid: string
+			code: string
+			expiration?: number
+			caption?: string
+			name?: string
+			jpegThumbnail?: Buffer | Uint8Array
+	  }
 
 /**
  * Payload for the low-level v4 group-invite message, sent directly to a
@@ -857,6 +881,8 @@ export type AnyRegularMessageContent = (
 	  }
 	| {
 			location: WALocationMessage
+			/** send as a live-location message */
+			live?: boolean
 	  }
 	| { react: proto.Message.IReactionMessage }
 	| {
@@ -886,8 +912,9 @@ export type AnyRegularMessageContent = (
 			}
 	  }
 	| {
-			pin: WAMessageKey
-			type: proto.PinInChat.Type
+			/** the message key, or the innovatorssoft form `{ key, type, time }` */
+			pin: WAMessageKey | { key: WAMessageKey; type?: proto.PinInChat.Type; time?: number }
+			type?: proto.PinInChat.Type
 			/**
 			 * 24 hours, 7 days, 30 days
 			 */
