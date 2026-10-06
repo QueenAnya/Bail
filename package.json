@@ -18,7 +18,6 @@
   "author": "OLDUSER 06",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "packageManager": "yarn@4.9.2",
   "files": [
     "lib/**/*",
     "WAProto/**/*",
