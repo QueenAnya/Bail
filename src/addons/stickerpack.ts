@@ -11,25 +11,27 @@
  *   - buildStickerPackProto() — builds the proto payload for a StickerPackMessage
  *   - generateStickerPackId() — generates a random pack ID
  *   - STICKER_PACK_MESSAGE_TYPE — the message type string 'sticker_pack'
- *   - convertToWebP() — converts a Buffer, URL string, or Stream into a WebP
- *     sticker buffer (passthrough if already WebP), via a
- *     sharp → @napi-rs/image → jimp fallback chain.
+ *   - convertToWebP()  converts a Buffer, URL string, or Stream into a WebP
+ *     sticker buffer at its original size (WebP passthrough; PNG/JPG/GIF/video converted).
  */
 
 import { Boom } from '@hapi/boom'
 import type { WAMediaUpload } from '../Types'
 import { getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media.js'
-import { isAnimatedWebP, isWebPBuffer } from './from-messages.js'
+import { isAnimatedWebP, resolveStickerPackConcurrency, toStickerWebp } from './from-messages.js'
 
 // Re-export Sticker and StickerPack from Types for convenience
 export type { Sticker, StickerPack } from '../Types'
 
 /**
  * Convert a Buffer, URL string, or Stream into a WebP sticker buffer.
- * If the input is already a valid WebP, it's returned untouched (and
- * `isAnimated` reflects whether it's an animated WebP). Uses a
- * sharp → @napi-rs/image → jimp fallback chain, 512x512 'inside' fit,
- * quality 80.
+ *
+ * Same rules as the sticker packs (see `toStickerWebp` in from-messages.ts):
+ *   - already WebP            -> returned untouched (original size, quality, EXIF, animation)
+ *   - PNG / JPG / GIF / ...   -> WebP at the ORIGINAL size (no 512 resize), quality 100,
+ *                                never lowered automatically
+ *   - video (mp4/webm/mkv)    -> animated WebP via ffmpeg, original size
+ * Needs `sharp` or `@napi-rs/image` for images (ffmpeg for video); a clear error is thrown otherwise.
  *
  * @example
  * const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
@@ -38,31 +40,8 @@ export type { Sticker, StickerPack } from '../Types'
 export const convertToWebP = async (input: WAMediaUpload): Promise<{ buffer: Buffer; isAnimated: boolean }> => {
 	const { stream } = await getStream(input)
 	const buffer = await toBuffer(stream)
-
-	if (isWebPBuffer(buffer)) {
-		return { buffer, isAnimated: isAnimatedWebP(buffer) }
-	}
-
-	const lib = await getImageProcessingLibrary()
-	const hasSharp = 'sharp' in lib && !!(lib as any).sharp?.default
-	const hasImage = 'image' in lib && !!(lib as any).image?.Transformer
-
-	if (!hasSharp && !hasImage) {
-		throw new Boom('No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP.')
-	}
-
-	let webpBuffer: Buffer
-	if (hasSharp) {
-		webpBuffer = await (lib as any).sharp
-			.default(buffer)
-			.resize(512, 512, { fit: 'inside' })
-			.webp({ quality: 80 })
-			.toBuffer()
-	} else {
-		webpBuffer = await new (lib as any).image.Transformer(buffer).resize(512, 512).webp(80)
-	}
-
-	return { buffer: webpBuffer, isAnimated: false }
+	const webpBuffer = await toStickerWebp(buffer)
+	return { buffer: webpBuffer, isAnimated: isAnimatedWebP(webpBuffer) }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -107,7 +86,7 @@ export const STICKER_PACK_MESSAGE_TYPE = 'sticker_pack' as const
 // ═══════════════════════════════════════════════════════════════════════════
 // Full sticker-pack builder — kept as a distinct alternative alongside the
 // PR-based buildStickerPackMessage() in from-messages.ts.
-// Includes: media caching, per-sticker count/size limits, 15-way
+// Includes: media caching, 15-way
 // concurrency batching, cover→trayIcon-in-ZIP, and separate 252×252 JPEG
 // thumbnail generation.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -120,10 +99,11 @@ import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics.js'
 import type { ILogger } from '../Utils/logger.js'
 import { encryptedStream } from '../Utils/messages-media.js'
 
-const STICKER_PACK_CONCURRENCY_LIMIT = 15
-
 export type StickerInput = {
-	data: WAMediaUpload
+	/** sticker media (Buffer / `{ url }` / stream / path) */
+	data?: WAMediaUpload
+	/** alias of `data` (the field name used by @innovatorssoft/baileys) */
+	sticker?: WAMediaUpload
 	emojis?: string[]
 	accessibilityLabel?: string
 }
@@ -131,6 +111,10 @@ export type StickerInput = {
 export type StickerPackInput = {
 	cover: WAMediaUpload
 	stickers: StickerInput[]
+	/** fixed pack id; a random one is generated when omitted */
+	packId?: string
+	/** stickers converted at the same time (default 15) - lower it on low-RAM hosts */
+	concurrency?: number
 	name?: string
 	publisher?: string
 	description?: string
@@ -159,14 +143,12 @@ export const prepareStickerPackMessage = async (
 	const {
 		cover,
 		stickers = [],
+		packId,
+		concurrency: concurrencyOption,
 		name = '📦 @teamolduser/baileys Sticker Pack System',
 		publisher = '🌟 @teamolduser/baileys Publisher System',
 		description = '🏷️ @teamolduser/baileys Description System'
 	} = message
-
-	if (stickers.length > 60) {
-		throw new Boom('Sticker pack exceeds the maximum limit of 60 stickers', { statusCode: 400 })
-	}
 
 	if (stickers.length === 0) {
 		throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
@@ -183,7 +165,7 @@ export const prepareStickerPackMessage = async (
 	if (stickers.length && options.mediaCache) {
 		const urls: string[] = []
 		for (const s of stickers) {
-			const data = s.data as any
+			const data = (s.data ?? s.sticker) as any
 			if (typeof data === 'object' && data?.url) urls.push(data.url)
 		}
 
@@ -202,41 +184,30 @@ export const prepareStickerPackMessage = async (
 	const hasSharp = 'sharp' in lib && !!(lib as any).sharp?.default
 	const hasImage = 'image' in lib && !!(lib as any).image?.Transformer
 	const hasJimp = 'jimp' in lib && !!(lib as any).jimp?.Jimp
-	if (!hasSharp && !hasImage) {
-		throw new Boom('No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP.')
-	}
-
-	const stickerPackIdValue = generateMessageIDV2()
+	const stickerPackIdValue = packId || generateMessageIDV2()
 	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
 	const stickerMetadata: any[] = new Array(stickers.length)
 
-	for (let i = 0; i < stickers.length; i += STICKER_PACK_CONCURRENCY_LIMIT) {
-		const chunkEnd = Math.min(i + STICKER_PACK_CONCURRENCY_LIMIT, stickers.length)
+	const concurrency = resolveStickerPackConcurrency(concurrencyOption)
+	for (let i = 0; i < stickers.length; i += concurrency) {
+		const chunkEnd = Math.min(i + concurrency, stickers.length)
 		const promises: Promise<void>[] = []
 		for (let j = i; j < chunkEnd; j++) {
 			promises.push(
 				(async (index: number) => {
 					const sticker = stickers[index]!
-					const { stream } = await getStream(sticker.data)
-					const buffer = await toBuffer(stream)
-					let webpBuffer: Buffer
-					let isAnimated = false
-					if (isWebPBuffer(buffer)) {
-						webpBuffer = buffer
-						isAnimated = isAnimatedWebP(buffer)
-					} else if (hasSharp) {
-						webpBuffer = await (lib as any).sharp
-							.default(buffer)
-							.resize(512, 512, { fit: 'inside' })
-							.webp({ quality: 80 })
-							.toBuffer()
-					} else {
-						webpBuffer = await new (lib as any).image.Transformer(buffer).resize(512, 512).webp(80)
+					const raw = sticker.data ?? sticker.sticker
+					if (!raw) {
+						throw new Boom(`Sticker at index ${index} is missing media - provide either 'data' or 'sticker'`, {
+							statusCode: 400
+						})
 					}
 
-					if (webpBuffer.length > 1024 * 1024) {
-						throw new Boom(`Sticker at index ${index} exceeds the 1MB size limit`, { statusCode: 400 })
-					}
+					const { stream } = await getStream(raw)
+					const buffer = await toBuffer(stream)
+					// WebP untouched; png/jpg/gif/video → WebP automatically (original size + quality)
+					const webpBuffer = await toStickerWebp(buffer)
+					const isAnimated = isAnimatedWebP(webpBuffer)
 
 					const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')
 					const fileName = `${hash}.webp`
@@ -258,19 +229,7 @@ export const prepareStickerPackMessage = async (
 	const trayIconFileName = `${stickerPackIdValue}.webp`
 	const { stream: coverStream } = await getStream(cover)
 	const coverBuffer = await toBuffer(coverStream)
-	let coverWebpBuffer: Buffer
-	if (isWebPBuffer(coverBuffer)) {
-		coverWebpBuffer = coverBuffer
-	} else if (hasSharp) {
-		coverWebpBuffer = await (lib as any).sharp
-			.default(coverBuffer)
-			.resize(512, 512, { fit: 'inside' })
-			.webp({ quality: 80 })
-			.toBuffer()
-	} else {
-		coverWebpBuffer = await new (lib as any).image.Transformer(coverBuffer).resize(512, 512).webp(80)
-	}
-
+	const coverWebpBuffer = await toStickerWebp(coverBuffer)
 	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 }]
 
 	const zipBuffer: Buffer = await new Promise((resolve, reject) => {

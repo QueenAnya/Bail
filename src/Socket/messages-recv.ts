@@ -25,7 +25,13 @@ import type {
 	WAMessageKey,
 	WAPatchName
 } from '../Types'
-import { ReachoutTimelockEnforcementType, WAMessageStatus, WAMessageStubType } from '../Types'
+import {
+	MexUpdatesOperations,
+	ReachoutTimelockEnforcementType,
+	WAMessageStatus,
+	WAMessageStubType,
+	XWAPathsMexUpdates
+} from '../Types'
 import {
 	ACCOUNT_RESTRICTED_TEXT,
 	aesDecryptCTR,
@@ -278,6 +284,12 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					handleMessageCappingNotification(data)
 					break
 
+				case MexUpdatesOperations.GROUP_MEMBER_LINK:
+				case MexUpdatesOperations.GROUP_LIMIT_SHARING:
+				case MexUpdatesOperations.OWNER_COMMUNITY:
+					handleGroupMexNotification(opName, node.attrs.from!, data)
+					break
+
 				// newsletter ops still use the legacy <mex> child structure
 				case 'NotificationNewsletterUpdate':
 				case 'NotificationLinkedProfilesUpdates':
@@ -307,6 +319,58 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 
 		await handleLegacyMexNewsletterNotification(node)
+	}
+
+	/** Group / community MEX notifications (ported from innovatorssoft): link mode, limit sharing, owner change. */
+	const handleGroupMexNotification = (opName: string, id: string, data: MexGqlData) => {
+		const dataRecord = data as Record<string, any>
+		switch (opName) {
+			case MexUpdatesOperations.GROUP_MEMBER_LINK: {
+				const change = dataRecord[XWAPathsMexUpdates.GROUP_SHARING_CHANGE]
+				if (change) {
+					ev.emit('groups.update', [
+						{
+							id,
+							author: change.updated_by?.id,
+							member_link_mode: change.properties?.member_link_mode
+						}
+					])
+				}
+
+				break
+			}
+
+			case MexUpdatesOperations.GROUP_LIMIT_SHARING: {
+				const change = dataRecord[XWAPathsMexUpdates.GROUP_SHARING_CHANGE]
+				if (change) {
+					ev.emit('limit-sharing.update', {
+						id,
+						author: change.updated_by?.pn || change.updated_by?.id,
+						action: change.properties?.limit_sharing?.limit_sharing_enabled ? 'on' : 'off',
+						trigger: change.properties?.limit_sharing?.limit_sharing_trigger,
+						update_time: change.update_time
+					})
+				}
+
+				break
+			}
+
+			case MexUpdatesOperations.OWNER_COMMUNITY: {
+				const change = dataRecord[XWAPathsMexUpdates.COMMUNITY_OWNER_CHANGE]
+				if (change) {
+					const roleUpdate = change.role_updates?.[0]
+					ev.emit('community-owner.update', {
+						id,
+						author: change.updated_by?.pn || change.updated_by?.id,
+						user: roleUpdate?.user?.pn || roleUpdate?.user?.jid,
+						new_role: roleUpdate?.new_role,
+						update_time: change.update_time
+					})
+				}
+
+				break
+			}
+		}
 	}
 
 	const handleReachoutTimelockNotification = (data: MexGqlData) => {
@@ -808,6 +872,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			]
 		})
 	}
+
+	/** Unmute yourself during a call (same as `muteCall(..., false)`). */
+	const unmuteCall = async (callId: string, callCreator: string, to: string) => muteCall(callId, callCreator, to, false)
 
 	const sendHeartbeat = async (callId: string, callCreator: string) => {
 		await sendNode({
@@ -2631,6 +2698,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		sendTransport,
 		sendCallDuration,
 		muteCall,
+		unmuteCall,
 		sendHeartbeat,
 		sendEncRekey,
 		sendVideoState,

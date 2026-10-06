@@ -1290,34 +1290,41 @@ await sock.sendMessage(
 ```
 
 ### Sticker Pack Message
-```ts 
-// I don't know why the sticker doesn't appear
-await sock.sendMessage(
-    jid,
-    {
-        stickerPack: {
-            name: 'Hiii', 
-            publisher: 'By @teamolduser/baileys', 
-            description: 'Hello', 
-            cover: Buffer, // Image buffer
-            stickers: [{
-                sticker: { url: 'https://example.com/1234kjd.webp' }, 
-                emojis: ['❤'], // optional
-                accessibilityLabel: '', // optional
-                isLottie: Boolean, // optional
-                isAnimated: Boolean // optional
-            }, 
-            {
-                sticker: Buffer, 
-                emojis: ['❤'], // optional
-                accessibilityLabel: '', // optional
-                isLottie: Boolean, // optional
-                isAnimated: Boolean // optional
-            }]
-        }
-    }
+Sticker media is used at its **original size**: WebP is sent untouched, PNG/JPG/GIF/video are converted to WebP at their
+original size and quality (needs `sharp` or `@napi-rs/image`, `ffmpeg` for video). There is no sticker-count or size limit.
+Put the media in `data` (`sticker` works as an alias). `packId` and `concurrency` (stickers converted at once, default 15)
+are optional.
+
+```ts
+const cover = fs.readFileSync('./cover.png')
+const stickers = [
+    { data: { url: './a.webp' }, emojis: ['❤'] },   // emojis / accessibilityLabel are optional
+    { data: fs.readFileSync('./b.png') },            // converted to WebP automatically
+    { data: { url: 'https://example.com/c.gif' } }
+]
+
+// 1) nested style
+await sock.sendMessage(jid, {
+    stickerPack: { name: 'Hiii', publisher: 'By @teamolduser/baileys', description: 'Hello', cover, stickers }
+    // optional: concurrency: 10 (stickers converted at once, default 15), packId: 'my-pack-001'
+})
+
+// 2) flat style (same builder as 1)
+await sock.sendMessage(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', description: 'Hello', cover, stickers })
+
+// 3) prepare + relay (alternate builder)
+import { prepareStickerPackMessage } from '@teamolduser/baileys'
+const stickerPackMessage = await prepareStickerPackMessage(
+    { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers },
+    { upload: sock.waUploadToServer }
 )
+await sock.relayMessage(jid, { stickerPackMessage }, {})
+
+// 4) the same as 3) in one call
+await sock.sendStickerPack(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers })
 ```
+
+Try them in `example.js`: `!stickerpack`, `!stickerpackflat`, `!stickerpackprep`, `!stickerpack2`.
 
 ### Share Phone Number Message
 ```ts

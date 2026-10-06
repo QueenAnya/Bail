@@ -1,3 +1,4 @@
+import sharp from 'sharp'
 import {
 	buildStickerPackProto,
 	generateStickerPackId,
@@ -68,14 +69,20 @@ describe('prepareStickerPackMessage validation', () => {
 		)
 	})
 
-	it('rejects a pack with more than 60 stickers', async () => {
+	it('accepts a pack with more than 60 stickers (no count limit)', async () => {
+		const png = await sharp({
+			create: { width: 16, height: 16, channels: 3, background: { r: 0, g: 128, b: 255 } }
+		})
+			.png()
+			.toBuffer()
 		const input: StickerPackInput = {
-			cover: Buffer.from('cover'),
-			stickers: Array.from({ length: 61 }, () => ({ data: Buffer.from('x') }))
+			cover: png,
+			stickers: Array.from({ length: 61 }, () => ({ data: png })),
+			concurrency: 10
 		}
 
-		await expect(prepareStickerPackMessage(input, baseOptions)).rejects.toThrow(
-			'Sticker pack exceeds the maximum limit of 60 stickers'
-		)
-	})
+		const result = await prepareStickerPackMessage(input, baseOptions)
+
+		expect(result.stickers).toHaveLength(61)
+	}, 30000)
 })

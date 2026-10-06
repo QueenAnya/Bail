@@ -6,8 +6,12 @@
  * These are imported back into generateWAMessageContent in messages.ts.
  */
 import { Boom } from '@hapi/boom'
+import { spawn } from 'child_process'
+import { randomBytes } from 'crypto'
 import { zipSync } from 'fflate'
 import { promises as fs } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { gunzipSync, gzipSync } from 'zlib'
 import { proto } from '../../WAProto/index.js'
 import type { MessageContentGenerationOptions } from '../Types'
@@ -188,17 +192,159 @@ export function isLottieBuffer(buffer: Buffer): boolean {
  * - thumbnail-sticker-pack media type for thumbnail
  */
 /** Max concurrent stickers processed at once — avoids CPU/memory spikes on large packs */
-const STICKER_PACK_CONCURRENCY_LIMIT = 15
-/** WhatsApp's sticker pack limit */
-const MAX_STICKERS_PER_PACK = 60
-/** Per-sticker WebP size limit enforced by WhatsApp clients */
-const MAX_STICKER_SIZE_BYTES = 1024 * 1024
+const DEFAULT_STICKER_PACK_CONCURRENCY = 15
+
+/**
+ * How many stickers are converted at the same time. Set `concurrency` on the sticker pack to change it
+ * (lower = less RAM/CPU, higher = potentially faster); invalid values fall back to the default (15).
+ * Decimals are rounded down, anything below 1 becomes 1.
+ */
+export const resolveStickerPackConcurrency = (value?: number | null): number => {
+	if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_STICKER_PACK_CONCURRENCY
+	return Math.max(1, Math.floor(value))
+}
+
+/**
+ * Convert any image/GIF to a WebP sticker at its ORIGINAL size and quality: no 512 cap, no upscaling,
+ * WebP quality 100. Quality is NEVER lowered automatically and there is no per-sticker size cap.
+ * `square: true` pads to a transparent square whose side is the image's longest side (aspect kept;
+ * WhatsApp's pack viewer squeezes non-square stickers).
+ * Animated inputs (GIF/APNG/animated WebP) stay animated.
+ */
+export const sharpToStickerWebp = async (
+	sharpDefault: any,
+	buffer: Buffer,
+	opts: { square?: boolean } = {}
+): Promise<Buffer> => {
+	const render = (pad: boolean, side: number): Promise<Buffer> => {
+		let img = sharpDefault(buffer, { animated: true })
+		if (pad) img = img.resize(side, side, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+		return img.webp({ quality: 100 }).toBuffer()
+	}
+
+	if (!opts.square) {
+		return render(false, 0)
+	}
+
+	const meta = await sharpDefault(buffer, { animated: true }).metadata()
+	const w: number = meta.width ?? 512
+	const h: number = meta.pageHeight ?? meta.height ?? w
+	const side = Math.max(w, h)
+	// padding an animated image isn't supported by every sharp build -> fall back to unpadded
+	return render(true, side).catch(() => render(false, side))
+}
+
+const isVideoBuffer = (b: Buffer) =>
+	(b.length > 12 && b.toString('latin1', 4, 8) === 'ftyp') || // mp4 / mov / 3gp
+	(b.length > 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) // webm / mkv
+
+/** ffmpeg binary: bundled `ffmpeg-static` if its binary exists, else the system `ffmpeg`. */
+const getFfmpegPath = async (): Promise<string> => {
+	try {
+		const mod: any = await import('ffmpeg-static')
+		const path: unknown = mod?.default ?? mod
+		if (typeof path === 'string') {
+			await fs.access(path)
+			return path
+		}
+	} catch {
+		// not installed / binary missing → system ffmpeg
+	}
+
+	return 'ffmpeg'
+}
+
+/** Video -> animated WebP via ffmpeg: original resolution and fps, quality 100 (never lowered automatically). */
+const videoToStickerWebp = async (buffer: Buffer, square: boolean): Promise<Buffer> => {
+	const ffmpegPath = await getFfmpegPath()
+	const id = randomBytes(6).toString('hex')
+	const input = join(tmpdir(), `stk-in-${id}`)
+	const output = join(tmpdir(), `stk-out-${id}.webp`)
+	await fs.writeFile(input, buffer)
+	const filters = [
+		'format=yuva420p',
+		...(square ? ['pad=max(iw\\,ih):max(iw\\,ih):(ow-iw)/2:(oh-ih)/2:color=black@0'] : [])
+	].join(',')
+	try {
+		await new Promise<void>((resolve, reject) => {
+			const ff = spawn(ffmpegPath, [
+				'-y',
+				'-i',
+				input,
+				'-t',
+				'10',
+				'-an',
+				'-vsync',
+				'0',
+				'-vf',
+				filters,
+				'-vcodec',
+				'libwebp',
+				'-lossless',
+				'0',
+				'-quality',
+				'100',
+				'-compression_level',
+				'6',
+				'-loop',
+				'0',
+				output
+			])
+			let err = ''
+			ff.stderr.on('data', d => (err += d))
+			ff.on('error', () =>
+				reject(
+					new Boom('ffmpeg not found - install ffmpeg or the ffmpeg-static package to convert video stickers', {
+						statusCode: 400
+					})
+				)
+			)
+			ff.on('close', code => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited with code ${code}\n${err}`))))
+		})
+		return await fs.readFile(output)
+	} finally {
+		await fs.unlink(input).catch(() => {})
+		await fs.unlink(output).catch(() => {})
+	}
+}
+
+/**
+ * Anything → WebP sticker, itsliaaa-style auto conversion with innovatorssoft-style fidelity:
+ *   - already WebP            → bytes untouched (original size, quality, EXIF, animation)
+ *   - PNG / JPG / GIF / ...   → WebP at original size, quality 100 (never lowered automatically)
+ *   - video (mp4/webm/mkv...) → animated WebP via ffmpeg, original size
+ * Never resized or padded unless the caller passes `square: true` (opt-in, not used by packs).
+ */
+export const toStickerWebp = async (buffer: Buffer, opts: { square?: boolean } = {}): Promise<Buffer> => {
+	if (isWebPBuffer(buffer)) {
+		return buffer
+	}
+
+	if (isVideoBuffer(buffer)) {
+		return videoToStickerWebp(buffer, !!opts.square)
+	}
+
+	const lib = await getImageProcessingLibrary()
+	if ('sharp' in lib && lib.sharp) {
+		return sharpToStickerWebp((lib.sharp as any).default, buffer, opts)
+	}
+
+	if ('image' in lib && lib.image) {
+		return new (lib.image as any).Transformer(buffer).webp(100)
+	}
+
+	throw new Boom(
+		'No image processing library (sharp or @napi-rs/image) available for converting to WebP. Either install one of them or provide stickers in WebP format.',
+		{ statusCode: 400 }
+	)
+}
 
 export async function buildStickerPackMessage(
 	stickerPack: StickerPack,
 	options: MessageContentGenerationOptions
 ): Promise<proto.Message.IStickerPackMessage> {
 	const { stickers, cover, name, publisher, packId, description } = stickerPack
+	const concurrency = resolveStickerPackConcurrency(stickerPack.concurrency)
 	const stickerPackId = packId || generateMessageIDV2()
 	const stickerData: Record<string, any> = {}
 
@@ -208,13 +354,9 @@ export async function buildStickerPackMessage(
 		throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
 	}
 
-	if (validStickers.length > MAX_STICKERS_PER_PACK) {
-		throw new Boom(`Sticker pack exceeds the maximum limit of ${MAX_STICKERS_PER_PACK} stickers`, { statusCode: 400 })
-	}
-
 	const stickerMetadata: any[] = new Array(validStickers.length)
-	for (let i = 0; i < validStickers.length; i += STICKER_PACK_CONCURRENCY_LIMIT) {
-		const chunkEnd = Math.min(i + STICKER_PACK_CONCURRENCY_LIMIT, validStickers.length)
+	for (let i = 0; i < validStickers.length; i += concurrency) {
+		const chunkEnd = Math.min(i + concurrency, validStickers.length)
 		const chunkResults = await Promise.all(
 			validStickers.slice(i, chunkEnd).map(async (s: any, offset: number) => {
 				const index = i + offset
@@ -236,25 +378,9 @@ export async function buildStickerPackMessage(
 					if (buffer[0] === 0x7b) {
 						finalBuffer = gzipSync(buffer)
 					}
-				} else if (isWebPBuffer(buffer)) {
-					finalBuffer = buffer // preserve WebP as-is (keeps EXIF + animation)
 				} else {
-					// Non-WebP sticker — needs sharp/@napi-rs/image to convert (jimp can't output WebP)
-					const lib = await getImageProcessingLibrary()
-					if (lib?.sharp) {
-						finalBuffer = await lib.sharp.default(buffer).webp().toBuffer()
-					} else if (lib?.image) {
-						finalBuffer = await new lib.image.Transformer(buffer).webp()
-					} else {
-						throw new Boom(
-							`Sticker ${index + 1}: No image processing library (sharp or @napi-rs/image) available for converting to WebP. Either install one of them or provide stickers in WebP format.`,
-							{ statusCode: 400 }
-						)
-					}
-				}
-
-				if (finalBuffer.length > MAX_STICKER_SIZE_BYTES) {
-					throw new Boom(`Sticker at index ${index} exceeds the 1MB size limit`, { statusCode: 400 })
+					// WebP stays untouched; png/jpg/gif/video → WebP automatically (original size + quality)
+					finalBuffer = await toStickerWebp(buffer)
 				}
 
 				const isAnimated = detectedLottie ? true : isAnimatedWebP(finalBuffer)
@@ -289,22 +415,7 @@ export async function buildStickerPackMessage(
 	const coverBuffer = (await toBuffer(coverStream)) as Buffer
 
 	// Cover as WebP in ZIP (tray icon)
-	let coverWebP: Buffer
-	if (isWebPBuffer(coverBuffer)) {
-		coverWebP = coverBuffer
-	} else {
-		const lib = await getImageProcessingLibrary()
-		if (lib?.sharp) {
-			coverWebP = await lib.sharp.default(coverBuffer).webp().toBuffer()
-		} else if (lib?.image) {
-			coverWebP = await new lib.image.Transformer(coverBuffer).webp()
-		} else {
-			throw new Boom(
-				'No image processing library (sharp or @napi-rs/image) available for converting cover to WebP. Either install one of them or provide cover in WebP format.',
-				{ statusCode: 400 }
-			)
-		}
-	}
+	const coverWebP = await toStickerWebp(coverBuffer)
 
 	const trayIconFileName = `${stickerPackId}.webp`
 	stickerData[trayIconFileName] = [new Uint8Array(coverWebP), { level: 0 as 0 }]

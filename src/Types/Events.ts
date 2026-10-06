@@ -92,6 +92,22 @@ export type BaileysEventMap = {
 
 	'groups.upsert': GroupMetadata[]
 	'groups.update': Partial<GroupMetadata>[]
+	/** "Limit sharing" (forwarding limit) was switched on/off in a group */
+	'limit-sharing.update': {
+		id: string
+		author: string
+		action: 'on' | 'off'
+		trigger?: proto.LimitSharing.TriggerType | null
+		update_time?: number | null
+	}
+	/** A community owner / super-admin role change */
+	'community-owner.update': {
+		id: string
+		author: string
+		user: string
+		new_role: string
+		update_time?: number | null
+	}
 	/** apply an action to participants in a group */
 	'group-participants.update': {
 		id: string

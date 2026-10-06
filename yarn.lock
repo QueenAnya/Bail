@@ -4139,7 +4139,7 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
-"libsignal@npm:@teamolduser/libsignal@*":
+"libsignal@npm:@teamolduser/libsignal@1.0.1":
   version "1.0.1"
   resolved "https://registry.npmjs.org/@teamolduser/libsignal/-/libsignal-1.0.1.tgz"
   integrity sha512-eZUBWUP/Enr5l/0ncO/PwcFRLU9Sxb0zYNcZT3tgUVcOREabslqI5R2NXAoWApBEKj5afpxGxHCkgb0ihFeoCg==

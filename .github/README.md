@@ -1147,6 +1147,8 @@ sock.sendMessage(jid, {
 
 > [!IMPORTANT]
 > If `sharp` or `@napi-rs/image` is not installed, the `cover` and `stickers` must already be in WebP format.
+> WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at their original size and quality (details, `concurrency`
+> and the other builders: [Sticker Packs](#4-sticker-packs)).
 
 ```javascript
 sock.sendMessage(jid, {
@@ -1168,7 +1170,9 @@ sock.sendMessage(jid, {
    }],
    name: '📦 @teamolduser/baileys Sticker Pack System',
    publisher: '🌟 @teamolduser/baileys Publisher System',
-   description: '🏷️ @teamolduser/baileys Description System'
+   description: '🏷️ @teamolduser/baileys Description System',
+   // packId: 'my-pack-001', // optional (random if omitted)
+   // concurrency: 10 // optional: stickers converted at once (default 15)
 }, {
    quoted: message
 })
@@ -2541,8 +2545,39 @@ await sock.sendMessage(jid, {
 })
 ```
 
-Limits enforced: max 60 stickers/pack, 1MB/sticker, processed in
-batches of 15 concurrently. A random `packId` is generated automatically
+**Media handling (both builders, and `convertToWebP`)** - sticker media is taken at its **original size**
+(the innovatorssoft way) and non-WebP media is converted to WebP automatically (the itsliaaa way):
+
+| Input | Result |
+| --- | --- |
+| WebP (static or animated) | used as-is - bytes untouched (size, quality, EXIF, animation kept) |
+| PNG / JPG / GIF / ... | converted to WebP at the **original size** (never resized to 512) and quality 100 - quality is **never lowered automatically**. Animated GIFs stay animated |
+| Video (mp4 / webm / mkv) | animated WebP via `ffmpeg` (`ffmpeg-static` or a system `ffmpeg`), original size and fps, quality 100, first 10s |
+| Lottie (`.was` / raw Lottie JSON) | kept as Lottie (`sendMessage({ stickerPack })` builder only) |
+
+The converter needs `sharp` or `@napi-rs/image` for images; if neither is installed you get a clear error
+(or pass WebP directly). Sticker media goes in `data`; `sticker` works as an alias (the field name used by
+`@innovatorssoft/baileys`), and `packId` is honoured by both builders.
+
+There is **no sticker-count limit and no per-sticker or total size cap** - packs with more than 60 stickers and
+stickers/packs of 10MB and more are sent as they are (quality is never lowered). Stickers are processed in
+batches of 15 concurrently by default; at least 1 sticker and a cover are still required.
+
+**Memory / speed knob:** set `concurrency` to change how many stickers are converted at the same time -
+lower it on low-RAM hosts (phone / Termux, big GIF or video packs), raise it on a strong server. Works the same in
+`sock.sendMessage(jid, { stickerPack })`, the flat style, `prepareStickerPackMessage` and `sock.sendStickerPack`:
+
+```ts
+await sock.sendMessage(jid, {
+	stickerPack: { name: 'My pack', publisher: 'Me', cover, stickers, concurrency: 10 } // default 15
+})
+await sock.sendStickerPack(jid, { cover, stickers, concurrency: 5 })
+```
+
+Rough peak RAM while converting is `concurrency x (width x height x 4 bytes x frames x ~2)` per batch, so `10` uses
+about two thirds of what `15` does; already-WebP stickers are not converted and barely count. Invalid values
+(0, negative, NaN, text) fall back to 15, decimals are rounded down. It only affects speed and memory - never the
+number of stickers in the pack or their order. A random `packId` is generated automatically
 if you don't supply one — pass `packId: generateStickerPackId()` yourself
 if you need to know it ahead of time (e.g. to reference the pack elsewhere
 before sending).
@@ -2581,6 +2616,42 @@ await sock.sendStickerPack(jid, {
 	publisher: '🌟 @teamolduser/baileys Publisher System'
 })
 ```
+
+#### All four ways at a glance
+
+Same media rules everywhere (original size, WebP untouched, non-WebP converted, no size/count limit), same optional
+`packId` and `concurrency` (you can leave both out). Sticker media goes in `data` (`sticker` is accepted as an alias).
+
+```ts
+const stickers = [
+	{ data: fs.readFileSync('./a.webp'), emojis: ['😀'] },
+	{ data: fs.readFileSync('./b.png') },                      // converted to WebP automatically
+	{ data: { url: 'https://example.com/c.gif' } }
+]
+const cover = fs.readFileSync('./cover.png')
+const meta = { name: 'My pack', publisher: 'Me', description: 'Hello' }
+// optional extras for `meta`: packId: 'my-pack-001', concurrency: 10 (stickers converted at once, default 15)
+
+// 1) nested style (also supports Lottie stickers)
+await sock.sendMessage(jid, { stickerPack: { ...meta, cover, stickers } })
+
+// 2) flat style - same builder as 1)
+await sock.sendMessage(jid, { ...meta, cover, stickers })
+
+// 3) prepare + relay - alternate builder, you get the message object first
+import { prepareStickerPackMessage } from '@teamolduser/baileys'
+const stickerPackMessage = await prepareStickerPackMessage(
+	{ ...meta, cover, stickers },
+	{ upload: sock.waUploadToServer, mediaUploadTimeoutMs: 120_000 } // `logger` and `mediaCache` are optional too
+)
+await sock.relayMessage(jid, { stickerPackMessage }, {})
+
+// 4) the same as 3) in one call
+await sock.sendStickerPack(jid, { ...meta, cover, stickers })
+```
+
+Runnable versions of all four: `assets/examples/example.js` (`!stickerpack`, `!stickerpackflat`, `!stickerpackprep`,
+`!stickerpack2`).
 
 ### Standalone WebP converter
 
@@ -2851,8 +2922,15 @@ import { useCacheManagerAuthState } from '@teamolduser/baileys' // Redis/Memcach
 import { useMongoFileAuthState } from '@teamolduser/baileys'
 import { useSingleFileAuthState } from '@teamolduser/baileys'
 
-const { state, saveCreds } = await useSqliteAuthState({ database: './auth.db' })
+// `dbPath` = file path (created if missing). To reuse your own better-sqlite3 handle pass `{ database: db }` instead.
+const { state, saveCreds } = await useSqliteAuthState({ dbPath: './auth.db' })
 ```
+
+> **Name aliases:** `useMongoAuthState` is the same function as `useMongoFileAuthState`, and
+> `makeCacheManagerAuthState` the same as `useCacheManagerAuthState` (the name used by
+> `@innovatorssoft/baileys`), so code written against either fork keeps working.
+> `useSqliteAuthState` needs `better-sqlite3` (a regular dependency of this package); if it is missing the
+> error tells you to run `yarn add better-sqlite3`.
 
 > **Legacy variant:** `useSingleFileAuthStateLegacy` is also available —
 > a synchronous, non-cached, non-debounced implementation kept only for
@@ -4536,6 +4614,132 @@ innovatorssoft form `sendRichHtml(jid, { id, title, html, source }, quoted)`. Th
 primitive typename now matches `@innovatorssoft/baileys`; override with `typename`.
 `sock.captureUnifiedResponse` is an alias of `sock.extractUnifiedResponse`. `viewOnceV2` /
 `viewOnceV2Extension` now flag the inner media `viewOnce: true`.
+
+`renderLatexToPng` (used by `sendLatexImage`, `sendLatexInlineImage`, `sendRichMessage`) no longer needs
+`sharp`: it tries `sharp`, then `@napi-rs/image`, then the online codecogs renderer, and throws one clear
+error listing what was tried. Lottie stickers (`isLottie: true` with a `.was` zip) are sent untouched instead of
+being converted to WebP. Group statuses now carry `<meta is_group_status="true"/>` (same as `@itsliaaa/baileys`),
+and `secureMetaServiceLabel` only adds the `<biz>` node (the invented `meta_secure_service` node was removed).
+
+### 37. Compatibility Ports — `@itsliaaa/baileys` & `@innovatorssoft/baileys`
+
+Small gaps that were still open after the big merges. Everything below is exported from the package root.
+
+#### Carousel card header check (from `@itsliaaa/baileys`)
+
+Every card in `cards` needs real media — `image`, `video`, `document` or `product`. A card without one used to be
+sent anyway and rejected by WhatsApp; now `sendMessage` throws a `Boom` (`400`, `Invalid media type for carousel card`).
+
+```ts
+await sock.sendMessage(jid, {
+  cards: [
+    { image: { url: 'https://example.com/a.jpg' }, title: 'Card 1', caption: 'Hello', buttons: [/* ... */] },
+    { video: { url: 'https://example.com/b.mp4' }, title: 'Card 2', caption: 'World' }
+  ]
+})
+
+import { hasValidCarouselHeader } from '@teamolduser/baileys' // (proto.IMessage) => boolean
+```
+
+#### Group / community notification events (from `@innovatorssoft/baileys`)
+
+| Event | Payload | Fires when |
+| --- | --- | --- |
+| `limit-sharing.update` | `{ id, author, action: 'on' \| 'off', trigger?, update_time? }` | "Limit sharing" is toggled — from the MEX notification *and* from the `LIMIT_SHARING` protocol message |
+| `community-owner.update` | `{ id, author, user, new_role, update_time? }` | A community owner / super-admin role changes |
+| `groups.update` | `[{ id, author, member_link_mode }]` | Who may share the group link changes (`member_link_mode`) |
+
+```ts
+sock.ev.on('limit-sharing.update', ({ id, author, action }) => console.log(id, 'limit sharing', action, 'by', author))
+sock.ev.on('community-owner.update', ({ id, user, new_role }) => console.log(user, 'is now', new_role, 'in', id))
+sock.ev.on('groups.update', updates => {
+  for (const u of updates) if (u.member_link_mode) console.log(u.id, 'link mode ->', u.member_link_mode)
+})
+```
+
+#### `sock.unmuteCall`
+
+```ts
+await sock.muteCall(callId, callCreator, to, true)  // mute
+await sock.unmuteCall(callId, callCreator, to)      // = muteCall(..., false)
+// for calls placed with sock.initiateCall() you can also just use call.mute(true) / call.unmute()
+```
+
+#### Presence helpers (from `@innovatorssoft/baileys`)
+
+`PresenceTracker` is the same class as `PresenceMonitor`, and `createPresenceTracker` the same function as
+`monitorPresence` (see section 33). Plus the small helpers:
+
+```ts
+import {
+  createPresenceTracker, PresenceTracker,
+  isOnlinePresence, isOfflinePresence,
+  setDefaultTimezone, getDefaultTimezone, formatTime, formatDateTime
+} from '@teamolduser/baileys'
+
+setDefaultTimezone('+05:00')            // '+05:00', '+5', 5, 'Asia/Karachi' or 'UTC' (default: 'UTC')
+formatTime(Date.now())                  // 'HH:MM:SS' in the default timezone
+formatDateTime(new Date(), 'UTC')       // 'YYYY-MM-DD HH:MM:SS' in an explicit zone
+
+isOnlinePresence('composing')           // true  (available | composing | recording | paused)
+isOfflinePresence('unavailable')        // true
+
+const tracker = createPresenceTracker(sock, ['1234567890@s.whatsapp.net'])
+```
+
+> The global default is `'UTC'` here (innovatorssoft hard-codes `+05:00`) — call `setDefaultTimezone('+05:00')`
+> once if you relied on that. A monitor's own `timezone` option still wins over the global default.
+
+#### Voice calling compat layer — `CallManager`, `CallSession`, `VoipResourceManager`, `ensureWasmAssets`
+
+These sit **on top of** the same-session engine from section 30 (`sock.initiateCall()`); they do not start a second
+engine and never touch call stanzas.
+
+```ts
+import {
+  CallManager, CallSession, CallDirection, CallMediaType,
+  VoipResourceManager, resolvePthreadPoolSize, ensureWasmAssets
+} from '@teamolduser/baileys'
+
+// Concurrency limit with an optional waiting queue (the engine itself has no limit by default)
+const calls = new CallManager({ sock, maxConcurrentCalls: 2, onLimit: 'queue' }) // or 'reject' (default) -> throws at the limit
+
+calls.on('call.queued', ({ jid, position }) => console.log(jid, 'is waiting at', position))
+calls.on('call.started', call => console.log('started', call.callId))
+calls.on('call.ended', ({ callId, reason }) => console.log('ended', callId, reason))
+
+const call = await calls.startCall('12345678901', { audioSource: './hello.mp3' }) // resolves once the call really starts
+calls.activeCallCount; calls.waitingCallCount
+calls.getActiveCalls(); calls.getWaitingCalls(); calls.getMemoryStats()
+calls.endCall(call.callId); calls.endAllCalls(); calls.cleanup()
+
+// ActiveCall == CallSession; handy getters: call.direction (CallDirection), call.isIncoming, call.isOutgoing,
+// call.canAccept, call.mediaType (CallMediaType.Audio | CallMediaType.Video)
+
+// WASM assets: verify, or copy into a writable folder and pass that as `resourcesPath`
+ensureWasmAssets()              // -> '<package>/assets/wasm' (or null if something is missing)
+ensureWasmAssets('./voip-wasm') // copies whatsapp.wasm, loader.js, worker-modules.js there if absent
+
+VoipResourceManager.getMemoryStats()    // process memory + worker/relay counters + cached WASM modules
+resolvePthreadPoolSize('auto')          // 2–6 depending on CPU cores; a number is clamped to 2–16; default 4
+```
+
+> **Answering incoming calls:** `sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false })` (options as the
+> 2nd argument, innovatorssoft style) and `session.accept({ ... })` do the same for a ringing `call.incoming` session.
+> `sock.acceptCall(callId, callFrom, isVideo)` still sends the plain signaling accept for anything else.
+> `sock.getVoipMemoryStats()` also returns `calls.waitingCalls` (always `0` - this engine does not queue incoming calls)
+> and `calls.totalManagedCalls`.
+
+> `resolvePthreadPoolSize` is a helper only: this fork's engine keeps its fixed 20-thread pthread pool per call.
+> `VoipResourceManager`'s worker/relay counters are not auto-registered by the engine — `CallManager.getMemoryStats()`
+> fills them from the number of open calls (one isolated engine per call), like `sock.getVoipMemoryStats()` does.
+
+#### `PHONENUMBER_MCC`
+
+```ts
+import { PHONENUMBER_MCC } from '@teamolduser/baileys'
+PHONENUMBER_MCC['92']   // 410  (dialing prefix -> mobile country code; NANP territories use keys like '1-684')
+```
 
 # About This Fork (@teamolduser/baileys)
 

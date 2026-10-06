@@ -9,7 +9,8 @@ import {
 	buildPaymentInviteMessage,
 	buildPaymentMessage,
 	buildStickerPackMessage,
-	isWebPBuffer
+	isWebPBuffer,
+	sharpToStickerWebp
 } from '../addons/from-messages'
 import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../addons/link-preview-extras'
 import {
@@ -202,17 +203,23 @@ export const prepareWAMessageMedia = async (
 	if (mediaType === 'sticker') {
 		const { stream } = await getStream(uploadData.media)
 		const buffer = await toBuffer(stream)
-		if (isWebPBuffer(buffer) || (uploadData as any).isLottie || uploadData.mimetype === 'application/was') {
-			uploadData.media = buffer // already webp / lottie (.was) — keep as-is, no conversion
+		// a Lottie sticker (.was) is a zip archive — it must be sent untouched, never converted to WebP
+		const isZipArchive =
+			buffer.length > 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04
+		if (isWebPBuffer(buffer)) {
+			uploadData.media = buffer // already webp, keep as-is (preserves EXIF + animation)
+		} else if (isZipArchive || uploadData.mimetype === 'application/was') {
+			uploadData.media = buffer
+			uploadData.mimetype = 'application/was'
 		} else {
 			const lib = await getImageProcessingLibrary()
 			if (lib?.sharp) {
-				uploadData.media = await lib.sharp.default(buffer).webp().toBuffer()
+				uploadData.media = await sharpToStickerWebp(lib.sharp.default, buffer) // original size, quality 100 (never lowered), GIF stays animated
 			} else if (lib?.image) {
 				uploadData.media = await new lib.image.Transformer(buffer).webp()
 			} else {
 				throw new Boom(
-					'No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP. Either install one of them or provide the sticker in WebP format.',
+					'No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP. Run `npm i sharp` (or `npm i @napi-rs/image`), or provide the sticker as WebP / a Lottie .was file.',
 					{ statusCode: 400 }
 				)
 			}
@@ -889,9 +896,9 @@ export const generateWAMessageContent = async (
 	} else if ('stickers' in message && !!(message as any).stickers && 'cover' in message) {
 		// flat, top-level style — same builder, different entry point
 		// sock.sendMessage(jid, { cover, stickers: [{ data }], name, publisher, description })
-		const { cover, stickers, name, publisher, description, packId } = message as any
+		const { cover, stickers, name, publisher, description, packId, concurrency } = message as any
 		m.stickerPackMessage = await buildStickerPackMessage(
-			{ cover, stickers, name, publisher, description, packId },
+			{ cover, stickers, name, publisher, description, packId, concurrency },
 			options
 		)
 	} else if ('code' in message || 'table' in message || 'links' in message || 'richResponse' in message) {
@@ -1283,14 +1290,17 @@ export const generateWAMessageContent = async (
 					header = prepared
 				}
 
+				// A card without any media (text + buttons only) is allowed: it is sent with an empty header.
+				// Only a header that carries something that is not a supported card media is rejected.
+				const hasHeaderContent = Object.keys(header).length > 0
+				const isValidHeader = hasValidCarouselHeader(header)
+				if (hasHeaderContent && !isValidHeader) {
+					throw new Boom('Invalid media type for carousel card', { statusCode: 400 })
+				}
+
 				const headerProps = {
 					title,
-					hasMediaAttachment: !!(
-						header.imageMessage ||
-						header.videoMessage ||
-						header.documentMessage ||
-						(header as any).productMessage
-					),
+					hasMediaAttachment: isValidHeader,
 					...header
 				}
 
@@ -1381,15 +1391,25 @@ export const generateWAMessageContent = async (
 	}
 
 	// ── groupStatus → groupStatusMessageV2 ────────────────────────────────────
-	// Same shape as itsliaaa/innovatorssoft: only contextInfo.isGroupStatus + wrapper.
-	// Extra contextInfo fields (statusAttributions, featureEligibilities, ...) made
-	// some clients (e.g. WA Business) show "update WhatsApp", so they are not added.
+	// Just setting `isGroupStatus: true` builds a message that's structurally
+	// a group status, but WhatsApp clients also expect `statusAttributions`
+	// (who posted it), `featureEligibilities` (reshare/multi-react
+	// permission), and `pairedMediaType` to be set for it to behave like a
+	// real group status rather than an inert one — so default all of those
+	// in too, without clobbering anything the caller already set explicitly.
 	if (hasOptionalProperty(message, 'groupStatus') && !!message.groupStatus) {
 		const messageType = Object.keys(m)[0] as string
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const key = (m as any)[messageType]
 		if (key) {
-			key.contextInfo = { ...(key.contextInfo || {}), isGroupStatus: message.groupStatus }
+			const contextInfo = (key.contextInfo ??= {})
+			contextInfo.isGroupStatus = message.groupStatus
+			contextInfo.pairedMediaType ??= 0
+			contextInfo.forwardingScore ??= 0
+			contextInfo.featureEligibilities ??= { canBeReshared: true, canReceiveMultiReact: true }
+			if (options.userJid && !contextInfo.statusAttributions?.length) {
+				contextInfo.statusAttributions = [{ type: 5 /* GROUP_STATUS */, groupStatus: { authorJid: options.userJid } }]
+			}
 		}
 
 		m = { groupStatusMessageV2: { message: m } }
@@ -2028,6 +2048,17 @@ export const hasValidInteractiveHeader = (message: proto.IMessage | null | undef
 		message?.productMessage ||
 		message?.locationMessage
 	)
+}
+
+/**
+ * Checks whether a carousel card header carries valid media.
+ * Ported from itsliaaa/baileys; additionally accepts `documentMessage`, which this fork's
+ * carousel cards support (`document` slides). A card with no media at all is still allowed
+ * (empty header, `hasMediaAttachment: false`); `generateWAMessageContent` only throws a 400
+ * for a header that carries content which is not one of these media types.
+ */
+export const hasValidCarouselHeader = (message: proto.IMessage | null | undefined): boolean => {
+	return !!(message?.imageMessage || message?.videoMessage || message?.documentMessage || message?.productMessage)
 }
 
 /** Checks whether the given message is a media message; if it is returns the inner content */

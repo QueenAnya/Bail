@@ -48,6 +48,9 @@
  *   stickerpack         → src/addons/from-messages.ts (buildStickerPackMessage)
  */
 
+// ── Image processing library loader (sharp → @napi-rs/image → jimp, cached) ──
+export * from './image-processing'
+
 // ── Button Sender ──────────────────────────────────────────────────────────
 export * from './button-sender'
 
@@ -131,8 +134,10 @@ export * from './from-messages-send'
 export * from './from-messages'
 
 // ── Auth State — re-exported from src/Utils (canonical location) ───────────
+export { useMultiFileAuthState } from '../Utils/use-multi-file-auth-state'
 export { useSingleFileAuthState } from '../Utils/use-single-file-auth-state'
-export { useMongoFileAuthState } from '../Utils/use-mongo-file-auth-state'
+export { useSingleFileAuthStateLegacy } from '../Utils/use-single-file-auth-state-legacy'
+export { useMongoFileAuthState, useMongoAuthState } from '../Utils/use-mongo-file-auth-state'
 export { migrateAuthState } from '../Utils/migrate-auth-state'
 export * from './use-sqlite-auth-state'
 export * from './use-cache-manager-auth-state'
@@ -173,6 +178,7 @@ export * from './media-set'
 
 // ── VoIP Calling (vendored port of baileys-caller, standalone WA session) ──
 export * from './voip-calling'
+export * from './voip-compat'
 
 // ── Link Preview Extras — linkPreviewMetadata + favicon ────────────────────
 export * from './link-preview-extras'

@@ -10,6 +10,7 @@ import { join } from 'path'
 import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
+import { getImageProcessingLibrary } from '../addons/image-processing'
 import {
 	DEFAULT_ORIGIN,
 	MEDIA_HKDF_KEY_MAPPING,
@@ -37,29 +38,8 @@ import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-export const getImageProcessingLibrary = async () => {
-	const [jimp, sharp, image] = await Promise.all([
-		import('jimp').catch(() => {}),
-		// @ts-ignore — sharp is an optional peer dependency and may not be installed
-		import('sharp').catch(() => {}),
-		// @ts-ignore — @napi-rs/image is an optional peer dependency and may not be installed
-		import('@napi-rs/image').catch(() => {})
-	])
-
-	if (sharp) {
-		return { sharp }
-	}
-
-	if (image) {
-		return { image }
-	}
-
-	if (jimp) {
-		return { jimp }
-	}
-
-	throw new Boom('No image processing library available')
-}
+// combined itsliaaa + innovatorssoft loader lives in addons/image-processing.ts (re-exported for existing imports)
+export { getImageProcessingLibrary }
 
 export const hkdfInfoKey = (type: MediaType) => {
 	const hkdfInfo = MEDIA_HKDF_KEY_MAPPING[type]

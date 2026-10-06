@@ -62,6 +62,8 @@ export interface GroupMetadata {
 	inviteCode?: string
 	/** the person who added you to group or changed some setting in group */
 	author?: string
+	/** who may share the group link (set by `NotificationGroupMemberLinkPropertyUpdate`) */
+	member_link_mode?: string
 	authorPn?: string
 	authorUsername?: string
 }

@@ -155,3 +155,17 @@ export type RelayListUpdate = {
 		}>
 	}>
 }
+
+/** Direction of a call. Same values as `ActiveCall.direction` (and @innovatorssoft/baileys' `CallDirection`). */
+export const CallDirection = {
+	Outgoing: 'outgoing',
+	Incoming: 'incoming'
+} as const
+export type CallDirection = (typeof CallDirection)[keyof typeof CallDirection]
+
+/** Media type of a call. */
+export const CallMediaType = {
+	Audio: 'audio',
+	Video: 'video'
+} as const
+export type CallMediaType = (typeof CallMediaType)[keyof typeof CallMediaType]

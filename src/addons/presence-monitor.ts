@@ -194,7 +194,21 @@ export const formatDuration = (durationMs: number): string => {
 
 type ParsedTimezone = { offsetMs: number } | { iana: string }
 
+let defaultTimezone: string | number = 'UTC'
+
+/** Current global default timezone, used whenever no per-monitor/per-call timezone is given. */
+export const getDefaultTimezone = (): string | number => defaultTimezone
+
+/**
+ * Set the global default timezone (`'+05:00'`, `'+5'`, `5`, `'Asia/Karachi'`, `'UTC'`).
+ * Ported from @innovatorssoft/baileys; unlike that fork the initial default is `'UTC'`.
+ */
+export const setDefaultTimezone = (zone: string | number): void => {
+	defaultTimezone = zone
+}
+
 const parseTimezone = (zone?: string | number | null): ParsedTimezone => {
+	if (zone === undefined || zone === null || zone === '') zone = defaultTimezone
 	if (zone === undefined || zone === null || zone === '') return { offsetMs: 0 }
 	if (typeof zone === 'number') return { offsetMs: zone * 3600 * 1000 }
 	const str = zone.trim()
@@ -210,7 +224,8 @@ const parseTimezone = (zone?: string | number | null): ParsedTimezone => {
 }
 
 /** Accepts a `Date`, epoch milliseconds, or epoch seconds. */
-const toDate = (value: Date | number): Date => (value instanceof Date ? value : new Date(value > 1e11 ? value : value * 1000))
+const toDate = (value: Date | number): Date =>
+	value instanceof Date ? value : new Date(value > 1e11 ? value : value * 1000)
 
 const pad2 = (n: number) => n.toString().padStart(2, '0')
 
@@ -264,6 +279,14 @@ const formatDateAndClock = (value: Date | number | null | undefined, zone?: stri
 		return d.toLocaleString()
 	}
 }
+
+/** `HH:MM:SS` in the given timezone (falls back to the global default, see {@link setDefaultTimezone}). */
+export const formatTime = (date: Date | number | null | undefined, zone?: string | number | null): string =>
+	formatClock(date, zone)
+
+/** `YYYY-MM-DD HH:MM:SS` in the given timezone (falls back to the global default). */
+export const formatDateTime = (date: Date | number | null | undefined, zone?: string | number | null): string =>
+	formatDateAndClock(date, zone)
 
 /** Human-readable relative time, e.g. `45s ago`, `3m ago`, `2h ago`, `4d ago`. */
 export const formatTimeAgo = (value: Date | number | null | undefined): string => {
@@ -341,7 +364,9 @@ interface InternalState {
  */
 export class PresenceMonitor {
 	private readonly sock: MinimalSocket
-	private readonly options: Required<Pick<PresenceMonitorOptions, 'logToConsole' | 'autoResubscribe' | 'trackMessagesAsPresence'>> &
+	private readonly options: Required<
+		Pick<PresenceMonitorOptions, 'logToConsole' | 'autoResubscribe' | 'trackMessagesAsPresence'>
+	> &
 		Pick<PresenceMonitorOptions, 'timezone'>
 	private readonly requestedJids: Map<string, string>
 	private readonly states = new Map<string, InternalState>()
@@ -912,7 +937,7 @@ export class PresenceMonitor {
 
 	/** The display timezone currently used by `formatTime` / `formatDateTime`. */
 	getTimezone(): string {
-		return String(this.timezone ?? 'UTC')
+		return String(this.timezone ?? defaultTimezone)
 	}
 
 	/** `HH:MM:SS` in this monitor's timezone. Accepts a `Date`, epoch ms or epoch seconds. */
@@ -1025,3 +1050,16 @@ export const monitorPresence = (
 		.catch(err => monitor.emit('error', err))
 	return monitor
 }
+
+/** `true` for any WA presence that means the contact is active (`available`, `composing`, `recording`, `paused`). */
+export const isOnlinePresence = (presence: string | null | undefined): boolean =>
+	!!presence && ONLINE_PRESENCES.has(presence)
+
+/** `true` when the WA presence is `unavailable`. */
+export const isOfflinePresence = (presence: string | null | undefined): boolean => presence === 'unavailable'
+
+/** Name used by @innovatorssoft/baileys — same class as {@link PresenceMonitor}. */
+export { PresenceMonitor as PresenceTracker }
+
+/** Name used by @innovatorssoft/baileys — same function as {@link monitorPresence}. */
+export const createPresenceTracker = monitorPresence

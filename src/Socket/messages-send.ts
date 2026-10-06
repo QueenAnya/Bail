@@ -1269,6 +1269,24 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
+			// Group Status — WhatsApp only treats a groupStatusMessage(V2) as a group status (instead of a
+			// plain message) when the stanza carries <meta is_group_status="true"/>. Applies to every
+			// path that relays one: sendMessage({ groupStatus: true }), sock.GroupStatus(), sendGroupStatus*.
+			if (
+				(message as any)?.groupStatusMessage ||
+				(message as any)?.groupStatusMessageV2 ||
+				(messages as any)?.groupStatusMessage ||
+				(messages as any)?.groupStatusMessageV2
+			) {
+				const content = stanza.content as BinaryNode[]
+				const existingMeta = content.find(n => n.tag === 'meta')
+				if (existingMeta) {
+					existingMeta.attrs = { ...existingMeta.attrs, is_group_status: 'true' }
+				} else if (!(additionalNodes ?? []).some(n => n.tag === 'meta' && 'is_group_status' in n.attrs)) {
+					content.push({ tag: 'meta', attrs: { is_group_status: 'true' } })
+				}
+			}
+
 			// Smart biz node — auto-inject for button/list/template/nativeFlow messages,
 			// or when secureMetaServiceLabel is explicitly requested. Without this, WhatsApp won't
 			// correctly render/deliver those interactive message types.
@@ -1293,6 +1311,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					;(stanza.content as BinaryNode[]).push(botNode)
 				}
 			}
+
+			// secureMetaServiceLabel is carried entirely by the <biz> node injected above
+			// (same as @itsliaaa/baileys: `addBizAttributes`) — no extra node exists for it.
 
 			if (!didPushAdditional && additionalNodes && additionalNodes.length > 0) {
 				;(stanza.content as BinaryNode[]).push(...additionalNodes)
@@ -1507,7 +1528,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		} else if (options && typeof options === 'object') {
 			headerText = options.headerText
 			footer = options.footer
-			text = options.text
+			text = options.caption ?? options.text
 			if (options.formula) pushExpr(options.formula)
 			else if (options.latex) pushExpr(options.latex)
 			else if (options.expressions?.length) options.expressions.forEach(pushExpr)
@@ -2193,6 +2214,28 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		 * omitted, e.g. `sock.sendLatexImage(jid, null, 'E=mc^2')`.
 		 */
 		sendLatexImage: async (
+			jid: string,
+			quoted?: any,
+			options?: any,
+			renderLatexToPng?: (latexExpr: string) => Promise<{ buffer: Buffer; width: number; height: number }>,
+			uploadFn?: (buffer: Buffer, type: string) => Promise<{ url?: string; directPath?: string }>
+		) => {
+			const normalized = normalizeLatexArgs(quoted, options, renderLatexToPng, uploadFn)
+			const { message, messageId } = await generateLatexInlineImageContent(
+				normalized.quoted,
+				normalized.options,
+				normalized.uploadFn,
+				normalized.renderLatexToPng
+			)
+			await relayMessage(jid, message, { messageId })
+			return { message, messageId }
+		},
+
+		/**
+		 * Legacy: sends LaTeX as a native latexMetadata rich message (many clients
+		 * render this blank). Prefer sendLatexImage.
+		 */
+		sendLatexNativeImage: async (
 			jid: string,
 			quoted?: any,
 			options?: any,

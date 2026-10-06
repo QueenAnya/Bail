@@ -33,7 +33,9 @@ export const useMongoFileAuthState = async (
 	const removeData = async (id: string) => {
 		try {
 			await collection.deleteOne({ _id: id })
-		} catch {}
+		} catch (error) {
+			console.error(`[useMongoFileAuthState] Error removing ${id}:`, error)
+		}
 	}
 
 	const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds()
@@ -73,3 +75,6 @@ export const useMongoFileAuthState = async (
 		saveCreds: () => writeData(creds, 'creds')
 	}
 }
+
+/** Alias of {@link useMongoFileAuthState}, kept for naming compatibility with other Baileys forks. */
+export const useMongoAuthState = useMongoFileAuthState

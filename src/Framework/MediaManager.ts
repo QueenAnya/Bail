@@ -72,7 +72,7 @@ export class MediaManager {
 						'-vcodec',
 						'libwebp',
 						'-vf',
-						'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=white@0',
+						'scale=min(512\\,iw):min(512\\,ih):force_original_aspect_ratio=decrease',
 						'-loop',
 						'0',
 						'-preset',

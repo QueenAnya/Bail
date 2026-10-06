@@ -17,7 +17,7 @@ import type {
 } from '../Types'
 import { UsernameInvalidError, UsernameResolutionError } from '../Types/Username'
 import { normalizeUsername, validateUsername } from '../Utils/username'
-import { attachVoipToSocket } from '../Voip/voip-engine'
+import { type AcceptCallOptions, attachVoipToSocket } from '../Voip/voip-engine'
 import { isLidUser, isPnUser, jidNormalizedUser } from '../WABinary'
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeCommunitiesSocket } from './communities'
@@ -313,10 +313,25 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 	//   sock.rejectCall(callId, callFrom, 'busy')
 	const baseAcceptCall = (sock as any).acceptCall as (...args: any[]) => Promise<any>
 	const baseRejectCall = (sock as any).rejectCall as (...args: any[]) => Promise<any>
-	const acceptCall = async (callId: string, callFrom?: string, isVideo?: boolean, options?: any) => {
+	// Also accepts the @innovatorssoft/baileys form `acceptCall(callId, { audioSource, repeatAudio })`
+	// (options as 2nd argument) - that form only works for a ringing incoming VoIP call.
+	const acceptCall = async (
+		callId: string,
+		callFromOrOptions?: string | AcceptCallOptions,
+		isVideo?: boolean,
+		options?: AcceptCallOptions
+	) => {
+		const optionsFirst = typeof callFromOrOptions === 'object' && callFromOrOptions !== null
 		const incomingCall = await getCall(callId)
-		if (incomingCall?.isIncoming) return incomingCall.accept(options ?? {})
-		return baseAcceptCall(callId, callFrom, isVideo)
+		if (incomingCall?.isIncoming) {
+			return incomingCall.accept((optionsFirst ? callFromOrOptions : options) ?? {})
+		}
+
+		if (optionsFirst) {
+			throw new Error(`No incoming VoIP call with id ${callId} to accept`)
+		}
+
+		return baseAcceptCall(callId, callFromOrOptions as string | undefined, isVideo)
 	}
 
 	const rejectCall = async (callId: string, callFrom?: string, reason?: string) => {

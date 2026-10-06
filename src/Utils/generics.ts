@@ -279,27 +279,56 @@ export const printQRIfNecessaryListener = (ev: BaileysEventEmitter, logger: ILog
  * Use to ensure your WA connection is always on the latest version
  */
 
+const WPPCONNECT_VERSIONS_URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
+const WHISKEYSOCKETS_DEFAULTS_URL =
+	'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
+
+// Matches `const version = [a, b, c]` anywhere in the file (also `export const version: WAVersion = [...]`),
+// so it no longer depends on which line the declaration happens to sit on.
+const DEFAULTS_VERSION_REGEX = /\bconst\s+version\s*(?::[^=]+)?=\s*\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]/
+
+const fetchText = async (url: string, options: RequestInit): Promise<Response> => {
+	const response = await fetch(url, {
+		dispatcher: options.dispatcher,
+		method: 'GET',
+		headers: options.headers
+	})
+
+	if (!response.ok) {
+		throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
+	}
+
+	return response
+}
+
+/** Latest version listed in wppconnect-team/wa-version (`-alpha` suffix stripped). */
+const fetchWppconnectVersion = async (options: RequestInit): Promise<WAVersion> => {
+	const response = await fetchText(WPPCONNECT_VERSIONS_URL, options)
+	const result = await response.json()
+
+	const versions = result?.versions
+	const latest = Array.isArray(versions) ? versions[versions.length - 1]?.version : undefined
+	if (typeof latest !== 'string') {
+		throw new Error('Unexpected versions.json format: no version entries found')
+	}
+
+	const parts = latest.split('.')
+	const version = [Number(parts[0]), Number(parts[1]), Number((parts[2] ?? '').replace('-alpha', ''))]
+	if (version.length !== 3 || version.some(n => !Number.isInteger(n))) {
+		throw new Error(`Could not parse version "${latest}" from versions.json`)
+	}
+
+	return version as WAVersion
+}
+
+/**
+ * utility that fetches latest baileys version from the master branch.
+ * Use to ensure your WA connection is always on the latest version
+ */
+
 export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
 	try {
-		const response = await fetch(URL, {
-			dispatcher: options.dispatcher,
-			method: 'GET',
-			headers: options.headers
-		})
-
-		if (!response.ok) {
-			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
-		}
-
-		const result = await response.json()
-
-		const version = result.versions[result.versions.length - 1].version.split('.')
-		const version2 = version[2].replace('-alpha', '')
-		return {
-			version: [+version[0], +version[1], +version2],
-			isLatest: true
-		}
+		return { version: await fetchWppconnectVersion(options), isLatest: true }
 	} catch (error) {
 		return {
 			version: baileysVersion as WAVersion,
@@ -310,33 +339,17 @@ export const fetchLatestBaileysVersion = async (options: RequestInit = {}) => {
 }
 
 export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/index.ts'
 	try {
-		const response = await fetch(URL, {
-			dispatcher: options.dispatcher,
-			method: 'GET',
-			headers: options.headers
-		})
-		if (!response.ok) {
-			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
-		}
-
+		const response = await fetchText(WHISKEYSOCKETS_DEFAULTS_URL, options)
 		const text = await response.text()
-		// Extract version from line 7 (const version = [...])
-		const lines = text.split('\n')
-		const versionLine = lines[6] // Line 7 (0-indexed)
-		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
 
-		if (versionMatch) {
-			const version = [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion
-
-			return {
-				version,
-				isLatest: true
-			}
-		} else {
-			throw new Error('Could not parse version from Defaults/index.ts')
+		const match = DEFAULTS_VERSION_REGEX.exec(text)
+		if (!match) {
+			throw new Error('Could not find a `const version = [x, y, z]` declaration in Defaults/index.ts')
 		}
+
+		const version = [parseInt(match[1]!, 10), parseInt(match[2]!, 10), parseInt(match[3]!, 10)] as WAVersion
+		return { version, isLatest: true }
 	} catch (error) {
 		return {
 			version: baileysVersion as WAVersion,
@@ -346,34 +359,14 @@ export const fetchLatestBaileysVersion2 = async (options: RequestInit = {}) => {
 	}
 }
 
+/**
+ * Latest (alpha-channel) WA Web version from wppconnect-team/wa-version.
+ * Previously this fetched versions.json but parsed it like a TypeScript source file
+ * (line 7 regex), so it could never succeed and always returned the fallback version.
+ */
 export const fetchAlphaWaWebVersion = async (options: RequestInit = {}) => {
-	const URL = 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/versions.json'
 	try {
-		const response = await fetch(URL, {
-			dispatcher: options.dispatcher,
-			method: 'GET',
-			headers: options.headers
-		})
-		if (!response.ok) {
-			throw new Boom(`Failed to fetch latest Baileys version: ${response.statusText}`, { statusCode: response.status })
-		}
-
-		const text = await response.text()
-		// Extract version from line 7 (const version = [...])
-		const lines = text.split('\n')
-		const versionLine = lines[6] // Line 7 (0-indexed)
-		const versionMatch = versionLine!.match(/const version = \[(\d+),\s*(\d+),\s*(\d+)\]/)
-
-		if (versionMatch) {
-			const version = [parseInt(versionMatch[1]!), parseInt(versionMatch[2]!), parseInt(versionMatch[3]!)] as WAVersion
-
-			return {
-				version,
-				isLatest: true
-			}
-		} else {
-			throw new Error('Could not parse version from Defaults/index.ts')
-		}
+		return { version: await fetchWppconnectVersion(options), isLatest: true }
 	} catch (error) {
 		return {
 			version: baileysVersion as WAVersion,

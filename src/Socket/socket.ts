@@ -340,6 +340,22 @@ export const makeSocket = (config: SocketConfig) => {
 		return usyncQuery.parseUSyncQueryResult(result)
 	}
 
+	/** Turns one USync LID/device query entry into `{ lid, pn? }` (PN taken from the entry or from the LID mapping store). */
+	const resolveUSyncLidEntry = async (entry: any): Promise<{ lid: string; pn?: string } | undefined> => {
+		if (!entry || entry.error) return undefined
+		const entryLid: string | undefined = entry.lid || (entry.id && isLidUser(entry.id) ? entry.id : undefined)
+		if (!entryLid) return undefined
+		let entryPn: string | undefined = entry.pn || (entry.id && isPnUser(entry.id) ? entry.id : undefined)
+		if (!entryPn) {
+			try {
+				const mapped = await signalRepository.lidMapping.getPNForLID(entryLid)
+				if (mapped && isPnUser(mapped)) entryPn = jidNormalizedUser(mapped)
+			} catch {}
+		}
+
+		return { lid: entryLid, ...(entryPn ? { pn: entryPn } : {}) }
+	}
+
 	const onWhatsApp = async (...phoneNumber: string[]) => {
 		// "Persist LID mappings in onWhatsApp lookup" — onWhatsApp already
 		// had to make a USync round-trip per number; running the same query with LID protocol lets us capture
@@ -377,19 +393,10 @@ export const makeSocket = (config: SocketConfig) => {
 				const lidRes = await executeUSyncQuery(lidQuery)
 				const mappings: LIDMapping[] = []
 				for (const entry of (lidRes?.list ?? []) as any[]) {
-					if (!entry || entry.error) continue
-					const entryLid: string | undefined = entry.lid || (entry.id && isLidUser(entry.id) ? entry.id : undefined)
-					if (!entryLid) continue
-					let entryPn: string | undefined = entry.pn || (entry.id && isPnUser(entry.id) ? entry.id : undefined)
-					if (!entryPn) {
-						try {
-							const mapped = await signalRepository.lidMapping.getPNForLID(entryLid)
-							if (mapped && isPnUser(mapped)) entryPn = jidNormalizedUser(mapped)
-						} catch {}
-					}
-
-					if (entryPn) mappings.push({ pn: entryPn, lid: entryLid })
-					verified.set(jidNormalizedUser(entryLid), { lid: entryLid, ...(entryPn ? { pn: entryPn } : {}) })
+					const resolved = await resolveUSyncLidEntry(entry)
+					if (!resolved) continue
+					if (resolved.pn) mappings.push({ pn: resolved.pn, lid: resolved.lid })
+					verified.set(jidNormalizedUser(resolved.lid), resolved)
 				}
 
 				if (mappings.length > 0) await signalRepository.lidMapping.storeLIDPNMappings(mappings)

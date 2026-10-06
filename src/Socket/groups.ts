@@ -40,7 +40,9 @@ export const makeGroupsSocket = (config: SocketConfig) => {
 		if (mappings.length && sock.signalRepository?.lidMapping?.storeLIDPNMappings) {
 			try {
 				await sock.signalRepository.lidMapping.storeLIDPNMappings(mappings)
-			} catch {}
+			} catch (error) {
+				config.logger.warn({ err: error, jid }, 'failed to store LID-PN mappings from group metadata')
+			}
 		}
 
 		return metadata

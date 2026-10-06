@@ -12,13 +12,14 @@
  *   - `signal_keys`  — stores Signal Protocol session/pre-keys (type + id composite PK)
  *
  * @example
- * import { useSqliteAuthState } from './addons/auth/use-sqlite-auth-state'
+ * import { makeWASocket, useSqliteAuthState } from '@teamolduser/baileys'
  *
  * const { state, saveCreds } = await useSqliteAuthState({ dbPath: './auth.db' })
  * const sock = makeWASocket({ auth: state })
  * sock.ev.on('creds.update', saveCreds)
  */
 
+import type BetterSqlite3 from 'better-sqlite3'
 import { proto } from '../../WAProto/index.js'
 import type { AuthenticationState } from '../Types/index'
 import { initAuthCreds } from '../Utils/auth-utils'
@@ -35,15 +36,12 @@ export type SqliteAuthStateOptions =
 	| {
 			dbPath?: undefined
 			/** Pass an existing better-sqlite3 Database instance. */
-			// @ts-ignore — dynamic import() type reference resolves fine at compile
-			// time now that @types/better-sqlite3 is a devDependency; left in place
-			// defensively for module-resolution edge cases (e.g. verbatimModuleSyntax).
-			database: import('better-sqlite3').Database
+			database: BetterSqlite3.Database
 	  }
 
 export type SqliteAuthStateResult = {
 	state: AuthenticationState
-	saveCreds: () => void
+	saveCreds: () => Promise<void>
 }
 
 // ─── Schema ────────────────────────────────────────────────────────────────────
@@ -66,19 +64,16 @@ CREATE INDEX IF NOT EXISTS signal_keys_type_idx ON signal_keys(type);
 
 // ─── Lazy loader ───────────────────────────────────────────────────────────────
 
-// @ts-ignore — better-sqlite3 is an optional peer dependency
-async function loadBetterSqlite3(): Promise<(typeof import('better-sqlite3'))['default']> {
+/** Loads `better-sqlite3` on first use (so importing this module never pulls the native addon in). */
+async function loadBetterSqlite3(): Promise<typeof BetterSqlite3> {
 	try {
-		// @ts-ignore — better-sqlite3 is an optional peer dependency
-		const mod = (await import('better-sqlite3')) as Record<string, unknown>
-		// @ts-ignore — better-sqlite3 is an optional peer dependency
-		return (mod.default ?? mod) as (typeof import('better-sqlite3'))['default']
+		// ESM/CJS interop: the constructor is either `mod.default` or the module itself
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const mod = (await import('better-sqlite3')) as any
+		return (mod.default ?? mod) as typeof BetterSqlite3
 	} catch (cause) {
 		throw Object.assign(
-			new Error(
-				'`better-sqlite3` is required for `useSqliteAuthState`. ' +
-					'Install it as a peer dependency: npm install better-sqlite3'
-			),
+			new Error('`better-sqlite3` is required for `useSqliteAuthState`. ' + 'Install it with: yarn add better-sqlite3'),
 			{ cause }
 		)
 	}
@@ -91,8 +86,7 @@ async function loadBetterSqlite3(): Promise<(typeof import('better-sqlite3'))['d
  * WAL journal mode is enabled for reliable concurrent-read performance.
  */
 export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<SqliteAuthStateResult> {
-	// @ts-ignore — better-sqlite3 is an optional peer dependency
-	let db: import('better-sqlite3').Database
+	let db: BetterSqlite3.Database
 
 	if (opts.database) {
 		db = opts.database
@@ -103,7 +97,7 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 
 	// WAL mode — concurrent reads with sporadic writes (recommended by SQLite docs)
 	db.pragma('journal_mode = WAL')
-	db.pragma('synchronous  = NORMAL')
+	db.pragma('synchronous = NORMAL')
 	db.exec(CREATE_SCHEMA_SQL)
 
 	const stmts = {
@@ -115,10 +109,7 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 		keyUpsert: db.prepare<[string, string, string]>(
 			'INSERT INTO signal_keys (type, id, value) VALUES (?, ?, ?) ON CONFLICT(type, id) DO UPDATE SET value = excluded.value'
 		),
-		keyDelete: db.prepare<[string, string]>('DELETE FROM signal_keys WHERE type = ? AND id = ?'),
-		keyListIds: db.prepare<[string]>('SELECT id FROM signal_keys WHERE type = ?'),
-		keyList: db.prepare<[string]>('SELECT id, value FROM signal_keys WHERE type = ?'),
-		clearKeys: db.prepare('DELETE FROM signal_keys')
+		keyDelete: db.prepare<[string, string]>('DELETE FROM signal_keys WHERE type = ? AND id = ?')
 	} as const
 
 	const loadCreds = () => {
@@ -174,6 +165,9 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 			}
 		},
 
-		saveCreds: () => persistCreds(creds)
+		// async — same signature as itsliaaa/baileys (`saveCreds: () => Promise<void>`)
+		saveCreds: async () => {
+			persistCreds(creds)
+		}
 	}
 }

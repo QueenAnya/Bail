@@ -877,6 +877,20 @@ const processMessage = async (
 						await signalRepository.migrateSession(pn, lid)
 					}
 				}
+
+				break
+			// "Limit sharing" toggled in a chat/group (ported from innovatorssoft)
+			case proto.Message.ProtocolMessage.Type.LIMIT_SHARING:
+				ev.emit('limit-sharing.update', {
+					id: message.key.remoteJid!,
+					author: areJidsSameUser(message.key.remoteJid!, protocolMsg.key?.remoteJid ?? undefined)
+						? jidNormalizedUser(meId)
+						: message.key.remoteJid!,
+					action: protocolMsg.limitSharing?.sharingLimited ? 'on' : 'off',
+					trigger: protocolMsg.limitSharing?.trigger,
+					update_time: protocolMsg.limitSharing?.limitSharingSettingTimestamp as number | undefined
+				})
+				break
 		}
 	} else if (content?.reactionMessage) {
 		const reaction: proto.IReaction = {

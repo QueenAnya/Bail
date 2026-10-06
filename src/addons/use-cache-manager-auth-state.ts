@@ -50,7 +50,9 @@ export const useCacheManagerAuthState = async (
 		try {
 			const keys = await store.keys(`${sessionKey}*`)
 			await Promise.all(keys.map(key => store.del(key)))
-		} catch {}
+		} catch (error) {
+			console.error(`[useCacheManagerAuthState] Error clearing session ${sessionKey}:`, error)
+		}
 	}
 
 	const creds = ((await readData('creds')) as any) || initAuthCreds()
@@ -91,3 +93,6 @@ export const useCacheManagerAuthState = async (
 		saveCreds: () => writeData('creds', creds)
 	}
 }
+
+/** Alias of {@link useCacheManagerAuthState}, kept for naming compatibility with the innovatorssoft fork. */
+export const makeCacheManagerAuthState = useCacheManagerAuthState

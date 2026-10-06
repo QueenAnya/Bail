@@ -230,7 +230,7 @@ describe('Sticker Pack Messages', () => {
 	})
 
 	describe('Validation', () => {
-		it('should reject sticker pack with more than 60 stickers', async () => {
+		it('should accept sticker pack with more than 60 stickers (no count limit)', async () => {
 			const stickers = Array(61)
 				.fill(null)
 				.map(() => ({
@@ -246,10 +246,11 @@ describe('Sticker Pack Messages', () => {
 
 			const options = createMockOptions()
 
-			await expect(generateWAMessageContent({ stickerPack }, options)).rejects.toThrow(
-				'Sticker pack exceeds the maximum limit of 60 stickers'
-			)
-		})
+			const result = await generateWAMessageContent({ stickerPack }, options)
+
+			expect(result.stickerPackMessage).toBeDefined()
+			expect(result.stickerPackMessage?.stickers).toHaveLength(61)
+		}, 30000)
 
 		it('should reject empty sticker pack', async () => {
 			const stickerPack: StickerPack = {
@@ -266,9 +267,9 @@ describe('Sticker Pack Messages', () => {
 			)
 		})
 
-		it('should reject sticker exceeding 1MB size limit', async () => {
+		it('should accept a sticker larger than 1MB (no size cap)', async () => {
 			// Create a large image with random noise (harder to compress)
-			// 2000x2000 with 3 channels with noise should result in > 1MB webp
+			// 2000x2000 with 3 channels with noise should result in > 1MB webp (still accepted, quality is never lowered)
 			const width = 2000
 			const height = 2000
 			const channels = 3
@@ -293,7 +294,10 @@ describe('Sticker Pack Messages', () => {
 
 			const options = createMockOptions()
 
-			await expect(generateWAMessageContent({ stickerPack }, options)).rejects.toThrow('exceeds the 1MB size limit')
+			const result = await generateWAMessageContent({ stickerPack }, options)
+
+			expect(result.stickerPackMessage).toBeDefined()
+			expect(result.stickerPackMessage?.stickers).toHaveLength(1)
 		}, 30000)
 
 		it('should accept sticker pack with valid sticker count (1-60)', async () => {

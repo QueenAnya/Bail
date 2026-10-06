@@ -17,7 +17,8 @@ import {
     monitorPresence,
     formatDuration,
     formatTimeAgo,
-    normalizeContactJid
+    normalizeContactJid,
+    prepareStickerPackMessage
 } from '../../lib/index.js';
 import { Boom } from '@hapi/boom';
 import qrcode from 'qrcode-terminal';
@@ -481,6 +482,10 @@ async function startBot() {
                         '!label        - Send text with secure Meta service label',
                         '!spoiler      - Send an image with spoiler wrapping',
                         '!lottie       - Send a sticker with isLottie enabled',
+                        '!stickerpack  - Send a sticker pack (sock.sendMessage, nested style)',
+                        '!stickerpackflat - Send a sticker pack (flat style)',
+                        '!stickerpackprep - Send a sticker pack (prepareStickerPackMessage + relayMessage)',
+                        '!stickerpack2 - Send a sticker pack (sock.sendStickerPack)',
                         '!groupstatus  - Send status update wrapped for group',
                         '!mentionall   - Mention all group participants',
                         '!viewonce     - Send image as view-once V1',
@@ -1045,6 +1050,48 @@ async function startBot() {
                             sticker: { url: faviconPath },
                             isLottie: true
                         }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!stickerpack':
+                case '!stickerpackflat':
+                case '!stickerpackprep':
+                case '!stickerpack2': {
+                    // Four ways to send the same sticker pack. Media is used at its ORIGINAL size: WebP is sent
+                    // untouched, PNG/JPG/GIF/video are converted to WebP automatically (needs sharp or @napi-rs/image).
+                    try {
+                        const logoPath = path.join(__dirname, 'logo.png');
+                        const faviconPath = path.join(__dirname, 'favicon.png');
+                        const pack = {
+                            name: 'Example Pack',
+                            publisher: 'Example Publisher',
+                            description: 'Sticker pack example',
+                            cover: fs.readFileSync(logoPath),
+                            stickers: [
+                                { data: fs.readFileSync(logoPath), emojis: ['🐱'] },
+                                { data: { url: faviconPath }, emojis: ['⭐'] }
+                            ]
+                            // concurrency: 10 // optional: stickers converted at once (default 15)
+                        };
+
+                        if (command === '!stickerpack') {
+                            // 1) nested style (also supports Lottie stickers)
+                            await sock.sendMessage(normalizedJid, { stickerPack: pack }, { quoted: message });
+                        } else if (command === '!stickerpackflat') {
+                            // 2) flat style - same builder as 1)
+                            await sock.sendMessage(normalizedJid, pack, { quoted: message });
+                        } else if (command === '!stickerpackprep') {
+                            // 3) build first, then relay it yourself
+                            const stickerPackMessage = await prepareStickerPackMessage(pack, {
+                                upload: sock.waUploadToServer
+                            });
+                            await sock.relayMessage(normalizedJid, { stickerPackMessage }, {});
+                        } else {
+                            // 4) the same as 3) in a single call
+                            await sock.sendStickerPack(normalizedJid, pack);
+                        }
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
                     }

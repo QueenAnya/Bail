@@ -39,7 +39,7 @@ import {
 } from './incoming-call'
 import { type RelayListUpdatePayload, RelayRtcTransport } from './relay-transport'
 import { type BaileysSocket, SignalingBridge } from './signaling'
-import { CallState, type CallStatus, type CallSummary, type VoipConfigOptions } from './types'
+import { CallMediaType, CallState, type CallStatus, type CallSummary, type VoipConfigOptions } from './types'
 import { VideoFeeder } from './video-feeder'
 import { WasmEngine } from './wasm-engine'
 
@@ -247,6 +247,16 @@ export class ActiveCall extends EventEmitter {
 
 	get ended(): boolean {
 		return this.#ended
+	}
+
+	/** `true` for calls we placed (opposite of {@link isIncoming}). */
+	get isOutgoing(): boolean {
+		return !this.isIncoming
+	}
+
+	/** `'video'` for video calls, otherwise `'audio'`. */
+	get mediaType(): CallMediaType {
+		return this.isVideo ? CallMediaType.Video : CallMediaType.Audio
 	}
 
 	/** Snapshot of this call's current config/state, mirroring upstream's CallSummary. */
@@ -1168,7 +1178,13 @@ export const attachVoipToSocket = (
 				heapTotalMb: toMb(mem.heapTotal),
 				externalMb: toMb(mem.external)
 			},
-			calls: { activeCalls, maxConcurrentCalls: Number.isFinite(maxConcurrentCalls) ? maxConcurrentCalls : null },
+			// this engine never queues incoming calls, so `waitingCalls` is always 0 (kept for innovatorssoft API parity)
+			calls: {
+				activeCalls,
+				waitingCalls: 0,
+				totalManagedCalls: activeCalls,
+				maxConcurrentCalls: Number.isFinite(maxConcurrentCalls) ? maxConcurrentCalls : null
+			},
 			resourceManager: {
 				activeWorkers: activeCalls,
 				activeRelayConnections: activeCalls,

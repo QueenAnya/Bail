@@ -777,6 +777,8 @@ export type StickerPack = {
 	publisher: string
 	description?: string
 	packId?: string
+	/** stickers converted at the same time while the pack is built (default 15; lower = less RAM) */
+	concurrency?: number
 }
 
 export type AdminInviteInfo = {
