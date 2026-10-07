@@ -1146,10 +1146,8 @@ sock.sendMessage(jid, {
 #### 📦 Sticker Pack
 
 > [!IMPORTANT]
-> `sharp` and `@napi-rs/image` are both installed automatically with this package and convert non-WebP media (`sharp` first,
-> `@napi-rs/image` as the fallback) - already-WebP media never needs a converter.
-> WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP (quality 100, longest side capped at 512 px) (details, `concurrency`
-> and the other builders: [Sticker Packs](#4-sticker-packs)).
+> If `sharp` or `@napi-rs/image` is not installed, the `cover` and `stickers` must already be in WebP format.
+> Limits: 1–60 stickers per pack, each WebP max 1MB. Non-WebP media is converted to WebP (512×512, quality 80).
 
 ```javascript
 sock.sendMessage(jid, {
@@ -1159,7 +1157,9 @@ sock.sendMessage(jid, {
    stickers: [{
       data: {
          url: './path/to/image.webp'
-      }
+      },
+      emojis: ['😀'], // optional (default ['✨'])
+      accessibilityLabel: 'Smile' // optional
    }, {
       data: {
          url: './path/to/image.webp'
@@ -1171,12 +1171,32 @@ sock.sendMessage(jid, {
    }],
    name: '📦 @teamolduser/baileys Sticker Pack System',
    publisher: '🌟 @teamolduser/baileys Publisher System',
-   description: '🏷️ @teamolduser/baileys Description System',
-   // packId: 'my-pack-001', // optional (random if omitted)
-   // concurrency: 10 // optional: stickers converted at once (default 15)
+   description: '🏷️ @teamolduser/baileys Description System'
 }, {
    quoted: message
 })
+```
+
+Sticker packs built from URL-based stickers are cached when `mediaCache` is configured.
+
+Two more ways to send the same pack:
+
+```javascript
+import { prepareStickerPackMessage } from '@teamolduser/baileys'
+
+const pack = {
+   cover: { url: './path/to/image.webp' },
+   stickers: [{ data: { url: './path/to/image.webp' } }],
+   name: '📦 @teamolduser/baileys Sticker Pack System',
+   publisher: '🌟 @teamolduser/baileys Publisher System'
+}
+
+// prepare + relay
+const stickerPackMessage = await prepareStickerPackMessage(pack, { upload: sock.waUploadToServer })
+await sock.relayMessage(jid, { stickerPackMessage }, {})
+
+// the same in one call
+await sock.sendStickerPack(jid, pack)
 ```
 
 ### 👉🏻 Sending Interactive Messages
@@ -2523,167 +2543,6 @@ required `biz` binary node.
 
 ---
 
-### 4. Sticker Packs
-
-Two implementations are available — pick whichever fits your workflow:
-
-### A. Raw proto builder (upstream-PR-based, `from-messages.ts`)
-
-Full pipeline (WebP conversion incl. Lottie/WAS animated stickers, ZIP,
-encrypt, upload) built into `sock.sendMessage`:
-
-```ts
-await sock.sendMessage(jid, {
-	stickerPack: {
-		name: '📦 @teamolduser/baileys Sticker Pack System',
-		publisher: '🌟 @teamolduser/baileys Publisher System',
-		stickers: [
-			{ data: fs.readFileSync('./sticker1.png') },
-			{ data: 'https://example.com/sticker2.webp', emojis: ['😀'] }
-		],
-		cover: fs.readFileSync('./cover.png')
-	}
-})
-```
-
-**Media handling (both builders)** - WebP stickers are used at their **original size and quality**
-(the innovatorssoft way) and non-WebP media is converted to WebP automatically (the itsliaaa way):
-
-| Input | Result |
-| --- | --- |
-| WebP (static or animated) | used as-is - bytes untouched (size, quality, EXIF, animation kept) |
-| PNG / JPG / GIF / ... | converted to WebP at quality 100 (never lowered automatically); the longest side is scaled **down** to **512 px** (WhatsApp's own sticker size) - smaller images are never upscaled. `maxSize: false` keeps the original size. Animated GIFs stay animated |
-| Video (mp4 / webm / mkv) | animated WebP via `ffmpeg` (`ffmpeg-static` or a system `ffmpeg`), original fps, quality 100, longest side capped like images, first 10s |
-| Lottie (`.was` / raw Lottie JSON) | kept as Lottie (`sendMessage({ stickerPack })` builder only) |
-
-The converter uses `sharp` and falls back to `@napi-rs/image` (both regular dependencies, installed automatically);
-if neither can load on your platform you get a clear error (or pass WebP directly). Sticker media goes in `data`; `sticker` works as an alias (the field name used by
-`@innovatorssoft/baileys`), and `packId` is honoured by both builders.
-
-There is **no sticker-count limit and no per-sticker or total size cap** - packs with more than 60 stickers and
-stickers/packs of 10MB and more are sent as they are (quality is never lowered). Stickers are processed in
-batches of 15 concurrently by default; at least 1 sticker and a cover are still required.
-
-**Size / quality of converted stickers.** Images that have to be converted (PNG/JPG/GIF/video) are scaled down to a
-longest side of **512 px** by default (never upscaled) at quality 100. This matters for big images such as phone
-screenshots: at their original size (e.g. 1080x2400) WhatsApp may show the pack card and cover fine but the stickers
-inside as empty grey boxes - stickers made with WhatsApp's own "create sticker" are 512x512 too.
-
-```ts
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers } })                     // default: max 512 px, quality 100
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 1024 } })      // other cap
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, quality: 80 } })        // smaller files
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: false } })     // original size (may not display)
-```
-
-`maxSize` and `quality` only apply to stickers that are converted - WebP you pass in is never touched. The tray icon
-inside the pack is always shrunk (256 px, quality 80); the cover picture on the card comes from a separate thumbnail.
-Sticker file names inside the zip use the same scheme as `@itsliaaa/baileys` (base64 with `/` -> `-`).
-
-**Memory / speed knob:** set `concurrency` to change how many stickers are converted at the same time -
-lower it on low-RAM hosts (phone / Termux, big GIF or video packs), raise it on a strong server. Works the same in
-`sock.sendMessage(jid, { stickerPack })`, the flat style, `prepareStickerPackMessage` and `sock.sendStickerPack`:
-
-```ts
-await sock.sendMessage(jid, {
-	stickerPack: { name: 'My pack', publisher: 'Me', cover, stickers, concurrency: 10 } // default 15
-})
-await sock.sendStickerPack(jid, { cover, stickers, concurrency: 5 })
-```
-
-Rough peak RAM while converting is `concurrency x (width x height x 4 bytes x frames x ~2)` per batch, so `10` uses
-about two thirds of what `15` does; already-WebP stickers are not converted and barely count. Invalid values
-(0, negative, NaN, text) fall back to 15, decimals are rounded down. It only affects speed and memory - never the
-number of stickers in the pack or their order. A random `packId` is generated automatically
-if you don't supply one — pass `packId: generateStickerPackId()` yourself
-if you need to know it ahead of time (e.g. to reference the pack elsewhere
-before sending).
-
-### B. Alternate builder (standalone, returns a ready-to-send message)
-
-A second, independent sticker-pack builder — use whichever produces
-the result you need; both are fully supported.
-
-```ts
-import { prepareStickerPackMessage } from '@teamolduser/baileys'
-
-const stickerPackMessage = await prepareStickerPackMessage(
-	{
-		cover: coverBuffer,
-		stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-		name: '📦 @teamolduser/baileys Sticker Pack System',
-		publisher: '🌟 @teamolduser/baileys Publisher System'
-	},
-	{
-		upload: sock.waUploadToServer, // required
-		mediaCache: myOptionalCache // optional — caches by sticker URLs
-	}
-)
-
-await sock.relayMessage(jid, { stickerPackMessage }, {})
-```
-
-Or use the dedicated socket method, which does the same thing in one call:
-
-```ts
-await sock.sendStickerPack(jid, {
-	cover: coverBuffer,
-	stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-	name: '📦 @teamolduser/baileys Sticker Pack System',
-	publisher: '🌟 @teamolduser/baileys Publisher System'
-})
-```
-
-#### All four ways at a glance
-
-Same media rules everywhere (WebP untouched, non-WebP converted and capped at 512 px by default, no sticker-count or file-size limit), same optional
-`packId` and `concurrency` (you can leave both out). Sticker media goes in `data` (`sticker` is accepted as an alias).
-
-```ts
-const stickers = [
-	{ data: fs.readFileSync('./a.webp'), emojis: ['😀'] },
-	{ data: fs.readFileSync('./b.png') },                      // converted to WebP automatically
-	{ data: { url: 'https://example.com/c.gif' } }
-]
-const cover = fs.readFileSync('./cover.png')
-const meta = { name: 'My pack', publisher: 'Me', description: 'Hello' }
-// optional extras for `meta`: packId: 'my-pack-001', concurrency: 10 (stickers converted at once, default 15)
-
-// 1) nested style (also supports Lottie stickers)
-await sock.sendMessage(jid, { stickerPack: { ...meta, cover, stickers } })
-
-// 2) flat style - same builder as 1)
-await sock.sendMessage(jid, { ...meta, cover, stickers })
-
-// 3) prepare + relay - alternate builder, you get the message object first
-import { prepareStickerPackMessage } from '@teamolduser/baileys'
-const stickerPackMessage = await prepareStickerPackMessage(
-	{ ...meta, cover, stickers },
-	{ upload: sock.waUploadToServer, mediaUploadTimeoutMs: 120_000 } // `logger` and `mediaCache` are optional too
-)
-await sock.relayMessage(jid, { stickerPackMessage }, {})
-
-// 4) the same as 3) in one call
-await sock.sendStickerPack(jid, { ...meta, cover, stickers })
-```
-
-Runnable versions of all four: `assets/examples/example.js` (`!stickerpack`, `!stickerpackflat`, `!stickerpackprep`,
-`!stickerpack2`).
-
-### Standalone WebP converter
-
-```ts
-import { convertToWebP } from '@teamolduser/baileys'
-
-const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
-// or: await convertToWebP(fs.readFileSync('./sticker.jpg'))
-```
-
-Implementation: shell/proto from `Baileys-feat-add-stickerpack-support`
-(a real upstream PR); `convertToWebP` and the safety limits above.
-
----
-
 ### 5. Newsletter Extensions
 
 Beyond the standard newsletter methods, this fork adds:
@@ -3264,22 +3123,6 @@ These are core-file patches, not addons — no import needed, they just work:
   original LID. A LID with no known PN mapping is reported as not
   existing rather than guessed at. Uses the helpers in
   [`src/addons/lid-support.ts`](src/addons/lid-support.ts).
-- **`sock.sendStickerPack()`** — a dedicated method for the alternate
-  sticker-pack builder (`prepareStickerPackMessage`,
-  [`src/addons/stickerpack.ts`](src/addons/stickerpack.ts)). This builder
-  is a separate implementation from the one
-  `sock.sendMessage(jid, { stickerPack: {...} })` already uses
-  internally; both remain available, and `sendStickerPack` gives the
-  alternate one a normal `sock.*` call instead of requiring
-  `sock.relayMessage()` directly:
-  ```ts
-  await sock.sendStickerPack(jid, {
-     cover: coverBuffer,
-     stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-     name: '📦 @teamolduser/baileys Sticker Pack System',
-     publisher: '🌟 @teamolduser/baileys Publisher System'
-  })
-  ```
 - **Dual content/options flags** — `groupStatus`, `isLottie`, `spoiler`,
   `secureMetaServiceLabel`, `ai`, and `ephemeral` can each be set either
   as a content-level property or as an options-level property —
@@ -4973,7 +4816,7 @@ await sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false }
 This is an extended fork of the original open-source Baileys library, adding
 35+ addon modules (rich responses, interactive buttons, scheduling, status
 posting, call handling, extra auth-state backends, and more), a WhatsApp
-username API, album send, sticker packs, and other fork-exclusive features
+username API, album send, and other fork-exclusive features
 documented in [@teamolduser/baileys Fork-Exclusive Features — Usage Guide](#fork-exclusive-features--usage-guide)
 above.
 
@@ -4991,7 +4834,7 @@ above.
   (`type: 'preview'` → `'fullsize'`) that likely caused WhatsApp's server
   to reject/ignore the wide banner image.
 - **`sharp` / `@napi-rs/image`**: both are now regular dependencies (installed automatically, like
-  `@innovatorssoft/baileys`), so sticker-pack conversion works out of the box instead of failing with
+  `@innovatorssoft/baileys`), so image-to-WebP sticker conversion works out of the box instead of failing with
   "No image processing library ... available".
 - **Single-file auth atomic write**: `useSingleFileAuthState` now writes
   to a `.temp` file first and atomically renames it — prevents partial/corrupt

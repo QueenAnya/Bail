@@ -62,7 +62,6 @@ export const RAW_MODE_HELPER_KEYS = new Set([
 	'order',
 	'product',
 	'businessOwnerJid',
-	'stickerPack',
 	'sharePhoneNumber',
 	'requestPhoneNumber',
 	'album',

@@ -430,47 +430,6 @@ export type OrderMessageOptions = {
 	token?: string
 }
 
-/**
- * Individual sticker within a sticker pack (V1 style)
- */
-export type Sticker = {
-	/** Sticker media source */
-	data: WAMediaUpload
-	/** Emoji tags for this sticker */
-	emojis?: string[]
-	/** Accessibility label */
-	accessibilityLabel?: string
-}
-
-/**
- * Full sticker pack definition (Merged V1/V2)
- */
-export type StickerPackk = {
-	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
-	stickers: StickerPackSticker[] | Sticker[]
-	/** Cover sticker shown in the tray */
-	cover: WAMediaUpload
-	/** Display name of the pack */
-	name: string
-	/** Publisher name */
-	publisher: string
-	/** Optional description */
-	description?: string
-	/** Pack ID — auto-generated if not provided */
-	packId?: string
-}
-
-export type StickerPackMessageOptions = {
-	/** Pack name */
-	packName: string
-	/** Pack publisher */
-	publisher?: string
-	/** Pack ID */
-	packId?: string
-	/** Sticker count */
-	stickerCount?: number
-}
-
 export type StatusMentionOptions = {
 	/** Status JIDs to mention */
 	statusJidList: string[]
@@ -784,34 +743,25 @@ export type ProductListSection = {
 }
 
 export type StickerPackSticker = {
-	/** sticker media — alternate field name (preferred) */
-	data?: WAMediaUpload
-	/** @deprecated use `data` instead — kept for backward compatibility */
-	sticker?: WAMediaUpload
+	/** sticker media (WebP kept as is; other images are converted to WebP when sharp / @napi-rs/image is installed) */
+	data: WAMediaUpload
+	/** emoji tags for this sticker (default ['✨']) */
 	emojis?: string[]
+	/** accessibility label */
 	accessibilityLabel?: string
-	isAnimated?: boolean
-	isLottie?: boolean
 }
 
 export type StickerPack = {
+	/** 1-60 stickers */
 	stickers: StickerPackSticker[]
+	/** cover shown as the pack tray icon / thumbnail */
 	cover: WAMediaUpload
-	name: string
-	publisher: string
+	/** pack name (default '📦 Sticker Pack') */
+	name?: string
+	/** publisher name */
+	publisher?: string
+	/** pack description */
 	description?: string
-	packId?: string
-	/** stickers converted at the same time while the pack is built (default 15; lower = less RAM) */
-	concurrency?: number
-	/**
-	 * Longest side (px) for stickers that have to be CONVERTED to WebP (PNG/JPG/GIF/video); default `512` (WhatsApp's
-	 * own sticker size). Images smaller than that are never upscaled, WebP stickers you pass in are never touched.
-	 * Use `false` to keep the original size of converted images (huge images, e.g. phone screenshots, may then show as
-	 * empty boxes in the pack viewer).
-	 */
-	maxSize?: number | false
-	/** WebP quality 1-100 for converted stickers (default 100 = original quality). */
-	quality?: number
 }
 
 export type AdminInviteInfo = {
@@ -956,7 +906,7 @@ export type AnyRegularMessageContent = (
 			album: AlbumMessageOptions
 	  } & Contextable &
 			Mentionable)
-	| { stickerPack: StickerPack }
+	| StickerPack
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { paymentInvite: PaymentInviteInfo }

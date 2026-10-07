@@ -8,7 +8,6 @@ import {
 	buildCallMessage,
 	buildPaymentInviteMessage,
 	buildPaymentMessage,
-	buildStickerPackMessage,
 	isWebPBuffer,
 	sharpToStickerWebp
 } from '../addons/from-messages'
@@ -22,6 +21,7 @@ import {
 	resolveButtonText
 } from '../addons/native-flow-interactive'
 import { buildRawMessageContent } from '../addons/raw-message'
+import { prepareStickerPackMessage } from '../addons/stickerpack'
 import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
 import {
 	CALL_AUDIO_PREFIX,
@@ -199,7 +199,7 @@ export const prepareWAMessageMedia = async (
 		}
 	}
 
-	// ── sticker → auto-convert non-WebP images to WebP (matches stickerPack behavior) ──
+	// ── sticker → auto-convert non-WebP images to WebP ──
 	// Runs only past the cache-hit check above, so a cache hit never pays this cost.
 	if (mediaType === 'sticker') {
 		const { stream } = await getStream(uploadData.media)
@@ -934,17 +934,9 @@ export const generateWAMessageContent = async (
 		// keys, we must NOT skip: the generic fallback below has to prepare the media so
 		// buttons / templateButtons / nativeFlow / interactiveButtons can use it as their
 		// header. Skipping it silently dropped the image/video/document.
-	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// nested style — addons/from-messages.ts → buildStickerPackMessage
-		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
-	} else if ('stickers' in message && !!(message as any).stickers && 'cover' in message) {
-		// flat, top-level style — same builder, different entry point
+	} else if (hasNonNullishProperty(message, 'stickers')) {
 		// sock.sendMessage(jid, { cover, stickers: [{ data }], name, publisher, description })
-		const { cover, stickers, name, publisher, description, packId, concurrency, maxSize, quality } = message as any
-		m.stickerPackMessage = await buildStickerPackMessage(
-			{ cover, stickers, name, publisher, description, packId, concurrency, maxSize, quality },
-			options
-		)
+		m.stickerPackMessage = await prepareStickerPackMessage(message as any, options)
 	} else if ('code' in message || 'table' in message || 'links' in message || 'richResponse' in message) {
 		// sock.sendMessage(jid, { richResponse: { text, code, language, ... } })
 		// or the flat shorthand: { code, table, links, headerText, contentText, footerText, ... }

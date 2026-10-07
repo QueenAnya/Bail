@@ -1290,30 +1290,23 @@ await sock.sendMessage(
 ```
 
 ### Sticker Pack Message
-WebP stickers are sent untouched (original size and quality). PNG/JPG/GIF/video are converted to WebP at quality 100 with the
-longest side scaled down to 512 px (never upscaled; `maxSize: false` keeps the original size) - needs `sharp` or `@napi-rs/image`,
-`ffmpeg` for video. There is no sticker-count limit.
-Put the media in `data` (`sticker` works as an alias). `packId` and `concurrency` (stickers converted at once, default 15)
-are optional.
+1–60 stickers, each WebP max 1MB. WebP is sent untouched; other images are converted (needs `sharp` or `@napi-rs/image`).
 
 ```ts
-const cover = fs.readFileSync('./cover.png')
-const stickers = [
-    { data: { url: './a.webp' }, emojis: ['❤'] },   // emojis / accessibilityLabel are optional
-    { data: fs.readFileSync('./b.png') },            // converted to WebP automatically
-    { data: { url: 'https://example.com/c.gif' } }
-]
-
-// 1) nested style
 await sock.sendMessage(jid, {
-    stickerPack: { name: 'Hiii', publisher: 'By @teamolduser/baileys', description: 'Hello', cover, stickers }
-    // optional: concurrency: 10 (stickers converted at once, default 15), packId: 'my-pack-001'
+    cover: fs.readFileSync('./cover.webp'),
+    stickers: [
+        { data: { url: './a.webp' }, emojis: ['❤'] },   // emojis / accessibilityLabel are optional
+        { data: fs.readFileSync('./b.webp') }
+    ],
+    name: 'Hiii',
+    publisher: 'By @teamolduser/baileys',
+    description: 'Hello'
 })
+```
 
-// 2) flat style (same builder as 1)
-await sock.sendMessage(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', description: 'Hello', cover, stickers })
-
-// 3) prepare + relay (alternate builder)
+```ts
+// prepare + relay
 import { prepareStickerPackMessage } from '@teamolduser/baileys'
 const stickerPackMessage = await prepareStickerPackMessage(
     { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers },
@@ -1321,14 +1314,11 @@ const stickerPackMessage = await prepareStickerPackMessage(
 )
 await sock.relayMessage(jid, { stickerPackMessage }, {})
 
-// 4) the same as 3) in one call
+// the same in one call
 await sock.sendStickerPack(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers })
 ```
 
-Big images (e.g. phone screenshots) are capped at 512 px by default because WhatsApp can show the pack card but empty boxes for
-huge stickers. `maxSize` / `quality` change that (see the root README, section 4).
-
-Try them in `example.js`: `!stickerpack`, `!stickerpackflat`, `!stickerpackprep`, `!stickerpack2`.
+Try them in `example.js`: `!stickerpack`, `!stickerpackprep`, `!stickerpack2`.
 
 ### Share Phone Number Message
 ```ts
