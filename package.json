@@ -108,13 +108,11 @@
     "typescript": "^5.8.2"
   },
   "peerDependencies": {
-    "@napi-rs/image": "~1.12.0",
     "audio-decode": "^2.2.3",
     "better-sqlite3": "^13.0.3",
     "jimp": "^1.6.1",
-    "link-preview-js": "^5.0.0",
-    "sharp": "*"
-   },
+    "link-preview-js": "^5.0.0"
+  },
   "resolutions": {
     "ajv@npm:^6.12.4": "^6.14.0",
     "basic-ftp": "^5.2.4",
@@ -145,9 +143,6 @@
     "yaml@npm:^2.6.1": "^2.8.4"
   },
   "peerDependenciesMeta": {
-    "@napi-rs/image": {
-      "optional": true
-    },
     "@roamhq/wrtc": {
       "optional": true
     },
@@ -155,9 +150,6 @@
       "optional": true
     },
     "link-preview-js": {
-      "optional": true
-    },
-    "sharp": {
       "optional": true
     }
   }

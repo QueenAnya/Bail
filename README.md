@@ -1146,7 +1146,8 @@ sock.sendMessage(jid, {
 #### 📦 Sticker Pack
 
 > [!IMPORTANT]
-> If `sharp` or `@napi-rs/image` is not installed, the `cover` and `stickers` must already be in WebP format.
+> `sharp` and `@napi-rs/image` are both installed automatically with this package and convert non-WebP media (`sharp` first,
+> `@napi-rs/image` as the fallback) - already-WebP media never needs a converter.
 > WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at their original size and quality (details, `concurrency`
 > and the other builders: [Sticker Packs](#4-sticker-packs)).
 
@@ -2555,8 +2556,8 @@ await sock.sendMessage(jid, {
 | Video (mp4 / webm / mkv) | animated WebP via `ffmpeg` (`ffmpeg-static` or a system `ffmpeg`), original size and fps, quality 100, first 10s |
 | Lottie (`.was` / raw Lottie JSON) | kept as Lottie (`sendMessage({ stickerPack })` builder only) |
 
-The converter needs `sharp` or `@napi-rs/image` for images; if neither is installed you get a clear error
-(or pass WebP directly). Sticker media goes in `data`; `sticker` works as an alias (the field name used by
+The converter uses `sharp` and falls back to `@napi-rs/image` (both regular dependencies, installed automatically);
+if neither can load on your platform you get a clear error (or pass WebP directly). Sticker media goes in `data`; `sticker` works as an alias (the field name used by
 `@innovatorssoft/baileys`), and `packId` is honoured by both builders.
 
 There is **no sticker-count limit and no per-sticker or total size cap** - packs with more than 60 stickers and
@@ -4973,8 +4974,9 @@ above.
 - **`Panoramic Profile Picture`**: fixed wire attribute
   (`type: 'preview'` → `'fullsize'`) that likely caused WhatsApp's server
   to reject/ignore the wide banner image.
-- **`peerDependenciesMeta`**: `sharp` is now correctly marked optional
-  (was listed as a peer dependency without the `optional: true` flag).
+- **`sharp` / `@napi-rs/image`**: both are now regular dependencies (installed automatically, like
+  `@innovatorssoft/baileys`), so sticker-pack conversion works out of the box instead of failing with
+  "No image processing library ... available".
 - **Single-file auth atomic write**: `useSingleFileAuthState` now writes
   to a `.temp` file first and atomically renames it — prevents partial/corrupt
   auth files on crash mid-write.
