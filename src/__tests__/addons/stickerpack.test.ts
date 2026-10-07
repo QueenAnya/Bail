@@ -39,14 +39,40 @@ describe('prepareStickerPackMessage', () => {
 		expect(msg.stickers![0]!.fileName).toBe(msg.stickers![1]!.fileName)
 	})
 
-	it('enforces limits', async () => {
+	it('requires at least one sticker and a cover', async () => {
 		const { options } = makeOptions()
 		await expect(prepareStickerPackMessage({ cover: WEBP, stickers: [] }, options)).rejects.toThrow('at least one')
 		await expect(prepareStickerPackMessage({ stickers: [{ data: WEBP }] } as any, options)).rejects.toThrow('cover')
-		await expect(
-			prepareStickerPackMessage({ cover: WEBP, stickers: Array(61).fill({ data: WEBP }) }, options)
-		).rejects.toThrow('60')
+		await expect(prepareStickerPackMessage({ cover: WEBP, stickers: [{}] } as any, options)).rejects.toThrow('missing media')
 	})
+
+	it('has no sticker-count limit (150 stickers)', async () => {
+		const { options } = makeOptions()
+		const stickers = Array.from({ length: 150 }, (_, i) => ({ data: Buffer.concat([WEBP, Buffer.from([i])]) }))
+		const msg = await prepareStickerPackMessage({ cover: WEBP, stickers }, options)
+		expect(msg.stickers).toHaveLength(150)
+	})
+
+	it('accepts both `data` and `sticker`, and a custom packId', async () => {
+		const { options } = makeOptions()
+		const msg = await prepareStickerPackMessage(
+			{ cover: WEBP, packId: 'my-pack-001', stickers: [{ data: WEBP }, { sticker: WEBP }] },
+			options
+		)
+		expect(msg.stickerPackId).toBe('my-pack-001')
+		expect(msg.trayIconFileName).toBe('my-pack-001.webp')
+		expect(msg.stickers).toHaveLength(2)
+	})
+
+	it('keeps original size + quality 100 (no 1MB limit)', async () => {
+		const sharp: any = (await import('sharp')).default
+		const raw = Buffer.alloc(1600 * 1600 * 3)
+		for (let i = 0; i < raw.length; i++) raw[i] = (i * 2654435761) >>> 24 // noisy → big file
+		const png = await sharp(raw, { raw: { width: 1600, height: 1600, channels: 3 } }).png().toBuffer()
+		const { options } = makeOptions()
+		const m = await prepareStickerPackMessage({ cover: WEBP, stickers: [{ data: png }] }, options)
+		expect(Number(m.stickerPackSize)).toBeGreaterThan(1024 * 1024)
+	}, 60000)
 
 	it('uses media cache for url stickers', async () => {
 		const store = new Map<string, any>()
@@ -69,8 +95,13 @@ describe('prepareStickerPackMessage', () => {
 
 	it('sendMessage-style content produces stickerPackMessage', async () => {
 		const { options } = makeOptions()
-		const content = await generateWAMessageContent({ cover: WEBP, stickers: [{ data: WEBP }], name: 'X' } as any, options)
-		expect(content.stickerPackMessage?.name).toBe('X')
+		const flat = await generateWAMessageContent({ cover: WEBP, stickers: [{ data: WEBP }], name: 'X' } as any, options)
+		expect(flat.stickerPackMessage?.name).toBe('X')
+		const nested = await generateWAMessageContent(
+			{ stickerPack: { cover: WEBP, stickers: [{ data: WEBP }], name: 'Y' } } as any,
+			options
+		)
+		expect(nested.stickerPackMessage?.name).toBe('Y')
 	})
 
 	it('isAnimatedWebP is false for a static webp / non-webp', () => {

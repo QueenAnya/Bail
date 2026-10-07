@@ -934,6 +934,9 @@ export const generateWAMessageContent = async (
 		// keys, we must NOT skip: the generic fallback below has to prepare the media so
 		// buttons / templateButtons / nativeFlow / interactiveButtons can use it as their
 		// header. Skipping it silently dropped the image/video/document.
+	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
+		// nested style — sock.sendMessage(jid, { stickerPack: { cover, stickers, ... } })
+		m.stickerPackMessage = await prepareStickerPackMessage((message as any).stickerPack, options)
 	} else if (hasNonNullishProperty(message, 'stickers')) {
 		// sock.sendMessage(jid, { cover, stickers: [{ data }], name, publisher, description })
 		m.stickerPackMessage = await prepareStickerPackMessage(message as any, options)

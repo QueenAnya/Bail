@@ -1290,7 +1290,9 @@ await sock.sendMessage(
 ```
 
 ### Sticker Pack Message
-1–60 stickers, each WebP max 1MB. WebP is sent untouched; other images are converted (needs `sharp` or `@napi-rs/image`).
+No sticker-count or size limit. Sticker media is used at its **original size and quality**: WebP is sent untouched,
+PNG/JPG/GIF/video are converted to WebP (needs `sharp` or `@napi-rs/image`, `ffmpeg` for video).
+Put the media in `data` (`sticker` works as an alias). `packId` is optional.
 
 ```ts
 await sock.sendMessage(jid, {

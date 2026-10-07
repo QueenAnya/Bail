@@ -1146,8 +1146,10 @@ sock.sendMessage(jid, {
 #### 📦 Sticker Pack
 
 > [!IMPORTANT]
-> If `sharp` or `@napi-rs/image` is not installed, the `cover` and `stickers` must already be in WebP format.
-> Limits: 1–60 stickers per pack, each WebP max 1MB. Non-WebP media is converted to WebP (512×512, quality 80).
+> **No limits**: any number of stickers (100+ works) and no size cap (25MB+ packs work). Media keeps its **original size and
+> quality**: WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at original size, quality 100
+> (needs `sharp` or `@napi-rs/image`; `ffmpeg` for video). If neither library is installed, `cover` and `stickers` must
+> already be WebP.
 
 ```javascript
 sock.sendMessage(jid, {
@@ -1160,6 +1162,7 @@ sock.sendMessage(jid, {
       },
       emojis: ['😀'], // optional (default ['✨'])
       accessibilityLabel: 'Smile' // optional
+      // `sticker: {...}` also works as an alias of `data` (animated WebP is auto-detected)
    }, {
       data: {
          url: './path/to/image.webp'
@@ -1172,9 +1175,13 @@ sock.sendMessage(jid, {
    name: '📦 @teamolduser/baileys Sticker Pack System',
    publisher: '🌟 @teamolduser/baileys Publisher System',
    description: '🏷️ @teamolduser/baileys Description System'
+   // packId: 'my-pack-001' // optional (random if omitted)
 }, {
    quoted: message
 })
+
+// nested style, same result
+sock.sendMessage(jid, { stickerPack: { cover, stickers, name: 'My pack' } })
 ```
 
 Sticker packs built from URL-based stickers are cached when `mediaCache` is configured.

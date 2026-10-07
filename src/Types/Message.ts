@@ -743,8 +743,10 @@ export type ProductListSection = {
 }
 
 export type StickerPackSticker = {
-	/** sticker media (WebP kept as is; other images are converted to WebP when sharp / @napi-rs/image is installed) */
-	data: WAMediaUpload
+	/** sticker media (WebP kept as is; PNG/JPG/GIF/video are converted to WebP) */
+	data?: WAMediaUpload
+	/** @deprecated use `data` instead — kept for backward compatibility */
+	sticker?: WAMediaUpload
 	/** emoji tags for this sticker (default ['✨']) */
 	emojis?: string[]
 	/** accessibility label */
@@ -752,7 +754,7 @@ export type StickerPackSticker = {
 }
 
 export type StickerPack = {
-	/** 1-60 stickers */
+	/** any number of stickers (at least 1) — no count or size limit */
 	stickers: StickerPackSticker[]
 	/** cover shown as the pack tray icon / thumbnail */
 	cover: WAMediaUpload
@@ -762,6 +764,8 @@ export type StickerPack = {
 	publisher?: string
 	/** pack description */
 	description?: string
+	/** pack id — random if omitted */
+	packId?: string
 }
 
 export type AdminInviteInfo = {
@@ -907,6 +911,7 @@ export type AnyRegularMessageContent = (
 	  } & Contextable &
 			Mentionable)
 	| StickerPack
+	| { stickerPack: StickerPack }
 	| { adminInvite: AdminInviteInfo }
 	| { call: CallCreationInfo }
 	| { paymentInvite: PaymentInviteInfo }

@@ -4,13 +4,18 @@
  * based on https://github.com/WhiskeySockets/Baileys/pull/1561
  * Credits: stickerPackMessage field validity work by @jlucaso1.
  *
- * Builds a `stickerPackMessage`: stickers + cover are converted to WebP, zipped,
- * encrypted and uploaded as `sticker-pack`; a 252x252 JPEG thumbnail of the cover is
- * uploaded as `thumbnail-sticker-pack` with the SAME mediaKey.
+ * Builds a `stickerPackMessage`: stickers + cover are converted to WebP (ORIGINAL size and
+ * quality 100 by default), zipped, encrypted and uploaded as `sticker-pack`; a 252x252 JPEG
+ * thumbnail of the cover is uploaded as `thumbnail-sticker-pack` with the SAME mediaKey.
+ * No sticker-count limit and no per-sticker / pack size limit (itsliaaa's 60 / 1MB / 512px / q80 caps removed).
  */
 import { Boom } from '@hapi/boom'
+import { spawn } from 'child_process'
+import { randomBytes } from 'crypto'
 import { zip } from 'fflate'
 import { promises as fs } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { proto } from '../../WAProto/index.js'
 import type { MessageContentGenerationOptions, StickerPack } from '../Types'
 import { sha256 } from '../Utils/crypto'
@@ -18,12 +23,8 @@ import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
 import { encryptedStream, getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media'
 import { isWebPBuffer } from './from-messages'
 
-/** Max concurrent stickers processed at once */
+/** Stickers converted at the same time (same constant as itsliaaa) */
 const CONCURRENCY_LIMIT = 15
-/** Max stickers allowed in one pack */
-const MAX_STICKERS = 60
-/** Max size of one WebP sticker (bytes) */
-const MAX_STICKER_BYTES = 1024 * 1024
 
 /** Detect animated WebP by checking the VP8X chunk animation flag */
 export const isAnimatedWebP = (buffer: Buffer): boolean => {
@@ -49,6 +50,84 @@ export const isAnimatedWebP = (buffer: Buffer): boolean => {
 	return false
 }
 
+const isVideoBuffer = (b: Buffer) =>
+	(b.length > 12 && b.toString('latin1', 4, 8) === 'ftyp') || // mp4 / mov / 3gp
+	(b.length > 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) // webm / mkv
+
+/** ffmpeg binary: bundled `ffmpeg-static` if its binary exists, else the system `ffmpeg`. */
+const getFfmpegPath = async (): Promise<string> => {
+	try {
+		const mod: any = await import('ffmpeg-static')
+		const path: unknown = mod?.default ?? mod
+		if (typeof path === 'string') {
+			await fs.access(path)
+			return path
+		}
+	} catch {
+		// not installed / binary missing → system ffmpeg
+	}
+
+	return 'ffmpeg'
+}
+
+/** Video → animated WebP via ffmpeg: original resolution + fps, quality 100. */
+const videoToWebp = async (buffer: Buffer): Promise<Buffer> => {
+	const ffmpegPath = await getFfmpegPath()
+	const id = randomBytes(6).toString('hex')
+	const input = join(tmpdir(), `stk-in-${id}`)
+	const output = join(tmpdir(), `stk-out-${id}.webp`)
+	await fs.writeFile(input, buffer)
+	const filters = 'format=yuva420p'
+	try {
+		await new Promise<void>((resolve, reject) => {
+			const ff = spawn(ffmpegPath, [
+				'-y',
+				'-i',
+				input,
+				'-t',
+				'10',
+				'-an',
+				'-vsync',
+				'0',
+				'-vf',
+				filters,
+				'-vcodec',
+				'libwebp',
+				'-lossless',
+				'0',
+				'-quality',
+				'100',
+				'-compression_level',
+				'6',
+				'-loop',
+				'0',
+				output
+			])
+			let err = ''
+			ff.stderr.on('data', d => (err += d))
+			ff.on('error', () =>
+				reject(
+					new Boom('ffmpeg not found - install ffmpeg or the ffmpeg-static package to convert video stickers', {
+						statusCode: 400
+					})
+				)
+			)
+			ff.on('close', code => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited with code ${code}\n${err}`))))
+		})
+		return await fs.readFile(output)
+	} finally {
+		await fs.unlink(input).catch(() => {})
+		await fs.unlink(output).catch(() => {})
+	}
+}
+
+/** normalize user media: Buffer / url string / { url } / stream → WAMediaUpload */
+const toBufferFromUpload = async (raw: any): Promise<Buffer> => {
+	const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
+	const { stream } = await getStream(normalized)
+	return (await toBuffer(stream)) as Buffer
+}
+
 export const prepareStickerPackMessage = async (
 	message: StickerPack,
 	options: MessageContentGenerationOptions
@@ -58,14 +137,12 @@ export const prepareStickerPackMessage = async (
 		stickers = [],
 		name = '📦 Sticker Pack',
 		publisher = '@teamolduser/baileys',
-		description = '🏷️ @teamolduser/baileys'
+		description = '🏷️ @teamolduser/baileys',
+		packId
 	} = message
 
-	if (stickers.length > MAX_STICKERS) {
-		throw new Boom(`Sticker pack exceeds the maximum limit of ${MAX_STICKERS} stickers`, { statusCode: 400 })
-	}
-
-	if (stickers.length === 0) {
+	const validStickers = (stickers as any[]).filter(s => s !== null && s !== undefined)
+	if (validStickers.length === 0) {
 		throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
 	}
 
@@ -75,19 +152,20 @@ export const prepareStickerPackMessage = async (
 
 	const logger = options.logger
 
-	// ── cache: key = urls of all url-based stickers ───────────────────────
+	// ── cache: key = urls of all url-based stickers + the pack settings ───
 	let cacheableKey: string | false = false
-	if (Array.isArray(stickers) && stickers.length && options.mediaCache) {
+	if (options.mediaCache) {
 		const urls: string[] = []
-		for (const sticker of stickers) {
-			const data = sticker.data as any
+		for (const sticker of validStickers) {
+			const data = (sticker.data ?? sticker.sticker) as any
 			if (typeof data === 'object' && data?.url) {
 				urls.push(data.url.toString())
 			}
 		}
 
 		if (urls.length > 0) {
-			cacheableKey = 'sticker:' + urls.join('@')
+			const settings = JSON.stringify([name, publisher, description, packId ?? null])
+			cacheableKey = 'sticker:' + urls.join('@') + '#' + sha256(Buffer.from(settings)).toString('hex')
 		}
 	}
 
@@ -103,48 +181,55 @@ export const prepareStickerPackMessage = async (
 	const hasSharp = 'sharp' in lib && !!lib.sharp?.default
 	const hasImage = 'image' in lib && !!lib.image?.Transformer
 	const hasJimp = 'jimp' in lib && !!lib.jimp?.Jimp
-	if (!hasSharp && !hasImage) {
-		throw new Boom('No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP.')
-	}
 
+	/** WebP stays untouched; image → WebP at ORIGINAL size, quality 100; video → animated WebP */
 	const toWebp = async (buffer: Buffer): Promise<Buffer> => {
+		if (isWebPBuffer(buffer)) return buffer
+		if (isVideoBuffer(buffer)) return videoToWebp(buffer)
 		if (hasSharp) {
-			return lib.sharp.default(buffer).resize(512, 512, { fit: 'inside' }).webp({ quality: 80 }).toBuffer()
+			return lib.sharp.default(buffer, { animated: true }).webp({ quality: 100 }).toBuffer()
 		}
 
-		return new lib.image.Transformer(buffer).resize(512, 512).webp(80)
+		if (hasImage) {
+			return new lib.image.Transformer(buffer).webp(100)
+		}
+
+		throw new Boom(
+			'No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP. Either install one of them or provide stickers in WebP format.',
+			{ statusCode: 400 }
+		)
 	}
 
-	const stickerPackIdValue = generateMessageIDV2()
+	const stickerPackIdValue = packId || generateMessageIDV2()
 	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
-	const stickerMetadata: proto.Message.StickerPackMessage.ISticker[] = new Array(stickers.length)
+	const stickerMetadata: proto.Message.StickerPackMessage.ISticker[] = new Array(validStickers.length)
 
-	// ── Step 1: stickers → WebP (chunked) ─────────────────────────────────
-	for (let i = 0; i < stickers.length; i += CONCURRENCY_LIMIT) {
+	// ── Step 1: stickers → WebP (chunked) ───────────────────────────
+	for (let i = 0; i < validStickers.length; i += CONCURRENCY_LIMIT) {
+		const chunkEnd = Math.min(i + CONCURRENCY_LIMIT, validStickers.length)
 		const promises: Promise<void>[] = []
-		const chunkEnd = Math.min(i + CONCURRENCY_LIMIT, stickers.length)
 		for (let j = i; j < chunkEnd; j++) {
 			promises.push(
 				(async (index: number) => {
-					const sticker = stickers[index]!
-					const { stream } = await getStream(sticker.data)
-					const buffer = (await toBuffer(stream)) as Buffer
-					let webpBuffer: Buffer
-					let isAnimated = false
-					if (isWebPBuffer(buffer)) {
-						webpBuffer = buffer
-						isAnimated = isAnimatedWebP(buffer)
-					} else {
-						webpBuffer = await toWebp(buffer)
+					const sticker = validStickers[index]
+					// `data` is preferred; `sticker` is the (deprecated) alias
+					const raw = sticker.data ?? sticker.sticker
+					if (!raw) {
+						throw new Boom(`Sticker at index ${index} is missing media — provide either 'data' or 'sticker'`, {
+							statusCode: 400
+						})
 					}
 
-					if (webpBuffer.length > MAX_STICKER_BYTES) {
-						throw new Boom(`Sticker at index ${index} exceeds the 1MB size limit`, { statusCode: 400 })
+					const buffer = await toBufferFromUpload(raw)
+					const finalBuffer = await toWebp(buffer)
+					// animated WebP is auto-detected
+					const isAnimated = isAnimatedWebP(finalBuffer)
+					// sha256 hash as filename (dedup) — RFC 4648 base64url
+					const fileName = `${sha256(finalBuffer).toString('base64url')}.webp`
+					if (!stickerData[fileName]) {
+						stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 }]
 					}
 
-					const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')
-					const fileName = `${hash}.webp`
-					stickerData[fileName] = [new Uint8Array(webpBuffer), { level: 0 }]
 					stickerMetadata[index] = {
 						fileName,
 						mimetype: 'image/webp',
@@ -161,10 +246,8 @@ export const prepareStickerPackMessage = async (
 
 	// ── Step 2: cover (tray icon) → WebP inside the ZIP ───────────────────
 	const trayIconFileName = `${stickerPackIdValue}.webp`
-	const { stream: coverStream } = await getStream(cover)
-	const coverBuffer = (await toBuffer(coverStream)) as Buffer
-	const coverWebpBuffer = isWebPBuffer(coverBuffer) ? coverBuffer : await toWebp(coverBuffer)
-	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 }]
+	const coverBuffer = await toBufferFromUpload(cover)
+	stickerData[trayIconFileName] = [new Uint8Array(await toWebp(coverBuffer)), { level: 0 }]
 
 	// ── Step 3: ZIP + encrypt + upload as 'sticker-pack' ──────────────────
 	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
