@@ -115,6 +115,10 @@ export type StickerPackInput = {
 	packId?: string
 	/** stickers converted at the same time (default 15) - lower it on low-RAM hosts */
 	concurrency?: number
+	/** longest side (px) for converted stickers; default = original size (never upscaled). Try 512 if stickers look empty */
+	maxSize?: number
+	/** WebP quality 1-100 for converted stickers (default 100). Try 80 if stickers look empty */
+	quality?: number
 	name?: string
 	publisher?: string
 	description?: string
@@ -145,6 +149,8 @@ export const prepareStickerPackMessage = async (
 		stickers = [],
 		packId,
 		concurrency: concurrencyOption,
+		maxSize,
+		quality,
 		name = '📦 @teamolduser/baileys Sticker Pack System',
 		publisher = '🌟 @teamolduser/baileys Publisher System',
 		description = '🏷️ @teamolduser/baileys Description System'
@@ -206,7 +212,7 @@ export const prepareStickerPackMessage = async (
 					const { stream } = await getStream(raw)
 					const buffer = await toBuffer(stream)
 					// WebP untouched; png/jpg/gif/video → WebP automatically (original size + quality)
-					const webpBuffer = await toStickerWebp(buffer)
+					const webpBuffer = await toStickerWebp(buffer, { maxSize, quality })
 					const isAnimated = isAnimatedWebP(webpBuffer)
 
 					const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')
@@ -229,7 +235,7 @@ export const prepareStickerPackMessage = async (
 	const trayIconFileName = `${stickerPackIdValue}.webp`
 	const { stream: coverStream } = await getStream(cover)
 	const coverBuffer = await toBuffer(coverStream)
-	const coverWebpBuffer = await toStickerWebp(coverBuffer)
+	const coverWebpBuffer = await toStickerWebp(coverBuffer, { maxSize: 256, quality: 80 })
 	stickerData[trayIconFileName] = [new Uint8Array(coverWebpBuffer), { level: 0 }]
 
 	const zipBuffer: Buffer = await new Promise((resolve, reject) => {

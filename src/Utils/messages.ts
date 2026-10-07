@@ -940,9 +940,9 @@ export const generateWAMessageContent = async (
 	} else if ('stickers' in message && !!(message as any).stickers && 'cover' in message) {
 		// flat, top-level style — same builder, different entry point
 		// sock.sendMessage(jid, { cover, stickers: [{ data }], name, publisher, description })
-		const { cover, stickers, name, publisher, description, packId, concurrency } = message as any
+		const { cover, stickers, name, publisher, description, packId, concurrency, maxSize, quality } = message as any
 		m.stickerPackMessage = await buildStickerPackMessage(
-			{ cover, stickers, name, publisher, description, packId, concurrency },
+			{ cover, stickers, name, publisher, description, packId, concurrency, maxSize, quality },
 			options
 		)
 	} else if ('code' in message || 'table' in message || 'links' in message || 'richResponse' in message) {

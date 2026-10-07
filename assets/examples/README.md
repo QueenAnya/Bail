@@ -1324,6 +1324,9 @@ await sock.relayMessage(jid, { stickerPackMessage }, {})
 await sock.sendStickerPack(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers })
 ```
 
+If the stickers show as empty boxes in the pack viewer, add `maxSize: 512, quality: 80` to the pack (see the root README,
+section 4) - the cover and card still show, but WhatsApp can refuse very large / heavy stickers.
+
 Try them in `example.js`: `!stickerpack`, `!stickerpackflat`, `!stickerpackprep`, `!stickerpack2`.
 
 ### Share Phone Number Message

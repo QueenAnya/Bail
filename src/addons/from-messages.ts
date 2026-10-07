@@ -218,9 +218,22 @@ export const resolveStickerPackConcurrency = (value?: number | null): number => 
 	return Math.max(1, Math.floor(value))
 }
 
+/** Options for converting a non-WebP sticker (all optional; defaults = original size, quality 100). */
+export type StickerWebpOptions = {
+	/** pad to a transparent square (longest side) */
+	square?: boolean
+	/** longest side in px - the image is only ever scaled DOWN to it (never upscaled) */
+	maxSize?: number
+	/** WebP quality 1-100 (default 100) */
+	quality?: number
+}
+
+const resolveStickerQuality = (value?: number | null): number =>
+	typeof value === 'number' && Number.isFinite(value) ? Math.min(100, Math.max(1, Math.round(value))) : 100
+
 /**
- * Convert any image/GIF to a WebP sticker at its ORIGINAL size and quality: no 512 cap, no upscaling,
- * WebP quality 100. Quality is NEVER lowered automatically and there is no per-sticker size cap.
+ * Convert any image/GIF to a WebP sticker at its ORIGINAL size and quality by default: no 512 cap, no upscaling,
+ * WebP quality 100 (`maxSize` / `quality` are opt-in). Quality is NEVER lowered automatically and there is no per-sticker size cap.
  * `square: true` pads to a transparent square whose side is the image's longest side (aspect kept;
  * WhatsApp's pack viewer squeezes non-square stickers).
  * Animated inputs (GIF/APNG/animated WebP) stay animated.
@@ -228,12 +241,18 @@ export const resolveStickerPackConcurrency = (value?: number | null): number => 
 export const sharpToStickerWebp = async (
 	sharpDefault: any,
 	buffer: Buffer,
-	opts: { square?: boolean } = {}
+	opts: StickerWebpOptions = {}
 ): Promise<Buffer> => {
+	const quality = resolveStickerQuality(opts.quality)
 	const render = (pad: boolean, side: number): Promise<Buffer> => {
 		let img = sharpDefault(buffer, { animated: true })
-		if (pad) img = img.resize(side, side, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-		return img.webp({ quality: 100 }).toBuffer()
+		if (pad) {
+			img = img.resize(side, side, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+		} else if (opts.maxSize) {
+			img = img.resize(opts.maxSize, opts.maxSize, { fit: 'inside', withoutEnlargement: true })
+		}
+
+		return img.webp({ quality }).toBuffer()
 	}
 
 	if (!opts.square) {
@@ -243,7 +262,7 @@ export const sharpToStickerWebp = async (
 	const meta = await sharpDefault(buffer, { animated: true }).metadata()
 	const w: number = meta.width ?? 512
 	const h: number = meta.pageHeight ?? meta.height ?? w
-	const side = Math.max(w, h)
+	const side = opts.maxSize ? Math.min(Math.max(w, h), opts.maxSize) : Math.max(w, h)
 	// padding an animated image isn't supported by every sharp build -> fall back to unpadded
 	return render(true, side).catch(() => render(false, side))
 }
@@ -269,13 +288,17 @@ const getFfmpegPath = async (): Promise<string> => {
 }
 
 /** Video -> animated WebP via ffmpeg: original resolution and fps, quality 100 (never lowered automatically). */
-const videoToStickerWebp = async (buffer: Buffer, square: boolean): Promise<Buffer> => {
+const videoToStickerWebp = async (buffer: Buffer, opts: StickerWebpOptions): Promise<Buffer> => {
+	const square = !!opts.square
 	const ffmpegPath = await getFfmpegPath()
 	const id = randomBytes(6).toString('hex')
 	const input = join(tmpdir(), `stk-in-${id}`)
 	const output = join(tmpdir(), `stk-out-${id}.webp`)
 	await fs.writeFile(input, buffer)
 	const filters = [
+		...(opts.maxSize
+			? [`scale=w='min(${opts.maxSize},iw)':h='min(${opts.maxSize},ih)':force_original_aspect_ratio=decrease`]
+			: []),
 		'format=yuva420p',
 		...(square ? ['pad=max(iw\\,ih):max(iw\\,ih):(ow-iw)/2:(oh-ih)/2:color=black@0'] : [])
 	].join(',')
@@ -297,7 +320,7 @@ const videoToStickerWebp = async (buffer: Buffer, square: boolean): Promise<Buff
 				'-lossless',
 				'0',
 				'-quality',
-				'100',
+				String(resolveStickerQuality(opts.quality)),
 				'-compression_level',
 				'6',
 				'-loop',
@@ -329,13 +352,13 @@ const videoToStickerWebp = async (buffer: Buffer, square: boolean): Promise<Buff
  *   - video (mp4/webm/mkv...) → animated WebP via ffmpeg, original size
  * Never resized or padded unless the caller passes `square: true` (opt-in, not used by packs).
  */
-export const toStickerWebp = async (buffer: Buffer, opts: { square?: boolean } = {}): Promise<Buffer> => {
+export const toStickerWebp = async (buffer: Buffer, opts: StickerWebpOptions = {}): Promise<Buffer> => {
 	if (isWebPBuffer(buffer)) {
 		return buffer
 	}
 
 	if (isVideoBuffer(buffer)) {
-		return videoToStickerWebp(buffer, !!opts.square)
+		return videoToStickerWebp(buffer, opts)
 	}
 
 	const lib = await getImageProcessingLibrary()
@@ -344,7 +367,17 @@ export const toStickerWebp = async (buffer: Buffer, opts: { square?: boolean } =
 	}
 
 	if ('image' in lib && lib.image) {
-		return new (lib.image as any).Transformer(buffer).webp(100)
+		const Transformer = (lib.image as any).Transformer
+		let transformer = new Transformer(buffer)
+		if (opts.maxSize) {
+			const { width, height } = await new Transformer(buffer).metadata()
+			const scale = Math.min(1, opts.maxSize / Math.max(width, height))
+			if (scale < 1) {
+				transformer = transformer.resize(Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)))
+			}
+		}
+
+		return transformer.webp(resolveStickerQuality(opts.quality))
 	}
 
 	throw new Boom(
@@ -359,6 +392,7 @@ export async function buildStickerPackMessage(
 ): Promise<proto.Message.IStickerPackMessage> {
 	const { stickers, cover, name, publisher, packId, description } = stickerPack
 	const concurrency = resolveStickerPackConcurrency(stickerPack.concurrency)
+	const webpOptions: StickerWebpOptions = { maxSize: stickerPack.maxSize, quality: stickerPack.quality }
 	const stickerPackId = packId || generateMessageIDV2()
 	const stickerData: Record<string, any> = {}
 
@@ -394,13 +428,13 @@ export async function buildStickerPackMessage(
 					}
 				} else {
 					// WebP stays untouched; png/jpg/gif/video → WebP automatically (original size + quality)
-					finalBuffer = await toStickerWebp(buffer)
+					finalBuffer = await toStickerWebp(buffer, webpOptions)
 				}
 
 				const isAnimated = detectedLottie ? true : isAnimatedWebP(finalBuffer)
 				const extension = detectedLottie ? 'was' : 'webp'
-				// Use sha256 hash for filename (deduplication) — RFC 4648 base64url
-				const hash = sha256(finalBuffer).toString('base64url')
+				// Use sha256 hash for the filename (deduplication) - same scheme as itsliaaa/baileys: base64 with '/' -> '-'
+				const hash = sha256(finalBuffer).toString('base64').replace(/\//g, '-')
 				const fileName = `${hash}.${extension}`
 
 				// Dedup: only add if not already in stickerData
@@ -412,7 +446,7 @@ export async function buildStickerPackMessage(
 					fileName,
 					mimetype: detectedLottie ? 'application/was' : 'image/webp',
 					isAnimated,
-					isLottie: detectedLottie,
+					...(detectedLottie ? { isLottie: true } : {}),
 					emojis: s.emojis || [],
 					accessibilityLabel: s.accessibilityLabel || ''
 				}
@@ -429,7 +463,7 @@ export async function buildStickerPackMessage(
 	const coverBuffer = (await toBuffer(coverStream)) as Buffer
 
 	// Cover as WebP in ZIP (tray icon)
-	const coverWebP = await toStickerWebp(coverBuffer)
+	const coverWebP = await toStickerWebp(coverBuffer, { maxSize: 256, quality: 80 })
 
 	const trayIconFileName = `${stickerPackId}.webp`
 	stickerData[trayIconFileName] = [new Uint8Array(coverWebP), { level: 0 as 0 }]

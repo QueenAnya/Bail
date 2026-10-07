@@ -2564,6 +2564,21 @@ There is **no sticker-count limit and no per-sticker or total size cap** - packs
 stickers/packs of 10MB and more are sent as they are (quality is never lowered). Stickers are processed in
 batches of 15 concurrently by default; at least 1 sticker and a cover are still required.
 
+**Stickers show as empty boxes in the pack viewer?** The pack card and cover show fine but the stickers inside are grey
+boxes. Converted stickers keep their original size and quality by default, and WhatsApp may refuse very large or heavy
+stickers in a pack (it is strict for sticker packs: 512 px, small files). Opt in to a size/quality cap and compare:
+
+```ts
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 512, quality: 80 } })
+// maxSize: longest side in px, only ever scaled DOWN (never upscaled). quality: 1-100 (default 100).
+// Both only apply to stickers that are converted to WebP (PNG/JPG/GIF/video) - WebP you pass in is never touched.
+```
+
+If `maxSize: 512, quality: 80` fixes it, raise `quality` (90, 100) or `maxSize` step by step to find the biggest size that
+still shows. The converted tray icon inside the pack is always shrunk (256 px, quality 80) - it is only a small icon;
+the cover picture on the card comes from a separate thumbnail. Sticker file names inside the zip use the same scheme as
+`@itsliaaa/baileys` (base64 with `/` -> `-`).
+
 **Memory / speed knob:** set `concurrency` to change how many stickers are converted at the same time -
 lower it on low-RAM hosts (phone / Termux, big GIF or video packs), raise it on a strong server. Works the same in
 `sock.sendMessage(jid, { stickerPack })`, the flat style, `prepareStickerPackMessage` and `sock.sendStickerPack`:

@@ -803,6 +803,14 @@ export type StickerPack = {
 	packId?: string
 	/** stickers converted at the same time while the pack is built (default 15; lower = less RAM) */
 	concurrency?: number
+	/**
+	 * Longest side (px) for stickers that have to be CONVERTED to WebP (PNG/JPG/GIF/video). Never upscales.
+	 * Default: unset = original size. WebP stickers you pass in are never touched. Try `512` if stickers show as
+	 * empty boxes in the pack viewer.
+	 */
+	maxSize?: number
+	/** WebP quality 1-100 for converted stickers (default 100). Try `80` if stickers show as empty boxes. */
+	quality?: number
 }
 
 export type AdminInviteInfo = {
