@@ -804,12 +804,13 @@ export type StickerPack = {
 	/** stickers converted at the same time while the pack is built (default 15; lower = less RAM) */
 	concurrency?: number
 	/**
-	 * Longest side (px) for stickers that have to be CONVERTED to WebP (PNG/JPG/GIF/video). Never upscales.
-	 * Default: unset = original size. WebP stickers you pass in are never touched. Try `512` if stickers show as
-	 * empty boxes in the pack viewer.
+	 * Longest side (px) for stickers that have to be CONVERTED to WebP (PNG/JPG/GIF/video); default `512` (WhatsApp's
+	 * own sticker size). Images smaller than that are never upscaled, WebP stickers you pass in are never touched.
+	 * Use `false` to keep the original size of converted images (huge images, e.g. phone screenshots, may then show as
+	 * empty boxes in the pack viewer).
 	 */
-	maxSize?: number
-	/** WebP quality 1-100 for converted stickers (default 100). Try `80` if stickers show as empty boxes. */
+	maxSize?: number | false
+	/** WebP quality 1-100 for converted stickers (default 100 = original quality). */
 	quality?: number
 }
 

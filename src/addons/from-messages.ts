@@ -218,7 +218,7 @@ export const resolveStickerPackConcurrency = (value?: number | null): number => 
 	return Math.max(1, Math.floor(value))
 }
 
-/** Options for converting a non-WebP sticker (all optional; defaults = original size, quality 100). */
+/** Options for converting a non-WebP sticker (all optional; defaults here = original size, quality 100; sticker packs cap at 512). */
 export type StickerWebpOptions = {
 	/** pad to a transparent square (longest side) */
 	square?: boolean
@@ -228,12 +228,23 @@ export type StickerWebpOptions = {
 	quality?: number
 }
 
+/** Converted sticker-pack images are scaled DOWN to this longest side by default (WhatsApp's own sticker size). */
+export const DEFAULT_STICKER_PACK_MAX_SIZE = 512
+
+/** `undefined`/invalid -> 512, `false`/`0` -> keep the original size (`undefined`), number -> that many px. */
+export const resolveStickerPackMaxSize = (value?: number | false | null): number | undefined => {
+	if (value === false || value === 0) return undefined
+	if (typeof value === 'number' && Number.isFinite(value) && value > 0) return Math.floor(value)
+	return DEFAULT_STICKER_PACK_MAX_SIZE
+}
+
 const resolveStickerQuality = (value?: number | null): number =>
 	typeof value === 'number' && Number.isFinite(value) ? Math.min(100, Math.max(1, Math.round(value))) : 100
 
 /**
- * Convert any image/GIF to a WebP sticker at its ORIGINAL size and quality by default: no 512 cap, no upscaling,
- * WebP quality 100 (`maxSize` / `quality` are opt-in). Quality is NEVER lowered automatically and there is no per-sticker size cap.
+ * Convert any image/GIF to a WebP sticker. By default (no options) at its ORIGINAL size and quality: no cap, no upscaling,
+ * WebP quality 100. `maxSize` scales the longest side DOWN (never up), `quality` sets the WebP quality; the sticker pack
+ * builders pass `maxSize: 512` unless told otherwise. Quality is NEVER lowered automatically.
  * `square: true` pads to a transparent square whose side is the image's longest side (aspect kept;
  * WhatsApp's pack viewer squeezes non-square stickers).
  * Animated inputs (GIF/APNG/animated WebP) stay animated.
@@ -348,7 +359,7 @@ const videoToStickerWebp = async (buffer: Buffer, opts: StickerWebpOptions): Pro
 /**
  * Anything → WebP sticker, itsliaaa-style auto conversion with innovatorssoft-style fidelity:
  *   - already WebP            → bytes untouched (original size, quality, EXIF, animation)
- *   - PNG / JPG / GIF / ...   → WebP at original size, quality 100 (never lowered automatically)
+ *   - PNG / JPG / GIF / ...   → WebP, quality 100 (never lowered automatically); original size unless `maxSize` is given
  *   - video (mp4/webm/mkv...) → animated WebP via ffmpeg, original size
  * Never resized or padded unless the caller passes `square: true` (opt-in, not used by packs).
  */
@@ -392,7 +403,10 @@ export async function buildStickerPackMessage(
 ): Promise<proto.Message.IStickerPackMessage> {
 	const { stickers, cover, name, publisher, packId, description } = stickerPack
 	const concurrency = resolveStickerPackConcurrency(stickerPack.concurrency)
-	const webpOptions: StickerWebpOptions = { maxSize: stickerPack.maxSize, quality: stickerPack.quality }
+	const webpOptions: StickerWebpOptions = {
+		maxSize: resolveStickerPackMaxSize(stickerPack.maxSize),
+		quality: stickerPack.quality
+	}
 	const stickerPackId = packId || generateMessageIDV2()
 	const stickerData: Record<string, any> = {}
 
@@ -427,7 +441,7 @@ export async function buildStickerPackMessage(
 						finalBuffer = gzipSync(buffer)
 					}
 				} else {
-					// WebP stays untouched; png/jpg/gif/video → WebP automatically (original size + quality)
+					// WebP stays untouched; png/jpg/gif/video → WebP automatically (max 512 px by default, quality 100)
 					finalBuffer = await toStickerWebp(buffer, webpOptions)
 				}
 

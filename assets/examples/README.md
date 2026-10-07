@@ -1290,8 +1290,9 @@ await sock.sendMessage(
 ```
 
 ### Sticker Pack Message
-Sticker media is used at its **original size**: WebP is sent untouched, PNG/JPG/GIF/video are converted to WebP at their
-original size and quality (needs `sharp` or `@napi-rs/image`, `ffmpeg` for video). There is no sticker-count or size limit.
+WebP stickers are sent untouched (original size and quality). PNG/JPG/GIF/video are converted to WebP at quality 100 with the
+longest side scaled down to 512 px (never upscaled; `maxSize: false` keeps the original size) - needs `sharp` or `@napi-rs/image`,
+`ffmpeg` for video. There is no sticker-count limit.
 Put the media in `data` (`sticker` works as an alias). `packId` and `concurrency` (stickers converted at once, default 15)
 are optional.
 
@@ -1324,8 +1325,8 @@ await sock.relayMessage(jid, { stickerPackMessage }, {})
 await sock.sendStickerPack(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers })
 ```
 
-If the stickers show as empty boxes in the pack viewer, add `maxSize: 512, quality: 80` to the pack (see the root README,
-section 4) - the cover and card still show, but WhatsApp can refuse very large / heavy stickers.
+Big images (e.g. phone screenshots) are capped at 512 px by default because WhatsApp can show the pack card but empty boxes for
+huge stickers. `maxSize` / `quality` change that (see the root README, section 4).
 
 Try them in `example.js`: `!stickerpack`, `!stickerpackflat`, `!stickerpackprep`, `!stickerpack2`.
 

@@ -3,6 +3,7 @@ import { jest } from '@jest/globals'
 import { unzip, zip } from 'fflate'
 import sharp from 'sharp'
 import { proto as WAProto } from '../..'
+import { resolveStickerPackMaxSize, toStickerWebp } from '../../addons/from-messages'
 import type { MediaType } from '../../Defaults'
 import type { MessageContentGenerationOptions, StickerPack } from '../../Types'
 import { generateWAMessageContent } from '../../Utils/messages'
@@ -289,7 +290,8 @@ describe('Sticker Pack Messages', () => {
 				name: 'Test Pack',
 				publisher: 'Test Publisher',
 				cover: MINIMAL_PNG,
-				stickers: [{ data: largeSticker }]
+				stickers: [{ data: largeSticker }],
+				maxSize: false // keep the original 2000x2000 so the sticker really is > 1MB
 			}
 
 			const options = createMockOptions()
@@ -1001,5 +1003,31 @@ describe('fflate ZIP utility', () => {
 		expect(extracted['test2.webp']).toBeDefined()
 		expect(Array.from(extracted['test1.webp']!)).toEqual([1, 2, 3, 4])
 		expect(Array.from(extracted['test2.webp']!)).toEqual([5, 6, 7, 8])
+	})
+})
+
+describe('Sticker pack image size', () => {
+	it('resolveStickerPackMaxSize: default 512, false/0 keep the original size, numbers are kept', () => {
+		expect(resolveStickerPackMaxSize()).toBe(512)
+		expect(resolveStickerPackMaxSize(null)).toBe(512)
+		expect(resolveStickerPackMaxSize(false)).toBeUndefined()
+		expect(resolveStickerPackMaxSize(0)).toBeUndefined()
+		expect(resolveStickerPackMaxSize(256.9)).toBe(256)
+		expect(resolveStickerPackMaxSize(-5)).toBe(512)
+		expect(resolveStickerPackMaxSize(Number.NaN)).toBe(512)
+	})
+
+	it('toStickerWebp keeps the original size when no maxSize is given', async () => {
+		const out = await toStickerWebp(await createTestImage(1000, 500))
+		const meta = await sharp(out).metadata()
+		expect([meta.width, meta.height]).toEqual([1000, 500])
+	})
+
+	it('toStickerWebp with maxSize scales down keeping the aspect ratio and never upscales', async () => {
+		const big = await sharp(await toStickerWebp(await createTestImage(1000, 500), { maxSize: 512 })).metadata()
+		expect([big.width, big.height]).toEqual([512, 256])
+
+		const small = await sharp(await toStickerWebp(await createTestImage(100, 50), { maxSize: 512 })).metadata()
+		expect([small.width, small.height]).toEqual([100, 50])
 	})
 })

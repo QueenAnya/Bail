@@ -18,7 +18,12 @@
 import { Boom } from '@hapi/boom'
 import type { WAMediaUpload } from '../Types'
 import { getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media.js'
-import { isAnimatedWebP, resolveStickerPackConcurrency, toStickerWebp } from './from-messages.js'
+import {
+	isAnimatedWebP,
+	resolveStickerPackConcurrency,
+	resolveStickerPackMaxSize,
+	toStickerWebp
+} from './from-messages.js'
 
 // Re-export Sticker and StickerPack from Types for convenience
 export type { Sticker, StickerPack } from '../Types'
@@ -115,9 +120,9 @@ export type StickerPackInput = {
 	packId?: string
 	/** stickers converted at the same time (default 15) - lower it on low-RAM hosts */
 	concurrency?: number
-	/** longest side (px) for converted stickers; default = original size (never upscaled). Try 512 if stickers look empty */
-	maxSize?: number
-	/** WebP quality 1-100 for converted stickers (default 100). Try 80 if stickers look empty */
+	/** longest side (px) for converted stickers (default 512, never upscaled); `false` = keep the original size */
+	maxSize?: number | false
+	/** WebP quality 1-100 for converted stickers (default 100) */
 	quality?: number
 	name?: string
 	publisher?: string
@@ -211,8 +216,8 @@ export const prepareStickerPackMessage = async (
 
 					const { stream } = await getStream(raw)
 					const buffer = await toBuffer(stream)
-					// WebP untouched; png/jpg/gif/video → WebP automatically (original size + quality)
-					const webpBuffer = await toStickerWebp(buffer, { maxSize, quality })
+					// WebP untouched; png/jpg/gif/video → WebP automatically (max 512 px by default, quality 100)
+					const webpBuffer = await toStickerWebp(buffer, { maxSize: resolveStickerPackMaxSize(maxSize), quality })
 					const isAnimated = isAnimatedWebP(webpBuffer)
 
 					const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-')

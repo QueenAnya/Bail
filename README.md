@@ -1148,7 +1148,7 @@ sock.sendMessage(jid, {
 > [!IMPORTANT]
 > `sharp` and `@napi-rs/image` are both installed automatically with this package and convert non-WebP media (`sharp` first,
 > `@napi-rs/image` as the fallback) - already-WebP media never needs a converter.
-> WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at their original size and quality (details, `concurrency`
+> WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP (quality 100, longest side capped at 512 px) (details, `concurrency`
 > and the other builders: [Sticker Packs](#4-sticker-packs)).
 
 ```javascript
@@ -2546,14 +2546,14 @@ await sock.sendMessage(jid, {
 })
 ```
 
-**Media handling (both builders, and `convertToWebP`)** - sticker media is taken at its **original size**
+**Media handling (both builders)** - WebP stickers are used at their **original size and quality**
 (the innovatorssoft way) and non-WebP media is converted to WebP automatically (the itsliaaa way):
 
 | Input | Result |
 | --- | --- |
 | WebP (static or animated) | used as-is - bytes untouched (size, quality, EXIF, animation kept) |
-| PNG / JPG / GIF / ... | converted to WebP at the **original size** (never resized to 512) and quality 100 - quality is **never lowered automatically**. Animated GIFs stay animated |
-| Video (mp4 / webm / mkv) | animated WebP via `ffmpeg` (`ffmpeg-static` or a system `ffmpeg`), original size and fps, quality 100, first 10s |
+| PNG / JPG / GIF / ... | converted to WebP at quality 100 (never lowered automatically); the longest side is scaled **down** to **512 px** (WhatsApp's own sticker size) - smaller images are never upscaled. `maxSize: false` keeps the original size. Animated GIFs stay animated |
+| Video (mp4 / webm / mkv) | animated WebP via `ffmpeg` (`ffmpeg-static` or a system `ffmpeg`), original fps, quality 100, longest side capped like images, first 10s |
 | Lottie (`.was` / raw Lottie JSON) | kept as Lottie (`sendMessage({ stickerPack })` builder only) |
 
 The converter uses `sharp` and falls back to `@napi-rs/image` (both regular dependencies, installed automatically);
@@ -2564,20 +2564,21 @@ There is **no sticker-count limit and no per-sticker or total size cap** - packs
 stickers/packs of 10MB and more are sent as they are (quality is never lowered). Stickers are processed in
 batches of 15 concurrently by default; at least 1 sticker and a cover are still required.
 
-**Stickers show as empty boxes in the pack viewer?** The pack card and cover show fine but the stickers inside are grey
-boxes. Converted stickers keep their original size and quality by default, and WhatsApp may refuse very large or heavy
-stickers in a pack (it is strict for sticker packs: 512 px, small files). Opt in to a size/quality cap and compare:
+**Size / quality of converted stickers.** Images that have to be converted (PNG/JPG/GIF/video) are scaled down to a
+longest side of **512 px** by default (never upscaled) at quality 100. This matters for big images such as phone
+screenshots: at their original size (e.g. 1080x2400) WhatsApp may show the pack card and cover fine but the stickers
+inside as empty grey boxes - stickers made with WhatsApp's own "create sticker" are 512x512 too.
 
 ```ts
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 512, quality: 80 } })
-// maxSize: longest side in px, only ever scaled DOWN (never upscaled). quality: 1-100 (default 100).
-// Both only apply to stickers that are converted to WebP (PNG/JPG/GIF/video) - WebP you pass in is never touched.
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers } })                     // default: max 512 px, quality 100
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 1024 } })      // other cap
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, quality: 80 } })        // smaller files
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: false } })     // original size (may not display)
 ```
 
-If `maxSize: 512, quality: 80` fixes it, raise `quality` (90, 100) or `maxSize` step by step to find the biggest size that
-still shows. The converted tray icon inside the pack is always shrunk (256 px, quality 80) - it is only a small icon;
-the cover picture on the card comes from a separate thumbnail. Sticker file names inside the zip use the same scheme as
-`@itsliaaa/baileys` (base64 with `/` -> `-`).
+`maxSize` and `quality` only apply to stickers that are converted - WebP you pass in is never touched. The tray icon
+inside the pack is always shrunk (256 px, quality 80); the cover picture on the card comes from a separate thumbnail.
+Sticker file names inside the zip use the same scheme as `@itsliaaa/baileys` (base64 with `/` -> `-`).
 
 **Memory / speed knob:** set `concurrency` to change how many stickers are converted at the same time -
 lower it on low-RAM hosts (phone / Termux, big GIF or video packs), raise it on a strong server. Works the same in
@@ -2635,7 +2636,7 @@ await sock.sendStickerPack(jid, {
 
 #### All four ways at a glance
 
-Same media rules everywhere (original size, WebP untouched, non-WebP converted, no size/count limit), same optional
+Same media rules everywhere (WebP untouched, non-WebP converted and capped at 512 px by default, no sticker-count or file-size limit), same optional
 `packId` and `concurrency` (you can leave both out). Sticker media goes in `data` (`sticker` is accepted as an alias).
 
 ```ts
