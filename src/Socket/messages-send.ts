@@ -31,23 +31,21 @@ import { monitorPresence as monitorPresenceAddon, type PresenceMonitorOptions } 
 import { resizeImage } from '../addons/resize-image'
 import { sendGroupStatus as sendGroupStatusAddon } from '../addons/send-group-status'
 import { sendGroupStatusV2 as sendGroupStatusV2Addon } from '../addons/send-group-status-v2'
-import { prepareStickerPackMessage } from '../addons/stickerpack'
 import {
 	sendGroupInvite as sendGroupInviteAddon,
 	sendGroupV4Invite as sendGroupV4InviteAddon,
 	type SendGroupV4InviteDeps
 } from '../addons/send-group-v4-invite'
+import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../addons/stickerpack.js'
 import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
-	CacheStore,
 	GroupV4InviteContent,
 	MediaConnInfo,
 	MessageReceiptType,
 	MessageRelayOptions,
 	MiscMessageGenerationOptions,
 	SocketConfig,
-	StickerPack,
 	WAMediaUpload,
 	WAMessage,
 	WAMessageKey,
@@ -1429,6 +1427,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			// Album container routing
 			return 'collection'
 		} else if (message.stickerPackMessage) {
+			// StickerPack message type routing
 			return 'sticker_pack'
 		} else if (message.stickerMessage) {
 			return 'sticker'
@@ -2075,16 +2074,19 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		},
 
 		/**
-		 * Build and send a sticker pack in one call — same as
-		 * `relayMessage(jid, { stickerPackMessage: await prepareStickerPackMessage(pack, { upload }) }, {})`.
+		 * Build and send a sticker pack via the alternate builder
+		 * (`prepareStickerPackMessage`, addons/stickerpack.ts) — kept as a
+		 * distinct implementation from the one `sock.sendMessage(jid, {
+		 * stickerPack: {...} })` uses. Use whichever produces the result you
+		 * need; both are fully supported.
 		 */
 		sendStickerPack: async (
 			jid: string,
-			stickerPack: StickerPack,
-			options: MiscMessageGenerationOptions & { mediaCache?: CacheStore } = {}
+			stickerPack: StickerPackInput,
+			options: MiscMessageGenerationOptions & { mediaCache?: StickerPackOptions['mediaCache'] } = {}
 		) => {
 			const stickerPackMessage = await prepareStickerPackMessage(stickerPack, {
-				upload: waUploadToServer,
+				upload: waUploadToServer as StickerPackOptions['upload'],
 				logger,
 				mediaUploadTimeoutMs: options.mediaUploadTimeoutMs,
 				mediaCache: options.mediaCache

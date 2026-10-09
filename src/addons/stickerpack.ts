@@ -1,147 +1,193 @@
 /**
- * stickerpack.ts
- * Source: itsliaaa/baileys `prepareStickerPackMessage` (lib/Utils/messages.js)
- * based on https://github.com/WhiskeySockets/Baileys/pull/1561
- * Credits: stickerPackMessage field validity work by @jlucaso1.
+ * addon: stickerpack
+ * Source patch: Baileys-feat-add-stickerpack-support (shell/metadata functions)
+ * + itsliaaa `prepareStickerPackMessage` (lib/Utils/messages.js), based on
+ *   https://github.com/WhiskeySockets/Baileys/pull/1561 (field validity work by @jlucaso1).
  *
- * Builds a `stickerPackMessage`: stickers + cover are converted to WebP (ORIGINAL size and
- * quality 100 by default), zipped, encrypted and uploaded as `sticker-pack`; a 252x252 JPEG
- * thumbnail of the cover is uploaded as `thumbnail-sticker-pack` with the SAME mediaKey.
- * No sticker-count limit and no per-sticker / pack size limit (itsliaaa's 60 / 1MB / 512px / q80 caps removed).
+ * Adds support for sending WhatsApp Sticker Pack messages.
+ * Sticker and StickerPack types are the canonical definitions in Types/Message.ts.
+ *
+ * This addon exports:
+ *   - prepareStickerPackMessage() — full pipeline (convert, ZIP, encrypt, upload, thumbnail) returning a
+ *     ready-to-send stickerPackMessage; the alternate builder next to `buildStickerPackMessage()` in from-messages.ts
+ *   - buildStickerPackProto() — builds the proto payload for a StickerPackMessage
+ *   - generateStickerPackId() — generates a random pack ID
+ *   - STICKER_PACK_MESSAGE_TYPE — the message type string 'sticker_pack'
+ *   - convertToWebP()  converts a Buffer, URL string, or Stream into a WebP
+ *     sticker buffer at its original size (WebP passthrough; PNG/JPG/GIF/video converted).
+ *
+ * Media rules (same as `buildStickerPackMessage`): WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at the
+ * ORIGINAL size and ORIGINAL quality (lossless WebP) by default. Optional `maxSize` (longest side in px, never upscaled),
+ * `quality` (`'original'` = default / lossless, or 1-100 = lossy) and `concurrency` are available on the pack; the cover / tray icon
+ * always stays original. Lottie (`.was` / raw Lottie JSON) stickers are kept as Lottie.
+ * No sticker-count limit and no per-sticker / pack size limit.
  */
+
 import { Boom } from '@hapi/boom'
-import { spawn } from 'child_process'
-import { randomBytes } from 'crypto'
 import { zip } from 'fflate'
-import { promises as fs } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { promises as fsPromises } from 'fs'
+import { gzipSync } from 'zlib'
 import { proto } from '../../WAProto/index.js'
-import type { MessageContentGenerationOptions, StickerPack } from '../Types'
-import { sha256 } from '../Utils/crypto'
-import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics'
-import { encryptedStream, getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media'
-import { isWebPBuffer } from './from-messages'
+import type { WAMediaUpload } from '../Types'
+import { sha256 } from '../Utils/crypto.js'
+import { generateMessageIDV2, unixTimestampSeconds } from '../Utils/generics.js'
+import type { ILogger } from '../Utils/logger.js'
+import { encryptedStream, getImageProcessingLibrary, getStream, toBuffer } from '../Utils/messages-media.js'
+import {
+	isAnimatedWebP,
+	isLottieBuffer,
+	resolveStickerPackConcurrency,
+	resolveStickerPackMaxSize,
+	resolveStickerQuality,
+	toStickerWebp
+} from './from-messages.js'
 
-/** Stickers converted at the same time (same constant as itsliaaa) */
-const CONCURRENCY_LIMIT = 15
+// Re-export Sticker and StickerPack from Types for convenience
+export type { Sticker, StickerPack } from '../Types'
 
-/** Detect animated WebP by checking the VP8X chunk animation flag */
-export const isAnimatedWebP = (buffer: Buffer): boolean => {
-	if (!isWebPBuffer(buffer)) return false
-	// Parse chunks starting after the RIFF header (12 bytes)
-	let offset = 12
-	while (offset < buffer.length - 8) {
-		const chunkFourCC = buffer.toString('ascii', offset, offset + 4)
-		const chunkSize = buffer.readUInt32LE(offset + 4)
-		if (chunkFourCC === 'VP8X') {
-			// VP8X extended header, animation flag = bit 1 of the flags byte at offset+8
-			const flagsOffset = offset + 8
-			if (flagsOffset < buffer.length) {
-				return ((buffer[flagsOffset] as number) & 0x02) !== 0
-			}
-
-			return false
-		}
-
-		offset += 8 + chunkSize + (chunkSize % 2)
-	}
-
-	return false
+/**
+ * Convert a Buffer, URL string, or Stream into a WebP sticker buffer.
+ *
+ * Same rules as the sticker packs (see `toStickerWebp` in from-messages.ts):
+ *   - already WebP            -> returned untouched (original size, quality, EXIF, animation)
+ *   - PNG / JPG / GIF / ...   -> WebP at the ORIGINAL size (no 512 resize) and ORIGINAL quality (lossless),
+ *                                never lowered automatically
+ *   - video (mp4/webm/mkv)    -> animated WebP via ffmpeg, original size
+ * Needs `sharp` or `@napi-rs/image` for images (ffmpeg for video); a clear error is thrown otherwise.
+ *
+ * @example
+ * const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
+ * const { buffer: b2 } = await convertToWebP(fs.readFileSync('./sticker.jpg'))
+ */
+export const convertToWebP = async (input: WAMediaUpload): Promise<{ buffer: Buffer; isAnimated: boolean }> => {
+	const { stream } = await getStream(input)
+	const buffer = await toBuffer(stream)
+	const webpBuffer = await toStickerWebp(buffer)
+	return { buffer: webpBuffer, isAnimated: isAnimatedWebP(webpBuffer) }
 }
 
-const isVideoBuffer = (b: Buffer) =>
-	(b.length > 12 && b.toString('latin1', 4, 8) === 'ftyp') || // mp4 / mov / 3gp
-	(b.length > 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) // webm / mkv
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** ffmpeg binary: bundled `ffmpeg-static` if its binary exists, else the system `ffmpeg`. */
-const getFfmpegPath = async (): Promise<string> => {
-	try {
-		const mod: any = await import('ffmpeg-static')
-		const path: unknown = mod?.default ?? mod
-		if (typeof path === 'string') {
-			await fs.access(path)
-			return path
-		}
-	} catch {
-		// not installed / binary missing → system ffmpeg
-	}
-
-	return 'ffmpeg'
+/**
+ * Generate a random sticker pack ID (16 hex chars).
+ */
+export const generateStickerPackId = (): string => {
+	const arr = new Uint8Array(8)
+	for (let i = 0; i < 8; i++) arr[i] = Math.floor(Math.random() * 256)
+	return Array.from(arr)
+		.map(b => b.toString(16).padStart(2, '0'))
+		.join('')
 }
 
-/** Video → animated WebP via ffmpeg: original resolution + fps, quality 100. */
-const videoToWebp = async (buffer: Buffer): Promise<Buffer> => {
-	const ffmpegPath = await getFfmpegPath()
-	const id = randomBytes(6).toString('hex')
-	const input = join(tmpdir(), `stk-in-${id}`)
-	const output = join(tmpdir(), `stk-out-${id}.webp`)
-	await fs.writeFile(input, buffer)
-	const filters = 'format=yuva420p'
-	try {
-		await new Promise<void>((resolve, reject) => {
-			const ff = spawn(ffmpegPath, [
-				'-y',
-				'-i',
-				input,
-				'-t',
-				'10',
-				'-an',
-				'-vsync',
-				'0',
-				'-vf',
-				filters,
-				'-vcodec',
-				'libwebp',
-				'-lossless',
-				'0',
-				'-quality',
-				'100',
-				'-compression_level',
-				'6',
-				'-loop',
-				'0',
-				output
-			])
-			let err = ''
-			ff.stderr.on('data', d => (err += d))
-			ff.on('error', () =>
-				reject(
-					new Boom('ffmpeg not found - install ffmpeg or the ffmpeg-static package to convert video stickers', {
-						statusCode: 400
-					})
-				)
-			)
-			ff.on('close', code => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited with code ${code}\n${err}`))))
-		})
-		return await fs.readFile(output)
-	} finally {
-		await fs.unlink(input).catch(() => {})
-		await fs.unlink(output).catch(() => {})
-	}
+/**
+ * Build the proto-level stickerPackMessage payload.
+ * The result can be passed directly as the stickerPackMessage field in a proto.IMessage.
+ */
+export const buildStickerPackProto = (pack: {
+	name: string
+	publisher: string
+	packId?: string
+	description?: string
+}): {
+	name: string
+	publisher: string
+	packId: string
+	description: string
+} => ({
+	name: pack.name,
+	publisher: pack.publisher,
+	packId: pack.packId ?? generateStickerPackId(),
+	description: pack.description ?? ''
+})
+
+/**
+ * stickerPack message type marker — getMediaType() returns this for stickerPackMessage.
+ */
+export const STICKER_PACK_MESSAGE_TYPE = 'sticker_pack' as const
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Full sticker-pack builder — kept as a distinct alternative alongside
+// buildStickerPackMessage() in from-messages.ts.
+// Includes: media caching, concurrency batching, Lottie/WAS stickers,
+// cover→trayIcon-in-ZIP, and separate 252×252 JPEG thumbnail generation.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type StickerInput = {
+	/** sticker media (Buffer / `{ url }` / stream / path) */
+	data?: WAMediaUpload
+	/** alias of `data` (the field name used by @innovatorssoft/baileys) */
+	sticker?: WAMediaUpload
+	/** emoji tags for this sticker (default ['✨']) */
+	emojis?: string[]
+	/** accessibility label */
+	accessibilityLabel?: string
+	/** override animated-WebP auto detection */
+	isAnimated?: boolean
+	/** override Lottie (.was / raw Lottie JSON) auto detection */
+	isLottie?: boolean
 }
 
-/** normalize user media: Buffer / url string / { url } / stream → WAMediaUpload */
+export type StickerPackInput = {
+	cover: WAMediaUpload
+	stickers: StickerInput[]
+	/** fixed pack id; a random one is generated when omitted */
+	packId?: string
+	/** stickers converted at the same time (default 15) - lower it on low-RAM hosts */
+	concurrency?: number
+	/**
+	 * longest side (px) for stickers that have to be CONVERTED to WebP (PNG/JPG/GIF/video); never upscaled, WebP stickers
+	 * are never touched. Default: the original size (no cap) - `false` / omitted keeps it, e.g. `512` = WhatsApp's own size
+	 */
+	maxSize?: number | false
+	/** `'original'` (default) = lossless WebP / original quality for converted stickers; a number 1-100 = lossy WebP of that quality */
+	quality?: number | 'original'
+	name?: string
+	publisher?: string
+	description?: string
+}
+
+export type StickerPackOptions = {
+	logger?: ILogger
+	upload: (
+		filePath: string,
+		opts: { fileEncSha256B64: string; mediaType: string; timeoutMs?: number }
+	) => Promise<{ directPath: string }>
+	options?: RequestInit
+	mediaUploadTimeoutMs?: number
+	mediaCache?: { get: (key: string) => Promise<Buffer | undefined>; set: (key: string, value: Buffer) => void }
+}
+
+/** normalize user media: Buffer / url string / { url } / stream → WAMediaUpload → Buffer */
 const toBufferFromUpload = async (raw: any): Promise<Buffer> => {
 	const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
 	const { stream } = await getStream(normalized)
 	return (await toBuffer(stream)) as Buffer
 }
 
+/**
+ * Build a complete, ready-to-send stickerPackMessage (ZIP built, encrypted,
+ * and uploaded). Sticker-pack field validity work credited to @jlucaso1,
+ * based on PR #1561.
+ */
 export const prepareStickerPackMessage = async (
-	message: StickerPack,
-	options: MessageContentGenerationOptions
-): Promise<proto.Message.StickerPackMessage> => {
+	message: StickerPackInput,
+	options: StickerPackOptions
+): Promise<proto.Message.IStickerPackMessage> => {
 	const {
 		cover,
 		stickers = [],
+		packId,
+		concurrency: concurrencyOption,
+		maxSize,
+		quality,
 		name = '📦 Sticker Pack',
 		publisher = '@teamolduser/baileys',
-		description = '🏷️ @teamolduser/baileys',
-		packId
+		description = '🏷️ @teamolduser/baileys'
 	} = message
 
-	const validStickers = (stickers as any[]).filter(s => s !== null && s !== undefined)
+	const validStickers = (stickers as (StickerInput | null | undefined)[]).filter(
+		(s): s is StickerInput => s !== null && s !== undefined
+	)
 	if (validStickers.length === 0) {
 		throw new Boom('Sticker pack must contain at least one sticker', { statusCode: 400 })
 	}
@@ -150,7 +196,8 @@ export const prepareStickerPackMessage = async (
 		throw new Boom('Sticker pack must contain a cover', { statusCode: 400 })
 	}
 
-	const logger = options.logger
+	const { logger } = options
+	const webpOptions = { maxSize: resolveStickerPackMaxSize(maxSize), quality }
 
 	// ── cache: key = urls of all url-based stickers + the pack settings ───
 	let cacheableKey: string | false = false
@@ -158,19 +205,24 @@ export const prepareStickerPackMessage = async (
 		const urls: string[] = []
 		for (const sticker of validStickers) {
 			const data = (sticker.data ?? sticker.sticker) as any
-			if (typeof data === 'object' && data?.url) {
-				urls.push(data.url.toString())
-			}
+			if (typeof data === 'object' && data?.url) urls.push(data.url.toString())
 		}
 
 		if (urls.length > 0) {
-			const settings = JSON.stringify([name, publisher, description, packId ?? null])
+			const settings = JSON.stringify([
+				name,
+				publisher,
+				description,
+				packId ?? null,
+				webpOptions.maxSize ?? null,
+				resolveStickerQuality(quality) ?? null
+			])
 			cacheableKey = 'sticker:' + urls.join('@') + '#' + sha256(Buffer.from(settings)).toString('hex')
 		}
 	}
 
 	if (cacheableKey) {
-		const mediaBuff = await options.mediaCache!.get<Buffer>(cacheableKey)
+		const mediaBuff = await options.mediaCache!.get(cacheableKey)
 		if (mediaBuff) {
 			logger?.debug({ cacheableKey }, 'got media cache hit')
 			return proto.Message.StickerPackMessage.decode(mediaBuff)
@@ -181,37 +233,19 @@ export const prepareStickerPackMessage = async (
 	const hasSharp = 'sharp' in lib && !!lib.sharp?.default
 	const hasImage = 'image' in lib && !!lib.image?.Transformer
 	const hasJimp = 'jimp' in lib && !!lib.jimp?.Jimp
-
-	/** WebP stays untouched; image → WebP at ORIGINAL size, quality 100; video → animated WebP */
-	const toWebp = async (buffer: Buffer): Promise<Buffer> => {
-		if (isWebPBuffer(buffer)) return buffer
-		if (isVideoBuffer(buffer)) return videoToWebp(buffer)
-		if (hasSharp) {
-			return lib.sharp.default(buffer, { animated: true }).webp({ quality: 100 }).toBuffer()
-		}
-
-		if (hasImage) {
-			return new lib.image.Transformer(buffer).webp(100)
-		}
-
-		throw new Boom(
-			'No image processing library (sharp or @napi-rs/image) available for converting sticker to WebP. Either install one of them or provide stickers in WebP format.',
-			{ statusCode: 400 }
-		)
-	}
-
 	const stickerPackIdValue = packId || generateMessageIDV2()
 	const stickerData: Record<string, [Uint8Array, { level: 0 }]> = {}
 	const stickerMetadata: proto.Message.StickerPackMessage.ISticker[] = new Array(validStickers.length)
 
-	// ── Step 1: stickers → WebP (chunked) ───────────────────────────
-	for (let i = 0; i < validStickers.length; i += CONCURRENCY_LIMIT) {
-		const chunkEnd = Math.min(i + CONCURRENCY_LIMIT, validStickers.length)
+	// ── Step 1: stickers → WebP / WAS (chunked) ───────────────────────────
+	const concurrency = resolveStickerPackConcurrency(concurrencyOption)
+	for (let i = 0; i < validStickers.length; i += concurrency) {
+		const chunkEnd = Math.min(i + concurrency, validStickers.length)
 		const promises: Promise<void>[] = []
 		for (let j = i; j < chunkEnd; j++) {
 			promises.push(
 				(async (index: number) => {
-					const sticker = validStickers[index]
+					const sticker = validStickers[index]!
 					// `data` is preferred; `sticker` is the (deprecated) alias
 					const raw = sticker.data ?? sticker.sticker
 					if (!raw) {
@@ -221,19 +255,32 @@ export const prepareStickerPackMessage = async (
 					}
 
 					const buffer = await toBufferFromUpload(raw)
-					const finalBuffer = await toWebp(buffer)
-					// animated WebP is auto-detected
-					const isAnimated = isAnimatedWebP(finalBuffer)
-					// sha256 hash as filename (dedup) — RFC 4648 base64url
-					const fileName = `${sha256(finalBuffer).toString('base64url')}.webp`
+					// explicit `isLottie` wins, otherwise auto-detected
+					const isLottie: boolean = sticker.isLottie !== undefined ? !!sticker.isLottie : isLottieBuffer(buffer)
+					let finalBuffer: Buffer
+					if (isLottie) {
+						// raw Lottie JSON → gzip to WAS; already-gzipped WAS stays as is
+						finalBuffer = buffer[0] === 0x7b ? gzipSync(buffer) : buffer
+					} else {
+						// WebP untouched; png/jpg/gif/video → WebP (original size + original quality unless maxSize / quality are set)
+						finalBuffer = await toStickerWebp(buffer, webpOptions)
+					}
+
+					// explicit `isAnimated` wins, otherwise auto-detected (Lottie is always animated)
+					const isAnimated: boolean =
+						sticker.isAnimated !== undefined ? !!sticker.isAnimated : isLottie ? true : isAnimatedWebP(finalBuffer)
+					const extension = isLottie ? 'was' : 'webp'
+					// sha256 hash as filename (dedup) - same scheme as buildStickerPackMessage: base64 with '/' -> '-'
+					const fileName = `${sha256(finalBuffer).toString('base64').replace(/\//g, '-')}.${extension}`
 					if (!stickerData[fileName]) {
 						stickerData[fileName] = [new Uint8Array(finalBuffer), { level: 0 }]
 					}
 
 					stickerMetadata[index] = {
 						fileName,
-						mimetype: 'image/webp',
+						mimetype: isLottie ? 'application/was' : 'image/webp',
 						isAnimated,
+						isLottie,
 						emojis: sticker.emojis || ['✨'],
 						accessibilityLabel: sticker.accessibilityLabel || '‎'
 					}
@@ -247,19 +294,16 @@ export const prepareStickerPackMessage = async (
 	// ── Step 2: cover (tray icon) → WebP inside the ZIP ───────────────────
 	const trayIconFileName = `${stickerPackIdValue}.webp`
 	const coverBuffer = await toBufferFromUpload(cover)
-	stickerData[trayIconFileName] = [new Uint8Array(await toWebp(coverBuffer)), { level: 0 }]
+	// tray icon: ALWAYS original size + original quality (not affected by `maxSize` / `quality`)
+	stickerData[trayIconFileName] = [new Uint8Array(await toStickerWebp(coverBuffer)), { level: 0 }]
 
 	// ── Step 3: ZIP + encrypt + upload as 'sticker-pack' ──────────────────
-	const zipBuffer = await new Promise<Buffer>((resolve, reject) => {
+	const zipBuffer: Buffer = await new Promise((resolve, reject) => {
 		zip(stickerData, (error, data) => (error ? reject(error) : resolve(Buffer.from(data))))
 	})
 
-	const stickerPackUpload = await encryptedStream(zipBuffer, 'sticker-pack', {
-		logger,
-		opts: options.options
-	})
-
-	let stickerPackUploadResult: { directPath?: string | null }
+	const stickerPackUpload = await encryptedStream(zipBuffer, 'sticker-pack', { logger, opts: options.options })
+	let stickerPackUploadResult: { directPath: string }
 	try {
 		stickerPackUploadResult = await options.upload(stickerPackUpload.encFilePath, {
 			fileEncSha256B64: stickerPackUpload.fileEncSha256.toString('base64'),
@@ -267,7 +311,7 @@ export const prepareStickerPackMessage = async (
 			timeoutMs: options.mediaUploadTimeoutMs
 		})
 	} finally {
-		fs.unlink(stickerPackUpload.encFilePath).catch(() => logger?.warn('failed to remove tmp file'))
+		fsPromises.unlink(stickerPackUpload.encFilePath).catch(() => logger?.warn('failed to remove tmp file'))
 	}
 
 	const obj: proto.Message.IStickerPackMessage = {
@@ -310,7 +354,7 @@ export const prepareStickerPackMessage = async (
 			opts: options.options,
 			mediaKey: stickerPackUpload.mediaKey
 		})
-		let thumbUploadResult: { directPath?: string | null }
+		let thumbUploadResult: { directPath: string }
 		try {
 			thumbUploadResult = await options.upload(thumbUpload.encFilePath, {
 				fileEncSha256B64: thumbUpload.fileEncSha256.toString('base64'),
@@ -318,7 +362,7 @@ export const prepareStickerPackMessage = async (
 				timeoutMs: options.mediaUploadTimeoutMs
 			})
 		} finally {
-			fs.unlink(thumbUpload.encFilePath).catch(() => logger?.warn('failed to remove tmp file'))
+			fsPromises.unlink(thumbUpload.encFilePath).catch(() => logger?.warn('failed to remove tmp file'))
 		}
 
 		Object.assign(obj, {
@@ -335,7 +379,7 @@ export const prepareStickerPackMessage = async (
 
 	if (cacheableKey) {
 		logger?.debug({ cacheableKey }, 'set cache (background)')
-		await options.mediaCache!.set(cacheableKey, proto.Message.StickerPackMessage.encode(obj).finish())
+		options.mediaCache!.set(cacheableKey, Buffer.from(proto.Message.StickerPackMessage.encode(obj).finish()))
 	}
 
 	return proto.Message.StickerPackMessage.fromObject(obj)

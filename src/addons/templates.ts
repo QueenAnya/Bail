@@ -95,7 +95,10 @@ export class TemplateManager {
 		})
 	}
 
-	/** Finds a template by id, then by exact name, then by name slug (`'Welcome Message'` → `'welcome_message'`). */
+	/**
+	 * Finds a template by id, then by exact name, then by name slug (`'Welcome Message'` → `'welcome_message'`).
+	 * Name/slug lookups prefer the most recently added template, so your own templates win over the built-in presets.
+	 */
 	private resolve(idOrName: string): MessageTemplate | undefined {
 		const byId = this.templates.get(idOrName)
 		if (byId) return byId
@@ -106,7 +109,9 @@ export class TemplateManager {
 				.replace(/[^a-z0-9]+/g, '_')
 				.replace(/^_+|_+$/g, '')
 		const wanted = slug(idOrName)
-		return Array.from(this.templates.values()).find(t => t.name === idOrName || slug(t.name) === wanted)
+		return Array.from(this.templates.values())
+			.reverse()
+			.find(t => t.name === idOrName || slug(t.name) === wanted)
 	}
 
 	render(id: string, data: TemplateData = {}): string {

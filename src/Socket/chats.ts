@@ -2,6 +2,7 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import Long from 'long'
 import { proto } from '../../WAProto/index.js'
+import { normalizeDisappearingDuration } from '../addons/disappearing'
 import { findUserId as findUserIdImpl } from '../addons/find-user-id'
 import { DEFAULT_CACHE_TTLS, HISTORY_SYNC_PAUSED_TIMEOUT_MS, PROCESSABLE_HISTORY_TYPES } from '../Defaults'
 import type {
@@ -328,7 +329,13 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		await privacyQuery('groupadd', value)
 	}
 
-	const updateDefaultDisappearingMode = async (duration: number) => {
+	/**
+	 * Default disappearing-messages timer for new chats. `duration` is in seconds, or a shorthand:
+	 * `24`/`1` = 24h, `7` = 7 days, `30` = 30 days, `90` = 90 days, `0` = off (addons/disappearing.ts).
+	 * Also available as `updateDefaultDisappearing` and `updateDisappearingDuration`.
+	 */
+	const updateDefaultDisappearingMode = async (duration: number | string) => {
+		const seconds = normalizeDisappearingDuration(duration)
 		await query({
 			tag: 'iq',
 			attrs: {
@@ -340,7 +347,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 				{
 					tag: 'disappearing_mode',
 					attrs: {
-						duration: duration.toString()
+						duration: seconds.toString()
 					}
 				}
 			]
@@ -1731,6 +1738,8 @@ export const makeChatsSocket = (config: SocketConfig) => {
 		updateReadReceiptsPrivacy,
 		updateGroupsAddPrivacy,
 		updateDefaultDisappearingMode,
+		updateDefaultDisappearing: updateDefaultDisappearingMode,
+		updateDisappearingDuration: updateDefaultDisappearingMode,
 		getBusinessProfile,
 		getBroadcastListInfo,
 		resyncAppState,

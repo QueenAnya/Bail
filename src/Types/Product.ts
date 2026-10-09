@@ -37,7 +37,9 @@ export type ProductBase = {
 	isHidden?: boolean
 }
 
-export type ProductCreate = ProductBase & {
+export type ProductCreate = Omit<ProductBase, 'currency'> & {
+	/** Currency code; defaults to "INR" on create when omitted */
+	currency?: string
 	/** ISO country code for product origin. Set to undefined for no country */
 	originCountryCode: string | undefined
 	/** images of the product */

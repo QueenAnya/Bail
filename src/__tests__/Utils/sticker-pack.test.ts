@@ -1007,20 +1007,33 @@ describe('fflate ZIP utility', () => {
 })
 
 describe('Sticker pack image size', () => {
-	it('resolveStickerPackMaxSize: default 512, false/0 keep the original size, numbers are kept', () => {
-		expect(resolveStickerPackMaxSize()).toBe(512)
-		expect(resolveStickerPackMaxSize(null)).toBe(512)
+	it('resolveStickerPackMaxSize: default keeps the original size, numbers >= 1 are kept (rounded down)', () => {
+		expect(resolveStickerPackMaxSize()).toBeUndefined()
+		expect(resolveStickerPackMaxSize(null)).toBeUndefined()
 		expect(resolveStickerPackMaxSize(false)).toBeUndefined()
 		expect(resolveStickerPackMaxSize(0)).toBeUndefined()
+		expect(resolveStickerPackMaxSize(512)).toBe(512)
 		expect(resolveStickerPackMaxSize(256.9)).toBe(256)
-		expect(resolveStickerPackMaxSize(-5)).toBe(512)
-		expect(resolveStickerPackMaxSize(Number.NaN)).toBe(512)
+		expect(resolveStickerPackMaxSize(-5)).toBeUndefined()
+		expect(resolveStickerPackMaxSize(Number.NaN)).toBeUndefined()
 	})
 
 	it('toStickerWebp keeps the original size when no maxSize is given', async () => {
 		const out = await toStickerWebp(await createTestImage(1000, 500))
 		const meta = await sharp(out).metadata()
 		expect([meta.width, meta.height]).toEqual([1000, 500])
+	})
+
+	it('toStickerWebp keeps the original quality by default (lossless) and is lossy only when `quality` is set', async () => {
+		const raw = Buffer.alloc(64 * 64 * 3)
+		for (let i = 0; i < raw.length; i++) raw[i] = (i * 2654435761) >>> 24
+		const png = await sharp(raw, { raw: { width: 64, height: 64, channels: 3 } })
+			.png()
+			.toBuffer()
+		const pixels = (webp: Buffer) => sharp(webp).removeAlpha().raw().toBuffer()
+		expect((await pixels(await toStickerWebp(png))).equals(raw)).toBe(true)
+		expect((await pixels(await toStickerWebp(png, { quality: 'original' }))).equals(raw)).toBe(true)
+		expect((await pixels(await toStickerWebp(png, { quality: 20 }))).equals(raw)).toBe(false)
 	})
 
 	it('toStickerWebp with maxSize scales down keeping the aspect ratio and never upscales', async () => {

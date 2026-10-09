@@ -1189,7 +1189,7 @@ await sock.sendMessage(
             sellerJid: 'your_jid'',
             token: 'your_token',
             totalAmount1000: 'your_amount',
-            totalCurrencyCode: 'IDR'
+            totalCurrencyCode: 'INR'
         }
     }
 )
@@ -1207,7 +1207,7 @@ await sock.sendMessage(
             productId: 'your_id', 
             title: 'your_title',
             description: 'your_description', 
-            currencyCode: 'IDR', 
+            currencyCode: 'INR', 
             priceAmount1000: 'your_amount', 
             retailerId: 'your_reid', // optional use if needed
             url: 'your_url', // optional use if needed
@@ -1228,7 +1228,7 @@ await sock.sendMessage(
     {
         payment: {
             note: 'Hi!',
-            currency: 'IDR', // optional 
+            currency: 'INR', // optional 
             offset: 0, // optional
             amount: '10000', // optional
             expiry: 0, // optional
@@ -1290,25 +1290,30 @@ await sock.sendMessage(
 ```
 
 ### Sticker Pack Message
-No sticker-count or size limit. Sticker media is used at its **original size and quality**: WebP is sent untouched,
-PNG/JPG/GIF/video are converted to WebP (needs `sharp` or `@napi-rs/image`, `ffmpeg` for video).
-Put the media in `data` (`sticker` works as an alias). `packId` is optional.
+WebP stickers are sent untouched (original size and quality). PNG/JPG/GIF/video are converted to WebP at the original size and
+original (lossless) quality (optional `maxSize` scales the longest side down, never upscaled; `quality` is `'original'` (lossless) by default, or 1-100 for lossy) - needs `sharp` or
+`@napi-rs/image`, `ffmpeg` for video. There is no sticker-count limit. Lottie (`.was` / raw Lottie JSON) stickers are kept as Lottie.
+Put the media in `data` (`sticker` works as an alias). `packId`, `concurrency` (stickers converted at once, default 15), `maxSize` and `quality` are optional.
 
 ```ts
+const cover = fs.readFileSync('./cover.png')
+const stickers = [
+    { data: { url: './a.webp' }, emojis: ['❤'] },   // emojis / accessibilityLabel are optional
+    { data: fs.readFileSync('./b.png') },            // converted to WebP automatically
+    { data: { url: 'https://example.com/c.gif' } }
+]
+
+// 1) nested style
 await sock.sendMessage(jid, {
-    cover: fs.readFileSync('./cover.webp'),
-    stickers: [
-        { data: { url: './a.webp' }, emojis: ['❤'] },   // emojis / accessibilityLabel are optional
-        { data: fs.readFileSync('./b.webp') }
-    ],
-    name: 'Hiii',
-    publisher: 'By @teamolduser/baileys',
-    description: 'Hello'
+    stickerPack: { name: 'Hiii', publisher: 'By @teamolduser/baileys', description: 'Hello', cover, stickers }
+    // optional: concurrency: 10 (stickers converted at once, default 15), packId: 'my-pack-001',
+    //           maxSize: 512 (longest side in px, default: original size), quality: 'original' (default) or 1-100
 })
-```
 
-```ts
-// prepare + relay
+// 2) flat style (same builder as 1)
+await sock.sendMessage(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', description: 'Hello', cover, stickers })
+
+// 3) prepare + relay (alternate builder)
 import { prepareStickerPackMessage } from '@teamolduser/baileys'
 const stickerPackMessage = await prepareStickerPackMessage(
     { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers },
@@ -1316,11 +1321,27 @@ const stickerPackMessage = await prepareStickerPackMessage(
 )
 await sock.relayMessage(jid, { stickerPackMessage }, {})
 
-// the same in one call
+// 4) the same as 3) in one call
 await sock.sendStickerPack(jid, { name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers })
 ```
 
-Try them in `example.js`: `!stickerpack`, `!stickerpackprep`, `!stickerpack2`.
+Big images (e.g. phone screenshots) keep their original size by default; WhatsApp can show the pack card but empty boxes for
+huge stickers, so set `maxSize: 512` for those. `maxSize` is explained in the root README, section 4.
+
+Options in one go (original size + lossless is the default; these are the knobs):
+
+```ts
+await sock.sendMessage(jid, {
+    stickerPack: {
+        name: 'Hiii', publisher: 'By @teamolduser/baileys', cover, stickers,
+        maxSize: 512,         // longest side max 512 px (default: original size, `false` = original)
+        quality: 80,          // lossy WebP quality 1-100 (default: 'original' = lossless)
+        concurrency: 5        // stickers converted at once (default 15)
+    }
+})
+```
+
+Try them in `example.js`: `!stickerpack`, `!stickerpackflat`, `!stickerpackprep`, `!stickerpack2`, `!stickerpackopts`.
 
 ### Share Phone Number Message
 ```ts
@@ -1537,15 +1558,15 @@ const listMessage = generateInteractiveListMessage({
         {
             title: 'Food',
             rows: [
-                { rowId: 'nasi-goreng', title: 'Fried Rice', description: '$2.50' },
-                { rowId: 'mie-goreng', title: 'Fried Noodles', description: '$2.00' }
+                { rowId: 'nasi-goreng', title: 'Fried Rice', description: '₹2.50' },
+                { rowId: 'mie-goreng', title: 'Fried Noodles', description: '₹2.00' }
             ]
         },
         {
             title: 'Beverages',
             rows: [
-                { rowId: 'es-teh', title: 'Ice Tea', description: '$0.50' },
-                { rowId: 'kopi', title: 'Coffee', description: '$1.00' }
+                { rowId: 'es-teh', title: 'Ice Tea', description: '₹0.50' },
+                { rowId: 'kopi', title: 'Coffee', description: '₹1.00' }
             ]
         }
     ]
@@ -2006,7 +2027,7 @@ await sock.sendMessage(
             productId: '836xxx',
             title: 'Title',
             description: 'Description',
-            currencyCode: 'IDR',
+            currencyCode: 'INR',
             priceAmount1000: '283xxx',
             retailerId: '@teamolduser/baileys',
             url: 'https://example.com',
@@ -2067,7 +2088,7 @@ await sock.sendMessage(
           { 
              name: 'review_and_pay', 
              buttonParamsJson: JSON.stringify({ 
-                currency: 'IDR', 
+                currency: 'INR', 
                 payment_configuration: '', 
                 payment_type: '', 
                 total_amount: {
@@ -2201,9 +2222,9 @@ await sock.sendTable(
     'Price List',                              // title
     ['Item', 'Qty', 'Price'],                  // headers
     [
-        ['Apple',  '3', '$1.50'],
-        ['Banana', '6', '$0.90'],
-        ['Cherry', '1', '$3.00']
+        ['Apple',  '3', '₹1.50'],
+        ['Banana', '6', '₹0.90'],
+        ['Cherry', '1', '₹3.00']
     ],                                         // data rows
     null,                                      // quoted message (or null)
     { headerText: 'Here is your order summary:', footer: 'Thank you!' }
@@ -2361,7 +2382,7 @@ await sock.sendRichMessage(
                 title: 'Prices',
                 rows: [
                     { items: ['Item', 'Price'], isHeading: true },
-                    { items: ['Baileys Pro', '$49'] }
+                    { items: ['Baileys Pro', '₹49'] }
                 ]
             }
         },
@@ -2422,7 +2443,7 @@ await sock.sendRichHtml(
         html: `
             <div style="padding: 16px; font-family: sans-serif; background: #0f172a; color: #fff; border-radius: 12px;">
                 <h2 style="color: #38bdf8; margin: 0 0 8px;">🚀 Q3 Performance</h2>
-                <p style="color: #94a3b8; font-size: 14px;">Total Revenue: <b style="color: #4ade80;">$124,500</b> (+18%)</p>
+                <p style="color: #94a3b8; font-size: 14px;">Total Revenue: <b style="color: #4ade80;">₹124,500</b> (+18%)</p>
                 <div style="background: #1e293b; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: center;">
                     <span style="color: #facc15; font-weight: bold;">Conversion Rate: 4.8%</span>
                 </div>
@@ -2558,7 +2579,7 @@ await sock.sendMessage(
             productId: '836xxx',
             title: 'Title',
             description: 'Description',
-            currencyCode: 'IDR',
+            currencyCode: 'INR',
             priceAmount1000: '283xxx',
             retailerId: '@teamolduser/baileys',
             url: 'https://example.com',
@@ -2695,7 +2716,7 @@ await sock.sendMessage(
             productId: '836xxx',
             title: 'Title',
             description: 'Description',
-            currencyCode: 'IDR',
+            currencyCode: 'INR',
             priceAmount1000: '283xxx',
             retailerId: '@teamolduser/baileys',
             url: 'https://example.com',
@@ -3985,7 +4006,9 @@ guide with code is in the root `README.md` ("innovatorssoft README compatibility
 | `!resize` | `sock.resize` |
 | `!forward` | `sock.copyNForward` |
 | `!allstatuses` | `getAllStatuses()` |
-| `!templaterender` | template render by name slug |
+| `!templaterender` | custom template overriding a preset, rendered by name slug |
+| `!msgtemplate` | `list` / `render <id> k=v ...` / `create Name \| content` / `delete <id>` message templates |
+| `!defaultdisappearing` | `updateDisappearingDuration(24 \| 7 \| 30 \| 90 \| 0 \| seconds)` |
 
 ## Acknowledgements
 

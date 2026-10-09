@@ -45,6 +45,7 @@
  *   mex-linked-profiles → src/Socket/messages-recv.ts
  *   past-participants   → src/Utils/history.ts + src/Utils/event-buffer.ts
  *   privacy-tokens      → src/Socket/messages-send.ts
+ *   stickerpack         → src/addons/from-messages.ts (buildStickerPackMessage)
  */
 
 // ── Image processing library loader (sharp → @napi-rs/image → jimp, cached) ──
@@ -90,6 +91,7 @@ export * from './message-utils'
 
 // ── Message Composer (Rich / Bot / Meta AI messages) ──────────────────────
 export * from './message-composer'
+export * from './disappearing'
 export * from './raw-message'
 export * from './resize-image'
 
@@ -170,7 +172,7 @@ export {
 // ── Chat History Helpers (getLastMessageInChat / getOldestMessageInChat / copyNForward) ──
 export * from './chat-history-helpers'
 
-// ── Sticker Pack (prepareStickerPackMessage) ──
+// ── Sticker Pack (PR shell + alternate full builder + convertToWebP) ──
 export * from './stickerpack'
 
 // ── Jimp Profile-Picture Generators + Setters (full/panoramic + square) ────

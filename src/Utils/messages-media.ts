@@ -462,7 +462,7 @@ type EncryptedStreamOptions = {
 	saveOriginalFileIfRequired?: boolean
 	logger?: ILogger
 	opts?: RequestInit
-	/** Optional mediaKey to reuse */
+	/** Optional mediaKey to reuse (required for sticker pack thumbnail to match ZIP encryption) */
 	mediaKey?: Buffer | Uint8Array
 }
 

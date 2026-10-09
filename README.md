@@ -15,7 +15,7 @@
       <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge"/>
    </a>
    <a href="https://nodejs.org">
-      <img src="https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&labelColor=green&logoColor=white&style=for-the-badge"/>
+      <img src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&labelColor=green&logoColor=white&style=for-the-badge"/>
    </a>
    <a href="#">
       <img src="https://img.shields.io/badge/ESM-only?logo=javascript&labelColor=yellow&logoColor=black&style=for-the-badge"/>
@@ -762,7 +762,7 @@ sock.sendMessage(jid, {
    body: '👋🏻 Check my product here!',
    footer: '@teamolduser/baileys',
    product: {
-      currencyCode: 'IDR',
+      currencyCode: 'INR',
       description: '🛍️ Interesting product!',
       priceAmount1000: 70_000_000,
       productId: randomUUID(),
@@ -1147,9 +1147,11 @@ sock.sendMessage(jid, {
 
 > [!IMPORTANT]
 > **No limits**: any number of stickers (100+ works) and no size cap (25MB+ packs work). Media keeps its **original size and
-> quality**: WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at original size, quality 100
-> (needs `sharp` or `@napi-rs/image`; `ffmpeg` for video). If neither library is installed, `cover` and `stickers` must
-> already be WebP.
+> quality**. `sharp` and `@napi-rs/image` are both installed automatically with this package and convert non-WebP media (`sharp` first,
+> `@napi-rs/image` as the fallback) - already-WebP media never needs a converter; if neither can load on your platform, `cover` and
+> `stickers` must already be WebP. Lottie (`.was` / raw Lottie JSON) stickers are kept as Lottie.
+> WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at the original size and original quality (lossless; optional `maxSize` /
+> `quality` / `concurrency`, Lottie stickers and the other builders: [Sticker Packs](#4-sticker-packs)).
 
 ```javascript
 sock.sendMessage(jid, {
@@ -1161,8 +1163,10 @@ sock.sendMessage(jid, {
          url: './path/to/image.webp'
       },
       emojis: ['😀'], // optional (default ['✨'])
-      accessibilityLabel: 'Smile' // optional
-      // `sticker: {...}` also works as an alias of `data` (animated WebP is auto-detected)
+      accessibilityLabel: 'Smile', // optional
+      // `sticker: {...}` also works as an alias of `data`
+      isAnimated: false, // optional (auto-detected)
+      isLottie: false // optional (auto-detected, Lottie `.was` / raw Lottie JSON)
    }, {
       data: {
          url: './path/to/image.webp'
@@ -1174,8 +1178,11 @@ sock.sendMessage(jid, {
    }],
    name: '📦 @teamolduser/baileys Sticker Pack System',
    publisher: '🌟 @teamolduser/baileys Publisher System',
-   description: '🏷️ @teamolduser/baileys Description System'
-   // packId: 'my-pack-001' // optional (random if omitted)
+   description: '🏷️ @teamolduser/baileys Description System',
+   // packId: 'my-pack-001', // optional (random if omitted)
+   // concurrency: 10, // optional: stickers converted at once (default 15)
+   // maxSize: 512, // optional: longest side in px for converted stickers (default: original size)
+   // quality: 'original' // optional: 'original' (default, lossless) or 1-100 (lossy, smaller files)
 }, {
    quoted: message
 })
@@ -1196,6 +1203,7 @@ const pack = {
    stickers: [{ data: { url: './path/to/image.webp' } }],
    name: '📦 @teamolduser/baileys Sticker Pack System',
    publisher: '🌟 @teamolduser/baileys Publisher System'
+   // concurrency / maxSize / quality work here too
 }
 
 // prepare + relay
@@ -1454,8 +1462,8 @@ sock.sendMessage(jid, {
 sock.sendMessage(jid, {
    payment: {
       note: 'Payment for services',
-      currency: 'USD',
-      amount: 100, // smallest currency unit — 100 = $1.00
+      currency: 'INR', // optional - defaults to 'INR'
+      amount: 100, // smallest currency unit — 100 = ₹1.00 (paise)
       expiry: Date.now() + 86400000
    }
 })
@@ -2180,7 +2188,7 @@ const product = await sock.productCreate({
    name: '🧩 Store (Premium)',
    description: 'Get a full version of Starseed!',
    price: 100000,
-   currency: 'IDR',
+   currency: 'INR',
    originCountryCode: 'ID',
    images: [
       bufferImage,
@@ -2196,7 +2204,7 @@ await sock.productUpdate(productId, {
    name: '🧩 Store (Premium)',
    description: 'Get a full version of Starseed with more features!',
    price: 75000,
-   currency: 'IDR',
+   currency: 'INR',
    images: [
       {
          url: './path/to/image.jpg'
@@ -2292,8 +2300,11 @@ sock.updateMessagesPrivacy('nobody')
 // --- Update call privacy
 sock.updateCallPrivacy('everyone')
 
-// --- Update default disappearing mode
+// --- Update default disappearing mode (seconds, or a shorthand: 24 / 1 = 24h, 7 = 7 days, 30 = 30 days, 90 = 90 days, 0 = off)
 sock.updateDefaultDisappearingMode(86400)
+sock.updateDefaultDisappearing(7)        // alias → 7 days (604800 s)
+sock.updateDisappearingDuration('30')    // alias → 30 days (2592000 s), numeric strings work too
+sock.updateDisappearingDuration(0)       // off
 
 // --- Update link previews privacy
 sock.updateDisableLinkPreviewsPrivacy(true)
@@ -2382,8 +2393,8 @@ await sock.sendTable(
 	'Price List',
 	['Item', 'Qty', 'Price'],
 	[
-		['Apple', '3', '$1.50'],
-		['Banana', '6', '$0.90']
+		['Apple', '3', '₹1.50'],
+		['Banana', '6', '₹0.90']
 	]
 )
 
@@ -2547,6 +2558,221 @@ await sock.sendMessage(jid, {
 Implementation: `src/Utils/messages.ts`, `cards` content-type
 dispatch, including the fix for carousel messages not sending their
 required `biz` binary node.
+
+---
+
+### 4. Sticker Packs
+
+Two implementations are available — pick whichever fits your workflow:
+
+### A. Raw proto builder (upstream-PR-based, `from-messages.ts`)
+
+Full pipeline (WebP conversion incl. Lottie/WAS animated stickers, ZIP,
+encrypt, upload) built into `sock.sendMessage`:
+
+```ts
+await sock.sendMessage(jid, {
+	stickerPack: {
+		name: '📦 @teamolduser/baileys Sticker Pack System',
+		publisher: '🌟 @teamolduser/baileys Publisher System',
+		stickers: [
+			{ data: fs.readFileSync('./sticker1.png') },
+			{ data: 'https://example.com/sticker2.webp', emojis: ['😀'] }
+		],
+		cover: fs.readFileSync('./cover.png')
+	}
+})
+```
+
+**Media handling (both builders)** - WebP stickers are used at their **original size and quality**
+(the innovatorssoft way) and non-WebP media is converted to WebP automatically (the itsliaaa way):
+
+| Input | Result |
+| --- | --- |
+| WebP (static or animated) | used as-is - bytes untouched (size, quality, EXIF, animation kept) |
+| PNG / JPG / GIF / ... | converted to WebP at the **original size** and **original quality** (lossless, never lowered automatically). Set `maxSize` (e.g. `512`, WhatsApp's own sticker size) to scale the longest side **down** - smaller images are never upscaled. `quality: 1-100` switches to lossy WebP (smaller files). Animated GIFs stay animated |
+| Video (mp4 / webm / mkv) | animated WebP via `ffmpeg` (`ffmpeg-static` or a system `ffmpeg`), original fps, lossless by default (`quality` for lossy), scaled down like images when `maxSize` is set, first 10s |
+| Lottie (`.was` / raw Lottie JSON) | kept as Lottie (`sendMessage({ stickerPack })` builder only) |
+
+The converter uses `sharp` and falls back to `@napi-rs/image` (both regular dependencies, installed automatically);
+if neither can load on your platform you get a clear error (or pass WebP directly). Sticker media goes in `data`; `sticker` works as an alias (the field name used by
+`@innovatorssoft/baileys`), and `packId` is honoured by both builders.
+
+There is **no sticker-count limit and no per-sticker or total size cap** - packs with more than 60 stickers and
+stickers/packs of 10MB and more are sent as they are (quality is never lowered). Stickers are processed in
+batches of 15 concurrently by default; at least 1 sticker and a cover are still required.
+
+**Size / quality of converted stickers.** Images that have to be converted (PNG/JPG/GIF/video) keep their **original size**
+and **original quality** (lossless WebP) by default (no cap, never upscaled; files can be big). Big images such as phone screenshots (e.g. 1080x2400) can make WhatsApp
+show the pack card and cover fine but the stickers inside as empty grey boxes - for those set `maxSize` (stickers made with
+WhatsApp's own "create sticker" are 512x512). `quality` is `'original'` by default (lossless); give a number 1-100 only if you
+want smaller lossy files.
+
+```ts
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers } })                     // default: original size, quality: 'original' (lossless)
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 512 } })       // longest side max 512 px
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, quality: 'original' } })  // same as the default: lossless
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, quality: 80 } })         // lossy WebP quality 80 (smaller files)
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, concurrency: 5 } })     // 5 stickers converted at once (default 15)
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 512, quality: 80, concurrency: 5 } }) // all together
+await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: false } })     // same as the default: original size
+```
+
+`maxSize` and `quality` only apply to stickers that are converted - WebP you pass in is never touched. The tray icon
+inside the pack always stays at its original size and quality (`maxSize` / `quality` don't touch it); the cover picture on the card comes from a separate 252x252 thumbnail.
+Sticker file names inside the zip use the same scheme as `@itsliaaa/baileys` (base64 with `/` -> `-`).
+
+**Memory / speed knob:** set `concurrency` to change how many stickers are converted at the same time -
+lower it on low-RAM hosts (phone / Termux, big GIF or video packs), raise it on a strong server. Works the same in
+`sock.sendMessage(jid, { stickerPack })`, the flat style, `prepareStickerPackMessage` and `sock.sendStickerPack`:
+
+```ts
+await sock.sendMessage(jid, {
+	stickerPack: { name: 'My pack', publisher: 'Me', cover, stickers, concurrency: 10 } // default 15
+})
+await sock.sendStickerPack(jid, { cover, stickers, concurrency: 5 })
+```
+
+Rough peak RAM while converting is `concurrency x (width x height x 4 bytes x frames x ~2)` per batch, so `10` uses
+about two thirds of what `15` does; already-WebP stickers are not converted and barely count. Invalid values
+(0, negative, NaN, text) fall back to 15, decimals are rounded down. It only affects speed and memory - never the
+number of stickers in the pack or their order. A random `packId` is generated automatically
+if you don't supply one — pass `packId: generateStickerPackId()` yourself
+if you need to know it ahead of time (e.g. to reference the pack elsewhere
+before sending).
+
+**Options reference** (same names in all four ways):
+
+| Pack option | Default | What it does |
+| --- | --- | --- |
+| `cover` | required | tray icon / card cover - always kept at its original size and quality |
+| `stickers` | required (1+) | list of stickers, no count limit |
+| `name` / `publisher` / `description` | `'📦 Sticker Pack'` / `'@teamolduser/baileys'` / - | pack metadata |
+| `packId` | random | fixed pack id (`generateStickerPackId()` makes one) |
+| `concurrency` | `15` | stickers converted at the same time (lower = less RAM) |
+| `maxSize` | `false` (original size) | longest side in px for converted stickers, never upscaled (e.g. `512`) |
+| `quality` | `'original'` (lossless) | `'original'` or a number `1-100` (lossy WebP, smaller files) |
+
+| Sticker option | Default | What it does |
+| --- | --- | --- |
+| `data` (alias `sticker`) | required | Buffer / `{ url }` / stream / path |
+| `emojis` | `['✨']` | emoji tags |
+| `accessibilityLabel` | - | accessibility text |
+| `isAnimated` | auto-detected | force animated / static |
+| `isLottie` | auto-detected | force Lottie (`.was` / raw Lottie JSON) |
+
+```ts
+await sock.sendMessage(jid, {
+	stickerPack: {
+		name: 'My pack',
+		publisher: 'Me',
+		cover,
+		stickers: [
+			{ data: fs.readFileSync('./a.png'), emojis: ['😀'], accessibilityLabel: 'Smile' },
+			{ sticker: { url: './b.webp' } },                                   // `sticker` = alias of `data`
+			{ data: fs.readFileSync('./c.json'), isLottie: true }               // Lottie sticker (raw JSON -> .was)
+		],
+		maxSize: 512,          // optional, default: original size
+		quality: 'original',   // optional, default 'original' (lossless) - or 1-100
+		concurrency: 10        // optional, default 15
+	}
+})
+```
+
+### B. Alternate builder (standalone, returns a ready-to-send message)
+
+A second, independent sticker-pack builder — use whichever produces
+the result you need; both are fully supported.
+
+```ts
+import { prepareStickerPackMessage } from '@teamolduser/baileys'
+
+const stickerPackMessage = await prepareStickerPackMessage(
+	{
+		cover: coverBuffer,
+		stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
+		name: '📦 @teamolduser/baileys Sticker Pack System',
+		publisher: '🌟 @teamolduser/baileys Publisher System'
+	},
+	{
+		upload: sock.waUploadToServer, // required
+		mediaCache: myOptionalCache, // optional — caches by sticker URLs + pack settings
+		mediaUploadTimeoutMs: 60_000 // optional
+	}
+)
+
+await sock.relayMessage(jid, { stickerPackMessage }, {})
+```
+
+Or use the dedicated socket method, which does the same thing in one call:
+
+```ts
+await sock.sendStickerPack(jid, {
+	cover: coverBuffer,
+	stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
+	name: '📦 @teamolduser/baileys Sticker Pack System',
+	publisher: '🌟 @teamolduser/baileys Publisher System',
+	maxSize: 512, // optional (default: original size)
+	quality: 'original', // optional (default 'original' = lossless, or 1-100)
+	concurrency: 10 // optional (default 15)
+}, { mediaCache: myOptionalCache }) // 3rd argument: optional mediaCache / mediaUploadTimeoutMs
+```
+
+Need just a sticker (not a pack)? `convertToWebP` converts any Buffer / URL / stream to a WebP sticker at original size and quality:
+
+```ts
+import { convertToWebP } from '@teamolduser/baileys'
+const { buffer, isAnimated } = await convertToWebP({ url: './pic.png' })
+```
+
+#### All four ways at a glance
+
+Same media rules everywhere (WebP untouched, non-WebP converted at the original size and original (lossless) quality unless `maxSize` / `quality` are set, no sticker-count or file-size limit), same optional
+`packId`, `concurrency`, `maxSize` and `quality` (you can leave them out). Sticker media goes in `data` (`sticker` is accepted as an alias).
+
+```ts
+const stickers = [
+	{ data: fs.readFileSync('./a.webp'), emojis: ['😀'] },
+	{ data: fs.readFileSync('./b.png') },                      // converted to WebP automatically
+	{ data: { url: 'https://example.com/c.gif' } }
+]
+const cover = fs.readFileSync('./cover.png')
+const meta = { name: 'My pack', publisher: 'Me', description: 'Hello' }
+// optional extras for `meta`: packId: 'my-pack-001', concurrency: 10 (stickers converted at once, default 15),
+//                            maxSize: 512 (default: original size), quality: 'original' (default, lossless) or 1-100
+
+// 1) nested style (also supports Lottie stickers)
+await sock.sendMessage(jid, { stickerPack: { ...meta, cover, stickers } })
+
+// 2) flat style - same builder as 1)
+await sock.sendMessage(jid, { ...meta, cover, stickers })
+
+// 3) prepare + relay - alternate builder, you get the message object first
+import { prepareStickerPackMessage } from '@teamolduser/baileys'
+const stickerPackMessage = await prepareStickerPackMessage(
+	{ ...meta, cover, stickers },
+	{ upload: sock.waUploadToServer, mediaUploadTimeoutMs: 120_000 } // `logger` and `mediaCache` are optional too
+)
+await sock.relayMessage(jid, { stickerPackMessage }, {})
+
+// 4) the same as 3) in one call
+await sock.sendStickerPack(jid, { ...meta, cover, stickers })
+```
+
+Runnable versions of all four: `assets/examples/example.js` (`!stickerpack`, `!stickerpackflat`, `!stickerpackprep`,
+`!stickerpack2`).
+
+### Standalone WebP converter
+
+```ts
+import { convertToWebP } from '@teamolduser/baileys'
+
+const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
+// or: await convertToWebP(fs.readFileSync('./sticker.jpg'))
+```
+
+Implementation: shell/proto from `Baileys-feat-add-stickerpack-support`
+(a real upstream PR); `convertToWebP` and the safety limits above.
 
 ---
 
@@ -2733,30 +2959,81 @@ and font IDs verified byte-identical.
 
 ### 12. Message Templates
 
+Reusable text templates with `{{variable}}` placeholders. A placeholder can carry a default: `{{variable:default}}`.
+
 ```ts
 import { createTemplateManager, renderTemplate, PRESET_TEMPLATES } from '@teamolduser/baileys'
 
-const templates = createTemplateManager(true) // true = load built-in presets
+const templates = createTemplateManager(true) // true = load the built-in presets (false = empty manager)
 
+// render a built-in preset by id
 const invoiceText = templates.render('invoice', {
 	invoiceNumber: 'INV-111',
 	customerName: 'John Doe',
 	invoiceDate: '2026-01-15',
 	dueDate: 'on receipt',
-	items: '1x Widget - $10',
-	subtotal: '$10',
-	total: '$10'
+	items: '1x Widget - ₹10',
+	subtotal: '₹10',
+	total: '₹10'
 })
+await sock.sendMessage(jid, { text: invoiceText })
 
-// Quick one-off render without a manager:
+// quick one-off render without a manager
 const quick = renderTemplate('Hi {{name}}, your order #{{orderId}} is {{status:processing}}', {
 	name: 'Alice',
 	orderId: '123'
-})
+}) // → 'Hi Alice, your order #123 is processing'
 ```
 
-Built-in presets: `ORDER_CONFIRMATION`, `WELCOME`, `REMINDER`,
-`SUPPORT_TICKET`, `BIRTHDAY`, `INVOICE`.
+**Built-in presets**
+
+| id | name | category | variables (`?` = has a default) |
+| --- | --- | --- | --- |
+| `order_confirmation` | Order Confirmation | `order` | `orderId`, `customerName`, `orderDate`, `items`, `total` |
+| `welcome` | Welcome Message | `greeting` | `name`, `companyName?` |
+| `reminder` | Reminder | `notification` | `name`, `subject`, `date`, `time`, `location?` |
+| `support_ticket` | Support Ticket | `support` | `ticketId`, `subject`, `name`, `responseTime?` |
+| `birthday` | Birthday Wishes | `greeting` | `name`, `code`, `discount?` |
+| `invoice` | Invoice | `invoice` | `invoiceNumber`, `customerName`, `invoiceDate`, `dueDate?`, `items`, `subtotal`, `total` |
+
+The same data is available as `PRESET_TEMPLATES` (`ORDER_CONFIRMATION`, `WELCOME`, `REMINDER`, `SUPPORT_TICKET`, `BIRTHDAY`, `INVOICE`);
+list the ids with `templates.getAll().map(t => t.id)`.
+
+**Your own templates**
+
+```ts
+const promo = templates.create({
+	name: 'Promo Message',                 // required
+	content: 'Hello {{name}}! Use code {{code}} for {{discount:10}}% off.', // required
+	category: 'marketing',                 // optional
+	description: 'Weekly promo',           // optional
+	id: 'promo'                            // optional - generated (`tpl_...`) when omitted
+})
+
+templates.render('promo', { name: 'Budi', code: 'SAVE' })          // by id
+templates.render('Promo Message', { name: 'Budi', code: 'SAVE' })  // by exact name
+templates.render('promo_message', { name: 'Budi', code: 'SAVE' })  // by name slug (lower-case, spaces → `_`)
+
+templates.validate('promo', { name: 'Budi' }) // → { valid: false, missing: ['code'] }  (variables with a default are optional)
+
+templates.get('promo')                // template by id
+templates.getByName('Promo Message')  // template by exact name
+templates.getAll()                    // every template
+templates.getByCategory('marketing')  // templates of one category
+templates.update('promo', { content: 'Hi {{name}}!' }) // variables are re-detected
+templates.delete('promo')
+
+// persist / restore
+const json = templates.export()
+templates.import(json, /* overwrite */ false) // returns how many templates were imported
+```
+
+Lookup order for `render` / `validate`: **id first**, then exact name / name slug. When several templates share a name, the most
+recently added one wins - so a template you create called `Welcome Message` is used for `render('welcome_message')` instead of the
+built-in `welcome` preset (which can still be rendered with `render('welcome')`). A missing template throws `Template not found: <id>`.
+
+Try it in `assets/examples/example.js`: `!msgtemplate list`, `!msgtemplate render invoice invoiceNumber=INV-1 ...`,
+`!msgtemplate create Name | Hello {{name}}`, `!msgtemplate delete <id>`, `!templaterender`.
 
 Implementation: `src/addons/templates.ts`.
 
@@ -3130,6 +3407,22 @@ These are core-file patches, not addons — no import needed, they just work:
   original LID. A LID with no known PN mapping is reported as not
   existing rather than guessed at. Uses the helpers in
   [`src/addons/lid-support.ts`](src/addons/lid-support.ts).
+- **`sock.sendStickerPack()`** — a dedicated method for the alternate
+  sticker-pack builder (`prepareStickerPackMessage`,
+  [`src/addons/stickerpack.ts`](src/addons/stickerpack.ts)). This builder
+  is a separate implementation from the one
+  `sock.sendMessage(jid, { stickerPack: {...} })` already uses
+  internally; both remain available, and `sendStickerPack` gives the
+  alternate one a normal `sock.*` call instead of requiring
+  `sock.relayMessage()` directly:
+  ```ts
+  await sock.sendStickerPack(jid, {
+     cover: coverBuffer,
+     stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
+     name: '📦 @teamolduser/baileys Sticker Pack System',
+     publisher: '🌟 @teamolduser/baileys Publisher System'
+  })
+  ```
 - **Dual content/options flags** — `groupStatus`, `isLottie`, `spoiler`,
   `secureMetaServiceLabel`, `ai`, and `ephemeral` can each be set either
   as a content-level property or as an options-level property —
@@ -4208,7 +4501,7 @@ await sock.sendMessage(jid, {
   interactiveButtons: [{
     name: 'review_and_pay',
     buttonParamsJson: JSON.stringify({
-      currency: 'IDR',
+      currency: 'INR',
       total_amount: { value: '100000', offset: '100' },
       reference_id: 'REF123',
       type: 'physical-goods',
@@ -4276,7 +4569,7 @@ const list = generateInteractiveListMessage({
   buttonText: 'Open Menu',
   description: 'Select an item',
   footer: 'Bot',
-  sections: [{ title: 'Food', rows: [{ rowId: 'rice', title: 'Rice', description: '$2' }] }]
+  sections: [{ title: 'Food', rows: [{ rowId: 'rice', title: 'Rice', description: '₹2' }] }]
 })
 await sock.sendMessage(jid, list.listMessage)
 ```
@@ -4692,7 +4985,7 @@ await sock.sendMessage(jid, {
 await sock.sendMessage(jid, {
     payment: {
         note: 'Hi!',
-        currency: 'IDR',             // default 'IDR'
+        currency: 'INR',             // default 'INR'
         amount: '10000',             // number or numeric string, in the currency's smallest unit
         offset: 100,                 // optional, default 100 (0 / unset = 100)
         expiry: 0,                   // optional
@@ -4706,7 +4999,11 @@ await sock.sendMessage(jid, {
 })
 ```
 
-> `amount` is interpreted in the currency's smallest unit (offset 100), so `'10000'` is shown as `100.00`.
+> `amount` is interpreted in the currency's smallest unit (offset 100, paise for INR), so `'10000'` is shown as `₹100.00` - use `'1000000'` for `₹10,000.00`. The default currency is `INR`.
+
+> **Default currency is `INR` everywhere**: `payment`, `requestPaymentFrom`, `orderText` / `order` (`totalCurrencyCode`),
+> `product` messages (`currencyCode`, also when the product is a shop / interactive header), `interactivePAY` and
+> `sock.productCreate({ ... })` (`currency`). Pass any other ISO code (e.g. `'USD'`) to override it. `productUpdate` leaves the currency unchanged unless you pass one.
 
 ### Shop / Collection with location or product header
 
@@ -4715,7 +5012,7 @@ await sock.sendMessage(jid, {
 ```ts
 await sock.sendMessage(jid, {
     product: { productImage: { url }, productId: '836xxx', title: 'Title', description: 'Description',
-               currencyCode: 'IDR', priceAmount1000: '283000', retailerId: 'shop', url: 'https://example.com', productImageCount: 1 },
+               currencyCode: 'INR', priceAmount1000: '283000', retailerId: 'shop', url: 'https://example.com', productImageCount: 1 },
     businessOwnerJid: '628xxx@s.whatsapp.net',
     caption: 'Body', title: 'Title', subtitle: 'Subtitle', footer: 'Footer',
     shop: { surface: 1, id: 'https://example.com' },
@@ -4790,9 +5087,13 @@ const all = pm.getAllStatuses()
 const { state, saveState } = await useSingleFileAuthState('./auth.json')
 sock.ev.on('creds.update', saveState)
 
-// templates: render by id, by exact name or by name slug (an id match wins, e.g. the built-in preset ids)
+// templates: render by id, by exact name or by name slug (an id match wins; your own templates win over presets) - see §12
 templates.create({ name: 'Promo Message', content: 'Hello {{name}}!', category: 'marketing' })
 templates.render('promo_message', { name: 'Budi' })
+
+// default disappearing timer: `updateDefaultDisappearingMode` has two aliases and takes shorthands
+// 24 / 1 = 24h · 7 = 7 days · 30 = 30 days · 90 = 90 days · 0 = off · any other number = seconds
+await sock.updateDisappearingDuration(7)    // = updateDefaultDisappearing(7) = updateDefaultDisappearingMode(604800)
 
 // incoming calls: options may be the 2nd argument (ringing call.incoming sessions only)
 await sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false })
@@ -4816,14 +5117,16 @@ await sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false }
 | `!resize` | `sock.resize` |
 | `!forward` | `sock.copyNForward` |
 | `!allstatuses` | `getAllStatuses()` of the presence tracker |
-| `!templaterender` | template render by slug |
+| `!templaterender` | custom template overriding a preset, rendered by name slug |
+| `!msgtemplate` | `list` / `render <id> k=v ...` / `create Name \| content` / `delete <id>` message templates |
+| `!defaultdisappearing` | `updateDisappearingDuration(24 \| 7 \| 30 \| 90 \| 0 \| seconds)` |
 
 # About This Fork (@teamolduser/baileys)
 
 This is an extended fork of the original open-source Baileys library, adding
 35+ addon modules (rich responses, interactive buttons, scheduling, status
 posting, call handling, extra auth-state backends, and more), a WhatsApp
-username API, album send, and other fork-exclusive features
+username API, album send, sticker packs, and other fork-exclusive features
 documented in [@teamolduser/baileys Fork-Exclusive Features — Usage Guide](#fork-exclusive-features--usage-guide)
 above.
 
@@ -4841,7 +5144,7 @@ above.
   (`type: 'preview'` → `'fullsize'`) that likely caused WhatsApp's server
   to reject/ignore the wide banner image.
 - **`sharp` / `@napi-rs/image`**: both are now regular dependencies (installed automatically, like
-  `@innovatorssoft/baileys`), so image-to-WebP sticker conversion works out of the box instead of failing with
+  `@innovatorssoft/baileys`), so sticker-pack conversion works out of the box instead of failing with
   "No image processing library ... available".
 - **Single-file auth atomic write**: `useSingleFileAuthState` now writes
   to a `.temp` file first and atomically renames it — prevents partial/corrupt

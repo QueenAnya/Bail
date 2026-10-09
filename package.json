@@ -76,7 +76,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^10.0.1",
-    "@types/better-sqlite3": "^7.6.9",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.9.0",

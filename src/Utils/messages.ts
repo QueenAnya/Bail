@@ -8,6 +8,7 @@ import {
 	buildCallMessage,
 	buildPaymentInviteMessage,
 	buildPaymentMessage,
+	buildStickerPackMessage,
 	isWebPBuffer,
 	sharpToStickerWebp
 } from '../addons/from-messages'
@@ -21,7 +22,6 @@ import {
 	resolveButtonText
 } from '../addons/native-flow-interactive'
 import { buildRawMessageContent } from '../addons/raw-message'
-import { prepareStickerPackMessage } from '../addons/stickerpack'
 import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
 import {
 	CALL_AUDIO_PREFIX,
@@ -199,7 +199,7 @@ export const prepareWAMessageMedia = async (
 		}
 	}
 
-	// ── sticker → auto-convert non-WebP images to WebP ──
+	// ── sticker → auto-convert non-WebP images to WebP (matches stickerPack behavior) ──
 	// Runs only past the cache-hit check above, so a cache hit never pays this cost.
 	if (mediaType === 'sticker') {
 		const { stream } = await getStream(uploadData.media)
@@ -215,7 +215,7 @@ export const prepareWAMessageMedia = async (
 		} else {
 			const lib = await getImageProcessingLibrary()
 			if (lib?.sharp) {
-				uploadData.media = await sharpToStickerWebp(lib.sharp.default, buffer) // original size, quality 100 (never lowered), GIF stays animated
+				uploadData.media = await sharpToStickerWebp(lib.sharp.default, buffer) // original size + original quality (lossless, never lowered), GIF stays animated
 			} else if (lib?.image) {
 				uploadData.media = await new lib.image.Transformer(buffer).webp()
 			} else {
@@ -668,6 +668,8 @@ export const generateWAMessageContent = async (
 			...message,
 			product: {
 				...message.product,
+				// currency defaults to INR when omitted
+				currencyCode: message.product.currencyCode ?? 'INR',
 				productImage: imageMessage
 			}
 		})
@@ -830,7 +832,12 @@ export const generateWAMessageContent = async (
 		)
 	} else if ('order' in message && !!(message as any).order) {
 		// order → OrderMessage (from addons)
-		m.orderMessage = WAProto.Message.OrderMessage.fromObject((message as any).order)
+		const orderOpts = (message as any).order
+		// currency defaults to INR when omitted
+		m.orderMessage = WAProto.Message.OrderMessage.fromObject({
+			...orderOpts,
+			totalCurrencyCode: orderOpts.totalCurrencyCode ?? 'INR'
+		})
 	} else if ('keep' in message && !!(message as any).keep) {
 		// keep → KeepInChatMessage (from addons)
 		const k = (message as any).keep
@@ -867,7 +874,7 @@ export const generateWAMessageContent = async (
 		m.requestPaymentMessage = {
 			requestFrom: opts.requestPaymentFrom,
 			background: { placeholderArgb: 0, textArgb: 0, subtextArgb: 0 },
-			currencyCodeIso4217: opts.currencyCodeIso4217 ?? 'IDR',
+			currencyCodeIso4217: opts.currencyCodeIso4217 ?? 'INR',
 			amount1000: opts.amount1000 ?? 0
 		}
 	} else if (hasNonNullishProperty(message, 'orderText')) {
@@ -884,7 +891,7 @@ export const generateWAMessageContent = async (
 			sellerJid: options.jid ?? '',
 			token: generateMessageIDV2(),
 			totalAmount1000: 0,
-			totalCurrencyCode: opts.currency ?? 'IDR'
+			totalCurrencyCode: opts.currency ?? 'INR'
 		}
 	} else if (hasNonNullishProperty(message, 'album')) {
 		m.albumMessage = {
@@ -935,11 +942,16 @@ export const generateWAMessageContent = async (
 		// buttons / templateButtons / nativeFlow / interactiveButtons can use it as their
 		// header. Skipping it silently dropped the image/video/document.
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// nested style — sock.sendMessage(jid, { stickerPack: { cover, stickers, ... } })
-		m.stickerPackMessage = await prepareStickerPackMessage((message as any).stickerPack, options)
-	} else if (hasNonNullishProperty(message, 'stickers')) {
+		// nested style — addons/from-messages.ts → buildStickerPackMessage
+		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
+	} else if ('stickers' in message && !!(message as any).stickers && 'cover' in message) {
+		// flat, top-level style — same builder, different entry point
 		// sock.sendMessage(jid, { cover, stickers: [{ data }], name, publisher, description })
-		m.stickerPackMessage = await prepareStickerPackMessage(message as any, options)
+		const { cover, stickers, name, publisher, description, packId, concurrency, maxSize, quality } = message as any
+		m.stickerPackMessage = await buildStickerPackMessage(
+			{ cover, stickers, name, publisher, description, packId, concurrency, maxSize, quality },
+			options
+		)
 	} else if ('code' in message || 'table' in message || 'links' in message || 'richResponse' in message) {
 		// sock.sendMessage(jid, { richResponse: { text, code, language, ... } })
 		// or the flat shorthand: { code, table, links, headerText, contentText, footerText, ... }
@@ -1308,7 +1320,9 @@ export const generateWAMessageContent = async (
 						{ image: normalizeMedia(product.productImage)! },
 						options
 					)
-					;(header as any).productMessage = { product: { ...product, productImage: imageMessage } }
+					;(header as any).productMessage = {
+						product: { ...product, currencyCode: (product as any).currencyCode ?? 'INR', productImage: imageMessage }
+					}
 				} else if (image) {
 					const prepared = await prepareWAMessageMedia({ image: normalizeMedia(image)! }, options)
 					if (prepared.imageMessage) prepared.imageMessage.viewOnce = true

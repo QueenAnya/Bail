@@ -306,6 +306,7 @@ export const makeBusinessSocket = (config: SocketConfig) => {
 	const productCreate = async (create: ProductCreate) => {
 		// ensure isHidden is defined
 		create.isHidden = !!create.isHidden
+		create.currency = create.currency ?? 'INR'
 		create = await uploadingNecessaryImagesOfProduct(create, waUploadToServer)
 		const createNode = toProductNode(undefined, create)
 

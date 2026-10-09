@@ -49,6 +49,7 @@ further down).
 | `lid-support.ts`                                                                      | `onWhatsApp()` LID JID support                                                                                                                                                                                                                                                                                                           | `Baileys-fix-on-whatsapp-lid-support` (real PR branch)                                                                                                                                                            | ✅ `withLIDProtocol()`/`isLidUser` match                                                                                                                                                                                |
 | `outgoing-calls.ts`                                                                   | `initiateCall()`/`cancelCall()`/etc. (outgoing-only subset; see `call-handler.ts` for the full another upstream fork version)                                                                                                                                                                                                            | `Baileys-feature-outgoing-calls` (real PR branch)                                                                                                                                                                 | ✅ verified                                                                                                                                                                                                             |
 | `past-participants.ts`                                                                | `processPastParticipants()` — history-sync past group members                                                                                                                                                                                                                                                                            | `Baileys-pastParticepnts` (real PR branch)                                                                                                                                                                        | ✅ `pastParticipants`/`authorPn` fields match                                                                                                                                                                           |
+| `stickerpack.ts`                                                                      | `Sticker`/`StickerPack` types, `buildStickerPackProto()` — real full implementation lives in `from-messages.ts`'s `buildStickerPackMessage()` (WebP conversion, Lottie/WAS animated-sticker support beyond what any fork has, ZIP+encrypt+upload, tray icon + thumbnail, no sticker-count or per-sticker size limits, 15-way concurrency batching) | `Baileys-feat-add-stickerpack-support` (real PR branch) + safety limits ported from an upstream fork                                                                                                              | ✅ verified — F_merge's implementation exceeds the upstream fork's (adds Lottie/WAS support an upstream fork lacks); this session added the upstream fork's missing count/size/concurrency limits                       |
 | `jid-plot.ts`                                                                         | Separate, smaller JID-plotting variant                                                                                                                                                                                                                                                                                                   | Unverified — no match found in either fork or any supplied PR                                                                                                                                                     | ❌                                                                                                                                                                                                                      |
 | `message-scheduler.ts`                                                                | Alternate scheduler implementation                                                                                                                                                                                                                                                                                                       | Unverified — no match found in either fork                                                                                                                                                                        | ❌                                                                                                                                                                                                                      |
 | `from-chats.ts`, `from-messages.ts`, `from-messages-recv.ts`, `from-messages-send.ts` | Baseline re-exports adapted from this fork's own `Socket`/`Utils` files                                                                                                                                                                                                                                                                  | WhiskeySockets/Baileys (this fork's own source, not a third-party fork)                                                                                                                                           | —                                                                                                                                                                                                                       |
@@ -319,6 +320,17 @@ item-by-item, checking real code (not just presence) against F_merge:
   entire real `lib/` (not just the files checked before): **0 matches**.
   Confirmed against an upstream fork too: only `isWebPBuffer`/`isAnimatedWebP`
   match (2/7) — already documented, no change needed.
+- **`stickerpack.ts`** — added `convertToWebP(input)`, extracted from
+  the upstream fork's inline sticker-pack conversion logic (previously only
+  present inline inside `from-messages.ts`'s `buildStickerPackMessage`,
+  not exposed as a standalone reusable function here). Accepts a Buffer,
+  URL string, or Stream; passes through untouched if already WebP;
+  otherwise converts via the sharp → @napi-rs/image fallback chain
+  (512×512 'inside' fit, quality 80), matching an upstream fork exactly. The
+  existing WhiskeySockets-PR-based shell functions
+  (`buildStickerPackProto`, `generateStickerPackId`,
+  `STICKER_PACK_MESSAGE_TYPE`) are unchanged. Runtime-tested with a real
+  PNG buffer — correctly converts to WebP.
 - **`rich-response.ts`** — confirmed an upstream fork has none of this
   (`sendTable`/`sendCodeBlock`/etc. don't exist there at all). Re-verified
   all 9 another upstream fork-sourced exports are present and were already
@@ -335,6 +347,25 @@ item-by-item, checking real code (not just presence) against F_merge:
   default title was `'Call'`, real another upstream fork uses `'Call Creation'`.
   Fixed. Source comments updated to correctly credit another upstream fork
   instead of the vague "messages.ts → X block".
+- **`stickerpack.ts`** — kept the WhiskeySockets-PR-based shell functions
+  (`buildStickerPackProto`, `generateStickerPackId`,
+  `STICKER_PACK_MESSAGE_TYPE`) and `convertToWebP` as-is, and additionally
+  ported the upstream fork's **complete** `prepareStickerPackMessage` as a
+  distinct function — `prepareStickerPackMessage()` — kept
+  side-by-side rather than merged in, since the two have different
+  design choices (this fork's `buildStickerPackMessage` in
+  `from-messages.ts` builds a raw proto object for the caller to send
+  manually; the upstream fork's version does the full upload pipeline itself and
+  returns a ready-to-send `StickerPackMessage`, plus supports optional
+  media caching keyed by sticker URLs). End-to-end tested with a real PNG
+  buffer through a mocked upload function — ZIP build, ID generation,
+  and thumbnail generation all confirmed working.
+- Also discovered and fixed: **`stickerpack.ts` itself was never wired
+  into the addons barrel export** (`addons/index.ts`) — none of its
+  exports (`buildStickerPackProto`, `generateStickerPackId`,
+  `STICKER_PACK_MESSAGE_TYPE`, `convertToWebP`,
+  `prepareStickerPackMessage`) were reachable via
+  `import { ... } from '@teamolduser/baileys'` before this fix.
 - **`rich-response.ts`** — reconfirmed an upstream fork has none of this
   (`sendTable`, `sendCodeBlock`, etc. don't exist there). All 9
   another upstream fork-sourced exports already present and verified in earlier
@@ -658,7 +689,8 @@ Everything else cross-checked from the same README pass (`ai`,
 `groupStatus`, `requestPaymentFrom`, `orderText`, `raw`,
 `secureMetaServiceLabel`, `spoiler`, `externalAdReply`, `album`,
 `disclaimerText`/`headerText`/`contentText`/`links`/`footerText`, `table`,
-`tokenizeCode`, `richResponse` raw submessages) was confirmed already correctly wired to
+`tokenizeCode`, `richResponse` raw submessages, sticker packs
+`cover`/`stickers`/`publisher`) was confirmed already correctly wired to
 matching code — no further gaps found in that pass.
 
 ## Dual Content/Options Flags — groupStatus, isLottie, spoiler, secureMetaServiceLabel, ai, ephemeral (this session)
@@ -720,6 +752,7 @@ Usage for all of these is in the root `README.md`, section 37.
 | `CallDirection`, `CallMediaType`, `ActiveCall.isOutgoing` / `mediaType` | `Voip/types.ts`, `Voip/voip-engine.ts` | `canAccept` already existed |
 | `CallManager` (limit + `onLimit: 'queue'`), `CallSession`, `VoipResourceManager`, `resolvePthreadPoolSize`, `ensureWasmAssets` | `Voip/call-manager.ts`, `Voip/resource-manager.ts`, `Voip/wasm-assets.ts`, `addons/voip-compat.ts` | facade over this fork's engine — innovatorssoft's own engine was **not** copied (would double-handle `<call>` stanzas) |
 | `PHONENUMBER_MCC` | `Defaults/phonenumber-mcc.ts` | TS module instead of JSON (no import attributes needed in ESM) |
+| Sticker packs: WebP passthrough + auto WebP conversion | `addons/stickerpack.ts`, `addons/from-messages.ts` | WebP untouched; PNG/JPG/GIF/video -> lossless WebP (original quality, never lowered), original size by default (optional `maxSize` caps the longest side, never upscaled; `quality`: `'original'` = lossless by default, or 1-100 = lossy); cover / tray icon always original. File names in the zip use itsliaaa's scheme. `convertToWebP` now delegates to `toStickerWebp`; `sendStickerPack` accepts `sticker` (innovatorssoft field name), `packId`, `concurrency` (default 15), `maxSize`, `quality` |
 | `useMongoAuthState`, `makeCacheManagerAuthState` | `Utils/use-mongo-file-auth-state.ts`, `addons/use-cache-manager-auth-state.ts` | name aliases |
 
 Not verified by running: this environment had no network, so `yarn install` / `yarn build` / tests were not run — only `tsc` was

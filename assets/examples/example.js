@@ -16,6 +16,7 @@ import {
     generateWAMessageFromContent,
     monitorPresence,
     sendRichHtml,
+    normalizeDisappearingDuration,
     createTemplateManager,
     formatDuration,
     formatTimeAgo,
@@ -33,6 +34,9 @@ import { createSamplePage } from './page.js';
 import { createSnakePage } from './snake.js';
 import { createLivePage } from './live_page.js';
 import { createSlotsPage } from './slots.js';
+
+// Shared message-template manager for the `!msgtemplate` command (built-in presets + templates you create)
+const messageTemplates = createTemplateManager(true);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -484,9 +488,11 @@ async function startBot() {
                         '!label        - Send text with secure Meta service label',
                         '!spoiler      - Send an image with spoiler wrapping',
                         '!lottie       - Send a sticker with isLottie enabled',
-                        '!stickerpack  - Send a sticker pack (sock.sendMessage)',
+                        '!stickerpack  - Send a sticker pack (sock.sendMessage, nested style)',
+                        '!stickerpackflat - Send a sticker pack (flat style)',
                         '!stickerpackprep - Send a sticker pack (prepareStickerPackMessage + relayMessage)',
                         '!stickerpack2 - Send a sticker pack (sock.sendStickerPack)',
+                        '!stickerpackopts - Sticker packs with maxSize / quality / concurrency options',
                         '!groupstatus  - Send status update wrapped for group',
                         '!mentionall   - Mention all group participants',
                         '!viewonce     - Send image as view-once V1',
@@ -588,8 +594,8 @@ async function startBot() {
                                 title: 'Product Prices',
                                 rows: [
                                     { items: ['Product', 'Price', 'Stock'], isHeading: true },
-                                    { items: ['Powered by @teamolduser/baileys', '$49.99', 'In Stock'] },
-                                    { items: ['Rust WASM Plugin', '$19.99', 'Low Stock'] }
+                                    { items: ['Powered by @teamolduser/baileys', '₹49.99', 'In Stock'] },
+                                    { items: ['Rust WASM Plugin', '₹19.99', 'Low Stock'] }
                                 ]
                             }
                         },
@@ -1057,8 +1063,11 @@ async function startBot() {
                     break;
                 }
                 case '!stickerpack':
+                case '!stickerpackflat':
                 case '!stickerpackprep':
                 case '!stickerpack2': {
+                    // Four ways to send the same sticker pack. Media is used at its ORIGINAL size: WebP is sent
+                    // untouched, PNG/JPG/GIF/video are converted to WebP automatically (needs sharp or @napi-rs/image).
                     try {
                         const logoPath = path.join(__dirname, 'logo.png');
                         const faviconPath = path.join(__dirname, 'favicon.png');
@@ -1071,19 +1080,61 @@ async function startBot() {
                                 { data: fs.readFileSync(logoPath), emojis: ['🐱'] },
                                 { data: { url: faviconPath }, emojis: ['⭐'] }
                             ]
+                            // Optional pack settings (see !stickerpackopts for a live demo):
+                            // concurrency: 10,      // stickers converted at once (default 15)
+                            // maxSize: 512,         // longest side in px for converted stickers (default: original size)
+                            // quality: 'original',  // 'original' (default, lossless) or 1-100 (lossy)
+                            // packId: 'my-pack-001' // fixed pack id (random if omitted)
                         };
+
                         if (command === '!stickerpack') {
+                            // 1) nested style (also supports Lottie stickers)
+                            await sock.sendMessage(normalizedJid, { stickerPack: pack }, { quoted: message });
+                        } else if (command === '!stickerpackflat') {
+                            // 2) flat style - same builder as 1)
                             await sock.sendMessage(normalizedJid, pack, { quoted: message });
                         } else if (command === '!stickerpackprep') {
-                            // build first, then relay it yourself
+                            // 3) build first, then relay it yourself
                             const stickerPackMessage = await prepareStickerPackMessage(pack, {
                                 upload: sock.waUploadToServer
                             });
                             await sock.relayMessage(normalizedJid, { stickerPackMessage }, {});
                         } else {
-                            // the same in a single call
+                            // 4) the same as 3) in a single call
                             await sock.sendStickerPack(normalizedJid, pack);
                         }
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!stickerpackopts': {
+                    // Sticker pack options: concurrency / maxSize / quality (+ per-sticker options).
+                    // Defaults: original size + original quality (lossless WebP). The cover / tray icon always stays original.
+                    try {
+                        const logoPath = path.join(__dirname, 'logo.png');
+                        const faviconPath = path.join(__dirname, 'favicon.png');
+                        const base = {
+                            publisher: 'Example Publisher',
+                            description: 'maxSize / quality / concurrency demo',
+                            cover: fs.readFileSync(logoPath),
+                            stickers: [
+                                // per-sticker options: emojis, accessibilityLabel (isAnimated / isLottie are auto-detected)
+                                { data: fs.readFileSync(logoPath), emojis: ['🐱'], accessibilityLabel: 'Cat logo' },
+                                // `sticker` works as an alias of `data`
+                                { sticker: { url: faviconPath }, emojis: ['⭐'] }
+                            ]
+                        };
+
+                        // 1) the defaults written out: original size, original (lossless) quality, 15 stickers at once
+                        await sock.sendMessage(normalizedJid, {
+                            stickerPack: { ...base, name: 'Original Pack', maxSize: false, quality: 'original', concurrency: 15 }
+                        }, { quoted: message });
+
+                        // 2) smaller files: longest side max 512 px + lossy WebP quality 80, 5 stickers at once
+                        await sock.sendMessage(normalizedJid, {
+                            stickerPack: { ...base, name: 'Small Pack', maxSize: 512, quality: 80, concurrency: 5 }
+                        }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
                     }
@@ -1237,8 +1288,8 @@ async function startBot() {
                         await sock.sendMessage(normalizedJid, {
                             payment: {
                                 note: 'Payment request from @teamolduser/baileys',
-                                currency: 'IDR',
-                                amount: '10000',
+                                currency: 'INR',
+                                amount: '10000', // smallest unit (offset 100) → ₹100.00
                                 offset: 100,
                                 expiry: 0,
                                 from: message.key.participant || normalizedJid,
@@ -1259,7 +1310,7 @@ async function startBot() {
                                 productId: '836000000000001',
                                 title: 'Title',
                                 description: 'Description',
-                                currencyCode: 'IDR',
+                                currencyCode: 'INR',
                                 priceAmount1000: '283000',
                                 retailerId: 'teamolduser',
                                 url: 'https://github.com/Teamolduser/Baileys',
@@ -1361,14 +1412,103 @@ async function startBot() {
                 case '!templaterender': {
                     try {
                         const templates = createTemplateManager(true);
+                        // your own template named like a preset wins on name / slug lookups
                         templates.create({
-                            name: 'Promo Message',
-                            content: 'Hello {{name}}! 👋\nWelcome to {{company:@teamolduser/baileys}}!',
-                            category: 'marketing'
+                            name: 'Welcome Message',
+                            content: 'Hello {{name}}! 👋 (custom template)\nWelcome to {{company:@teamolduser/baileys}}!',
+                            category: 'greeting'
                         });
-                        // rendered by name slug: 'Promo Message' → 'promo_message'
-                        const out = templates.render('promo_message', { name: args || 'friend' });
-                        await sock.sendMessage(normalizedJid, { text: out }, { quoted: message });
+                        const custom = templates.render('welcome_message', { name: args || 'friend' }); // → your template
+                        const preset = templates.render('welcome', { name: args || 'friend' });         // → built-in preset
+                        const check = templates.validate('welcome', {});                               // { valid: false, missing: ['name'] }
+                        await sock.sendMessage(normalizedJid, {
+                            text: `*render('welcome_message')*\n${custom}\n\n*render('welcome')*\n${preset}\n\n*validate('welcome', {})*\n${JSON.stringify(check)}`
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!msgtemplate': {
+                    try {
+                        const usage =
+                            '*Message templates*\n' +
+                            '• !msgtemplate list\n' +
+                            '• !msgtemplate render <id|name> key=value key2="two words"\n' +
+                            '• !msgtemplate create <name> | <content with {{vars}} / {{var:default}}>\n' +
+                            '• !msgtemplate delete <id>\n\n' +
+                            'Example: !msgtemplate render invoice invoiceNumber=INV-1 customerName=Budi invoiceDate=2026-01-15 items="1x Widget" subtotal=₹10 total=₹10';
+                        const sub = (args.split(/\s+/)[0] || '').toLowerCase();
+                        const rest = args.slice(sub.length).trim();
+
+                        if (!sub) {
+                            await sock.sendMessage(normalizedJid, { text: usage }, { quoted: message });
+                            break;
+                        }
+
+                        if (sub === 'list') {
+                            const lines = messageTemplates.getAll().map(t => {
+                                const vars = t.variables.map(v => (v.required ? v.name : `${v.name}?`)).join(', ');
+                                return `• ${t.id} — ${t.name} [${t.category || 'no category'}]\n   vars: ${vars || '-'}`;
+                            });
+                            await sock.sendMessage(normalizedJid, { text: `📋 Templates (${lines.length})\n\n${lines.join('\n')}` }, { quoted: message });
+                            break;
+                        }
+
+                        if (sub === 'render') {
+                            const idOrName = rest.split(/\s+/)[0];
+                            if (!idOrName) throw new Error('Usage: !msgtemplate render <id|name> key=value ...');
+                            const data = {};
+                            for (const m of rest.slice(idOrName.length).matchAll(/(\w+)=("([^"]*)"|\S+)/g)) {
+                                data[m[1]] = m[3] !== undefined ? m[3] : m[2];
+                            }
+                            const check = messageTemplates.validate(idOrName, data);
+                            const out = messageTemplates.render(idOrName, data);
+                            await sock.sendMessage(normalizedJid, {
+                                text: out + (check.valid ? '' : `\n\n⚠️ Missing variables: ${check.missing.join(', ')}`)
+                            }, { quoted: message });
+                            break;
+                        }
+
+                        if (sub === 'create') {
+                            const [name, ...contentParts] = rest.split('|');
+                            const content = contentParts.join('|').trim();
+                            if (!name.trim() || !content) throw new Error('Usage: !msgtemplate create <name> | <content>');
+                            const tpl = messageTemplates.create({ name: name.trim(), content, category: 'custom' });
+                            await sock.sendMessage(normalizedJid, {
+                                text: `✅ Created "${tpl.name}"\nid: ${tpl.id}\nvars: ${tpl.variables.map(v => v.name).join(', ') || '-'}\n\nTry: !msgtemplate render ${tpl.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')} ...`
+                            }, { quoted: message });
+                            break;
+                        }
+
+                        if (sub === 'delete') {
+                            if (!rest) throw new Error('Usage: !msgtemplate delete <id>');
+                            const ok = messageTemplates.delete(rest);
+                            await sock.sendMessage(normalizedJid, { text: ok ? `🗑️ Deleted ${rest}` : `❌ No template with id "${rest}"` }, { quoted: message });
+                            break;
+                        }
+
+                        await sock.sendMessage(normalizedJid, { text: usage }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!defaultdisappearing': {
+                    try {
+                        // changes the bot account's DEFAULT disappearing timer for new chats
+                        // usage: !defaultdisappearing 24 | 1 | 7 | 30 | 90 | 0 (off) | <seconds>
+                        if (args === '') {
+                            await sock.sendMessage(normalizedJid, {
+                                text: 'Usage: !defaultdisappearing <24|1|7|30|90|0|seconds>\n24 / 1 = 24 hours, 7 = 7 days, 30 = 30 days, 90 = 90 days, 0 = off'
+                            }, { quoted: message });
+                            break;
+                        }
+                        const seconds = normalizeDisappearingDuration(args);
+                        await sock.updateDisappearingDuration(args); // same as updateDefaultDisappearing / updateDefaultDisappearingMode
+                        await sock.sendMessage(normalizedJid, {
+                            text: `✅ Default disappearing mode set to ${seconds === 0 ? 'off' : `${seconds} seconds (${seconds / 86400} day(s))`}`
+                        }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
                     }

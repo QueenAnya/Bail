@@ -365,8 +365,8 @@ export type InteractiveMessagePIXOptions = InteractiveMessageOptions & {
 export type InteractiveMessagePAYOptions = InteractiveMessageOptions & {
 	/** Payment amount */
 	amount: number
-	/** Currency code, e.g. "BRL" */
-	currency: string
+	/** Currency code, e.g. "INR"; defaults to "INR" */
+	currency?: string
 	/** Reference ID */
 	referenceId?: string
 	/** Payment note */
@@ -376,7 +376,7 @@ export type InteractiveMessagePAYOptions = InteractiveMessageOptions & {
 export type PaymentMessageOptions = {
 	/** Amount in smallest currency unit (e.g. cents); a numeric string is accepted too */
 	amount: number | string
-	/** Currency code (e.g. "USD", "BRL"); defaults to "IDR" */
+	/** Currency code (e.g. "INR", "BRL"); defaults to "INR" */
 	currency?: string
 	/** innovatorssoft alias of `receiverJid` */
 	from?: string
@@ -428,6 +428,47 @@ export type OrderMessageOptions = {
 	sellerJid?: string
 	/** Token */
 	token?: string
+}
+
+/**
+ * Individual sticker within a sticker pack (V1 style)
+ */
+export type Sticker = {
+	/** Sticker media source */
+	data: WAMediaUpload
+	/** Emoji tags for this sticker */
+	emojis?: string[]
+	/** Accessibility label */
+	accessibilityLabel?: string
+}
+
+/**
+ * Full sticker pack definition (Merged V1/V2)
+ */
+export type StickerPackFull = {
+	/** All stickers in the pack (V1 uses Sticker[], V2 uses StickerPackSticker[]) */
+	stickers: StickerPackSticker[] | Sticker[]
+	/** Cover sticker shown in the tray */
+	cover: WAMediaUpload
+	/** Display name of the pack */
+	name: string
+	/** Publisher name */
+	publisher: string
+	/** Optional description */
+	description?: string
+	/** Pack ID — auto-generated if not provided */
+	packId?: string
+}
+
+export type StickerPackMessageOptions = {
+	/** Pack name */
+	packName: string
+	/** Pack publisher */
+	publisher?: string
+	/** Pack ID */
+	packId?: string
+	/** Sticker count */
+	stickerCount?: number
 }
 
 export type StatusMentionOptions = {
@@ -751,6 +792,10 @@ export type StickerPackSticker = {
 	emojis?: string[]
 	/** accessibility label */
 	accessibilityLabel?: string
+	/** override animated-WebP auto detection */
+	isAnimated?: boolean
+	/** override Lottie (.was / raw Lottie JSON) auto detection */
+	isLottie?: boolean
 }
 
 export type StickerPack = {
@@ -760,12 +805,26 @@ export type StickerPack = {
 	cover: WAMediaUpload
 	/** pack name (default '📦 Sticker Pack') */
 	name?: string
-	/** publisher name */
+	/** publisher name (default '@teamolduser/baileys') */
 	publisher?: string
 	/** pack description */
 	description?: string
 	/** pack id — random if omitted */
 	packId?: string
+	/** stickers converted at the same time while the pack is built (default 15; lower = less RAM) */
+	concurrency?: number
+	/**
+	 * Longest side (px) for stickers that have to be CONVERTED to WebP (PNG/JPG/GIF/video). Default: the ORIGINAL size
+	 * (no cap) — `false`, `0` or omitted keeps it. A number (e.g. `512`, WhatsApp's own sticker size) scales bigger images
+	 * DOWN to that longest side; smaller images are never upscaled and WebP stickers you pass in are never touched.
+	 * Note: huge images (e.g. phone screenshots) may show as empty boxes in the pack viewer — set `maxSize` for those.
+	 */
+	maxSize?: number | false
+	/**
+	 * WebP quality of CONVERTED stickers. `'original'` (default) = lossless WebP = original quality; a number 1-100 = lossy
+	 * WebP of that quality (smaller files). WebP stickers you pass in are never touched; the cover / tray icon always stays original.
+	 */
+	quality?: number | 'original'
 }
 
 export type AdminInviteInfo = {
