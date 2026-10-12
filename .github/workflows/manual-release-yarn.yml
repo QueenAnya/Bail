@@ -53,7 +53,6 @@ jobs:
           yarn install
           yarn install --mode=update-lockfile
           yarn install --no-immutable
-          yarn lint:fix
 
       - name: Release
         run: 'npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}'
