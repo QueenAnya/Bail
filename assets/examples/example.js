@@ -453,7 +453,7 @@ async function startBot() {
                     break;
                 }
                 case '!list': {
-                    await sock.sendList(normalizedJid, 'Interactive Help Menu', [
+                    await sock.sendList(normalizedJid, 'Interactive Help menu', [
                         '!ping         - Simple ping test',
                         '!table        - Show a sample rich table',
                         '!list         - Show this help list',
@@ -1494,9 +1494,164 @@ async function startBot() {
                     }
                     break;
                 }
+                // ── features ported from other forks (src/ported, see README: "Ported from other forks") ──
+                case '!question': {
+                    try {
+                        await sock.sendMessage(normalizedJid, { question: { text: args || 'What is your favourite colour?' } }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!comment': {
+                    try {
+                        // comments on the message that carried this command
+                        await sock.sendMessage(normalizedJid, {
+                            comment: { targetMessageKey: message.key, content: { text: args || 'Nice message!' } }
+                        });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!addyours': {
+                    try {
+                        await sock.sendMessage(normalizedJid, { text: args || 'Your turn!', addYours: message.key });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!splitpay': {
+                    try {
+                        // amounts are the human amounts in INR (default currency): 900 total, 300 for you
+                        await sock.sendMessage(normalizedJid, {
+                            splitPayment: {
+                                splitId: `split-${Date.now()}`,
+                                total: 900,
+                                description: 'Dinner',
+                                participants: [{ jid: message.key.participant || normalizedJid, amount: 300 }]
+                            }
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!remind': {
+                    try {
+                        await sock.sendMessage(normalizedJid, {
+                            paymentReminder: { reminderId: `rem-${Date.now()}`, amount: 499, description: 'Monthly plan', payeeVpa: 'shop@upi' }
+                        }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!hd': {
+                    try {
+                        await sock.sendHD(normalizedJid, { image: { url: path.join(__dirname, 'logo.png') }, caption: 'HD photo (SD message + HD child)' }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!motion': {
+                    try {
+                        await sock.sendImgVid(normalizedJid, {
+                            image: { url: path.join(__dirname, 'logo.png') },
+                            video: { url: path.join(__dirname, 'example.mp4') },
+                            caption: 'Motion photo'
+                        });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!health': {
+                    try {
+                        if (!args) throw new Error('Usage: !health <number with country code>');
+                        const report = await sock.checkAccountHealth(args.replace(/\D/g, ''));
+                        await sock.sendMessage(normalizedJid, { text: `🩺 ${report.jid}\nregistered: ${report.exists}\nbusiness: ${report.isBusiness}\nabout: ${report.about ?? '-'}\nprofile photo: ${report.hasProfilePhoto}\n\n${report.notes.join('\n')}` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!about': {
+                    try {
+                        if (!args) throw new Error('Usage: !about <number with country code>');
+                        const about = await sock.fetchAbout(`${args.replace(/\D/g, '')}@s.whatsapp.net`);
+                        await sock.sendMessage(normalizedJid, { text: `📝 ${about.jid}: ${about.status ?? '(no about)'}` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!serverprops': {
+                    try {
+                        const props = await sock.getServerProps({ refresh: args === 'refresh' });
+                        await sock.sendMessage(normalizedJid, { text: `⚙️ ${Object.keys(props).length} server props\n${JSON.stringify(props).slice(0, 600)}` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!serverlink': {
+                    try {
+                        if (!args) throw new Error('Usage: !serverlink <url>');
+                        const preview = await sock.fetchServerLinkPreview(args);
+                        await sock.sendMessage(normalizedJid, { text: `🔗 ${JSON.stringify(preview).slice(0, 800)}` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!nlinfo': {
+                    try {
+                        // usage: !nlinfo 120363...@newsletter
+                        if (!args.endsWith('@newsletter')) throw new Error('Usage: !nlinfo <channel jid>@newsletter');
+                        const [admin, status] = await Promise.all([sock.newsletterAdminInfo(args), sock.newsletterCanPostStatus(args)]);
+                        await sock.sendMessage(normalizedJid, { text: `📢 ${args}\nadmins: ${admin.adminCount}\ncan post status: ${status.canPost}\ncapabilities: ${status.capabilities.join(', ') || '-'}` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!nldirectory': {
+                    try {
+                        const res = await sock.newsletterDirectorySearch(args || 'news', { limit: 5 });
+                        await sock.sendMessage(normalizedJid, { text: `📚 ${JSON.stringify(res).slice(0, 900)}` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!nlstatus': {
+                    try {
+                        // usage: !nlstatus 120363...@newsletter your text (you must be an admin with the status capability)
+                        const [channelJid, ...rest] = args.split(' ');
+                        if (!channelJid?.endsWith('@newsletter')) throw new Error('Usage: !nlstatus <channel jid>@newsletter <text>');
+                        const sent = await sock.sendNewsletterStatus(channelJid, { text: rest.join(' ') || 'Hello from @teamolduser/baileys' });
+                        await sock.sendMessage(normalizedJid, { text: `✅ status posted, server id: ${sent.newsletterStatusServerId ?? 'unknown'}` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
+                case '!resetkey': {
+                    try {
+                        if (!normalizedJid.endsWith('@g.us')) throw new Error('This command can only be used in group chats!');
+                        const summary = await sock.resetGroupSenderKey(normalizedJid);
+                        await sock.sendMessage(normalizedJid, { text: `🔑 sender key memory cleared for ${summary.cleared} device(s); the next send redistributes it` }, { quoted: message });
+                    } catch (err) {
+                        await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });
+                    }
+                    break;
+                }
                 case '!defaultdisappearing': {
                     try {
-                        // changes the bot account's DEFAULT disappearing timer for new chats
+                        // changes the bot account's default disappearing timer for new chats
                         // usage: !defaultdisappearing 24 | 1 | 7 | 30 | 90 | 0 (off) | <seconds>
                         if (args === '') {
                             await sock.sendMessage(normalizedJid, {
@@ -1507,7 +1662,7 @@ async function startBot() {
                         const seconds = normalizeDisappearingDuration(args);
                         await sock.updateDisappearingDuration(args); // same as updateDefaultDisappearing / updateDefaultDisappearingMode
                         await sock.sendMessage(normalizedJid, {
-                            text: `✅ Default disappearing mode set to ${seconds === 0 ? 'off' : `${seconds} seconds (${seconds / 86400} day(s))`}`
+                            text: `✅ default disappearing mode set to ${seconds === 0 ? 'off' : `${seconds} seconds (${seconds / 86400} day(s))`}`
                         }, { quoted: message });
                     } catch (err) {
                         await sock.sendMessage(normalizedJid, { text: `Error: ${err.message}` }, { quoted: message });

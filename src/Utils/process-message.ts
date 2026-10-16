@@ -566,6 +566,27 @@ const processMessage = async (
 	 * Pulled out of the secretEncryptedMessage branch below purely to keep
 	 * that branch's nesting depth within lint limits.
 	 */
+	const resolveMessageEditAuthor = async (key: WAMessageKey | undefined | null, meId: string): Promise<string> => {
+		if (!key) {
+			return ''
+		}
+
+		const rawJid = key.fromMe
+			? key.participantAlt || key.participant || meId
+			: key.participantAlt || key.participant || key.remoteJidAlt || key.remoteJid
+		const normalized = jidNormalizedUser(rawJid || undefined)
+		if (!normalized) {
+			return ''
+		}
+
+		if (!isLidUser(normalized)) {
+			return normalized
+		}
+
+		const pn = await signalRepository.lidMapping.getPNForLID(normalized)
+		return jidNormalizedUser(pn || undefined)
+	}
+
 	const handleMessageEditNotification = async (
 		targetMsg: proto.IMessage,
 		targetKey: WAMessageKey,
@@ -573,18 +594,21 @@ const processMessage = async (
 		secEnc: proto.Message.ISecretEncryptedMessage
 	) => {
 		const meIdNormalised = jidNormalizedUser(meId)
-		const origSenderRaw = targetKey.participant || targetKey.remoteJid!
-		const origSenderPn = isLidUser(origSenderRaw)
-			? await signalRepository.lidMapping.getPNForLID(origSenderRaw)
-			: origSenderRaw
-		const originalSenderJid = getKeyAuthor(
-			{ remoteJid: jidNormalizedUser(origSenderPn!), fromMe: meIdNormalised === origSenderPn },
-			meIdNormalised
-		)
-		const editorJid = getKeyAuthor(message.key, meIdNormalised)
 		const editEncKey = targetMsg?.messageContextInfo?.messageSecret
 		if (!editEncKey) {
 			logger?.warn({ targetKey }, 'message edit: missing messageSecret on original message — cannot decrypt')
+			return
+		}
+
+		const originalSenderJid = await resolveMessageEditAuthor(targetKey, meIdNormalised)
+		if (!originalSenderJid) {
+			logger?.warn({ targetKey }, 'message edit: original sender JID unavailable — cannot decrypt')
+			return
+		}
+
+		const editorJid = await resolveMessageEditAuthor(message.key, meIdNormalised)
+		if (!editorJid) {
+			logger?.warn({ key: message.key, targetKey }, 'message edit: editor JID unavailable — cannot decrypt')
 			return
 		}
 

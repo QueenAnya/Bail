@@ -145,8 +145,7 @@ export { migrateAuthState } from '../Utils/migrate-auth-state'
 export * from './use-sqlite-auth-state'
 export * from './use-cache-manager-auth-state'
 
-// ── In-Memory Store ────────────────────────────────────────────────────────
-export * from '../Store/index.js'
+// Store APIs are routed through src/ported/store-exports.ts and the ported barrel.
 
 // ── Typing Indicator ───────────────────────────────────────────────────────
 export * from './chat-control'
@@ -180,7 +179,6 @@ export * from './media-messages'
 export * from './media-set'
 
 // ── VoIP Calling (vendored port of baileys-caller, standalone WA session) ──
-export * from './voip-calling'
 export * from './voip-compat'
 
 // ── Link Preview Extras — linkPreviewMetadata + favicon ────────────────────

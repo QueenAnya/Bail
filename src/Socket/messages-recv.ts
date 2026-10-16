@@ -56,6 +56,7 @@ import {
 	MISSING_KEYS_ERROR_TEXT,
 	NACK_REASONS,
 	NO_MESSAGE_FOUND_ERROR_TEXT,
+	RETRYABLE_ACK_CODES,
 	SERVER_ERROR_CODES,
 	toNumber,
 	unixTimestampSeconds,
@@ -121,8 +122,16 @@ function isValidEnforcementType(value: string | undefined): value is ReachoutTim
 }
 
 export const makeMessagesRecvSocket = (config: SocketConfig) => {
-	const { logger, retryRequestDelayMs, maxMsgRetryCount, getMessage, shouldIgnoreJid, enableAutoSessionRecreation } =
-		config
+	const {
+		logger,
+		retryRequestDelayMs,
+		maxMsgRetryCount,
+		ackRetryDelayMs,
+		maxAckRetryCount,
+		getMessage,
+		shouldIgnoreJid,
+		enableAutoSessionRecreation
+	} = config
 	const sock = makeMessagesSocket(config)
 	const {
 		userDevicesCache,
@@ -151,7 +160,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		registerSocketEndHandler,
 		issuePrivacyTokens,
 		fetchAccountReachoutTimelock,
-		placeholderResendCache
+		placeholderResendCache,
+		outboundResendCache
 	} = sock
 
 	const getLIDForPN = signalRepository.lidMapping.getLIDForPN.bind(signalRepository.lidMapping)
@@ -165,6 +175,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
 			useClones: false
 		})
+	/** per-message count of resends after retryable server nacks */
+	const ackRetryCounts = new NodeCache<number>({
+		stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY,
+		useClones: false
+	})
 	const callOfferCache =
 		config.callOfferCache ||
 		new NodeCache<WACallEvent>({
@@ -2380,8 +2395,50 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 		}
 	}
 
+	const resendAfterRetryableNack = async (key: WAMessageKey, attempt: number) => {
+		const remembered = (await outboundResendCache?.get(key.id!)) as { jid: string; message: proto.IMessage } | undefined
+		const message = remembered?.message || (await getMessage(key).catch(() => undefined))
+		if (!message) {
+			logger.warn(
+				{ msgId: key.id },
+				'cannot resend after retryable nack: message not in outbound cache and getMessage returned nothing'
+			)
+			return false
+		}
+
+		await delay(ackRetryDelayMs * attempt)
+		await relayMessage(remembered?.jid || key.remoteJid!, message, {
+			messageId: key.id!,
+			useUserDevicesCache: false
+		})
+		return true
+	}
+
 	const handleBadAck = async ({ attrs }: BinaryNode) => {
 		const key: WAMessageKey = { remoteJid: attrs.from, fromMe: true, id: attrs.id }
+
+		if (!attrs.error) {
+			await ackRetryCounts.del(attrs.id!)
+		} else if (RETRYABLE_ACK_CODES.has(attrs.error)) {
+			// transient server error: resend the same message a bounded number of times
+			const attempt = ((await ackRetryCounts.get(attrs.id!)) || 0) + 1
+			await ackRetryCounts.set(attrs.id!, attempt)
+			if (attempt <= maxAckRetryCount) {
+				logger.info(
+					{ msgId: attrs.id, error: attrs.error, attempt, maxAckRetryCount },
+					'retryable nack, resending message'
+				)
+				const resent = await resendAfterRetryableNack(key, attempt).catch(error => {
+					logger.warn({ err: error, msgId: attrs.id }, 'resend after retryable nack failed')
+					return false
+				})
+				if (resent) {
+					return
+				}
+			} else {
+				logger.warn({ msgId: attrs.id, error: attrs.error, attempt }, 'retryable nack gave up after max attempts')
+			}
+		}
 
 		// error in acknowledgement,
 		// device could not display the message
@@ -2607,6 +2664,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	registerSocketEndHandler(() => {
 		if (!config.msgRetryCounterCache && msgRetryCache.close) {
 			msgRetryCache.close()
+		}
+
+		if (ackRetryCounts.close) {
+			ackRetryCounts.close()
 		}
 
 		if (!config.callOfferCache && callOfferCache.close) {

@@ -163,10 +163,10 @@ async function startBot() {
 					await new Button(sock)
 						.setTitle('🚀 NIXCODE')
 						.setSubtitle('Interactive Message')
-						.setBody('Pilih menu di bawah')
+						.setBody('Choose a menu below')
 						.setFooter('© Nixel')
 						.setImage('https://cdn.ornzora.eu.cc/b57c0d1e-d7a6-4277-8739-8f6b1d9894e6-FIORA.jpg')
-						.addReply('📦 Menu', '.menu', { icon: 'DEFAULT' })
+						.addReply('📦 menu', '.menu', { icon: 'default' })
 						.addReply('👤 Profile', '.profile', { icon: 'REVIEW' })
 						.addUrl(
 							'🌐 Website',
@@ -179,8 +179,8 @@ async function startBot() {
 							'NIX-2026',
 							{ icon: 'DOCUMENT' }
 						)
-						.addSelection('📚 Pilih Kategori')
-						.makeSection('Main Menu')
+						.addSelection('📚 Choose a category')
+						.makeSection('Main menu')
 						.makeRow(
 							'🔥 HOT',
 							'Downloader',
@@ -190,7 +190,7 @@ async function startBot() {
 						.makeRow(
 							'⚡ FAST',
 							'AI Chat',
-							'Chat dengan AI',
+							'Chat with AI',
 							'.ai'
 						)
 						.send(normalizedJid, { quoted: message });
@@ -200,13 +200,13 @@ async function startBot() {
 					await new ButtonV2(sock)
 						.setTitle('🚀 NIXCODE')
 						.setSubtitle('Buttons Message')
-						.setBody('Halo dunia')
+						.setBody('Hello world')
 						.setFooter('Footer Message')
 						.setThumbnail(
 							'https://cdn.ornzora.eu.cc/4d2905ce-3707-4ec0-998a-68a3d851629f-FIORA.jpg'
 						)
 						.addRawButton({
-							buttonText: { displayText: '📡 Menu' },
+							buttonText: { displayText: '📡 menu' },
 							buttonId: 'Nixel',
 							type: 1,
 							nativeFlowInfo: {
@@ -224,7 +224,7 @@ async function startBot() {
 				case '!carousel': {
 					await new Carousel(sock)
 						.setBody('🛍️ Product List')
-						.setFooter('Swipe untuk lihat')
+						.setFooter('Swipe to view')
 						.addCard(
 							await new Button(sock)
 								.setTitle('🍔 Burger')
@@ -262,9 +262,9 @@ async function startBot() {
 						.setFooter('© Fiora Sylvie')
 						.addSuggest("MessageBuilderV4.6")
 						.addSuggest(['Nixel', 'NIXCODE', 'Fiora Sylvie', 'AIRich'])
-						.addTip('Ini adalah text tip (Metadata Text)')
+						.addTip('This is a text tip (Metadata Text)')
 						.addText(`
-# Halo Dunia
+# Hello World
 ## NIXCODE
 
 ---
@@ -273,18 +273,18 @@ async function startBot() {
 
 ---
 
-Ini hyperlink:
+this hyperlink:
 [Text] (url) 
 ## TRUSTED LINK
 [Google](https://google.com)
 ## UNTRUSTED LINK
 [Google](!https://google.com)
 
-Ini auto citation:
+this auto citation:
 [] (url) 
 [](https://openai.com)
 
-Ini LaTeX:
+this LaTeX:
 [Identifier|?Width|?Height|?Font_Height|?Padding] <url>
 [Shiroko|1429|1897]<https://cdn.ornzora.eu.cc/5442e78b-fe26-4cb9-939d-e6df83acad6a-FIORA.png>
                         `)

@@ -114,8 +114,22 @@ export type SocketConfig = {
 	customUploadHosts: MediaConnInfo['hosts']
 	/** time to wait between sending new retry requests */
 	retryRequestDelayMs: number
+	/** enable the optional anti-crash guard (needs `@rexxhayanasi/elaina-anchorguard`); exposed as `sock.anchorGuard` */
+	AnchorGuard?: boolean
+	/** options passed to the anti-crash guard */
+	AnchorGuardConfig?: Record<string, any>
+	/** opt-in voice-note transcription: `{ enabled, transcribe(ctx), allowFromMe?, pttOnly?, maxDuration? ... }` */
+	voiceRecognition?: Record<string, any>
+	/** max listeners allowed on the socket's event emitter before Node warns (default 64) */
+	maxEventListeners?: number
 	/** max retry count */
 	maxMsgRetryCount: number
+	/** base delay between resends after a retryable server nack (multiplied by the attempt number) */
+	ackRetryDelayMs: number
+	/** max number of resends of one message after retryable server nacks */
+	maxAckRetryCount: number
+	/** how long a requested pairing code stays valid before the pairing attempt is abandoned (ms) */
+	pairingCodeTimeoutMs: number
 	/** time to wait for the generation of the next QR in ms */
 	qrTimeout?: number
 	/** provide an auth state object to maintain the auth state */
@@ -138,6 +152,8 @@ export type SocketConfig = {
 	msgRetryCounterCache?: CacheStore
 	/** provide a cache to store a user's device list */
 	userDevicesCache?: PossiblyExtendedCacheStore
+	/** cache of recently sent messages, used to resend after a retryable server nack */
+	outboundResendCache?: PossiblyExtendedCacheStore
 	/** cache to store call offers */
 	callOfferCache?: CacheStore
 	/** cache to track placeholder resends */

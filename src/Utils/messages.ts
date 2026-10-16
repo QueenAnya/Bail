@@ -1,5 +1,5 @@
 import { Boom } from '@hapi/boom'
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
 import { proto } from '../../WAProto/index.js'
@@ -22,6 +22,9 @@ import {
 	resolveButtonText
 } from '../addons/native-flow-interactive'
 import { buildRawMessageContent } from '../addons/raw-message'
+import { LIBRARY_NAME } from '../Defaults'
+import { buildSocialPreview } from '../ported/link-preview-metadata'
+import { prepareLinkThumbnail, songThumbnail, trimEmptyValues } from '../ported/messages-helpers'
 import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
 import {
 	CALL_AUDIO_PREFIX,
@@ -143,6 +146,17 @@ const assertColor = async (color: any) => {
 		assertedColor = parseInt(hex, 16)
 		return assertedColor
 	}
+}
+
+/**
+ * Hash that ties a photo-poll option to its picture: sha256(sha256(name) hex + base64(fileSha256)) hex.
+ */
+export const getPollOptionHash = (optionName: string, fileSha256?: Uint8Array | null): string => {
+	const nameHash = createHash('sha256').update(String(optionName), 'utf-8').digest('hex')
+	const fileHash = fileSha256 ? Buffer.from(fileSha256).toString('base64') : ''
+	return createHash('sha256')
+		.update(nameHash + fileHash, 'utf-8')
+		.digest('hex')
 }
 
 export const prepareWAMessageMedia = async (
@@ -447,7 +461,7 @@ export const hasNonNullishProperty = <K extends PropertyKey>(
 
 // NOTE: native-flow button conversion + offer/option params now live in
 // addons/native-flow-interactive.ts (shared by nativeFlow, interactiveButtons and carousel cards).
-function hasOptionalProperty<T, K extends PropertyKey>(obj: T, key: K): obj is WithKey<T, K> {
+export function hasOptionalProperty<T, K extends PropertyKey>(obj: T, key: K): obj is WithKey<T, K> {
 	return typeof obj === 'object' && obj !== null && key in obj && (obj as any)[key] !== null
 }
 
@@ -461,6 +475,43 @@ export const generateWAMessageContent = async (
 		// helper fields (`text`, `image`, ...) is rejected instead of being picked up by another branch.
 		// (addons/raw-message.ts → buildRawMessageContent)
 		m = buildRawMessageContent(message as Record<string, unknown>)
+	} else if (hasNonNullishProperty(message, 'richLink')) {
+		// sock.sendMessage(jid, { richLink: { url, title, description, image, text } })
+		const { text, url, title, description, image, large = true, previewType, thumbnailWidth, ...rest } = (message as any)
+			.richLink
+		if (!url || typeof url !== 'string') {
+			throw new Boom('richLink needs a url', { statusCode: 400 })
+		}
+
+		let body: string = text ?? url
+		if (!body.includes(url)) {
+			body = `${body}\n\n${url}`
+		}
+
+		const richContent: Record<string, any> = {
+			...rest,
+			text: body,
+			matchedText: url,
+			title,
+			description,
+			previewType: previewType ?? 0
+		}
+		if (image) {
+			const thumbnails = await prepareLinkThumbnail(image, options, { thumbnailWidth, upload: large })
+			richContent.jpegThumbnail = thumbnails.jpegThumbnail
+			const hq = thumbnails.highQualityThumbnail
+			if (hq) {
+				richContent.thumbnailDirectPath = hq.directPath
+				richContent.mediaKey = hq.mediaKey
+				richContent.mediaKeyTimestamp = hq.mediaKeyTimestamp
+				richContent.thumbnailSha256 = hq.fileSha256
+				richContent.thumbnailEncSha256 = hq.fileEncSha256
+				richContent.thumbnailWidth = hq.width
+				richContent.thumbnailHeight = hq.height
+			}
+		}
+
+		m.extendedTextMessage = trimEmptyValues(richContent)
 	} else if (hasNonNullishProperty(message, 'text')) {
 		const extContent = { text: message.text } as WATextMessage
 
@@ -509,6 +560,16 @@ export const generateWAMessageContent = async (
 
 		if (options.font) {
 			extContent.font = options.font
+		}
+
+		if (hasNonNullishProperty(message, 'socialPreview')) {
+			if (!extContent.matchedText) {
+				options.logger?.warn(
+					'socialPreview rides on a link preview and this message has no matched link; clients only render it when decoding what Meta sends'
+				)
+			}
+
+			Object.assign(extContent, buildSocialPreview((message as any).socialPreview))
 		}
 
 		m.extendedTextMessage = extContent
@@ -731,13 +792,48 @@ export const generateWAMessageContent = async (
 				providedSecret instanceof Uint8Array && providedSecret.length === 32 ? providedSecret : randomBytes(32)
 		}
 
-		const pollCreationMessage = {
+		// Options are plain strings, or { name, image } / { name, optionHash } for photo polls
+		let hasPollOptionImage = false
+		const pollOptions: proto.Message.PollCreationMessage.IOption[] = []
+		for (const value of message.poll.values) {
+			if (typeof value === 'string') {
+				pollOptions.push({ optionName: value })
+				continue
+			}
+
+			if (!value?.name) {
+				throw new Boom('Each photo poll option needs a name', { statusCode: 400 })
+			}
+
+			if (value.optionHash) {
+				hasPollOptionImage = true
+				pollOptions.push({ optionName: value.name, optionHash: value.optionHash })
+				continue
+			}
+
+			if (!value.image) {
+				pollOptions.push({ optionName: value.name })
+				continue
+			}
+
+			const prepared = await prepareWAMessageMedia({ image: value.image }, options)
+			hasPollOptionImage = true
+			pollOptions.push({
+				optionName: value.name,
+				optionHash: getPollOptionHash(value.name, prepared.imageMessage?.fileSha256)
+			})
+		}
+
+		const pollCreationMessage: proto.Message.IPollCreationMessage = {
 			name: message.poll.name,
 			selectableOptionsCount: message.poll.selectableCount,
-			options: message.poll.values.map(optionName => ({ optionName })),
+			options: pollOptions,
 			hideVoterNames: message.poll.hideVoterNames ?? false,
 			endTime: message.poll.endDate ? message.poll.endDate.getTime() : undefined,
 			allowAddOption: message.poll.canAddOption ?? false
+		}
+		if (hasPollOptionImage) {
+			pollCreationMessage.pollContentType = proto.Message.PollContentType.IMAGE
 		}
 
 		if (message.poll.pollType === 1) {
@@ -752,6 +848,9 @@ export const generateWAMessageContent = async (
 				pollType: WAProto.Message.PollType.QUIZ,
 				selectableOptionsCount: 1
 			}
+		} else if (hasPollOptionImage && !message.poll.toAnnouncementGroup) {
+			// photo polls ride on the V3 poll message
+			m.pollCreationMessageV3 = pollCreationMessage
 		} else if (message.poll.hideVoterNames) {
 			// V6 — hidden-voter-names poll (PR #2725, reverse-engineered from live WA)
 			m.pollCreationMessageV6 = pollCreationMessage
@@ -956,6 +1055,43 @@ export const generateWAMessageContent = async (
 		// sock.sendMessage(jid, { richResponse: { text, code, language, ... } })
 		// or the flat shorthand: { code, table, links, headerText, contentText, footerText, ... }
 		m = prepareRichResponseMessage(message)
+	} else if (hasNonNullishProperty(message, 'song')) {
+		// sock.sendMessage(jid, { song: { audio, artwork, title, author, url } }) — audio with a music-style card
+		const {
+			audio,
+			artwork,
+			title,
+			author,
+			url,
+			largeThumbnail = true,
+			thumbnailWidth = 640,
+			mediaType = 1,
+			...rest
+		} = (message as any).song
+		if (!audio) {
+			throw new Boom('song needs audio', { statusCode: 400 })
+		}
+
+		const mimetype = rest.mimetype ?? 'audio/mpeg'
+		if (rest.ptt === true && !/opus/i.test(mimetype)) {
+			options.logger?.warn({ mimetype }, 'ptt asks for a voice note but this is not opus, and nothing here transcodes it')
+		}
+
+		m = await prepareWAMessageMedia({ audio, ...rest, mimetype } as AnyMediaMessageContent, options)
+		const thumbnail = artwork ? await songThumbnail(artwork, thumbnailWidth, options.logger) : undefined
+		m.audioMessage!.contextInfo = {
+			...m.audioMessage!.contextInfo,
+			externalAdReply: trimEmptyValues({
+				title: title || LIBRARY_NAME,
+				body: author,
+				thumbnail,
+				mediaType,
+				renderLargerThumbnail: !!largeThumbnail,
+				showAdAttribution: false,
+				sourceUrl: url,
+				mediaUrl: url
+			})
+		}
 	} else {
 		m = await prepareWAMessageMedia(message as AnyMediaMessageContent, options)
 
@@ -1472,6 +1608,16 @@ export const generateWAMessageContent = async (
 		m = { groupStatusMessageV2: { message: m } }
 	}
 
+	if (hasNonNullishProperty(message, 'statusLinkPreview')) {
+		const raw = (message as any).statusLinkPreview
+		const style = Number(raw.style ?? raw)
+		if (!Number.isInteger(style) || style < 0) {
+			throw new Boom('statusLinkPreview style must be a non-negative integer', { statusCode: 400 })
+		}
+
+		;(m as any).statusLinkPreviewMetadata = { style }
+	}
+
 	// ── externalAdReply → contextInfo.externalAdReply (direct top-level
 	// shorthand — no need to build contextInfo yourself first).
 	if (hasOptionalProperty(message, 'externalAdReply') && !!(message as any).externalAdReply) {
@@ -1569,24 +1715,71 @@ export const generateWAMessageContent = async (
 
 	if (
 		(hasOptionalProperty(message, 'mentions') && message.mentions?.length) ||
-		(hasOptionalProperty(message, 'mentionAll') && message.mentionAll)
+		(hasOptionalProperty(message, 'mentionAll') && message.mentionAll) ||
+		((message as any).groupMentions?.length ?? 0) > 0
 	) {
 		const messageType = Object.keys(m)[0]! as Extract<keyof proto.IMessage, MessageWithContextInfo>
 		const key = m[messageType]
-		if (key && 'contextInfo' in key) {
-			key.contextInfo = key.contextInfo || {}
-			if (message.mentions?.length) {
-				key.contextInfo.mentionedJid = message.mentions
+		const applyGroupMentions = (target: any) => {
+			const groupMentions = (message as any).groupMentions as { groupJid: string; groupSubject?: string }[] | undefined
+			if (!groupMentions?.length) {
+				return
 			}
 
-			if (message.mentionAll) {
+			const normalized = groupMentions
+				.filter(gm => gm?.groupJid)
+				.map(gm => ({ groupJid: `${String(gm.groupJid).split('@')[0]}@g.us`, groupSubject: gm.groupSubject }))
+			target.contextInfo = target.contextInfo || {}
+			target.contextInfo.groupMentions = normalized
+			const field = 'text' in target ? 'text' : 'caption' in target ? 'caption' : null
+			if (field) {
+				let body: string = target[field] || ''
+				for (const gm of normalized) {
+					const token = `@${gm.groupJid}`
+					if (!body.includes(token)) {
+						body = body.length ? `${body} ${token}` : token
+					}
+				}
+
+				target[field] = body
+			}
+		}
+
+		if (key && 'contextInfo' in key) {
+			key.contextInfo = key.contextInfo || {}
+			if ((message as any).mentions?.length) {
+				key.contextInfo.mentionedJid = (message as any).mentions
+			}
+
+			if ((message as any).mentionAll) {
 				key.contextInfo.nonJidMentions = 1
 			}
+
 		} else if (key!) {
 			key.contextInfo = {
-				mentionedJid: message.mentions,
-				nonJidMentions: message.mentionAll ? 1 : 0
+				mentionedJid: (message as any).mentions,
+				nonJidMentions: (message as any).mentionAll ? 1 : 0
 			}
+		}
+
+		if (key && typeof key === 'object') {
+			applyGroupMentions(key)
+		}
+	}
+
+	if ((message as any).forwardedNewsletter) {
+		const messageType = Object.keys(m)[0]! as Extract<keyof proto.IMessage, MessageWithContextInfo>
+		const key = m[messageType]
+		if (key && typeof key === 'object') {
+			const info = (message as any).forwardedNewsletter
+			const forwarded: proto.IContextInfo['forwardedNewsletterMessageInfo'] = { newsletterJid: info.newsletterJid }
+			if (info.serverMessageId !== undefined) forwarded!.serverMessageId = Number(info.serverMessageId) || 0
+			if (info.newsletterName !== undefined) forwarded!.newsletterName = info.newsletterName
+			if (info.contentType !== undefined) forwarded!.contentType = info.contentType
+			if (info.accessibilityText !== undefined) forwarded!.accessibilityText = info.accessibilityText
+			key.contextInfo = key.contextInfo || {}
+			key.contextInfo.forwardedNewsletterMessageInfo = forwarded
+			key.contextInfo.isForwarded = true
 		}
 	}
 
@@ -1619,6 +1812,12 @@ export const generateWAMessageContent = async (
 				parentMessageKey: message.albumParentKey
 			}
 		}
+	}
+
+	// `messageAssociation` content key (ported from elaina-baileys; `addYours` builds it, see src/ported/modern-messages.ts)
+	if (hasOptionalProperty(message, 'messageAssociation') && !!(message as any).messageAssociation) {
+		m.messageContextInfo = m.messageContextInfo || {}
+		m.messageContextInfo.messageAssociation = (message as any).messageAssociation
 	}
 
 	if (shouldIncludeReportingToken(m)) {

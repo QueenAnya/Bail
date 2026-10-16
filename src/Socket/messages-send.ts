@@ -37,7 +37,7 @@ import {
 	type SendGroupV4InviteDeps
 } from '../addons/send-group-v4-invite'
 import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../addons/stickerpack.js'
-import { DEFAULT_CACHE_TTLS, WA_DEFAULT_EPHEMERAL } from '../Defaults'
+import { DEFAULT_CACHE_TTLS, MAX_OUTBOUND_RESEND_ENTRIES, MEMBER_LABEL_MAX_LENGTH, WA_DEFAULT_EPHEMERAL } from '../Defaults'
 import type {
 	AnyMessageContent,
 	GroupV4InviteContent,
@@ -45,6 +45,7 @@ import type {
 	MessageReceiptType,
 	MessageRelayOptions,
 	MiscMessageGenerationOptions,
+	PollPhotoOption,
 	SocketConfig,
 	WAMediaUpload,
 	WAMessage,
@@ -68,6 +69,7 @@ import {
 	generateParticipantHashV2,
 	generateWAMessage,
 	generateWAMessageFromContent,
+	getPollOptionHash,
 	getStatusCodeForMediaRetry,
 	getUrlFromDirectPath,
 	getWAUploadToServer,
@@ -75,8 +77,11 @@ import {
 	MessageRetryManager,
 	normalizeMessageContent,
 	parseAndInjectE2ESessions,
+	prepareWAMessageMedia,
 	unixTimestampSeconds
 } from '../Utils'
+import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../ported/group-metadata-cache'
+import { commitSenderKeyDelivery, pickSenderKeyRecipients } from '../ported/sender-key-memory'
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
@@ -166,6 +171,41 @@ export const resolveMessageSendJid = async (
 	}
 }
 
+/**
+ * Builds the protocol message and `meta` node for changing (or, with an empty label, removing)
+ * the sender's member label in a group.
+ */
+export const buildMemberLabelMessage = (jid: string, memberLabel: string | null | undefined) => {
+	if (!isJidGroup(jid)) {
+		throw new Boom('a member label belongs to a group, so jid must be a group jid', {
+			statusCode: 400,
+			data: { jid }
+		})
+	}
+
+	const label = memberLabel === undefined || memberLabel === null ? '' : String(memberLabel).slice(0, MEMBER_LABEL_MAX_LENGTH)
+	return {
+		label,
+		content: {
+			protocolMessage: {
+				type: proto.Message.ProtocolMessage.Type.GROUP_MEMBER_LABEL_CHANGE,
+				memberLabel: {
+					label,
+					labelTimestamp: unixTimestampSeconds()
+				}
+			}
+		} as proto.IMessage,
+		node: {
+			tag: 'meta',
+			attrs: {
+				tag_reason: label ? 'user_update' : 'user_delete',
+				appdata: 'member_tag'
+			},
+			content: undefined
+		} as BinaryNode
+	}
+}
+
 export const makeMessagesSocket = (config: SocketConfig) => {
 	const {
 		logger,
@@ -235,6 +275,26 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		})
 	/** Serializes writes to userDevicesCache across USync refresh and device-notification handling. */
 	const devicesMutex = makeMutex()
+
+	/** Recently sent messages, so a retryable server nack can resend without a getMessage round-trip. */
+	const outboundResendCache =
+		config.outboundResendCache ||
+		new NodeCache<{ jid: string; message: proto.IMessage }>({
+			stdTTL: DEFAULT_CACHE_TTLS.OUTBOUND_RESEND,
+			maxKeys: MAX_OUTBOUND_RESEND_ENTRIES,
+			useClones: false
+		})
+	const rememberOutboundMessage = (messageId: string, jid: string, message: proto.IMessage) => {
+		if (!messageId || !message) {
+			return
+		}
+
+		try {
+			void outboundResendCache.set(messageId, { jid, message })
+		} catch {
+			// best-effort: a full/closed cache must never break sending
+		}
+	}
 
 	// Initialize message retry manager if enabled
 	const messageRetryManager = enableRecentMessageCache ? new MessageRetryManager(logger, maxMsgRetryCount) : null
@@ -545,34 +605,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	 * Update Member Label
 	 */
 	const updateMemberLabel = (jid: string, memberLabel: string) => {
-		if (!isJidGroup(jid)) {
-			throw new Error('Jid must a group jid!')
-		}
+		const { content, node } = buildMemberLabelMessage(jid, memberLabel)
 
-		return relayMessage(
-			jid,
-			{
-				protocolMessage: {
-					type: proto.Message.ProtocolMessage.Type.GROUP_MEMBER_LABEL_CHANGE,
-					memberLabel: {
-						label: memberLabel?.slice(0, 30),
-						labelTimestamp: unixTimestampSeconds()
-					}
-				}
-			},
-			{
-				additionalNodes: [
-					{
-						tag: 'meta',
-						attrs: {
-							tag_reason: 'user_update',
-							appdata: 'member_tag'
-						},
-						content: undefined
-					}
-				]
-			}
-		)
+		return relayMessage(jid, content, { additionalNodes: [node] })
 	}
 
 	const assertSessions = async (jids: string[], force?: boolean) => {
@@ -778,6 +813,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		const finalJid = jid
 
 		msgId = msgId || generateMessageIDV2(meId)
+		if (!isRetryResend) {
+			rememberOutboundMessage(msgId, jid, message)
+		}
+
 		useUserDevicesCache = useUserDevicesCache !== false
 		useCachedGroupMetadata = useCachedGroupMetadata !== false && !isStatus
 
@@ -868,9 +907,19 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const [groupData, senderKeyMap] = await Promise.all([
 					(async () => {
 						let groupData = useCachedGroupMetadata && cachedGroupMetadata ? await cachedGroupMetadata(jid) : undefined // todo: should we rely on the cache specially if the cache is outdated and the metadata has new fields?
-						if (groupData && Array.isArray(groupData?.participants)) {
-							logger.trace({ jid, participants: groupData.participants.length }, 'using cached group metadata')
+						if (isUsableGroupMetadata(groupData)) {
+							logger.trace(
+								{ jid, participants: groupData!.participants.length, addressingMode: groupData!.addressingMode },
+								'using cached group metadata'
+							)
 						} else if (!isStatus) {
+							if (groupData) {
+								logger.debug(
+									{ jid, reason: describeUnusableGroupMetadata(groupData) },
+									'cached group metadata is not usable, fetching it so the addressing mode is not guessed'
+								)
+							}
+
 							groupData = await groupMetadata(jid) // TODO: start storing group participant list + addr mode in Signal & stop relying on this
 						}
 
@@ -927,27 +976,20 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					meId: groupSenderIdentity
 				})
 
-				const senderKeyRecipients: string[] = []
+				// PR #2748: a stale `true` in senderKeyMap survives an identity change even though the
+				// recipient's re-established session no longer holds our sender key — drop those
+				// entries from the lookup so the key is redistributed during the grace window.
+				const effectiveSenderKeyMap = { ...senderKeyMap }
 				for (const device of devices) {
-					const deviceJid = device.jid
-					// PR #2748: a stale `true` in senderKeyMap survives an identity
-					// change even though the recipient's re-established session no
-					// longer holds our sender key — force redistribution during the
-					// grace window instead of trusting the cache.
-					const identityRecentlyChanged = recentlyChangedIdentities.has(jidNormalizedUser(deviceJid))
-					const hasKey = !identityRecentlyChanged && !!senderKeyMap[deviceJid]
-					if (
-						(!hasKey || !!participant) &&
-						!isHostedLidUser(deviceJid) &&
-						!isHostedPnUser(deviceJid) &&
-						device.device !== 99
-					) {
-						//todo: revamp all this logic
-						// the goal is to follow with what I said above for each group, and instead of a true false map of ids, we can set an array full of those the app has already sent pkmsgs
-						senderKeyRecipients.push(deviceJid)
-						senderKeyMap[deviceJid] = true
+					if (recentlyChangedIdentities.has(jidNormalizedUser(device.jid))) {
+						delete effectiveSenderKeyMap[device.jid]
 					}
 				}
+
+				const senderKeyRecipients = pickSenderKeyRecipients(devices, effectiveSenderKeyMap, {
+					force: !!participant,
+					skip: device => isHostedLidUser(device.jid) || isHostedPnUser(device.jid) || device.device === 99
+				})
 
 				if (senderKeyRecipients.length) {
 					logger.debug({ senderKeyJids: senderKeyRecipients }, 'sending new sender key')
@@ -966,6 +1008,15 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					shouldIncludeDeviceIdentity = shouldIncludeDeviceIdentity || result.shouldIncludeDeviceIdentity
 
 					participants.push(...result.nodes)
+
+					// only devices that actually got a node are remembered; the rest are retried next send
+					const { skipped } = commitSenderKeyDelivery(senderKeyMap, senderKeyRecipients, result.nodes)
+					if (skipped.length) {
+						logger.warn(
+							{ jid, skipped },
+							'sender key did not reach every device, leaving them unmarked so the next send retries'
+						)
+					}
 				}
 
 				binaryNodeContent.push({
@@ -1553,6 +1604,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			userDevicesCache.close()
 		}
 
+		if (!config.outboundResendCache && outboundResendCache.close) {
+			outboundResendCache.close()
+		}
+
 		mediaConn = undefined
 		if (messageRetryManager) {
 			messageRetryManager.clear()
@@ -1607,6 +1662,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	const socket = {
 		...sock,
 		userDevicesCache,
+		outboundResendCache,
 		devicesMutex,
 		issuePrivacyTokens,
 		assertSessions,
@@ -1965,7 +2021,44 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const lidRemoteJidAlt: string | undefined = undefined
 				const lidAttrs: Record<string, string> | undefined = undefined
 
-				const fullMsg = await generateWAMessage(resolvedJid, content, {
+				// Photo poll: upload each option picture first; the poll carries only the hashes and
+				// each picture follows as its own message associated with the poll.
+				const photoPollContent = 'poll' in content && content.poll ? content.poll : undefined
+				const isPhotoPollMsg =
+					!!photoPollContent &&
+					Array.isArray(photoPollContent.values) &&
+					photoPollContent.values.some(v => !!v && typeof v === 'object' && !!v.image)
+				const pollOptionImages: { content: proto.IMessage }[] = []
+				let contentToBuild: AnyMessageContent = content
+				if (isPhotoPollMsg && photoPollContent) {
+					const preparedValues: (string | PollPhotoOption)[] = []
+					for (const value of photoPollContent.values) {
+						if (typeof value === 'string' || !value?.image) {
+							preparedValues.push(value)
+							continue
+						}
+
+						const prepared = await prepareWAMessageMedia(
+							{ image: value.image },
+							{
+								logger,
+								upload: waUploadToServer,
+								mediaCache: config.mediaCache,
+								options: config.options,
+								jid
+							}
+						)
+						preparedValues.push({
+							name: value.name,
+							optionHash: getPollOptionHash(value.name, prepared.imageMessage?.fileSha256)
+						})
+						pollOptionImages.push({ content: prepared })
+					}
+
+					contentToBuild = { ...content, poll: { ...photoPollContent, values: preparedValues } } as AnyMessageContent
+				}
+
+				const fullMsg = await generateWAMessage(resolvedJid, contentToBuild, {
 					logger,
 					userJid,
 					getUrlInfo: text =>
@@ -2029,7 +2122,9 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 					const pollAttrs: Record<string, string> = { polltype: isQuizMsg ? 'quiz_creation' : 'creation' }
 					if (isNewsletterMsg) {
-						pollAttrs.contenttype = pollContent?.pollContentType === 2 ? 'image' : 'text'
+						pollAttrs.contenttype = isPhotoPollMsg || pollContent?.pollContentType === 2 ? 'image' : 'text'
+					} else if (isPhotoPollMsg) {
+						pollAttrs.contenttype = 'image'
 					}
 
 					additionalNodes.push({
@@ -2064,6 +2159,29 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				if (config.emitOwnEvents) {
 					process.nextTick(async () => {
 						await messageMutex.mutex(() => upsertMessage(fullMsg, 'append'))
+					})
+				}
+
+				for (const optionImage of pollOptionImages) {
+					const optionMsg = generateWAMessageFromContent(
+						resolvedJid,
+						{
+							pollCreationOptionImageMessage: { message: optionImage.content },
+							messageContextInfo: {
+								messageAssociation: {
+									parentMessageKey: fullMsg.key,
+									associationType: proto.MessageAssociation.AssociationType.MEDIA_POLL
+								}
+							}
+						},
+						{ userJid, messageId: generateMessageIDV2(userJid) }
+					)
+					await relayMessage(resolvedJid, optionMsg.message!, {
+						messageId: optionMsg.key.id!,
+						useCachedGroupMetadata: options.useCachedGroupMetadata,
+						statusJidList: options.statusJidList,
+						additionalAttributes,
+						additionalNodes: [{ tag: 'meta', attrs: { message_association_type: 'media_poll' } }]
 					})
 				}
 

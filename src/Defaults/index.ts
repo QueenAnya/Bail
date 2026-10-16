@@ -7,7 +7,7 @@ import logger from '../Utils/logger'
 
 export { PHONENUMBER_MCC } from './phonenumber-mcc'
 
-const version = [2, 3000, 1048873846] // client_revision from https://web.whatsapp.com/sw.js
+const version = [2, 3000, 1049978204] // client_revision from https://web.whatsapp.com/sw.js
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -66,8 +66,21 @@ export const DEFAULT_CACHE_TTLS = {
 	CALL_OFFER: 5 * 60, // 5 minutes
 	USER_DEVICES: 5 * 60, // 5 minutes
 	USERNAME: 24 * 60 * 60, // 24 hours
-	USERNAME_NEGATIVE: 5 * 60 // 5 minutes
+	USERNAME_NEGATIVE: 5 * 60, // 5 minutes
+	OUTBOUND_RESEND: 60 // 1 minute — window to resend after a retryable nack
 }
+
+/** Default max keys for TTL/LRU caches */
+export const DEFAULT_CACHE_MAX_KEYS = 20_000
+
+/** Max number of recently sent messages kept for resending after a retryable nack */
+export const MAX_OUTBOUND_RESEND_ENTRIES = 512
+
+/** Max length (chars) of a group member label */
+export const MEMBER_LABEL_MAX_LENGTH = 30
+
+/** How long to keep waiting for the pairing response after the phone confirms a pairing code */
+export const PAIRING_RESPONSE_GRACE_MS = 30_000
 
 export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	version: version as WAVersion,
@@ -82,6 +95,9 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	customUploadHosts: [],
 	retryRequestDelayMs: 250,
 	maxMsgRetryCount: 5,
+	ackRetryDelayMs: 750,
+	maxAckRetryCount: 3,
+	pairingCodeTimeoutMs: 180_000,
 	fireInitQueries: true,
 	auth: undefined as unknown as AuthenticationState,
 	markOnlineOnConnect: true,

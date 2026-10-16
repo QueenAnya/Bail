@@ -172,15 +172,43 @@ describe('prepareStickerPackMessage', () => {
 		expect(b.stickerPackId).toBe(a.stickerPackId)
 	})
 
-	it('sendMessage-style content produces stickerPackMessage', async () => {
+	it('supports Elaina-compatible flat options and preserves Anya nested stickerPack API', async () => {
 		const { options } = makeOptions()
-		const flat = await generateWAMessageContent({ cover: WEBP, stickers: [{ data: WEBP }], name: 'X' } as any, options)
-		expect(flat.stickerPackMessage?.name).toBe('X')
-		const nested = await generateWAMessageContent(
-			{ stickerPack: { cover: WEBP, stickers: [{ data: WEBP }], name: 'Y' } } as any,
+		const flat = await generateWAMessageContent(
+			{
+				cover: WEBP,
+				stickers: [{ data: WEBP, emojis: ['😀'] }],
+				name: 'Flat pack',
+				publisher: 'Elaina-compatible publisher',
+				description: 'Flat API regression test',
+				packId: 'elaina-flat-pack-001',
+				concurrency: 3,
+				maxSize: 512,
+				quality: 80
+			} as any,
 			options
 		)
-		expect(nested.stickerPackMessage?.name).toBe('Y')
+		expect(flat.stickerPackMessage?.name).toBe('Flat pack')
+		expect(flat.stickerPackMessage?.publisher).toBe('Elaina-compatible publisher')
+		expect(flat.stickerPackMessage?.packDescription).toBe('Flat API regression test')
+		expect(flat.stickerPackMessage?.stickerPackId).toBe('elaina-flat-pack-001')
+		expect(flat.stickerPackMessage?.stickers?.[0]?.emojis).toEqual(['😀'])
+
+		const nested = await generateWAMessageContent(
+			{
+				stickerPack: {
+					cover: WEBP,
+					stickers: [{ data: WEBP }],
+					name: 'Nested pack',
+					publisher: 'Anya publisher',
+					packId: 'anya-nested-pack-001'
+				}
+			} as any,
+			options
+		)
+		expect(nested.stickerPackMessage?.name).toBe('Nested pack')
+		expect(nested.stickerPackMessage?.publisher).toBe('Anya publisher')
+		expect(nested.stickerPackMessage?.stickerPackId).toBe('anya-nested-pack-001')
 	})
 
 	it('isAnimatedWebP is false for a static webp / non-webp', () => {

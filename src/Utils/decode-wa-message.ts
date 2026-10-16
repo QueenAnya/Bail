@@ -94,6 +94,12 @@ export const SERVER_ERROR_CODES = {
 	SmaxInvalid: '479'
 } as const
 
+/**
+ * Transient server ack error codes (request timeout, rate limit, server error,
+ * service unavailable) after which an outbound message is safe to resend as-is.
+ */
+export const RETRYABLE_ACK_CODES = new Set(['408', '429', '500', '503'])
+
 type MessageType =
 	'chat' | 'peer_broadcast' | 'other_broadcast' | 'group' | 'direct_peer_status' | 'other_status' | 'newsletter'
 

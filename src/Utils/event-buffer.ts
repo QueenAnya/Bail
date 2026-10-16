@@ -70,8 +70,14 @@ type BaileysBufferableEventEmitter = BaileysEventEmitter & {
  * The event buffer logically consolidates different events into a single event
  * making the data processing more efficient.
  */
-export const makeEventBuffer = (logger: ILogger): BaileysBufferableEventEmitter => {
+export const DEFAULT_MAX_EVENT_LISTENERS = 64
+
+export const makeEventBuffer = (
+	logger: ILogger,
+	maxListeners: number = DEFAULT_MAX_EVENT_LISTENERS
+): BaileysBufferableEventEmitter => {
 	const ev = new EventEmitter()
+	ev.setMaxListeners(Number.isFinite(maxListeners) && maxListeners >= 0 ? maxListeners : DEFAULT_MAX_EVENT_LISTENERS)
 	const historyCache = new Set<string>()
 
 	let data = makeBufferData()

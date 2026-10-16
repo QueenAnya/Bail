@@ -92,6 +92,10 @@ export const isLidUser = (jid: string | undefined) => jid?.endsWith('@lid')
 export const isJidBroadcast = (jid: string | undefined) => jid?.endsWith('@broadcast')
 /** is the jid a group */
 export const isJidGroup = (jid: string | undefined) => jid?.endsWith('@g.us')
+/** jid used for live-location broadcast */
+export const LOCATION_BROADCAST_JID = 'location@broadcast'
+/** is the jid the live-location broadcast */
+export const isJidLocationBroadcast = (jid: string | undefined) => jid === LOCATION_BROADCAST_JID
 /** is the jid the status broadcast */
 export const isJidStatusBroadcast = (jid: string) => jid === 'status@broadcast'
 /** is the jid a newsletter */

@@ -29,6 +29,9 @@ export const checkFfmpegAvailable = (bin = FFMPEG_BIN): Promise<boolean> => {
 	})
 }
 
+/** pixel format id of raw I420 frames pushed to the video feeder */
+export const VIDEO_FORMAT_I420 = 0
+
 export type VideoFeederOptions = {
 	width?: number
 	height?: number

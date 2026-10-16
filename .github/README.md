@@ -33,6 +33,29 @@ This library is an unofficial, community-maintained fork and is in no way affili
 
 ---
 
+### 📚 Documentation
+
+English guides are maintained in [`docs/en/`](docs/en/index.md): [getting started](docs/en/getting-started.md), [MessageBuilder](docs/en/builder.md), [groups](docs/en/groups.md), [newsletters](docs/en/newsletter.md), [session storage](docs/en/sessions.md), [sticker packs](docs/en/sticker-packs.md), [unified VoIP](docs/en/voip.md), and the [porting/compatibility change log](docs/en/porting-changes.md). See [`docs/README.md`](docs/README.md) for the guide index. The generated TypeScript API reference can be built with `yarn build:docs`.
+
+### Ported-feature usage map
+
+The cumulative Anya/Elaina work is documented below; start with the examples in this README, then use the focused guides for details.
+
+| Feature / API | Where to find usage |
+| --- | --- |
+| MessageBuilder / AIRich, `MB` static helpers | [MessageBuilder guide](docs/en/builder.md), [README section](#messagebuilder--airich) |
+| Store root exports (`makeInMemoryStore`, `makeOrderedDictionary`, `ObjectRepository`) | [README section](#store-apis-at-the-package-root), [porting guide](docs/en/porting-changes.md#2-store-root-exports) |
+| MongoDB `useMongoAuthState2`, SQLite `useSqliteAuthState2` | [Session guide](docs/en/sessions.md), [README auth-state sections](#mongodb-auth-state-2-usemongoauthstate2) |
+| PostgreSQL, MySQL/MariaDB, Redis and NekoDB auth adapters | [Session guide](docs/en/sessions.md), [README database auth states](#database-auth-states) |
+| Sticker packs: Elaina flat syntax and Anya nested syntax | [Sticker-pack guide](docs/en/sticker-packs.md), [README sticker-pack section](#-sticker-pack) |
+| TTL cache, HTML mini-app validation / multiplayer, voice transcription / wake phrases | [README ported utilities](#additional-ported-utilities), [addons reference](src/addons/README.md) |
+| Status stickers, social/video preview metadata, scheduled-message helpers | [README ported utilities](#additional-ported-utilities), [porting guide](docs/en/porting-changes.md) |
+| Native-flow validation and group-metadata guards | [README ported utilities](#additional-ported-utilities) |
+| Unified Anya + Elaina VoIP (`sock.makeVoipClient()`) | [VoIP guide](docs/en/voip.md), [README unified VoIP section](#unified-voip-api) |
+| Remaining protocol/socket additions, newsletter/account/message APIs | [README compatibility and ported API sections](#innovatorssoft-readme-compatibility), [porting changelog](docs/en/porting-changes.md) |
+
+The root README is the broad usage catalog. The guide pages explain setup and lifecycle details. Ported source files retain their source and license headers where applicable.
+
 ### ✨ Highlights
 
 This fork is based on the original open-source Baileys library
@@ -235,6 +258,7 @@ documented in full below, in
 - [🧩 @teamolduser/baileys Fork-Exclusive Features](#-teamolduserbaileys-fork-exclusive-features)
 - [📦 Fork Base](#-fork-base)
 - [📣 Credits](#-credits)
+- [Elaina Baileys 1.4.5 sync](#elaina-baileys-145-sync)
 
 ### 🛠️ Internal Adjustments
 - 🖼️ Fixed an issue where media could not be sent to newsletters due to an upstream issue.
@@ -574,6 +598,12 @@ sock.sendMessage(jid, {
 }, {
    quoted: message
 })
+
+// --- Mention a group (the `@<group id>` token is appended to the text when it is missing)
+sock.sendMessage(jid, {
+   text: '📣 Join us in',
+   groupMentions: [{ groupJid: '120363000000000000@g.us', groupSubject: 'Team chat' }]
+})
 ```
 
 #### 😁 Reaction
@@ -793,6 +823,20 @@ sock.sendMessage(jid, {
 }, {
    quoted: message
 })
+
+// --- Photo poll: options with a picture (V3 poll message, each picture is sent as a linked message)
+sock.sendMessage(jid, {
+   poll: {
+      name: '🍕 Pick one',
+      values: [
+         { name: 'Margherita', image: { url: './margherita.jpg' } },
+         { name: 'Pepperoni', image: { url: './pepperoni.jpg' } },
+         'No picture option'
+      ],
+      selectableCount: 1
+   }
+})
+// `{ name, optionHash }` reuses a picture that was already uploaded: getPollOptionHash(name, fileSha256)
 
 // --- Quiz (only for newsletter)
 sock.sendMessage('1211111111111@newsletter', {
@@ -1786,6 +1830,11 @@ const customPairingCode = 'STARFALL'
 await sock.requestPairingCode(phoneNumber, customPairingCode)
 
 console.log('🔗 Pairing code', ':', customPairingCode)
+
+// A registered pairing code stays pending until it is used or expires
+// (`pairingCodeTimeoutMs`, default 180000, plus a 30 s grace for the phone's reply).
+// Requesting another one meanwhile throws a 409 - cancel the pending one first:
+sock.cancelPairingCode() // -> true when one was pending
 ```
 
 #### 🖼️ Image Processing
@@ -2562,6 +2611,42 @@ required `biz` binary node.
 ---
 
 ### 4. Sticker Packs
+
+Both APIs are supported: **Elaina-compatible flat `stickers` syntax** and Anya's existing nested `stickerPack` syntax. The flat API is not a replacement; it is an additional compatible entry point, and both accept the same pack options (`cover`, `stickers`, `name`, `publisher`, `description`, `packId`, `concurrency`, `maxSize`, and `quality`). `sock.sendStickerPack()` and `prepareStickerPackMessage()` remain available too.
+
+**Elaina-compatible flat syntax:**
+
+```ts
+await sock.sendMessage(jid, {
+  cover,
+  stickers: [{ data: stickerBuffer, emojis: ['😀'] }],
+  name: 'My pack',
+  publisher: 'My bot',
+  description: 'Sticker pack description',
+  packId: 'my-pack-001',
+  concurrency: 5,
+  maxSize: 512,
+  quality: 80
+})
+```
+
+**Anya's existing nested syntax (still supported):**
+
+```ts
+await sock.sendMessage(jid, {
+  stickerPack: {
+    cover,
+    stickers: [{ data: stickerBuffer, emojis: ['😀'] }],
+    name: 'My pack',
+    publisher: 'My bot',
+    description: 'Sticker pack description',
+    packId: 'my-pack-001',
+    concurrency: 5,
+    maxSize: 512,
+    quality: 80
+  }
+})
+```
 
 Two implementations are available — pick whichever fits your workflow:
 
@@ -3776,12 +3861,7 @@ call.on('error', err => console.log('Call error:', err))
 
 The WASM voice-calling engine only initializes on your **first**
 `initiateCall()` — bots that never place a call pay no extra startup cost.
-Requires the optional peer dependency `@roamhq/wrtc` (native WebRTC
-bindings) — install it separately if you plan to use this feature:
-
-```
-yarn add @roamhq/wrtc
-```
+The required runtime dependency `@roamhq/wrtc` (native WebRTC bindings) is installed automatically with the package. Its platform-specific native binary must be available for your OS/CPU architecture.
 
 #### Video Calls
 
@@ -3923,35 +4003,9 @@ Ported from [`baileys-caller`](https://github.com/SheIITear/baileys-caller)
 and adapted to run on your **existing** socket/session (the original
 package creates its own separate connection).
 
-#### Standalone client (separate session)
+#### Legacy standalone client (reference-only)
 
-For cases where you want calling fully decoupled from your main bot —
-its own auth directory, its own QR scan — use `createVoipClient()`
-instead. This is a vendored internal port of `baileys-caller`'s
-standalone client; it shares the same WASM/signaling/relay/audio engine
-as `sock.initiateCall()` above, just wired to its own independent
-connection rather than your bot's. It mirrors the same concurrent-call
-API too (`callMany`, `getActiveCalls`, `getCall`, `getActiveCallCount`,
-`endCall`, `endAllCalls`, `setOptions`):
-
-```ts
-import { createVoipClient } from '@teamolduser/baileys'
-
-const voip = await createVoipClient({ authDir: './voip_auth' })
-const call = await voip.call('12345678901', { audioSource: './hello.mp3' })
-
-call.on('connected', () => console.log('call connected'))
-call.on('ended', reason => console.log('call ended:', reason))
-
-// Multiple calls at once, same as sock.initiateCalls()
-const calls = await voip.callMany([
-	{ jid: '12345678901', options: { audioSource: './a.mp3' } },
-	{ jid: '19876543210', options: { audioSource: './b.mp3' } }
-])
-
-// later
-voip.disconnect()
-```
+The older `createVoipClient({ authDir })` separate-session wrapper has been removed from the public exports. Its source is retained under ``Voip/` and `Voip2/`anya-standalone/` for maintainers and is not compiled or included in npm releases. Use the unified same-socket API above instead.
 
 ### 31. `companionPlatformDisplay` Override (Pairing by Code)
 
@@ -5120,6 +5174,565 @@ await sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false }
 | `!templaterender` | custom template overriding a preset, rendered by name slug |
 | `!msgtemplate` | `list` / `render <id> k=v ...` / `create Name \| content` / `delete <id>` message templates |
 | `!defaultdisappearing` | `updateDisappearingDuration(24 \| 7 \| 30 \| 90 \| 0 \| seconds)` |
+
+# Ported from other forks (`src/ported`)
+
+Code ported from [`@rexxhayanasi/elaina-baileys`](https://www.npmjs.com/package/@rexxhayanasi/elaina-baileys) 1.4.5 (MIT) and rewritten
+in TypeScript. It lives in `src/ported`, next to `src/addons`, so it is always clear where it came from; every file names its
+source in its header and the applicable source/license notices are retained with the ported code. All of it is exported from the package root and the
+socket methods are available on `sock` like any other.
+
+> **MessageBuilder / AIRich:** `src/ported/MessageBuilder` is copied from elaina-baileys together with its author's watermark and
+> license header (Nixel, `MessageBuilder/index.ts`). That header has to stay in the file, and the module may not be reuploaded or
+> redistributed as a standalone product - keep the original watermark and license header in that file.
+>
+> `cancelPairingCode` and `outboundResendCache` are implemented in the core socket (`src/Socket/socket.ts`, `messages-send.ts`), not in
+> `src/ported`.
+>
+> **Note:** the query ids and stanza formats come from elaina-baileys. They were checked with fake sockets (70+ tests in
+> `src/__tests__/ported`) but **not against a live WhatsApp server** - test on your own bot before relying on them.
+
+## Database auth states
+
+```ts
+import makeWASocket, { usePostgresAuthState, useMySQLAuthState, useRedisAuthState, useNekoDBAuth } from '@teamolduser/baileys'
+
+// PostgreSQL (`pg` is installed with the package) - pass a connectionString / config, or your own Pool
+const { state, saveCreds, clearAuth, close } = await usePostgresAuthState({ connectionString: process.env.DATABASE_URL, session: 'bot-1' })
+// MySQL / MariaDB (`mysql2` is installed with the package)
+const mysql = await useMySQLAuthState({ uri: 'mysql://user:pass@host/db', table: 'baileys_auth', session: 'bot-1' })
+// Redis (`ioredis` is installed with the package) - one hash per key type: <prefix>:<session>:<type>
+const redis = await useRedisAuthState({ uri: 'redis://localhost:6379', session: 'bot-1' })
+// NekoDB - pass a connected NekoDB instance
+const neko = await useNekoDBAuth(db, 'baileys_auth')
+
+const sock = makeWASocket({ auth: state })
+sock.ev.on('creds.update', saveCreds)
+```
+
+- The MongoDB (`mongodb`), MySQL/MariaDB (`mysql2`), PostgreSQL (`pg`), and Redis (`ioredis`) drivers are declared as runtime dependencies, so the package manager installs them automatically. They are loaded only when the corresponding adapter is used. NekoDB still expects you to pass an already connected database instance.
+- `session` lets several bots share one table / Redis. `clearAuth()` deletes the whole session, `close()` closes a connection the
+  helper created itself (a pool / client you passed in is never closed).
+- Writes are transactional (PostgreSQL / MySQL) or `MULTI` (Redis). Table names must be plain identifiers.
+- `makeAuthStateFromStore(store)` builds the same thing on top of any key/value store that implements `AuthStore`.
+
+## MongoDB Auth State 2 (`useMongoAuthState2`)
+
+`useMongoAuthState2` is the Elaina-compatible MongoDB adapter added without changing the existing `useMongoAuthState` API. The `mongodb` driver is declared as a runtime dependency and is installed automatically with the package. Create a MongoDB-backed auth state from a URI:
+
+```ts
+import makeWASocket, { useMongoAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useMongoAuthState2({
+  uri: process.env.MONGODB_URI!,
+  dbName: 'whatsapp',
+  collectionName: 'baileys_auth',
+  session: 'bot-1'
+})
+
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// On an intentional logout/reset, this deletes only the selected session.
+// await auth.clearAuth()
+
+// Call only when this auth-state instance is no longer needed.
+// Since the adapter created the client from `uri`, close() closes that client.
+// await auth.close()
+```
+
+You can instead pass an existing MongoDB `client`, `db`, or `collection`; those resources remain caller-owned and `close()` will not close them. Use the same `session` string to resume a bot and a different string for each independent bot sharing the collection. `clearAuth()` is destructive for that session. The adapter creates a unique `{ session, type, id }` index and uses batched reads plus `bulkWrite` for key updates/removals.
+
+## SQLite Auth State 2 (`useSqliteAuthState2`)
+
+`useSqliteAuthState2` is a separate Elaina-compatible SQLite adapter. The existing `useSqliteAuthState` remains unchanged. This adapter adds `clearAuth()` and `close()` lifecycle methods.
+
+```ts
+import makeWASocket, { useSqliteAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useSqliteAuthState2({ dbPath: './auth.db' })
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// Destructive: clears auth rows from the `creds` and `signal_keys` tables.
+// await auth.clearAuth()
+
+// Closes the database only when the adapter opened it from dbPath.
+await auth.close()
+```
+
+To reuse an existing `better-sqlite3` connection, pass `{ database: db }`. The adapter will not close a caller-owned database handle. The adapter uses the Elaina-compatible `creds` and `signal_keys` schema. `better-sqlite3` is already a dependency of this package.
+
+---
+
+## Store APIs at the package root
+
+The existing in-memory store is available from the package root. It subscribes to socket events when bound and keeps an in-memory view of chats, contacts, messages, groups, presences, and labels. It is not a durable database by itself.
+
+```ts
+import makeWASocket, {
+  makeInMemoryStore,
+  makeOrderedDictionary,
+  ObjectRepository,
+  useMultiFileAuthState
+} from '@teamolduser/baileys'
+
+const { state, saveCreds } = await useMultiFileAuthState('./auth')
+const sock = makeWASocket({ auth: state })
+const store = makeInMemoryStore({})
+store.readFromFile('./baileys-store.json')
+store.bind(sock.ev)
+
+sock.ev.on('creds.update', saveCreds)
+// Persist on your own chosen cadence or during graceful shutdown.
+store.writeToFile('./baileys-store.json')
+
+// Useful store lookups:
+const message = await store.loadMessage('12345@s.whatsapp.net', 'MESSAGE_ID')
+const latest = await store.mostRecentMessage('12345@s.whatsapp.net')
+const group = await store.fetchGroupMetadata('GROUP_ID@g.us', sock)
+
+// A small ordered dictionary keyed by an item's id:
+const recent = makeOrderedDictionary<{ id: string; text: string }>(item => item.id)
+recent.upsert({ id: 'm1', text: 'hello' }, 'append')
+console.log(recent.get('m1'), recent.array)
+
+// Generic in-memory repository for entities with string ids:
+const labels = new ObjectRepository<{ id: string; name: string }>()
+labels.upsertById('label-1', { id: 'label-1', name: 'Important' })
+console.log(labels.findById('label-1'), labels.findAll())
+```
+
+`store.readFromFile()` / `writeToFile()` are synchronous JSON helpers. Protect the file appropriately and prefer a database-backed store if you need durability, concurrent writers, or large histories.
+
+## Channel (newsletter) methods
+
+```ts
+const jid = '120363xxxxxxxxxxxx@newsletter'
+await sock.newsletterUpdateUserSetting(jid, 'ADMIN_NOTIFICATIONS', true)   // mute / unmute
+await sock.newsletterUpdateReactions(jid, 'BASIC')                          // ALL | BASIC | NONE | BLOCKLIST
+await sock.newsletterAdminInfo(jid)               // { adminCount, adminProfile, adminProfilesEnabled }
+await sock.newsletterAdminCapabilities(jid)       // ['CHANNEL_STATUS_PRODUCER', ...]
+await sock.newsletterCanPostStatus(jid)           // { canPost, canPostMusic, capabilities }
+await sock.newsletterCreateAdminInvite(jid, '9199xxxxxxxx@s.whatsapp.net')
+await sock.newsletterRevokeAdminInvite(jid, userJid)   // + newsletterAcceptAdminInvite(jid), newsletterPendingAdminInvites(jid)
+await sock.newsletterFollowers(jid, { count: 100 })
+await sock.newsletterInsights(jid, { metrics: ['NET_FOLLOWS', 'UNFOLLOWS'] })
+await sock.newsletterPinMessages(jid, [150, 151])      // + newsletterUnpinMessages  (server ids are 99..2147476647)
+await sock.newsletterLabelAiContent(jid, 150)          // + newsletterLabelPaidPartnership
+await sock.newsletterPollVoters(jid, 150)              // + newsletterReactionSenders(jid, 150)
+await sock.newsletterSendPollVote(jid, 150, ['Option A'])
+await sock.newsletterFetchMessageUpdates(jid, { count: 20 })
+await sock.newsletterQuestionResponses(jid, 150)       // + newsletterQuestionResponseState(...)
+await sock.newsletterMyAddOns()                        // + newsletterStatusMyAddOns()
+await sock.newsletterEnforcements(jid)                 // + newsletterReports(), newsletterAppealReport(reportId, reason)
+await sock.newsletterRecommended({ limit: 10 })        // + newsletterSimilar(jid)
+await sock.newsletterDirectoryList({ view: 'RECOMMENDED' })   // + newsletterDirectorySearch('news'), newsletterDirectoryCategories()
+```
+
+### Channel statuses
+
+```ts
+const sent = await sock.sendNewsletterStatus(jid, { text: 'New post!' })            // text / image / video / gif / audio / question
+await sock.sendNewsletterStatus(jid, { image: { url: './pic.jpg' }, caption: 'hi' }, { aiContent: true })
+await sock.sendNewsletterStatusReaction(jid, sent.newsletterStatusServerId, '🔥')   // reaction: null removes it
+await sock.revokeNewsletterStatus(jid, sent.key.id)
+const list = await sock.getNewsletterStatuses(jid, { count: 20 })                    // { jid, t, statuses: [...] }
+const updates = await sock.getNewsletterStatusUpdates(jid, { since: 1700000000 })
+```
+
+You must be an admin with the `CHANNEL_STATUS_PRODUCER` capability (`sock.newsletterCanPostStatus(jid)` tells you). The status
+is acknowledged by the server; its server id (needed for reactions / revoke) arrives in a separate `<status>` stanza, which is
+waited for automatically (`resolveServerId: false` skips that).
+
+## Account and chat methods
+
+```ts
+await sock.getUsername()                         // { username, state, pin }   (built on tb2's username socket)
+await sock.checkUsernameAvailability('alice')    // { available, suggestions, response }
+await sock.getUsernames(jid1, jid2)              // [{ jid, username }]
+await sock.removeUsername()                      // same as deleteUsername()
+await sock.removeUsernamePin()
+await sock.fetchAbout('9199xxxxxxxx@s.whatsapp.net')      // { jid, status }
+await sock.updateTextStatus('busy', { emoji: '🔥' })      // text: '' clears it
+await sock.fetchUserNotices()                    // + updateUserNoticeStage(noticeId, stage)
+await sock.fetchOptOutList()                     // + updateOptOut({ jid, category, action })
+await sock.fetchPushSettings()
+await sock.fetchServerLinkPreview('https://example.com')
+await sock.reportSpam(jid, { flow: SPAM_FLOWS.OverflowMenuReport })   // SPAM_FLOWS is exported
+await sock.getServerProps({ refresh: true })     // + fetchProps({ full: true })
+await sock.checkAccountHealth('9199xxxxxxxx')    // { exists, isBusiness, about, hasProfilePhoto, self: { capped, warned, remaining }, notes }
+```
+
+## Message helpers
+
+```ts
+await sock.sendHD(jid, { image: { url: './photo.jpg' }, caption: 'HD' })        // SD message + linked HD child (image or video)
+await sock.sendImgVid(jid, { image: { url: './a.jpg' }, video: { url: './a.mp4' }, caption: 'motion photo' })
+await sock.removeMemberLabel(groupJid)                                           // = updateMemberLabel(groupJid, '')
+await sock.resetGroupSenderKey(groupJid)                                         // { jid, cleared, devices } - redistributes the sender key
+await sock.groupQuery(jid, 'get', [{ tag: 'query', attrs: { request: 'interactive' } }])   // raw w:g2 IQ, + communityQuery
+await sock.executeWMexQuery({ newsletter_id: jid }, queryId, 'xwa2_newsletter_admin')       // raw WMex query
+```
+
+## New message content keys
+
+`sock.sendMessage` understands these extra content keys (they are converted into raw proto content, see `src/ported/modern-messages.ts`):
+
+| Key | Example |
+| --- | --- |
+| `question` | `{ question: { text: 'Favourite colour?' } }` |
+| `questionReply` / `questionResponse` | `{ questionResponse: { key, text: 'blue' } }` |
+| `statusQuestionAnswer` / `statusQuoted` / `statusStickerInteraction` / `statusNotification` | status related replies (`key`, `stickerKey`, ...) |
+| `comment` | `{ comment: { targetMessageKey: key, content: { text: 'nice' } } }` |
+| `statusMention` | `{ statusMention: { key } }` (`group: true` for group statuses) |
+| `groupStatusReaction` | `{ groupStatusReaction: { key, text: '🔥' } }` |
+| `newsletterAdminInvite` / `newsletterFollowerInvite` | `{ newsletterAdminInvite: { newsletterJid, newsletterName, caption } }` |
+| `scheduledCall` / `scheduledCallEdit` | `{ scheduledCall: { scheduledTimestampMs, callType, title } }` |
+| `music` | `{ music: { songId, title, author, songUri, artworkUri } }` (uris must be WhatsApp / Meta hosted) |
+| `splitPayment` / `splitPaymentUpdate` | `{ splitPayment: { splitId, total: 900, participants: [{ jid, amount: 300 }] } }` |
+| `paymentReminder` | `{ paymentReminder: { reminderId, amount: 499, payeeVpa: 'shop@upi' } }` |
+| `addYours` | `{ text: 'My turn!', addYours: statusKey }` (also `messageAssociation`) |
+| `statusAudience` | `{ text: 'hi', statusAudience: 'Close friends' }` |
+| `richLink` | `{ richLink: { url, title, description, image, text } }` - link card with your own title / description / picture |
+| `song` | `{ song: { audio, artwork, title, author, url } }` - audio with a music-style card |
+| `socialPreview` | `{ text: url, socialPreview: { ... } }` - social post metadata on a link preview (see `SocialMediaPostType`) |
+| `statusLinkPreview` | `{ text: url, statusLinkPreview: 1 }` - status link-preview style (non-negative integer) |
+| `groupMentions` | `{ text: 'hi', groupMentions: [{ groupJid, groupSubject }] }` |
+| `forwardedNewsletter` | `{ text, forwardedNewsletter: { newsletterJid, serverMessageId, newsletterName } }` - "Forwarded from channel" header |
+| `newsletterStatus` / `groupStatusAttribution` / `statusAttributions` | decorate a status with a channel / group reshare attribution |
+
+- Money is the **human amount** and the default currency is **INR** (`money(500)` -> 500 INR; pass `currency: 'USD'` for another).
+- `pollAddOption` and `eventInvite` use `PollAddOptionMessage` / `EventInviteMessage` from this WAProto (found under `proto.Message` or as
+  flat `proto.*` classes). The channel-status attribution type 9 is sent as a number.
+- `addYours` / `statusAudience` cannot be combined with a key that builds its own message (`question`, `comment`, ...) - an error says so.
+- Builders and readers are exported as well: `buildSplitPayment`, `readSplitPayment`, `buildPaymentReminder`, `readPaymentReminder`, `money`,
+  `buildMusicMessage`, `readMusicMessage`, `locationSticker`, `channelSticker`, `linkSticker`, `musicSticker`, `messageSticker`,
+  `normalizeStickers`, `readStickers`, `encodeScheduledMessage`, `decodeScheduledMessage`, `buildScheduledMsgMetaNode`,
+  `buildUnscheduleProtocolMessage`, `isScheduledTimeValid`, `prepareModernMessageContent`.
+
+### Example commands
+
+`assets/examples/example.js`: `!question`, `!comment`, `!addyours`, `!splitpay`, `!remind`, `!hd`, `!motion`, `!health <number>`, `!about <number>`,
+`!serverprops`, `!serverlink <url>`, `!nlinfo <channel jid>`, `!nldirectory <text>`, `!nlstatus <channel jid> <text>`, `!resetkey` (group).
+
+# Elaina Baileys 1.4.5 sync
+
+Everything that `@rexxhayanasi/elaina-baileys` 1.4.5 had and this fork did not is now here. Checked by instantiating both sockets: every
+`sock.*` method of elaina-baileys exists in this package.
+
+## WhatsApp version and WAProto
+
+- Default WhatsApp Web version is `2.3000.1049978204`.
+- `WAProto/WAProto.proto` was updated from elaina's compiled proto (new messages such as `ChatThemeSetting` wallpapers, split payments,
+  `PollAddOptionMessage` updates, `GroupHistoryToggleAction`, `ThreadPinAction`, ... plus the new fields on existing messages) and
+  `index.js` / `index.d.ts` were regenerated (`yarn gen:protobuf`; `fix-imports.js` re-attaches the `merge.js` bridge).
+- Where elaina and this proto disagree (e.g. `Message.pollResultSnapshotMessageV3` has another tag here) the existing definition was kept.
+
+## New socket config options
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `ackRetryDelayMs` | `750` | base delay between resends after a retryable server nack (multiplied by the attempt) |
+| `maxAckRetryCount` | `3` | max resends of one message after retryable nacks (`408`, `429`, `500`, `503`) |
+| `outboundResendCache` | in-memory | cache (`get/set/del`) of recently sent messages used for those resends; exposed as `sock.outboundResendCache` |
+| `pairingCodeTimeoutMs` | `180000` | how long a requested pairing code stays pending (+ `PAIRING_RESPONSE_GRACE_MS` = 30 s) |
+| `maxEventListeners` | `64` | `setMaxListeners` for `sock.ev` |
+| `AnchorGuard` / `AnchorGuardConfig` | `false` / `{}` | anti-crash guard, needs the optional `@rexxhayanasi/elaina-anchorguard`; exposed as `sock.anchorGuard` |
+| `voiceRecognition` | off | `{ enabled: true, transcribe(ctx), allowFromMe?, pttOnly?, maxDuration? }` - transcribe incoming voice notes |
+
+```ts
+const sock = makeWASocket({ auth: state, ackRetryDelayMs: 1000, maxAckRetryCount: 2 })
+sock.cancelPairingCode()   // abandon a pending pairing code
+```
+
+## Core changes
+
+- **Retryable nack resend**: a `408/429/500/503` ack resends the same message (from `outboundResendCache`, falling back to `getMessage`)
+  up to `maxAckRetryCount` times.
+- **Cached group metadata** is only used when it has participants *and* an `addressingMode` (`isUsableGroupMetadata`); otherwise it is refetched.
+- **Sender keys**: only devices that actually received the SKDM are remembered (`pickSenderKeyRecipients` / `commitSenderKeyDelivery`).
+- **Edits**: `resolveMessageEditAuthor` maps LID senders/editors to phone numbers before the edit is decrypted.
+- **Read mutexes** are reference counted, idle ones are dropped (the transaction mutex stays one per store).
+- **Member labels**: `buildMemberLabelMessage(groupJid, label)` (labels are cut at `MEMBER_LABEL_MAX_LENGTH` = 30); an empty label sends `user_delete`.
+- **Sync actions**: `GroupHistoryToggleAction` emits `groups.update` with `groupHistoryToggleMode` (`GroupHistoryToggleMode.DEFAULT/ON/OFF`).
+- **Helpers**: `LOCATION_BROADCAST_JID` / `isJidLocationBroadcast`, `getPollOptionHash`, `countAuthFileLocks`, `DEFAULT_MAX_EVENT_LISTENERS`,
+  `DEFAULT_MAX_MSG_RETRY_COUNT`, `DEFAULT_CACHE_MAX_KEYS`, `RETRYABLE_ACK_CODES`, `ListType`, `StatusFont`, `StatusNotificationType`.
+- **Usernames**: `validateUsernameFormat(name)` (returns `{ isValid, errorType }`), `assertUsername`, `displayUsername`, `stripUsernamePrefix`,
+  `isUsernamePin`, `UsernameValidationError`, `USERNAME_MIN_LENGTH/MAX_LENGTH/PIN_LENGTH`. (`validateUsername` keeps throwing as before.)
+
+## Ported modules (`src/ported`)
+
+The table below maps each ported module family to its usage section in this README. The socket wrapper is installed internally; use the resulting `sock` methods rather than calling the wrapper yourself.
+
+| Module / files | Public API or usage example in this README |
+| --- | --- |
+| `socket.ts` | Socket methods are installed by the library; see [Channel methods](#channel-newsletter-methods), [Account and chat methods](#account-and-chat-methods), and [Message helpers](#message-helpers). |
+| `auth-store.ts` | `AuthStore`, `makeAuthStateFromStore` — [Database auth states](#database-auth-states). |
+| `store-exports.ts` | `makeInMemoryStore`, `makeOrderedDictionary`, `ObjectRepository` — [Store APIs](#store-apis-at-the-package-root). |
+| `use-mongo-auth-state2.ts` | `useMongoAuthState2`, session isolation, `clearAuth()`, `close()` — [MongoDB Auth State 2](#mongodb-auth-state-2-usemongoauthstate2). |
+| `use-sqlite-auth-state2.ts` | `useSqliteAuthState2`, `clearAuth()`, owned-connection `close()` — [SQLite Auth State 2](#sqlite-auth-state-2-usesqliteauthstate2). |
+| `use-postgres-auth-state.ts`, `use-mysql-auth-state.ts`, `use-redis-auth-state.ts`, `use-nekodb-auth-state.ts` | Optional database auth adapters — [Database auth states](#database-auth-states). |
+| `newsletter-extras.ts`, `newsletter-status.ts` | Newsletter admin, directory, followers, insights, status send/reaction/revoke/fetch — [Channel methods](#channel-newsletter-methods) and [Channel statuses](#channel-statuses). |
+| `chats-extras.ts` | Username, about, privacy, server properties, account health, spam reporting — [Account and chat methods](#account-and-chat-methods). |
+| `messages-extras.ts`, `messages-helpers.ts` | HD/motion media, sender-key reset, native-flow and message helpers — [Message helpers](#message-helpers) and [Native-flow validation](#native-flow-validation-and-group-metadata-guards). |
+| `modern-messages.ts` | Question, comment, status, association, music, social preview, split-payment, reminder and other content keys — [New message content keys](#new-message-content-keys). |
+| `payment-messages.ts` | Split-payment and payment-reminder builders/readers — [New message content keys](#new-message-content-keys). |
+| `scheduled-message.ts` | Scheduled-call content plus scheduled-message encode/decode and validation — [New message content keys](#new-message-content-keys). |
+| `status-stickers.ts` | Location/channel/link/music/message annotations and sticker readers — [Status stickers and annotation helpers](#status-stickers-and-annotation-helpers). |
+| `group-metadata-cache.ts`, `ttl-cache.ts` | Metadata guards and bounded TTL cache — [Native-flow validation](#native-flow-validation-and-group-metadata-guards) and [TTL cache](#ttl-cache). |
+| `sender-key-memory.ts` | Recipient selection and sender-key reset helpers — [Message helpers](#message-helpers). |
+| `optional-media.ts` | Lazy optional media dependency loading — [Native-flow validation](#native-flow-validation-and-group-metadata-guards). |
+| `native-flow.ts` | Button names/limits and `checkNativeFlowButtons` — [Native-flow validation](#native-flow-validation-and-group-metadata-guards). |
+| `html-app.ts`, `html-multiplayer.ts` | HTML size checks, mini-app sending, secure multiplayer prelude — [HTML mini-app validation and multiplayer prelude](#html-mini-app-validation-and-multiplayer-prelude). |
+| `link-preview-metadata.ts` | Social preview build/read helpers — [New message content keys](#new-message-content-keys) and [Account and chat methods](#account-and-chat-methods). |
+| `voice-recognition.ts` | Opt-in transcription binding and wake phrases — [Voice transcription and wake-phrase events](#voice-transcription-and-wake-phrase-events). |
+| `MessageBuilder/` and `MessageBuilder/attach-static-helpers.ts` | `MB`, `MessageBuilder`, `Button`, `ButtonV2`, `AIRich`, `AIRichCarousel`, `Toolkit`, A2UI/Bloks/HTML helpers, static attachment — [MessageBuilder / AIRich](#messagebuilder--airich). |
+
+
+> These modules are copied from elaina-baileys with only their imports changed and are type-checked loosely (`@ts-nocheck`).
+> They are covered by a few unit tests, but **not tested against a live WhatsApp server**.
+
+## MessageBuilder / AIRich
+
+```ts
+import { MB, MessageBuilder, AIRich, Button, sendA2UI, sendHtmlApp, sendAIRichMessage, readRichMessage, verifyRichResponseSignature, forwardRichResponse } from '@teamolduser/baileys'
+
+await new Button(sock).setTitle('Menu').addReply('Ping', 'ping').send(jid)
+
+const rich = new AIRich(sock)
+rich.addText('*Report*')
+rich.addSection(MB.dividerSection())
+rich.addSection(MB.taskSection({ taskId: 'job-1', title: 'Rendering', status: MB.TaskStatus.RUNNING }))
+await rich.send(jid)
+
+await sendHtmlApp(sock, jid, '<h1>Hello</h1>', { title: 'Mini app' })
+
+// Elaina-compatible static helper attachment: helpers are available on MB/MessageBuilder.
+const map = MB.mapSection({ items: [], queryStatus: 'FETCHED' })
+const divider = MessageBuilder.dividerSection()
+
+// Inspect/verify a received signed AI rich response before forwarding it.
+const parsedRich = readRichMessage(incomingMessage)
+const signature = verifyRichResponseSignature(incomingMessage) // { status: 'passed' } or { status: 'failed', reason }
+if (parsedRich && signature.status === 'passed') {
+  await forwardRichResponse(sock, jid, incomingMessage)
+}
+```
+
+- The builder covers tables, code, A2UI cards, HTML mini apps, embedded screens and Meta AI sections (sports, places, quiz, search, ...).
+- `Carousel` is exported as `AIRichCarousel` (the name `Carousel` is already a message type here).
+- The builder is **licensed separately by its author** - keep the watermark in `src/ported/MessageBuilder/index.ts` and keep the original watermark and license header in that file.
+
+## Additional ported utilities
+
+### TTL cache
+
+`TTLCache` is a bounded LRU cache with optional default TTL in seconds and per-entry TTL overrides:
+
+```ts
+import { TTLCache } from '@teamolduser/baileys'
+
+const cache = new TTLCache({ stdTTL: 60, maxKeys: 500 })
+cache.set('group:123@g.us', { subject: 'Example' })
+cache.set('temporary-token', 'abc', 5) // expires after about 5 seconds
+
+const metadata = cache.get('group:123@g.us')
+const many = cache.mget(['group:123@g.us', 'missing'])
+console.log(cache.getStats()) // hits, misses, keys
+cache.del('temporary-token')
+// cache.close() clears the in-memory entries; it does not persist them.
+```
+
+### HTML mini-app validation and multiplayer prelude
+
+The HTML app helpers validate the HTML payload against WhatsApp's size and WebView constraints before sending. Embed required assets as data URIs; remote subresources and ordinary HTTP requests are not available in the opaque app context.
+
+```ts
+import { checkHtmlApp, sendHtmlApp, withHtmlMultiplayer } from '@teamolduser/baileys'
+
+const html = '<!doctype html><html><body><h1>Hello from WhatsApp</h1></body></html>'
+const report = checkHtmlApp(html, { height: 320 })
+if (!report.ok) throw new Error(report.problems.join('; '))
+console.log(report.bytes, report.wireBytes, report.warnings)
+await sendHtmlApp(sock, jid, html, { title: 'Mini app', height: 320 })
+
+// For a multiplayer page, supply a real secure WebSocket endpoint and a room id.
+// The returned HTML includes a small window.room API (send/on/close).
+const multiplayerHtml = withHtmlMultiplayer(html, {
+  url: 'wss://your-game.example/ws',
+  room: 'room-42',
+  seat: 'player-1'
+})
+await sendHtmlApp(sock, jid, multiplayerHtml, { title: 'Multiplayer demo', height: 420 })
+```
+
+The multiplayer helper only injects client-side connection code; you must operate the `wss://` server yourself. Do not put credentials or secrets in the HTML payload.
+
+### Voice transcription and wake-phrase events
+
+`bindVoiceRecognition` is an opt-in event binding. Supply your own transcription provider—the library downloads eligible incoming voice notes and passes the audio buffer to your callback. It does not bundle a speech-to-text service.
+
+```ts
+import { bindVoiceRecognition } from '@teamolduser/baileys'
+
+const unbindVoice = bindVoiceRecognition(sock, {
+  getMessage: store.getMessage,
+  voiceRecognition: {
+    enabled: true,
+    pttOnly: true,
+    maxDuration: 60,
+    maxBytes: 16 * 1024 * 1024,
+    wakePhrases: ['hey anya', 'okay anya'],
+    transcribe: async ({ buffer, mimetype }) => {
+      // Call your chosen speech-to-text service here.
+      // Return a string or { text: 'recognized words' }.
+      return await yourTranscriptionFunction(buffer, mimetype)
+    }
+  }
+})
+
+sock.ev.on('voice.transcription', event => {
+  console.log('Transcript:', event.transcript)
+})
+sock.ev.on('voice.command', event => {
+  console.log('Activation:', event.activation, 'Command:', event.commandText)
+})
+
+// When shutting down or disabling this feature:
+unbindVoice()
+```
+
+The `transcribe` callback above is an application-provided placeholder, not a built-in function. Configure access controls and size/duration limits before enabling transcription in groups.
+
+### Status stickers and annotation helpers
+
+The port exports helpers to build supported interactive annotations for location, newsletter, link, music, and embedded-message stickers. The coordinates are fractions of the media dimensions (0–1), not pixels:
+
+```ts
+import { stickerArea, locationSticker, channelSticker, linkSticker, messageSticker, readStickers } from '@teamolduser/baileys'
+
+const area = stickerArea({ x: 0.1, y: 0.1, width: 0.3, height: 0.2 })
+const locationAnnotation = locationSticker({ latitude: 37.7749, longitude: -122.4194, name: 'San Francisco', area: { x: 0.1, y: 0.1, width: 0.3, height: 0.2 } })
+const channelAnnotation = channelSticker({ jid: '120363xxxxxxxxxxxx@newsletter', name: 'Updates', serverMessageId: 150 })
+const linkAnnotation = linkSticker({ url: 'https://example.com', title: 'Open site' })
+const embeddedAnnotation = messageSticker({ message: { conversation: 'Quoted content' } })
+
+// Inspect annotations already present on an incoming image/video message:
+const annotations = readStickers(incomingMessage.message)
+```
+
+These helpers produce/parse annotation data; attach it only through a message shape supported by the target WhatsApp client and test on the client versions you intend to support. They do not upload media or guarantee server-side acceptance by themselves.
+
+### Social/video link-preview metadata
+
+The port provides explicit builders/readers for the fork's social-video preview metadata. Duration values are seconds, not milliseconds.
+
+```ts
+import { buildSocialPreview, readSocialPreview, videoEndCard, SocialMediaPostType } from '@teamolduser/baileys'
+
+const preview = buildSocialPreview({
+  postType: SocialMediaPostType.REEL,
+  videoUrl: 'https://media.example/video.mp4',
+  videoCaption: 'Demo clip',
+  durationSeconds: 42,
+  muted: true,
+  endCards: [videoEndCard({ username: 'example', caption: 'More clips', thumbnailUrl: 'https://example.com/thumb.jpg' })]
+})
+
+// `preview` is metadata to combine with the corresponding supported message content.
+// On an incoming message, readSocialPreview accepts either WAMessage or its `.message` payload.
+const parsedPreview = readSocialPreview(incomingMessage)
+```
+
+`buildSocialPreview` only constructs metadata; it does not download or host the media. Supply URLs/assets that your target client and the relevant WhatsApp message type can actually access.
+
+### Scheduled-message protocol helpers
+
+For applications that need the low-level conditional-reveal payload format, the exported helpers can encode and decode a protobuf message. This is a protocol-level building block, not a general-purpose job queue or a replacement for a durable scheduler.
+
+```ts
+import { proto, encodeScheduledMessage, decodeScheduledMessage, isScheduledTimeValid } from '@teamolduser/baileys'
+
+const scheduledAtSeconds = Math.floor(Date.now() / 1000) + 60 * 10
+if (!isScheduledTimeValid(scheduledAtSeconds)) {
+  throw new Error('The requested time is outside the supported scheduling window')
+}
+
+const original = { conversation: 'This content is revealed later' }
+const encoded = encodeScheduledMessage(original)
+// Persist encoded.revealKey and encoded.revealKeyId securely with the schedule metadata.
+const decoded = decodeScheduledMessage(encoded.message, encoded.revealKey)
+console.log(proto.Message.toObject(decoded), encoded.revealKeyId)
+```
+
+Do not log or expose `revealKey`; anyone holding it can decrypt the payload. The socket protocol metadata helpers (`buildScheduledMsgMetaNode`, `buildUnscheduleProtocolMessage`) are low-level primitives and should only be used with the matching protocol flow.
+
+### Optional media dependencies
+
+```ts
+import { hasOptionalMedia, loadSharp, loadFfmpeg } from '@teamolduser/baileys'
+
+if (await hasOptionalMedia('sharp')) {
+  const sharp = await loadSharp()
+  // Use sharp for image transforms only in the code path that needs it.
+}
+if (await hasOptionalMedia('fluent-ffmpeg')) {
+  const ffmpeg = await loadFfmpeg()
+  // FFmpeg operations also require a system FFmpeg binary.
+}
+```
+
+These modules are loaded lazily. Install optional packages only when the related feature is used; the existence of a Node package alone does not guarantee that a system codec/binary is installed.
+
+### Native-flow validation and group metadata guards
+
+```ts
+import { checkNativeFlowButtons, isUsableGroupMetadata, describeUnusableGroupMetadata } from '@teamolduser/baileys'
+
+const result = checkNativeFlowButtons([
+  { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Hello', id: 'hello' }) }
+])
+console.log(result)
+
+const metadata = await sock.groupMetadata(groupJid)
+if (!isUsableGroupMetadata(metadata)) {
+  console.warn(describeUnusableGroupMetadata(metadata))
+  // Refresh/retry metadata rather than assuming participants are complete.
+}
+```
+
+The validators help detect malformed or incomplete input; they do not override WhatsApp's server-side restrictions. Optional media libraries are loaded on demand: install `sharp` or another supported image library only if you use the related image-processing feature, and install `fluent-ffmpeg` plus a system FFmpeg binary for FFmpeg-dependent operations.
+
+## Unified VoIP API
+
+Anya and Elaina call features are exposed through **one `voip` client**. No engine-selection option is required: the method you invoke automatically selects the internal signaling engine. Original source snapshots stay at repository root under `Voip/` and `Voip2/`; they are maintainer references, outside `src/`, and excluded from npm publication.
+
+```ts
+import makeWASocket from '@teamolduser/baileys'
+
+const sock = makeWASocket({ auth: state })
+const voip = await sock.makeVoipClient()
+
+// Anya multi-call API
+const call = await voip.initiateCall('15551234567', {
+  audioSource: './audio.mp3',
+  durationMs: 60_000
+})
+const activeCalls = await voip.getActiveCalls()
+
+// Elaina media/group-call API is available on the same client.
+// First end the previous call before switching internal signaling engines.
+// const mediaCall = await voip.call('15551234567', { audioSource: './audio.mp3' })
+// mediaCall.enqueue('./next-track.mp3')
+
+// Alternative: import { makeVoipClient } and use the top-level factory:
+// const socketVoip = await makeVoipClient(sock)
+```
+
+The same client exposes `initiateCall()`, `initiateCalls()`, `callMany()`, `acceptCall()`, `rejectCall()`, `call()`, `callGroup()`, `joinGroupCall()`, `getActiveCalls()`, `getCall()`, `getActiveCallCount()`, `endCall()`, `endAllCalls()`, `setOptions()`, `resetCallState()`, and `disconnect()`. The call object includes methods appropriate to the call-creation API: Anya calls expose incoming-call lifecycle and video controls; Elaina calls expose audio/video playlists and screen-sharing controls.
+
+**Safety note:** Both original engines own WhatsApp signaling state, so they cannot safely manage active calls at the same time on one socket. The unified client switches automatically only when the previous engine has no active calls; it throws a clear error if a switch is attempted while a call is active. Do not start direct `sock.initiateCall()` calls while an Elaina media call is active. See [the complete VoIP API guide](docs/en/voip.md).
 
 # About This Fork (@teamolduser/baileys)
 

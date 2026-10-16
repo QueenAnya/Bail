@@ -77,6 +77,17 @@ try {
     return `${prefix}o.longs === String ? longToString(m.${field}${unsignedArg}) : o.longs === Number ? longToNumber(m.${field}${unsignedArg}) : m.${field};`
   })
 
+  // Re-attach the sub-module merge bridge (see ./merge.js) that pbjs output drops.
+  if (!content.includes('mergeMissingProtoTypes')) {
+    content = "import { mergeMissingProtoTypes } from './merge.js';\n" + content
+    const tail = '\n    return proto;\n})();'
+    const tailIndex = content.lastIndexOf(tail)
+    if (tailIndex === -1) {
+      throw new Error('Unable to inject mergeMissingProtoTypes: proto return marker not found')
+    }
+    content = content.slice(0, tailIndex) + '\n    mergeMissingProtoTypes(proto);\n' + content.slice(tailIndex)
+  }
+
   writeFileSync(filePath, content, 'utf8')
   console.log(`✅ Fixed imports in ${filePath}`)
 } catch (error) {

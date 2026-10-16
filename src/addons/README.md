@@ -12,9 +12,9 @@ compiled output.
 
 Every `.ts` file under `addons/` that exports real functionality is
 listed in the table below (`index.ts`, the barrel file, is the only
-intentional exclusion — everything else, including `Voip/voip-client.ts`
-which lives outside `addons/`, is covered in its own dedicated section
-further down).
+intentional exclusion). The former standalone VoIP wrapper is reference-only
+under ``Voip/standalone/``; the public API is the
+merged `makeVoipClient()` facade documented in `docs/en/voip.md`.
 
 ---
 
@@ -59,7 +59,7 @@ further down).
 | `find-user-id.ts`                                                                     | `findUserId` — resolves a PN or LID jid to both forms                                                                                                                                                                                                                                                                                    | an upstream fork                                                                                                                                                                                                  | ✅ called from `Socket/chats.ts` as `sock.findUserId()`; takes `lidMapping` as a parameter rather than importing `signalRepository` directly                                                                            |
 | `media-messages.ts`, `media-set.ts`                                                   | Jimp-based profile-picture generators (`generatePP`/`generateProfilePictureFP`, `generateProfilePictureFull`/`changeprofileFull`, `generateProfilePicturee`)                                                                                                                                                                             | User-supplied source, ported to this fork's `jimp@^1.6.1` API                                                                                                                                                     | ✅ deduplicated — 2 pairs of near-identical functions merged into one implementation each (aliased under both original names); one `ReferenceError`-causing bug fixed along the way                                     |
 | `rich-message-utils.ts`                                                               | `toUnified`, `botMetadataSignature`/`botMetadataCertificate`, `wrapToBotForwardedMessage`, `prepareRichResponseMessage`, `RichContent` type                                                                                                                                                                                              | another upstream fork                                                                                                                                                                                             | ✅ deep-verified against their real compiled `rich-message-utils.js`; missing `INLINE_IMAGE` case and `markdown_cells` field added this session                                                                         |
-| `voip-calling.ts`                                                                     | `createVoipClient({ authDir })` — standalone second-session VoIP wrapper (own QR scan, own auth dir); thin re-export of `Voip/voip-client.ts` (this fork's own vendored port, no external package)                                                                                                                                       | [`baileys-caller`](https://github.com/SheIITear/baileys-caller) by SheIITear                                                                                                                                      | ✅ separate-session alternative to the primary same-session `src/Voip/` integration (`sock.initiateCall()`) — see the dedicated "VoIP Calling" section below for `Voip/voip-client.ts` itself (lives outside `addons/`) |
+| ``Voip/standalone/`` | Legacy standalone-session wrapper source retained for maintainers only; not compiled, exported, or published | [`baileys-caller`](https://github.com/SheIITear/baileys-caller) by SheIITear | Use the unified `makeVoipClient(sock)` facade instead |
 
 ---
 
@@ -585,55 +585,17 @@ fixes above and `__filename`/`__dirname` renamed to
 once this file lives inside a larger bundled project). No logic gaps
 found.
 
-`@roamhq/wrtc` (native WebRTC bindings) is a **lazy dynamic import**
-(`import('@roamhq/wrtc')`) inside the call-placing method, not a static
-top-level import — so it's correctly left as an _optional_ peer dependency
-(unlike `node-webpmux`/`fluent-ffmpeg`/`jimp`/etc., which needed to move to
-hard `dependencies` earlier in this fork's history because they're
-statically imported at module load time from files that are unconditionally
-exported). Consumers who never call `sock.initiateCall()` never need
-`@roamhq/wrtc` installed at all.
+`@roamhq/wrtc` (native WebRTC bindings) is loaded lazily via
+`import('@roamhq/wrtc')` inside the call-placing path, but it is declared as a
+required runtime dependency so package installation supplies it automatically.
+Consumers who never call `sock.initiateCall()` do not initialize the WebRTC
+module at runtime; installation still depends on a supported native binary for
+the host OS/CPU architecture.
 
-### `Voip/voip-client.ts` + `addons/voip-calling.ts` — separate-session alternative
+### Legacy standalone VoIP source (reference-only)
 
-A **different, standalone** wrapper — `createVoipClient({ authDir })`
-creates its **own independent** WhatsApp connection (own QR scan, own auth
-directory), for cases where you want calling fully decoupled from your main
-bot's session.
+The prior `Voip/voip-client.ts` and `addons/voip-calling.ts` wrapper sources have been moved to ``Voip/standalone/``. They are not in `src/`, are not exported from package barrels, and are excluded from npm releases. The public replacement is the unified `makeVoipClient(sock)` facade documented in `docs/en/voip.md`; its methods select the internal engine automatically.
 
-**This session:** vendored `baileys-caller`'s `src/index.mts` (the
-`VoipClient` class — 401 lines) as `Voip/voip-client.ts`, replacing the
-previous design which dynamically imported the **external**
-[`baileys-caller`](https://github.com/SheIITear/baileys-caller) npm
-package at runtime (required a manual `npm install github:...`, a manual
-build step, and a `@whiskeysockets/baileys` peer dependency — none of
-that is needed anymore).
-
-The port turned out simpler than a full transcription: `index.mts`'s
-`VoipClient` duplicates the entire WASM/signaling/relay/audio engine
-inline (same logic `voip-engine.ts` already has, just owning its own
-socket instead of attaching to an existing one). Since this fork's
-`makeWASocket()` factory already wires `sock.initiateCall()` into
-_every_ socket it creates (via `Socket/username.ts` →
-`attachVoipToSocket`), `voip-client.ts` doesn't need to duplicate that
-engine at all — it only needed to port the "create a brand-new
-connection" part (`useMultiFileAuthState`, socket creation, QR-code
-display, auto-reconnect on the post-QR 515 stream-error path), then
-delegates `call()` straight to the already-wired `sock.initiateCall()`.
-No engine code is duplicated between the two integration modes.
-
-`addons/voip-calling.ts` is now a thin re-export of `Voip/voip-client.ts`
-(previously it defined its own structural types and dynamically imported
-the external package). The old exported type names
-(`VoipClientConfig`/`VoipCallOptions`/`VoipCallEvents`/`VoipActiveCall`)
-are kept as `@deprecated` aliases pointing at the new names
-(`VoipSdkConfig`/`CallOptions`/`CallEvents`/`ActiveCall`) so nothing
-importing the old names breaks.
-
-`addons/baileys-caller.d.ts` (the ambient type stub that let the old
-`import('baileys-caller')` type-check without the package installed) was
-deleted — dead code now that nothing dynamically imports that module
-anymore.
 
 ## New Addons This Session — link-preview-extras, newsletter-role-updates, find-user-id
 

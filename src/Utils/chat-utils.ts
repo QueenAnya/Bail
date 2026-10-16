@@ -14,6 +14,7 @@ import type {
 	WAPatchCreate,
 	WAPatchName
 } from '../Types'
+import { GroupHistoryToggleMode } from '../Types/GroupMetadata'
 import {
 	type ChatLabelAssociation,
 	LabelAssociationType,
@@ -1011,6 +1012,14 @@ export const processSyncAction = (
 			setting: 'channelsPersonalisedRecommendation',
 			value: action.privacySettingChannelsPersonalisedRecommendationAction
 		})
+	} else if (action?.groupHistoryToggleAction) {
+		ev.emit('groups.update', [
+			{
+				id,
+				groupHistoryToggleMode:
+					action.groupHistoryToggleAction.groupHistoryToggleMode ?? GroupHistoryToggleMode.DEFAULT
+			}
+		])
 	} else {
 		logger?.debug({ syncAction, id }, 'unprocessable update')
 	}

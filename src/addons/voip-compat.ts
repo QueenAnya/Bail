@@ -2,7 +2,7 @@
  * VoIP compatibility layer for @innovatorssoft/baileys naming.
  *
  * Everything here sits on top of this fork's own socket-integrated VoIP engine
- * (`sock.initiateCall()`, see `addons/voip-calling.ts`) — nothing here starts a second engine.
+ * (`sock.initiateCall()`, exposed by the merged `Voip` facade) — nothing here starts a second engine.
  *
  *  - `CallDirection`, `CallMediaType`  — string-literal constants
  *  - `CallSession`                      — alias of `ActiveCall` (innovatorssoft exports it under both names)

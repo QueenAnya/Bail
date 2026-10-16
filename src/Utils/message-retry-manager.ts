@@ -3,6 +3,7 @@ import type { proto } from '../../WAProto/index.js'
 import type { ILogger } from './logger'
 
 /** Number of sent messages to cache in memory for handling retry receipts */
+export const DEFAULT_MAX_MSG_RETRY_COUNT = 5
 const RECENT_MESSAGES_SIZE = 512
 
 const MESSAGE_KEY_SEPARATOR = '\u0000'
@@ -91,7 +92,7 @@ export class MessageRetryManager {
 		ttlAutopurge: true
 	})
 	private pendingPhoneRequests: PendingPhoneRequest = {}
-	private readonly maxMsgRetryCount: number = 5
+	private readonly maxMsgRetryCount: number = DEFAULT_MAX_MSG_RETRY_COUNT
 	private statistics: RetryStatistics = {
 		totalRetries: 0,
 		successfulRetries: 0,
@@ -105,7 +106,7 @@ export class MessageRetryManager {
 		private logger: ILogger,
 		maxMsgRetryCount: number
 	) {
-		this.maxMsgRetryCount = maxMsgRetryCount
+		this.maxMsgRetryCount = Number.isInteger(maxMsgRetryCount) ? maxMsgRetryCount : DEFAULT_MAX_MSG_RETRY_COUNT
 	}
 
 	/**

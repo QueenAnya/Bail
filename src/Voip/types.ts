@@ -169,3 +169,17 @@ export const CallMediaType = {
 	Video: 'video'
 } as const
 export type CallMediaType = (typeof CallMediaType)[keyof typeof CallMediaType]
+
+/** Options accepted by `makeVoipClient()`. The supplied socket must already be authenticated. Engine selection is automatic from the method invoked. */
+export type MergedVoipClientOptions = {
+		/** Existing authenticated Baileys socket. */
+	socket?: any
+	/** Compatibility aliases for the existing socket. */
+	sock?: any
+	conn?: any
+	logger?: (...args: any[]) => void
+	debug?: boolean
+	ffmpegPath?: string
+	wasmPath?: string
+	resourcesPath?: string
+}

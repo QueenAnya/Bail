@@ -11,6 +11,9 @@ import { BufferJSON } from './generics'
 // Use a Map to store mutexes for each file path
 const fileLocks = new Map<string, Mutex>()
 
+/** number of file paths currently tracked by the per-file lock map (idle entries are not cleared) */
+export const countAuthFileLocks = () => fileLocks.size
+
 // Get or create a mutex for a specific file path
 const getFileLock = (path: string): Mutex => {
 	let mutex = fileLocks.get(path)

@@ -8,6 +8,8 @@ export * from './WABinary/index'
 export * from './WAM/index'
 export * from './WAUSync/index'
 export * from './addons/index'
+export * from './ported/index'
+export * from './Voip/index'
 export * from './Framework/index'
 
 export type { UsernameSocket } from './Socket/username'

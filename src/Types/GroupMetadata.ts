@@ -18,6 +18,8 @@ export interface GroupMetadata {
 	notify?: string
 	/** group uses 'lid' or 'pn' to send messages */
 	addressingMode?: WAMessageAddressingMode
+	/** whether new members can see earlier history (see GroupHistoryToggleMode) */
+	groupHistoryToggleMode?: number
 	owner: string | undefined
 	ownerPn?: string | undefined
 	ownerLid?: string | undefined
@@ -77,4 +79,11 @@ export interface WAGroupCreateResponse {
 export interface GroupModificationResponse {
 	status: number
 	participants?: { [key: string]: {} }
+}
+
+/** Whether new members of a group can see the group's earlier message history */
+export enum GroupHistoryToggleMode {
+	DEFAULT = 0,
+	ON = 1,
+	OFF = 2
 }

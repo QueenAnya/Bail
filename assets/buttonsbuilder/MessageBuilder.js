@@ -413,7 +413,7 @@ class Toolkit {
 
 			try {
 				if (!Buffer.isBuffer(videoBuffer) || !videoBuffer.length) {
-					return fail(new Error('videoBuffer tidak valid atau kosong'));
+					return fail(new Error('videoBuffer is invalid or empty'));
 				}
 
 				const inputStream = new Readable({ read() { } });
@@ -430,7 +430,7 @@ class Toolkit {
 						let output = Buffer.concat(chunks);
 
 						if (!output.length) {
-							return fail(new Error('Output kosong — cek format atau timestamp video'));
+							return fail(new Error('Output is empty — check the video format or timestamp'));
 						}
 
 						if (resize) {

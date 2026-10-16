@@ -1,0 +1,322 @@
+name: Proto Watch
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Terapkan pembaruan versi dan perubahan proto'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: elaina-baileys-proto-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Watch WhatsApp Web
+    runs-on: ubuntu-latest
+
+    env:
+      APPLY_CHANGES: ${{ github.event_name == 'schedule' || inputs.apply == 'true' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Protect generated files
+        run: |
+          printf '%s\n' \
+            'node_modules/' \
+            'package-lock.json' \
+            '.wa-bundle/' \
+            'proto-sync.txt' >> .git/info/exclude
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install --package-lock=false --ignore-scripts
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "RexxHayanasi Pengen S.Kom"
+          git config user.email "150516773+rexxzyid@users.noreply.github.com"
+
+      - name: Restore previous bundle snapshot
+        uses: actions/cache@v4
+        with:
+          path: .wa-bundle
+          key: wa-bundle-${{ github.run_id }}
+          restore-keys: |
+            wa-bundle-
+
+      - name: Prepare bundle workspace
+        run: |
+          mkdir -p .wa-bundle
+          rm -f .wa-bundle/report.json .wa-bundle/report.md
+
+      - name: Check WhatsApp Web
+        id: wa
+        continue-on-error: true
+        run: |
+          if [ "$APPLY_CHANGES" = "true" ]; then
+            node ./script/waupdate.js --apply --keep 2
+          else
+            node ./script/waupdate.js --keep 2
+          fi
+
+      - name: Read update verdict
+        id: report
+        run: |
+          node -e '
+            const fs = require("fs")
+            const path = ".wa-bundle/report.json"
+
+            if (!fs.existsSync(path)) {
+              console.log("Laporan tidak tersedia.")
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, "verdict=crashed\n")
+              process.exit(0)
+            }
+
+            const report = JSON.parse(fs.readFileSync(path, "utf8"))
+            const output = [
+              `verdict=${report.verdict}`,
+              `live=${report.live}`,
+              `pinned=${report.pinned}`,
+              `proto_gaps=${report.protoGaps}`,
+              `verify_passed=${report.verifyPassed}`,
+              `protocol_touched=${report.protocolTouched}`,
+              `snapshot=${report.snapshot}`
+            ].join("\n")
+
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${output}\n`)
+            console.log(output)
+          '
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          if [ -f .wa-bundle/report.md ]; then
+            cat .wa-bundle/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Laporan tidak dihasilkan." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Update WhatsApp client version
+        id: version
+        if: env.APPLY_CHANGES == 'true' && steps.report.outputs.verdict != 'crashed'
+        continue-on-error: true
+        run: node ./script/updatewa.js
+
+      - name: Synchronize WAProto
+        id: sync
+        if: env.APPLY_CHANGES == 'true' && steps.report.outputs.verdict != 'crashed'
+        continue-on-error: true
+        env:
+          PROTO_BUNDLE_DIR: ${{ steps.report.outputs.snapshot }}
+        run: node ./script/syncproto.js | tee proto-sync.txt
+
+      - name: Verify WAProto
+        id: verify
+        if: always() && steps.report.outputs.snapshot != ''
+        continue-on-error: true
+        env:
+          PROTO_BUNDLE_DIR: ${{ steps.report.outputs.snapshot }}
+        run: node ./script/verifyproto.js
+
+      - name: Show WAProto changes
+        if: always()
+        run: |
+          if git diff --quiet -- WAProto; then
+            echo "WAProto tidak berubah karena tidak ada field protobuf baru."
+          else
+            git diff --stat -- WAProto
+          fi
+
+      - name: Roll back invalid WAProto changes
+        if: always() && env.APPLY_CHANGES == 'true' && (steps.sync.outcome != 'success' || steps.verify.outcome != 'success')
+        run: git checkout -- WAProto
+
+      - name: Commit and push changes
+        id: commit
+        if: always() && steps.report.outcome == 'success' && steps.report.outputs.verdict != 'crashed' && steps.report.outputs.verdict != 'blocked' && steps.verify.outcome == 'success' && (env.APPLY_CHANGES != 'true' || (steps.version.outcome == 'success' && steps.sync.outcome == 'success'))
+        run: |
+          git add -A
+
+          if git diff --cached --name-only | grep -Eq '^(node_modules/|\.wa-bundle/|proto-sync\.txt$|package-lock\.json$)'; then
+            echo "File terlarang terdeteksi pada staging."
+            exit 1
+          fi
+
+          if git diff --staged --quiet; then
+            echo "Tidak ada perubahan untuk di-commit."
+            exit 0
+          fi
+
+          SUBJECT="chore: sync WAProto with the WhatsApp Web bundle"
+
+          if [ "${{ steps.report.outputs.verdict }}" = "bump-only" ] || [ "${{ steps.report.outputs.verdict }}" = "bump-and-review" ]; then
+            SUBJECT="chore: WA update, client revision ${{ steps.report.outputs.live }}"
+          fi
+
+          git -c commit.gpgsign=false commit -m "$SUBJECT"
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:$GITHUB_REF_NAME"; then
+              exit 0
+            fi
+
+            if ! git pull --rebase origin "$GITHUB_REF_NAME"; then
+              git rebase --abort || true
+            fi
+
+            sleep $((2 ** attempt))
+          done
+
+          echo "Push gagal setelah 4 percobaan."
+          exit 1
+
+      - name: Report automation failure
+        if: always() && (steps.report.outcome == 'failure' || steps.report.outputs.verdict == 'blocked' || steps.report.outputs.verdict == 'crashed' || steps.report.outputs.verdict == 'bump-and-review' || steps.report.outputs.protocol_touched == 'true' || steps.version.outcome == 'failure' || steps.sync.outcome == 'failure' || steps.verify.outcome == 'failure')
+        uses: actions/github-script@v7
+        env:
+          REPORT_OUTCOME: ${{ steps.report.outcome }}
+          REPORT_VERDICT: ${{ steps.report.outputs.verdict }}
+          PINNED_REVISION: ${{ steps.report.outputs.pinned }}
+          LIVE_REVISION: ${{ steps.report.outputs.live }}
+          PROTO_GAPS: ${{ steps.report.outputs.proto_gaps }}
+          VERIFY_PASSED: ${{ steps.report.outputs.verify_passed }}
+          VERSION_OUTCOME: ${{ steps.version.outcome }}
+          SYNC_OUTCOME: ${{ steps.sync.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        with:
+          script: |
+            const fs = require("fs")
+
+            const read = path => {
+              if (!fs.existsSync(path)) {
+                return "(tidak ada keluaran)"
+              }
+
+              return fs.readFileSync(path, "utf8").trim()
+            }
+
+            const reportOutcome = process.env.REPORT_OUTCOME
+            const verdict = process.env.REPORT_VERDICT
+            const versionOutcome = process.env.VERSION_OUTCOME
+            const syncOutcome = process.env.SYNC_OUTCOME
+            const verifyOutcome = process.env.VERIFY_OUTCOME
+
+            let reason = `Verdict: ${verdict || "tidak tersedia"}`
+
+            if (reportOutcome === "failure" || verdict === "crashed") {
+              reason = "Pipeline gagal menghasilkan laporan pembaruan."
+            } else if (verdict === "blocked") {
+              reason = "Round-trip encoder gagal sehingga perubahan tidak di-push."
+            } else if (versionOutcome === "failure") {
+              reason = "Pembaruan versi WhatsApp gagal."
+            } else if (syncOutcome === "failure") {
+              reason = "Sinkronisasi WAProto gagal."
+            } else if (verifyOutcome === "failure") {
+              reason = "WAProto gagal melewati verifikasi round-trip."
+            } else if (verdict === "bump-and-review") {
+              reason = "Revisi dan permukaan protokol berubah sehingga perlu diperiksa."
+            }
+
+            const body = [
+              reason,
+              "",
+              `- Revisi terpasang: \`${process.env.PINNED_REVISION || "tidak tersedia"}\``,
+              `- Revisi live: \`${process.env.LIVE_REVISION || "tidak tersedia"}\``,
+              `- Celah protobuf: ${process.env.PROTO_GAPS || "tidak tersedia"}`,
+              `- Round-trip laporan: ${process.env.VERIFY_PASSED || "tidak tersedia"}`,
+              `- updatewa.js: ${versionOutcome}`,
+              `- syncproto.js: ${syncOutcome}`,
+              `- verifyproto.js: ${verifyOutcome}`,
+              "",
+              "<details><summary>Laporan lengkap</summary>",
+              "",
+              read(".wa-bundle/report.md"),
+              "",
+              "</details>",
+              "",
+              "<details><summary>Keluaran sinkronisasi</summary>",
+              "",
+              "```",
+              read("proto-sync.txt"),
+              "```",
+              "",
+              "</details>",
+              "",
+              "Reproduksi lokal:",
+              "",
+              "```bash",
+              "node ./script/waupdate.js --apply --keep 2",
+              "node ./script/updatewa.js",
+              "node ./script/syncproto.js",
+              "node ./script/verifyproto.js",
+              "```"
+            ].join("\n")
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: "proto-watch"
+              })
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error
+              }
+
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: "proto-watch",
+                color: "d73a4a",
+                description: "WhatsApp Web protocol update requires attention"
+              })
+            }
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "proto-watch"
+            })
+
+            if (existing.data.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body
+              })
+
+              return
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "WhatsApp Web update needs attention",
+              body,
+              labels: ["proto-watch"]
+            })

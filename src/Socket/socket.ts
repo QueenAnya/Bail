@@ -11,6 +11,7 @@ import {
 	MIN_PREKEY_COUNT,
 	MIN_UPLOAD_INTERVAL,
 	NOISE_WA_HEADER,
+	PAIRING_RESPONSE_GRACE_MS,
 	PROCESSABLE_HISTORY_TYPES,
 	TimeMs,
 	UPLOAD_TIMEOUT
@@ -95,6 +96,7 @@ export const makeSocket = (config: SocketConfig) => {
 		defaultQueryTimeoutMs,
 		transactionOpts,
 		qrTimeout,
+		pairingCodeTimeoutMs,
 		makeSignalRepository
 	} = config
 
@@ -642,7 +644,7 @@ export const makeSocket = (config: SocketConfig) => {
 		return []
 	}
 
-	const ev = makeEventBuffer(logger)
+	const ev = makeEventBuffer(logger, config.maxEventListeners)
 
 	const { creds } = authState
 	// add transaction capability
@@ -661,6 +663,26 @@ export const makeSocket = (config: SocketConfig) => {
 	let pendingPairingResolve: (() => void) | undefined
 	let pendingPairingReject: ((err: Error) => void) | undefined
 	const socketEndHandlers: Array<(error: Error | undefined) => void | Promise<void>> = []
+
+	// A registered pairing code stays pending until it is used, expires (pairingCodeTimeoutMs
+	// plus a grace window for the phone's response) or is cancelled.
+	let pendingPairing: { phoneNumber: string; expiresAt: number; timer: NodeJS.Timeout } | undefined
+	const clearPendingPairing = () => {
+		if (pendingPairing?.timer) {
+			clearTimeout(pendingPairing.timer)
+		}
+
+		pendingPairing = undefined
+	}
+
+	/** Cancel a pending pairing code so a new one can be requested. Returns true if one was pending. */
+	const cancelPairingCode = () => {
+		const wasPending = !!pendingPairing
+		clearPendingPairing()
+		return wasPending
+	}
+
+	socketEndHandlers.push(clearPendingPairing)
 
 	/** log & process any unexpected errors */
 	const onUnexpectedError = (err: Error | Boom, msg: string) => {
@@ -1129,6 +1151,14 @@ export const makeSocket = (config: SocketConfig) => {
 		authState.creds.me = { id: jid, name: '~' }
 		ev.emit('creds.update', authState.creds)
 
+		clearPendingPairing()
+		const timer = setTimeout(() => {
+			logger.info({ phoneNumber }, 'pairing code expired without being used')
+			pendingPairing = undefined
+		}, pairingCodeTimeoutMs + PAIRING_RESPONSE_GRACE_MS)
+		timer.unref?.()
+		pendingPairing = { phoneNumber, expiresAt: Date.now() + pairingCodeTimeoutMs, timer }
+
 		return authState.creds.pairingCode
 	}
 
@@ -1137,6 +1167,14 @@ export const makeSocket = (config: SocketConfig) => {
 	const requestPairingCode = async (phoneNumber: string, customPairingCode?: string): Promise<string> => {
 		if (pairingInProgress) {
 			throw new Boom('A pairing request is already in progress', { statusCode: 400 })
+		}
+
+		if (pendingPairing) {
+			const secondsLeft = Math.max(0, Math.ceil((pendingPairing.expiresAt - Date.now()) / 1000))
+			throw new Boom(
+				'a pairing code is already pending; finish it, wait for it to expire, or call cancelPairingCode()',
+				{ statusCode: 409, data: { phoneNumber: pendingPairing.phoneNumber, secondsLeft } }
+			)
 		}
 
 		pairingInProgress = true
@@ -1291,6 +1329,7 @@ export const makeSocket = (config: SocketConfig) => {
 		logger.debug('pair success recv')
 		try {
 			updateServerTimeOffset(stanza)
+			clearPendingPairing()
 			const { reply, creds: updatedCreds } = configureSuccessfulPairing(stanza, creds)
 
 			logger.info(
@@ -1564,6 +1603,7 @@ export const makeSocket = (config: SocketConfig) => {
 		digestKeyBundle,
 		rotateSignedPreKey,
 		requestPairingCode,
+		cancelPairingCode,
 		updateServerTimeOffset,
 		sendUnifiedSession,
 		wamBuffer: publicWAMBuffer,

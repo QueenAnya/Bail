@@ -9,24 +9,24 @@ async function startBot() {
 		enableStats: true
 	})
 
-	// Comando para convertir cualquier imagen/video a sticker
+	// Command to convert any image/video into a sticker
 	bot.command('!sticker', async ctx => {
 		const msg = ctx.message
 
-		// Verifica si el mensaje tiene multimedia o cita a un mensaje con multimedia
+		// Check whether the message contains media or quotes a message containing media
 		const isMedia = msg.message?.imageMessage || msg.message?.videoMessage
 		const quotedMessage = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage
 		const isQuotedMedia = quotedMessage?.imageMessage || quotedMessage?.videoMessage
 
 		if (!isMedia && !isQuotedMedia) {
-			await ctx.reply({ text: 'Por favor, envía una imagen o video con el comando !sticker, o responde a uno.' })
+			await ctx.reply({ text: 'Please send an image or video with the !sticker command, or reply to one.' })
 			return
 		}
 
 		try {
 			await ctx.react('⏳')
 
-			// Si es un mensaje citado, lo extraemos usando la utilidad de Baileys.
+			// If this is a quoted message, extract it using the Baileys utility.
 			// PR #2710 review fix: build a real WAMessage (with a `key`) instead of
 			// `as any` — downloadMediaMessage reads `message.key` for its reupload
 			// retry path, so a bare `{ message: quotedMessage }` silently breaks it.
@@ -41,19 +41,19 @@ async function startBot() {
 					}
 				: msg
 
-			// Descargar el buffer usando Baileys
+			// Download the buffer using Baileys
 			const buffer = await downloadMediaMessage(mediaMessage, 'buffer', {})
 
-			// MAGIA: El MediaManager convierte el buffer a WebP automáticamente y le pone autor
+			// MAGIC: MediaManager automatically converts the buffer to WebP and adds the author
 			await ctx.replySticker(buffer, {
-				packname: 'MiBot Stickers',
+				packname: 'My Bot Stickers',
 				author: '@luisf'
 			})
 
 			await ctx.react('✅')
 		} catch (error) {
-			console.error('Error al hacer sticker:', error)
-			await ctx.reply({ text: 'Hubo un error convirtiendo el sticker.' })
+			console.error('Error while creating sticker:', error)
+			await ctx.reply({ text: 'An error occurred while converting the sticker.' })
 		}
 	})
 
@@ -65,7 +65,7 @@ async function startBot() {
 	// no-op and credentials were never persisted.
 	bot.socket?.ev.on('creds.update', saveCreds)
 
-	console.log('🤖 Bot iniciado. ¡Prueba enviar una imagen con !sticker!')
+	console.log('🤖 Bot started. Try sending an image with !sticker!')
 }
 
 startBot()

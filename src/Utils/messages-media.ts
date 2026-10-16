@@ -116,7 +116,7 @@ export async function getMediaKeys(
  * injection vector present in naive `exec(\`ffmpeg ... ${path} ...\`)` calls.
  * Streams the frame out via stdout (`pipe:1`) instead of a temp file.
  */
-const extractVideoThumb = (
+export const extractVideoThumb = (
 	path: string,
 	time = '00:00:00',
 	size: { width: number } = { width: 320 }

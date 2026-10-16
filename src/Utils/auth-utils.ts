@@ -132,6 +132,8 @@ export const addTransactionCapability = (
 
 	// Dedupes concurrent cache-miss reads of the same type within one transaction's body
 	const readMutexes = new Map<string, Mutex>()
+	// Ref-counts per read mutex so idle entries are dropped instead of accumulating
+	const readMutexRefCounts = new Map<string, number>()
 
 	// One mutex per raw store, shared across wrappers, guarding transaction() itself
 	let txMutex = txMutexesByStore.get(state)
@@ -160,9 +162,27 @@ export const addTransactionCapability = (
 	function getReadMutex(key: string): Mutex {
 		if (!readMutexes.has(key)) {
 			readMutexes.set(key, new Mutex())
+			readMutexRefCounts.set(key, 0)
 		}
 
 		return readMutexes.get(key)!
+	}
+
+	function acquireTxMutexRef(key: string) {
+		readMutexRefCounts.set(key, (readMutexRefCounts.get(key) ?? 0) + 1)
+	}
+
+	function releaseTxMutexRef(key: string) {
+		const count = (readMutexRefCounts.get(key) ?? 1) - 1
+		readMutexRefCounts.set(key, count)
+
+		if (count <= 0) {
+			const mutex = readMutexes.get(key)
+			if (mutex && !mutex.isLocked()) {
+				readMutexes.delete(key)
+				readMutexRefCounts.delete(key)
+			}
+		}
 	}
 
 	/**
@@ -218,7 +238,14 @@ export const addTransactionCapability = (
 				ctx.dbQueries++
 				logger.trace({ type, count: missing.length }, 'fetching missing keys in transaction')
 
-				const fetched = await getReadMutex(type).runExclusive(() => state.get(type, missing))
+				const readMutex = getReadMutex(type)
+				acquireTxMutexRef(type)
+				let fetched: Awaited<ReturnType<typeof state.get>>
+				try {
+					fetched = await readMutex.runExclusive(() => state.get(type, missing))
+				} finally {
+					releaseTxMutexRef(type)
+				}
 
 				// Update cache
 				ctx.cache[type] = ctx.cache[type] || ({} as any)

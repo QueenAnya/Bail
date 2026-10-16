@@ -528,7 +528,7 @@ sock.ev.on('messages.upsert', async ({ messages }) => {
 ```ts
 // Keyword match (substring, case-insensitive)
 autoReply.addRule({
-    keywords: ['hi', 'hello', 'hey', 'halo'],
+    keywords: ['hi', 'hello', 'hey', 'hello'],
     response: { text: 'Hello! How can I help you? 👋' },
     quoted:   true  // reply quoting the original message
 })
@@ -4009,6 +4009,12 @@ guide with code is in the root `README.md` ("innovatorssoft README compatibility
 | `!templaterender` | custom template overriding a preset, rendered by name slug |
 | `!msgtemplate` | `list` / `render <id> k=v ...` / `create Name \| content` / `delete <id>` message templates |
 | `!defaultdisappearing` | `updateDisappearingDuration(24 \| 7 \| 30 \| 90 \| 0 \| seconds)` |
+| `!question` / `!comment` / `!addyours` | question, comment and add-yours messages (src/ported) |
+| `!splitpay` / `!remind` | split payment and payment reminder (INR) |
+| `!hd` / `!motion` | `sendHD` and `sendImgVid` (motion photo) |
+| `!health` / `!about` / `!serverprops` / `!serverlink` | account health, about, server props, server link preview |
+| `!nlinfo` / `!nldirectory` / `!nlstatus` | channel admin info, directory search, channel status post |
+| `!resetkey` | `resetGroupSenderKey` (group only) |
 
 ## Acknowledgements
 

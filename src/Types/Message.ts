@@ -49,6 +49,13 @@ export const ButtonHeaderType = proto.Message.ButtonsMessage.HeaderType
 export const ButtonType = proto.Message.ButtonsMessage.Button.Type
 export const CarouselCardType = proto.Message.InteractiveMessage.CarouselMessage.CarouselCardType
 export const ProtocolType = proto.Message.ProtocolMessage.Type
+export const ListType = proto.Message.ListMessage.ListType
+/** font ids accepted for text statuses / styled text */
+export const StatusFont = proto.Message.ExtendedTextMessage.FontType
+export const StatusNotificationType = Object.freeze({
+	...proto.Message.StatusNotificationMessage.StatusNotificationType,
+	STATUS_GROUP_STATUS_REPLY: 4
+})
 import type { ILogger } from '../Utils/logger'
 export type WAMediaPayloadURL = { url: URL | string }
 export type WAMediaPayloadStream = { stream: Readable }
@@ -121,6 +128,16 @@ export interface WAUrlInfo {
 
 // types to generate WA messages
 type Mentionable = {
+	/** groups mentioned in the accompanying text (`@<group id>` is appended to the text when missing) */
+	groupMentions?: { groupJid: string; groupSubject?: string }[]
+	/** forward a channel (newsletter) post: shows the "Forwarded from channel" header */
+	forwardedNewsletter?: {
+		newsletterJid: string
+		serverMessageId?: number
+		newsletterName?: string
+		contentType?: proto.ContextInfo.ForwardedNewsletterMessageInfo.ContentType
+		accessibilityText?: string
+	}
 	/** list of jids that are mentioned in the accompanying text */
 	mentions?: string[]
 	/** mention all */
@@ -541,10 +558,20 @@ export type RichMessageOptions = {
 	caption?: string
 }
 
+/** A poll option with an optional picture ("photo poll"). */
+export type PollPhotoOption = {
+	name: string
+	/** picture shown with the option; uploaded when the poll is sent */
+	image?: WAMediaUpload
+	/** hash of an option picture that was already uploaded (see getPollOptionHash) */
+	optionHash?: string
+}
+
 export type PollMessageOptions = {
 	name: string
 	selectableCount?: number
-	values: string[]
+	/** option names; use `{ name, image }` entries to make a photo poll */
+	values: (string | PollPhotoOption)[]
 	/** 32 byte message secret to encrypt poll selections */
 	messageSecret?: Uint8Array
 	toAnnouncementGroup?: boolean
@@ -855,6 +882,10 @@ export type AnyRegularMessageContent = (
 			linkPreview?: WAUrlInfo | string | true | null
 			/** small icon shown alongside the link preview, e.g. a site favicon */
 			favicon?: WAMediaUpload
+			/** social-media post metadata attached to the link preview (see ported/link-preview-metadata) */
+			socialPreview?: Record<string, any>
+			/** status link-preview style (non-negative integer) */
+			statusLinkPreview?: number | { style: number }
 	  } & Mentionable &
 			Contextable &
 			Buttonable &
@@ -866,6 +897,36 @@ export type AnyRegularMessageContent = (
 			Listable &
 			Editable)
 	| AnyMediaMessageContent
+	| ({
+			/** link card message with a custom title/description/picture */
+			richLink: {
+				url: string
+				text?: string
+				title?: string
+				description?: string
+				image?: WAMediaUpload
+				large?: boolean
+				previewType?: number
+				thumbnailWidth?: number
+			} & Record<string, any>
+	  } & Mentionable &
+			Contextable &
+			Editable)
+	| ({
+			/** audio with a music-style card (artwork/title/author) */
+			song: {
+				audio: WAMediaUpload
+				artwork?: WAMediaUpload
+				title?: string
+				author?: string
+				url?: string
+				largeThumbnail?: boolean
+				thumbnailWidth?: number
+				mediaType?: number
+			} & Record<string, any>
+	  } & Mentionable &
+			Contextable &
+			Editable)
 	| ({
 			/** raw WhatsApp interactive-family message, passed through via proto fromObject */
 			interactiveMessage?: proto.Message.IInteractiveMessage

@@ -1,0 +1,11 @@
+# Original source snapshots are for maintainers only; never include them in npm tarballs.
+reference/
+**/reference/
+
+# Tests and repository-only documentation are not part of the published package.
+src/__tests__/
+test/
+
+# Original Anya/Elaina VoIP source snapshots: repository-only, never publish.
+/Voip/
+/Voip2/
