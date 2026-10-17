@@ -1,0 +1,96 @@
+name: Build Lint Test Diagnostics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Enable Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.11.0 --activate
+          node --version
+          yarn --version
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Install ffmpeg for media tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run build and save output
+        shell: bash
+        run: |
+          set +e
+          yarn build > build-output.txt 2>&1
+          code=$?
+          echo "$code" > build-exit-code.txt
+          cat build-output.txt
+          exit 0
+
+      - name: Run lint and save output
+        shell: bash
+        run: |
+          set +e
+          yarn lint > lint-output.txt 2>&1
+          code=$?
+          echo "$code" > lint-exit-code.txt
+          cat lint-output.txt
+          exit 0
+
+      - name: Run Jest tests and save output
+        shell: bash
+        run: |
+          set +e
+          yarn test --runInBand > test-output.txt 2>&1
+          code=$?
+          echo "$code" > test-exit-code.txt
+          cat test-output.txt
+          exit 0
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anya-build-lint-test-logs
+          path: |
+            build-output.txt
+            build-exit-code.txt
+            lint-output.txt
+            lint-exit-code.txt
+            test-output.txt
+            test-exit-code.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail job if any check failed
+        if: always()
+        shell: bash
+        run: |
+          failed=0
+          for file in build-exit-code.txt lint-exit-code.txt test-exit-code.txt; do
+            if [[ -f "$file" ]] && [[ "$(cat "$file")" != "0" ]]; then
+              echo "$file reported exit code $(cat "$file")"
+              failed=1
+            fi
+          done
+          exit "$failed"

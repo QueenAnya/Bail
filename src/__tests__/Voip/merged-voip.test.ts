@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals'
 import * as publicVoip from '../../Voip'
 import * as ported from '../../ported'
 

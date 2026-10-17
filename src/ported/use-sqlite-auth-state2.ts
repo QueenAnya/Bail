@@ -134,7 +134,7 @@ export async function useSqliteAuthState2(opts: SqliteAuthState2Options): Promis
 								if (type === 'app-state-sync-key' && value) {
 									value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>) as unknown as SignalDataTypeMap[T]
 								}
-								data[id] = value
+								data[id] = value as SignalDataTypeMap[T]
 							}
 						}
 						return data
