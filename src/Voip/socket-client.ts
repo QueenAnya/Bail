@@ -710,7 +710,7 @@ export class MergedVoipClient {
             // A boolean/empty argument is the Elaina accept-flow; call identifiers
             // and object arguments are routed to Anya's incoming-call manager.
             const elainaAcceptShape = args.length === 0 || typeof args[0] === 'boolean';
-            if (elainaAcceptShape && (this._engineKind === 'elaina' || this._engineKind == null)) {
+            if (elainaAcceptShape && (this._engineKind === 'elaina' || this._engineKind === null)) {
                 await this._ensureEngineKind('elaina');
                 return this._engine?.acceptCall(args[0] ?? true, false);
             }
