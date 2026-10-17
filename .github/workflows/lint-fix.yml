@@ -1,4 +1,4 @@
-name: Linting Check and Fix
+name: Linting Check and Fiximg
 
 on:
   workflow_dispatch:
