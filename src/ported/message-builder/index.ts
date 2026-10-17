@@ -7,6 +7,9 @@
  * this module as a standalone product. See NOTICE.md.
  */
 // @ts-nocheck
+// Legacy upstream module is intentionally preserved with its original loose comparisons and nesting.
+// These rules are disabled locally to avoid behavior-changing rewrites of this ported implementation.
+/* eslint eqeqeq: off, max-depth: off, @typescript-eslint/no-unused-vars: off */
 /**
  * Do not remove this watermark.
  *
