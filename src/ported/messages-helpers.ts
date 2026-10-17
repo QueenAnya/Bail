@@ -97,6 +97,8 @@ export const prepareProductMessage = async (message, options) => {
     const { imageMessage } = await prepareWAMessageMedia({ image: message.image || message.product.productImage }, options);
 
     const { image, ...content } = message;
+    // The image is intentionally omitted from the outer content; it is embedded in productImage below.
+    void image;
     content.product = {
         currencyCode: 'IDR',
         priceAmount1000: 1000,
@@ -122,7 +124,7 @@ export const nativeFlowButtonsViolateConstraints = (buttons = []) => {
     }
     return !buttons.slice(1).every(button => {
         const mapped = getNativeFlowNameByButtonName(button?.name);
-        const nameAllowed = mapped == null || WEB_SUPPORTED_INTERACTIVE_FLOWS.includes(mapped);
+        const nameAllowed = mapped === null || mapped === undefined || WEB_SUPPORTED_INTERACTIVE_FLOWS.includes(mapped);
         return nameAllowed && firstIsQuickReply === isQuickReply(button);
     });
 };
