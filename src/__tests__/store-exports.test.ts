@@ -3,8 +3,8 @@ import {
 	makeOrderedDictionary,
 	ObjectRepository,
 	waChatKey,
-	waMessageID,
-	waLabelAssociationKey
+	waLabelAssociationKey,
+	waMessageID
 } from '../index'
 
 // These imports intentionally come from the package root, not src/Store.

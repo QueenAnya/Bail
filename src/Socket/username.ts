@@ -182,7 +182,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 		getVoipMemoryStats,
 		getVoipClient,
 		disconnectVoip
-	} = attachVoipToSocket(sock, (config as { voip?: boolean | object }).voip as any)
+	} = attachVoipToSocket(sock, (config as { voip?: boolean | object }).voip)
 	sock.registerSocketEndHandler(() => disconnectVoip())
 
 	// ── 1. Check username availability ────────────────────────────────────────
@@ -331,7 +331,7 @@ export const makeUsernameSocket = (config: SocketConfig) => {
 			throw new Error(`No incoming VoIP call with id ${callId} to accept`)
 		}
 
-		return baseAcceptCall(callId, callFromOrOptions as string | undefined, isVideo)
+		return baseAcceptCall(callId, callFromOrOptions, isVideo)
 	}
 
 	const rejectCall = async (callId: string, callFrom?: string, reason?: string) => {

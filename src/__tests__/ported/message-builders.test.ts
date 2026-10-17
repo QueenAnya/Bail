@@ -33,7 +33,7 @@ const gen = (content: any) =>
 	generateWAMessage('1@s.whatsapp.net', preparePortedMessageContent(content), {
 		userJid: '2@s.whatsapp.net',
 		upload
-	} as any)
+	})
 
 describe('payment messages (INR by default)', () => {
 	it('money scales by the offset, defaults to INR and validates its input', () => {
@@ -183,7 +183,9 @@ describe('modern message content keys', () => {
 	})
 
 	it('pollAddOption and eventInvite build from the flat WAProto classes', () => {
-		expect(makePollAddOptionMessage({ pollCreationMessageKey: key, option: 'x' }).pollAddOptionMessage.addOption?.optionName).toBe('x')
+		expect(
+			makePollAddOptionMessage({ pollCreationMessageKey: key, option: 'x' }).pollAddOptionMessage.addOption?.optionName
+		).toBe('x')
 		expect(makeEventInviteMessage({ eventId: 'e1' }).eventInviteMessage.eventId).toBe('e1')
 		expect(() => makePollAddOptionMessage({ pollCreationMessageKey: key })).toThrow('pollAddOption.option is required')
 	})
@@ -217,12 +219,13 @@ describe('modern message content keys', () => {
 
 // Regression: Elaina-compatible static helpers must be available on all builders.
 describe('MessageBuilder static helper compatibility', () => {
-    it('attaches mapSection to MB and each builder', async () => {
-        const { MB, MessageBuilder, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit } = await import('../../ported/MessageBuilder')
-        const { mapSection } = await import('../../ported/MessageBuilder/metaai')
-        expect(MB).toBe(MessageBuilder)
-        for (const target of [MB, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit]) {
-            expect((target as any).mapSection).toBe(mapSection)
-        }
-    })
+	it('attaches mapSection to MB and each builder', async () => {
+		const { MB, MessageBuilder, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit } =
+			await import('../../ported/MessageBuilder')
+		const { mapSection } = await import('../../ported/MessageBuilder/metaai')
+		expect(MB).toBe(MessageBuilder)
+		for (const target of [MB, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit]) {
+			expect((target as any).mapSection).toBe(mapSection)
+		}
+	})
 })

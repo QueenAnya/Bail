@@ -1016,8 +1016,7 @@ export const processSyncAction = (
 		ev.emit('groups.update', [
 			{
 				id,
-				groupHistoryToggleMode:
-					action.groupHistoryToggleAction.groupHistoryToggleMode ?? GroupHistoryToggleMode.DEFAULT
+				groupHistoryToggleMode: action.groupHistoryToggleAction.groupHistoryToggleMode ?? GroupHistoryToggleMode.DEFAULT
 			}
 		])
 	} else {

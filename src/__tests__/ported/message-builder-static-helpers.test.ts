@@ -1,17 +1,28 @@
-import { AIRich, AIRichCarousel, Button, ButtonV2, MB, MessageBuilder, Toolkit, mapSection, nativeFlowButtonsViolateConstraints } from '../../ported'
+import {
+	AIRich,
+	AIRichCarousel,
+	Button,
+	ButtonV2,
+	mapSection,
+	MB,
+	MessageBuilder,
+	nativeFlowButtonsViolateConstraints,
+	Toolkit
+} from '../../ported'
 
 describe('Elaina MessageBuilder static helper compatibility', () => {
-    it('registers helpers on all builder namespaces through the ported barrel', () => {
-        for (const builder of [Button, ButtonV2, AIRichCarousel, AIRich, Toolkit, MessageBuilder]) {
-            expect((builder as any).mapSection).toBe(mapSection)
-            expect((builder as any).nativeFlowButtonsViolateConstraints).toBe(nativeFlowButtonsViolateConstraints)
-        }
-        expect((MB as any).mapSection).toBe(mapSection)
-    })
+	it('registers helpers on all builder namespaces through the ported barrel', () => {
+		for (const builder of [Button, ButtonV2, AIRichCarousel, AIRich, Toolkit, MessageBuilder]) {
+			expect((builder as any).mapSection).toBe(mapSection)
+			expect((builder as any).nativeFlowButtonsViolateConstraints).toBe(nativeFlowButtonsViolateConstraints)
+		}
 
-    it('preserves existing static methods and freezes the namespace like Elaina', () => {
-        expect(MB).toBe(MessageBuilder)
-        expect(Object.isFrozen(MessageBuilder)).toBe(true)
-        expect((AIRich as any).newLayout).toBeDefined()
-    })
+		expect((MB as any).mapSection).toBe(mapSection)
+	})
+
+	it('preserves existing static methods and freezes the namespace like Elaina', () => {
+		expect(MB).toBe(MessageBuilder)
+		expect(Object.isFrozen(MessageBuilder)).toBe(true)
+		expect((AIRich as any).newLayout).toBeDefined()
+	})
 })

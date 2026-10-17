@@ -37,7 +37,14 @@ import {
 	type SendGroupV4InviteDeps
 } from '../addons/send-group-v4-invite'
 import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../addons/stickerpack.js'
-import { DEFAULT_CACHE_TTLS, MAX_OUTBOUND_RESEND_ENTRIES, MEMBER_LABEL_MAX_LENGTH, WA_DEFAULT_EPHEMERAL } from '../Defaults'
+import {
+	DEFAULT_CACHE_TTLS,
+	MAX_OUTBOUND_RESEND_ENTRIES,
+	MEMBER_LABEL_MAX_LENGTH,
+	WA_DEFAULT_EPHEMERAL
+} from '../Defaults'
+import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../ported/group-metadata-cache'
+import { commitSenderKeyDelivery, pickSenderKeyRecipients } from '../ported/sender-key-memory'
 import type {
 	AnyMessageContent,
 	GroupV4InviteContent,
@@ -80,8 +87,6 @@ import {
 	prepareWAMessageMedia,
 	unixTimestampSeconds
 } from '../Utils'
-import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../ported/group-metadata-cache'
-import { commitSenderKeyDelivery, pickSenderKeyRecipients } from '../ported/sender-key-memory'
 import { getUrlInfo } from '../Utils/link-preview'
 import { makeKeyedMutex, makeMutex } from '../Utils/make-mutex'
 import { getMessageReportingToken, shouldIncludeReportingToken } from '../Utils/reporting-utils'
@@ -183,7 +188,8 @@ export const buildMemberLabelMessage = (jid: string, memberLabel: string | null 
 		})
 	}
 
-	const label = memberLabel === undefined || memberLabel === null ? '' : String(memberLabel).slice(0, MEMBER_LABEL_MAX_LENGTH)
+	const label =
+		memberLabel === undefined || memberLabel === null ? '' : String(memberLabel).slice(0, MEMBER_LABEL_MAX_LENGTH)
 	return {
 		label,
 		content: {
@@ -2055,7 +2061,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 						pollOptionImages.push({ content: prepared })
 					}
 
-					contentToBuild = { ...content, poll: { ...photoPollContent, values: preparedValues } } as AnyMessageContent
+					contentToBuild = { ...content, poll: { ...photoPollContent, values: preparedValues } }
 				}
 
 				const fullMsg = await generateWAMessage(resolvedJid, contentToBuild, {

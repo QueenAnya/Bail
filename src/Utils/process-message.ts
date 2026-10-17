@@ -430,7 +430,7 @@ function emitDecryptedEncAction(
 		])
 	} else {
 		ev.emit('messages.upsert', {
-			messages: [{ key: message.key, message: decrypted as proto.Message }],
+			messages: [{ key: message.key, message: decrypted }],
 			type: 'append'
 		})
 	}
@@ -1004,7 +1004,7 @@ const processMessage = async (
 		}
 	} else if (content?.encReactionMessage || content?.encCommentMessage) {
 		const isReaction = !!content.encReactionMessage
-		const enc = (content.encReactionMessage || content.encCommentMessage)! as proto.Message.IEncReactionMessage
+		const enc = (content.encReactionMessage || content.encCommentMessage)!
 		const creationMsgKey = enc.targetMessageKey!
 		const label = isReaction ? 'reaction' : 'comment'
 

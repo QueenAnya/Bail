@@ -57,10 +57,7 @@ const preparePaymentAndMusicContent = (content: any): any => {
 export const preparePortedMessageContent = (content: any): any =>
 	prepareModernMessageContent(preparePaymentAndMusicContent(content))
 
-export const makePortedSocket = <T extends BaseSocket>(
-	sock: T,
-	config: MessagesExtrasConfig = {}
-): PortedSocket<T> => {
+export const makePortedSocket = <T extends BaseSocket>(sock: T, config: MessagesExtrasConfig = {}): PortedSocket<T> => {
 	const newsletterExtras = makeNewsletterExtras({
 		query: sock.query,
 		generateMessageTag: sock.generateMessageTag,
@@ -81,5 +78,5 @@ export const makePortedSocket = <T extends BaseSocket>(
 		...messagesExtras,
 		...newsletterStatusExtras,
 		sendMessage
-	} as PortedSocket<T>
+	}
 }

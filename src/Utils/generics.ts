@@ -617,6 +617,6 @@ export function asciiEncode(text: string): number[] {
 
 /** Decodes an array (or spread) of char codes back into a string */
 export function asciiDecode(...codes: number[] | [number[]]): string {
-	const codeArray = Array.isArray(codes[0]) ? (codes[0] as number[]) : (codes as number[])
+	const codeArray = Array.isArray(codes[0]) ? codes[0] : (codes as number[])
 	return codeArray.map(c => String.fromCharCode(c)).join('')
 }

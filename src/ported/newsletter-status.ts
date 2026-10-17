@@ -564,7 +564,7 @@ export const makeNewsletterStatusExtras = (sock: NewsletterStatusSocket, config:
 					options: config.options,
 					...messageOptions,
 					messageId: requestedMessageId || generateMessageIDV2(userJid)
-				} as any
+				}
 			)
 
 			const normalized: any = normalizeMessageContent(fullMsg.message)

@@ -76,7 +76,7 @@ describe('makeAuthStateFromStore', () => {
 
 	it('clearAuth empties the store and close() closes it', async () => {
 		const { store, rows } = makeMemoryStore()
-		store.close = jest.fn(async () => {}) as any
+		store.close = jest.fn(async () => {})
 		const auth = await makeAuthStateFromStore(store)
 		await auth.state.keys.set({ session: { a: Buffer.from('01', 'hex') } })
 		expect(rows.size).toBe(1)

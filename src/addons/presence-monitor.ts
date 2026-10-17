@@ -468,7 +468,7 @@ export class PresenceMonitor {
 		if (!errSet) return
 		for (const efn of errSet) {
 			try {
-				efn(err as Error)
+				efn(err)
 			} catch {
 				/* ignore */
 			}
@@ -727,7 +727,7 @@ export class PresenceMonitor {
 			if (!sender) continue
 			const normalized = jidNormalizedUser(sender) || sender
 			if (!this.isWatched(normalized)) continue
-			this.handlePresenceForParticipant(normalized, { lastKnownPresence: 'available' } as PresenceData)
+			this.handlePresenceForParticipant(normalized, { lastKnownPresence: 'available' })
 		}
 	}
 

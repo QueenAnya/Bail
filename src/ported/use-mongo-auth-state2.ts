@@ -96,9 +96,11 @@ export async function useMongoAuthState2(opts: MongoAuthState2Options = {}): Pro
 					}
 				})
 			}
+
 			for (const entry of removals) {
 				operations.push({ deleteOne: { filter: { session, type: entry.type, id: entry.id } } })
 			}
+
 			if (operations.length) await collection.bulkWrite(operations, { ordered: false })
 		},
 		clear: async () => {

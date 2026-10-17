@@ -4,19 +4,20 @@
  */
 // @ts-nocheck
 
-const escapeForScript = (value) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+const escapeForScript = value => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')
 
 export const htmlMultiplayerPrelude = ({ url, room, seat, reconnectMs = 1500, maxReconnectMs = 15000 } = {}) => {
-    if (typeof url !== 'string' || !url.startsWith('wss://')) {
-        throw new TypeError('htmlMultiplayerPrelude requires a wss:// url, since the page is not a secure context');
-    }
-    if (typeof room !== 'string' || room.trim() === '') {
-        throw new TypeError('htmlMultiplayerPrelude requires a non-empty room id');
-    }
+	if (typeof url !== 'string' || !url.startsWith('wss://')) {
+		throw new TypeError('htmlMultiplayerPrelude requires a wss:// url, since the page is not a secure context')
+	}
 
-    const config = escapeForScript({ url, room, seat: seat ?? null, reconnectMs, maxReconnectMs });
+	if (typeof room !== 'string' || room.trim() === '') {
+		throw new TypeError('htmlMultiplayerPrelude requires a non-empty room id')
+	}
 
-    return `<script>
+	const config = escapeForScript({ url, room, seat: seat ?? null, reconnectMs, maxReconnectMs })
+
+	return `<script>
 (function () {
   var cfg = ${config};
   var listeners = [];
@@ -88,12 +89,13 @@ export const htmlMultiplayerPrelude = ({ url, room, seat, reconnectMs = 1500, ma
   open();
 })();
 </script>
-`;
-};
+`
+}
 
 export const withHtmlMultiplayer = (html, options) => {
-    if (typeof html !== 'string' || html.trim() === '') {
-        throw new TypeError('withHtmlMultiplayer requires an HTML string');
-    }
-    return htmlMultiplayerPrelude(options) + html;
-};
+	if (typeof html !== 'string' || html.trim() === '') {
+		throw new TypeError('withHtmlMultiplayer requires an HTML string')
+	}
+
+	return htmlMultiplayerPrelude(options) + html
+}

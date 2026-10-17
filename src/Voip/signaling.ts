@@ -208,7 +208,7 @@ export class SignalingBridge {
 		try {
 			await this.#maybeDecryptEnc(offer, peerJid)
 			;(offer as any).__callKeyDecrypted = true
-			return new Uint8Array(enc.content as Uint8Array)
+			return new Uint8Array(enc.content)
 		} catch {
 			return undefined
 		}

@@ -172,7 +172,7 @@ export type CallMediaType = (typeof CallMediaType)[keyof typeof CallMediaType]
 
 /** Options accepted by `makeVoipClient()`. The supplied socket must already be authenticated. Engine selection is automatic from the method invoked. */
 export type MergedVoipClientOptions = {
-		/** Existing authenticated Baileys socket. */
+	/** Existing authenticated Baileys socket. */
 	socket?: any
 	/** Compatibility aliases for the existing socket. */
 	sock?: any

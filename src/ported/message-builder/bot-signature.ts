@@ -3,7 +3,7 @@
  * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
  */
 // @ts-nocheck
-import { X509Certificate, verify as cryptoVerify } from 'crypto'
+import { verify as cryptoVerify, X509Certificate } from 'crypto'
 
 export const BOT_SIGNATURE_VERSION = '1'
 export const BOT_SIGNATURE_USE_CASE_WA_BOT_MSG = 1
@@ -31,97 +31,110 @@ ANorq7KwCQVMtS2or5uKJAQsx1FxCHyDafq2GCk9t0AN
 let rootCertificate = null
 
 export const loadBotSignatureRoot = () => {
-    if (!rootCertificate) {
-        rootCertificate = new X509Certificate(BOT_SIGNATURE_ROOT_CERTIFICATE)
-    }
-    return rootCertificate
+	if (!rootCertificate) {
+		rootCertificate = new X509Certificate(BOT_SIGNATURE_ROOT_CERTIFICATE)
+	}
+
+	return rootCertificate
 }
 
 export const constructSignaturePayload = ({ botFbid, messageDigest, version = BOT_SIGNATURE_VERSION }) =>
-    Buffer.concat([Buffer.from(version, 'utf8'), Buffer.from(String(botFbid), 'utf8'), Buffer.from(messageDigest)])
+	Buffer.concat([Buffer.from(version, 'utf8'), Buffer.from(String(botFbid), 'utf8'), Buffer.from(messageDigest)])
 
-export const isParsableCertificateChain = (chain) => {
-    if (!Array.isArray(chain) || !chain.length) {
-        return false
-    }
-    try {
-        for (const entry of chain) {
-            new X509Certificate(Buffer.from(entry))
-        }
-        return true
-    }
-    catch {
-        return false
-    }
+export const isParsableCertificateChain = chain => {
+	if (!Array.isArray(chain) || !chain.length) {
+		return false
+	}
+
+	try {
+		for (const entry of chain) {
+			new X509Certificate(Buffer.from(entry))
+		}
+
+		return true
+	} catch {
+		return false
+	}
 }
 
 const failed = reason => ({ status: 'failed', reason })
 
 const validAt = (certificate, at) => {
-    const from = Date.parse(certificate.validFrom)
-    const to = Date.parse(certificate.validTo)
-    return Number.isFinite(from) && Number.isFinite(to) && at >= from && at <= to
+	const from = Date.parse(certificate.validFrom)
+	const to = Date.parse(certificate.validTo)
+	return Number.isFinite(from) && Number.isFinite(to) && at >= from && at <= to
 }
 
-export const verifyBotSignature = ({ botJid, unifiedResponseBytes, proof, at = Date.now(), root = loadBotSignatureRoot() } = {}) => {
-    if (!proof) {
-        return failed('no WA_BOT_MSG proof')
-    }
-    if (Number(proof.version) !== 1) {
-        return failed(`unsupported signature version ${proof.version}`)
-    }
-    if (!proof.signature?.length) {
-        return failed('proof carries no signature')
-    }
-    if (!proof.certificateChain?.length) {
-        return failed('empty certificate chain')
-    }
-    if (!unifiedResponseBytes?.length) {
-        return failed('no unified response bytes to verify')
-    }
-    const botFbid = String(botJid ?? '').split('@')[0]
-    if (!botFbid) {
-        return failed('no bot jid, the fbid is part of the signed payload')
-    }
+export const verifyBotSignature = ({
+	botJid,
+	unifiedResponseBytes,
+	proof,
+	at = Date.now(),
+	root = loadBotSignatureRoot()
+} = {}) => {
+	if (!proof) {
+		return failed('no WA_BOT_MSG proof')
+	}
 
-    let chain
-    try {
-        chain = proof.certificateChain.map(entry => new X509Certificate(Buffer.from(entry)))
-    }
-    catch (error) {
-        return failed(`certificate did not parse: ${error.message}`)
-    }
+	if (Number(proof.version) !== 1) {
+		return failed(`unsupported signature version ${proof.version}`)
+	}
 
-    const [leaf] = chain
-    if (!validAt(leaf, at)) {
-        return failed('leaf certificate is outside its validity window')
-    }
+	if (!proof.signature?.length) {
+		return failed('proof carries no signature')
+	}
 
-    const full = [...chain, root]
-    for (let index = 0; index < full.length - 1; index += 1) {
-        const issuer = full[index + 1]
-        if (!validAt(issuer, at)) {
-            return failed(`issuer at position ${index + 1} is outside its validity window`)
-        }
-        let ok = false
-        try {
-            ok = full[index].verify(issuer.publicKey)
-        }
-        catch (error) {
-            return failed(`chain verification threw at position ${index}: ${error.message}`)
-        }
-        if (!ok) {
-            return failed(`chain broken at position ${index}`)
-        }
-    }
+	if (!proof.certificateChain?.length) {
+		return failed('empty certificate chain')
+	}
 
-    const payload = constructSignaturePayload({ botFbid, messageDigest: unifiedResponseBytes })
-    let ok = false
-    try {
-        ok = cryptoVerify(null, payload, leaf.publicKey, Buffer.from(proof.signature))
-    }
-    catch (error) {
-        return failed(`signature verification threw: ${error.message}`)
-    }
-    return ok ? { status: 'passed' } : failed('signature does not match the unified response bytes')
+	if (!unifiedResponseBytes?.length) {
+		return failed('no unified response bytes to verify')
+	}
+
+	const botFbid = String(botJid ?? '').split('@')[0]
+	if (!botFbid) {
+		return failed('no bot jid, the fbid is part of the signed payload')
+	}
+
+	let chain
+	try {
+		chain = proof.certificateChain.map(entry => new X509Certificate(Buffer.from(entry)))
+	} catch (error) {
+		return failed(`certificate did not parse: ${error.message}`)
+	}
+
+	const [leaf] = chain
+	if (!validAt(leaf, at)) {
+		return failed('leaf certificate is outside its validity window')
+	}
+
+	const full = [...chain, root]
+	for (let index = 0; index < full.length - 1; index += 1) {
+		const issuer = full[index + 1]
+		if (!validAt(issuer, at)) {
+			return failed(`issuer at position ${index + 1} is outside its validity window`)
+		}
+
+		let ok = false
+		try {
+			ok = full[index].verify(issuer.publicKey)
+		} catch (error) {
+			return failed(`chain verification threw at position ${index}: ${error.message}`)
+		}
+
+		if (!ok) {
+			return failed(`chain broken at position ${index}`)
+		}
+	}
+
+	const payload = constructSignaturePayload({ botFbid, messageDigest: unifiedResponseBytes })
+	let ok = false
+	try {
+		ok = cryptoVerify(null, payload, leaf.publicKey, Buffer.from(proof.signature))
+	} catch (error) {
+		return failed(`signature verification threw: ${error.message}`)
+	}
+
+	return ok ? { status: 'passed' } : failed('signature does not match the unified response bytes')
 }
