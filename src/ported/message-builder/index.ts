@@ -3597,7 +3597,7 @@ class AIRich extends BaseBuilder {
 	}
 }
 
-export { VERSION, VERSION as MESSAGE_BUILDER_VERSION, Button, ButtonV2, Carousel as AIRichCarousel, AIRich, Toolkit, AIRichError, ItemNotFoundError, DuplicateIdError, InvalidTargetError, ContentValidationError };
+export { VERSION, VERSION as MESSAGE_BUILDER_VERSION, Button, ButtonV2, Carousel, Carousel as AIRichCarousel, AIRich, Toolkit, AIRichError, ItemNotFoundError, DuplicateIdError, InvalidTargetError, ContentValidationError };
 
 export const MessageBuilder = { VERSION, Button, ButtonV2, Carousel, AIRich, Toolkit, AIRichError, ItemNotFoundError, DuplicateIdError, InvalidTargetError, ContentValidationError };
 export const MB = MessageBuilder;

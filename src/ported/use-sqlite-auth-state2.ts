@@ -132,7 +132,7 @@ export async function useSqliteAuthState2(opts: SqliteAuthState2Options): Promis
 							if (row) {
 								let value: unknown = JSON.parse(row.value, BufferJSON.reviver)
 								if (type === 'app-state-sync-key' && value) {
-									value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>)
+									value = proto.Message.AppStateSyncKeyData.fromObject(value as Record<string, unknown>) as unknown as SignalDataTypeMap[T]
 								}
 								data[id] = value
 							}

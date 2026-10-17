@@ -218,10 +218,10 @@ describe('modern message content keys', () => {
 // Regression: Elaina-compatible static helpers must be available on all builders.
 describe('MessageBuilder static helper compatibility', () => {
     it('attaches mapSection to MB and each builder', async () => {
-        const { MB, MessageBuilder, Button, ButtonV2, Carousel, AIRich, Toolkit } = await import('../../ported/index')
+        const { MB, MessageBuilder, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit } = await import('../../ported/MessageBuilder')
         const { mapSection } = await import('../../ported/MessageBuilder/metaai')
         expect(MB).toBe(MessageBuilder)
-        for (const target of [MB, Button, ButtonV2, Carousel, AIRich, Toolkit]) {
+        for (const target of [MB, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit]) {
             expect((target as any).mapSection).toBe(mapSection)
         }
     })
