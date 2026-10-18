@@ -228,6 +228,7 @@ describe('MessageBuilder static helper compatibility', () => {
 			expect((target as any).mapSection).toBe(mapSection)
 		}
 	})
+<<<<<<< HEAD
 })
 
 // Regression: button label aliases (text / displayText / displaytext / buttonText.displayText) must reach the serialized button.
@@ -261,4 +262,6 @@ describe('MessageBuilder button display text', () => {
 		expect(l1.buttonText).toEqual({ displayText: 'C' })
 		expect(l2.buttonText).toEqual({ displayText: 'D' })
 	})
+=======
+>>>>>>> refs/remotes/origin/master
 })
