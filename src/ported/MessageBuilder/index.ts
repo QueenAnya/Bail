@@ -41,7 +41,6 @@
 
 const VERSION = '4.7'
 
-<<<<<<< HEAD
 /** Resolve Elaina/Anya button label aliases without altering serialized Native Flow JSON. */
 function resolvePortedButtonDisplayText(button) {
 	if (!button || typeof button !== 'object') return undefined
@@ -57,8 +56,6 @@ function resolvePortedButtonDisplayText(button) {
 }
 
 
-=======
->>>>>>> refs/remotes/origin/master
 import * as crypto from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { PassThrough, Readable } from 'node:stream'
@@ -811,7 +808,6 @@ class Button extends BaseBuilder {
 	}
 
 	addButton(name, params) {
-<<<<<<< HEAD
 		// Keep an already-serialized Native Flow payload (and anything that is not a plain object, e.g. an array) unchanged.
 		let buttonParamsJson
 		if (!params || typeof params !== 'object' || Array.isArray(params)) {
@@ -833,13 +829,6 @@ class Button extends BaseBuilder {
 			buttonParamsJson = JSON.stringify(normalized)
 		}
 		this._buttons.push({ name, buttonParamsJson })
-=======
-		this._buttons.push({
-			name,
-			buttonParamsJson: typeof params === 'string' ? params : JSON.stringify(params)
-		})
-
->>>>>>> refs/remotes/origin/master
 		return this
 	}
 
@@ -1146,7 +1135,6 @@ class ButtonV2 extends BaseBuilder {
 			throw new TypeError('Buttons must be a plain object')
 		}
 
-<<<<<<< HEAD
 		// Already-serialized Native Flow buttons are preserved byte-for-byte.
 		if (typeof obj.name === 'string' && typeof obj.buttonParamsJson === 'string') {
 			this._buttons.push(obj)
@@ -1162,14 +1150,11 @@ class ButtonV2 extends BaseBuilder {
 		}
 
 		// Legacy Elaina buttons use buttonText.displayText; normalize label aliases.
-		if (displayText && !obj.buttonText) {
+		if (displayText && (!obj.buttonText || typeof obj.buttonText === 'string')) {
 			this._buttons.push({ ...obj, buttonText: { displayText } })
 		} else {
 			this._buttons.push(obj)
 		}
-=======
-		this._buttons.push(obj)
->>>>>>> refs/remotes/origin/master
 		return this
 	}
 
