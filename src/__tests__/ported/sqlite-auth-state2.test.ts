@@ -14,27 +14,40 @@ const makeFakeDatabase = () => {
 			if (normalized.startsWith('SELECT value FROM creds')) {
 				return { get: (id: string) => (creds.has(id) ? { value: creds.get(id) } : undefined) }
 			}
+
 			if (normalized.startsWith('INSERT INTO creds')) {
 				return { run: (id: string, value: string) => void creds.set(id, value) }
 			}
+
 			if (normalized.startsWith('SELECT value FROM signal_keys')) {
-				return { get: (type: string, id: string) => (keys.has(key(type, id)) ? { value: keys.get(key(type, id)) } : undefined) }
+				return {
+					get: (type: string, id: string) => (keys.has(key(type, id)) ? { value: keys.get(key(type, id)) } : undefined)
+				}
 			}
+
 			if (normalized.startsWith('INSERT INTO signal_keys')) {
 				return { run: (type: string, id: string, value: string) => void keys.set(key(type, id), value) }
 			}
+
 			if (normalized.startsWith('DELETE FROM signal_keys WHERE')) {
 				return { run: (type: string, id: string) => void keys.delete(key(type, id)) }
 			}
+
 			if (normalized === 'DELETE FROM signal_keys') {
 				return { run: () => keys.clear() }
 			}
+
 			if (normalized === 'DELETE FROM creds') {
 				return { run: () => creds.clear() }
 			}
+
 			throw new Error(`Unexpected SQL in fake database: ${normalized}`)
 		}),
-		transaction: jest.fn((fn: (...args: any[]) => unknown) => (...args: any[]) => fn(...args)),
+		transaction: jest.fn(
+			(fn: (...args: any[]) => unknown) =>
+				(...args: any[]) =>
+					fn(...args)
+		),
 		close: jest.fn(() => {
 			database.open = false
 		})

@@ -72,6 +72,23 @@ describe('Interactive Carousel Biz Node', () => {
 		expect(nativeFlow?.attrs?.name).toBe('mpm')
 	})
 
+	it('uses galaxy_message as a named native flow instead of generic mixed flow', () => {
+		const message = {
+			interactiveMessage: {
+				nativeFlowMessage: {
+					buttons: [{ name: 'galaxy_message', buttonParamsJson: JSON.stringify({ flow_token: 'test-token', flow_id: 'test-flow' }) }]
+				}
+			}
+		} as any
+
+		const bizNode = getBizBinaryNode(message)
+		const interactive = (bizNode.content as any[]).find(node => node?.tag === 'interactive')
+		const nativeFlow = interactive?.content?.find((node: any) => node?.tag === 'native_flow')
+
+		expect(nativeFlow?.attrs?.name).toBe('galaxy_message')
+		expect(nativeFlow?.attrs?.v).toBe('2')
+	})
+
 	it('shouldIncludeBizBinaryNode still returns true for plain nativeFlowMessage (no regression)', () => {
 		const message = {
 			interactiveMessage: {

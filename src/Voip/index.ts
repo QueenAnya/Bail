@@ -9,11 +9,11 @@
 export { MergedVoipClient, makeVoipClient } from './socket-client'
 export { CallState } from './types'
 export type {
-  CallOptions,
-  CallEvents,
-  CallRequest,
-  CallSummary,
-  CallStatus,
-  VoipConfigOptions,
-  MergedVoipClientOptions
+	CallOptions,
+	CallEvents,
+	CallRequest,
+	CallSummary,
+	CallStatus,
+	VoipConfigOptions,
+	MergedVoipClientOptions
 } from './types'

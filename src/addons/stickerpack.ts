@@ -161,7 +161,7 @@ export type StickerPackOptions = {
 const toBufferFromUpload = async (raw: any): Promise<Buffer> => {
 	const normalized = Buffer.isBuffer(raw) ? raw : typeof raw === 'string' ? { url: raw } : raw
 	const { stream } = await getStream(normalized)
-	return (await toBuffer(stream)) as Buffer
+	return await toBuffer(stream)
 }
 
 /**

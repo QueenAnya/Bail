@@ -109,14 +109,10 @@ export const makeMessagesExtras = (sock: MessagesExtrasSocket, config: MessagesE
 			const genOpts = genOptsOf(userJid, options)
 			const relayOpts = relayOptsOf(options)
 
-			const parent: any = await generateWAMessage(
-				jid,
-				parentContent as any,
-				{
-					...genOpts,
-					messageId: generateMessageIDV2(userJid)
-				} as any
-			)
+			const parent: any = await generateWAMessage(jid, parentContent, {
+				...genOpts,
+				messageId: generateMessageIDV2(userJid)
+			})
 			parent.message[mediaKey].contextInfo = {
 				...(parent.message[mediaKey].contextInfo || {}),
 				pairedMediaType: parentPaired
@@ -124,14 +120,10 @@ export const makeMessagesExtras = (sock: MessagesExtrasSocket, config: MessagesE
 			await sock.relayMessage(jid, parent.message, { messageId: parent.key.id, ...relayOpts })
 			emit(parent)
 
-			const child: any = await generateWAMessage(
-				jid,
-				(isVideo ? { video: hdSource } : { image: hdSource }) as any,
-				{
-					...genOpts,
-					messageId: generateMessageIDV2(userJid)
-				} as any
-			)
+			const child: any = await generateWAMessage(jid, isVideo ? { video: hdSource } : { image: hdSource }, {
+				...genOpts,
+				messageId: generateMessageIDV2(userJid)
+			})
 			child.message[mediaKey].contextInfo = {
 				...(child.message[mediaKey].contextInfo || {}),
 				pairedMediaType: childPaired
@@ -162,22 +154,22 @@ export const makeMessagesExtras = (sock: MessagesExtrasSocket, config: MessagesE
 
 			const parent: any = await generateWAMessage(
 				jid,
-				{ image, caption } as any,
+				{ image, caption },
 				{
 					...genOpts,
 					messageId: generateMessageIDV2(userJid)
-				} as any
+				}
 			)
 			await sock.relayMessage(jid, parent.message, { messageId: parent.key.id, ...relayOpts })
 			emit(parent)
 
 			const child: any = await generateWAMessage(
 				jid,
-				{ video } as any,
+				{ video },
 				{
 					...genOpts,
 					messageId: generateMessageIDV2(userJid)
-				} as any
+				}
 			)
 			child.message.messageContextInfo = {
 				...(child.message.messageContextInfo || {}),

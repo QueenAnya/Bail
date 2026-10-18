@@ -33,7 +33,7 @@ const gen = (content: any) =>
 	generateWAMessage('1@s.whatsapp.net', preparePortedMessageContent(content), {
 		userJid: '2@s.whatsapp.net',
 		upload
-	} as any)
+	})
 
 describe('payment messages (INR by default)', () => {
 	it('money scales by the offset, defaults to INR and validates its input', () => {
@@ -183,7 +183,9 @@ describe('modern message content keys', () => {
 	})
 
 	it('pollAddOption and eventInvite build from the flat WAProto classes', () => {
-		expect(makePollAddOptionMessage({ pollCreationMessageKey: key, option: 'x' }).pollAddOptionMessage.addOption?.optionName).toBe('x')
+		expect(
+			makePollAddOptionMessage({ pollCreationMessageKey: key, option: 'x' }).pollAddOptionMessage.addOption?.optionName
+		).toBe('x')
 		expect(makeEventInviteMessage({ eventId: 'e1' }).eventInviteMessage.eventId).toBe('e1')
 		expect(() => makePollAddOptionMessage({ pollCreationMessageKey: key })).toThrow('pollAddOption.option is required')
 	})
@@ -217,12 +219,46 @@ describe('modern message content keys', () => {
 
 // Regression: Elaina-compatible static helpers must be available on all builders.
 describe('MessageBuilder static helper compatibility', () => {
-    it('attaches mapSection to MB and each builder', async () => {
-        const { MB, MessageBuilder, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit } = await import('../../ported/MessageBuilder')
-        const { mapSection } = await import('../../ported/MessageBuilder/metaai')
-        expect(MB).toBe(MessageBuilder)
-        for (const target of [MB, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit]) {
-            expect((target as any).mapSection).toBe(mapSection)
-        }
-    })
+	it('attaches mapSection to MB and each builder', async () => {
+		const { MB, MessageBuilder, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit } =
+			await import('../../ported/MessageBuilder')
+		const { mapSection } = await import('../../ported/MessageBuilder/metaai')
+		expect(MB).toBe(MessageBuilder)
+		for (const target of [MB, Button, ButtonV2, AIRichCarousel, AIRich, Toolkit]) {
+			expect((target as any).mapSection).toBe(mapSection)
+		}
+	})
+})
+
+// Regression: button label aliases (text / displayText / displaytext / buttonText.displayText) must reach the serialized button.
+describe('MessageBuilder button display text', () => {
+	it('Button.addButton fills display_text from label aliases and keeps other payloads unchanged', async () => {
+		const { Button } = await import('../../ported/MessageBuilder')
+		const btn: any = new Button({})
+		const serialized = JSON.stringify({ display_text: 'Keep', id: '3' })
+		btn.addButton('quick_reply', { text: 'Hi', id: '1' })
+		btn.addButton('quick_reply', { buttonText: { displayText: 'Yo' }, id: '2' })
+		btn.addButton('quick_reply', serialized)
+		btn.addButton('custom', ['a', 'b'])
+		const [a, b, c, d] = btn._buttons
+		expect(JSON.parse(a.buttonParamsJson).display_text).toBe('Hi')
+		expect(JSON.parse(b.buttonParamsJson).display_text).toBe('Yo')
+		expect(c.buttonParamsJson).toBe(serialized)
+		expect(JSON.parse(d.buttonParamsJson)).toEqual(['a', 'b'])
+	})
+
+	it('ButtonV2.addRawButton normalizes label aliases and keeps serialized buttons byte-for-byte', async () => {
+		const { ButtonV2 } = await import('../../ported/MessageBuilder')
+		const btn: any = new ButtonV2({})
+		const serialized = { name: 'quick_reply', buttonParamsJson: '{"display_text":"A"}' }
+		btn.addRawButton(serialized)
+		btn.addRawButton({ name: 'quick_reply', buttonParamsJson: { id: '1' }, text: 'B' })
+		btn.addRawButton({ buttonId: 'x', displayText: 'C', type: 1 })
+		btn.addRawButton({ buttonId: 'y', buttonText: { displayText: 'D' }, type: 1 })
+		const [s, o, l1, l2] = btn._buttons
+		expect(s).toBe(serialized)
+		expect(JSON.parse(o.buttonParamsJson).display_text).toBe('B')
+		expect(l1.buttonText).toEqual({ displayText: 'C' })
+		expect(l2.buttonText).toEqual({ displayText: 'D' })
+	})
 })

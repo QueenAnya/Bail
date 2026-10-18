@@ -1020,7 +1020,7 @@ export const buildBotForwardedMessage = (
 				richResponseMessage: richResponse
 			}
 		}
-	} as proto.IMessage
+	}
 }
 
 // ── Generators ────────────────────────────────────────────────────────────────

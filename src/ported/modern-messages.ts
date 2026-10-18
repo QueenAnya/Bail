@@ -39,7 +39,7 @@ const requireKey = (value: any, name = 'key') => {
 const requireProto = (path: string, feature: string) => {
 	const parts = path.split('.')
 	// elaina nests these under `Message`; this WAProto keeps some of them flat (`proto.PollAddOptionMessage`)
-	const found = parts.reduce((object: any, key) => object?.[key], P) ?? (P as any)[parts[parts.length - 1]!]
+	const found = parts.reduce((object: any, key) => object?.[key], P) ?? P[parts[parts.length - 1]!]
 	if (found === undefined) {
 		throw new Error(`${feature} needs proto.${path}, which this WAProto does not have - update WAProto to use it`)
 	}

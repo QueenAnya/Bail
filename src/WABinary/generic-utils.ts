@@ -171,6 +171,7 @@ export function binaryNodeToString(node: BinaryNode | BinaryNode['content'], i =
 const FLOWS_MAP: { [k: string]: boolean } = {
 	mpm: true,
 	cta_catalog: true,
+	galaxy_message: true,
 	send_location: true,
 	call_permission_request: true,
 	wa_payment_transaction_details: true,

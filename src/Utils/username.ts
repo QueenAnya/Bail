@@ -118,7 +118,20 @@ const LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const DIGITS = '0123456789'
 const LETTER_SET = new Set(LETTERS.split(''))
 const ALLOWED_SET = new Set([...LETTERS.split(''), ...DIGITS.split(''), '_', '.'])
-const RESERVED_SUFFIXES = ['.com', '.org', '.net', '.int', '.edu', '.gov', '.mil', '.arpa', '.html', '.htm', '.txt', '.xml']
+const RESERVED_SUFFIXES = [
+	'.com',
+	'.org',
+	'.net',
+	'.int',
+	'.edu',
+	'.gov',
+	'.mil',
+	'.arpa',
+	'.html',
+	'.htm',
+	'.txt',
+	'.xml'
+]
 const RESERVED_WORDS = ['whatsapp', 'instagram', 'facebook', 'oculus']
 const PIN_PATTERN = /^[0-9]{4}$/
 

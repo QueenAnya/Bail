@@ -22,10 +22,8 @@ import {
 	resolveButtonText
 } from '../addons/native-flow-interactive'
 import { buildRawMessageContent } from '../addons/raw-message'
-import { LIBRARY_NAME } from '../Defaults'
-import { buildSocialPreview } from '../ported/link-preview-metadata'
-import { prepareLinkThumbnail, songThumbnail, trimEmptyValues } from '../ported/messages-helpers'
 import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
+import { LIBRARY_NAME } from '../Defaults'
 import {
 	CALL_AUDIO_PREFIX,
 	CALL_VIDEO_PREFIX,
@@ -35,6 +33,8 @@ import {
 	URL_REGEX,
 	WA_DEFAULT_EPHEMERAL
 } from '../Defaults'
+import { buildSocialPreview } from '../ported/link-preview-metadata'
+import { prepareLinkThumbnail, songThumbnail, trimEmptyValues } from '../ported/messages-helpers'
 import type {
 	AnyMediaMessageContent,
 	AnyMessageContent,
@@ -477,8 +477,17 @@ export const generateWAMessageContent = async (
 		m = buildRawMessageContent(message as Record<string, unknown>)
 	} else if (hasNonNullishProperty(message, 'richLink')) {
 		// sock.sendMessage(jid, { richLink: { url, title, description, image, text } })
-		const { text, url, title, description, image, large = true, previewType, thumbnailWidth, ...rest } = (message as any)
-			.richLink
+		const {
+			text,
+			url,
+			title,
+			description,
+			image,
+			large = true,
+			previewType,
+			thumbnailWidth,
+			...rest
+		} = (message as any).richLink
 		if (!url || typeof url !== 'string') {
 			throw new Boom('richLink needs a url', { statusCode: 400 })
 		}
@@ -1074,7 +1083,10 @@ export const generateWAMessageContent = async (
 
 		const mimetype = rest.mimetype ?? 'audio/mpeg'
 		if (rest.ptt === true && !/opus/i.test(mimetype)) {
-			options.logger?.warn({ mimetype }, 'ptt asks for a voice note but this is not opus, and nothing here transcodes it')
+			options.logger?.warn(
+				{ mimetype },
+				'ptt asks for a voice note but this is not opus, and nothing here transcodes it'
+			)
 		}
 
 		m = await prepareWAMessageMedia({ audio, ...rest, mimetype } as AnyMediaMessageContent, options)
@@ -1457,7 +1469,7 @@ export const generateWAMessageContent = async (
 						options
 					)
 					;(header as any).productMessage = {
-						product: { ...product, currencyCode: (product as any).currencyCode ?? 'INR', productImage: imageMessage }
+						product: { ...product, currencyCode: product.currencyCode ?? 'INR', productImage: imageMessage }
 					}
 				} else if (image) {
 					const prepared = await prepareWAMessageMedia({ image: normalizeMedia(image)! }, options)
@@ -1754,7 +1766,6 @@ export const generateWAMessageContent = async (
 			if ((message as any).mentionAll) {
 				key.contextInfo.nonJidMentions = 1
 			}
-
 		} else if (key!) {
 			key.contextInfo = {
 				mentionedJid: (message as any).mentions,
@@ -1773,10 +1784,10 @@ export const generateWAMessageContent = async (
 		if (key && typeof key === 'object') {
 			const info = (message as any).forwardedNewsletter
 			const forwarded: proto.IContextInfo['forwardedNewsletterMessageInfo'] = { newsletterJid: info.newsletterJid }
-			if (info.serverMessageId !== undefined) forwarded!.serverMessageId = Number(info.serverMessageId) || 0
-			if (info.newsletterName !== undefined) forwarded!.newsletterName = info.newsletterName
-			if (info.contentType !== undefined) forwarded!.contentType = info.contentType
-			if (info.accessibilityText !== undefined) forwarded!.accessibilityText = info.accessibilityText
+			if (info.serverMessageId !== undefined) forwarded.serverMessageId = Number(info.serverMessageId) || 0
+			if (info.newsletterName !== undefined) forwarded.newsletterName = info.newsletterName
+			if (info.contentType !== undefined) forwarded.contentType = info.contentType
+			if (info.accessibilityText !== undefined) forwarded.accessibilityText = info.accessibilityText
 			key.contextInfo = key.contextInfo || {}
 			key.contextInfo.forwardedNewsletterMessageInfo = forwarded
 			key.contextInfo.isForwarded = true

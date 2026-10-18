@@ -5,29 +5,40 @@ on:
   # GitHub activity
   # ------------------------------------------------------------
 
-  push:
-    branches:
-      - master
-      - main
-      - develop
+#  push:
+#    branches:
+#      - master
+#      - main
+#      - develop
 
-  pull_request:
-    types:
-      - opened
-      - closed
-      - reopened
-      - synchronize
-      - ready_for_review
+#  pull_request:
+#    types:
+#      - opened
+#      - closed
+#      - reopened
+#      - synchronize
+#      - ready_for_review
 
-  issues:
-    types:
-      - opened
-      - closed
-      - reopened
+#  issues:
+#    types:
+#      - opened
+#      - closed
+#      - reopened
 
-  release:
-    types:
-      - published
+#  release:
+#    types:
+#7      - published
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        type: string
+        description: 'Must be: patch, minor, major, pre* or <version>'
+        required: true
+        default: 'patch'
+
+permissions: write-all
 
   # ------------------------------------------------------------
   # CI/CD workflow status

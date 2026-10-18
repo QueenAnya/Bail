@@ -3,9 +3,9 @@ import { makePortedSocket } from '../ported/socket'
 import { bindVoiceRecognition } from '../ported/voice-recognition'
 import type { UserFacingSocketConfig } from '../Types'
 import { deriveCanonicalCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
-import { makeUsernameSocket } from './username'
 import { makeVoipClient as createMergedVoipClient, type MergedVoipClient } from '../Voip/socket-client'
 import type { MergedVoipClientOptions } from '../Voip/types'
+import { makeUsernameSocket } from './username'
 
 // export the last socket layer
 const makeWASocket = (config: UserFacingSocketConfig) => {
@@ -46,7 +46,9 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 	let attachedMergedVoipClient: MergedVoipClient | null = null
 	const makeSocketVoipClient = async (options: MergedVoipClientOptions = {}) => {
 		if (attachedMergedVoipClient) {
-			throw new Error('This socket already has a VoIP client. Reuse the existing client instead of attaching a second one.')
+			throw new Error(
+				'This socket already has a VoIP client. Reuse the existing client instead of attaching a second one.'
+			)
 		}
 
 		const client = await createMergedVoipClient(sock, options)

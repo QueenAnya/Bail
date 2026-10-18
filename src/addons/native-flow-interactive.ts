@@ -31,18 +31,17 @@ const isSet = (v: unknown): boolean => v !== null && v !== undefined
 const isObject = (v: unknown): v is AnyRecord => typeof v === 'object' && v !== null
 
 /**
- * Resolves a button's label from every spelling the fork accepts:
- * `text` | `display_text` | `displayText` | `buttonText` (string, or the
- * classic `{ displayText }` object). Same precedence button-sender.ts uses
- * (`text` first, then `displayText`), plus the native-flow `display_text`.
+ * Resolves a button label across the spellings accepted by Baileys helpers.
+ * Priority: display_text, text, displayText, displaytext, then buttonText.
  */
 export const resolveButtonText = (b: AnyRecord | null | undefined): string | undefined => {
 	if (!b) return undefined
 	const bt = b.buttonText
 	const candidates = [
-		b.text,
 		b.display_text,
+		b.text,
 		b.displayText,
+		b.displaytext,
 		typeof bt === 'string' ? bt : (bt?.displayText ?? bt?.display_text)
 	]
 	return candidates.find(c => typeof c === 'string' && c !== '')

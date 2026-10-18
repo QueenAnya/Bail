@@ -39,23 +39,38 @@
  * Do not claim this project as your own original work.
  */
 
-const VERSION = '4.7';
+const VERSION = '4.7'
 
-import { generateWAMessageFromContent, prepareWAMessageMedia } from '../../Utils/messages';
-import { generateMessageIDV2 } from '../../Utils/generics';
-import * as crypto from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { loadFfmpeg, loadSharp } from '../optional-media';
-import { isParsableCertificateChain } from './bot-signature';
-import { PassThrough, Readable } from 'node:stream';
+/** Resolve Elaina/Anya button label aliases without altering serialized Native Flow JSON. */
+function resolvePortedButtonDisplayText(button) {
+	if (!button || typeof button !== 'object') return undefined
+	const buttonText = button.buttonText
+	const candidates = [
+		button.display_text,
+		button.text,
+		button.displayText,
+		button.displaytext,
+		typeof buttonText === 'string' ? buttonText : buttonText?.displayText ?? buttonText?.display_text
+	]
+	return candidates.find(value => typeof value === 'string' && value.length > 0)
+}
+
+
+import * as crypto from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { PassThrough, Readable } from 'node:stream'
+import { generateMessageIDV2 } from '../../Utils/generics'
+import { generateWAMessageFromContent, prepareWAMessageMedia } from '../../Utils/messages'
+import { loadFfmpeg, loadSharp } from '../optional-media'
+import { isParsableCertificateChain } from './bot-signature'
 
 function extractIE(text, { extract = true, hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
 	if (!extract) {
 		return {
 			text,
 			ie: [],
-			inline_entities: [],
-		};
+			inline_entities: []
+		}
 	}
 
 	const createIE = (type, ie) => {
@@ -66,9 +81,9 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 					display_name: ie.text,
 					is_trusted: ie.is_trusted,
 					url: ie.url,
-					__typename: 'GenAIInlineLinkItem',
-				},
-			};
+					__typename: 'GenAIInlineLinkItem'
+				}
+			}
 		}
 
 		if (type == 'deeplink') {
@@ -77,9 +92,9 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 				metadata: {
 					deeplink_url: ie.url,
 					text: ie.text,
-					__typename: 'GenAIDeeplinkItem',
-				},
-			};
+					__typename: 'GenAIDeeplinkItem'
+				}
+			}
 		}
 
 		if (type == 'citation') {
@@ -91,9 +106,9 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 					reference_title: ie.url,
 					reference_display_name: ie.url,
 					sources: [],
-					__typename: 'GenAISearchCitationItem',
-				},
-			};
+					__typename: 'GenAISearchCitationItem'
+				}
+			}
 		}
 
 		if (type == 'latex') {
@@ -104,62 +119,62 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 					latex_image: {
 						url: ie.url,
 						width: Number(ie.width) || 100,
-						height: Number(ie.height) || 100,
+						height: Number(ie.height) || 100
 					},
 					font_height: Number(ie.font_height) || 83.333333333333,
 					padding: Number(ie.padding) || 15,
-					__typename: 'GenAILatexItem',
-				},
-			};
+					__typename: 'GenAILatexItem'
+				}
+			}
 		}
-	};
+	}
 
-	let ie = [];
-	let inline_entities = [];
-	let result = '';
-	let last = 0;
-	let citation_index = 1;
-	let hyperlink_index = 0;
-	let latex_index = 0;
-	let deeplink_index = 0;
-	let stack = [];
+	const ie = []
+	const inline_entities = []
+	let result = ''
+	let last = 0
+	let citation_index = 1
+	let hyperlink_index = 0
+	let latex_index = 0
+	let deeplink_index = 0
+	const stack = []
 
 	for (let i = 0; i < text.length; i++) {
 		if (text[i] == '[' && text[i - 1] != '\\') {
-			stack.push(i);
+			stack.push(i)
 		} else if (text[i] == ']' && (text[i + 1] == '(' || text[i + 1] == '<')) {
-			let start = stack.pop();
+			const start = stack.pop()
 
-			if (start == null) continue;
+			if (start == null) continue
 
-			let open = text[i + 1];
-			let close = open == '(' ? ')' : '>';
-			let type = open == '(' ? 'link' : 'latex';
-			let end = i + 2;
-			let depth = 1;
+			const open = text[i + 1]
+			const close = open == '(' ? ')' : '>'
+			const type = open == '(' ? 'link' : 'latex'
+			let end = i + 2
+			let depth = 1
 
 			while (end < text.length && depth) {
-				if (text[end] == open && text[end - 1] != '\\') depth++;
-				else if (text[end] == close && text[end - 1] != '\\') depth--;
-				end++;
+				if (text[end] == open && text[end - 1] != '\\') depth++
+				else if (text[end] == close && text[end - 1] != '\\') depth--
+				end++
 			}
 
-			if (depth) continue;
+			if (depth) continue
 
-			let raw = text.slice(start + 1, i).trim();
-			let url = text.slice(i + 2, end - 1).trim();
+			const raw = text.slice(start + 1, i).trim()
+			let url = text.slice(i + 2, end - 1).trim()
 
-			let key;
-			let tag;
-			let data;
+			let key
+			let tag
+			let data
 
 			if (type == 'latex') {
-				if (!latex) continue;
+				if (!latex) continue
 
-				let [txt = '', width = null, height = null, font_height = null, padding = null] = raw.split('|');
+				const [txt = '', width = null, height = null, font_height = null, padding = null] = raw.split('|')
 
-				key = `\u004E\u0049\u0058\u0045\u004C_LATEX_${latex_index++}`;
-				tag = `{{${key}}}${txt || 'image'}{{/${key}}}`;
+				key = `\u004E\u0049\u0058\u0045\u004C_LATEX_${latex_index++}`
+				tag = `{{${key}}}${txt || 'image'}{{/${key}}}`
 
 				data = {
 					type: 'latex',
@@ -170,39 +185,39 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 						width,
 						height,
 						font_height,
-						padding,
-					},
-				};
+						padding
+					}
+				}
 			} else if (raw) {
-				const isDeeplink = url.startsWith('>');
+				const isDeeplink = url.startsWith('>')
 
 				if (isDeeplink) {
-					url = url.slice(1);
+					url = url.slice(1)
 				}
 
-				if (isDeeplink ? !deeplink : !hyperlink) continue;
+				if (isDeeplink ? !deeplink : !hyperlink) continue
 
 				if (isDeeplink) {
-					key = `\u004E\u0049\u0058\u0045\u004C_DEEPLINK_${deeplink_index++}`;
-					tag = `{{${key}}}${url}{{/${key}}}`;
+					key = `\u004E\u0049\u0058\u0045\u004C_DEEPLINK_${deeplink_index++}`
+					tag = `{{${key}}}${url}{{/${key}}}`
 
 					data = {
 						type: 'deeplink',
 						ie: {
 							key,
 							text: raw,
-							url,
-						},
-					};
+							url
+						}
+					}
 				} else {
-					const trusted = !url.startsWith('!');
+					const trusted = !url.startsWith('!')
 
 					if (!trusted) {
-						url = url.slice(1);
+						url = url.slice(1)
 					}
 
-					key = `\u004E\u0049\u0058\u0045\u004C_HYPERLINK_${hyperlink_index++}`;
-					tag = `{{${key}}}${url}{{/${key}}}`;
+					key = `\u004E\u0049\u0058\u0045\u004C_HYPERLINK_${hyperlink_index++}`
+					tag = `{{${key}}}${url}{{/${key}}}`
 
 					data = {
 						type: 'hyperlink',
@@ -210,15 +225,15 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 							key,
 							text: raw,
 							url,
-							is_trusted: trusted,
-						},
-					};
+							is_trusted: trusted
+						}
+					}
 				}
 			} else {
-				if (!citation) continue;
+				if (!citation) continue
 
-				key = `\u004E\u0049\u0058\u0045\u004C_CITATION_${citation_index - 1}`;
-				tag = `{{${key}}}${url}{{/${key}}}`;
+				key = `\u004E\u0049\u0058\u0045\u004C_CITATION_${citation_index - 1}`
+				tag = `{{${key}}}${url}{{/${key}}}`
 
 				data = {
 					type: 'citation',
@@ -226,86 +241,91 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 						reference_id: citation_index++,
 						key,
 						text: '',
-						url,
-					},
-				};
+						url
+					}
+				}
 			}
 
-			result += text.slice(last, start) + tag;
-			last = end;
+			result += text.slice(last, start) + tag
+			last = end
 
-			ie.push(data);
+			ie.push(data)
 
-			const entity = createIE(data.type, data.ie);
+			const entity = createIE(data.type, data.ie)
 
 			if (entity) {
-				inline_entities.push(entity);
+				inline_entities.push(entity)
 			}
 
-			i = end - 1;
+			i = end - 1
 		}
 	}
 
-	result += text.slice(last);
+	result += text.slice(last)
 
 	return {
 		text: result,
 		ie,
-		inline_entities,
-	};
+		inline_entities
+	}
 }
 
 async function waitAllPromises(input) {
-	const isPromise = (v) => v && typeof v.then === 'function';
-	const isObject = (v) => v && typeof v === 'object';
+	const isPromise = v => v && typeof v.then === 'function'
+	const isObject = v => v && typeof v === 'object'
 
-	const deep = async (v) => {
-		if (isPromise(v)) return deep(await v);
-		if (Array.isArray(v)) return Promise.all(v.map(deep));
+	const deep = async v => {
+		if (isPromise(v)) return deep(await v)
+		if (Array.isArray(v)) return Promise.all(v.map(deep))
 		if (isObject(v)) {
-			const entries = await Promise.all(Object.entries(v).map(async ([k, val]) => [k, await deep(val)]));
-			return Object.fromEntries(entries);
+			const entries = await Promise.all(Object.entries(v).map(async ([k, val]) => [k, await deep(val)]))
+			return Object.fromEntries(entries)
 		}
-		return v;
-	};
 
-	return deep(await input);
+		return v
+	}
+
+	return deep(await input)
 }
 
 class AIRichError extends Error {
 	constructor(message, code, meta = {}) {
-		super(message);
-		this.name = 'AIRichError';
-		this.code = code;
-		Object.assign(this, meta);
+		super(message)
+		this.name = 'AIRichError'
+		this.code = code
+		Object.assign(this, meta)
 	}
 }
 
 class ItemNotFoundError extends AIRichError {
 	constructor(id, availableIds = []) {
-		super(`Item id "${id}" not found${availableIds.length ? ` (available: ${availableIds.join(', ')})` : ' (no items have an id yet)'}`, 'ITEM_NOT_FOUND', { id, availableIds });
-		this.name = 'ItemNotFoundError';
+		super(
+			`Item id "${id}" not found${availableIds.length ? ` (available: ${availableIds.join(', ')})` : ' (no items have an id yet)'}`,
+			'ITEM_NOT_FOUND',
+			{ id, availableIds }
+		)
+		this.name = 'ItemNotFoundError'
 	}
 }
 
 class DuplicateIdError extends AIRichError {
 	constructor(id) {
-		super(`Item id "${id}" already exists`, 'DUPLICATE_ID', { id });
-		this.name = 'DuplicateIdError';
+		super(`Item id "${id}" already exists`, 'DUPLICATE_ID', { id })
+		this.name = 'DuplicateIdError'
 	}
 }
 
 class InvalidTargetError extends AIRichError {
 	constructor(message, meta = {}) {
-		super(message, 'INVALID_TARGET', meta);
-		this.name = 'InvalidTargetError';
+		super(message, 'INVALID_TARGET', meta)
+		this.name = 'InvalidTargetError'
 	}
 }
 
 class ContentValidationError extends AIRichError {
 	constructor(message, meta = {}) {
-		super(message, 'CONTENT_VALIDATION', meta);
-		this.name = 'ContentValidationError';
+		super(message, 'CONTENT_VALIDATION', meta)
+		this.name = 'ContentValidationError'
 	}
 }
 
@@ -313,369 +333,393 @@ class Toolkit {
 	constructor() {}
 
 	static extractIE(text, { extract = true, hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
-		return extractIE(text, { extract, hyperlink, citation, latex, deeplink });
+		return extractIE(text, { extract, hyperlink, citation, latex, deeplink })
 	}
 
 	static async resize(buffer, x, y, fit = 'cover') {
 		if (!Buffer.isBuffer(buffer) || !buffer.length) {
-			throw new Error('resize needs image bytes, got ' + (Buffer.isBuffer(buffer) ? 'an empty buffer' : typeof buffer)
-				+ ': the source could not be read, check the url or file path');
+			throw new Error(
+				'resize needs image bytes, got ' +
+					(Buffer.isBuffer(buffer) ? 'an empty buffer' : typeof buffer) +
+					': the source could not be read, check the url or file path'
+			)
 		}
-		const sharp = await loadSharp();
+
+		const sharp = await loadSharp()
 		return await sharp(buffer)
 			.resize(x, y, {
 				fit,
 				position: 'center',
-				background: { r: 0, g: 0, b: 0, alpha: 0 },
+				background: { r: 0, g: 0, b: 0, alpha: 0 }
 			})
 			.png()
-			.toBuffer();
+			.toBuffer()
 	}
 
 	static async waitAllPromises(input) {
-		return await waitAllPromises(input);
+		return await waitAllPromises(input)
 	}
 
 	static async fetchBuffer(url, options = {}, { silent = true } = {}) {
 		try {
-			if (Buffer.isBuffer(url)) return url;
+			if (Buffer.isBuffer(url)) return url
 			if (typeof url === 'string' && !/^(https?|data):/.test(url)) {
-				return await readFile(url);
+				return await readFile(url)
 			}
-			let response = await fetch(url, options);
-			if (!response.ok) throw Error(`HTTP ${response.status}`);
-			return Buffer.from(await response.arrayBuffer());
+
+			const response = await fetch(url, options)
+			if (!response.ok) throw Error(`HTTP ${response.status}`)
+			return Buffer.from(await response.arrayBuffer())
 		} catch (error) {
-			if (silent) return Buffer.alloc(0);
-			throw error;
+			if (silent) return Buffer.alloc(0)
+			throw error
 		}
 	}
 
 	static async toUrl(_client, path, mediaType = 'document') {
-		if (!path) throw new Error('Url or buffer needed');
+		if (!path) throw new Error('Url or buffer needed')
 
 		const media = await prepareWAMessageMedia(
 			{
-				[mediaType]: Buffer.isBuffer(path) ? path : { url: path },
+				[mediaType]: Buffer.isBuffer(path) ? path : { url: path }
 			},
 			{
 				upload: _client.waUploadToServer,
-				jid: '\u0040\u006e\u0065\u0077\u0073\u006c\u0065\u0074\u0074\u0065\u0072',
+				jid: '\u0040\u006e\u0065\u0077\u0073\u006c\u0065\u0074\u0074\u0065\u0072'
 			}
-		);
+		)
 
-		return Object.values(media)[0]?.url;
+		return Object.values(media)[0]?.url
 	}
 
-	static async resolveMedia(_client, media, mediaType = 'image', { resolveUrl = false, resolveWAUrl = false, result = 'url', resize = false, width = 300, height = 300 } = {}) {
-		const isUrl = (str) => /^https?:\/\/.+/i.test(str);
+	static async resolveMedia(
+		_client,
+		media,
+		mediaType = 'image',
+		{ resolveUrl = false, resolveWAUrl = false, result = 'url', resize = false, width = 300, height = 300 } = {}
+	) {
+		const isUrl = str => /^https?:\/\/.+/i.test(str)
 
-		const isWAUrl = (str) => /^https?:\/\/[^/]*\.whatsapp\.net\//i.test(str);
+		const isWAUrl = str => /^https?:\/\/[^/]*\.whatsapp\.net\//i.test(str)
 
 		if (Array.isArray(media)) {
 			return Promise.all(
-				media.map((item) =>
+				media.map(item =>
 					Toolkit.resolveMedia(_client, item, mediaType, {
 						resolveUrl,
 						resolveWAUrl,
 						result,
 						resize,
 						width,
-						height,
+						height
 					})
 				)
-			);
+			)
 		}
 
-		const originalIsBuffer = Buffer.isBuffer(media);
+		const originalIsBuffer = Buffer.isBuffer(media)
 
 		if (typeof media === 'string' && isUrl(media)) {
 			if (isWAUrl(media)) {
 				if (resolveWAUrl) {
-					media = await Toolkit.fetchBuffer(media, {}, { silent: true });
+					media = await Toolkit.fetchBuffer(media, {}, { silent: true })
 				} else if (!resolveUrl) {
-					if (result === 'url') return media;
+					if (result === 'url') return media
 
-					media = await Toolkit.fetchBuffer(media, {}, { silent: true });
+					media = await Toolkit.fetchBuffer(media, {}, { silent: true })
 				}
 			} else {
 				if (!resolveUrl) {
-					if (result === 'url') return media;
+					if (result === 'url') return media
 
-					media = await Toolkit.fetchBuffer(media, {}, { silent: true });
+					media = await Toolkit.fetchBuffer(media, {}, { silent: true })
 				} else {
-					media = await Toolkit.fetchBuffer(media, {}, { silent: true });
+					media = await Toolkit.fetchBuffer(media, {}, { silent: true })
 				}
 			}
 		}
 
 		if (typeof media === 'string' && !isUrl(media)) {
-			media = Buffer.from(media, 'base64');
+			media = Buffer.from(media, 'base64')
 		}
 
 		if (!Buffer.isBuffer(media) || !media.length) {
-			return;
+			return
 		}
 
 		if (resize && Buffer.isBuffer(media)) {
-			media = await Toolkit.resize(media, width, height);
+			media = await Toolkit.resize(media, width, height)
 		}
 
 		if (result === 'buffer') {
-			return media;
+			return media
 		}
 
 		if (result === 'base64') {
-			return media.toString('base64');
+			return media.toString('base64')
 		}
 
 		if (originalIsBuffer) {
-			return Toolkit.toUrl(_client, media, mediaType);
+			return Toolkit.toUrl(_client, media, mediaType)
 		}
 
-		return Toolkit.toUrl(_client, media, mediaType);
+		return Toolkit.toUrl(_client, media, mediaType)
 	}
 
 	static getMp4Duration(buffer, { silent = true } = {}) {
 		try {
 			if (!Buffer.isBuffer(buffer) || buffer.length < 8) {
-				if (silent) return 0;
-				throw new Error('Invalid buffer');
+				if (silent) return 0
+				throw new Error('Invalid buffer')
 			}
 
-			let offset = 0;
+			let offset = 0
 
 			while (offset < buffer.length - 8) {
-				const size = buffer.readUInt32BE(offset);
+				const size = buffer.readUInt32BE(offset)
 
 				if (size < 8 || offset + size > buffer.length) {
-					if (silent) return 0;
-					throw new Error('Invalid atom size');
+					if (silent) return 0
+					throw new Error('Invalid atom size')
 				}
 
-				const type = buffer.toString('ascii', offset + 4, offset + 8);
+				const type = buffer.toString('ascii', offset + 4, offset + 8)
 
 				if (type === 'moov') {
-					let moovOffset = offset + 8;
-					const moovEnd = offset + size;
+					let moovOffset = offset + 8
+					const moovEnd = offset + size
 
 					while (moovOffset < moovEnd - 8) {
-						const childSize = buffer.readUInt32BE(moovOffset);
+						const childSize = buffer.readUInt32BE(moovOffset)
 
 						if (childSize < 8 || moovOffset + childSize > moovEnd) {
-							if (silent) return 0;
-							throw new Error('Invalid child atom size');
+							if (silent) return 0
+							throw new Error('Invalid child atom size')
 						}
 
-						const childType = buffer.toString('ascii', moovOffset + 4, moovOffset + 8);
+						const childType = buffer.toString('ascii', moovOffset + 4, moovOffset + 8)
 
 						if (childType === 'mvhd') {
-							const version = buffer.readUInt8(moovOffset + 8);
+							const version = buffer.readUInt8(moovOffset + 8)
 
 							if (version === 0) {
-								const timescale = buffer.readUInt32BE(moovOffset + 20);
-								const duration = buffer.readUInt32BE(moovOffset + 24);
+								const timescale = buffer.readUInt32BE(moovOffset + 20)
+								const duration = buffer.readUInt32BE(moovOffset + 24)
 
 								if (!timescale) {
-									if (silent) return 0;
-									throw new Error('Invalid timescale');
+									if (silent) return 0
+									throw new Error('Invalid timescale')
 								}
 
-								return duration / timescale;
+								return duration / timescale
 							}
 
 							if (version === 1) {
-								const timescale = buffer.readUInt32BE(moovOffset + 32);
-								const duration = Number(buffer.readBigUInt64BE(moovOffset + 36));
+								const timescale = buffer.readUInt32BE(moovOffset + 32)
+								const duration = Number(buffer.readBigUInt64BE(moovOffset + 36))
 
 								if (!timescale) {
-									if (silent) return 0;
-									throw new Error('Invalid timescale');
+									if (silent) return 0
+									throw new Error('Invalid timescale')
 								}
 
-								return duration / timescale;
+								return duration / timescale
 							}
 						}
 
-						moovOffset += childSize;
+						moovOffset += childSize
 					}
 				}
 
-				offset += size;
+				offset += size
 			}
 
-			if (silent) return 0;
+			if (silent) return 0
 
-			throw new Error('No mvhd found!');
+			throw new Error('No mvhd found!')
 		} catch (err) {
-			if (silent) return 0;
-			throw err;
+			if (silent) return 0
+			throw err
 		}
 	}
 
-	static getMp4Preview(videoBuffer, { time, result = 'buffer', resize = true, width = 300, height = 300, silent = true } = {}) {
+	static getMp4Preview(
+		videoBuffer,
+		{ time, result = 'buffer', resize = true, width = 300, height = 300, silent = true } = {}
+	) {
 		return new Promise((resolve, reject) => {
-			const fail = (err) => {
+			const fail = err => {
 				if (silent) {
-					return resolve(result === 'base64' ? '' : Buffer.alloc(0));
+					return resolve(result === 'base64' ? '' : Buffer.alloc(0))
 				}
-				return reject(err);
-			};
+
+				return reject(err)
+			}
 
 			try {
 				if (!Buffer.isBuffer(videoBuffer) || !videoBuffer.length) {
-					return fail(new Error('videoBuffer is invalid or empty'));
+					return fail(new Error('videoBuffer is invalid or empty'))
 				}
 
-				const inputStream = new Readable({ read() {} });
-				inputStream.push(videoBuffer);
-				inputStream.push(null);
+				const inputStream = new Readable({ read() {} })
+				inputStream.push(videoBuffer)
+				inputStream.push(null)
 
-				const outputStream = new PassThrough();
-				const chunks = [];
+				const outputStream = new PassThrough()
+				const chunks = []
 
-				outputStream.on('data', (chunk) => chunks.push(chunk));
+				outputStream.on('data', chunk => chunks.push(chunk))
 
 				outputStream.on('end', async () => {
 					try {
-						let output = Buffer.concat(chunks);
+						let output = Buffer.concat(chunks)
 
 						if (!output.length) {
-							return fail(new Error('Output is empty — check the video format or timestamp'));
+							return fail(new Error('Output is empty — check the video format or timestamp'))
 						}
 
 						if (resize) {
-							output = await Toolkit.resize(output, width, height);
+							output = await Toolkit.resize(output, width, height)
 						}
 
-						return resolve(result === 'base64' ? output.toString('base64') : output);
+						return resolve(result === 'base64' ? output.toString('base64') : output)
 					} catch (err) {
-						return fail(err);
+						return fail(err)
 					}
-				});
+				})
 
-				outputStream.on('error', fail);
+				outputStream.on('error', fail)
 
-				time = time ?? Math.min(Toolkit.getMp4Duration(videoBuffer) * 0.2, 10);
+				time = time ?? Math.min(Toolkit.getMp4Duration(videoBuffer) * 0.2, 10)
 
-				loadFfmpeg().then((ffmpeg) => {
-					ffmpeg(inputStream)
-						.outputOptions([`-ss ${time}`, '-vframes 1', '-vcodec png', '-f image2pipe'])
-						.on('error', (err) => fail(new Error(`ffmpeg error: ${err.message}`)))
-						.pipe(outputStream, { end: true });
-				}).catch(fail);
+				loadFfmpeg()
+					.then(ffmpeg => {
+						ffmpeg(inputStream)
+							.outputOptions([`-ss ${time}`, '-vframes 1', '-vcodec png', '-f image2pipe'])
+							.on('error', err => fail(new Error(`ffmpeg error: ${err.message}`)))
+							.pipe(outputStream, { end: true })
+					})
+					.catch(fail)
 			} catch (err) {
-				return fail(err);
+				return fail(err)
 			}
-		});
+		})
 	}
 
 	static stringifyEscaped(obj) {
-		return JSON.stringify(obj).replace(/[\u007f-\uffff]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+		return JSON.stringify(obj).replace(/[\u007f-\uffff]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
 	}
 }
 
 class BaseBuilder {
 	constructor() {
-		this._title = '';
-		this._subtitle = '';
-		this._body = '';
-		this._footer = '';
-		this._contextInfo = {};
-		this._extraPayload = {};
+		this._title = ''
+		this._subtitle = ''
+		this._body = ''
+		this._footer = ''
+		this._contextInfo = {}
+		this._extraPayload = {}
 	}
 
 	setTitle(title) {
 		if (typeof title !== 'string') {
-			throw new TypeError('Title must be a string');
+			throw new TypeError('Title must be a string')
 		}
-		this._title = title;
-		return this;
+
+		this._title = title
+		return this
 	}
 
 	setSubtitle(subtitle) {
 		if (typeof subtitle !== 'string') {
-			throw new TypeError('Subtitle must be a string');
+			throw new TypeError('Subtitle must be a string')
 		}
-		this._subtitle = subtitle;
-		return this;
+
+		this._subtitle = subtitle
+		return this
 	}
 
 	setBody(body) {
 		if (typeof body !== 'string') {
-			throw new TypeError('Body must be a string');
+			throw new TypeError('Body must be a string')
 		}
-		this._body = body;
-		return this;
+
+		this._body = body
+		return this
 	}
 
 	setFooter(footer) {
 		if (typeof footer !== 'string') {
-			throw new TypeError('Footer must be a string');
+			throw new TypeError('Footer must be a string')
 		}
-		this._footer = footer;
-		return this;
+
+		this._footer = footer
+		return this
 	}
 
 	setContextInfo(obj) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
-			throw new TypeError('ContextInfo must be a plain object');
+			throw new TypeError('ContextInfo must be a plain object')
 		}
 
-		this._contextInfo = obj;
-		return this;
+		this._contextInfo = obj
+		return this
 	}
 
 	addPayload(obj) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
-			throw new TypeError('Payload must be a plain object');
+			throw new TypeError('Payload must be a plain object')
 		}
 
-		Object.assign(this._extraPayload, obj);
+		Object.assign(this._extraPayload, obj)
 
-		return this;
+		return this
 	}
 }
 
 class Button extends BaseBuilder {
-	#client;
+	#client
 
 	constructor(client) {
-		super();
+		super()
 		if (!client) {
-			throw new Error('Socket is required');
+			throw new Error('Socket is required')
 		}
-		this.#client = client;
 
-		this._buttons = [];
-		this._data;
-		this._currentSelectionIndex = -1;
-		this._currentSectionIndex = -1;
-		this._params = {};
+		this.#client = client
+
+		this._buttons = []
+		this._data
+		this._currentSelectionIndex = -1
+		this._currentSectionIndex = -1
+		this._params = {}
 	}
 
 	loadFrom(msg) {
-		if (!msg) throw new Error('interactiveMessage needed');
-		if (!msg.interactiveMessage) throw new Error('interactiveMessage not found');
+		if (!msg) throw new Error('interactiveMessage needed')
+		if (!msg.interactiveMessage) throw new Error('interactiveMessage not found')
 
-		const { interactiveMessage, ...extraPayload } = msg;
-		const iM = interactiveMessage;
-		const header = iM.header || {};
-		const nativeFlow = iM.nativeFlowMessage || {};
+		const { interactiveMessage, ...extraPayload } = msg
+		const iM = interactiveMessage
+		const header = iM.header || {}
+		const nativeFlow = iM.nativeFlowMessage || {}
 
-		this._title = header.title || '';
-		this._subtitle = header.subtitle || '';
-		this._body = iM.body?.text || '';
-		this._footer = iM.footer?.text || '';
-		this._contextInfo = iM.contextInfo || {};
-		this._extraPayload = extraPayload;
+		this._title = header.title || ''
+		this._subtitle = header.subtitle || ''
+		this._body = iM.body?.text || ''
+		this._footer = iM.footer?.text || ''
+		this._contextInfo = iM.contextInfo || {}
+		this._extraPayload = extraPayload
 
 		this._buttons = Array.isArray(nativeFlow.buttons)
-			? nativeFlow.buttons.map((button) => ({
+			? nativeFlow.buttons.map(button => ({
 					...button,
-					buttonParamsJson: typeof button.buttonParamsJson === 'string' ? button.buttonParamsJson : JSON.stringify(button.buttonParamsJson || {}),
+					buttonParamsJson:
+						typeof button.buttonParamsJson === 'string'
+							? button.buttonParamsJson
+							: JSON.stringify(button.buttonParamsJson || {})
 				}))
-			: [];
+			: []
 
 		this._data = header.imageMessage
 			? { imageMessage: header.imageMessage }
@@ -685,113 +729,137 @@ class Button extends BaseBuilder {
 					? { documentMessage: header.documentMessage }
 					: header.productMessage
 						? { productMessage: header.productMessage }
-						: undefined;
+						: undefined
 
-		this._params = {};
+		this._params = {}
 
 		if (typeof nativeFlow.messageParamsJson === 'string') {
 			try {
-				this._params = JSON.parse(nativeFlow.messageParamsJson || '{}');
+				this._params = JSON.parse(nativeFlow.messageParamsJson || '{}')
 			} catch {
-				this._params = {};
+				this._params = {}
 			}
 		} else if (nativeFlow.messageParamsJson && typeof nativeFlow.messageParamsJson === 'object') {
-			this._params = { ...nativeFlow.messageParamsJson };
+			this._params = { ...nativeFlow.messageParamsJson }
 		}
 
-		this._currentSelectionIndex = this._buttons.findLastIndex((button) => button.name === 'single_select');
+		this._currentSelectionIndex = this._buttons.findLastIndex(button => button.name === 'single_select')
 
-		this._currentSectionIndex = -1;
+		this._currentSectionIndex = -1
 
 		if (this._currentSelectionIndex !== -1) {
 			try {
-				const button = this._buttons[this._currentSelectionIndex];
-				const params = JSON.parse(button.buttonParamsJson || '{}');
+				const button = this._buttons[this._currentSelectionIndex]
+				const params = JSON.parse(button.buttonParamsJson || '{}')
 
 				if (Array.isArray(params.sections) && params.sections.length) {
-					this._currentSectionIndex = params.sections.length - 1;
+					this._currentSectionIndex = params.sections.length - 1
 				}
 			} catch {
-				this._currentSelectionIndex = -1;
-				this._currentSectionIndex = -1;
+				this._currentSelectionIndex = -1
+				this._currentSectionIndex = -1
 			}
 		}
 
-		return this;
+		return this
 	}
 
 	setImage(path, options = {}) {
-		if (!path) throw new Error('Url or buffer needed');
-		Buffer.isBuffer(path) ? (this._data = { image: path, ...options }) : (this._data = { image: { url: path }, ...options });
-		return this;
+		if (!path) throw new Error('Url or buffer needed')
+		Buffer.isBuffer(path)
+			? (this._data = { image: path, ...options })
+			: (this._data = { image: { url: path }, ...options })
+		return this
 	}
 
 	setVideo(path, options = {}) {
-		if (!path) throw new Error('Url or buffer needed');
-		Buffer.isBuffer(path) ? (this._data = { video: path, ...options }) : (this._data = { video: { url: path }, ...options });
-		return this;
+		if (!path) throw new Error('Url or buffer needed')
+		Buffer.isBuffer(path)
+			? (this._data = { video: path, ...options })
+			: (this._data = { video: { url: path }, ...options })
+		return this
 	}
 
 	setDocument(path, options = {}) {
-		if (!path) throw new Error('Url or buffer needed');
-		Buffer.isBuffer(path) ? (this._data = { document: path, ...options }) : (this._data = { document: { url: path }, ...options });
-		return this;
+		if (!path) throw new Error('Url or buffer needed')
+		Buffer.isBuffer(path)
+			? (this._data = { document: path, ...options })
+			: (this._data = { document: { url: path }, ...options })
+		return this
 	}
 
 	setMedia(obj) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
-			throw new TypeError('Media must be a plain object');
+			throw new TypeError('Media must be a plain object')
 		}
 
-		this._data = obj;
-		return this;
+		this._data = obj
+		return this
 	}
 
 	clearButtons() {
-		this._buttons = [];
-		return this;
+		this._buttons = []
+		return this
 	}
 
 	setParams(obj) {
-		this._params = obj;
-		return this;
+		this._params = obj
+		return this
 	}
 
 	addButton(name, params) {
-		this._buttons.push({
-			name,
-			buttonParamsJson: typeof params === 'string' ? params : JSON.stringify(params),
-		});
-
-		return this;
+		// Keep an already-serialized Native Flow payload (and anything that is not a plain object, e.g. an array) unchanged.
+		let buttonParamsJson
+		if (!params || typeof params !== 'object' || Array.isArray(params)) {
+			buttonParamsJson = typeof params === 'string' ? params : JSON.stringify(params)
+		} else {
+			const normalized = { ...params }
+			const buttonText = normalized.display_text
+				?? normalized.text
+				?? normalized.displayText
+				?? normalized.displaytext
+				?? (typeof normalized.buttonText === 'string'
+					? normalized.buttonText
+					: normalized.buttonText?.displayText ?? normalized.buttonText?.display_text)
+			if (buttonText !== undefined && buttonText !== null && normalized.display_text == null) {
+				normalized.display_text = typeof buttonText === 'object'
+					? (buttonText.displayText ?? buttonText.display_text)
+					: buttonText
+			}
+			buttonParamsJson = JSON.stringify(normalized)
+		}
+		this._buttons.push({ name, buttonParamsJson })
+		return this
 	}
 
 	makeRow(header = '', title = '', description = '', id = '') {
 		if (this._currentSelectionIndex === -1 || this._currentSectionIndex === -1) {
-			throw new Error('You need to create a selection and a section first');
+			throw new Error('You need to create a selection and a section first')
 		}
-		const buttonParams = JSON.parse(this._buttons[this._currentSelectionIndex].buttonParamsJson);
-		buttonParams.sections[this._currentSectionIndex].rows.push({ header, title, description, id });
-		this._buttons[this._currentSelectionIndex].buttonParamsJson = JSON.stringify(buttonParams);
-		return this;
+
+		const buttonParams = JSON.parse(this._buttons[this._currentSelectionIndex].buttonParamsJson)
+		buttonParams.sections[this._currentSectionIndex].rows.push({ header, title, description, id })
+		this._buttons[this._currentSelectionIndex].buttonParamsJson = JSON.stringify(buttonParams)
+		return this
 	}
 
 	makeSection(title = '', highlight_label = '') {
 		if (this._currentSelectionIndex === -1) {
-			throw new Error('You need to create a selection first');
+			throw new Error('You need to create a selection first')
 		}
-		const buttonParams = JSON.parse(this._buttons[this._currentSelectionIndex].buttonParamsJson);
-		buttonParams.sections.push({ title, highlight_label, rows: [] });
-		this._currentSectionIndex = buttonParams.sections.length - 1;
-		this._buttons[this._currentSelectionIndex].buttonParamsJson = JSON.stringify(buttonParams);
-		return this;
+
+		const buttonParams = JSON.parse(this._buttons[this._currentSelectionIndex].buttonParamsJson)
+		buttonParams.sections.push({ title, highlight_label, rows: [] })
+		this._currentSectionIndex = buttonParams.sections.length - 1
+		this._buttons[this._currentSelectionIndex].buttonParamsJson = JSON.stringify(buttonParams)
+		return this
 	}
 
 	addSelection(title, options = {}) {
-		this._buttons.push({ name: 'single_select', buttonParamsJson: JSON.stringify({ title, sections: [], ...options }) });
-		this._currentSelectionIndex = this._buttons.length - 1;
-		this._currentSectionIndex = -1;
-		return this;
+		this._buttons.push({ name: 'single_select', buttonParamsJson: JSON.stringify({ title, sections: [], ...options }) })
+		this._currentSelectionIndex = this._buttons.length - 1
+		this._currentSectionIndex = -1
+		return this
 	}
 
 	addReply(display_text = '', id = '', options = {}) {
@@ -800,10 +868,10 @@ class Button extends BaseBuilder {
 			buttonParamsJson: JSON.stringify({
 				display_text,
 				id,
-				...options,
-			}),
-		});
-		return this;
+				...options
+			})
+		})
+		return this
 	}
 
 	addCall(display_text = '', id = '', options = {}) {
@@ -812,10 +880,10 @@ class Button extends BaseBuilder {
 			buttonParamsJson: JSON.stringify({
 				display_text,
 				id,
-				...options,
-			}),
-		});
-		return this;
+				...options
+			})
+		})
+		return this
 	}
 
 	addReminder(display_text = '', id = '', options = {}) {
@@ -824,10 +892,10 @@ class Button extends BaseBuilder {
 			buttonParamsJson: JSON.stringify({
 				display_text,
 				id,
-				...options,
-			}),
-		});
-		return this;
+				...options
+			})
+		})
+		return this
 	}
 
 	addCancelReminder(display_text = '', id = '', options = {}) {
@@ -836,10 +904,10 @@ class Button extends BaseBuilder {
 			buttonParamsJson: JSON.stringify({
 				display_text,
 				id,
-				...options,
-			}),
-		});
-		return this;
+				...options
+			})
+		})
+		return this
 	}
 
 	addAddress(display_text = '', id = '', options = {}) {
@@ -848,18 +916,18 @@ class Button extends BaseBuilder {
 			buttonParamsJson: JSON.stringify({
 				display_text,
 				id,
-				...options,
-			}),
-		});
-		return this;
+				...options
+			})
+		})
+		return this
 	}
 
 	addLocation(options = {}) {
 		this._buttons.push({
 			name: 'send_location',
-			buttonParamsJson: JSON.stringify(options),
-		});
-		return this;
+			buttonParamsJson: JSON.stringify(options)
+		})
+		return this
 	}
 
 	addUrl(display_text = '', url = '', webview_interaction = false, options = {}) {
@@ -870,10 +938,10 @@ class Button extends BaseBuilder {
 				display_text,
 				url,
 				webview_interaction,
-				...options,
-			}),
-		});
-		return this;
+				...options
+			})
+		})
+		return this
 	}
 
 	addCopy(display_text = '', copy_code = '', options = {}) {
@@ -882,10 +950,10 @@ class Button extends BaseBuilder {
 			buttonParamsJson: JSON.stringify({
 				display_text,
 				copy_code,
-				...options,
-			}),
-		});
-		return this;
+				...options
+			})
+		})
+		return this
 	}
 
 	static paramsList = {
@@ -893,51 +961,51 @@ class Button extends BaseBuilder {
 			text: 'string',
 			url: 'string',
 			copy_code: 'string',
-			expiration_time: 'number',
+			expiration_time: 'number'
 		},
 		bottom_sheet: {
 			in_thread_buttons_limit: 'number',
 			divider_indices: ['number'],
 			list_title: 'string',
-			button_title: 'string',
+			button_title: 'string'
 		},
 		tap_target_configuration: {
 			title: 'string',
 			description: 'string',
 			canonical_url: 'string',
 			domain: 'string',
-			buttonIndex: 'number',
-		},
-	};
+			buttonIndex: 'number'
+		}
+	}
 
 	async toCard() {
 		return {
 			body: {
-				text: this._body,
+				text: this._body
 			},
 			footer: {
-				text: this._footer,
+				text: this._footer
 			},
 			header: {
 				title: this._title,
 				subtitle: this._subtitle,
 				hasMediaAttachment: !!this._data,
 				...(this._data
-					? await prepareWAMessageMedia(this._data, { upload: this.#client.waUploadToServer }).catch((e) => {
-							if (String(e).includes('Invalid media type')) return this._data;
-							throw e;
+					? await prepareWAMessageMedia(this._data, { upload: this.#client.waUploadToServer }).catch(e => {
+							if (String(e).includes('Invalid media type')) return this._data
+							throw e
 						})
-					: {}),
+					: {})
 			},
 			nativeFlowMessage: {
 				messageParamsJson: JSON.stringify(this._params),
-				buttons: this._buttons,
-			},
-		};
+				buttons: this._buttons
+			}
+		}
 	}
 
 	async build(jid, { messageId, ...options } = {}) {
-		const message = await this.toCard();
+		const message = await this.toCard()
 
 		return generateWAMessageFromContent(
 			jid,
@@ -945,15 +1013,15 @@ class Button extends BaseBuilder {
 				...this._extraPayload,
 				interactiveMessage: {
 					...message,
-					contextInfo: this._contextInfo,
-				},
+					contextInfo: this._contextInfo
+				}
 			},
 			{ messageId: messageId || generateMessageIDV2(), ...options }
-		);
+		)
 	}
 
 	async send(jid, { messageId, additionalNodes = [], ...options } = {}) {
-		const msg = await this.build(jid, { messageId, ...options });
+		const msg = await this.build(jid, { messageId, ...options })
 
 		await this.#client.relayMessage(msg.key.remoteJid, msg.message, {
 			messageId: msg.key.id,
@@ -965,131 +1033,162 @@ class Button extends BaseBuilder {
 						{
 							tag: 'interactive',
 							attrs: { type: 'native_flow', v: '1' },
-							content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }],
-						},
-					],
+							content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+						}
+					]
 				},
-				...additionalNodes,
+				...additionalNodes
 			],
-			...options,
-		});
-		return msg;
+			...options
+		})
+		return msg
 	}
 }
 
 class ButtonV2 extends BaseBuilder {
-	#client;
+	#client
 
 	constructor(client) {
-		super();
+		super()
 		if (!client) {
-			throw new Error('Socket is required');
+			throw new Error('Socket is required')
 		}
 
-		this.#client = client;
-		this._image;
-		this._data;
-		this._buttons = [];
+		this.#client = client
+		this._image
+		this._data
+		this._buttons = []
 	}
 
 	loadFrom(msg) {
-		if (!msg) throw new Error('buttonsMessage needed');
-		if (!msg.buttonsMessage) throw new Error('buttonsMessage not found');
+		if (!msg) throw new Error('buttonsMessage needed')
+		if (!msg.buttonsMessage) throw new Error('buttonsMessage not found')
 
-		const { buttonsMessage, ...extraPayload } = msg;
-		const bM = buttonsMessage;
-		const location = bM.locationMessage || {};
+		const { buttonsMessage, ...extraPayload } = msg
+		const bM = buttonsMessage
+		const location = bM.locationMessage || {}
 
-		this._title = location.name || '';
-		this._subtitle = location.address || '';
-		this._body = bM.contentText || '';
-		this._footer = bM.footerText || '';
-		this._contextInfo = bM.contextInfo || {};
-		this._extraPayload = extraPayload;
+		this._title = location.name || ''
+		this._subtitle = location.address || ''
+		this._body = bM.contentText || ''
+		this._footer = bM.footerText || ''
+		this._contextInfo = bM.contextInfo || {}
+		this._extraPayload = extraPayload
 
 		this._buttons = Array.isArray(bM.buttons)
-			? bM.buttons.map((button) => ({
+			? bM.buttons.map(button => ({
 					...button,
 					...(button.nativeFlowInfo
 						? {
 								nativeFlowInfo: {
 									...button.nativeFlowInfo,
-									paramsJson: typeof button.nativeFlowInfo.paramsJson === 'string' ? button.nativeFlowInfo.paramsJson : JSON.stringify(button.nativeFlowInfo.paramsJson || {}),
-								},
+									paramsJson:
+										typeof button.nativeFlowInfo.paramsJson === 'string'
+											? button.nativeFlowInfo.paramsJson
+											: JSON.stringify(button.nativeFlowInfo.paramsJson || {})
+								}
 							}
-						: {}),
+						: {})
 				}))
-			: [];
+			: []
 
-		this._image = location.jpegThumbnail || undefined;
+		this._image = location.jpegThumbnail || undefined
 
 		if (!this._image && bM.locationMessage) {
-			this._image = undefined;
+			this._image = undefined
 		}
 
 		if (!bM.locationMessage && bM.headerType === 6) {
-			this._image = undefined;
+			this._image = undefined
 		}
 
 		this._data = Object.keys(bM).reduce((data, key) => {
-			if (!['contentText', 'footerText', 'contextInfo', 'buttons', 'headerType', 'locationMessage', 'viewOnce'].includes(key)) {
-				data[key] = bM[key];
+			if (
+				!['contentText', 'footerText', 'contextInfo', 'buttons', 'headerType', 'locationMessage', 'viewOnce'].includes(
+					key
+				)
+			) {
+				data[key] = bM[key]
 			}
-			return data;
-		}, {});
+
+			return data
+		}, {})
 
 		if (!Object.keys(this._data).length) {
-			this._data = undefined;
+			this._data = undefined
 		}
 
-		return this;
+		return this
 	}
 
 	addButton(displayText = '', buttonId = crypto.randomUUID()) {
 		this._buttons.push({
 			buttonId,
 			buttonText: { displayText },
-			type: 1,
-		});
-		return this;
+			type: 1
+		})
+		return this
 	}
 
 	addRawButton(obj) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
-			throw new TypeError('Buttons must be a plain object');
+			throw new TypeError('Buttons must be a plain object')
 		}
 
-		this._buttons.push(obj);
-		return this;
+		// Already-serialized Native Flow buttons are preserved byte-for-byte.
+		if (typeof obj.name === 'string' && typeof obj.buttonParamsJson === 'string') {
+			this._buttons.push(obj)
+			return this
+		}
+
+		const displayText = resolvePortedButtonDisplayText(obj)
+		if (typeof obj.name === 'string' && obj.buttonParamsJson && typeof obj.buttonParamsJson === 'object') {
+			const params = { ...obj.buttonParamsJson }
+			if (!params.display_text && displayText) params.display_text = displayText
+			this._buttons.push({ ...obj, buttonParamsJson: JSON.stringify(params) })
+			return this
+		}
+
+		// Legacy Elaina buttons use buttonText.displayText; normalize label aliases.
+		if (displayText && !obj.buttonText) {
+			this._buttons.push({ ...obj, buttonText: { displayText } })
+		} else {
+			this._buttons.push(obj)
+		}
+		return this
 	}
 
 	setRawThumbnail(thumbnail) {
-		if (!thumbnail) throw new Error('Thumbnail needed');
-		this._image = { base64: thumbnail, is_raw: true };
-		return this;
+		if (!thumbnail) throw new Error('Thumbnail needed')
+		this._image = { base64: thumbnail, is_raw: true }
+		return this
 	}
 
 	setThumbnail(path) {
-		if (!path) throw new Error('Url or buffer needed');
-		this._image = path;
-		return this;
+		if (!path) throw new Error('Url or buffer needed')
+		this._image = path
+		return this
 	}
 
 	setMedia(obj) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
-			throw new TypeError('Media must be a plain object');
+			throw new TypeError('Media must be a plain object')
 		}
 
-		this._data = obj;
-		return this;
+		this._data = obj
+		return this
 	}
 
 	async build(jid, { messageId, ...options } = {}) {
 		const _thumbnail = this._image?.is_raw
 			? this._image.base64
 			: this._image
-				? await Toolkit.resize(Buffer.isBuffer(this._image) ? this._image : await Toolkit.fetchBuffer(this._image, {}, { silent: true }), 300, 300)
-				: null;
+				? await Toolkit.resize(
+						Buffer.isBuffer(this._image) ? this._image : await Toolkit.fetchBuffer(this._image, {}, { silent: true }),
+						300,
+						300
+					)
+				: null
 		const msg = generateWAMessageFromContent(
 			jid,
 			{
@@ -1106,22 +1205,22 @@ class ButtonV2 extends BaseBuilder {
 									degreesLongitude: 0,
 									name: this._title,
 									address: this._subtitle,
-									jpegThumbnail: _thumbnail,
-								},
+									jpegThumbnail: _thumbnail
+								}
 							}),
 					viewOnce: true,
 					contextInfo: this._contextInfo,
-					buttons: [...this._buttons],
-				},
+					buttons: [...this._buttons]
+				}
 			},
 			{ messageId: messageId || generateMessageIDV2(), ...options }
-		);
-		return msg;
+		)
+		return msg
 	}
 
 	async send(jid, { messageId, additionalNodes = [], ...options } = {}) {
-		if (this._buttons.length < 1) throw new Error('ButtonV2 requires at least one button');
-		const msg = await this.build(jid, { messageId, ...options });
+		if (this._buttons.length < 1) throw new Error('ButtonV2 requires at least one button')
+		const msg = await this.build(jid, { messageId, ...options })
 
 		await this.#client.relayMessage(msg.key.remoteJid, msg.message, {
 			messageId: msg.key.id,
@@ -1133,88 +1232,93 @@ class ButtonV2 extends BaseBuilder {
 						{
 							tag: 'interactive',
 							attrs: { type: 'native_flow', v: '1' },
-							content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }],
-						},
-					],
+							content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+						}
+					]
 				},
-				...additionalNodes,
+				...additionalNodes
 			],
-			...options,
-		});
-		return msg;
+			...options
+		})
+		return msg
 	}
 }
 
 class Carousel extends BaseBuilder {
-	#client;
+	#client
 
 	constructor(client) {
-		super();
+		super()
 		if (!client) {
-			throw new Error('Socket is required');
+			throw new Error('Socket is required')
 		}
 
-		this.#client = client;
-		this._cards = [];
+		this.#client = client
+		this._cards = []
 	}
 
 	loadFrom(msg) {
-		if (!msg) throw new Error('interactiveMessage needed');
-		if (!msg.interactiveMessage) throw new Error('interactiveMessage not found');
+		if (!msg) throw new Error('interactiveMessage needed')
+		if (!msg.interactiveMessage) throw new Error('interactiveMessage not found')
 
-		const { interactiveMessage, ...extraPayload } = msg;
-		const iM = interactiveMessage;
-		const carousel = iM.carouselMessage || {};
+		const { interactiveMessage, ...extraPayload } = msg
+		const iM = interactiveMessage
+		const carousel = iM.carouselMessage || {}
 
-		this._body = iM.body?.text || '';
-		this._footer = iM.footer?.text || '';
-		this._contextInfo = iM.contextInfo || {};
-		this._extraPayload = extraPayload;
+		this._body = iM.body?.text || ''
+		this._footer = iM.footer?.text || ''
+		this._contextInfo = iM.contextInfo || {}
+		this._extraPayload = extraPayload
 
 		this._cards = Array.isArray(carousel.cards)
-			? carousel.cards.map((card) => ({
+			? carousel.cards.map(card => ({
 					...card,
 					header: {
 						...(card.header || {}),
 						hasMediaAttachment: !!card.header?.hasMediaAttachment,
 						...(card.header?.imageMessage ? { imageMessage: card.header.imageMessage } : {}),
-						...(card.header?.videoMessage ? { videoMessage: card.header.videoMessage } : {}),
+						...(card.header?.videoMessage ? { videoMessage: card.header.videoMessage } : {})
 					},
 					body: {
-						text: card.body?.text || '',
+						text: card.body?.text || ''
 					},
 					footer: {
-						text: card.footer?.text || '',
+						text: card.footer?.text || ''
 					},
 					nativeFlowMessage: {
 						...(card.nativeFlowMessage || {}),
 						buttons: Array.isArray(card.nativeFlowMessage?.buttons)
-							? card.nativeFlowMessage.buttons.map((button) => ({
+							? card.nativeFlowMessage.buttons.map(button => ({
 									...button,
-									buttonParamsJson: typeof button.buttonParamsJson === 'string' ? button.buttonParamsJson : JSON.stringify(button.buttonParamsJson || {}),
+									buttonParamsJson:
+										typeof button.buttonParamsJson === 'string'
+											? button.buttonParamsJson
+											: JSON.stringify(button.buttonParamsJson || {})
 								}))
 							: [],
 						messageParamsJson:
-							typeof card.nativeFlowMessage?.messageParamsJson === 'string' ? card.nativeFlowMessage.messageParamsJson : JSON.stringify(card.nativeFlowMessage?.messageParamsJson || {}),
-					},
+							typeof card.nativeFlowMessage?.messageParamsJson === 'string'
+								? card.nativeFlowMessage.messageParamsJson
+								: JSON.stringify(card.nativeFlowMessage?.messageParamsJson || {})
+					}
 				}))
-			: [];
+			: []
 
-		return this;
+		return this
 	}
 
 	addCard(card) {
-		const cards = Array.isArray(card) ? card : [card];
-		const baseIndex = this._cards.length;
+		const cards = Array.isArray(card) ? card : [card]
+		const baseIndex = this._cards.length
 
 		for (const [index, c] of cards.entries()) {
 			if (!c?.header?.hasMediaAttachment) {
-				throw new Error(`Card [${baseIndex + index}] must include an image or video in header`);
+				throw new Error(`Card [${baseIndex + index}] must include an image or video in header`)
 			}
 		}
 
-		this._cards.push(...cards);
-		return this;
+		this._cards.push(...cards)
+		return this
 	}
 
 	build(jid, { messageId, ...options } = {}) {
@@ -1224,22 +1328,22 @@ class Carousel extends BaseBuilder {
 				...this._extraPayload,
 				interactiveMessage: {
 					header: {
-						hasMediaAttachment: false,
+						hasMediaAttachment: false
 					},
 					body: { text: this._body },
 					footer: { text: this._footer },
 					contextInfo: this._contextInfo,
 					carouselMessage: {
-						cards: this._cards,
-					},
-				},
+						cards: this._cards
+					}
+				}
 			},
 			{ messageId: messageId || generateMessageIDV2(), ...options }
-		);
+		)
 	}
 
 	async send(jid, { messageId, additionalNodes = [], ...options } = {}) {
-		const msg = this.build(jid, { messageId, ...options });
+		const msg = this.build(jid, { messageId, ...options })
 
 		await this.#client.relayMessage(msg.key.remoteJid, msg.message, {
 			messageId: msg.key.id,
@@ -1251,336 +1355,345 @@ class Carousel extends BaseBuilder {
 						{
 							tag: 'interactive',
 							attrs: { type: 'native_flow', v: '1' },
-							content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }],
-						},
-					],
+							content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+						}
+					]
 				},
-				...additionalNodes,
+				...additionalNodes
 			],
-			...options,
-		});
-		return msg;
+			...options
+		})
+		return msg
 	}
 }
 
 class AIRich extends BaseBuilder {
-	#client;
+	#client
 
 	constructor(client, { dynamic = true, unsupportedTypeAlert = true } = {}) {
 		if (!client) {
-			throw new Error('Socket is required');
+			throw new Error('Socket is required')
 		}
 
-		super();
-		this.#client = client;
-		this._contextInfo = {};
-		this._nodes = [];
-		this._idIndex = new Map();
-		this._unsupportedTypeAlert = !!unsupportedTypeAlert;
-		this._dynamic = !!dynamic;
-		this._responseId = crypto.randomUUID();
-		this._botResponseId = crypto.randomUUID();
-		this._lastMessageKey = null;
-		this._footerSections = [];
-		this._botMetadataExtra = {};
-		this._responseMeta = {};
-		this._embeddedScreens = [];
-		this._signedUnifiedResponse = null;
-		this._signedVerificationMetadata = null;
+		super()
+		this.#client = client
+		this._contextInfo = {}
+		this._nodes = []
+		this._idIndex = new Map()
+		this._unsupportedTypeAlert = !!unsupportedTypeAlert
+		this._dynamic = !!dynamic
+		this._responseId = crypto.randomUUID()
+		this._botResponseId = crypto.randomUUID()
+		this._lastMessageKey = null
+		this._footerSections = []
+		this._botMetadataExtra = {}
+		this._responseMeta = {}
+		this._embeddedScreens = []
+		this._signedUnifiedResponse = null
+		this._signedVerificationMetadata = null
 	}
 
 	_dropSignature() {
-		this._signedUnifiedResponse = null;
-		this._signedVerificationMetadata = null;
-		return this;
+		this._signedUnifiedResponse = null
+		this._signedVerificationMetadata = null
+		return this
 	}
 
 	get isSignaturePreserved() {
-		return !!this._signedUnifiedResponse;
+		return !!this._signedUnifiedResponse
 	}
 
 	addEmbeddedScreen(screen) {
 		if (!screen || typeof screen !== 'object' || Array.isArray(screen)) {
-			throw new ContentValidationError('Embedded screens must be plain objects');
+			throw new ContentValidationError('Embedded screens must be plain objects')
 		}
-		this._embeddedScreens.push(screen);
-		return this._dropSignature();
+
+		this._embeddedScreens.push(screen)
+		return this._dropSignature()
 	}
 
 	setBotMetadata(extra) {
 		if (!extra || typeof extra !== 'object' || Array.isArray(extra)) {
-			throw new ContentValidationError('Bot metadata must be a plain object');
+			throw new ContentValidationError('Bot metadata must be a plain object')
 		}
-		this._botMetadataExtra = { ...this._botMetadataExtra, ...extra };
-		return this;
+
+		this._botMetadataExtra = { ...this._botMetadataExtra, ...extra }
+		return this
 	}
 
 	addFooterSection(section) {
 		if (!section || typeof section !== 'object' || Array.isArray(section)) {
-			throw new ContentValidationError('Footer sections must be plain objects');
+			throw new ContentValidationError('Footer sections must be plain objects')
 		}
-		this._footerSections.push(AIRich.normalizeSection(section));
-		return this._dropSignature();
+
+		this._footerSections.push(AIRich.normalizeSection(section))
+		return this._dropSignature()
 	}
 
 	clearFooterSections() {
-		this._footerSections = [];
-		return this._dropSignature();
+		this._footerSections = []
+		return this._dropSignature()
 	}
 
 	loadFrom(msg) {
-		if (!msg) throw new Error('AI Rich message needed');
+		if (!msg) throw new Error('AI Rich message needed')
 
-		const message = msg.message ?? msg;
+		const message = msg.message ?? msg
 
-		let richResponseMessage = message?.botForwardedMessage?.message?.richResponseMessage;
+		let richResponseMessage = message?.botForwardedMessage?.message?.richResponseMessage
 
 		if (!richResponseMessage) {
-			richResponseMessage = message?.botForwardedMessage?.richResponseMessage;
+			richResponseMessage = message?.botForwardedMessage?.richResponseMessage
 		}
 
 		if (!richResponseMessage) {
-			richResponseMessage = message?.richResponseMessage;
+			richResponseMessage = message?.richResponseMessage
 		}
 
 		if (!richResponseMessage) {
-			throw new Error('richResponseMessage not found');
+			throw new Error('richResponseMessage not found')
 		}
 
-		const messageContextInfo = message?.messageContextInfo ?? {};
-		const botMetadata = messageContextInfo?.botMetadata ?? {};
+		const messageContextInfo = message?.messageContextInfo ?? {}
+		const botMetadata = messageContextInfo?.botMetadata ?? {}
 
-		this._title = botMetadata?.messageDisclaimerText ?? '';
+		this._title = botMetadata?.messageDisclaimerText ?? ''
 
-		this._signedUnifiedResponse = null;
-		this._signedVerificationMetadata = null;
+		this._signedUnifiedResponse = null
+		this._signedVerificationMetadata = null
 
-		this._contextInfo = structuredClone(richResponseMessage?.contextInfo ?? {});
+		this._contextInfo = structuredClone(richResponseMessage?.contextInfo ?? {})
 
-		const loadedSubmessages = Array.isArray(richResponseMessage?.submessages) ? structuredClone(richResponseMessage.submessages) : [];
+		const loadedSubmessages = Array.isArray(richResponseMessage?.submessages)
+			? structuredClone(richResponseMessage.submessages)
+			: []
 
-		let loadedSections = [];
+		let loadedSections = []
 
-		const unifiedData = richResponseMessage?.unifiedResponse?.data;
+		const unifiedData = richResponseMessage?.unifiedResponse?.data
 
 		if (unifiedData) {
-			const rawUnified = Buffer.isBuffer(unifiedData) || unifiedData instanceof Uint8Array
-				? Buffer.from(unifiedData)
-				: Buffer.from(String(unifiedData), 'base64');
+			const rawUnified =
+				Buffer.isBuffer(unifiedData) || unifiedData instanceof Uint8Array
+					? Buffer.from(unifiedData)
+					: Buffer.from(String(unifiedData), 'base64')
 
-			const incomingProofs = botMetadata?.verificationMetadata?.proofs ?? [];
-			const carriesRealChain = incomingProofs.some((proof) => isParsableCertificateChain(proof?.certificateChain));
+			const incomingProofs = botMetadata?.verificationMetadata?.proofs ?? []
+			const carriesRealChain = incomingProofs.some(proof => isParsableCertificateChain(proof?.certificateChain))
 
 			if (rawUnified.length && carriesRealChain) {
-				this._signedUnifiedResponse = rawUnified;
-				this._signedVerificationMetadata = structuredClone(botMetadata.verificationMetadata);
+				this._signedUnifiedResponse = rawUnified
+				this._signedVerificationMetadata = structuredClone(botMetadata.verificationMetadata)
 			}
 
 			try {
-				const unifiedResponse = JSON.parse(rawUnified.toString('utf8'));
+				const unifiedResponse = JSON.parse(rawUnified.toString('utf8'))
 
 				if (Array.isArray(unifiedResponse?.sections)) {
-					loadedSections = structuredClone(unifiedResponse.sections);
+					loadedSections = structuredClone(unifiedResponse.sections)
 				}
 			} catch {}
 		}
 
-		this._nodes = [];
-		this._idIndex = new Map();
+		this._nodes = []
+		this._idIndex = new Map()
 
-		const maxLength = Math.max(loadedSections.length, loadedSubmessages.length);
+		const maxLength = Math.max(loadedSections.length, loadedSubmessages.length)
 
 		for (let i = 0; i < maxLength; i++) {
 			this._nodes.push({
 				id: null,
 				section: loadedSections[i] ?? null,
-				submessage: loadedSubmessages[i] ?? null,
-			});
+				submessage: loadedSubmessages[i] ?? null
+			})
 		}
 
-		this._extraPayload = {};
+		this._extraPayload = {}
 
 		for (const [key, value] of Object.entries(message)) {
 			if (key !== 'messageContextInfo' && key !== 'botForwardedMessage' && key !== 'richResponseMessage') {
-				this._extraPayload[key] = structuredClone(value);
+				this._extraPayload[key] = structuredClone(value)
 			}
 		}
 
-		return this;
+		return this
 	}
 
 	setResponseMeta(meta) {
 		if (!meta || typeof meta !== 'object' || Array.isArray(meta)) {
-			throw new ContentValidationError('Response metadata must be a plain object');
+			throw new ContentValidationError('Response metadata must be a plain object')
 		}
-		this._dropSignature();
-		this._responseMeta = { ...this._responseMeta, ...meta };
 
-		return this;
+		this._dropSignature()
+		this._responseMeta = { ...this._responseMeta, ...meta }
+
+		return this
 	}
 
 	setResponseId(id) {
 		if (typeof id !== 'string') {
-			throw new TypeError('ID must be a string');
+			throw new TypeError('ID must be a string')
 		}
-		this._responseId = id;
 
-		return this._dropSignature();
+		this._responseId = id
+
+		return this._dropSignature()
 	}
 
 	refreshResponseId() {
-		this._responseId = crypto.randomUUID();
+		this._responseId = crypto.randomUUID()
 
-		return this._dropSignature();
+		return this._dropSignature()
 	}
 
 	setBotResponseId(id) {
 		if (typeof id !== 'string') {
-			throw new TypeError('ID must be a string');
+			throw new TypeError('ID must be a string')
 		}
-		this._botResponseId = id;
 
-		return this;
+		this._botResponseId = id
+
+		return this
 	}
 
 	refreshBotResponseId() {
-		this._botResponseId = crypto.randomUUID();
+		this._botResponseId = crypto.randomUUID()
 
-		return this;
+		return this
 	}
 
 	createAlert(type) {
 		if (this._unsupportedTypeAlert) {
 			return {
 				messageType: 2,
-				messageText: `[ UNSUPPORTED_TYPE - ${type}]`,
-			};
+				messageText: `[ UNSUPPORTED_TYPE - ${type}]`
+			}
 		}
 
-		return undefined;
+		return undefined
 	}
 
 	addText(text, { hyperlink = true, citation = true, latex = true, deeplink = true, id, replace, insertAt } = {}) {
 		if (typeof text !== 'string') {
-			throw new TypeError('Text must be a string');
+			throw new TypeError('Text must be a string')
 		}
 
 		const { text: extractedText, inline_entities } = extractIE(text, {
 			hyperlink,
 			citation,
 			latex,
-			deeplink,
-		});
+			deeplink
+		})
 
 		const section = AIRich.newLayout('Single', {
 			text: extractedText,
 			...(inline_entities.length && { inline_entities }),
-			__typename: 'GenAIMarkdownTextUXPrimitive',
-		});
+			__typename: 'GenAIMarkdownTextUXPrimitive'
+		})
 
 		const submessages = [
 			{
 				messageType: 2,
-				messageText: text,
-			},
-		].filter(Boolean);
+				messageText: text
+			}
+		].filter(Boolean)
 
 		return this._addContent(section, submessages, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addFOAText(text, { id, replace, insertAt } = {}) {
 		if (typeof text !== 'string') {
-			throw new TypeError('Text must be a string');
+			throw new TypeError('Text must be a string')
 		}
 
 		const section = AIRich.newLayout('Single', {
 			text,
-			__typename: 'FOATextPrimitive',
-		});
+			__typename: 'FOATextPrimitive'
+		})
 
 		const submessages = [
 			{
 				messageType: 2,
-				messageText: text,
-			},
-		];
+				messageText: text
+			}
+		]
 
 		return this._addContent(section, submessages, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addCode(language, code, { id, replace, insertAt } = {}) {
 		if (typeof language !== 'string' || typeof code !== 'string') {
-			throw new TypeError('Language and code must be a string');
+			throw new TypeError('Language and code must be a string')
 		}
 
-		const meta = AIRich.tokenizer(code, language);
+		const meta = AIRich.tokenizer(code, language)
 
 		const section = AIRich.newLayout('Single', {
 			language,
 			code_blocks: meta.unified_codeBlock,
-			__typename: 'GenAICodeUXPrimitive',
-		});
+			__typename: 'GenAICodeUXPrimitive'
+		})
 
 		const submessages = [
 			{
 				messageType: 5,
 				codeMetadata: {
 					codeLanguage: language,
-					codeBlocks: meta.codeBlock,
-				},
-			},
-		];
+					codeBlocks: meta.codeBlock
+				}
+			}
+		]
 
 		return this._addContent(section, submessages, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addTable(table, { hyperlink = true, citation = true, latex = true, deeplink = true, id, replace, insertAt } = {}) {
 		if (!Array.isArray(table)) {
-			throw new TypeError('Table must be an array');
+			throw new TypeError('Table must be an array')
 		}
 
 		const meta = AIRich.toTableMetadata(table, {
 			hyperlink,
 			citation,
 			latex,
-			deeplink,
-		});
+			deeplink
+		})
 
 		const section = AIRich.newLayout('Single', {
 			rows: meta.unified_rows,
-			__typename: 'GenATableUXPrimitive',
-		});
+			__typename: 'GenATableUXPrimitive'
+		})
 
 		const submessages = [
 			{
 				messageType: 4,
 				tableMetadata: {
 					title: meta.title,
-					rows: meta.rows,
-				},
-			},
-		];
+					rows: meta.rows
+				}
+			}
+		]
 
 		return this._addContent(section, submessages, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
-	static MAP_DELTA = 0.05;
+	static MAP_DELTA = 0.05
 
 	addMap(
 		places = [],
@@ -1594,23 +1707,24 @@ class AIRich extends BaseBuilder {
 			staticMapDarkUrl,
 			id,
 			replace,
-			insertAt,
-		} = {},
+			insertAt
+		} = {}
 	) {
 		if (!Array.isArray(places) || !places.length) {
-			throw new TypeError('addMap needs at least one place with a latitude and a longitude');
+			throw new TypeError('addMap needs at least one place with a latitude and a longitude')
 		}
 
 		const points = places.map((place, index) => {
-			const latitude = Number(place.latitude);
-			const longitude = Number(place.longitude);
+			const latitude = Number(place.latitude)
+			const longitude = Number(place.longitude)
 			if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-				throw new TypeError(`place ${index} needs a numeric latitude and longitude`);
+				throw new TypeError(`place ${index} needs a numeric latitude and longitude`)
 			}
-			return { ...place, latitude, longitude, annotationNumber: index + 1 };
-		});
 
-		const middle = (key) => points.reduce((sum, point) => sum + point[key], 0) / points.length;
+			return { ...place, latitude, longitude, annotationNumber: index + 1 }
+		})
+
+		const middle = key => points.reduce((sum, point) => sum + point[key], 0) / points.length
 
 		const submessages = [
 			{
@@ -1621,16 +1735,16 @@ class AIRich extends BaseBuilder {
 					latitudeDelta: Number(latitudeDelta),
 					longitudeDelta: Number(longitudeDelta),
 					showInfoList,
-					annotations: points.map((point) => ({
+					annotations: points.map(point => ({
 						annotationNumber: point.annotationNumber,
 						latitude: point.latitude,
 						longitude: point.longitude,
 						title: point.title ?? point.name ?? '',
-						body: point.body ?? point.description ?? point.address ?? '',
-					})),
-				},
-			},
-		];
+						body: point.body ?? point.description ?? point.address ?? ''
+					}))
+				}
+			}
+		]
 
 		const section = AIRich.newLayout('Single', {
 			map_query_status: 'FETCHED',
@@ -1639,12 +1753,12 @@ class AIRich extends BaseBuilder {
 						static_map: {
 							default_url: staticMapUrl,
 							dark_theme_url: staticMapDarkUrl ?? staticMapUrl,
-							__typename: 'GenAIMapItemStaticMap',
-						},
+							__typename: 'GenAIMapItemStaticMap'
+						}
 					}
 				: {}),
 			...(motivation ? { motivation } : {}),
-			items: points.map((point) => ({
+			items: points.map(point => ({
 				id: String(point.id ?? point.annotationNumber),
 				name: point.title ?? point.name ?? '',
 				description: point.body ?? point.description ?? '',
@@ -1653,58 +1767,58 @@ class AIRich extends BaseBuilder {
 				address: {
 					latitude: point.latitude,
 					longitude: point.longitude,
-					...(point.address ? { street_address: point.address } : {}),
+					...(point.address ? { street_address: point.address } : {})
 				},
-				__typename: 'GenAIPlaceDetailsItem',
+				__typename: 'GenAIPlaceDetailsItem'
 			})),
-			__typename: 'GenAIMapPrimitive',
-		});
+			__typename: 'GenAIMapPrimitive'
+		})
 
 		return this._addContent(section, submessages, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addSource(sources = [], { id, replace, insertAt } = {}) {
 		if (!Array.isArray(sources)) {
-			throw new TypeError('Sources must be an array of strings, arrays, or objects');
+			throw new TypeError('Sources must be an array of strings, arrays, or objects')
 		}
 
-		const isStringArray = sources.every((item) => typeof item === 'string');
+		const isStringArray = sources.every(item => typeof item === 'string')
 
-		const isArrayFormat = sources.every((item) => Array.isArray(item) && item.every((value) => typeof value === 'string'));
+		const isArrayFormat = sources.every(item => Array.isArray(item) && item.every(value => typeof value === 'string'))
 
-		const isObjectFormat = sources.every((item) => item && typeof item === 'object' && !Array.isArray(item));
+		const isObjectFormat = sources.every(item => item && typeof item === 'object' && !Array.isArray(item))
 
 		if (!isStringArray && !isArrayFormat && !isObjectFormat) {
-			throw new TypeError('Sources must be a string array, array of string arrays, or array of objects');
+			throw new TypeError('Sources must be a string array, array of string arrays, or array of objects')
 		}
 
 		if (isStringArray) {
-			sources = [sources];
+			sources = [sources]
 		}
 
-		const normalizedSources = sources.map((source) => {
+		const normalizedSources = sources.map(source => {
 			if (Array.isArray(source)) {
-				const [icon, url, title, subtitle] = source;
+				const [icon, url, title, subtitle] = source
 
 				return {
 					icon,
 					url,
 					title,
-					subtitle,
-				};
+					subtitle
+				}
 			}
 
 			return {
 				icon: source.favicon ?? source.icon ?? '',
 				url: source.url ?? '',
 				title: source.title ?? '',
-				subtitle: source.subtitle ?? '',
-			};
-		});
+				subtitle: source.subtitle ?? ''
+			}
+		})
 
 		const source = normalizedSources.map(({ icon, url, title, subtitle }) => ({
 			source_type: 'THIRD_PARTY',
@@ -1715,45 +1829,47 @@ class AIRich extends BaseBuilder {
 				url: Toolkit.resolveMedia(this.#client, icon, 'image'),
 				mime_type: 'image/jpeg',
 				width: 16,
-				height: 16,
-			},
-		}));
+				height: 16
+			}
+		}))
 
-		const submessage = this.createAlert('GenAISearchResultPrimitive');
+		const submessage = this.createAlert('GenAISearchResultPrimitive')
 
 		const section = AIRich.newLayout('Single', {
 			sources: source,
-			__typename: 'GenAISearchResultPrimitive',
-		});
+			__typename: 'GenAISearchResultPrimitive'
+		})
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addReels(reelsItems = [], { id, replace, insertAt } = {}) {
-		if (
-			!(
-				(reelsItems && typeof reelsItems === 'object' && !Array.isArray(reelsItems)) ||
-				(Array.isArray(reelsItems) && reelsItems.every((item) => item && typeof item === 'object' && !Array.isArray(item)))
-			)
-		) {
-			throw new TypeError('Reels items must be an object or an array of objects');
+		if (!(
+			(reelsItems && typeof reelsItems === 'object' && !Array.isArray(reelsItems)) ||
+			(Array.isArray(reelsItems) && reelsItems.every(item => item && typeof item === 'object' && !Array.isArray(item)))
+		)) {
+			throw new TypeError('Reels items must be an object or an array of objects')
 		}
 
-		const items = Array.isArray(reelsItems) ? reelsItems : [reelsItems];
+		const items = Array.isArray(reelsItems) ? reelsItems : [reelsItems]
 
-		const reels = items.map((item) => ({
+		const reels = items.map(item => ({
 			...item,
-			_avatar: Toolkit.resolveMedia(this.#client, item.profileIconUrl ?? item.profile_url ?? item.profile ?? '', 'image'),
-			_thumbnail: Toolkit.resolveMedia(this.#client, item.thumbnailUrl ?? item.thumbnail ?? '', 'image'),
-		}));
+			_avatar: Toolkit.resolveMedia(
+				this.#client,
+				item.profileIconUrl ?? item.profile_url ?? item.profile ?? '',
+				'image'
+			),
+			_thumbnail: Toolkit.resolveMedia(this.#client, item.thumbnailUrl ?? item.thumbnail ?? '', 'image')
+		}))
 
 		const section = AIRich.newLayout(
 			'HScroll',
-			reels.map((item) => ({
+			reels.map(item => ({
 				reels_url: item.videoUrl ?? item.url ?? '',
 				thumbnail_url: item._thumbnail,
 				creator: item.username ?? item.title ?? '',
@@ -1764,60 +1880,64 @@ class AIRich extends BaseBuilder {
 				view_count: item.view_count ?? item.view ?? 0,
 				reel_source: item.reel_source ?? item.source ?? 'IG',
 				is_verified: !!(item.is_verified || item.verified),
-				__typename: 'GenAIReelPrimitive',
+				__typename: 'GenAIReelPrimitive'
 			}))
-		);
+		)
 
 		const submessages = [
 			{
 				messageType: 9,
 				contentItemsMetadata: {
 					contentType: 1,
-					itemsMetadata: reels.map((item) => ({
+					itemsMetadata: reels.map(item => ({
 						reelItem: {
 							title: item.username ?? '',
 							profileIconUrl: item._avatar,
 							thumbnailUrl: item._thumbnail,
-							videoUrl: item.videoUrl ?? item.url ?? '',
-						},
-					})),
-				},
-			},
-		];
+							videoUrl: item.videoUrl ?? item.url ?? ''
+						}
+					}))
+				}
+			}
+		]
 
 		return this._addContent(section, submessages, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addImage(imageUrl, { width, height, status = 'READY', update_text, resolveUrl = false, id, replace, insertAt } = {}) {
-		if (!(typeof imageUrl === 'string' || Buffer.isBuffer(imageUrl) || (Array.isArray(imageUrl) && imageUrl.every((v) => typeof v === 'string' || Buffer.isBuffer(v))))) {
-			throw new TypeError('imageUrl must be string | buffer | array of string/buffer');
+		if (!(
+			typeof imageUrl === 'string' ||
+			Buffer.isBuffer(imageUrl) ||
+			(Array.isArray(imageUrl) && imageUrl.every(v => typeof v === 'string' || Buffer.isBuffer(v)))
+		)) {
+			throw new TypeError('imageUrl must be string | buffer | array of string/buffer')
 		}
 
 		const list = Array.isArray(imageUrl)
-			? imageUrl.map((v) => {
-					const url = Toolkit.resolveMedia(this.#client, v, 'image', { resolveUrl });
+			? imageUrl.map(v => {
+					const url = Toolkit.resolveMedia(this.#client, v, 'image', { resolveUrl })
 
 					return {
 						imagePreviewUrl: url,
 						imageHighResUrl: url,
-						sourceUrl: url,
-					};
+						sourceUrl: url
+					}
 				})
 			: (() => {
-					const url = Toolkit.resolveMedia(this.#client, imageUrl, 'image', { resolveUrl });
+					const url = Toolkit.resolveMedia(this.#client, imageUrl, 'image', { resolveUrl })
 
 					return [
 						{
 							imagePreviewUrl: url,
 							imageHighResUrl: url,
-							sourceUrl: url,
-						},
-					];
-				})();
+							sourceUrl: url
+						}
+					]
+				})()
 
 		const sections = list.map(({ imagePreviewUrl }) =>
 			AIRich.newLayout('Single', {
@@ -1825,77 +1945,80 @@ class AIRich extends BaseBuilder {
 					url: imagePreviewUrl,
 					mime_type: 'image/png',
 					width,
-					height,
+					height
 				},
 				imagine_type: 'IMAGINE',
 				status: {
 					status,
-					update_text,
+					update_text
 				},
-				__typename: 'GenAIImaginePrimitive',
+				__typename: 'GenAIImaginePrimitive'
 			})
-		);
+		)
 
 		const submessage = {
 			messageType: 1,
 			gridImageMetadata: {
 				gridImageUrl: {
-					imagePreviewUrl: list[0]?.imagePreviewUrl,
+					imagePreviewUrl: list[0]?.imagePreviewUrl
 				},
-				imageUrls: list,
-			},
-		};
+				imageUrls: list
+			}
+		}
 
 		if (id && sections.length !== 1) {
-			throw new Error('Cannot assign one id to multiple image sections');
+			throw new Error('Cannot assign one id to multiple image sections')
 		}
 
 		return this._addContent(sections, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addVideo(videoUrl, { autoFill = true, status = 'READY', estimatedTime, id, replace, insertAt } = {}) {
-		const isObjectVideo = (v) => v && typeof v === 'object' && !Array.isArray(v) && v.url;
+		const isObjectVideo = v => v && typeof v === 'object' && !Array.isArray(v) && v.url
 
 		const isValidPrimitive =
 			typeof videoUrl === 'string' ||
 			Buffer.isBuffer(videoUrl) ||
 			isObjectVideo(videoUrl) ||
-			(Array.isArray(videoUrl) && videoUrl.every((v) => typeof v === 'string' || Buffer.isBuffer(v) || isObjectVideo(v)));
+			(Array.isArray(videoUrl) && videoUrl.every(v => typeof v === 'string' || Buffer.isBuffer(v) || isObjectVideo(v)))
 
 		if (!isValidPrimitive) {
-			throw new TypeError('videoUrl must be string | buffer | object | array');
+			throw new TypeError('videoUrl must be string | buffer | object | array')
 		}
 
-		const items = Array.isArray(videoUrl) ? videoUrl : [videoUrl];
+		const items = Array.isArray(videoUrl) ? videoUrl : [videoUrl]
 
-		const alert = this.createAlert('GenAIImaginePrimitive (ANIMATE)');
+		const alert = this.createAlert('GenAIImaginePrimitive (ANIMATE)')
 
-		const sections = [];
-		const submessages = [];
+		const sections = []
+		const submessages = []
 
 		for (const item of items) {
-			const isObject = isObjectVideo(item);
+			const isObject = isObjectVideo(item)
 
-			const url = isObject ? Toolkit.resolveMedia(this.#client, item.url ?? '', 'video') : Toolkit.resolveMedia(this.#client, item, 'video');
+			const url = isObject
+				? Toolkit.resolveMedia(this.#client, item.url ?? '', 'video')
+				: Toolkit.resolveMedia(this.#client, item, 'video')
 
-			const bufferPromise = autoFill ? Promise.resolve(url).then((u) => Toolkit.fetchBuffer(u)) : null;
+			const bufferPromise = autoFill ? Promise.resolve(url).then(u => Toolkit.fetchBuffer(u)) : null
 
-			const file_length = isObject && item.file_length != null ? item.file_length : autoFill ? bufferPromise.then((b) => b?.length ?? 0) : 0;
+			const file_length =
+				isObject && item.file_length != null ? item.file_length : autoFill ? bufferPromise.then(b => b?.length ?? 0) : 0
 
 			const duration =
 				isObject && item.duration != null
 					? item.duration
 					: autoFill
-						? bufferPromise.then((b) =>
+						? bufferPromise.then(b =>
 								Toolkit.getMp4Duration(b, {
-									silent: true,
+									silent: true
 								})
 							)
-						: 0;
+						: 0
 
 			const thumbnail =
 				isObject && item.thumbnail
@@ -1903,16 +2026,16 @@ class AIRich extends BaseBuilder {
 							result: 'base64',
 							resize: true,
 							width: 300,
-							height: 300,
+							height: 300
 						})
 					: autoFill
-						? bufferPromise?.then((b) =>
+						? bufferPromise?.then(b =>
 								Toolkit.getMp4Preview(b, {
 									time: 0,
-									result: 'base64',
+									result: 'base64'
 								})
 							)
-						: null;
+						: null
 
 			sections.push(
 				AIRich.newLayout('Single', {
@@ -1920,83 +2043,97 @@ class AIRich extends BaseBuilder {
 						url,
 						mime_type: isObject ? (item.mime_type ?? 'video/mp4') : 'video/mp4',
 						file_length,
-						duration,
+						duration
 					},
 					imagine_type: 'ANIMATE',
 					status: {
 						status,
-						estimated_completion_time: estimatedTime != null ? Math.floor((Date.now() + estimatedTime) / 1000) : undefined,
+						estimated_completion_time:
+							estimatedTime != null ? Math.floor((Date.now() + estimatedTime) / 1000) : undefined
 					},
 					thumbnail: {
-						raw_media: thumbnail,
+						raw_media: thumbnail
 					},
-					__typename: 'GenAIImaginePrimitive',
+					__typename: 'GenAIImaginePrimitive'
 				})
-			);
+			)
 		}
 
 		if (alert !== undefined) {
-			submessages.push(alert);
+			submessages.push(alert)
 		}
 
 		if (submessages.length > 1) {
-			throw new Error('Video content can only have one submessage');
+			throw new Error('Video content can only have one submessage')
 		}
 
 		return this._addContent(sections, submessages[0], {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addProduct(data = {}, { id, replace, insertAt } = {}) {
-		if (!((data && typeof data === 'object' && !Array.isArray(data)) || (Array.isArray(data) && data.every((item) => item && typeof item === 'object' && !Array.isArray(item))))) {
-			throw new TypeError('Product items must be an object or an array of objects');
+		if (!(
+			(data && typeof data === 'object' && !Array.isArray(data)) ||
+			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
+		)) {
+			throw new TypeError('Product items must be an object or an array of objects')
 		}
 
-		const items = Array.isArray(data) ? data : [data];
+		const items = Array.isArray(data) ? data : [data]
 
-		const product = items.map((item) => ({
+		const product = items.map(item => ({
 			title: item.title,
 			brand: item.brand,
 			price: item.price,
 			sale_price: item.sale_price,
 			product_url: item.product_url ?? item.url,
 			image: {
-				url: Toolkit.resolveMedia(this.#client, item.image_url ?? item.image, 'image'),
+				url: Toolkit.resolveMedia(this.#client, item.image_url ?? item.image, 'image')
 			},
 			additional_images: [
 				{
-					url: Toolkit.resolveMedia(this.#client, item.icon_url ?? item.icon, 'image'),
-				},
+					url: Toolkit.resolveMedia(this.#client, item.icon_url ?? item.icon, 'image')
+				}
 			],
-			__typename: 'GenAIProductItemCardPrimitive',
-		}));
+			__typename: 'GenAIProductItemCardPrimitive'
+		}))
 
-		const section = AIRich.newLayout(Array.isArray(data) ? 'HScroll' : 'Single', Array.isArray(data) ? product : product[0]);
+		const section = AIRich.newLayout(
+			Array.isArray(data) ? 'HScroll' : 'Single',
+			Array.isArray(data) ? product : product[0]
+		)
 
-		const submessage = this.createAlert('GenAIProductItemCardPrimitive');
+		const submessage = this.createAlert('GenAIProductItemCardPrimitive')
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addPost(data = {}, { id, replace, insertAt } = {}) {
-		if (!((data && typeof data === 'object' && !Array.isArray(data)) || (Array.isArray(data) && data.every((item) => item && typeof item === 'object' && !Array.isArray(item))))) {
-			throw new TypeError('Post items must be an object or an array of objects');
+		if (!(
+			(data && typeof data === 'object' && !Array.isArray(data)) ||
+			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
+		)) {
+			throw new TypeError('Post items must be an object or an array of objects')
 		}
 
-		const posts = Array.isArray(data) ? data : [data];
+		const posts = Array.isArray(data) ? data : [data]
 
-		const primitives = posts.map((p) => ({
+		const primitives = posts.map(p => ({
 			title: p.title ?? '',
 			subtitle: p.subtitle ?? '',
 			username: p.username ?? '',
-			profile_picture_url: Toolkit.resolveMedia(this.#client, p.profile_picture_url ?? p.profile_url ?? p.profile ?? '', 'image'),
+			profile_picture_url: Toolkit.resolveMedia(
+				this.#client,
+				p.profile_picture_url ?? p.profile_url ?? p.profile ?? '',
+				'image'
+			),
 			is_verified: !!(p.is_verified || p.verified),
 			thumbnail_url: Toolkit.resolveMedia(this.#client, p.thumbnail_url ?? p.thumbnail ?? '', 'image'),
 			post_caption: p.post_caption ?? p.caption ?? '',
@@ -2011,87 +2148,90 @@ class AIRich extends BaseBuilder {
 			is_carousel: posts.length > 1,
 			orientation: p.orientation ?? 'LANDSCAPE',
 			post_type: p.post_type ?? 'VIDEO',
-			__typename: 'GenAIPostPrimitive',
-		}));
+			__typename: 'GenAIPostPrimitive'
+		}))
 
-		const section = AIRich.newLayout('HScroll', primitives);
+		const section = AIRich.newLayout('HScroll', primitives)
 
-		const submessage = this.createAlert('GenAIPostPrimitive');
+		const submessage = this.createAlert('GenAIPostPrimitive')
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addMetadata(text, { id, replace, insertAt } = {}) {
 		if (typeof text !== 'string') {
-			throw new TypeError('Text must be a string');
+			throw new TypeError('Text must be a string')
 		}
 
 		const section = AIRich.newLayout('Single', {
 			text,
-			__typename: 'GenAIMetadataTextPrimitive',
-		});
+			__typename: 'GenAIMetadataTextPrimitive'
+		})
 
 		const submessage = {
 			messageType: 2,
-			messageText: text,
-		};
+			messageText: text
+		}
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addTip(text, { id, replace, insertAt } = {}) {
 		if (typeof text !== 'string') {
-			throw new TypeError('Text must be a string');
+			throw new TypeError('Text must be a string')
 		}
 
 		const section = AIRich.newLayout('Single', {
 			text: 'ⓘ ' + text,
-			__typename: 'GenAIMetadataTextPrimitive',
-		});
+			__typename: 'GenAIMetadataTextPrimitive'
+		})
 
 		const submessage = {
 			messageType: 2,
-			messageText: text,
-		};
+			messageText: text
+		}
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addWidget(data, { layout, id, replace, insertAt, ...options } = {}) {
-		if (!((data && typeof data === 'object' && !Array.isArray(data)) || (Array.isArray(data) && data.every((item) => item && typeof item === 'object' && !Array.isArray(item))))) {
-			throw new TypeError('Widget must be an object or an array of objects');
+		if (!(
+			(data && typeof data === 'object' && !Array.isArray(data)) ||
+			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
+		)) {
+			throw new TypeError('Widget must be an object or an array of objects')
 		}
 
-		const isArray = Array.isArray(data);
+		const isArray = Array.isArray(data)
 
-		const items = isArray ? data : [data];
+		const items = isArray ? data : [data]
 
-		const widgets = items.map((item) => ({
+		const widgets = items.map(item => ({
 			__typename: 'GenAI3PExtWidgetPrimitive',
 
 			header: {
 				__typename: 'GenAI3PExtWidgetStandardHeader',
 				title: item.title ?? '',
-				...(item.header ?? {}),
+				...(item.header ?? {})
 			},
 
 			body: {
 				__typename: 'GenAI3PExtCalendarEventList',
 				sections: item.sections ?? [],
 
-				ctas: (item.actions ?? []).map((action) => ({
+				ctas: (item.actions ?? []).map(action => ({
 					__typename: 'GenAI3PExtWidgetCTA',
 					label: action.label ?? '',
 					state: action.state ?? 'PENDING',
@@ -2101,91 +2241,122 @@ class AIRich extends BaseBuilder {
 					...(action.toast && {
 						toast: {
 							__typename: 'GenAI3PExtWidgetToast',
-							label: action.toast.label ?? action.label ?? '',
-						},
-					}),
+							label: action.toast.label ?? action.label ?? ''
+						}
+					})
 				})),
 
-				...(item.body ?? {}),
-			},
-		}));
+				...(item.body ?? {})
+			}
+		}))
 
-		const section = AIRich.newLayout(layout ?? (isArray ? 'HScroll' : 'Single'), isArray ? widgets : widgets[0], options);
+		const section = AIRich.newLayout(
+			layout ?? (isArray ? 'HScroll' : 'Single'),
+			isArray ? widgets : widgets[0],
+			options
+		)
 
-		const submessage = this.createAlert('GenAI3PExtWidgetStandardHeader');
+		const submessage = this.createAlert('GenAI3PExtWidgetStandardHeader')
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addFooterAction(data, { layout, id, replace, insertAt, ...options } = {}) {
-		if (!((data && typeof data === 'object' && !Array.isArray(data)) || (Array.isArray(data) && data.every((item) => item && typeof item === 'object' && !Array.isArray(item))))) {
-			throw new TypeError('Footer action must be an object or an array of objects');
+		if (!(
+			(data && typeof data === 'object' && !Array.isArray(data)) ||
+			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
+		)) {
+			throw new TypeError('Footer action must be an object or an array of objects')
 		}
 
-		const isArray = Array.isArray(data);
+		const isArray = Array.isArray(data)
 
-		const items = isArray ? data : [data];
+		const items = isArray ? data : [data]
 
-		const actions = items.map((item) => ({
+		const actions = items.map(item => ({
 			__typename: 'GenAIFooterActionPrimitive',
 
 			cta_text: item.text ?? item.cta_text ?? '',
 
 			cta_type: item.type ?? item.cta_type ?? 'OPEN_FULL_VIEW',
 
-			cta_url: item.url ?? item.cta_url ?? '',
-		}));
+			cta_url: item.url ?? item.cta_url ?? ''
+		}))
 
-		const section = AIRich.newLayout(layout ?? (isArray ? 'HScroll' : 'Single'), isArray ? actions : actions[0], options);
+		const section = AIRich.newLayout(
+			layout ?? (isArray ? 'HScroll' : 'Single'),
+			isArray ? actions : actions[0],
+			options
+		)
 
-		const submessage = this.createAlert('GenAIFooterActionPrimitive');
+		const submessage = this.createAlert('GenAIFooterActionPrimitive')
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	addSuggest(suggestion, { scroll = true, layout, id, replace, insertAt } = {}) {
-		if (!(typeof suggestion === 'string' || (Array.isArray(suggestion) && suggestion.every((v) => typeof v === 'string')))) {
-			throw new TypeError('Suggestion must be a string or array of strings');
+		if (!(
+			typeof suggestion === 'string' ||
+			(Array.isArray(suggestion) && suggestion.every(v => typeof v === 'string'))
+		)) {
+			throw new TypeError('Suggestion must be a string or array of strings')
 		}
 
 		const suggest = Array.isArray(suggestion)
-			? suggestion.map((text) => ({
+			? suggestion.map(text => ({
 					prompt_text: text,
 					prompt_type: 'SUGGESTED_PROMPT',
-					__typename: 'GenAIFollowUpSuggestionPillPrimitive',
+					__typename: 'GenAIFollowUpSuggestionPillPrimitive'
 				}))
 			: [
 					{
 						prompt_text: suggestion,
 						prompt_type: 'SUGGESTED_PROMPT',
-						__typename: 'GenAIFollowUpSuggestionPillPrimitive',
-					},
-				];
+						__typename: 'GenAIFollowUpSuggestionPillPrimitive'
+					}
+				]
 
-		const type = layout ?? (suggest.length === 1 ? 'Single' : scroll ? 'HScroll' : 'ActionRow');
+		const type = layout ?? (suggest.length === 1 ? 'Single' : scroll ? 'HScroll' : 'ActionRow')
 
-		const section = AIRich.newLayout(type, type === 'Single' ? suggest[0] : suggest);
+		const section = AIRich.newLayout(type, type === 'Single' ? suggest[0] : suggest)
 
-		const submessage = this.createAlert('GenAIFollowUpSuggestionPillPrimitive');
+		const submessage = this.createAlert('GenAIFollowUpSuggestionPillPrimitive')
 
 		return this._addContent(section, submessage, {
 			id,
 			replace,
-			insertAt,
-		});
+			insertAt
+		})
 	}
 
 	async build(
 		jid,
-		{ bypassDownload = true, forwarded = true, forwardWrapper = true, notification = false, includesUnifiedResponse = true, includesSubmessages = true, botJid = AIRich.DEFAULT_BOT_JID, forwardingScore = 1, botEntryPointOrigin = AIRich.BOT_ENTRY_POINT_META_AI_FORWARD, messageSharing = true, disclaimerText = '', verification = 'auto', quoted, quotedParticipant, messageId, ...options } = {}
+		{
+			bypassDownload = true,
+			forwarded = true,
+			forwardWrapper = true,
+			notification = false,
+			includesUnifiedResponse = true,
+			includesSubmessages = true,
+			botJid = AIRich.DEFAULT_BOT_JID,
+			forwardingScore = 1,
+			botEntryPointOrigin = AIRich.BOT_ENTRY_POINT_META_AI_FORWARD,
+			messageSharing = true,
+			disclaimerText = '',
+			verification = 'auto',
+			quoted,
+			quotedParticipant,
+			messageId,
+			...options
+		} = {}
 	) {
 		const forward = forwarded
 			? {
@@ -2197,65 +2368,67 @@ class AIRich extends BaseBuilder {
 						? {
 								botMessageSharingInfo: {
 									botEntryPointOrigin,
-									forwardScore: forwardingScore,
-								},
+									forwardScore: forwardingScore
+								}
 							}
-						: {}),
+						: {})
 				}
-			: {};
+			: {}
 
 		const notif = notification
 			? {
 					sessionTransparencyMetadata: {
 						...(disclaimerText ? { disclaimerText } : {}),
 						hcaId: `hca_${Date.now()}`,
-						sessionTransparencyType: 1,
-					},
+						sessionTransparencyType: 1
+					}
 				}
-			: {};
+			: {}
 
 		const qObj = quoted
 			? {
 					stanzaId: quoted?.key?.id || quoted?.id,
 					participant: quotedParticipant || quoted?.key?.participant || quoted?.participant || quoted?.key?.remoteJid,
 					quotedType: 0,
-					quotedMessage: typeof quoted === 'object' && quoted !== null ? (quoted.message ?? quoted) : undefined,
+					quotedMessage: typeof quoted === 'object' && quoted !== null ? (quoted.message ?? quoted) : undefined
 				}
-			: {};
+			: {}
 
-		const resolvedSections = (await waitAllPromises(this._sections)).map((section) => AIRich.normalizeSection(section));
+		const resolvedSections = (await waitAllPromises(this._sections)).map(section => AIRich.normalizeSection(section))
 
 		const sections = this._footer
 			? [
 					...resolvedSections,
 					AIRich.newLayout('Single', {
 						text: this._footer,
-						__typename: 'GenAIMetadataTextPrimitive',
-					}),
+						__typename: 'GenAIMetadataTextPrimitive'
+					})
 				]
-			: resolvedSections;
+			: resolvedSections
 
-		const footerSections = (await waitAllPromises(this._footerSections)).map((section) => AIRich.normalizeSection(section));
-		const embeddedScreens = await waitAllPromises(this._embeddedScreens);
+		const footerSections = (await waitAllPromises(this._footerSections)).map(section =>
+			AIRich.normalizeSection(section)
+		)
+		const embeddedScreens = await waitAllPromises(this._embeddedScreens)
 
 		if (this._dynamic && !this._signedUnifiedResponse) {
-			this.refreshResponseId();
-			this.refreshBotResponseId();
+			this.refreshResponseId()
+			this.refreshBotResponseId()
 		}
 
-		const carriesMetaSignature = !!this._signedVerificationMetadata;
+		const carriesMetaSignature = !!this._signedVerificationMetadata
 
-		let verificationField;
-		let verificationState;
+		let verificationField
+		let verificationState
 		if (carriesMetaSignature) {
-			verificationField = this._signedVerificationMetadata;
-			verificationState = 'preserved';
+			verificationField = this._signedVerificationMetadata
+			verificationState = 'preserved'
 		} else if (verification === 'placeholder') {
-			verificationField = AIRich.generateVerificationMetadata();
-			verificationState = 'placeholder';
+			verificationField = AIRich.generateVerificationMetadata()
+			verificationState = 'placeholder'
 		} else {
-			verificationField = undefined;
-			verificationState = 'omitted';
+			verificationField = undefined
+			verificationState = 'omitted'
 		}
 
 		const built = generateWAMessageFromContent(
@@ -2269,8 +2442,8 @@ class AIRich extends BaseBuilder {
 						...notif,
 						...(verificationField ? { verificationMetadata: verificationField } : {}),
 						botResponseId: this._botResponseId,
-						...this._botMetadataExtra,
-					},
+						...this._botMetadataExtra
+					}
 				},
 				...this._extraPayload,
 				...AIRich.wrapRichResponse(
@@ -2278,125 +2451,138 @@ class AIRich extends BaseBuilder {
 						messageType: 1,
 						submessages: includesSubmessages ? await waitAllPromises(this._submessages) : [],
 						unifiedResponse: {
-							data: includesUnifiedResponse && this._signedUnifiedResponse
-								? this._signedUnifiedResponse
-								: includesUnifiedResponse
-								? Buffer.from(
-										Toolkit.stringifyEscaped({
-											response_id: this._responseId,
-											...this._responseMeta,
-											sections,
-											...(footerSections.length ? { footer_sections: footerSections } : {}),
-											...(embeddedScreens.length ? { embedded_screens: embeddedScreens } : {}),
-										})
-									).toString('base64')
-								: '',
+							data:
+								includesUnifiedResponse && this._signedUnifiedResponse
+									? this._signedUnifiedResponse
+									: includesUnifiedResponse
+										? Buffer.from(
+												Toolkit.stringifyEscaped({
+													response_id: this._responseId,
+													...this._responseMeta,
+													sections,
+													...(footerSections.length ? { footer_sections: footerSections } : {}),
+													...(embeddedScreens.length ? { embedded_screens: embeddedScreens } : {})
+												})
+											).toString('base64')
+										: ''
 						},
 						contextInfo: {
 							...forward,
 							...qObj,
-							...this._contextInfo,
-						},
+							...this._contextInfo
+						}
 					},
 					forwardWrapper
-				),
+				)
 			},
 			{ messageId: messageId || generateMessageIDV2(), ...options }
-		);
+		)
 
-		built.aiVerification = verificationState;
+		built.aiVerification = verificationState
 
-		return built;
+		return built
 	}
 
 	async buildEdit(targetJid, targetId, { msg, messageId, forwardWrapper = true, ...options } = {}) {
 		if (!msg) {
-			msg = (await this.build(targetJid, { forwardWrapper, ...options })).message;
+			msg = (await this.build(targetJid, { forwardWrapper, ...options })).message
 		}
 
-		const editedMessage = msg;
+		const editedMessage = msg
 
 		if (!editedMessage) {
-			throw new Error('buildEdit: msg does not contain a rich response');
+			throw new Error('buildEdit: msg does not contain a rich response')
 		}
 
 		const protocolMessage = {
 			key: {
 				remoteJid: targetJid,
 				fromMe: true,
-				id: targetId,
+				id: targetId
 			},
 			type: 14,
-			editedMessage,
-		};
+			editedMessage
+		}
 
 		return generateWAMessageFromContent(
 			targetJid,
 			forwardWrapper ? { botForwardedMessage: { message: { protocolMessage } } } : { protocolMessage },
 			{ messageId: messageId || generateMessageIDV2(), ...options }
-		);
+		)
 	}
 
 	async sendEdit(jid, id, { msg, messageId, additionalNodes = [], ...options } = {}) {
-		jid = jid ?? this._lastMessageKey?.remoteJid;
-		id = id ?? this._lastMessageKey?.id;
+		jid = jid ?? this._lastMessageKey?.remoteJid
+		id = id ?? this._lastMessageKey?.id
 
 		if (!jid) {
-			throw new Error('JID is required');
+			throw new Error('JID is required')
 		}
 
 		if (!id) {
-			throw new Error('Message id is required');
+			throw new Error('Message id is required')
 		}
 
 		const msgEdit = await this.buildEdit(jid, id, {
 			msg,
 			messageId: messageId || generateMessageIDV2(),
-			...options,
-		});
+			...options
+		})
 
 		await this.#client.relayMessage(jid, msgEdit.message, {
 			messageId: msgEdit.key.id,
-			additionalNodes,
-		});
+			additionalNodes
+		})
 
-		return msgEdit;
+		return msgEdit
 	}
 
-	async send(jid, { bypassDownload = true, forwarded = true, notification = false, includesUnifiedResponse = true, includesSubmessages = true, messageId, additionalNodes = [], ...options } = {}) {
+	async send(
+		jid,
+		{
+			bypassDownload = true,
+			forwarded = true,
+			notification = false,
+			includesUnifiedResponse = true,
+			includesSubmessages = true,
+			messageId,
+			additionalNodes = [],
+			...options
+		} = {}
+	) {
 		const msg = await this.build(jid, {
 			forwarded,
 			notification,
 			includesUnifiedResponse,
 			includesSubmessages,
 			messageId,
-			...options,
-		});
+			...options
+		})
 
 		if (msg.aiVerification === 'placeholder') {
-			AIRich._warnPlaceholderSignature(this.#client);
+			AIRich._warnPlaceholderSignature(this.#client)
 		}
 
 		await this.#client.relayMessage(msg.key.remoteJid, msg.message, {
 			messageId: msg.key.id,
 			additionalNodes,
-			...options,
-		});
+			...options
+		})
 
 		if (includesUnifiedResponse && bypassDownload) {
 			try {
 				await this.sendEdit(jid, msg.key.id, {
-					msg: msg.message,
-				});
+					msg: msg.message
+				})
 			} catch (error) {
-				error.relayedKey = msg.key;
-				throw error;
+				error.relayedKey = msg.key
+				throw error
 			}
 		}
 
-		this._lastMessageKey = msg.key;
+		this._lastMessageKey = msg.key
 
-		return msg;
+		return msg
 	}
 
 	static tokenizer(code, lang = 'javascript') {
@@ -2444,7 +2630,7 @@ class AIRich extends BaseBuilder {
 				'async',
 				'await',
 				'get',
-				'set',
+				'set'
 			]),
 
 			typescript: new Set([
@@ -2505,7 +2691,7 @@ class AIRich extends BaseBuilder {
 				'import',
 				'export',
 				'async',
-				'await',
+				'await'
 			]),
 
 			python: new Set([
@@ -2543,7 +2729,7 @@ class AIRich extends BaseBuilder {
 				'try',
 				'while',
 				'with',
-				'yield',
+				'yield'
 			]),
 
 			java: new Set([
@@ -2596,7 +2782,7 @@ class AIRich extends BaseBuilder {
 				'try',
 				'void',
 				'volatile',
-				'while',
+				'while'
 			]),
 
 			golang: new Set([
@@ -2624,7 +2810,7 @@ class AIRich extends BaseBuilder {
 				'struct',
 				'switch',
 				'type',
-				'var',
+				'var'
 			]),
 
 			c: new Set([
@@ -2659,7 +2845,7 @@ class AIRich extends BaseBuilder {
 				'unsigned',
 				'void',
 				'volatile',
-				'while',
+				'while'
 			]),
 
 			cpp: new Set([
@@ -2719,7 +2905,7 @@ class AIRich extends BaseBuilder {
 				'using',
 				'virtual',
 				'void',
-				'while',
+				'while'
 			]),
 
 			php: new Set([
@@ -2782,7 +2968,7 @@ class AIRich extends BaseBuilder {
 				'use',
 				'var',
 				'while',
-				'yield',
+				'yield'
 			]),
 
 			rust: new Set([
@@ -2820,7 +3006,7 @@ class AIRich extends BaseBuilder {
 				'unsafe',
 				'use',
 				'where',
-				'while',
+				'while'
 			]),
 
 			html: new Set([
@@ -2853,7 +3039,7 @@ class AIRich extends BaseBuilder {
 				'header',
 				'footer',
 				'nav',
-				'main',
+				'main'
 			]),
 
 			bash: new Set([
@@ -2878,27 +3064,27 @@ class AIRich extends BaseBuilder {
 				'export',
 				'readonly',
 				'local',
-				'declare',
+				'declare'
 			]),
 
-			markdown: new Set(['#', '##', '###', '####', '#####', '######']),
-		};
+			markdown: new Set(['#', '##', '###', '####', '#####', '######'])
+		}
 
 		if (!lang || lang === 'txt' || lang === 'text' || lang === 'plaintext') {
 			return {
 				codeBlock: [
 					{
 						codeContent: code,
-						highlightType: 0,
-					},
+						highlightType: 0
+					}
 				],
 				unified_codeBlock: [
 					{
 						content: code,
-						type: 'DEFAULT',
-					},
-				],
-			};
+						type: 'DEFAULT'
+					}
+				]
+			}
 		}
 
 		const TYPE_MAP = {
@@ -2907,255 +3093,260 @@ class AIRich extends BaseBuilder {
 			2: 'METHOD',
 			3: 'STR',
 			4: 'NUMBER',
-			5: 'COMMENT',
-		};
+			5: 'COMMENT'
+		}
 
-		const keywords = keywordsMap[lang.toLowerCase()] || new Set();
-		const tokens = [];
+		const keywords = keywordsMap[lang.toLowerCase()] || new Set()
+		const tokens = []
 
-		let i = 0;
+		let i = 0
 
 		const push = (content, type) => {
-			if (!content) return;
+			if (!content) return
 
-			const last = tokens[tokens.length - 1];
+			const last = tokens[tokens.length - 1]
 
 			if (last && last.highlightType === type) {
-				last.codeContent += content;
+				last.codeContent += content
 			} else {
 				tokens.push({
 					codeContent: content,
-					highlightType: type,
-				});
+					highlightType: type
+				})
 			}
-		};
+		}
 
-		const isIdentifier = (char) => {
+		const isIdentifier = char => {
 			switch (lang.toLowerCase()) {
 				case 'css':
-					return /[a-zA-Z0-9_$-]/.test(char);
+					return /[a-zA-Z0-9_$-]/.test(char)
 
 				case 'html':
-					return /[a-zA-Z0-9_$:-]/.test(char);
+					return /[a-zA-Z0-9_$:-]/.test(char)
 
 				default:
-					return /[a-zA-Z0-9_$]/.test(char);
+					return /[a-zA-Z0-9_$]/.test(char)
 			}
-		};
+		}
 
 		while (i < code.length) {
-			const c = code[i];
+			const c = code[i]
 
 			if (/\s/.test(c)) {
-				let s = i;
+				const s = i
 
 				while (i < code.length && /\s/.test(code[i])) {
-					i++;
+					i++
 				}
 
-				push(code.slice(s, i), 0);
-				continue;
+				push(code.slice(s, i), 0)
+				continue
 			}
 
 			if ((c === '/' && code[i + 1] === '/') || (c === '#' && ['python', 'bash'].includes(lang))) {
-				let s = i;
+				const s = i
 
 				while (i < code.length && code[i] !== '\n') {
-					i++;
+					i++
 				}
 
-				push(code.slice(s, i), 5);
-				continue;
+				push(code.slice(s, i), 5)
+				continue
 			}
 
 			if (c === '"' || c === "'" || c === '`') {
-				let s = i;
-				const q = c;
+				const s = i
+				const q = c
 
-				i++;
+				i++
 
 				while (i < code.length) {
 					if (code[i] === '\\' && i + 1 < code.length) {
-						i += 2;
+						i += 2
 					} else if (code[i] === q) {
-						i++;
-						break;
+						i++
+						break
 					} else {
-						i++;
+						i++
 					}
 				}
 
-				push(code.slice(s, i), 3);
-				continue;
+				push(code.slice(s, i), 3)
+				continue
 			}
 
 			if (/[0-9]/.test(c)) {
-				let s = i;
+				const s = i
 
 				while (i < code.length && /[0-9._]/.test(code[i])) {
-					i++;
+					i++
 				}
 
-				push(code.slice(s, i), 4);
-				continue;
+				push(code.slice(s, i), 4)
+				continue
 			}
 
 			if (/[a-zA-Z_$]/.test(c)) {
-				let s = i;
+				const s = i
 
 				while (i < code.length && isIdentifier(code[i])) {
-					i++;
+					i++
 				}
 
-				const word = code.slice(s, i);
+				const word = code.slice(s, i)
 
-				let type = 0;
+				let type = 0
 
 				if (keywords.has(word)) {
-					type = 1;
+					type = 1
 				} else if (lang === 'css') {
-					let j = i;
+					let j = i
 
 					while (j < code.length && /\s/.test(code[j])) {
-						j++;
+						j++
 					}
 
 					if (code[j] === ':') {
-						type = 1;
+						type = 1
 					}
 				} else if (lang === 'html') {
-					let p = s - 1;
+					let p = s - 1
 
 					while (p >= 0 && /\s/.test(code[p])) {
-						p--;
+						p--
 					}
 
 					if (code[p] === '<' || (code[p] === '/' && code[p - 1] === '<')) {
-						type = 1;
+						type = 1
 					}
 				}
 
 				if (type === 0) {
-					let j = i;
+					let j = i
 
 					while (j < code.length && /\s/.test(code[j])) {
-						j++;
+						j++
 					}
 
 					if (code[j] === '(') {
-						type = 2;
+						type = 2
 					}
 				}
 
-				push(word, type);
-				continue;
+				push(word, type)
+				continue
 			}
 
-			push(c, 0);
-			i++;
+			push(c, 0)
+			i++
 		}
 
 		return {
 			codeBlock: tokens,
-			unified_codeBlock: tokens.map((t) => ({
+			unified_codeBlock: tokens.map(t => ({
 				content: t.codeContent,
-				type: TYPE_MAP[t.highlightType],
-			})),
-		};
+				type: TYPE_MAP[t.highlightType]
+			}))
+		}
 	}
 
 	static toTableMetadata(arr, { hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
-		if (!Array.isArray(arr) || !arr.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === 'string'))) {
-			throw new TypeError('Table must be a nested array of strings');
+		if (!Array.isArray(arr) || !arr.every(row => Array.isArray(row) && row.every(cell => typeof cell === 'string'))) {
+			throw new TypeError('Table must be a nested array of strings')
 		}
 
-		const [header, ...rows] = arr;
+		const [header, ...rows] = arr
 
-		const maxLen = Math.max(header.length, ...rows.map((r) => r.length));
+		const maxLen = Math.max(header.length, ...rows.map(r => r.length))
 
-		const normalize = (r) => [...r, ...Array(maxLen - r.length).fill('')];
+		const normalize = r => [...r, ...Array(maxLen - r.length).fill('')]
 
 		const unified_rows = [
 			{
 				is_header: true,
-				cells: normalize(header),
+				cells: normalize(header)
 			},
-			...rows.map((r) => ({
+			...rows.map(r => ({
 				is_header: false,
-				cells: normalize(r),
-			})),
-		].map((row) => {
-			const markdown_cells = row.cells.map((cell) => {
-				const extracted = extractIE(cell, { hyperlink, citation, latex, deeplink });
+				cells: normalize(r)
+			}))
+		].map(row => {
+			const markdown_cells = row.cells.map(cell => {
+				const extracted = extractIE(cell, { hyperlink, citation, latex, deeplink })
 
 				return {
 					text: extracted.text,
-					...(extracted.inline_entities.length ? { inline_entities: extracted.inline_entities } : {}),
-				};
-			});
+					...(extracted.inline_entities.length ? { inline_entities: extracted.inline_entities } : {})
+				}
+			})
 
 			return {
 				...row,
-				...(markdown_cells.some((c) => c.inline_entities?.length) ? { markdown_cells } : {}),
-			};
-		});
+				...(markdown_cells.some(c => c.inline_entities?.length) ? { markdown_cells } : {})
+			}
+		})
 
-		const rowsMeta = unified_rows.map((r) => ({
+		const rowsMeta = unified_rows.map(r => ({
 			items: r.cells,
-			...(r.is_header ? { isHeading: true } : {}),
-		}));
+			...(r.is_header ? { isHeading: true } : {})
+		}))
 
 		return {
 			title: '',
 			rows: rowsMeta,
-			unified_rows,
-		};
+			unified_rows
+		}
 	}
 
 	static isMetaSignature(verificationMetadata) {
-		const chain = verificationMetadata?.proofs?.[0]?.certificateChain?.[0];
+		const chain = verificationMetadata?.proofs?.[0]?.certificateChain?.[0]
 		if (!chain) {
-			return false;
+			return false
 		}
-		const bytes = Buffer.isBuffer(chain) ? chain : Buffer.from(String(chain), 'base64');
-		return !bytes.subarray(0, AIRich.PLACEHOLDER_MARKER.length).equals(AIRich.PLACEHOLDER_MARKER);
+
+		const bytes = Buffer.isBuffer(chain) ? chain : Buffer.from(String(chain), 'base64')
+		return !bytes.subarray(0, AIRich.PLACEHOLDER_MARKER.length).equals(AIRich.PLACEHOLDER_MARKER)
 	}
 
 	static _warnPlaceholderSignature(client) {
 		if (AIRich._placeholderWarned) {
-			return;
+			return
 		}
-		AIRich._placeholderWarned = true;
-		const message = 'AIRich: verification: "placeholder" supplies a fake proof, so its verification status is FAILED and '
-			+ 'this card is masked in clients that enable ai_rich_response_unknown_sender_verification_masking_enabled. '
-			+ 'The default "auto" mode (proof omitted, status UNKNOWN) does not enter that masking branch. '
-			+ 'For a card that must display, use Button/ButtonV2/Carousel, or forward the original Meta AI response through forwardRichResponse.';
-		const logger = client?.logger ?? client?.ev?.logger;
+
+		AIRich._placeholderWarned = true
+		const message =
+			'AIRich: verification: "placeholder" supplies a fake proof, so its verification status is FAILED and ' +
+			'this card is masked in clients that enable ai_rich_response_unknown_sender_verification_masking_enabled. ' +
+			'The default "auto" mode (proof omitted, status UNKNOWN) does not enter that masking branch. ' +
+			'For a card that must display, use Button/ButtonV2/Carousel, or forward the original Meta AI response through forwardRichResponse.'
+		const logger = client?.logger ?? client?.ev?.logger
 		if (logger?.warn) {
-			logger.warn({ gate: 'ai_rich_response_unknown_sender_verification_masking_enabled' }, message);
+			logger.warn({ gate: 'ai_rich_response_unknown_sender_verification_masking_enabled' }, message)
 		} else {
-			console.warn(message);
+			console.warn(message)
 		}
 	}
 
-	static PLACEHOLDER_MARKER = Buffer.from(`NIXEL.MessageBuilderV${VERSION}`);
+	static PLACEHOLDER_MARKER = Buffer.from(`NIXEL.MessageBuilderV${VERSION}`)
 
 	static generateVerificationMetadata() {
 		const signatureMaterial = Buffer.from(
 			`\u004E\u0049\u0058\u0045\u004C\u002E\u004D\u0065\u0073\u0073\u0061\u0067\u0065\u0042\u0075\u0069\u006C\u0064\u0065\u0072\u0056${VERSION}\u002D\u0056\u0065\u0072\u0069\u0066\u0069\u0063\u0061\u0074\u0069\u006F\u006E\u0053\u0069\u0067\u006E\u0061\u0074\u0075\u0072\u0065\u002E\u004D\u0065\u0074\u0061\u0064\u0061\u0074\u0061`
-		);
+		)
 
 		const certificateMaterial = Buffer.from(
 			`\u004E\u0049\u0058\u0045\u004C\u002E\u004D\u0065\u0073\u0073\u0061\u0067\u0065\u0042\u0075\u0069\u006C\u0064\u0065\u0072\u0056${VERSION}\u002D\u0043\u0065\u0072\u0074\u0069\u0066\u0069\u0063\u0061\u0074\u0065\u0043\u0068\u0061\u0069\u006E\u002E\u004D\u0065\u0074\u0061\u0064\u0061\u0074\u0061`
-		);
+		)
 
-		const signature = Buffer.concat([signatureMaterial, crypto.randomBytes(64 - signatureMaterial.length)]).toString('base64');
+		const signature = Buffer.concat([signatureMaterial, crypto.randomBytes(64 - signatureMaterial.length)]).toString(
+			'base64'
+		)
 
 		const certificateChain = [
 			Buffer.concat([certificateMaterial, crypto.randomBytes(684 - certificateMaterial.length)]).toString('base64'),
 
-			Buffer.concat([certificateMaterial, crypto.randomBytes(892 - certificateMaterial.length)]).toString('base64'),
-		];
+			Buffer.concat([certificateMaterial, crypto.randomBytes(892 - certificateMaterial.length)]).toString('base64')
+		]
 
 		return {
 			proofs: [
@@ -3163,20 +3354,20 @@ class AIRich extends BaseBuilder {
 					version: 1,
 					useCase: 1,
 					signature,
-					certificateChain,
-				},
-			],
-		};
+					certificateChain
+				}
+			]
+		}
 	}
 
-	static DEFAULT_BOT_JID = '867051314767696@bot';
+	static DEFAULT_BOT_JID = '867051314767696@bot'
 
-	static FORWARD_ORIGIN_META_AI = 4;
+	static FORWARD_ORIGIN_META_AI = 4
 
-	static BOT_ENTRY_POINT_META_AI_FORWARD = 31;
+	static BOT_ENTRY_POINT_META_AI_FORWARD = 31
 
 	static wrapRichResponse(richResponseMessage, forwardWrapper = true) {
-		return forwardWrapper ? { botForwardedMessage: { message: { richResponseMessage } } } : { richResponseMessage };
+		return forwardWrapper ? { botForwardedMessage: { message: { richResponseMessage } } } : { richResponseMessage }
 	}
 
 	static LAYOUT_FIELDS = Object.freeze({
@@ -3189,418 +3380,460 @@ class AIRich extends BaseBuilder {
 		FlexibleCountGrid: 'primitives',
 		RichListItem: 'text_content',
 		MultipleResponse: 'responses',
-		IGSuggestedBloomCard: 'primitives',
-	});
+		IGSuggestedBloomCard: 'primitives'
+	})
 
-	static SECTION_TYPENAME = 'GenAIUnifiedResponseSection';
+	static SECTION_TYPENAME = 'GenAIUnifiedResponseSection'
 
-	static UNIFIED_RESPONSE_TYPENAME = 'XMSGGenAIUnifiedResponse';
+	static UNIFIED_RESPONSE_TYPENAME = 'XMSGGenAIUnifiedResponse'
 
 	static normalizeSection(section) {
 		if (!section || typeof section !== 'object' || Array.isArray(section) || typeof section.then === 'function') {
-			return section;
+			return section
 		}
-		return section.__typename ? section : { __typename: AIRich.SECTION_TYPENAME, ...section };
+
+		return section.__typename ? section : { __typename: AIRich.SECTION_TYPENAME, ...section }
 	}
 
 	static newLayout(name, data, extra = {}) {
-		const field = AIRich.LAYOUT_FIELDS[name] ?? (Array.isArray(data) ? 'primitives' : 'primitive');
+		const field = AIRich.LAYOUT_FIELDS[name] ?? (Array.isArray(data) ? 'primitives' : 'primitive')
 		return {
 			__typename: AIRich.SECTION_TYPENAME,
 			...extra,
 			view_model: {
 				[field]: data,
-				__typename: `GenAI${name}LayoutViewModel`,
-			},
-		};
+				__typename: `GenAI${name}LayoutViewModel`
+			}
+		}
 	}
 
 	_makeNode(id, section, submessage) {
-		return { id: id ?? null, section: section ?? null, submessage: submessage ?? null };
+		return { id: id ?? null, section: section ?? null, submessage: submessage ?? null }
 	}
 
 	_registerId(node, id) {
-		if (id === undefined || id === null || id === '') return;
+		if (id === undefined || id === null || id === '') return
 
 		if (typeof id !== 'string') {
-			throw new ContentValidationError('Item id must be a string', { id });
+			throw new ContentValidationError('Item id must be a string', { id })
 		}
 
 		if (this._idIndex.has(id)) {
-			throw new DuplicateIdError(id);
+			throw new DuplicateIdError(id)
 		}
 
-		node.id = id;
-		this._idIndex.set(id, node);
+		node.id = id
+		this._idIndex.set(id, node)
 	}
 
 	_unregisterId(node) {
 		if (node.id && this._idIndex.get(node.id) === node) {
-			this._idIndex.delete(node.id);
+			this._idIndex.delete(node.id)
 		}
 	}
 
 	hasId(id) {
-		return typeof id === 'string' && this._idIndex.has(id);
+		return typeof id === 'string' && this._idIndex.has(id)
 	}
 
 	getIds() {
-		return [...this._idIndex.keys()];
+		return [...this._idIndex.keys()]
 	}
 
 	peek(id) {
-		const node = this._idIndex.get(id);
+		const node = this._idIndex.get(id)
 
-		if (!node) return null;
+		if (!node) return null
 
 		return {
 			id: node.id,
 			section: node.section,
-			submessage: node.submessage,
-		};
+			submessage: node.submessage
+		}
 	}
 
 	assignId(index, id) {
 		if (!Number.isInteger(index) || index < 0 || index >= this._nodes.length) {
-			throw new InvalidTargetError(`Node index ${index} is out of range (0-${this._nodes.length - 1})`, { index });
+			throw new InvalidTargetError(`Node index ${index} is out of range (0-${this._nodes.length - 1})`, { index })
 		}
 
-		const node = this._nodes[index];
+		const node = this._nodes[index]
 
 		if (node.id) {
-			throw new AIRichError(`Node at index ${index} already has id "${node.id}"`, 'ALREADY_HAS_ID', { index, id: node.id });
+			throw new AIRichError(`Node at index ${index} already has id "${node.id}"`, 'ALREADY_HAS_ID', {
+				index,
+				id: node.id
+			})
 		}
 
-		this._registerId(node, id);
+		this._registerId(node, id)
 
-		return this;
+		return this
 	}
 
 	_getNode(id) {
 		if (typeof id !== 'string' || !id) {
-			throw new ContentValidationError('Item id must be a non-empty string', { id });
+			throw new ContentValidationError('Item id must be a non-empty string', { id })
 		}
 
-		const node = this._idIndex.get(id);
+		const node = this._idIndex.get(id)
 
 		if (!node) {
-			throw new ItemNotFoundError(id, this.getIds());
+			throw new ItemNotFoundError(id, this.getIds())
 		}
 
-		return node;
+		return node
 	}
 
 	_resolveTarget(target) {
 		if (Array.isArray(target)) {
 			if (target.length < 1 || target.length > 2) {
-				throw new ContentValidationError('Target must be id or [id, offset]', { target });
+				throw new ContentValidationError('Target must be id or [id, offset]', { target })
 			}
 
-			const [id, offset = 0] = target;
+			const [id, offset = 0] = target
 
 			if (typeof id !== 'string' || !id) {
-				throw new ContentValidationError('Target id must be a non-empty string', { target });
+				throw new ContentValidationError('Target id must be a non-empty string', { target })
 			}
 
 			if (!Number.isInteger(offset)) {
-				throw new ContentValidationError('Offset must be an integer', { target });
+				throw new ContentValidationError('Offset must be an integer', { target })
 			}
 
-			return { id, offset };
+			return { id, offset }
 		}
 
 		if (typeof target !== 'string' || !target) {
-			throw new ContentValidationError('Target must be a non-empty id or [id, offset]', { target });
+			throw new ContentValidationError('Target must be a non-empty id or [id, offset]', { target })
 		}
 
-		return { id: target, offset: 0 };
+		return { id: target, offset: 0 }
 	}
 
 	_resolveNodeIndex(target) {
-		const { id, offset } = this._resolveTarget(target);
-		const node = this._getNode(id);
-		const baseIndex = this._nodes.indexOf(node);
+		const { id, offset } = this._resolveTarget(target)
+		const node = this._getNode(id)
+		const baseIndex = this._nodes.indexOf(node)
 
 		if (baseIndex === -1) {
-			throw new InvalidTargetError(`Item id "${id}" is registered but not present in the node list (internal desync)`, { id });
+			throw new InvalidTargetError(`Item id "${id}" is registered but not present in the node list (internal desync)`, {
+				id
+			})
 		}
 
-		const index = baseIndex + offset;
+		const index = baseIndex + offset
 
 		if (index < 0 || index >= this._nodes.length) {
-			throw new InvalidTargetError(`Target "${id}" with offset ${offset} resolves to index ${index}, which is out of range (0-${this._nodes.length - 1})`, { id, offset, index });
+			throw new InvalidTargetError(
+				`Target "${id}" with offset ${offset} resolves to index ${index}, which is out of range (0-${this._nodes.length - 1})`,
+				{ id, offset, index }
+			)
 		}
 
-		return { id, offset, baseIndex, index };
+		return { id, offset, baseIndex, index }
 	}
 
 	_validateSections(section) {
-		const items = Array.isArray(section) ? section : [section];
+		const items = Array.isArray(section) ? section : [section]
 
 		if (!items.length) {
-			throw new ContentValidationError('At least one section is required');
+			throw new ContentValidationError('At least one section is required')
 		}
 
 		for (const item of items) {
 			if (!item || typeof item !== 'object' || Array.isArray(item)) {
-				throw new ContentValidationError('Sections must be plain objects');
+				throw new ContentValidationError('Sections must be plain objects')
 			}
 		}
 
-		return items.map((item) => AIRich.normalizeSection(item));
+		return items.map(item => AIRich.normalizeSection(item))
 	}
 
 	_validateSubmessages(submessage) {
 		if (submessage === undefined || submessage === null) {
-			return [];
+			return []
 		}
 
-		const items = Array.isArray(submessage) ? submessage : [submessage];
+		const items = Array.isArray(submessage) ? submessage : [submessage]
 
 		for (const item of items) {
 			if (!item || typeof item !== 'object' || Array.isArray(item)) {
-				throw new ContentValidationError('Submessages must be plain objects');
+				throw new ContentValidationError('Submessages must be plain objects')
 			}
 		}
 
-		return items;
+		return items
 	}
 
 	_pairSubmessages(sections, submessages) {
-		const n = sections.length;
-		const m = submessages.length;
+		const n = sections.length
+		const m = submessages.length
 
-		if (m === 0) return sections.map(() => null);
-		if (m === 1) return sections.map((_, i) => (i === 0 ? submessages[0] : null));
-		if (m === n) return submessages;
+		if (m === 0) return sections.map(() => null)
+		if (m === 1) return sections.map((_, i) => (i === 0 ? submessages[0] : null))
+		if (m === n) return submessages
 
-		throw new ContentValidationError(`Cannot pair ${m} submessage(s) with ${n} section(s): expected 0, 1, or ${n}`, { sectionCount: n, submessageCount: m });
+		throw new ContentValidationError(`Cannot pair ${m} submessage(s) with ${n} section(s): expected 0, 1, or ${n}`, {
+			sectionCount: n,
+			submessageCount: m
+		})
 	}
 
 	_addContent(section, submessage, { id, replace, insertAt } = {}) {
-		this._dropSignature();
+		this._dropSignature()
 
-		const hasReplace = replace !== undefined && replace !== null && replace !== '';
+		const hasReplace = replace !== undefined && replace !== null && replace !== ''
 
-		const hasInsertAt = insertAt !== undefined && insertAt !== null && insertAt !== '';
+		const hasInsertAt = insertAt !== undefined && insertAt !== null && insertAt !== ''
 
 		if (hasReplace && hasInsertAt) {
-			throw new ContentValidationError('replace and insertAt cannot be used together');
+			throw new ContentValidationError('replace and insertAt cannot be used together')
 		}
 
-		const sections = this._validateSections(section);
-		const submessages = this._validateSubmessages(submessage);
+		const sections = this._validateSections(section)
+		const submessages = this._validateSubmessages(submessage)
 
 		if (!sections.length) {
-			throw new ContentValidationError('At least one section is required');
+			throw new ContentValidationError('At least one section is required')
 		}
 
 		if (id !== undefined && id !== null && id !== '' && sections.length !== 1) {
 			throw new ContentValidationError('One id can only be assigned to one node', {
 				id,
-				sectionCount: sections.length,
-			});
+				sectionCount: sections.length
+			})
 		}
 
 		if (submessages.length && submessages.length !== sections.length && submessages.length !== 1) {
-			throw new ContentValidationError('Section and submessage count must match');
+			throw new ContentValidationError('Section and submessage count must match')
 		}
 
 		const pairedSubmessages = sections.map((_, index) => {
-			if (!submessages.length) return undefined;
+			if (!submessages.length) return undefined
 
-			return submessages.length === 1 ? submessages[0] : submessages[index];
-		});
+			return submessages.length === 1 ? submessages[0] : submessages[index]
+		})
 
 		if (id && this._idIndex.has(id) && !(hasReplace && this._resolveTarget(replace)?.id === id)) {
-			throw new DuplicateIdError(id);
+			throw new DuplicateIdError(id)
 		}
 
 		const newNodes = sections.map((currentSection, index) => {
-			return this._makeNode(index === 0 ? id : null, currentSection, pairedSubmessages[index]);
-		});
+			return this._makeNode(index === 0 ? id : null, currentSection, pairedSubmessages[index])
+		})
 
 		if (hasReplace) {
 			if (newNodes.length !== 1) {
-				throw new ContentValidationError('replace only supports adding exactly one node');
+				throw new ContentValidationError('replace only supports adding exactly one node')
 			}
 
-			const target = this._resolveNodeIndex(replace);
+			const target = this._resolveNodeIndex(replace)
 
 			if (!target) {
-				throw new ContentValidationError('Target node could not be resolved');
+				throw new ContentValidationError('Target node could not be resolved')
 			}
 
-			const oldNode = this._nodes[target.index];
-			const newNode = newNodes[0];
+			const oldNode = this._nodes[target.index]
+			const newNode = newNodes[0]
 
 			if (!newNode.id && oldNode?.id) {
-				newNode.id = oldNode.id;
+				newNode.id = oldNode.id
 			}
 
-			this._unregisterId(oldNode);
+			this._unregisterId(oldNode)
 
-			this._nodes.splice(target.index, 1, newNode);
+			this._nodes.splice(target.index, 1, newNode)
 
 			if (newNode.id) {
-				this._idIndex.set(newNode.id, newNode);
+				this._idIndex.set(newNode.id, newNode)
 			}
 
-			return this;
+			return this
 		}
 
 		if (hasInsertAt) {
-			const target = this._resolveNodeIndex(insertAt);
+			const target = this._resolveNodeIndex(insertAt)
 
 			if (!target) {
-				throw new ContentValidationError('Target node could not be resolved');
+				throw new ContentValidationError('Target node could not be resolved')
 			}
 
-			const insertIndex = target.offset < 0 ? target.index : target.index + 1;
+			const insertIndex = target.offset < 0 ? target.index : target.index + 1
 
-			this._nodes.splice(insertIndex, 0, ...newNodes);
+			this._nodes.splice(insertIndex, 0, ...newNodes)
 
 			for (const node of newNodes) {
 				if (node.id) {
-					this._idIndex.set(node.id, node);
+					this._idIndex.set(node.id, node)
 				}
 			}
 
-			return this;
+			return this
 		}
 
-		this._nodes.push(...newNodes);
+		this._nodes.push(...newNodes)
 
 		for (const node of newNodes) {
 			if (node.id) {
-				this._idIndex.set(node.id, node);
+				this._idIndex.set(node.id, node)
 			}
 		}
 
-		return this;
+		return this
 	}
 
 	addSection(section, { submessage, text, ...options } = {}) {
-		const paired = submessage !== undefined
-			? submessage
-			: text !== undefined
-				? { messageType: 2, messageText: String(text) }
-				: undefined;
-		return this._addContent(section, paired, options);
+		const paired =
+			submessage !== undefined
+				? submessage
+				: text !== undefined
+					? { messageType: 2, messageText: String(text) }
+					: undefined
+		return this._addContent(section, paired, options)
 	}
 
 	addSubmessage(submessage, { id, replace, insertAt } = {}) {
-		const items = this._validateSubmessages(submessage);
+		const items = this._validateSubmessages(submessage)
 
 		if (!items.length) {
-			throw new ContentValidationError('At least one submessage is required');
+			throw new ContentValidationError('At least one submessage is required')
 		}
 
-		const hasReplace = replace !== undefined && replace !== null && replace !== '';
-		const hasInsertAt = insertAt !== undefined && insertAt !== null && insertAt !== '';
+		const hasReplace = replace !== undefined && replace !== null && replace !== ''
+		const hasInsertAt = insertAt !== undefined && insertAt !== null && insertAt !== ''
 
 		if (hasReplace && hasInsertAt) {
-			throw new ContentValidationError('replace and insertAt cannot be used together');
+			throw new ContentValidationError('replace and insertAt cannot be used together')
 		}
 
 		if (id !== undefined && id !== null && id !== '' && items.length !== 1) {
-			throw new ContentValidationError('One id can only be assigned to one submessage', { id, submessageCount: items.length });
+			throw new ContentValidationError('One id can only be assigned to one submessage', {
+				id,
+				submessageCount: items.length
+			})
 		}
 
-		this._dropSignature();
+		this._dropSignature()
 
-		const newNodes = items.map((item, index) => this._makeNode(index === 0 ? id : null, null, item));
+		const newNodes = items.map((item, index) => this._makeNode(index === 0 ? id : null, null, item))
 
 		if (hasReplace) {
 			if (newNodes.length !== 1) {
-				throw new ContentValidationError('replace only supports adding exactly one submessage');
+				throw new ContentValidationError('replace only supports adding exactly one submessage')
 			}
 
-			const target = this._resolveNodeIndex(replace);
-			const oldNode = this._nodes[target.index];
-			const newNode = newNodes[0];
+			const target = this._resolveNodeIndex(replace)
+			const oldNode = this._nodes[target.index]
+			const newNode = newNodes[0]
 
 			if (!newNode.id && oldNode?.id) {
-				newNode.id = oldNode.id;
+				newNode.id = oldNode.id
 			}
 
-			this._unregisterId(oldNode);
-			this._nodes.splice(target.index, 1, newNode);
+			this._unregisterId(oldNode)
+			this._nodes.splice(target.index, 1, newNode)
 
 			if (newNode.id) {
-				this._idIndex.set(newNode.id, newNode);
+				this._idIndex.set(newNode.id, newNode)
 			}
 
-			return this;
+			return this
 		}
 
 		if (hasInsertAt) {
-			const target = this._resolveNodeIndex(insertAt);
-			const insertIndex = target.offset < 0 ? target.index : target.index + 1;
+			const target = this._resolveNodeIndex(insertAt)
+			const insertIndex = target.offset < 0 ? target.index : target.index + 1
 
-			this._nodes.splice(insertIndex, 0, ...newNodes);
+			this._nodes.splice(insertIndex, 0, ...newNodes)
 
 			for (const node of newNodes) {
 				if (node.id) {
-					this._idIndex.set(node.id, node);
+					this._idIndex.set(node.id, node)
 				}
 			}
 
-			return this;
+			return this
 		}
 
-		this._nodes.push(...newNodes);
+		this._nodes.push(...newNodes)
 
 		for (const node of newNodes) {
 			if (node.id) {
-				this._idIndex.set(node.id, node);
+				this._idIndex.set(node.id, node)
 			}
 		}
 
-		return this;
+		return this
 	}
 
 	delete(target) {
-		this._dropSignature();
+		this._dropSignature()
 
-		const { index } = this._resolveNodeIndex(target);
-		const [oldNode] = this._nodes.splice(index, 1);
+		const { index } = this._resolveNodeIndex(target)
+		const [oldNode] = this._nodes.splice(index, 1)
 
-		this._unregisterId(oldNode);
+		this._unregisterId(oldNode)
 
-		return this;
+		return this
 	}
 
 	get _sections() {
-		return this._nodes.filter((n) => n.section !== null).map((n) => n.section);
+		return this._nodes.filter(n => n.section !== null).map(n => n.section)
 	}
 
 	get _submessages() {
-		return this._nodes.filter((n) => n.submessage !== null).map((n) => n.submessage);
+		return this._nodes.filter(n => n.submessage !== null).map(n => n.submessage)
 	}
 
 	get sections() {
-		return this._sections;
+		return this._sections
 	}
 
 	get items() {
-		return this._sections.flatMap((section) => {
-			const vm = section?.view_model;
+		return this._sections.flatMap(section => {
+			const vm = section?.view_model
 
 			if (Array.isArray(vm?.primitives)) {
-				return vm.primitives;
+				return vm.primitives
 			}
 
 			if (vm?.primitive) {
-				return [vm.primitive];
+				return [vm.primitive]
 			}
 
-			return [];
-		});
+			return []
+		})
 	}
 }
 
-export { VERSION, VERSION as MESSAGE_BUILDER_VERSION, Button, ButtonV2, Carousel, Carousel as AIRichCarousel, AIRich, Toolkit, AIRichError, ItemNotFoundError, DuplicateIdError, InvalidTargetError, ContentValidationError };
+export {
+	VERSION,
+	VERSION as MESSAGE_BUILDER_VERSION,
+	Button,
+	ButtonV2,
+	Carousel,
+	Carousel as AIRichCarousel,
+	AIRich,
+	Toolkit,
+	AIRichError,
+	ItemNotFoundError,
+	DuplicateIdError,
+	InvalidTargetError,
+	ContentValidationError
+}
 
-export const MessageBuilder = { VERSION, Button, ButtonV2, Carousel, AIRich, Toolkit, AIRichError, ItemNotFoundError, DuplicateIdError, InvalidTargetError, ContentValidationError };
-export const MB = MessageBuilder;
+export const MessageBuilder = {
+	VERSION,
+	Button,
+	ButtonV2,
+	Carousel,
+	AIRich,
+	Toolkit,
+	AIRichError,
+	ItemNotFoundError,
+	DuplicateIdError,
+	InvalidTargetError,
+	ContentValidationError
+}
+export const MB = MessageBuilder

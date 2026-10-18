@@ -20,7 +20,7 @@ describe('generateWAMessageContent — interactive-only payloads', () => {
 					{ buttonId: 'btn1', buttonText: { displayText: 'Option 1' }, type: 1 },
 					{ buttonId: 'btn2', buttonText: { displayText: 'Option 2' }, type: 1 }
 				]
-			} as any,
+			},
 			options
 		)
 		expect(m.buttonsMessage).toBeTruthy()
@@ -58,7 +58,7 @@ describe('generateWAMessageContent — interactive-only payloads', () => {
 						]
 					}
 				]
-			} as any,
+			},
 			options
 		)
 		expect(m.listMessage).toBeTruthy()

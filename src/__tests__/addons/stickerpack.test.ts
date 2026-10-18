@@ -185,7 +185,7 @@ describe('prepareStickerPackMessage', () => {
 				concurrency: 3,
 				maxSize: 512,
 				quality: 80
-			} as any,
+			},
 			options
 		)
 		expect(flat.stickerPackMessage?.name).toBe('Flat pack')
@@ -203,7 +203,7 @@ describe('prepareStickerPackMessage', () => {
 					publisher: 'Anya publisher',
 					packId: 'anya-nested-pack-001'
 				}
-			} as any,
+			},
 			options
 		)
 		expect(nested.stickerPackMessage?.name).toBe('Nested pack')

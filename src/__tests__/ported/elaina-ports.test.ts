@@ -1,14 +1,14 @@
 import { describe, expect, it } from '@jest/globals'
-import { isJidLocationBroadcast, LOCATION_BROADCAST_JID } from '../../WABinary/jid-utils'
-import { getPollOptionHash } from '../../Utils/messages'
-import { assertUsername, validateUsernameFormat, displayUsername } from '../../Utils/username'
-import { makeEventInviteMessage, makePollAddOptionMessage } from '../../ported/modern-messages'
-import { generateWAMessageContent } from '../../Utils/messages'
-import { buildMemberLabelMessage } from '../../Socket/messages-send'
 import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../../ported/group-metadata-cache'
+import { makeEventInviteMessage, makePollAddOptionMessage } from '../../ported/modern-messages'
 import { commitSenderKeyDelivery, pickSenderKeyRecipients } from '../../ported/sender-key-memory'
+import { buildMemberLabelMessage } from '../../Socket/messages-send'
 import { GroupHistoryToggleMode } from '../../Types/GroupMetadata'
 import { RETRYABLE_ACK_CODES } from '../../Utils/decode-wa-message'
+import { getPollOptionHash } from '../../Utils/messages'
+import { generateWAMessageContent } from '../../Utils/messages'
+import { assertUsername, displayUsername, validateUsernameFormat } from '../../Utils/username'
+import { isJidLocationBroadcast, LOCATION_BROADCAST_JID } from '../../WABinary/jid-utils'
 
 describe('Elaina ports', () => {
 	it('hashes photo poll options deterministically', () => {
@@ -70,7 +70,7 @@ describe('Elaina ports', () => {
 
 		it('richLink builds an extended text card', async () => {
 			const m = await generateWAMessageContent(
-				{ richLink: { url: 'https://example.com', title: 'T', description: 'D' } } as any,
+				{ richLink: { url: 'https://example.com', title: 'T', description: 'D' } },
 				opts
 			)
 			expect(m.extendedTextMessage?.matchedText).toBe('https://example.com')
@@ -81,7 +81,7 @@ describe('Elaina ports', () => {
 
 		it('groupMentions adds contextInfo and the @token', async () => {
 			const m = await generateWAMessageContent(
-				{ text: 'hi', groupMentions: [{ groupJid: '123@g.us', groupSubject: 'G' }] } as any,
+				{ text: 'hi', groupMentions: [{ groupJid: '123@g.us', groupSubject: 'G' }] },
 				opts
 			)
 			expect(m.extendedTextMessage?.contextInfo?.groupMentions?.[0]?.groupJid).toBe('123@g.us')
@@ -90,7 +90,10 @@ describe('Elaina ports', () => {
 
 		it('forwardedNewsletter marks the message forwarded', async () => {
 			const m = await generateWAMessageContent(
-				{ text: 'hi', forwardedNewsletter: { newsletterJid: '1@newsletter', serverMessageId: 100, newsletterName: 'N' } } as any,
+				{
+					text: 'hi',
+					forwardedNewsletter: { newsletterJid: '1@newsletter', serverMessageId: 100, newsletterName: 'N' }
+				},
 				opts
 			)
 			expect(m.extendedTextMessage?.contextInfo?.isForwarded).toBe(true)
@@ -98,14 +101,14 @@ describe('Elaina ports', () => {
 		})
 
 		it('statusLinkPreview validates the style', async () => {
-			const m = await generateWAMessageContent({ text: 'hi', statusLinkPreview: 2 } as any, opts)
+			const m = await generateWAMessageContent({ text: 'hi', statusLinkPreview: 2 }, opts)
 			expect((m as any).statusLinkPreviewMetadata).toEqual({ style: 2 })
 			await expect(generateWAMessageContent({ text: 'hi', statusLinkPreview: -1 } as any, opts)).rejects.toThrow()
 		})
 
 		it('photo poll options with a hash use the V3 poll message', async () => {
 			const m = await generateWAMessageContent(
-				{ poll: { name: 'q', values: [{ name: 'a', optionHash: 'h1' }, 'b'], selectableCount: 1 } } as any,
+				{ poll: { name: 'q', values: [{ name: 'a', optionHash: 'h1' }, 'b'], selectableCount: 1 } },
 				opts
 			)
 			expect(m.pollCreationMessageV3?.options?.[0]?.optionHash).toBe('h1')
