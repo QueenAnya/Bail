@@ -3844,7 +3844,7 @@ export const MessageBuilder = {
 	Button,
 	ButtonV2,
 	Carousel,
-	Carousel as AIRichCarousel,
+	AIRichCarousel: Carousel,
 	AIRich,
 	Toolkit,
 	AIRichError,
