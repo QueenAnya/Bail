@@ -808,12 +808,22 @@ class Button extends BaseBuilder {
 	}
 
 	addButton(name, params) {
-		// Keep an already-serialized Native Flow payload (and anything that is not a plain object, e.g. an array) unchanged.
+		// Object form: addButton({ name, buttonParamsJson | params }) - same payload as addButton(name, params).
+		if (name && typeof name === 'object' && !Array.isArray(name)) {
+			params = name.buttonParamsJson ?? name.params ?? params
+			name = name.name
+		}
+		if (typeof name !== 'string' || !name) {
+			throw new TypeError('addButton needs a native flow button name')
+		}
+		// Keep an already-serialized Native Flow payload (and arrays) unchanged.
 		let buttonParamsJson
-		if (!params || typeof params !== 'object' || Array.isArray(params)) {
-			buttonParamsJson = typeof params === 'string' ? params : JSON.stringify(params)
+		if (typeof params === 'string') {
+			buttonParamsJson = params
+		} else if (Array.isArray(params)) {
+			buttonParamsJson = JSON.stringify(params)
 		} else {
-			const normalized = { ...params }
+			const normalized = params && typeof params === 'object' ? { ...params } : {}
 			const buttonText = normalized.display_text
 				?? normalized.text
 				?? normalized.displayText
@@ -1122,6 +1132,12 @@ class ButtonV2 extends BaseBuilder {
 	}
 
 	addButton(displayText = '', buttonId = crypto.randomUUID()) {
+		// Object form: addButton({ text | display_text | displayText, id | buttonId })
+		if (displayText && typeof displayText === 'object' && !Array.isArray(displayText)) {
+			const input = displayText
+			displayText = resolvePortedButtonDisplayText(input) ?? ''
+			buttonId = input.buttonId ?? input.button_id ?? input.id ?? buttonId
+		}
 		this._buttons.push({
 			buttonId,
 			buttonText: { displayText },
@@ -3828,6 +3844,7 @@ export const MessageBuilder = {
 	Button,
 	ButtonV2,
 	Carousel,
+	Carousel as AIRichCarousel,
 	AIRich,
 	Toolkit,
 	AIRichError,

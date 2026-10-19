@@ -5524,6 +5524,29 @@ if (parsedRich && signature.status === 'passed') {
 - `Carousel` is exported as `AIRichCarousel` (the name `Carousel` is already a message type here).
 - The builder is **licensed separately by its author** - keep the watermark in `src/ported/MessageBuilder/index.ts` and keep the original watermark and license header in that file.
 
+### Button label and payload forms
+
+All forms below produce the same wire payload. The display-text aliases `display_text`, `text`, `displayText`, `displaytext` and
+`buttonText` (string or `{ displayText }`) are accepted, and an already serialized `buttonParamsJson` string is kept byte-for-byte.
+
+```ts
+// Native flow button builder (interactiveMessage)
+new Button(sock)
+  .addButton('quick_reply', { text: 'Hi', id: '1' })                    // -> { text: 'Hi', id: '1', display_text: 'Hi' }
+  .addButton('cta_url', JSON.stringify({ display_text: 'Site', url: 'https://example.com' })) // kept as is
+  .addButton({ name: 'quick_reply', buttonParamsJson: { displayText: 'Yes', id: 'y' } })      // object form
+  .addReply('Direct', '2')
+
+// Legacy buttons builder (buttonsMessage)
+new ButtonV2(sock)
+  .addButton('Yes', 'y')                                    // addButton(label, id)
+  .addButton({ text: 'No', id: 'n' })                       // object form: text | display_text | displayText, id | buttonId | button_id
+  .addRawButton({ buttonId: 'm', text: 'Maybe', type: 1 })  // string buttonText / aliases become { displayText }
+```
+
+- `Button.addButton` throws a `TypeError` when no native flow button name is given.
+- `ButtonV2.addButton({ id })` without any label falls back to an empty label.
+
 ## Additional ported utilities
 
 ### TTL cache

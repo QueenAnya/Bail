@@ -236,8 +236,8 @@ export {
 export {
   Button as NativeFlowButtonV2,
   Button as ElainaButtonV2,
-  AIRichCarousel as CarouselV2,
-  AIRichCarousel as AIRichCarouselV2,
+  Carousel as CarouselV2,
+  Carousel as AIRichCarouselV2,
   AIRich as AIRichV2,
   Toolkit as ToolkitV2,
   AIRichError as AIRichErrorV2,
@@ -252,7 +252,7 @@ export {
 
 
 /** V2 names for the Elaina-derived builder instance methods. Original names remain for compatibility. */
-import { Button as _NativeFlowButton, AIRichCarousel as _Carousel, AIRich as _AIRich, Toolkit as _Toolkit } from './MessageBuilder/index'
+import { Button as _NativeFlowButton, Carousel as _Carousel, AIRich as _AIRich, Toolkit as _Toolkit } from './MessageBuilder/index'
 const _v2MethodAliases: Array<[object, string[]]> = [
   [_NativeFlowButton, ['setTitle','setSubtitle','setBody','setFooter','setContextInfo','addPayload','setImage','setVideo','setDocument','setMedia','clearButtons','setParams','addButton','makeRow','makeSection','addSelection','addReply','addCall','addReminder','addCancelReminder','addAddress','addLocation','addUrl','addCopy','toCard','build']],
   [_Carousel, ['addCard','build','setRawThumbnail','setThumbnail','setMedia']],
