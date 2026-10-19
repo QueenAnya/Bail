@@ -234,40 +234,105 @@ export {
 // Builder class aliases. ElainaButtonV2 is the explicit alias for Elaina's general-purpose Button builder.
 // NativeFlowButtonV2 remains as a compatibility alias, although the builder is not limited to native-flow buttons.
 export {
-  Button as NativeFlowButtonV2,
-  Button as ElainaButtonV2,
-  Carousel as CarouselV2,
-  Carousel as AIRichCarouselV2,
-  AIRich as AIRichV2,
-  Toolkit as ToolkitV2,
-  AIRichError as AIRichErrorV2,
-  ItemNotFoundError as ItemNotFoundErrorV2,
-  DuplicateIdError as DuplicateIdErrorV2,
-  InvalidTargetError as InvalidTargetErrorV2,
-  ContentValidationError as ContentValidationErrorV2,
-  VERSION as MESSAGE_BUILDER_VERSION_V2,
-  MessageBuilder as MessageBuilderV2,
-  MB as MBV2
+	Button as NativeFlowButtonV2,
+	Button as ElainaButtonV2,
+	Carousel as CarouselV2,
+	Carousel as AIRichCarouselV2,
+	AIRich as AIRichV2,
+	Toolkit as ToolkitV2,
+	AIRichError as AIRichErrorV2,
+	ItemNotFoundError as ItemNotFoundErrorV2,
+	DuplicateIdError as DuplicateIdErrorV2,
+	InvalidTargetError as InvalidTargetErrorV2,
+	ContentValidationError as ContentValidationErrorV2,
+	VERSION as MESSAGE_BUILDER_VERSION_V2,
+	MessageBuilder as MessageBuilderV2,
+	MB as MBV2
 } from './MessageBuilder/index'
 
-
 /** V2 names for the Elaina-derived builder instance methods. Original names remain for compatibility. */
-import { Button as _NativeFlowButton, Carousel as _Carousel, AIRich as _AIRich, Toolkit as _Toolkit } from './MessageBuilder/index'
+import {
+	AIRich as _AIRich,
+	Button as _NativeFlowButton,
+	Carousel as _Carousel,
+	Toolkit as _Toolkit
+} from './MessageBuilder/index'
 const _v2MethodAliases: Array<[object, string[]]> = [
-  [_NativeFlowButton, ['setTitle','setSubtitle','setBody','setFooter','setContextInfo','addPayload','setImage','setVideo','setDocument','setMedia','clearButtons','setParams','addButton','makeRow','makeSection','addSelection','addReply','addCall','addReminder','addCancelReminder','addAddress','addLocation','addUrl','addCopy','toCard','build']],
-  [_Carousel, ['addCard','build','setRawThumbnail','setThumbnail','setMedia']],
-  [_AIRich, ['addEmbeddedScreen','setBotMetadata','addFooterSection','clearFooterSections','setResponseMeta','setResponseId','setBotResponseId','createAlert','addText','addFOAText','addCode','addTable','addMap','addSource','addReels','addImage','addVideo','addProduct','addPost','addMetadata','addTip','addWidget','addFooterAction','addSuggest','addSection','addSubmessage','build']],
-  [_Toolkit, ['toTableMetadata','generateVerificationMetadata','newLayout']]
+	[
+		_NativeFlowButton,
+		[
+			'setTitle',
+			'setSubtitle',
+			'setBody',
+			'setFooter',
+			'setContextInfo',
+			'addPayload',
+			'setImage',
+			'setVideo',
+			'setDocument',
+			'setMedia',
+			'clearButtons',
+			'setParams',
+			'addButton',
+			'makeRow',
+			'makeSection',
+			'addSelection',
+			'addReply',
+			'addCall',
+			'addReminder',
+			'addCancelReminder',
+			'addAddress',
+			'addLocation',
+			'addUrl',
+			'addCopy',
+			'toCard',
+			'build'
+		]
+	],
+	[_Carousel, ['addCard', 'build', 'setRawThumbnail', 'setThumbnail', 'setMedia']],
+	[
+		_AIRich,
+		[
+			'addEmbeddedScreen',
+			'setBotMetadata',
+			'addFooterSection',
+			'clearFooterSections',
+			'setResponseMeta',
+			'setResponseId',
+			'setBotResponseId',
+			'createAlert',
+			'addText',
+			'addFOAText',
+			'addCode',
+			'addTable',
+			'addMap',
+			'addSource',
+			'addReels',
+			'addImage',
+			'addVideo',
+			'addProduct',
+			'addPost',
+			'addMetadata',
+			'addTip',
+			'addWidget',
+			'addFooterAction',
+			'addSuggest',
+			'addSection',
+			'addSubmessage',
+			'build'
+		]
+	],
+	[_Toolkit, ['toTableMetadata', 'generateVerificationMetadata', 'newLayout']]
 ]
 for (const [target, methods] of _v2MethodAliases) {
-  const prototype = (target as { prototype: object }).prototype
-  for (const name of methods) {
-    const instanceDescriptor = Object.getOwnPropertyDescriptor(prototype, name)
-    const staticDescriptor = Object.getOwnPropertyDescriptor(target, name)
-    const owner = instanceDescriptor ? prototype : target
-    const descriptor = instanceDescriptor || staticDescriptor
-    if (descriptor && typeof descriptor.value === 'function' && !(`${name}V2` in owner)) {
-      Object.defineProperty(owner, `${name}V2`, { ...descriptor, configurable: true })
-    }
-  }
+	const prototype = (target as { prototype: object }).prototype
+	for (const name of methods) {
+		const instanceDescriptor = Object.getOwnPropertyDescriptor(prototype, name)
+		const staticDescriptor = Object.getOwnPropertyDescriptor(target, name)
+		const owner = instanceDescriptor ? prototype : target
+		const descriptor = instanceDescriptor || staticDescriptor
+		if (descriptor && typeof descriptor.value === 'function' && !(`${name}V2` in owner)) {
+			Object.defineProperty(owner, `${name}V2`, { ...descriptor, configurable: true })
+		}
+	}
 }

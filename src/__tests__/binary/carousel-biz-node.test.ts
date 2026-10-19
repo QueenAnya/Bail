@@ -76,7 +76,12 @@ describe('Interactive Carousel Biz Node', () => {
 		const message = {
 			interactiveMessage: {
 				nativeFlowMessage: {
-					buttons: [{ name: 'galaxy_message', buttonParamsJson: JSON.stringify({ flow_token: 'test-token', flow_id: 'test-flow' }) }]
+					buttons: [
+						{
+							name: 'galaxy_message',
+							buttonParamsJson: JSON.stringify({ flow_token: 'test-token', flow_id: 'test-flow' })
+						}
+					]
 				}
 			}
 		} as any
