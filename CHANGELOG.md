@@ -1,4 +1,5 @@
 # 3.0.0 (2026-10-19)
+<<<<<<< HEAD
 
 ### Added
 
@@ -19,3 +20,5 @@
 
 * `src/Extras/message-builder/` is kept for now as a deprecated, unused duplicate (synced with `src/Extras/MessageBuilder/`, not exported). Delete it when it is no longer needed.
 
+=======
+>>>>>>> refs/remotes/origin/master

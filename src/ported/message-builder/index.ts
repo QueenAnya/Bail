@@ -50,11 +50,10 @@ function resolvePortedButtonDisplayText(button) {
 		button.text,
 		button.displayText,
 		button.displaytext,
-		typeof buttonText === 'string' ? buttonText : buttonText?.displayText ?? buttonText?.display_text
+		typeof buttonText === 'string' ? buttonText : (buttonText?.displayText ?? buttonText?.display_text)
 	]
 	return candidates.find(value => typeof value === 'string' && value.length > 0)
 }
-
 
 import * as crypto from 'node:crypto'
 import { readFile } from 'node:fs/promises'
@@ -813,9 +812,11 @@ class Button extends BaseBuilder {
 			params = name.buttonParamsJson ?? name.params ?? params
 			name = name.name
 		}
+
 		if (typeof name !== 'string' || !name) {
 			throw new TypeError('addButton needs a native flow button name')
 		}
+
 		// Keep an already-serialized Native Flow payload (and arrays) unchanged.
 		let buttonParamsJson
 		if (typeof params === 'string') {
@@ -824,20 +825,22 @@ class Button extends BaseBuilder {
 			buttonParamsJson = JSON.stringify(params)
 		} else {
 			const normalized = params && typeof params === 'object' ? { ...params } : {}
-			const buttonText = normalized.display_text
-				?? normalized.text
-				?? normalized.displayText
-				?? normalized.displaytext
-				?? (typeof normalized.buttonText === 'string'
+			const buttonText =
+				normalized.display_text ??
+				normalized.text ??
+				normalized.displayText ??
+				normalized.displaytext ??
+				(typeof normalized.buttonText === 'string'
 					? normalized.buttonText
-					: normalized.buttonText?.displayText ?? normalized.buttonText?.display_text)
+					: (normalized.buttonText?.displayText ?? normalized.buttonText?.display_text))
 			if (buttonText !== undefined && buttonText !== null && normalized.display_text == null) {
-				normalized.display_text = typeof buttonText === 'object'
-					? (buttonText.displayText ?? buttonText.display_text)
-					: buttonText
+				normalized.display_text =
+					typeof buttonText === 'object' ? (buttonText.displayText ?? buttonText.display_text) : buttonText
 			}
+
 			buttonParamsJson = JSON.stringify(normalized)
 		}
+
 		this._buttons.push({ name, buttonParamsJson })
 		return this
 	}
@@ -1138,6 +1141,7 @@ class ButtonV2 extends BaseBuilder {
 			displayText = resolvePortedButtonDisplayText(input) ?? ''
 			buttonId = input.buttonId ?? input.button_id ?? input.id ?? buttonId
 		}
+
 		this._buttons.push({
 			buttonId,
 			buttonText: { displayText },
@@ -1171,6 +1175,7 @@ class ButtonV2 extends BaseBuilder {
 		} else {
 			this._buttons.push(obj)
 		}
+
 		return this
 	}
 
