@@ -16,7 +16,7 @@ jest.unstable_mockModule('../../Utils/messages.js', () => ({
 
 describe('sendGroupStatus', () => {
 	test('wraps generated message as groupStatusMessageV2 and sets isGroupStatus', async () => {
-		const { sendGroupStatus } = await import('../../addons/send-group-status')
+		const { sendGroupStatus } = await import('../../Addons/send-group-status')
 
 		const relayMessage = jest.fn(async () => undefined)
 		const sock = {
@@ -41,7 +41,7 @@ describe('sendGroupStatus', () => {
 	})
 
 	test('rejects a non-group JID', async () => {
-		const { sendGroupStatus } = await import('../../addons/send-group-status')
+		const { sendGroupStatus } = await import('../../Addons/send-group-status')
 		const sock = { user: { id: '123@s.whatsapp.net' }, waUploadToServer: jest.fn(), relayMessage: jest.fn() }
 
 		await expect(sendGroupStatus(sock, '123@s.whatsapp.net', { text: 'Hello' })).rejects.toThrow('invalid group JID')

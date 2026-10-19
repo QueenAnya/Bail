@@ -7,7 +7,7 @@
  * without the extra StatusMentions mention-tagging support that
  * `status-posting.ts` adds on top. Kept as a separate file for
  * reference/audit purposes (rather than merged/overwritten), but
- * deliberately NOT re-exported from `addons/index.ts` — its functions are
+ * deliberately NOT re-exported from `Addons/index.ts` — its functions are
  * already available via `status-posting.ts`, which is exported.
  */
 import { randomBytes } from 'crypto'

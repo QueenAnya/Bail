@@ -4009,7 +4009,7 @@ guide with code is in the root `README.md` ("innovatorssoft README compatibility
 | `!templaterender` | custom template overriding a preset, rendered by name slug |
 | `!msgtemplate` | `list` / `render <id> k=v ...` / `create Name \| content` / `delete <id>` message templates |
 | `!defaultdisappearing` | `updateDisappearingDuration(24 \| 7 \| 30 \| 90 \| 0 \| seconds)` |
-| `!question` / `!comment` / `!addyours` | question, comment and add-yours messages (src/ported) |
+| `!question` / `!comment` / `!addyours` | question, comment and add-yours messages (src/Extras) |
 | `!splitpay` / `!remind` | split payment and payment reminder (INR) |
 | `!hd` / `!motion` | `sendHD` and `sendImgVid` (motion photo) |
 | `!health` / `!about` / `!serverprops` / `!serverlink` | account health, about, server props, server link preview |

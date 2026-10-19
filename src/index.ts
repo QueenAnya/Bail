@@ -7,10 +7,8 @@ export * from './Defaults/index'
 export * from './WABinary/index'
 export * from './WAM/index'
 export * from './WAUSync/index'
-export * from './addons/index'
-export * from './ported/index'
-// Resolve the duplicate Carousel name exported by Types and ported APIs.
-export { Carousel } from './ported/MessageBuilder/index'
+export * from './Addons/index'
+export * from './Extras/index'
 export * from './Voip/index'
 export * from './Framework/index'
 

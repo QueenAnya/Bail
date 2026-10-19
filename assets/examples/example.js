@@ -1494,7 +1494,7 @@ async function startBot() {
                     }
                     break;
                 }
-                // ── features ported from other forks (src/ported, see README: "Ported from other forks") ──
+                // ── features ported from other forks (src/Extras, see README: "Ported from other forks") ──
                 case '!question': {
                     try {
                         await sock.sendMessage(normalizedJid, { question: { text: args || 'What is your favourite colour?' } }, { quoted: message });

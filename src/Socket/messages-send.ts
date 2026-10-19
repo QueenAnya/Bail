@@ -2,9 +2,9 @@ import NodeCache from '@cacheable/node-cache'
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import { execSendStatusMentions } from '../addons/from-messages-send'
-import { GroupStatus as GroupStatusAddon } from '../addons/group-status'
-import { GroupStatusV2 as GroupStatusV2Addon } from '../addons/group-status-v2'
+import { execSendStatusMentions } from '../Addons/from-messages-send'
+import { GroupStatus as GroupStatusAddon } from '../Addons/group-status'
+import { GroupStatusV2 as GroupStatusV2Addon } from '../Addons/group-status-v2'
 import {
 	type CapturedUnifiedResponse,
 	type ExtractOptions,
@@ -25,26 +25,26 @@ import {
 	renderLatexToPng as defaultRenderLatexToPng,
 	type RichSubMessage,
 	uploadUnencryptedToWA
-} from '../addons/message-composer'
-import { makeMessageExtrasAddon } from '../addons/message-utils'
-import { monitorPresence as monitorPresenceAddon, type PresenceMonitorOptions } from '../addons/presence-monitor'
-import { resizeImage } from '../addons/resize-image'
-import { sendGroupStatus as sendGroupStatusAddon } from '../addons/send-group-status'
-import { sendGroupStatusV2 as sendGroupStatusV2Addon } from '../addons/send-group-status-v2'
+} from '../Addons/message-composer'
+import { makeMessageExtrasAddon } from '../Addons/message-utils'
+import { monitorPresence as monitorPresenceAddon, type PresenceMonitorOptions } from '../Addons/presence-monitor'
+import { resizeImage } from '../Addons/resize-image'
+import { sendGroupStatus as sendGroupStatusAddon } from '../Addons/send-group-status'
+import { sendGroupStatusV2 as sendGroupStatusV2Addon } from '../Addons/send-group-status-v2'
 import {
 	sendGroupInvite as sendGroupInviteAddon,
 	sendGroupV4Invite as sendGroupV4InviteAddon,
 	type SendGroupV4InviteDeps
-} from '../addons/send-group-v4-invite'
-import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../addons/stickerpack.js'
+} from '../Addons/send-group-v4-invite'
+import { prepareStickerPackMessage, type StickerPackInput, type StickerPackOptions } from '../Addons/stickerpack.js'
 import {
 	DEFAULT_CACHE_TTLS,
 	MAX_OUTBOUND_RESEND_ENTRIES,
 	MEMBER_LABEL_MAX_LENGTH,
 	WA_DEFAULT_EPHEMERAL
 } from '../Defaults'
-import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../ported/group-metadata-cache'
-import { commitSenderKeyDelivery, pickSenderKeyRecipients } from '../ported/sender-key-memory'
+import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../Extras/group-metadata-cache'
+import { commitSenderKeyDelivery, pickSenderKeyRecipients } from '../Extras/sender-key-memory'
 import type {
 	AnyMessageContent,
 	GroupV4InviteContent,
@@ -1640,7 +1640,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	let self: any
 	/**
 	 * Builds the deps object `sendGroupV4InviteAddon`/`sendGroupInviteAddon`
-	 * (src/addons/send-group-v4-invite.ts) need — computed fresh on each call
+	 * (src/Addons/send-group-v4-invite.ts) need — computed fresh on each call
 	 * since `authState.creds.me!.id` isn't necessarily set yet at socket
 	 * construction time.
 	 */
@@ -1654,7 +1654,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 	})
 
 	/**
-	 * makeMessageExtrasAddon (src/addons/message-utils.ts) — its
+	 * makeMessageExtrasAddon (src/Addons/message-utils.ts) — its
 	 * newsletter-aware profilePictureUrl needs a real newsletterWMexQuery,
 	 * which is now wired via Socket/newsletter.ts. Non-newsletter jids
 	 * fall through to the original, more complete sock.profilePictureUrl
@@ -1690,7 +1690,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 			return sock.profilePictureUrl(jid, type, timeoutMs)
 		},
-		// (src/addons/message-utils.ts → makeMessageExtrasAddon)
+		// (src/Addons/message-utils.ts → makeMessageExtrasAddon)
 		getEphemeralGroup: messageExtras.getEphemeralGroup,
 		sendReceipts,
 		readMessages,
@@ -1824,7 +1824,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 		sendGroupInvite: (groupJid: string, user: string) => sendGroupInviteAddon(groupV4InviteDeps(), groupJid, user),
 		// Convenience wrapper so callers can do `sock.monitorPresence(jid, opts)`
 		// instead of importing monitorPresence separately and passing `sock` in.
-		// (src/addons/presence-monitor.ts)
+		// (src/Addons/presence-monitor.ts)
 		monitorPresence: (targets: string | string[], options?: PresenceMonitorOptions) =>
 			monitorPresenceAddon(sock, targets, options),
 
@@ -1836,7 +1836,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			// Passing an array as `jid` is shorthand for a "status mention" —
 			// posts a single `status@broadcast` update and mentions every jid
 			// in the array (group jids are expanded to their participants).
-			// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+			// Logic lives in Addons/from-messages-send.ts → execSendStatusMentions
 			// (the same helper `sock.sendStatusMentions` already uses).
 			if (Array.isArray(jid)) {
 				return execSendStatusMentions(content, jid, {
@@ -2199,7 +2199,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		/**
 		 * Build and send a sticker pack via the alternate builder
-		 * (`prepareStickerPackMessage`, addons/stickerpack.ts) — kept as a
+		 * (`prepareStickerPackMessage`, Addons/stickerpack.ts) — kept as a
 		 * distinct implementation from the one `sock.sendMessage(jid, {
 		 * stickerPack: {...} })` uses. Use whichever produces the result you
 		 * need; both are fully supported.
@@ -2225,7 +2225,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			)
 		},
 
-		// addons/resize-image.ts — `jpegThumbnail: await sock.resize(url, 320, 320)`
+		// Addons/resize-image.ts — `jpegThumbnail: await sock.resize(url, 320, 320)`
 		resize: (media: WAMediaUpload | string, width?: number, height?: number): Promise<Buffer> =>
 			resizeImage(media, width, height),
 
@@ -2237,7 +2237,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			options: MiscMessageGenerationOptions = {}
 		): Promise<any> => (socket as any).sendMessage(jid, { forward: message, force: forceForward }, options),
 
-		// Logic lives in addons/from-messages-send.ts → execSendStatusMentions
+		// Logic lives in Addons/from-messages-send.ts → execSendStatusMentions
 		sendStatusMentions: async (content: AnyMessageContent, jids: string[] = []) => {
 			return execSendStatusMentions(content, jids, {
 				meId: authState.creds.me!.id,

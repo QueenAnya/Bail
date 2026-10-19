@@ -51,7 +51,7 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 
 	/**
 	 * Raw w:mex query, returning the unparsed BinaryNode response — matches the
-	 * shape src/addons/message-utils.ts's MessageExtrasContext expects for
+	 * shape src/Addons/message-utils.ts's MessageExtrasContext expects for
 	 * makeMessageExtrasAddon's newsletter-aware profilePictureUrl.
 	 */
 	const newsletterWMexQuery = (

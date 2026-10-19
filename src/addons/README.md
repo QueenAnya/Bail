@@ -1,8 +1,8 @@
 # Baileys (F_merge) — Addons
 
-This folder contains every ported/extra feature on top of vanilla
+This folder contains every Extras/extra feature on top of vanilla
 `@whiskeysockets/baileys`. Every addon is self-contained, fully typed, and
-re-exported from `addons/index.ts` → `src/index.ts`.
+re-exported from `Addons/index.ts` → `src/index.ts`.
 
 All sources below were verified against the actual upstream code (not just
 doc claims) — either by diffing against a real clone of
@@ -10,7 +10,7 @@ doc claims) — either by diffing against a real clone of
 comparison against `another upstream fork` and `an upstream fork`'s
 compiled output.
 
-Every `.ts` file under `addons/` that exports real functionality is
+Every `.ts` file under `Addons/` that exports real functionality is
 listed in the table below (`index.ts`, the barrel file, is the only
 intentional exclusion). The former standalone VoIP wrapper is reference-only
 under `Voip/standalone/`; the public API is the
@@ -53,7 +53,7 @@ merged `makeVoipClient()` facade documented in `docs/en/voip.md`.
 | `jid-plot.ts`                                                                         | Separate, smaller JID-plotting variant                                                                                                                                                                                                                                                                                                             | Unverified — no match found in either fork or any supplied PR                                                                                                                                                     | ❌                                                                                                                                                                                                |
 | `message-scheduler.ts`                                                                | Alternate scheduler implementation                                                                                                                                                                                                                                                                                                                 | Unverified — no match found in either fork                                                                                                                                                                        | ❌                                                                                                                                                                                                |
 | `from-chats.ts`, `from-messages.ts`, `from-messages-recv.ts`, `from-messages-send.ts` | Baseline re-exports adapted from this fork's own `Socket`/`Utils` files                                                                                                                                                                                                                                                                            | WhiskeySockets/Baileys (this fork's own source, not a third-party fork)                                                                                                                                           | —                                                                                                                                                                                                 |
-| `interactive-message-basic.ts`                                                        | Pure TS port of the other upstream fork's `interactive-message.js` (same 8 functions as `interactive-message.ts`)                                                                                                                                                                                                                                  | another upstream fork                                                                                                                                                                                             | ✅ logic identical to `interactive-message.ts`; kept for reference, deliberately **not** re-exported from `addons/index.ts` (same export policy as `status-helpers.ts`)                           |
+| `interactive-message-basic.ts`                                                        | Pure TS port of the other upstream fork's `interactive-message.js` (same 8 functions as `interactive-message.ts`)                                                                                                                                                                                                                                  | another upstream fork                                                                                                                                                                                             | ✅ logic identical to `interactive-message.ts`; kept for reference, deliberately **not** re-exported from `Addons/index.ts` (same export policy as `status-helpers.ts`)                           |
 | `link-preview-extras.ts`                                                              | `applyLinkPreviewMetadata`, `buildFaviconMMSMetadata` — `linkPreviewMetadata` + `favicon` support on text messages                                                                                                                                                                                                                                 | another upstream fork (commit `fc139c8`)                                                                                                                                                                          | ✅ called from `Utils/messages.ts`; type-only import of `prepareWAMessageMedia` avoids a runtime circular import                                                                                  |
 | `newsletter-role-updates.ts`                                                          | `emitNewsletterRoleUpdate` — promote/demote event emission, fixes a missing `NotificationNewsletterAdminDemote` case that silently dropped demotions                                                                                                                                                                                               | another upstream fork (commit `170c5af`)                                                                                                                                                                          | ✅ called from `Socket/messages-recv.ts`                                                                                                                                                          |
 | `find-user-id.ts`                                                                     | `findUserId` — resolves a PN or LID jid to both forms                                                                                                                                                                                                                                                                                              | an upstream fork                                                                                                                                                                                                  | ✅ called from `Socket/chats.ts` as `sock.findUserId()`; takes `lidMapping` as a parameter rather than importing `signalRepository` directly                                                      |
@@ -361,7 +361,7 @@ item-by-item, checking real code (not just presence) against F_merge:
   buffer through a mocked upload function — ZIP build, ID generation,
   and thumbnail generation all confirmed working.
 - Also discovered and fixed: **`stickerpack.ts` itself was never wired
-  into the addons barrel export** (`addons/index.ts`) — none of its
+  into the addons barrel export** (`Addons/index.ts`) — none of its
   exports (`buildStickerPackProto`, `generateStickerPackId`,
   `STICKER_PACK_MESSAGE_TYPE`, `convertToWebP`,
   `prepareStickerPackMessage`) were reachable via
@@ -405,7 +405,7 @@ needed for: `anti-delete`, `auto-reply`, `baileys-event-stream`,
 `rich-message-utils` (the other upstream fork's `botMetadataSignature` /
 `botMetadataCertificate` / `wrapToBotForwardedMessage` /
 `prepareRichResponseMessage` are all present, consolidated into
-`addons/bot-forwarded-message.ts` instead of a separate file — logic
+`Addons/bot-forwarded-message.ts` instead of a separate file — logic
 verified identical, only the random-byte source differs cosmetically:
 `crypto.randomFillSync` (Node) vs `getRandomValues` (Web Crypto), both
 cryptographically equivalent).
@@ -429,7 +429,7 @@ the recommended option.
 
 ## Category B/C Cleanup — This Session
 
-Following up on the full `addons/` audit above, the user confirmed all
+Following up on the full `Addons/` audit above, the user confirmed all
 Category C files (originally-unmatched to either fork) **except
 `button-sender.ts`** were personally hand-ported from community forks
 by the user — not misattributed, just not matchable by function-name search
@@ -449,12 +449,12 @@ the other upstream fork's own source exactly (their `message-composer.js` and
 `rich-message-utils.js` duplicate `tokenizeCode` verbatim; this fork just
 de-duplicated it). Since the file is a complete, faithful port, it was
 renamed to match the upstream filename. All import references
-(`Utils/messages.ts`, `addons/index.ts`, `addons/rich-response.ts`) updated
+(`Utils/messages.ts`, `Addons/index.ts`, `Addons/rich-response.ts`) updated
 accordingly.
 
-## Full `addons/` Audit — File Rename, Export Fixes, New Clone (this session)
+## Full `Addons/` Audit — File Rename, Export Fixes, New Clone (this session)
 
-Cross-checked all 34 files in `src/addons/` against both the other upstream fork's
+Cross-checked all 34 files in `src/Addons/` against both the other upstream fork's
 and the upstream fork's actual source, function-by-function (not just filename
 matching). Findings and fixes:
 
@@ -468,16 +468,16 @@ matching). Findings and fixes:
    verbatim across both files; this fork de-duplicated it, which doesn't
    change behavior). Since scope was 100% complete, renamed to match the
    upstream filename. All internal/external references
-   (`Utils/messages.ts`, `addons/index.ts`, `addons/rich-response.ts`)
+   (`Utils/messages.ts`, `Addons/index.ts`, `Addons/rich-response.ts`)
    updated accordingly.
 
 2. **`interactive-message.ts` export was commented out** in
-   `addons/index.ts` (`//export * from './interactive-message'`) —
+   `Addons/index.ts` (`//export * from './interactive-message'`) —
    uncommented. Checked for naming collisions against every other
    currently-exported addon file first; none found.
 
 3. **`status-helpers.ts` — confirmed already correctly exported** via a
-   pre-existing aliased block in `addons/index.ts` (`*Basic` suffix on all
+   pre-existing aliased block in `Addons/index.ts` (`*Basic` suffix on all
    12 overlapping names vs `status-posting.ts`). No action needed beyond
    expanding its header comment to clarify the relationship between the two
    files (same core functions; `status-posting.ts` additionally has
@@ -501,7 +501,7 @@ matching). Findings and fixes:
    fork). **Export policy:** when a cloned file's functions are already
    available via another exported file, the clone is kept in the repo for
    reference/audit purposes but is deliberately **not** re-exported from
-   `addons/index.ts` — avoids alias-naming churn for zero functional
+   `Addons/index.ts` — avoids alias-naming churn for zero functional
    benefit. Same policy applied to `status-helpers.ts` (also kept,
    also unexported, since `status-posting.ts` already exports the same
    12 functions).
@@ -594,7 +594,7 @@ the host OS/CPU architecture.
 
 ### Legacy standalone VoIP source (reference-only)
 
-The prior `Voip/voip-client.ts` and `addons/voip-calling.ts` wrapper sources have been moved to `Voip/standalone/`. They are not in `src/`, are not exported from package barrels, and are excluded from npm releases. The public replacement is the unified `makeVoipClient(sock)` facade documented in `docs/en/voip.md`; its methods select the internal engine automatically.
+The prior `Voip/voip-client.ts` and `Addons/voip-calling.ts` wrapper sources have been moved to `Voip/standalone/`. They are not in `src/`, are not exported from package barrels, and are excluded from npm releases. The public replacement is the unified `makeVoipClient(sock)` facade documented in `docs/en/voip.md`; its methods select the internal engine automatically.
 
 ## New Addons This Session — link-preview-extras, newsletter-role-updates, find-user-id
 
@@ -709,12 +709,12 @@ Usage for all of these is in the root `README.md`, section 37.
 | `hasValidCarouselHeader` + 400 on invalid card media                                                                                          | `Utils/messages.ts`                                                                                | itsliaaa; also accepts `documentMessage` (this fork supports document cards). Cards with no media at all are allowed (empty header, `hasMediaAttachment: false`)                                                                                                                                                                                                                                                                                                                                          |
 | `limit-sharing.update`, `community-owner.update`, `groups.update.member_link_mode`                                                            | `Socket/messages-recv.ts`, `Utils/process-message.ts`, `Types/Events.ts`, `Types/GroupMetadata.ts` | innovatorssoft. `MexUpdatesOperations` / `XWAPathsMexUpdates` already existed in `Types/Mex.ts` — only the handlers were missing                                                                                                                                                                                                                                                                                                                                                                          |
 | `sock.unmuteCall`                                                                                                                             | `Socket/messages-recv.ts`                                                                          | `muteCall(..., false)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `isOnlinePresence`, `isOfflinePresence`, `get/setDefaultTimezone`, `formatTime`, `formatDateTime`, `PresenceTracker`, `createPresenceTracker` | `addons/presence-monitor.ts`                                                                       | aliases/helpers over the existing `PresenceMonitor`; default timezone is `'UTC'`                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `isOnlinePresence`, `isOfflinePresence`, `get/setDefaultTimezone`, `formatTime`, `formatDateTime`, `PresenceTracker`, `createPresenceTracker` | `Addons/presence-monitor.ts`                                                                       | aliases/helpers over the existing `PresenceMonitor`; default timezone is `'UTC'`                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `CallDirection`, `CallMediaType`, `ActiveCall.isOutgoing` / `mediaType`                                                                       | `Voip/types.ts`, `Voip/voip-engine.ts`                                                             | `canAccept` already existed                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `CallManager` (limit + `onLimit: 'queue'`), `CallSession`, `VoipResourceManager`, `resolvePthreadPoolSize`, `ensureWasmAssets`                | `Voip/call-manager.ts`, `Voip/resource-manager.ts`, `Voip/wasm-assets.ts`, `addons/voip-compat.ts` | facade over this fork's engine — innovatorssoft's own engine was **not** copied (would double-handle `<call>` stanzas)                                                                                                                                                                                                                                                                                                                                                                                    |
+| `CallManager` (limit + `onLimit: 'queue'`), `CallSession`, `VoipResourceManager`, `resolvePthreadPoolSize`, `ensureWasmAssets`                | `Voip/call-manager.ts`, `Voip/resource-manager.ts`, `Voip/wasm-assets.ts`, `Addons/voip-compat.ts` | facade over this fork's engine — innovatorssoft's own engine was **not** copied (would double-handle `<call>` stanzas)                                                                                                                                                                                                                                                                                                                                                                                    |
 | `PHONENUMBER_MCC`                                                                                                                             | `Defaults/phonenumber-mcc.ts`                                                                      | TS module instead of JSON (no import attributes needed in ESM)                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Sticker packs: WebP passthrough + auto WebP conversion                                                                                        | `addons/stickerpack.ts`, `addons/from-messages.ts`                                                 | WebP untouched; PNG/JPG/GIF/video -> lossless WebP (original quality, never lowered), original size by default (optional `maxSize` caps the longest side, never upscaled; `quality`: `'original'` = lossless by default, or 1-100 = lossy); cover / tray icon always original. File names in the zip use itsliaaa's scheme. `convertToWebP` now delegates to `toStickerWebp`; `sendStickerPack` accepts `sticker` (innovatorssoft field name), `packId`, `concurrency` (default 15), `maxSize`, `quality` |
-| `useMongoAuthState`, `makeCacheManagerAuthState`                                                                                              | `Utils/use-mongo-file-auth-state.ts`, `addons/use-cache-manager-auth-state.ts`                     | name aliases                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Sticker packs: WebP passthrough + auto WebP conversion                                                                                        | `Addons/stickerpack.ts`, `Addons/from-messages.ts`                                                 | WebP untouched; PNG/JPG/GIF/video -> lossless WebP (original quality, never lowered), original size by default (optional `maxSize` caps the longest side, never upscaled; `quality`: `'original'` = lossless by default, or 1-100 = lossy); cover / tray icon always original. File names in the zip use itsliaaa's scheme. `convertToWebP` now delegates to `toStickerWebp`; `sendStickerPack` accepts `sticker` (innovatorssoft field name), `packId`, `concurrency` (default 15), `maxSize`, `quality` |
+| `useMongoAuthState`, `makeCacheManagerAuthState`                                                                                              | `Utils/use-mongo-file-auth-state.ts`, `Addons/use-cache-manager-auth-state.ts`                     | name aliases                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 Not verified by running: this environment had no network, so `yarn install` / `yarn build` / tests were not run — only `tsc` was
 compared against the previous baseline (no new type errors besides the missing-`@types/node` noise).

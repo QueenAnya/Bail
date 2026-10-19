@@ -11,8 +11,8 @@ import {
 	buildStickerPackMessage,
 	isWebPBuffer,
 	sharpToStickerWebp
-} from '../addons/from-messages'
-import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../addons/link-preview-extras'
+} from '../Addons/from-messages'
+import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../Addons/link-preview-extras'
 import {
 	buildNativeFlowInteractiveMessage,
 	buildNativeFlowMessageParamsJson,
@@ -20,9 +20,9 @@ import {
 	hasRawInteractiveContent,
 	prepareRawInteractiveContent,
 	resolveButtonText
-} from '../addons/native-flow-interactive'
-import { buildRawMessageContent } from '../addons/raw-message'
-import { prepareRichResponseMessage } from '../addons/rich-message-utils.js'
+} from '../Addons/native-flow-interactive'
+import { buildRawMessageContent } from '../Addons/raw-message'
+import { prepareRichResponseMessage } from '../Addons/rich-message-utils.js'
 import { LIBRARY_NAME } from '../Defaults'
 import {
 	CALL_AUDIO_PREFIX,
@@ -33,8 +33,8 @@ import {
 	URL_REGEX,
 	WA_DEFAULT_EPHEMERAL
 } from '../Defaults'
-import { buildSocialPreview } from '../ported/link-preview-metadata'
-import { prepareLinkThumbnail, songThumbnail, trimEmptyValues } from '../ported/messages-helpers'
+import { buildSocialPreview } from '../Extras/link-preview-metadata'
+import { prepareLinkThumbnail, songThumbnail, trimEmptyValues } from '../Extras/messages-helpers'
 import type {
 	AnyMediaMessageContent,
 	AnyMessageContent,
@@ -460,7 +460,7 @@ export const hasNonNullishProperty = <K extends PropertyKey>(
 }
 
 // NOTE: native-flow button conversion + offer/option params now live in
-// addons/native-flow-interactive.ts (shared by nativeFlow, interactiveButtons and carousel cards).
+// Addons/native-flow-interactive.ts (shared by nativeFlow, interactiveButtons and carousel cards).
 export function hasOptionalProperty<T, K extends PropertyKey>(obj: T, key: K): obj is WithKey<T, K> {
 	return typeof obj === 'object' && obj !== null && key in obj && (obj as any)[key] !== null
 }
@@ -473,7 +473,7 @@ export const generateWAMessageContent = async (
 	if ((message as { raw?: unknown }).raw === true) {
 		// innovatorssoft raw mode: `{ extendedTextMessage: {...}, raw: true }`. Checked first so that mixing in
 		// helper fields (`text`, `image`, ...) is rejected instead of being picked up by another branch.
-		// (addons/raw-message.ts → buildRawMessageContent)
+		// (Addons/raw-message.ts → buildRawMessageContent)
 		m = buildRawMessageContent(message as Record<string, unknown>)
 	} else if (hasNonNullishProperty(message, 'richLink')) {
 		// sock.sendMessage(jid, { richLink: { url, title, description, image, text } })
@@ -932,7 +932,7 @@ export const generateWAMessageContent = async (
 			vote: message.pollUpdate.vote
 		}
 	} else if ('adminInvite' in message && !!(message as any).adminInvite) {
-		// addons/from-messages.ts → buildAdminInviteMessage
+		// Addons/from-messages.ts → buildAdminInviteMessage
 		m.newsletterAdminInviteMessage = await buildAdminInviteMessage(
 			(message as any).adminInvite,
 			(message as any).contextInfo,
@@ -955,14 +955,14 @@ export const generateWAMessageContent = async (
 			timestampMs: k.time ?? Date.now()
 		}
 	} else if ('call' in message && !!(message as any).call) {
-		// addons/from-messages.ts → buildCallMessage
+		// Addons/from-messages.ts → buildCallMessage
 		m.scheduledCallCreationMessage = buildCallMessage((message as any).call)
 	} else if ('paymentInvite' in message && !!(message as any).paymentInvite) {
-		// addons/from-messages.ts → buildPaymentInviteMessage
+		// Addons/from-messages.ts → buildPaymentInviteMessage
 		m.paymentInviteMessage = buildPaymentInviteMessage((message as any).paymentInvite)
 	} else if ('payment' in message && !!(message as any).payment) {
 		// nested style — sock.sendMessage(jid, { payment: { note, currency, amount, expiry } })
-		// addons/from-messages.ts → buildPaymentMessage
+		// Addons/from-messages.ts → buildPaymentMessage
 		m.requestPaymentMessage = buildPaymentMessage((message as any).payment)
 	} else if (hasNonNullishProperty(message, 'paymentInviteServiceType')) {
 		// flat style — sock.sendMessage(jid, { paymentInviteServiceType: 1, expiry })
@@ -1050,7 +1050,7 @@ export const generateWAMessageContent = async (
 		// buttons / templateButtons / nativeFlow / interactiveButtons can use it as their
 		// header. Skipping it silently dropped the image/video/document.
 	} else if ('stickerPack' in message && !!(message as any).stickerPack) {
-		// nested style — addons/from-messages.ts → buildStickerPackMessage
+		// nested style — Addons/from-messages.ts → buildStickerPackMessage
 		m.stickerPackMessage = await buildStickerPackMessage((message as any).stickerPack, options)
 	} else if ('stickers' in message && !!(message as any).stickers && 'cover' in message) {
 		// flat, top-level style — same builder, different entry point
@@ -1825,7 +1825,7 @@ export const generateWAMessageContent = async (
 		}
 	}
 
-	// `messageAssociation` content key (ported from elaina-baileys; `addYours` builds it, see src/ported/modern-messages.ts)
+	// `messageAssociation` content key (ported from elaina-baileys; `addYours` builds it, see src/Extras/modern-messages.ts)
 	if (hasOptionalProperty(message, 'messageAssociation') && !!(message as any).messageAssociation) {
 		m.messageContextInfo = m.messageContextInfo || {}
 		m.messageContextInfo.messageAssociation = (message as any).messageAssociation

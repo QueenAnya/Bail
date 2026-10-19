@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals'
-import * as ported from '../../ported'
+import * as ported from '../../Extras'
 import * as publicVoip from '../../Voip'
 
 describe('unified VoIP public API', () => {

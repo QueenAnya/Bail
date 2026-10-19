@@ -1,6 +1,6 @@
 /**
  * from-messages-recv.ts
- * Source: addons/baileys + PR #2375
+ * Source: Addons/baileys + PR #2375
  *
  * All call functions as a factory — makeCallHandlers(deps) injects
  * socket-bound dependencies and returns all call functions ready to use.

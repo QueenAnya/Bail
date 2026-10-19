@@ -3,7 +3,7 @@ import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
 import Long from 'long'
 import { proto } from '../../WAProto/index.js'
-import { emitNewsletterRoleUpdate } from '../addons/newsletter-role-updates'
+import { emitNewsletterRoleUpdate } from '../Addons/newsletter-role-updates'
 import {
 	DEFAULT_CACHE_TTLS,
 	KEY_BUNDLE_TYPE,
@@ -505,7 +505,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 			// no case of its own, so every demotion fell through to the
 			// "unhandled mex newsletter notification" default and never
 			// emitted 'newsletter-participants.update'. See
-			// addons/newsletter-role-updates.ts for the source/attribution.
+			// Addons/newsletter-role-updates.ts for the source/attribution.
 			case 'NotificationNewsletterAdminDemote':
 				emitNewsletterRoleUpdate(ev, updates, node.attrs.from, 'demote')
 

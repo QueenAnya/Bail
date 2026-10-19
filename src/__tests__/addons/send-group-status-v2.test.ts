@@ -15,7 +15,7 @@ jest.unstable_mockModule('../../Utils/messages.js', () => ({
 
 describe('sendGroupStatusV2', () => {
 	test('wraps generated message as groupStatusMessageV2, sets isGroupStatus, and assigns a 4NY4W3B message id', async () => {
-		const { sendGroupStatusV2 } = await import('../../addons/send-group-status-v2')
+		const { sendGroupStatusV2 } = await import('../../Addons/send-group-status-v2')
 
 		const relayMessage = jest.fn(async () => undefined)
 		const sock = {
@@ -44,7 +44,7 @@ describe('sendGroupStatusV2', () => {
 	})
 
 	test('keeps a caller-supplied messageId instead of generating one', async () => {
-		const { sendGroupStatusV2 } = await import('../../addons/send-group-status-v2')
+		const { sendGroupStatusV2 } = await import('../../Addons/send-group-status-v2')
 
 		const relayMessage = jest.fn(async () => undefined)
 		const sock = { user: { id: '123@s.whatsapp.net' }, waUploadToServer: jest.fn(), relayMessage }
@@ -57,7 +57,7 @@ describe('sendGroupStatusV2', () => {
 	})
 
 	test('rejects a non-group JID', async () => {
-		const { sendGroupStatusV2 } = await import('../../addons/send-group-status-v2')
+		const { sendGroupStatusV2 } = await import('../../Addons/send-group-status-v2')
 		const sock = { user: { id: '123@s.whatsapp.net' }, waUploadToServer: jest.fn(), relayMessage: jest.fn() }
 
 		await expect(sendGroupStatusV2(sock, '123@s.whatsapp.net', { text: 'Hello' })).rejects.toThrow(
@@ -66,7 +66,7 @@ describe('sendGroupStatusV2', () => {
 	})
 
 	test('rejects when the socket is not yet authenticated', async () => {
-		const { sendGroupStatusV2 } = await import('../../addons/send-group-status-v2')
+		const { sendGroupStatusV2 } = await import('../../Addons/send-group-status-v2')
 		const sock = { user: undefined, waUploadToServer: jest.fn(), relayMessage: jest.fn() }
 
 		await expect(sendGroupStatusV2(sock, '120363000000000000@g.us', { text: 'Hello' })).rejects.toThrow(

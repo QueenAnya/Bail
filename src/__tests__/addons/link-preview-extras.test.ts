@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals'
-import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../../addons/link-preview-extras'
+import { applyLinkPreviewMetadata, buildFaviconMMSMetadata } from '../../Addons/link-preview-extras'
 import type { WATextMessage, WAUrlInfo } from '../../Types'
 
 describe('applyLinkPreviewMetadata', () => {

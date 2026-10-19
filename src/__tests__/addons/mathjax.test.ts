@@ -1,4 +1,4 @@
-import { convertLatexToPng, convertLatexToSvg, renderLatexToPng, unsupportedCommands } from '../../addons/mathjax'
+import { convertLatexToPng, convertLatexToSvg, renderLatexToPng, unsupportedCommands } from '../../Addons/mathjax'
 
 describe('convertLatexToSvg', () => {
 	it('renders valid LaTeX to an SVG string', () => {

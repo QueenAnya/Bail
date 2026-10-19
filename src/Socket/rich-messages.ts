@@ -11,6 +11,6 @@ export {
 	extractUnifiedResponse,
 	generateUnifiedResponseContent,
 	generateRichMessageContent
-} from '../addons/message-composer.js'
+} from '../Addons/message-composer.js'
 
-export type { LatexExpression } from '../addons/message-composer.js'
+export type { LatexExpression } from '../Addons/message-composer.js'

@@ -1,7 +1,7 @@
 import type { Readable } from 'stream'
 import type { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
-import type { RichContent } from '../addons/rich-message-utils.js'
+import type { RichContent } from '../Addons/rich-message-utils.js'
 import type { MediaType } from '../Defaults'
 import type { BinaryNode } from '../WABinary'
 import type { GroupMetadata } from './GroupMetadata'
@@ -882,7 +882,7 @@ export type AnyRegularMessageContent = (
 			linkPreview?: WAUrlInfo | string | true | null
 			/** small icon shown alongside the link preview, e.g. a site favicon */
 			favicon?: WAMediaUpload
-			/** social-media post metadata attached to the link preview (see ported/link-preview-metadata) */
+			/** social-media post metadata attached to the link preview (see Extras/link-preview-metadata) */
 			socialPreview?: Record<string, any>
 			/** status link-preview style (non-negative integer) */
 			statusLinkPreview?: number | { style: number }

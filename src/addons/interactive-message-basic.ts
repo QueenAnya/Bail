@@ -10,7 +10,7 @@
  * `interactive-message.ts` (which adds full TypeScript param/return types
  * plus doc comments, but no behavior changes). Kept as a separate file for
  * reference/audit purposes (rather than replacing `interactive-message.ts`),
- * but deliberately NOT re-exported from `addons/index.ts` — its functions
+ * but deliberately NOT re-exported from `Addons/index.ts` — its functions
  * are already available via `interactive-message.ts`, which is exported.
  */
 

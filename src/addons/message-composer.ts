@@ -1,5 +1,5 @@
 /**
- * message-composer.ts (addons)
+ * message-composer.ts (Addons)
  * Rich message builders for Meta AI / Bot botForwardedMessage payloads.
  * Ported from upstream main (April 2026).
  */
@@ -20,7 +20,7 @@ export { CodeHighlightType, RichSubMessageType }
 
 // ── Keyword sets ──────────────────────────────────────────────────────────────
 
-// ─── Syntax-highlighting keyword sets (used by addons/rich-message tokenizer) ─
+// ─── Syntax-highlighting keyword sets (used by Addons/rich-message tokenizer) ─
 
 export const CPP_KEYWORDS = new Set([
 	'alignas',

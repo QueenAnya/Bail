@@ -12,7 +12,7 @@
  * `clearPairingState()` on disconnect.
  *
  * Usage:
- *   import { createPairingQueue } from '../addons/pairing-fix'
+ *   import { createPairingQueue } from '../Addons/pairing-fix'
  *   const pq = createPairingQueue(sendPairingIQFn)
  *   // In pair-device handler:  pq.setReady()
  *   // In disconnect handler:   pq.clear()

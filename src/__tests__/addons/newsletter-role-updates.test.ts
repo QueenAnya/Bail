@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals'
-import { emitNewsletterRoleUpdate } from '../../addons/newsletter-role-updates'
+import { emitNewsletterRoleUpdate } from '../../Addons/newsletter-role-updates'
 import type { BaileysEventEmitter } from '../../Types'
 
 const makeEv = () => ({ emit: jest.fn() }) as unknown as BaileysEventEmitter & { emit: jest.Mock }

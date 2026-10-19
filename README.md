@@ -48,7 +48,7 @@ The cumulative Anya/Elaina work is documented below; start with the examples in 
 | MongoDB `useMongoAuthState2`, SQLite `useSqliteAuthState2` | [Session guide](docs/en/sessions.md), [README auth-state sections](#mongodb-auth-state-2-usemongoauthstate2) |
 | PostgreSQL, MySQL/MariaDB, Redis and NekoDB auth adapters | [Session guide](docs/en/sessions.md), [README database auth states](#database-auth-states) |
 | Sticker packs: Elaina flat syntax and Anya nested syntax | [Sticker-pack guide](docs/en/sticker-packs.md), [README sticker-pack section](#-sticker-pack) |
-| TTL cache, HTML mini-app validation / multiplayer, voice transcription / wake phrases | [README ported utilities](#additional-ported-utilities), [addons reference](src/addons/README.md) |
+| TTL cache, HTML mini-app validation / multiplayer, voice transcription / wake phrases | [README ported utilities](#additional-ported-utilities), [addons reference](src/Addons/README.md) |
 | Status stickers, social/video preview metadata, scheduled-message helpers | [README ported utilities](#additional-ported-utilities), [porting guide](docs/en/porting-changes.md) |
 | Native-flow validation and group-metadata guards | [README ported utilities](#additional-ported-utilities) |
 | Unified Anya + Elaina VoIP (`sock.makeVoipClient()`) | [VoIP guide](docs/en/voip.md), [README unified VoIP section](#unified-voip-api) |
@@ -64,7 +64,7 @@ and adds fork-exclusive functionality on top of it — 35+ addon modules
 handling, extra auth-state backends, and more), a WhatsApp username API,
 album send, sticker packs, LaTeX rendering, and features ported from other
 community forks (credited inline throughout this README and in
-`src/addons/`).
+`src/Addons/`).
 
 > [!IMPORTANT]
 > Full credit and respect for the original library belong to
@@ -2494,7 +2494,7 @@ parsing and send the raw bracket text as-is):
 await sock.sendMarkdown(jid, text, null, { citation: false })
 ```
 
-Underlying machinery: `extractIE` (`src/addons/message-composer.ts`).
+Underlying machinery: `extractIE` (`src/Addons/message-composer.ts`).
 
 ### Fully custom — raw submessages + native rendering
 
@@ -2518,8 +2518,8 @@ const captured = getCapturedResponses()
 
 Underlying machinery:
 `generateRichMessageContent`, `generateMarkdownContent`, `generateTableContent`,
-`generateCodeBlockContent` (`src/addons/message-composer.ts`), and
-`prepareRichResponseMessage`/`toUnified` (`src/addons/bot-forwarded-message.ts`).
+`generateCodeBlockContent` (`src/Addons/message-composer.ts`), and
+`prepareRichResponseMessage`/`toUnified` (`src/Addons/bot-forwarded-message.ts`).
 
 ---
 
@@ -2563,7 +2563,7 @@ await sock.sendMessage(jid, {
 })
 ```
 
-Implementation: `src/addons/interactive-message.ts`.
+Implementation: `src/Addons/interactive-message.ts`.
 
 ---
 
@@ -2919,7 +2919,7 @@ sock.ev.on('messaging-history.set', ({ pastParticipants }) => {
 // if you just need to know whether any are present.
 ```
 
-Implementation: `src/addons/past-participants.ts` (PR: `Baileys-pastParticepnts`).
+Implementation: `src/Addons/past-participants.ts` (PR: `Baileys-pastParticepnts`).
 
 ---
 
@@ -2945,7 +2945,7 @@ sock.ev.on('messages.upsert', ({ messages }) => {
 })
 ```
 
-Implementation: `src/addons/auto-reply.ts`.
+Implementation: `src/Addons/auto-reply.ts`.
 
 ---
 
@@ -2963,7 +2963,7 @@ scheduler.schedule(jid, { text: 'Happy New Year!' }, new Date('2027-01-01T00:00:
 scheduler.scheduleDelay(jid, { text: 'Reminder' }, 60_000) // in 1 minute
 ```
 
-Implementation: `src/addons/scheduling.ts`.
+Implementation: `src/Addons/scheduling.ts`.
 
 ---
 
@@ -2990,7 +2990,7 @@ import { createMessageStoreHandler } from '@teamolduser/baileys'
 sock.ev.on('messages.upsert', createMessageStoreHandler(store))
 ```
 
-Implementation: `src/addons/anti-delete.ts`.
+Implementation: `src/Addons/anti-delete.ts`.
 
 ---
 
@@ -3014,7 +3014,7 @@ pinned.pin(jid, messageKey, DISAPPEARING_DURATIONS.ONE_DAY)
 const receipts = createReadReceiptController(sock.readMessages)
 ```
 
-Implementation: `src/addons/chat-control.ts`.
+Implementation: `src/Addons/chat-control.ts`.
 
 ---
 
@@ -3037,7 +3037,7 @@ await sock.sendMessage('status@broadcast', StatusHelper.createVideoStatus(buffer
 await sock.sendMessage('status@broadcast', StatusHelper.gif(buffer)) // video status marked as gifPlayback
 ```
 
-Implementation: `src/addons/status-helpers.ts`. Colors
+Implementation: `src/Addons/status-helpers.ts`. Colors
 and font IDs verified byte-identical.
 
 ---
@@ -3120,7 +3120,7 @@ built-in `welcome` preset (which can still be rendered with `render('welcome')`)
 Try it in `assets/examples/example.js`: `!msgtemplate list`, `!msgtemplate render invoice invoiceNumber=INV-1 ...`,
 `!msgtemplate create Name | Hello {{name}}`, `!msgtemplate delete <id>`, `!templaterender`.
 
-Implementation: `src/addons/templates.ts`.
+Implementation: `src/Addons/templates.ts`.
 
 ---
 
@@ -3142,7 +3142,7 @@ await sock.sendMessage(jid, createContactCards([contact1, contact2]))
 await sock.sendMessage(jid, createContactCard(quickContact('Jane Doe', '+11234567890', { organization: 'Acme', email: 'jane@example.com' })))
 ```
 
-Implementation: `src/addons/vcard.ts`.
+Implementation: `src/Addons/vcard.ts`.
 
 ---
 
@@ -3155,7 +3155,7 @@ const search = createMessageSearch(store) // pass your message store
 const results = search.searchMessages(jid, 'invoice', { limit: 10 })
 ```
 
-Implementation: `src/addons/message-search.ts`.
+Implementation: `src/Addons/message-search.ts`.
 
 ---
 
@@ -3216,7 +3216,7 @@ place the WhatsApp-protocol call **signal** (rings the other device) —
 there's no actual audio/video media here; for a call that streams real
 audio/video, use `sock.initiateCall()` from
 [§30 Voice Calling](#30-voice-calling-wasm-based-same-session) instead.
-`src/addons/call-handler.ts` documents the same signaling-only API as a
+`src/Addons/call-handler.ts` documents the same signaling-only API as a
 standalone, uninjected addon — kept for reference, but not wired into
 the socket: every method it provides already exists, fully wired, in
 `messages-recv.ts` (wiring it in as well would just duplicate working
@@ -3241,7 +3241,7 @@ Implementation: `jid-plotting.ts` for `plotJid`/`normalizePhoneToJid`/
 `getSenderPn`; LID support in `onWhatsApp` from the real
 `Baileys-fix-on-whatsapp-lid-support` upstream PR branch, wired into
 `sock.onWhatsApp()` directly via
-[`src/addons/lid-support.ts`](src/addons/lid-support.ts).
+[`src/Addons/lid-support.ts`](src/Addons/lid-support.ts).
 
 ---
 
@@ -3316,7 +3316,7 @@ These are core-file patches, not addons — no import needed, they just work:
   emitted `newsletter-participants.update`. It now emits the same event a
   promotion does, with `action: 'demote'` and `new_role: 'SUBSCRIBER'`
   via `emitNewsletterRoleUpdate` in
-  [`src/addons/newsletter-role-updates.ts`](src/addons/newsletter-role-updates.ts).
+  [`src/Addons/newsletter-role-updates.ts`](src/Addons/newsletter-role-updates.ts).
   (`author`/`user` also default to an empty string rather than
   `undefined` if the server omits them.)
 - **`lottieStickerMessage` unwrapping** — messages get wrapped in
@@ -3423,7 +3423,7 @@ These are core-file patches, not addons — no import needed, they just work:
   low-level API; the caller supplies an already-encrypted vote payload.
 - **`richResponse[]` array format is now correctly typed** — the runtime
   already supported passing `richResponse` as an array of submessages
-  (text/code/table items), via `src/addons/rich-message-utils.ts`, but
+  (text/code/table items), via `src/Addons/rich-message-utils.ts`, but
   the public `AnyMessageContent` type only declared the flat
   single-object shorthand — passing an array was a TypeScript error even
   though it worked at runtime. Fixed by using the addon's own
@@ -3491,10 +3491,10 @@ These are core-file patches, not addons — no import needed, they just work:
   same way as any other number, with results reported back under the
   original LID. A LID with no known PN mapping is reported as not
   existing rather than guessed at. Uses the helpers in
-  [`src/addons/lid-support.ts`](src/addons/lid-support.ts).
+  [`src/Addons/lid-support.ts`](src/Addons/lid-support.ts).
 - **`sock.sendStickerPack()`** — a dedicated method for the alternate
   sticker-pack builder (`prepareStickerPackMessage`,
-  [`src/addons/stickerpack.ts`](src/addons/stickerpack.ts)). This builder
+  [`src/Addons/stickerpack.ts`](src/Addons/stickerpack.ts)). This builder
   is a separate implementation from the one
   `sock.sendMessage(jid, { stickerPack: {...} })` already uses
   internally; both remain available, and `sendStickerPack` gives the
@@ -4267,7 +4267,7 @@ converted by the normal `AnyMessageContent` builders.
 #### Button helper is vendored, not a runtime dependency
 
 The enhanced button sender implementation is included directly in
-`src/addons/button-sender.ts`. It does not require installing
+`src/Addons/button-sender.ts`. It does not require installing
 `@ryuu-reinzz/button-helper` at runtime.
 
 ```ts
@@ -4708,7 +4708,7 @@ community projects in the Baileys ecosystem, including the third-party
 ### 35. Interactive Messages — Buttons, List, Native Flow, Carousel, Template (fixed & unified)
 
 Ported/aligned with `@itsliaaa/baileys` and `@innovatorssoft/baileys`. Logic lives in
-`src/addons/native-flow-interactive.ts` and is used by `sock.sendMessage(...)` for every
+`src/Addons/native-flow-interactive.ts` and is used by `sock.sendMessage(...)` for every
 shape below (all examples were verified to build the right WhatsApp proto).
 
 | Key | Result | Notes |
@@ -5096,7 +5096,7 @@ Rules (checked before anything else, so they cannot be bypassed by another conte
 - An empty payload throws `Raw mode payload must include at least one proto message key`.
 - The older `{ raw: { extendedTextMessage: { ... } } }` form still works.
 
-The helper is exported as `buildRawMessageContent` (`addons/raw-message.ts`).
+The helper is exported as `buildRawMessageContent` (`Addons/raw-message.ts`).
 
 ### `sendRichHtml`
 
@@ -5175,22 +5175,22 @@ await sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false }
 | `!msgtemplate` | `list` / `render <id> k=v ...` / `create Name \| content` / `delete <id>` message templates |
 | `!defaultdisappearing` | `updateDisappearingDuration(24 \| 7 \| 30 \| 90 \| 0 \| seconds)` |
 
-# Ported from other forks (`src/ported`)
+# Ported from other forks (`src/Extras`)
 
 Code ported from [`@rexxhayanasi/elaina-baileys`](https://www.npmjs.com/package/@rexxhayanasi/elaina-baileys) 1.4.5 (MIT) and rewritten
-in TypeScript. It lives in `src/ported`, next to `src/addons`, so it is always clear where it came from; every file names its
+in TypeScript. It lives in `src/Extras`, next to `src/Addons`, so it is always clear where it came from; every file names its
 source in its header and the applicable source/license notices are retained with the ported code. All of it is exported from the package root and the
 socket methods are available on `sock` like any other.
 
-> **MessageBuilder / AIRich:** `src/ported/MessageBuilder` is copied from elaina-baileys together with its author's watermark and
+> **MessageBuilder / AIRich:** `src/Extras/MessageBuilder` is copied from elaina-baileys together with its author's watermark and
 > license header (Nixel, `MessageBuilder/index.ts`). That header has to stay in the file, and the module may not be reuploaded or
 > redistributed as a standalone product - keep the original watermark and license header in that file.
 >
 > `cancelPairingCode` and `outboundResendCache` are implemented in the core socket (`src/Socket/socket.ts`, `messages-send.ts`), not in
-> `src/ported`.
+> `src/Extras`.
 >
 > **Note:** the query ids and stanza formats come from elaina-baileys. They were checked with fake sockets (70+ tests in
-> `src/__tests__/ported`) but **not against a live WhatsApp server** - test on your own bot before relying on them.
+> `src/__tests__/Extras`) but **not against a live WhatsApp server** - test on your own bot before relying on them.
 
 ## Database auth states
 
@@ -5377,7 +5377,7 @@ await sock.executeWMexQuery({ newsletter_id: jid }, queryId, 'xwa2_newsletter_ad
 
 ## New message content keys
 
-`sock.sendMessage` understands these extra content keys (they are converted into raw proto content, see `src/ported/modern-messages.ts`):
+`sock.sendMessage` understands these extra content keys (they are converted into raw proto content, see `src/Extras/modern-messages.ts`):
 
 | Key | Example |
 | --- | --- |
@@ -5461,7 +5461,7 @@ sock.cancelPairingCode()   // abandon a pending pairing code
 - **Usernames**: `validateUsernameFormat(name)` (returns `{ isValid, errorType }`), `assertUsername`, `displayUsername`, `stripUsernamePrefix`,
   `isUsernamePin`, `UsernameValidationError`, `USERNAME_MIN_LENGTH/MAX_LENGTH/PIN_LENGTH`. (`validateUsername` keeps throwing as before.)
 
-## Ported modules (`src/ported`)
+## Ported modules (`src/Extras`)
 
 The table below maps each ported module family to its usage section in this README. The socket wrapper is installed internally; use the resulting `sock` methods rather than calling the wrapper yourself.
 
@@ -5521,8 +5521,8 @@ if (parsedRich && signature.status === 'passed') {
 ```
 
 - The builder covers tables, code, A2UI cards, HTML mini apps, embedded screens and Meta AI sections (sports, places, quiz, search, ...).
-- `Carousel` is exported as `AIRichCarousel` (the name `Carousel` is already a message type here).
-- The builder is **licensed separately by its author** - keep the watermark in `src/ported/MessageBuilder/index.ts` and keep the original watermark and license header in that file.
+- `Carousel` is exported only as `AIRichCarousel` (the name `Carousel` is already a message type here, so `src/index.ts` no longer re-exports a builder `Carousel`). The V2 aliases `CarouselV2` and `AIRichCarouselV2` (`src/Extras/v2.ts`) point to the same class.
+- The builder is **licensed separately by its author** - keep the watermark in `src/Extras/MessageBuilder/index.ts` and keep the original watermark and license header in that file.
 
 ### Button label and payload forms
 
@@ -5834,7 +5834,7 @@ These examples construct and send the payload directly. They do **not** call Any
 
 ### Anya: direct native-flow payload
 
-Anya's `src/addons/interactive-message.ts` defines the native-flow payload fields used below. The helper examples send the returned `interactiveMessage` object as the message content; this example constructs that same content shape inline:
+Anya's `src/Addons/interactive-message.ts` defines the native-flow payload fields used below. The helper examples send the returned `interactiveMessage` object as the message content; this example constructs that same content shape inline:
 
 ```ts
 await sock.sendMessage(jid, {
@@ -5940,6 +5940,6 @@ await sock.relayMessage(message.key.remoteJid, message.message, {
 
 ## Elaina-derived interactive APIs (V2 naming)
 
-Elaina-derived carousel, native-flow, section, list, card and rich-message helpers have explicit `V2` aliases exported from `src/ported/v2.ts` and re-exported through `src/ported/index.ts`. These aliases are a naming layer for the ported API, not a separate wire protocol. The Elaina general-purpose builder is also exported as `ElainaButtonV2`; do not infer that Anya had a pre-existing `ButtonV2` API.
+Elaina-derived carousel, native-flow, section, list, card and rich-message helpers have explicit `V2` aliases exported from `src/Extras/v2.ts` and re-exported through `src/Extras/index.ts`. These aliases are a naming layer for the ported API, not a separate wire protocol. The Elaina general-purpose builder is also exported as `ElainaButtonV2`; do not infer that Anya had a pre-existing `ButtonV2` API.
 
 See [the V2 naming guide](docs/elaina-interactive-apis-v2.md) for import guidance and the alias families.

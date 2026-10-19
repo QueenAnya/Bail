@@ -1304,7 +1304,7 @@ for (const [i, DOUBLE_BYTE_TOKEN] of DOUBLE_BYTE_TOKENS.entries()) {
 	}
 }
 
-// ─── Syntax-highlighting keyword sets (used by addons/rich-message tokenizer) ─
+// ─── Syntax-highlighting keyword sets (used by Addons/rich-message tokenizer) ─
 
 export const CPP_KEYWORDS = new Set([
 	'alignas',

@@ -22,11 +22,11 @@ export * from './browser-utils'
 export * from './identity-change-handler'
 // The full-featured version (icon, offer, bottomSheet, sections, bare
 // native passthrough support) is exported as the canonical/default from
-// addons/interactive-message.ts via addons/index.ts. This file
+// Addons/interactive-message.ts via Addons/index.ts. This file
 // (Utils/interactive-message.ts) is a simpler, plainer version — kept and
 // exported here under a `Basic` suffix (same pattern as
 // status-helpers.ts's `*Basic` exports) since its 24 exported names
-// collide with the addons/ version's (same names, different/narrower
+// collide with the Addons/ version's (same names, different/narrower
 // signatures).
 export {
 	type CombinedButton as CombinedButtonBasic,

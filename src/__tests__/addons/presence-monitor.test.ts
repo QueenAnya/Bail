@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals'
 import { EventEmitter } from 'events'
-import { formatDuration, monitorPresence, PresenceMonitor } from '../../addons/presence-monitor'
+import { formatDuration, monitorPresence, PresenceMonitor } from '../../Addons/presence-monitor'
 
 const makeMockSocket = (extra: Record<string, any> = {}) => {
 	const ev = new EventEmitter()

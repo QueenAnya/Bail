@@ -15,6 +15,8 @@ const compat = new FlatCompat({
 })
 
 export default defineConfig([
+	// ESLint 9+/10 flat config only lints .js/.mjs/.cjs unless a config object lists other patterns
+	{ files: ['**/*.ts'] },
 	globalIgnores([
 		'src/Tests/*',
 		'**/lib',

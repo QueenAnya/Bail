@@ -8,7 +8,7 @@ import { EventEmitter } from 'node:events';
 import { spawnSync } from 'node:child_process';
 import { VideoFeeder, VIDEO_FORMAT_I420 } from '../../lib/Voip/video-feeder.js';
 import { Worker } from 'node:worker_threads';
-import { bindVoiceRecognition, matchVoiceWakePhrase, normalizeVoiceText, removeVoiceWakePhrase } from '../../lib/ported/voice-recognition.js';
+import { bindVoiceRecognition, matchVoiceWakePhrase, normalizeVoiceText, removeVoiceWakePhrase } from '../../lib/Extras/voice-recognition.js';
 
 test('voip-audio-feeder', async () => {
     const SAMPLE_RATE = 16000;

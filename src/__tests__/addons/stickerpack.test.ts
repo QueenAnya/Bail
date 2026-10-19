@@ -7,7 +7,7 @@ import {
 	resolveStickerPackConcurrency,
 	resolveStickerPackMaxSize,
 	resolveStickerQuality
-} from '../../addons/from-messages'
+} from '../../Addons/from-messages'
 import {
 	buildStickerPackProto,
 	generateStickerPackId,
@@ -15,7 +15,7 @@ import {
 	STICKER_PACK_MESSAGE_TYPE,
 	type StickerPackInput,
 	type StickerPackOptions
-} from '../../addons/stickerpack'
+} from '../../Addons/stickerpack'
 import { generateWAMessageContent } from '../../Utils/messages'
 
 // tiny valid static WebP (1x1)

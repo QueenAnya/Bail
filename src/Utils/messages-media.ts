@@ -10,7 +10,7 @@ import { join } from 'path'
 import { Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
-import { getImageProcessingLibrary } from '../addons/image-processing'
+import { getImageProcessingLibrary } from '../Addons/image-processing'
 import {
 	DEFAULT_ORIGIN,
 	MEDIA_HKDF_KEY_MAPPING,
@@ -38,7 +38,7 @@ import type { ILogger } from './logger'
 
 const getTmpFilesDirectory = () => tmpdir()
 
-// combined itsliaaa + innovatorssoft loader lives in addons/image-processing.ts (re-exported for existing imports)
+// combined itsliaaa + innovatorssoft loader lives in Addons/image-processing.ts (re-exported for existing imports)
 export { getImageProcessingLibrary }
 
 export const hkdfInfoKey = (type: MediaType) => {

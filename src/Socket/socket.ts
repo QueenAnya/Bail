@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto'
 import { URL } from 'url'
 import { promisify } from 'util'
 import { proto } from '../../WAProto/index.js'
-import { splitJidsByType } from '../addons/lid-support'
+import { splitJidsByType } from '../Addons/lid-support'
 import {
 	DEF_CALLBACK_PREFIX,
 	DEF_TAG_PREFIX,
@@ -366,7 +366,7 @@ export const makeSocket = (config: SocketConfig) => {
 		// jids are resolved to their PN form (via lidMapping.getPNForLID) and
 		// existence-checked the same way as any other number; if no PN
 		// mapping is known for a given LID, it's reported as not existing
-		// rather than guessing. Source: addons/lid-support.ts.
+		// rather than guessing. Source: Addons/lid-support.ts.
 		const { pnJids, lidJids } = splitJidsByType(phoneNumber)
 
 		const lidResults: { jid: string; exists: boolean; lid: string | undefined; pn?: string }[] = []

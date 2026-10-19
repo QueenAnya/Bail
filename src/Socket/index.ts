@@ -1,6 +1,6 @@
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
-import { makePortedSocket } from '../ported/socket'
-import { bindVoiceRecognition } from '../ported/voice-recognition'
+import { makePortedSocket } from '../Extras/socket'
+import { bindVoiceRecognition } from '../Extras/voice-recognition'
 import type { UserFacingSocketConfig } from '../Types'
 import { deriveCanonicalCompanionPlatformDisplay } from '../Utils/companion-reg-client-utils'
 import { makeVoipClient as createMergedVoipClient, type MergedVoipClient } from '../Voip/socket-client'
@@ -33,7 +33,7 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 	const browser = newConfig.browser
 	newConfig.browser = ['OLDUSER BAILEYS', browser[1], browser[2]]
 
-	// last layer: methods ported from other forks (src/ported)
+	// last layer: methods ported from other forks (src/Extras)
 	const sock = makePortedSocket(makeUsernameSocket(newConfig), {
 		mediaCache: newConfig.mediaCache,
 		options: newConfig.options,

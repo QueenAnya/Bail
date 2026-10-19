@@ -1,5 +1,5 @@
 /**
- * src/addons
+ * src/Addons
  *
  * Quick reference:
  *   Button sender         → sendButtons, sendInteractiveMessage, sendListMessage ...
@@ -45,7 +45,7 @@
  *   mex-linked-profiles → src/Socket/messages-recv.ts
  *   past-participants   → src/Utils/history.ts + src/Utils/event-buffer.ts
  *   privacy-tokens      → src/Socket/messages-send.ts
- *   stickerpack         → src/addons/from-messages.ts (buildStickerPackMessage)
+ *   stickerpack         → src/Addons/from-messages.ts (buildStickerPackMessage)
  */
 
 // ── Image processing library loader (sharp → @napi-rs/image → jimp, cached) ──
@@ -145,7 +145,7 @@ export { migrateAuthState } from '../Utils/migrate-auth-state'
 export * from './use-sqlite-auth-state'
 export * from './use-cache-manager-auth-state'
 
-// Store APIs are routed through src/ported/store-exports.ts and the ported barrel.
+// Store APIs are routed through src/Extras/store-exports.ts and the ported barrel.
 
 // ── Typing Indicator ───────────────────────────────────────────────────────
 export * from './chat-control'
