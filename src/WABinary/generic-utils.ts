@@ -253,7 +253,9 @@ export const getBizBinaryNode = (message: proto.IMessage): BinaryNode => {
 	}
 
 	// Generic nativeFlow / buttonsMessage / templateMessage
-	if (flowMsg || message.buttonsMessage || message.templateMessage) {
+	const carouselFlow = message.interactiveMessage?.carouselMessage?.cards?.some(card => card?.nativeFlowMessage)
+
+	if (flowMsg || carouselFlow || message.buttonsMessage || message.templateMessage) {
 		return {
 			tag: 'biz',
 			attrs: bizAttributes,
@@ -288,5 +290,5 @@ export const shouldIncludeBizBinaryNode = (message: proto.IMessage): boolean =>
 		message.listMessage ||
 		message.templateMessage ||
 		message.interactiveMessage?.nativeFlowMessage ||
-		message.interactiveMessage?.carouselMessage
+		message.interactiveMessage?.carouselMessage?.cards?.some(card => card?.nativeFlowMessage)
 	)

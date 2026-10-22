@@ -631,8 +631,8 @@ export namespace BotMetadata {
         type $Shape = BotMetadata.BotModeSelectionMetadata.$Properties;
 
         enum BotUserSelectionMode {
-            UNKNOWN_MODE = 0,
-            REASONING_MODE = 1
+            DEFAULT_MODE = 0,
+            THINK_HARD_MODE = 1
         }
     }
 

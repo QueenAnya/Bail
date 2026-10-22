@@ -56,6 +56,8 @@ export * from './MessageBuilder/extras'
 export * from './MessageBuilder/metaai'
 export * from './MessageBuilder/bot-signature'
 export * from './messages-helpers'
+// Explicit V2 aliases of the Elaina-derived names (CarouselV2 = Elaina 'Carousel', ...), see README "Elaina name compatibility"
+export * from './v2'
 
 // VoIP is published through the merged src/Voip API; original implementation snapshots
 // are retained under repository-root `Voip/` and `Voip2/` and are intentionally not exported.

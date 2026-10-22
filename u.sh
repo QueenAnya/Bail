@@ -21,9 +21,11 @@ echo "PLEASE ENTER NAME FOR BRANCH"
 
 echo 'PLEASE WAIT FOR FINISH AUTOMATIC PROCESS'
 
-rm -rf *.bak
-rm -rf */*.bak
-rm -rf */*/*.bak
+find . -type f -name "*.bak"
+find . -type f -name "*.bak" -delete
+find . -name "*.bak" -type f
+find . -name "*.bak" -type f -delete
+
 # prettier --write .
 # rm -rf .git
 git init

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package proto;
 
-/// WhatsApp Version: 2.3000.1049978204
+/// WhatsApp Version: 2.3000.1050764678
 
 message ADVDeviceIdentity {
     optional uint32 rawId = 1;
@@ -699,8 +699,8 @@ enum BotMetricsThreadEntryPoint {
 message BotModeSelectionMetadata {
     repeated BotUserSelectionMode mode = 1;
     enum BotUserSelectionMode {
-        UNKNOWN_MODE = 0;
-        REASONING_MODE = 1;
+        DEFAULT_MODE = 0;
+        THINK_HARD_MODE = 1;
     }
     repeated uint32 overrideMode = 2;
 }
@@ -1659,6 +1659,7 @@ message Conversation {
         APPEAL_APPROVED = 2;
         APPEAL_REJECTED = 3;
     }
+    optional bool acp2HistoryWithheld = 65;
 }
 
 message DeviceCapabilities {
@@ -1715,6 +1716,11 @@ message DeviceCapabilities {
         optional bool effectiveMigrated = 1;
         optional int64 countdownEndsAt = 2;
         optional bool rolledBack = 3;
+    }
+    optional HostWriteMutationSupport hostWriteMutationSupport = 12;
+    
+    message HostWriteMutationSupport {
+        repeated string mutationNames = 1;
     }
 }
 
@@ -2044,6 +2050,9 @@ message HistorySync {
     optional bytes nctSalt = 19;
     repeated InlineContact inlineContacts = 20;
     optional bool inlineContactsProvided = 21;
+    repeated StickerMetadata favoriteStickers = 22;
+    repeated RecoverableHistoryConversation omittedConversations = 23;
+    optional bool omittedConversationsProvided = 24;
 }
 
 message HistorySyncMsg {
@@ -3986,6 +3995,15 @@ message Message {
     message SharedDeviceContactHashKeyRequest {
         optional uint32 knownEpoch = 1;
     }
+    optional ImageMessage instantImageMessage = 135;
+    optional RequestLocationMessage requestLocationMessage = 136;
+    optional RequestLocationUpdateMessage requestLocationUpdateMessage = 138;
+
+    message RequestLocationMessage {
+    }
+
+    message RequestLocationUpdateMessage {
+    }
 }
 
 message MessageAddOn {
@@ -4180,6 +4198,28 @@ message MsgOpaqueData {
     optional bool sharableEventInviteIsCanceled = 58;
     optional bytes sharableEventInviteJpegThumbnail = 59;
     optional string sharableEventInviteCallLink = 60;
+    optional MusicData musicData = 63;
+    
+    message MusicData {
+        optional string musicContentMediaId = 1;
+        optional string songId = 2;
+        optional string author = 3;
+        optional string title = 4;
+        optional string songUri = 5;
+        optional string artworkUri = 6;
+        optional int32 style = 7;
+        optional int32 songStartTimeMs = 8;
+        optional int32 clipDurationMs = 9;
+        optional bool isExplicit = 10;
+        optional bytes countryBlocklist = 11;
+        optional string artistAttribution = 12;
+        optional string artworkDirectPath = 13;
+        optional bytes artworkSha256 = 14;
+        optional bytes artworkEncSha256 = 15;
+        optional bytes artworkMediaKey = 16;
+        optional int64 consumptionCheckedAtS = 17;
+        optional bool isAvailableForConsumption = 18;
+    }
 }
 
 message MsgRowOpaqueData {
@@ -4484,6 +4524,7 @@ message Point {
 message PollAdditionalMetadata {
     optional bool pollInvalidated = 1;
     repeated PollNameHashHistoryEntry pollNameHashHistory = 2;
+    repeated Message.PollCreationMessage.Option originalOptions = 3;
 }
 
 message PollEncValue {
@@ -5417,6 +5458,17 @@ message SyncActionValue {
     message BBProPendingCustomerBaseAction {
         optional bool pending = 1;
     }
+    optional CommunityNestingStateAction communityNestingStateAction = 99;
+    optional SharedDeviceSecretAction sharedDeviceSecretAction = 100;
+    
+    message CommunityNestingStateAction {
+        optional int32 nestingState = 1;
+    }
+    
+    message SharedDeviceSecretAction {
+        optional bytes secret = 1;
+        optional int64 ttlMs = 2;
+    }
 }
 
 message SyncdIndex {
@@ -5949,6 +6001,7 @@ message WebMessageInfo {
     optional ScheduledMessageMetadata scheduledMessageMetadata = 81;
     optional string decisionId = 82;
     repeated string decisionSources = 83;
+    optional EventInviteAdditionalMetadata eventInviteAdditionalMetadata = 84;
 }
 
 message WebNotificationsInfo {
@@ -6641,4 +6694,13 @@ message ACP2Setting {
     optional int32 trigger = 2;
     optional int64 settingTimestamp = 3;
     optional bool initiatedByMe = 4;
+}
+
+message RecoverableHistoryConversation {
+    optional string historyChatId = 1;
+    optional string accountLid = 2;
+}
+
+message EventInviteAdditionalMetadata {
+    optional bool isUpdated = 1;
 }

@@ -4076,11 +4076,11 @@ export const BotMetadata = $root.BotMetadata = (() => {
                 m.mode = [];
                 for (var i = 0; i < d.mode.length; ++i) {
                     switch (d.mode[i]) {
-                    case "UNKNOWN_MODE":
+                    case "DEFAULT_MODE":
                     case 0:
                         m.mode[m.mode.length] = 0;
                         break;
-                    case "REASONING_MODE":
+                    case "THINK_HARD_MODE":
                     case 1:
                         m.mode[m.mode.length] = 1;
                         break;
@@ -4125,8 +4125,8 @@ export const BotMetadata = $root.BotMetadata = (() => {
 
         BotModeSelectionMetadata.BotUserSelectionMode = (function() {
             const valuesById = $Object.create(null), values = $Object.create(valuesById);
-            values[valuesById[0] = "UNKNOWN_MODE"] = 0;
-            values[valuesById[1] = "REASONING_MODE"] = 1;
+            values[valuesById[0] = "DEFAULT_MODE"] = 0;
+            values[valuesById[1] = "THINK_HARD_MODE"] = 1;
             return values;
         })();
 

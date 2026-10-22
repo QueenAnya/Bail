@@ -1,0 +1,85 @@
+name: Publish Selected Docs to Separate Repository
+
+on:
+  workflow_run:
+    workflows:
+      - Publish Release
+      - Publish Release YARN
+      - Publish Release PNPM
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-selected-docs
+  cancel-in-progress: false
+
+jobs:
+  publish-selected-files:
+    # Runs only when the entire upstream release workflow succeeds.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the exact source commit that finished publishing
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          path: source
+          persist-credentials: false
+
+      - name: Validate required source files
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f README.md
+          test -f index.html
+          test -d docs
+          test -f .github/README.md
+
+      - name: Checkout destination repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.DOCS_DESTINATION_REPOSITORY || secrets.REPO || secrets.REPOSITORY || vars.DOCS_DESTINATION_REPOSITORY || vars.REPO || vars.REPOSITORY }}
+          ref: ${{ secrets.DOCS_DESTINATION_BRANCH || secrets.BRANCH || vars.DOCS_DESTINATION_BRANCH || vars.BRANCH || 'master' }}
+          token: ${{ secrets.DOCS_DESTINATION_TOKEN || secrets.PERSONAL_TOKEN }}
+          path: destination
+          persist-credentials: true
+
+      - name: Sync only the requested files and folders
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Replace only these paths; unrelated destination files remain untouched.
+          rm -rf destination/docs
+          mkdir -p destination/.github
+          cp source/README.md destination/README.md
+          cp source/index.html destination/index.html
+          cp -a source/docs destination/docs
+          cp source/.github/README.md destination/.github/README.md
+          cat > destination/PUBLISHED-FROM.txt <<EOF
+          Source repository: $GITHUB_REPOSITORY
+          Source commit: ${{ github.event.workflow_run.head_sha }}
+          Release workflow: ${{ github.event.workflow_run.name }}
+          Release run: ${{ github.event.workflow_run.html_url }}
+          EOF
+
+      - name: Commit and push destination update
+        working-directory: destination
+        shell: bash
+        env:
+          DESTINATION_BRANCH: ${{ secrets.DOCS_DESTINATION_BRANCH || secrets.BRANCH || vars.DOCS_DESTINATION_BRANCH || vars.BRANCH || 'master' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md index.html docs .github/README.md PUBLISHED-FROM.txt
+          if git diff --cached --quiet; then
+            echo "Selected docs are already up to date."
+            exit 0
+          fi
+          git commit -m "docs: sync after successful release"
+          git push origin "HEAD:${DESTINATION_BRANCH}"

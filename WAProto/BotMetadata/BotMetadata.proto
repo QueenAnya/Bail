@@ -157,8 +157,8 @@ message BotQuotaMetadata {
 message BotModeSelectionMetadata {
     repeated BotUserSelectionMode mode = 1;
     enum BotUserSelectionMode {
-        UNKNOWN_MODE = 0;
-        REASONING_MODE = 1;
+        DEFAULT_MODE = 0;
+        THINK_HARD_MODE = 1;
     }
 }
 

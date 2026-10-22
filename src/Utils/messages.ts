@@ -69,6 +69,12 @@ import {
 } from './messages-media'
 import { shouldIncludeReportingToken } from './reporting-utils'
 
+/** Interactive header title/subtitle are only sent when non-empty (elaina-baileys 21-oct). */
+const headerText = ({ title, subtitle }: { title?: string; subtitle?: string }) => ({
+	...(title ? { title } : {}),
+	...(subtitle ? { subtitle } : {})
+})
+
 type ExtractByKey<T, K extends PropertyKey> = T extends Record<K, any> ? T : never
 type RequireKey<T, K extends keyof T> = T & {
 	[P in K]-?: Exclude<T[P], null | undefined>
@@ -1355,16 +1361,14 @@ export const generateWAMessageContent = async (
 		if ('text' in message) {
 			interactiveMessage.body = { text: message.text }
 			interactiveMessage.header = {
-				title: (message as any).title,
-				subtitle: (message as any).subtitle,
+				...headerText(message as any),
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
 			// FIX Bug 1: same Object.assign corruption as interactiveButtons — fixed
 			interactiveMessage.header = {
-				title: (message as any).title,
-				subtitle: (message as any).subtitle,
+				...headerText(message as any),
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
@@ -1400,16 +1404,14 @@ export const generateWAMessageContent = async (
 		if ('text' in message) {
 			interactiveMessage.body = { text: message.text }
 			interactiveMessage.header = {
-				title: (message as any).title,
-				subtitle: (message as any).subtitle,
+				...headerText(message as any),
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
 			// FIX Bug 1: same Object.assign corruption — fixed
 			interactiveMessage.header = {
-				title: (message as any).title,
-				subtitle: (message as any).subtitle,
+				...headerText(message as any),
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
@@ -1546,8 +1548,7 @@ export const generateWAMessageContent = async (
 				text: message.text ?? ''
 			})
 			interactiveMessage.header = WAProto.Message.InteractiveMessage.Header.create({
-				title: (message as any).title,
-				subtitle: (message as any).subtitle,
+				...headerText(message as any),
 				hasMediaAttachment: false
 			})
 		}

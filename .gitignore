@@ -29,3 +29,8 @@ wa-logs.txt
 */*.bak
 */*/*.bak
 */*/*/*.bak
+
+**/*.bak
+
+u.sh
+u.sh.bak

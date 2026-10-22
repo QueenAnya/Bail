@@ -7,7 +7,7 @@ import logger from '../Utils/logger'
 
 export { PHONENUMBER_MCC } from './phonenumber-mcc'
 
-const version = [2, 3000, 1049978204] // client_revision from https://web.whatsapp.com/sw.js
+const version = [2, 3000, 1050764678] // client_revision from https://web.whatsapp.com/sw.js
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 

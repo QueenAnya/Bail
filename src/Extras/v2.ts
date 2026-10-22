@@ -3,6 +3,13 @@
  * sections, lists, cards and MessageBuilder helpers. Legacy exports remain
  * available to avoid breaking existing consumers.
  */
+import {
+	AIRich as _AIRich,
+	AIRichCarousel as _Carousel,
+	Button as _NativeFlowButton,
+	Toolkit as _Toolkit
+} from './MessageBuilder/index'
+
 // V2 aliases for Elaina-derived APIs from ./native-flow.
 export {
 	NATIVE_FLOW_NAMES as NATIVE_FLOW_NAMESV2,
@@ -251,12 +258,6 @@ export {
 } from './MessageBuilder/index'
 
 /** V2 names for the Elaina-derived builder instance methods. Original names remain for compatibility. */
-import {
-	AIRich as _AIRich,
-	AIRichCarousel as _Carousel,
-	Button as _NativeFlowButton,
-	Toolkit as _Toolkit
-} from './MessageBuilder/index'
 const _v2MethodAliases: Array<[object, string[]]> = [
 	[
 		_NativeFlowButton,
@@ -311,6 +312,11 @@ const _v2MethodAliases: Array<[object, string[]]> = [
 			'addImage',
 			'addVideo',
 			'addProduct',
+			'addHtmlCard',
+			'addSelectableText',
+			'addQuiz',
+			'addComparisonTable',
+			'addSports',
 			'addPost',
 			'addMetadata',
 			'addTip',

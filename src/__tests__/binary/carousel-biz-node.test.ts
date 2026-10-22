@@ -113,4 +113,31 @@ describe('Interactive Carousel Biz Node', () => {
 
 		expect(shouldIncludeBizBinaryNode(message)).toBe(false)
 	})
+
+	it('shouldIncludeBizBinaryNode is false for a carousel whose cards hold no native flow buttons', () => {
+		const plain = { interactiveMessage: { carouselMessage: { cards: [{ body: { text: 'x' } }] } } } as any
+		const empty = { interactiveMessage: { carouselMessage: { cards: [] } } } as any
+
+		expect(shouldIncludeBizBinaryNode(plain)).toBe(false)
+		expect(shouldIncludeBizBinaryNode(empty)).toBe(false)
+		expect(shouldIncludeBizBinaryNode({ conversation: 'halo' } as any)).toBe(false)
+	})
+
+	it('builds the mixed native flow biz node when only a later card holds native flow buttons', () => {
+		const message = {
+			interactiveMessage: {
+				carouselMessage: {
+					cards: [{ body: { text: 'x' } }, { nativeFlowMessage: { buttons: [{ name: 'quick_reply', buttonParamsJson: '{}' }] } }]
+				}
+			}
+		} as any
+
+		expect(shouldIncludeBizBinaryNode(message)).toBe(true)
+
+		const biz = getBizBinaryNode(message)
+		expect(biz.tag).toBe('biz')
+		const interactive = (biz.content as any[]).find(node => node?.tag === 'interactive')
+		expect(interactive?.attrs).toEqual({ type: 'native_flow', v: '1' })
+		expect(interactive?.content?.[0]?.attrs).toEqual({ v: '9', name: 'mixed' })
+	})
 })

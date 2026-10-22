@@ -2250,8 +2250,8 @@ export namespace proto {
         type $Shape = proto.BotModeSelectionMetadata.$Properties;
 
         enum BotUserSelectionMode {
-            UNKNOWN_MODE = 0,
-            REASONING_MODE = 1
+            DEFAULT_MODE = 0,
+            THINK_HARD_MODE = 1
         }
     }
 
@@ -4922,6 +4922,7 @@ export namespace proto {
         authAgentParentCompanyName?: (string|null);
         authAgentObaPhoneNumber?: (string|null);
         identityVerification?: (proto.IdentityVerificationState.$Properties|null);
+        acp2HistoryWithheld?: (boolean|null);
         static create(properties: proto.Conversation.$Shape): proto.Conversation & proto.Conversation.$Shape;
         static create(properties?: proto.Conversation.$Properties): proto.Conversation;
         static encode(m: proto.Conversation.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -4998,6 +4999,7 @@ export namespace proto {
             authAgentParentCompanyName?: (string|null);
             authAgentObaPhoneNumber?: (string|null);
             identityVerification?: (proto.IdentityVerificationState.$Properties|null);
+            acp2HistoryWithheld?: (boolean|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = {
@@ -5066,6 +5068,7 @@ export namespace proto {
           authAgentObaPhoneNumber?: string|null;
           identityVerification?: proto.IdentityVerificationState.$Shape|null;
           $unknowns?: Uint8Array[];
+          acp2HistoryWithheld?: boolean|null;
         };
 
         enum EndOfHistoryTransferType {
@@ -5100,6 +5103,7 @@ export namespace proto {
         aiFbidMigration?: (proto.AiFbidMigration.$Properties|null);
         bizAiSettingsSync?: (proto.DeviceCapabilities.BizAiSettingsSync.$Properties|null);
         contactRefresh?: (proto.DeviceCapabilities.ContactRefresh.$Properties|null);
+        hostWriteMutationSupport?: (proto.DeviceCapabilities.HostWriteMutationSupport.$Properties|null);
         static create(properties: proto.DeviceCapabilities.$Shape): proto.DeviceCapabilities & proto.DeviceCapabilities.$Shape;
         static create(properties?: proto.DeviceCapabilities.$Properties): proto.DeviceCapabilities;
         static encode(m: proto.DeviceCapabilities.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -5123,6 +5127,7 @@ export namespace proto {
             aiFbidMigration?: (proto.AiFbidMigration.$Properties|null);
             bizAiSettingsSync?: (proto.DeviceCapabilities.BizAiSettingsSync.$Properties|null);
             contactRefresh?: (proto.DeviceCapabilities.ContactRefresh.$Properties|null);
+            hostWriteMutationSupport?: (proto.DeviceCapabilities.HostWriteMutationSupport.$Properties|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = proto.DeviceCapabilities.$Properties;
@@ -5326,6 +5331,31 @@ export namespace proto {
                 $unknowns?: Uint8Array[];
             }
             type $Shape = proto.DeviceCapabilities.NewsletterChatsMigration.$Properties;
+        }
+
+        interface IHostWriteMutationSupport extends proto.DeviceCapabilities.HostWriteMutationSupport.$Properties {
+        }
+
+        class HostWriteMutationSupport {
+            constructor(p?: proto.DeviceCapabilities.HostWriteMutationSupport.$Properties);
+            $unknowns?: Uint8Array[];
+            mutationNames: string[];
+            static create(properties: proto.DeviceCapabilities.HostWriteMutationSupport.$Shape): proto.DeviceCapabilities.HostWriteMutationSupport & proto.DeviceCapabilities.HostWriteMutationSupport.$Shape;
+            static create(properties?: proto.DeviceCapabilities.HostWriteMutationSupport.$Properties): proto.DeviceCapabilities.HostWriteMutationSupport;
+            static encode(m: proto.DeviceCapabilities.HostWriteMutationSupport.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+            static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.DeviceCapabilities.HostWriteMutationSupport & proto.DeviceCapabilities.HostWriteMutationSupport.$Shape;
+            static fromObject(d: { [k: string]: any }): proto.DeviceCapabilities.HostWriteMutationSupport;
+            static toObject(m: proto.DeviceCapabilities.HostWriteMutationSupport, o?: $protobuf.IConversionOptions): { [k: string]: any };
+            toJSON(): { [k: string]: any };
+            static getTypeUrl(prefix?: string): string;
+        }
+
+        namespace HostWriteMutationSupport {
+            interface $Properties {
+                mutationNames?: (string[]|null);
+                $unknowns?: Uint8Array[];
+            }
+            type $Shape = proto.DeviceCapabilities.HostWriteMutationSupport.$Properties;
         }
     }
 
@@ -6354,6 +6384,9 @@ export namespace proto {
         nctSalt?: (Uint8Array|null);
         inlineContacts: proto.InlineContact.$Properties[];
         inlineContactsProvided?: (boolean|null);
+        favoriteStickers: proto.StickerMetadata.$Properties[];
+        omittedConversations: proto.RecoverableHistoryConversation.$Properties[];
+        omittedConversationsProvided?: (boolean|null);
         static create(properties: proto.HistorySync.$Shape): proto.HistorySync & proto.HistorySync.$Shape;
         static create(properties?: proto.HistorySync.$Properties): proto.HistorySync;
         static encode(m: proto.HistorySync.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -6386,6 +6419,9 @@ export namespace proto {
             nctSalt?: (Uint8Array|null);
             inlineContacts?: (proto.InlineContact.$Properties[]|null);
             inlineContactsProvided?: (boolean|null);
+            favoriteStickers?: (proto.StickerMetadata.$Properties[]|null);
+            omittedConversations?: (proto.RecoverableHistoryConversation.$Properties[]|null);
+            omittedConversationsProvided?: (boolean|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = {
@@ -6410,6 +6446,9 @@ export namespace proto {
           inlineContacts?: proto.InlineContact.$Shape[]|null;
           inlineContactsProvided?: boolean|null;
           $unknowns?: Uint8Array[];
+          favoriteStickers?: proto.StickerMetadata.$Shape[]|null;
+          omittedConversations?: proto.RecoverableHistoryConversation.$Shape[]|null;
+          omittedConversationsProvided?: boolean|null;
         };
 
         enum BotAIWaitListState {
@@ -7398,6 +7437,9 @@ export namespace proto {
         musicMessage?: (proto.Message.MusicMessage.$Properties|null);
         statusLinkPreviewMetadata?: (proto.Message.StatusLinkPreviewMetadata.$Properties|null);
         botPlatformRegistrationSuccessMessage?: (proto.Message.FutureProofMessage.$Properties|null);
+        instantImageMessage?: (proto.Message.ImageMessage.$Properties|null);
+        requestLocationMessage?: (proto.Message.RequestLocationMessage.$Properties|null);
+        requestLocationUpdateMessage?: (proto.Message.RequestLocationUpdateMessage.$Properties|null);
         static create(properties: proto.Message.$Shape): proto.Message & proto.Message.$Shape;
         static create(properties?: proto.Message.$Properties): proto.Message;
         static encode(m: proto.Message.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -7526,6 +7568,9 @@ export namespace proto {
             musicMessage?: (proto.Message.MusicMessage.$Properties|null);
             statusLinkPreviewMetadata?: (proto.Message.StatusLinkPreviewMetadata.$Properties|null);
             botPlatformRegistrationSuccessMessage?: (proto.Message.FutureProofMessage.$Properties|null);
+            instantImageMessage?: (proto.Message.ImageMessage.$Properties|null);
+            requestLocationMessage?: (proto.Message.RequestLocationMessage.$Properties|null);
+            requestLocationUpdateMessage?: (proto.Message.RequestLocationUpdateMessage.$Properties|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = {
@@ -7646,6 +7691,9 @@ export namespace proto {
           statusLinkPreviewMetadata?: proto.Message.StatusLinkPreviewMetadata.$Shape|null;
           botPlatformRegistrationSuccessMessage?: proto.Message.FutureProofMessage.$Shape|null;
           $unknowns?: Uint8Array[];
+          instantImageMessage?: proto.Message.ImageMessage.$Shape|null;
+          requestLocationMessage?: proto.Message.RequestLocationMessage.$Shape|null;
+          requestLocationUpdateMessage?: proto.Message.RequestLocationUpdateMessage.$Shape|null;
         };
 
         interface IAlbumMessage extends proto.Message.AlbumMessage.$Properties {
@@ -13795,6 +13843,52 @@ export namespace proto {
             }
             type $Shape = proto.Message.SharedDeviceContactHashKeyRequest.$Properties;
         }
+
+        interface IRequestLocationMessage extends proto.Message.RequestLocationMessage.$Properties {
+        }
+
+        class RequestLocationMessage {
+            constructor(p?: proto.Message.RequestLocationMessage.$Properties);
+            $unknowns?: Uint8Array[];
+            static create(properties: proto.Message.RequestLocationMessage.$Shape): proto.Message.RequestLocationMessage & proto.Message.RequestLocationMessage.$Shape;
+            static create(properties?: proto.Message.RequestLocationMessage.$Properties): proto.Message.RequestLocationMessage;
+            static encode(m: proto.Message.RequestLocationMessage.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+            static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.RequestLocationMessage & proto.Message.RequestLocationMessage.$Shape;
+            static fromObject(d: { [k: string]: any }): proto.Message.RequestLocationMessage;
+            static toObject(m: proto.Message.RequestLocationMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
+            toJSON(): { [k: string]: any };
+            static getTypeUrl(prefix?: string): string;
+        }
+
+        namespace RequestLocationMessage {
+            interface $Properties {
+                $unknowns?: Uint8Array[];
+            }
+            type $Shape = proto.Message.RequestLocationMessage.$Properties;
+        }
+
+        interface IRequestLocationUpdateMessage extends proto.Message.RequestLocationUpdateMessage.$Properties {
+        }
+
+        class RequestLocationUpdateMessage {
+            constructor(p?: proto.Message.RequestLocationUpdateMessage.$Properties);
+            $unknowns?: Uint8Array[];
+            static create(properties: proto.Message.RequestLocationUpdateMessage.$Shape): proto.Message.RequestLocationUpdateMessage & proto.Message.RequestLocationUpdateMessage.$Shape;
+            static create(properties?: proto.Message.RequestLocationUpdateMessage.$Properties): proto.Message.RequestLocationUpdateMessage;
+            static encode(m: proto.Message.RequestLocationUpdateMessage.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+            static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.Message.RequestLocationUpdateMessage & proto.Message.RequestLocationUpdateMessage.$Shape;
+            static fromObject(d: { [k: string]: any }): proto.Message.RequestLocationUpdateMessage;
+            static toObject(m: proto.Message.RequestLocationUpdateMessage, o?: $protobuf.IConversionOptions): { [k: string]: any };
+            toJSON(): { [k: string]: any };
+            static getTypeUrl(prefix?: string): string;
+        }
+
+        namespace RequestLocationUpdateMessage {
+            interface $Properties {
+                $unknowns?: Uint8Array[];
+            }
+            type $Shape = proto.Message.RequestLocationUpdateMessage.$Properties;
+        }
     }
 
     interface IMessageAddOn extends proto.MessageAddOn.$Properties {
@@ -14158,6 +14252,7 @@ export namespace proto {
         sharableEventInviteIsCanceled?: (boolean|null);
         sharableEventInviteJpegThumbnail?: (Uint8Array|null);
         sharableEventInviteCallLink?: (string|null);
+        musicData?: (proto.MsgOpaqueData.MusicData.$Properties|null);
         static create(properties: proto.MsgOpaqueData.$Shape): proto.MsgOpaqueData & proto.MsgOpaqueData.$Shape;
         static create(properties?: proto.MsgOpaqueData.$Properties): proto.MsgOpaqueData;
         static encode(m: proto.MsgOpaqueData.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -14227,6 +14322,7 @@ export namespace proto {
             sharableEventInviteIsCanceled?: (boolean|null);
             sharableEventInviteJpegThumbnail?: (Uint8Array|null);
             sharableEventInviteCallLink?: (string|null);
+            musicData?: (proto.MsgOpaqueData.MusicData.$Properties|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = proto.MsgOpaqueData.$Properties;
@@ -14356,6 +14452,65 @@ export namespace proto {
                 $unknowns?: Uint8Array[];
             }
             type $Shape = proto.MsgOpaqueData.PollVotesSnapshot.$Properties;
+        }
+
+        interface IMusicData extends proto.MsgOpaqueData.MusicData.$Properties {
+        }
+
+        class MusicData {
+            constructor(p?: proto.MsgOpaqueData.MusicData.$Properties);
+            $unknowns?: Uint8Array[];
+            musicContentMediaId?: (string|null);
+            songId?: (string|null);
+            author?: (string|null);
+            title?: (string|null);
+            songUri?: (string|null);
+            artworkUri?: (string|null);
+            style?: (number|null);
+            songStartTimeMs?: (number|null);
+            clipDurationMs?: (number|null);
+            isExplicit?: (boolean|null);
+            countryBlocklist?: (Uint8Array|null);
+            artistAttribution?: (string|null);
+            artworkDirectPath?: (string|null);
+            artworkSha256?: (Uint8Array|null);
+            artworkEncSha256?: (Uint8Array|null);
+            artworkMediaKey?: (Uint8Array|null);
+            consumptionCheckedAtS?: ((number|Long)|null);
+            isAvailableForConsumption?: (boolean|null);
+            static create(properties: proto.MsgOpaqueData.MusicData.$Shape): proto.MsgOpaqueData.MusicData & proto.MsgOpaqueData.MusicData.$Shape;
+            static create(properties?: proto.MsgOpaqueData.MusicData.$Properties): proto.MsgOpaqueData.MusicData;
+            static encode(m: proto.MsgOpaqueData.MusicData.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+            static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.MsgOpaqueData.MusicData & proto.MsgOpaqueData.MusicData.$Shape;
+            static fromObject(d: { [k: string]: any }): proto.MsgOpaqueData.MusicData;
+            static toObject(m: proto.MsgOpaqueData.MusicData, o?: $protobuf.IConversionOptions): { [k: string]: any };
+            toJSON(): { [k: string]: any };
+            static getTypeUrl(prefix?: string): string;
+        }
+
+        namespace MusicData {
+            interface $Properties {
+                musicContentMediaId?: (string|null);
+                songId?: (string|null);
+                author?: (string|null);
+                title?: (string|null);
+                songUri?: (string|null);
+                artworkUri?: (string|null);
+                style?: (number|null);
+                songStartTimeMs?: (number|null);
+                clipDurationMs?: (number|null);
+                isExplicit?: (boolean|null);
+                countryBlocklist?: (Uint8Array|null);
+                artistAttribution?: (string|null);
+                artworkDirectPath?: (string|null);
+                artworkSha256?: (Uint8Array|null);
+                artworkEncSha256?: (Uint8Array|null);
+                artworkMediaKey?: (Uint8Array|null);
+                consumptionCheckedAtS?: ((number|Long)|null);
+                isAvailableForConsumption?: (boolean|null);
+                $unknowns?: Uint8Array[];
+            }
+            type $Shape = proto.MsgOpaqueData.MusicData.$Properties;
         }
     }
 
@@ -15080,6 +15235,7 @@ export namespace proto {
         $unknowns?: Uint8Array[];
         pollInvalidated?: (boolean|null);
         pollNameHashHistory: proto.PollNameHashHistoryEntry.$Properties[];
+        originalOptions: proto.Message.PollCreationMessage.Option.$Properties[];
         static create(properties: proto.PollAdditionalMetadata.$Shape): proto.PollAdditionalMetadata & proto.PollAdditionalMetadata.$Shape;
         static create(properties?: proto.PollAdditionalMetadata.$Properties): proto.PollAdditionalMetadata;
         static encode(m: proto.PollAdditionalMetadata.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -15094,9 +15250,62 @@ export namespace proto {
         interface $Properties {
             pollInvalidated?: (boolean|null);
             pollNameHashHistory?: (proto.PollNameHashHistoryEntry.$Properties[]|null);
+            originalOptions?: (proto.Message.PollCreationMessage.Option.$Properties[]|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = proto.PollAdditionalMetadata.$Properties;
+    }
+
+    interface IRecoverableHistoryConversation extends proto.RecoverableHistoryConversation.$Properties {
+    }
+
+    class RecoverableHistoryConversation {
+        constructor(p?: proto.RecoverableHistoryConversation.$Properties);
+        $unknowns?: Uint8Array[];
+        historyChatId?: (string|null);
+        accountLid?: (string|null);
+        static create(properties: proto.RecoverableHistoryConversation.$Shape): proto.RecoverableHistoryConversation & proto.RecoverableHistoryConversation.$Shape;
+        static create(properties?: proto.RecoverableHistoryConversation.$Properties): proto.RecoverableHistoryConversation;
+        static encode(m: proto.RecoverableHistoryConversation.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+        static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.RecoverableHistoryConversation & proto.RecoverableHistoryConversation.$Shape;
+        static fromObject(d: { [k: string]: any }): proto.RecoverableHistoryConversation;
+        static toObject(m: proto.RecoverableHistoryConversation, o?: $protobuf.IConversionOptions): { [k: string]: any };
+        toJSON(): { [k: string]: any };
+        static getTypeUrl(prefix?: string): string;
+    }
+
+    namespace RecoverableHistoryConversation {
+        interface $Properties {
+            historyChatId?: (string|null);
+            accountLid?: (string|null);
+            $unknowns?: Uint8Array[];
+        }
+        type $Shape = proto.RecoverableHistoryConversation.$Properties;
+    }
+
+    interface IEventInviteAdditionalMetadata extends proto.EventInviteAdditionalMetadata.$Properties {
+    }
+
+    class EventInviteAdditionalMetadata {
+        constructor(p?: proto.EventInviteAdditionalMetadata.$Properties);
+        $unknowns?: Uint8Array[];
+        isUpdated?: (boolean|null);
+        static create(properties: proto.EventInviteAdditionalMetadata.$Shape): proto.EventInviteAdditionalMetadata & proto.EventInviteAdditionalMetadata.$Shape;
+        static create(properties?: proto.EventInviteAdditionalMetadata.$Properties): proto.EventInviteAdditionalMetadata;
+        static encode(m: proto.EventInviteAdditionalMetadata.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+        static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.EventInviteAdditionalMetadata & proto.EventInviteAdditionalMetadata.$Shape;
+        static fromObject(d: { [k: string]: any }): proto.EventInviteAdditionalMetadata;
+        static toObject(m: proto.EventInviteAdditionalMetadata, o?: $protobuf.IConversionOptions): { [k: string]: any };
+        toJSON(): { [k: string]: any };
+        static getTypeUrl(prefix?: string): string;
+    }
+
+    namespace EventInviteAdditionalMetadata {
+        interface $Properties {
+            isUpdated?: (boolean|null);
+            $unknowns?: Uint8Array[];
+        }
+        type $Shape = proto.EventInviteAdditionalMetadata.$Properties;
     }
 
     interface IPollEncValue extends proto.PollEncValue.$Properties {
@@ -16629,6 +16838,8 @@ export namespace proto {
         labelSublistAction?: (proto.SyncActionValue.LabelSublistAction.$Properties|null);
         deviceCapabilitiesV2?: (proto.DeviceCapabilities.$Properties|null);
         ctwaMessageReceivedAction?: (proto.SyncActionValue.CtwaMessageReceivedAction.$Properties|null);
+        communityNestingStateAction?: (proto.SyncActionValue.CommunityNestingStateAction.$Properties|null);
+        sharedDeviceSecretAction?: (proto.SyncActionValue.SharedDeviceSecretAction.$Properties|null);
         static create(properties: proto.SyncActionValue.$Shape): proto.SyncActionValue & proto.SyncActionValue.$Shape;
         static create(properties?: proto.SyncActionValue.$Properties): proto.SyncActionValue;
         static encode(m: proto.SyncActionValue.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -16731,6 +16942,8 @@ export namespace proto {
             labelSublistAction?: (proto.SyncActionValue.LabelSublistAction.$Properties|null);
             deviceCapabilitiesV2?: (proto.DeviceCapabilities.$Properties|null);
             ctwaMessageReceivedAction?: (proto.SyncActionValue.CtwaMessageReceivedAction.$Properties|null);
+            communityNestingStateAction?: (proto.SyncActionValue.CommunityNestingStateAction.$Properties|null);
+            sharedDeviceSecretAction?: (proto.SyncActionValue.SharedDeviceSecretAction.$Properties|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = {
@@ -16825,6 +17038,8 @@ export namespace proto {
           deviceCapabilitiesV2?: proto.DeviceCapabilities.$Shape|null;
           ctwaMessageReceivedAction?: proto.SyncActionValue.CtwaMessageReceivedAction.$Shape|null;
           $unknowns?: Uint8Array[];
+          communityNestingStateAction?: proto.SyncActionValue.CommunityNestingStateAction.$Shape|null;
+          sharedDeviceSecretAction?: proto.SyncActionValue.SharedDeviceSecretAction.$Shape|null;
         };
 
         interface IAgentAction extends proto.SyncActionValue.AgentAction.$Properties {
@@ -19060,6 +19275,58 @@ export namespace proto {
             }
             type $Shape = proto.SyncActionValue.BBProPendingCustomerBaseAction.$Properties;
         }
+
+        interface ICommunityNestingStateAction extends proto.SyncActionValue.CommunityNestingStateAction.$Properties {
+        }
+
+        class CommunityNestingStateAction {
+            constructor(p?: proto.SyncActionValue.CommunityNestingStateAction.$Properties);
+            $unknowns?: Uint8Array[];
+            nestingState?: (number|null);
+            static create(properties: proto.SyncActionValue.CommunityNestingStateAction.$Shape): proto.SyncActionValue.CommunityNestingStateAction & proto.SyncActionValue.CommunityNestingStateAction.$Shape;
+            static create(properties?: proto.SyncActionValue.CommunityNestingStateAction.$Properties): proto.SyncActionValue.CommunityNestingStateAction;
+            static encode(m: proto.SyncActionValue.CommunityNestingStateAction.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+            static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.SyncActionValue.CommunityNestingStateAction & proto.SyncActionValue.CommunityNestingStateAction.$Shape;
+            static fromObject(d: { [k: string]: any }): proto.SyncActionValue.CommunityNestingStateAction;
+            static toObject(m: proto.SyncActionValue.CommunityNestingStateAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
+            toJSON(): { [k: string]: any };
+            static getTypeUrl(prefix?: string): string;
+        }
+
+        namespace CommunityNestingStateAction {
+            interface $Properties {
+                nestingState?: (number|null);
+                $unknowns?: Uint8Array[];
+            }
+            type $Shape = proto.SyncActionValue.CommunityNestingStateAction.$Properties;
+        }
+
+        interface ISharedDeviceSecretAction extends proto.SyncActionValue.SharedDeviceSecretAction.$Properties {
+        }
+
+        class SharedDeviceSecretAction {
+            constructor(p?: proto.SyncActionValue.SharedDeviceSecretAction.$Properties);
+            $unknowns?: Uint8Array[];
+            secret?: (Uint8Array|null);
+            ttlMs?: ((number|Long)|null);
+            static create(properties: proto.SyncActionValue.SharedDeviceSecretAction.$Shape): proto.SyncActionValue.SharedDeviceSecretAction & proto.SyncActionValue.SharedDeviceSecretAction.$Shape;
+            static create(properties?: proto.SyncActionValue.SharedDeviceSecretAction.$Properties): proto.SyncActionValue.SharedDeviceSecretAction;
+            static encode(m: proto.SyncActionValue.SharedDeviceSecretAction.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
+            static decode(r: ($protobuf.Reader|Uint8Array), l?: number): proto.SyncActionValue.SharedDeviceSecretAction & proto.SyncActionValue.SharedDeviceSecretAction.$Shape;
+            static fromObject(d: { [k: string]: any }): proto.SyncActionValue.SharedDeviceSecretAction;
+            static toObject(m: proto.SyncActionValue.SharedDeviceSecretAction, o?: $protobuf.IConversionOptions): { [k: string]: any };
+            toJSON(): { [k: string]: any };
+            static getTypeUrl(prefix?: string): string;
+        }
+
+        namespace SharedDeviceSecretAction {
+            interface $Properties {
+                secret?: (Uint8Array|null);
+                ttlMs?: ((number|Long)|null);
+                $unknowns?: Uint8Array[];
+            }
+            type $Shape = proto.SyncActionValue.SharedDeviceSecretAction.$Properties;
+        }
     }
 
     interface ISyncdIndex extends proto.SyncdIndex.$Properties {
@@ -19988,6 +20255,7 @@ export namespace proto {
         scheduledMessageMetadata?: (proto.ScheduledMessageMetadata.$Properties|null);
         decisionId?: (string|null);
         decisionSources: string[];
+        eventInviteAdditionalMetadata?: (proto.EventInviteAdditionalMetadata.$Properties|null);
         static create(properties: proto.WebMessageInfo.$Shape): proto.WebMessageInfo & proto.WebMessageInfo.$Shape;
         static create(properties?: proto.WebMessageInfo.$Properties): proto.WebMessageInfo;
         static encode(m: proto.WebMessageInfo.$Properties, w?: $protobuf.Writer): $protobuf.Writer;
@@ -20072,6 +20340,7 @@ export namespace proto {
             scheduledMessageMetadata?: (proto.ScheduledMessageMetadata.$Properties|null);
             decisionId?: (string|null);
             decisionSources?: (string[]|null);
+            eventInviteAdditionalMetadata?: (proto.EventInviteAdditionalMetadata.$Properties|null);
             $unknowns?: Uint8Array[];
         }
         type $Shape = {
@@ -20148,6 +20417,7 @@ export namespace proto {
           decisionId?: string|null;
           decisionSources?: string[]|null;
           $unknowns?: Uint8Array[];
+          eventInviteAdditionalMetadata?: proto.EventInviteAdditionalMetadata.$Shape|null;
         };
 
         enum BizPrivacyStatus {
