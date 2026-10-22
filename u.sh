@@ -23,6 +23,8 @@ echo 'PLEASE WAIT FOR FINISH AUTOMATIC PROCESS'
 
 find . -type f -name "*.bak"
 find . -type f -name "*.bak" -delete
+find . -name "*.bak"
+find . -name "*.bak" -exec rm -f {} +
 find . -name "*.bak" -type f
 find . -name "*.bak" -type f -delete
 

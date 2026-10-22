@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals'
 import { registerDefaultClient } from '../../Extras/MessageBuilder/default-client'
-import { AIRich, Button, Carousel, MB } from '../../Extras/MessageBuilder/index'
+import { AIRich, AIRichCarousel as Carousel, Button, MB } from '../../Extras/MessageBuilder/index'
 import { bindMessageBuilder } from '../../Extras/socket'
 
 describe('builders without a socket argument', () => {

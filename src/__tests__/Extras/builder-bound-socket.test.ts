@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { AIRich, Button, Carousel, MB } from '../../Extras/MessageBuilder/index'
+import { AIRich, AIRichCarousel as Carousel, Button, MB } from '../../Extras/MessageBuilder/index'
 import { bindMessageBuilder } from '../../Extras/socket'
 
 describe('global MB (as in elaina-baileys)', () => {
