@@ -62,7 +62,6 @@ import { generateMessageIDV2 } from '../../Utils/generics'
 import { generateWAMessageFromContent, prepareWAMessageMedia } from '../../Utils/messages'
 import { loadFfmpeg, loadSharp } from '../optional-media'
 import { isParsableCertificateChain } from './bot-signature'
-import { resolveClient } from './default-client'
 
 function extractIE(text, { extract = true, hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
 	if (!extract) {
@@ -682,7 +681,9 @@ class Button extends BaseBuilder {
 
 	constructor(client) {
 		super()
-		client = resolveClient(client)
+		if (!client) {
+			throw new Error('Socket is required')
+		}
 
 		this.#client = client
 
@@ -1062,7 +1063,9 @@ class ButtonV2 extends BaseBuilder {
 
 	constructor(client) {
 		super()
-		client = resolveClient(client)
+		if (!client) {
+			throw new Error('Socket is required')
+		}
 
 		this.#client = client
 		this._image
@@ -1267,7 +1270,9 @@ class Carousel extends BaseBuilder {
 
 	constructor(client) {
 		super()
-		client = resolveClient(client)
+		if (!client) {
+			throw new Error('Socket is required')
+		}
 
 		this.#client = client
 		this._cards = []
@@ -1387,7 +1392,9 @@ class AIRich extends BaseBuilder {
 	#client
 
 	constructor(client, { dynamic = true, unsupportedTypeAlert = true } = {}) {
-		client = resolveClient(client)
+		if (!client) {
+			throw new Error('Socket is required')
+		}
 
 		super()
 		this.#client = client
