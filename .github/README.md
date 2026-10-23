@@ -5751,6 +5751,8 @@ unbindVoice()
 
 The `transcribe` callback above is an application-provided placeholder, not a built-in function. Configure access controls and size/duration limits before enabling transcription in groups.
 
+Runnable example: [`assets/examples/voice_recognition.js`](assets/examples/voice_recognition.js).
+
 ### Status stickers and annotation helpers
 
 The port exports helpers to build supported interactive annotations for location, newsletter, link, music, and embedded-message stickers. The coordinates are fractions of the media dimensions (0–1), not pixels:
@@ -5767,6 +5769,35 @@ const embeddedAnnotation = messageSticker({ message: { conversation: 'Quoted con
 // Inspect annotations already present on an incoming image/video message:
 const annotations = readStickers(incomingMessage.message)
 ```
+
+Music annotations and standalone music messages:
+
+```ts
+import { musicSticker, buildMusicMessage, readMusicMessage } from '@teamolduser/baileys'
+
+// A music annotation needs a songId or a mediaId (both come from the Meta music catalog).
+const musicAnnotation = musicSticker({
+  songId: '1234567890',
+  title: 'Song name',
+  author: 'Artist',
+  startTimeMs: 0,
+  durationMs: 15000,
+  area: { x: 0.3, y: 0.75, width: 0.4, height: 0.15 }
+})
+
+// songUri / artworkUri must be hosted on a WhatsApp, Facebook or Instagram host;
+// any other host throws, because the client draws nothing for it.
+const musicMessage = buildMusicMessage({
+  songId: '1234567890',
+  title: 'Song name',
+  author: 'Artist',
+  songUri: 'https://mmg.whatsapp.net/v/t62.0000-0/song.mp4',
+  artworkUri: 'https://mmg.whatsapp.net/v/t62.0000-0/artwork.jpg'
+})
+console.log(readMusicMessage({ musicMessage }))
+```
+
+Runnable example: [`assets/examples/status_stickers.js`](assets/examples/status_stickers.js).
 
 These helpers produce/parse annotation data; attach it only through a message shape supported by the target WhatsApp client and test on the client versions you intend to support. They do not upload media or guarantee server-side acceptance by themselves.
 
@@ -5813,6 +5844,8 @@ console.log(proto.Message.toObject(decoded), encoded.revealKeyId)
 ```
 
 Do not log or expose `revealKey`; anyone holding it can decrypt the payload. The socket protocol metadata helpers (`buildScheduledMsgMetaNode`, `buildUnscheduleProtocolMessage`) are low-level primitives and should only be used with the matching protocol flow.
+
+Runnable example: [`assets/examples/scheduled_message.js`](assets/examples/scheduled_message.js).
 
 ### Optional media dependencies
 

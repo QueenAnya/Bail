@@ -1,4 +1,5 @@
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
+import { registerDefaultClient } from '../Extras/MessageBuilder/default-client'
 import { makePortedSocket } from '../Extras/socket'
 import { bindVoiceRecognition } from '../Extras/voice-recognition'
 import type { UserFacingSocketConfig } from '../Types'
@@ -58,6 +59,13 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 		})
 		return client
 	}
+
+	// let `new MB.AIRich()` / `new MB.Button()` ... work without the socket argument while this is the only live socket;
+	// it is removed again when the socket ends, so a reconnect (new socket) never leaves a stale entry behind
+	const unregisterDefaultClient = registerDefaultClient(sock)
+	sock.registerSocketEndHandler(() => {
+		unregisterDefaultClient()
+	})
 
 	// opt-in voice-note transcription (config.voiceRecognition = { enabled, transcribe, ... })
 	bindVoiceRecognition(sock, newConfig)

@@ -1,5 +1,5 @@
 import NodeCache from '@cacheable/node-cache'
-import { areJidsSameUser, type BinaryNode, getBinaryNodeChild, jidDecode } from '../WABinary'
+import { areJidsSameUser, type BinaryNode, getBinaryNodeChild, jidDecode } from '../WABinary/index'
 import { isStringNullOrEmpty } from './generics'
 import type { ILogger } from './logger'
 

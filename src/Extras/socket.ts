@@ -7,9 +7,9 @@
  *   music, splitPayment, splitPaymentUpdate, paymentReminder            (see payment-messages.ts / status-stickers.ts)
  *   newsletterStatus, statusAudience, addYours, messageAssociation      (decorate other content)
  */
-import { makeChatsExtras } from './chats-extras'
-import { AIRich, AIRichCarousel, Button, ButtonV2, MB } from './MessageBuilder/index'
 import './MessageBuilder/attach-static-helpers'
+import { AIRich, AIRichCarousel, Button, ButtonV2, MB } from './MessageBuilder/index'
+import { makeChatsExtras } from './chats-extras'
 import { makeMessagesExtras, type MessagesExtrasConfig, type MessagesExtrasSocket } from './messages-extras'
 import { prepareModernMessageContent } from './modern-messages'
 import { makeNewsletterExtras } from './newsletter-extras'

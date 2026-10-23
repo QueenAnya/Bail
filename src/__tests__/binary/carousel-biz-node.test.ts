@@ -127,7 +127,10 @@ describe('Interactive Carousel Biz Node', () => {
 		const message = {
 			interactiveMessage: {
 				carouselMessage: {
-					cards: [{ body: { text: 'x' } }, { nativeFlowMessage: { buttons: [{ name: 'quick_reply', buttonParamsJson: '{}' }] } }]
+					cards: [
+						{ body: { text: 'x' } },
+						{ nativeFlowMessage: { buttons: [{ name: 'quick_reply', buttonParamsJson: '{}' }] } }
+					]
 				}
 			}
 		} as any

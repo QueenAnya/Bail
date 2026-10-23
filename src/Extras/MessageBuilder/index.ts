@@ -62,6 +62,7 @@ import { generateMessageIDV2 } from '../../Utils/generics'
 import { generateWAMessageFromContent, prepareWAMessageMedia } from '../../Utils/messages'
 import { loadFfmpeg, loadSharp } from '../optional-media'
 import { isParsableCertificateChain } from './bot-signature'
+import { resolveClient } from './default-client'
 
 function extractIE(text, { extract = true, hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
 	if (!extract) {
@@ -681,9 +682,7 @@ class Button extends BaseBuilder {
 
 	constructor(client) {
 		super()
-		if (!client) {
-			throw new Error('Socket is required')
-		}
+		client = resolveClient(client)
 
 		this.#client = client
 
@@ -1063,9 +1062,7 @@ class ButtonV2 extends BaseBuilder {
 
 	constructor(client) {
 		super()
-		if (!client) {
-			throw new Error('Socket is required')
-		}
+		client = resolveClient(client)
 
 		this.#client = client
 		this._image
@@ -1270,9 +1267,7 @@ class Carousel extends BaseBuilder {
 
 	constructor(client) {
 		super()
-		if (!client) {
-			throw new Error('Socket is required')
-		}
+		client = resolveClient(client)
 
 		this.#client = client
 		this._cards = []
@@ -1392,9 +1387,7 @@ class AIRich extends BaseBuilder {
 	#client
 
 	constructor(client, { dynamic = true, unsupportedTypeAlert = true } = {}) {
-		if (!client) {
-			throw new Error('Socket is required')
-		}
+		client = resolveClient(client)
 
 		super()
 		this.#client = client
@@ -2136,7 +2129,10 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addHtmlCard(html, { mimeType = 'text/html', width = 300, height = 200, cardType, sandbox, id, replace, insertAt } = {}) {
+	addHtmlCard(
+		html,
+		{ mimeType = 'text/html', width = 300, height = 200, cardType, sandbox, id, replace, insertAt } = {}
+	) {
 		if (typeof html !== 'string') {
 			throw new TypeError('html must be a string')
 		}
@@ -2197,7 +2193,10 @@ class AIRich extends BaseBuilder {
 			options: options.map(option =>
 				typeof option === 'string'
 					? { option_text: option, is_correct: false }
-					: { option_text: option.text ?? option.option_text ?? '', is_correct: !!(option.correct ?? option.is_correct) }
+					: {
+							option_text: option.text ?? option.option_text ?? '',
+							is_correct: !!(option.correct ?? option.is_correct)
+						}
 			),
 			explanation,
 			__typename: 'GenAIQuizPrimitive'
@@ -2240,9 +2239,16 @@ class AIRich extends BaseBuilder {
 			throw new TypeError('addSports needs at least one game')
 		}
 
-		const primitives = items.map(game => ({ ...game, league: game.league ?? league, __typename: 'GenAISportsWidgetPrimitive' }))
+		const primitives = items.map(game => ({
+			...game,
+			league: game.league ?? league,
+			__typename: 'GenAISportsWidgetPrimitive'
+		}))
 
-		const section = AIRich.newLayout(items.length > 1 ? 'HScroll' : 'Single', items.length > 1 ? primitives : primitives[0])
+		const section = AIRich.newLayout(
+			items.length > 1 ? 'HScroll' : 'Single',
+			items.length > 1 ? primitives : primitives[0]
+		)
 
 		const submessage = this.createAlert('GenAISportsWidgetPrimitive')
 

@@ -1,6 +1,6 @@
 import { proto } from '../../WAProto/index.js'
 import type { BaileysEventEmitter, BaileysEventMap, Contact } from '../Types'
-import { isLidUser, isPnUser } from '../WABinary'
+import { isLidUser, isPnUser } from '../WABinary/index'
 import type { ILogger } from './logger'
 
 export type ContactsUpsertResult = {
