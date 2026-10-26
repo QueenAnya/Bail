@@ -1,4 +1,6 @@
 import { jest } from '@jest/globals'
+import { spawnSync } from 'node:child_process'
+import { getFfmpegBin } from '../../Utils/ffmpeg-path'
 import { AudioFeeder } from '../../Voip/audio-feeder'
 import { CallState } from '../../Voip/types'
 import { ActiveCall } from '../../Voip/voip-engine'
@@ -125,7 +127,10 @@ describe('Concurrent outgoing VoIP calls', () => {
 		b.end()
 	})
 
-	it('cross-call audio isolation: independent AudioFeeders & durations', async () => {
+	// the AudioFeeder decodes through the ffmpeg binary on PATH, so this case needs ffmpeg installed
+	const itFfmpeg = spawnSync(getFfmpegBin(), ['-version'], { stdio: 'ignore' }).status === 0 ? it : it.skip
+
+	itFfmpeg('cross-call audio isolation: independent AudioFeeders & durations', async () => {
 		const chunksA: Float32Array[] = []
 		const chunksB: Float32Array[] = []
 		const callA = mk('AUD_A', '4000000001@s.whatsapp.net', 150)

@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import makeWASocket, { Browsers, DisconnectReason, useMultiFileAuthState } from '../src/index.js'
+import makeWASocket, { Browsers, DisconnectReason, useMultiFileAuthState } from '../lib/index.js'
 
 const args = process.argv.slice(2)
 const checkOnly = args.includes('--check-only')

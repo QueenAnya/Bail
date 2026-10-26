@@ -1,6 +1,7 @@
+import { toNewsletterUserSettingInput } from '../Extras/newsletter-extras'
 import type { NewsletterCreateResponse, SocketConfig, WAMediaUpload } from '../Types'
 import type { NewsletterMetadata, NewsletterUpdate } from '../Types'
-import { QueryIdd, QueryIds, XWAPaths } from '../Types'
+import { QueryIds, XWAPaths } from '../Types'
 import { generateProfilePicture } from '../Utils/messages-media'
 import { getBinaryNodeChild } from '../WABinary'
 import { makeGroupsSocket } from './groups'
@@ -63,12 +64,26 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 	const newsletterUpdate = async (jid: string, updates: NewsletterUpdate) => {
 		const variables = {
 			newsletter_id: jid,
+			// `settings` must come first: an update that carries its own settings (reaction codes) has to win
 			updates: {
-				...updates,
-				settings: null
+				settings: null,
+				...updates
 			}
 		}
 		return executeWMexQuery(variables, QueryIds.UPDATE_METADATA, 'xwa2_newsletter_update')
+	}
+
+	const newsletterUserSetting = async (
+		jid: string,
+		type: 'ADMIN_NOTIFICATIONS' | 'FOLLOWER_NOTIFICATIONS',
+		muted: boolean
+	) => {
+		const response = await executeWMexQuery<{ id?: string; state?: { type?: string } }>(
+			toNewsletterUserSettingInput(jid, type, muted),
+			QueryIds.UPDATE_USER_SETTING,
+			XWAPaths.xwa2_newsletter_update_user_setting
+		)
+		return { id: response?.id ?? jid, state: response?.state?.type }
 	}
 
 	return {
@@ -92,31 +107,63 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		newsletterUpdate,
 
 		newsletterFetchAllParticipating: async () => {
-			return await genericExecuteWMexQuery(
-				{},
-				QueryIdd.GETSUBSCRIBED,
-				XWAPaths.xwa2_newsletter_subscribed,
-				query,
-				generateMessageTag
+			return executeWMexQuery(
+				{ fetch_status_metadata: false, fetch_wamo_sub: false },
+				QueryIds.SUBSCRIBED,
+				XWAPaths.xwa2_newsletter_subscribed
 			)
 		},
 
-		newsletterSubscribers: async (jid: string) => {
-			return executeWMexQuery<{ subscribers: number }>(
-				{ newsletter_id: jid },
-				QueryIds.SUBSCRIBERS,
-				XWAPaths.xwa2_newsletter_subscribers
+		/** The followers of a channel (the subscriber *count* is `subscribers` of `newsletterMetadata`). */
+		newsletterSubscribers: async (jid: string, options: { count?: number } = {}) => {
+			const response = await executeWMexQuery<{
+				followers?: {
+					edges?: {
+						role?: string
+						follow_time?: string
+						node?: { id?: string; pn?: string; display_name?: string; username_info?: { username?: string } }
+					}[]
+				}
+			}>(
+				{ input: { newsletter_id: jid, count: options.count ?? 100 } },
+				QueryIds.FOLLOWERS,
+				XWAPaths.xwa2_newsletter_followers
 			)
+			return (response?.followers?.edges ?? []).map(edge => ({
+				id: edge?.node?.id,
+				phoneNumber: edge?.node?.pn,
+				displayName: edge?.node?.display_name,
+				username: edge?.node?.username_info?.username,
+				role: edge?.role,
+				followTime: edge?.follow_time
+			}))
 		},
 
-		newsletterMetadata: async (type: 'invite' | 'jid', key: string) => {
+		newsletterMetadata: async (
+			type: 'invite' | 'jid',
+			key: string,
+			options: {
+				fetchCreationTime?: boolean
+				fetchFullImage?: boolean
+				fetchViewerMetadata?: boolean
+				fetchPinnedMessages?: boolean
+				fetchStatusMetadata?: boolean
+				fetchWamoSub?: boolean
+				viewRole?: string
+			} = {}
+		) => {
+			const inputType = String(type).toUpperCase()
 			const variables = {
-				fetch_creation_time: true,
-				fetch_full_image: true,
-				fetch_viewer_metadata: true,
+				fetch_creation_time: options.fetchCreationTime ?? true,
+				fetch_full_image: options.fetchFullImage ?? inputType !== 'INVITE',
+				fetch_viewer_metadata: options.fetchViewerMetadata ?? true,
+				fetch_pinned_messages: options.fetchPinnedMessages ?? false,
+				fetch_status_metadata: options.fetchStatusMetadata ?? false,
+				fetch_wamo_sub: options.fetchWamoSub ?? false,
 				input: {
 					key,
-					type: type.toUpperCase()
+					type: inputType,
+					...(options.viewRole ? { view_role: options.viewRole } : {})
 				}
 			}
 			const result = await executeWMexQuery<unknown>(variables, QueryIds.METADATA, XWAPaths.xwa2_newsletter_metadata)
@@ -131,13 +178,10 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 			return executeWMexQuery({ newsletter_id: jid }, QueryIds.UNFOLLOW, XWAPaths.xwa2_newsletter_leave_v2)
 		},
 
-		newsletterMute: (jid: string) => {
-			return executeWMexQuery({ newsletter_id: jid }, QueryIds.MUTE, XWAPaths.xwa2_newsletter_mute_v2)
-		},
+		// mute / unmute are user settings now (`mute_v2` / `unmute_v2` are no longer served)
+		newsletterMute: (jid: string) => newsletterUserSetting(jid, 'ADMIN_NOTIFICATIONS', true),
 
-		newsletterUnmute: (jid: string) => {
-			return executeWMexQuery({ newsletter_id: jid }, QueryIds.UNMUTE, XWAPaths.xwa2_newsletter_unmute_v2)
-		},
+		newsletterUnmute: (jid: string) => newsletterUserSetting(jid, 'ADMIN_NOTIFICATIONS', false),
 
 		newsletterUpdateName: async (jid: string, name: string) => {
 			return await newsletterUpdate(jid, { name })
@@ -247,8 +291,15 @@ export const makeNewsletterSocket = (config: SocketConfig) => {
 		},
 
 		/** Fetch all newsletters this account is subscribed to (like groupFetchAllParticipating, but for newsletters) */
-		newsletterSubscribed: async () => {
-			return executeWMexQuery({}, QueryIdd.SUBSCRIBED, XWAPaths.xwa2_newsletter_subscribed)
+		newsletterSubscribed: async (options: { fetchStatusMetadata?: boolean; fetchWamoSub?: boolean } = {}) => {
+			return executeWMexQuery(
+				{
+					fetch_status_metadata: options.fetchStatusMetadata === true,
+					fetch_wamo_sub: options.fetchWamoSub === true
+				},
+				QueryIds.SUBSCRIBED,
+				XWAPaths.xwa2_newsletter_subscribed
+			)
 		},
 
 		/** Set who can react to newsletter posts ('all' | 'admin' | 'none' / 'blocklist') */

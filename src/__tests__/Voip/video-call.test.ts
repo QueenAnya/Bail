@@ -1,8 +1,9 @@
 import { jest } from '@jest/globals'
 import { spawnSync } from 'node:child_process'
+import { getFfmpegBin } from '../../Utils/ffmpeg-path'
 import { ActiveCall } from '../../Voip/voip-engine'
 
-const hasFfmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' }).status === 0
+const hasFfmpeg = spawnSync(getFfmpegBin(), ['-version'], { stdio: 'ignore' }).status === 0
 const itFfmpeg = hasFfmpeg ? it : it.skip
 
 const mockEngine = () =>

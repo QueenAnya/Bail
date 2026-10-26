@@ -124,6 +124,10 @@ export type SocketConfig = {
 	maxEventListeners?: number
 	/** max retry count */
 	maxMsgRetryCount: number
+	/** max undecryptable messages waiting for a retry request at once; beyond this they are acked without retry (default 64) */
+	maxRetryQueueSize: number
+	/** embed the sender key distribution message in group messages when we already hold a sender key (default true) */
+	inlineSenderKeyDistribution?: boolean
 	/** base delay between resends after a retryable server nack (multiplied by the attempt number) */
 	ackRetryDelayMs: number
 	/** max number of resends of one message after retryable server nacks */

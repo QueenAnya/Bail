@@ -2,7 +2,7 @@ import { platform, release } from 'os'
 import { proto } from '../../WAProto/index.js'
 import type { BrowsersMap } from '../Types'
 
-const PLATFORM_MAP: Record<string, string> = {
+const PLATFORM_MAP: Record<string, string | undefined> = {
 	aix: 'AIX',
 	darwin: 'Mac OS',
 	win32: 'Windows',
@@ -10,6 +10,8 @@ const PLATFORM_MAP: Record<string, string> = {
 	freebsd: 'FreeBSD',
 	openbsd: 'OpenBSD',
 	sunos: 'Solaris',
+	cygwin: undefined,
+	netbsd: undefined,
 	linux: 'Linux',
 	ubuntu: 'Ubuntu',
 	ios: 'iOS',

@@ -33,6 +33,7 @@ import type {
 } from '../Types'
 import { type BinaryNode, getBinaryNodeChild, getBinaryNodeChildBuffer, jidNormalizedUser } from '../WABinary'
 import { aesDecryptGCM, aesEncryptGCM, hkdf } from './crypto'
+import { getFfmpegBin } from './ffmpeg-path'
 import { generateMessageIDV2 } from './generics'
 import type { ILogger } from './logger'
 
@@ -139,7 +140,7 @@ export const extractVideoThumb = (
 			'pipe:1'
 		]
 
-		const ffmpeg = spawn('ffmpeg', args)
+		const ffmpeg = spawn(getFfmpegBin(), args)
 		const chunks: Buffer[] = []
 		let errorOutput = ''
 

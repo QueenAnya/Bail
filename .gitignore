@@ -36,3 +36,6 @@ u.sh
 u.sh.bak
 u2.sh
 u2.sh.bak
+
+# WhatsApp Web bundle snapshots and reports written by `npm run wa:update`
+.wa-bundle/

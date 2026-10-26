@@ -1,5 +1,4 @@
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
-import { registerDefaultClient } from '../Extras/MessageBuilder/default-client'
 import { makePortedSocket } from '../Extras/socket'
 import { bindVoiceRecognition } from '../Extras/voice-recognition'
 import type { UserFacingSocketConfig } from '../Types'

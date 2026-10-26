@@ -1,8 +1,15 @@
 import { loadBundle } from './protobundle.js'
 import waproto from '../WAProto/index.js'
-import { FUTURE_PROOF_MESSAGE_KEYS } from '../src/Utils/messages.js'
 
 const { proto } = waproto
+
+// The library is TypeScript, so the runtime code is read from the build output.
+const built = new URL('../lib/Utils/messages.js', import.meta.url)
+const { FUTURE_PROOF_MESSAGE_KEYS } = await import(built.href).catch(error => {
+    console.error(`could not load ${built.pathname}: ${error.message}`)
+    console.error('run `yarn build` first, verifyproto checks the compiled library')
+    process.exit(1)
+})
 
 const resolve = name => name.split('.').reduce((holder, part) => holder && holder[part], proto)
 

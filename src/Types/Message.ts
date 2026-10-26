@@ -24,6 +24,8 @@ export type WAMessageKey = proto.IMessageKey & {
 	participantAlt?: string
 	participantUsername?: string
 	server_id?: string
+	/** newsletter message sent by this account (stanza is_sender='true') */
+	isNewsletterSender?: boolean
 	addressingMode?: string
 	isViewOnce?: boolean // TODO: remove out of the message key, place in WebMessageInfo
 	// NOTE: `uuid` is NOT declared here — it's already part of the real WA
@@ -585,6 +587,8 @@ export type PollMessageOptions = {
 	 * PR #2725 — reverse-engineered from live WhatsApp.
 	 */
 	hideVoterNames?: boolean
+	/** alias of `hideVoterNames` */
+	hideVoter?: boolean
 	/** poll expiration timestamp; after this the poll can no longer be voted on */
 	endDate?: Date
 	/** allow participants to add their own options to the poll */
@@ -1225,6 +1229,8 @@ export type MiscMessageGenerationOptions = MinimalRelayOptions & {
 }
 export type MessageGenerationOptionsFromContent = MiscMessageGenerationOptions & {
 	userJid: string
+	/** used to log that a `quoted` message had nothing quotable */
+	logger?: ILogger
 }
 
 export type WAMediaUploadFunctionOpts = {

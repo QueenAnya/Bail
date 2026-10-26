@@ -33,7 +33,7 @@ for (const source of sources) {
     }
 }
 
-const mex = readFileSync('src/Types/Mex.js', 'utf8')
+const mex = readFileSync('lib/Types/Mex.js', 'utf8')
 const idOf = Object.fromEntries([...mex.matchAll(/QueryIds\["([A-Z_0-9]+)"\] = "(\d+)"/g)].map(entry => [entry[1], entry[2]]))
 const pathOf = Object.fromEntries([...mex.matchAll(/XWAPaths\["([A-Za-z0-9_]+)"\] = "([A-Za-z0-9_]+)"/g)].map(entry => [entry[1], entry[2]]))
 
@@ -90,7 +90,7 @@ const topLevelKeys = (literal) => {
 
 const callSites = []
 
-for (const file of ['src/Socket/newsletter.js', 'src/Socket/socket.js']) {
+for (const file of ['lib/Socket/newsletter.js', 'lib/Socket/socket.js']) {
     const source = readFileSync(file, 'utf8')
     let at = -1
     while ((at = source.indexOf('executeWMexQuery(', at + 1)) >= 0) {

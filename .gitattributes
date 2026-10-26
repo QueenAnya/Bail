@@ -1,2 +1,7 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files and normalize to LF in the repo
+* text=auto eol=lf
+
+# Keep LF in the working tree on Windows too: scripts/verify-voip-assets.mjs hashes these files
+*.wasm binary
+assets/wasm/*.js text eol=lf
+assets/wasm/*.mjs text eol=lf

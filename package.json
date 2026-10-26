@@ -49,8 +49,23 @@
     "preinstall": "node ./engine-requirements.js",
     "release": "release-it",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --testMatch '**/*.test.ts'",
+    "test2": "node --test \"test/*.test.js\"",
+    "update:version2": "node ./script/updatewa.js",
+    "build:docs2": "node ./script/apiref.js site-api.json && node ./script/builddocs.js site",
+    "verify:assets2": "node ./script/verifyassets.js",
+    "proto:update2": "npm run sync:proto && npm run verify:proto && npm run verify:mex && npm run wa:update -- --apply --keep 2 && npm run update:version2",
     "test:e2e": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-vm-modules ./node_modules/.bin/jest --runInBand --forceExit --testMatch '**/*.test-e2e.ts'",
     "update:version": "tsx ./scripts/update-version.ts",
+    "check:proto": "node ./script/checkproto.js",
+    "sync:proto": "node ./script/syncproto.js",
+    "wa:update": "node ./script/waupdate.js",
+    "wa:diff": "node ./script/diffbundle.js",
+    "audit:apk": "node ./script/auditapk.js",
+    "verify:proto": "node ./script/verifyproto.js",
+    "verify:mex": "node ./script/verifymex.js",
+    "fetch:bundle": "node ./script/fetchbundle.js",
+    "test:pairing": "node ./script/testpairing.js",
+    "proto:update": "npm run sync:proto && npm run build && npm run verify:proto && npm run verify:mex && npm run wa:update -- --apply --keep 2 && node ./script/updatewa.js",
     "test:compat": "node --test test/builder.test.js test/groups.test.js test/html.test.js test/messages.test.js test/runtime.test.js test/status.test.js test/username.test.js test/voip.test.js",
     "test:all": "npm run build && npm test && npm run test:compat",
     "verify:assets": "node ./scripts/verify-voip-assets.mjs"
@@ -162,6 +177,11 @@
     },
     "link-preview-js": {
       "optional": true
+    }
+  },
+  "dependenciesMeta": {
+    "ffmpeg-static": {
+      "built": true
     }
   }
 }

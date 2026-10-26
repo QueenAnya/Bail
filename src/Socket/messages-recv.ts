@@ -27,6 +27,7 @@ import type {
 } from '../Types'
 import {
 	MexUpdatesOperations,
+	NewChatMessageCappingStatusType,
 	ReachoutTimelockEnforcementType,
 	WAMessageStatus,
 	WAMessageStubType,
@@ -125,6 +126,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	const {
 		logger,
 		retryRequestDelayMs,
+		maxRetryQueueSize,
 		maxMsgRetryCount,
 		ackRetryDelayMs,
 		maxAckRetryCount,
@@ -168,6 +170,7 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
 	const retryMutex = makeMutex()
+	let retryQueueDepth = 0
 
 	const msgRetryCache =
 		config.msgRetryCounterCache ||
@@ -315,18 +318,27 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				case 'NotificationNewsletterLeave':
 				case 'NotificationNewsletterStateChange':
 				case 'NotificationNewsletterAdminMetadataUpdate':
+					if (handleNewsletterAdminProfileNotification(data)) {
+						break
+					}
+
+					await handleLegacyMexNewsletterNotification(node)
+					break
+
 				case 'NotificationNewsletterOwnerUpdate':
 				case 'NotificationNewsletterAdminInviteRevoke':
 				case 'NotificationNewsletterWamoSubStatusChange':
 				case 'NotificationNewsletterBlockUser':
 				case 'NotificationNewsletterPaidPartnership':
+				case 'NotificationNewsletterPaidPartnershipUpdate':
 				case 'NotificationNewsletterMilestone':
 				case 'NewsletterResponseStateUpdate':
 					await handleLegacyMexNewsletterNotification(node)
 					break
 
 				default:
-					logger.debug({ opName }, 'unhandled mex notification')
+					logger.info({ opName }, 'unmodelled mex notification, emitting raw')
+					ev.emit('mex.notification', { operation: opName, data })
 					break
 			}
 
@@ -440,6 +452,27 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	}
 
 	// ── Legacy mex newsletter notification handler ────────────────────────────
+
+	const handleNewsletterAdminProfileNotification = (data: any): boolean => {
+		const payload = data?.xwa2_notify_newsletter_on_admin_metadata_update
+		if (!payload?.id) {
+			return false
+		}
+
+		const profile = payload.admin_profile
+		ev.emit('newsletter-admin-profile.update', {
+			id: payload.id,
+			adminProfile: profile?.name
+				? {
+						id: profile.id,
+						name: profile.name,
+						pictureId: profile.picture?.id,
+						pictureDirectPath: profile.picture?.direct_path
+					}
+				: null
+		})
+		return true
+	}
 
 	const handleLegacyMexNewsletterNotification = async (node: BinaryNode) => {
 		const mexNode = getBinaryNodeChild(node, 'mex')
@@ -2247,38 +2280,56 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							}
 						}
 
+						if (retryQueueDepth >= maxRetryQueueSize) {
+							logger.warn(
+								{ msgId: msg.key.id, retryQueueDepth, maxRetryQueueSize },
+								'retry queue full, acking without retry'
+							)
+							acked = true
+							return sendMessageAck(
+								node,
+								isJidStatusBroadcast(msg.key.remoteJid!) ? undefined : NACK_REASONS.UnhandledError
+							)
+						}
+
 						logger.debug('[handleMessage] Attempting retry request for failed decryption')
 
-						// WAWeb only retry-receipts here; server emits PreKeyLow if prekeys run low.
-						await retryMutex.mutex(async () => {
-							try {
-								if (!ws.isOpen) {
-									logger.debug({ node }, 'Connection closed, skipping retry')
-									return
+						retryQueueDepth++
+						try {
+
+							// WAWeb only retry-receipts here; server emits PreKeyLow if prekeys run low.
+							await retryMutex.mutex(async () => {
+								try {
+									if (!ws.isOpen) {
+										logger.debug({ node }, 'Connection closed, skipping retry')
+										return
+									}
+
+									const encNode = getBinaryNodeChild(node, 'enc')
+									await sendRetryRequest(node, !encNode)
+									if (retryRequestDelayMs) {
+										await delay(retryRequestDelayMs)
+									}
+								} catch (err) {
+									logger.error({ err }, 'Failed to send retry')
 								}
 
-								const encNode = getBinaryNodeChild(node, 'enc')
-								await sendRetryRequest(node, !encNode)
-								if (retryRequestDelayMs) {
-									await delay(retryRequestDelayMs)
+								acked = true
+								// Undecryptable statuses: ack without a NACK reason. A NACK makes the
+								// server keep the stanza and re-deliver it on every (re)connect, and
+								// while it is pending the rest of the offline queue is withheld —
+								// one undecryptable fresh status stalls delivery of every queued
+								// message. Statuses are best-effort content; dropping one is far
+								// better than freezing the account's message delivery.
+								if (isJidStatusBroadcast(msg.key.remoteJid!)) {
+									await sendMessageAck(node)
+								} else {
+									await sendMessageAck(node, NACK_REASONS.UnhandledError)
 								}
-							} catch (err) {
-								logger.error({ err }, 'Failed to send retry')
-							}
-
-							acked = true
-							// Undecryptable statuses: ack without a NACK reason. A NACK makes the
-							// server keep the stanza and re-deliver it on every (re)connect, and
-							// while it is pending the rest of the offline queue is withheld —
-							// one undecryptable fresh status stalls delivery of every queued
-							// message. Statuses are best-effort content; dropping one is far
-							// better than freezing the account's message delivery.
-							if (isJidStatusBroadcast(msg.key.remoteJid!)) {
-								await sendMessageAck(node)
-							} else {
-								await sendMessageAck(node, NACK_REASONS.UnhandledError)
-							}
-						})
+							})
+						} finally {
+							retryQueueDepth--
+						}
 					}
 				} else {
 					if (messageRetryManager && msg.key.id) {
@@ -2490,6 +2541,14 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 					{ msgId: attrs.id, from: attrs.from },
 					'smax-invalid (479): stanza rejected by server — likely stale device session or malformed addressing'
 				)
+			} else if (attrs.error === SERVER_ERROR_CODES.NewChatMessagesCapped) {
+				// 475 = the account used up its new-chat quota; no retry, a retry would only count as another new chat
+				logger.warn({ msgId: attrs.id, from: attrs.from }, 'error 475: new chat message quota reached')
+				ev.emit('message-capping.update', {
+					capping_status: NewChatMessageCappingStatusType.CAPPED,
+					jid: attrs.from,
+					messageId: attrs.id
+				})
 			} else if (isReachoutTimelocked) {
 				// user is temporarily restricted, fetch current restriction details
 				await fetchAccountReachoutTimelock().catch(err => logger.warn({ err }, 'failed to fetch reachout timelock'))

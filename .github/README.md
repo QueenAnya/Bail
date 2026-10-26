@@ -33,6 +33,62 @@ This library is an unofficial, community-maintained fork and is in no way affili
 
 ---
 
+## 📌 Overview
+
+### ✨ Highlights
+
+| Feature | What it covers |
+|---|---|
+| 🔌 Multi-Device | Connects to WhatsApp through the Baileys Multi-Device protocol. |
+| 🔐 Pairing code | Supports the regular pairing code and a custom 8-character code. |
+| 🖱️ Interactive buttons | Quick reply, URL, copy, call, list/select, location and the other native-flow buttons. |
+| 🧱 MessageBuilder built in | `Button`, `ButtonV2`, `Carousel` (exported as `CarouselV2` / `MB.Carousel`), `AIRich` and `Toolkit` ship in the same package. |
+| 🖼️ Albums | Sends several images/videos as a single album message. |
+| 📢 Channels | Creates, follows, edits, reacts to and reads WhatsApp Channels. |
+| 👥 Groups | Group creation, member management, metadata, description changes and more. |
+| 🪪 LID / PN addressing | Supports the newer LID addressing and exposes the PN/JID alternative WhatsApp provides when there is one. |
+| 📷 Profile photo | Fetches, changes and removes profile photos. |
+| 🤖 AI Rich | Experimental rich-response builder for text, code, tables, media, suggestions and other layouts. |
+| 📞 Voice and video calls | Audio, video and screen-share calls on sessions the bot already owns, with a playlist driving the call. |
+| 🗄️ Database sessions | Keeps the session in SQLite, PostgreSQL, MySQL, MongoDB, Redis or NekoDB instead of files. |
+| 📦 ESM | ESM-first package; needs Node.js 22 or newer. |
+
+### 🗺️ What can it do?
+
+New here? This is the whole library at a glance. Every row links to the section that shows the code.
+
+| I want to… | Use | Read |
+|---|---|---|
+| Log in and stay logged in | `useMultiFileAuthState`, `usePostgresAuthState`, … | [Session storage](docs/en/sessions.md), [Database auth states](#database-auth-states) |
+| Log in without scanning a QR | pairing code | [Pairing code guide](docs/en/pairing.md), [Request custom pairing code](#-request-custom-pairing-code) |
+| React to incoming messages | `messages.upsert` | [Messages guide](docs/en/messages.md), [Events](#-events) |
+| Send text, images, video, files, location, polls | `sock.sendMessage` | [Sending messages](#%EF%B8%8F-sending-messages), [Sending media](#-sending-media-messages) |
+| Send buttons, lists, carousels | `Button`, `ButtonV2`, `CarouselV2` (`MB.Carousel`) | [Sending interactive messages](#-sending-interactive-messages), [MessageBuilder / AIRich](#messagebuilder--airich) |
+| Send AI-style cards | `AIRich`, A2UI | [MessageBuilder / AIRich](#messagebuilder--airich), [A2UI cards](#a2ui-cards-and-airichmessage) |
+| Read rich messages sent by other bots | `readRichMessage` | [A2UI cards](#a2ui-cards-and-airichmessage), [All message types](#-all-message-types) |
+| Send several photos as one post | album message | [Album](#%EF%B8%8F-album-image--video) |
+| Manage channels | channel helpers | [Newsletter management](#-newsletter-management), [Channel methods](#channel-newsletter-methods) |
+| Manage groups | `groupCreate`, `groupParticipantsUpdate`, … | [Group management](#-group-management) |
+| Manage communities | community helpers | [Community management](#-community-management) |
+| Block, unblock, report spam | `updateBlockStatus`, `reportSpam` | [Account and chat methods](#account-and-chat-methods), [Privacy management](#-privacy-management) |
+| Show typing, read receipts, presence | `sendPresenceUpdate`, `readMessages` | [Chat control](#10-chat-control-typing--pinned-messages--read-receipts), [Presence monitor](#33-presence-monitor-onlineoffline-tracking) |
+| Pin, archive, mute, star chats | `chatModify` | [Chat control](#10-chat-control-typing--pinned-messages--read-receipts), [Account and chat methods](#account-and-chat-methods) |
+| Use business labels and the catalog | label and catalog helpers | [Business management](#-business-management), [Account and chat methods](#account-and-chat-methods) |
+| Create call links, reject calls | `createCallLink`, `rejectCall` | [Call handling](#16-call-handling-full) |
+| Call people and play audio | `makeVoipClient`, `voip.call` | [Voice calling](#30-voice-calling-wasm-based-same-session) |
+| Play a queue of tracks in a call | `playlist`, `enqueue`, `idleGraceMs` | [Call queues](#audio-queue) |
+| Send video or share the screen in a call | `video: true`, `screenShare: true` | [Video calls](#video-calls), [Screen sharing](#screen-sharing) |
+| Call a whole group at once | `voip.callGroup` | [Group calls](#group-calls) |
+| Change or read profile photos | profile photo helpers | [Profile management](#-profile-management) |
+| Schedule messages for later | scheduled messages | [Message scheduler](#8-message-scheduler), [Scheduled-message protocol helpers](#scheduled-message-protocol-helpers) |
+| Follow WhatsApp Web changes | `npm run wa:update` | [Updating the WhatsApp Web version](#-updating-the-whatsapp-web-version) |
+| Know when my number is in trouble | account health signals | [Account health signals](#%EF%B8%8F-account-health-signals) |
+| Understand LID vs PN jids | addressing helpers | [JID utilities & LID support](#17-jid-utilities--lid-support) |
+| Find out why `conversation` is empty | `normalizeMessageContent` | [All message types](#-all-message-types) |
+| Fix what is broken | — | [Troubleshooting](#-troubleshooting) |
+
+---
+
 ### 📚 Documentation
 
 English guides are maintained in [`docs/en/`](docs/en/index.md): [getting started](docs/en/getting-started.md), [MessageBuilder](docs/en/builder.md), [groups](docs/en/groups.md), [newsletters](docs/en/newsletter.md), [session storage](docs/en/sessions.md), [sticker packs](docs/en/sticker-packs.md), [unified VoIP](docs/en/voip.md), and the [porting/compatibility change log](docs/en/porting-changes.md). See [`docs/README.md`](docs/README.md) for the guide index. The generated TypeScript API reference can be built with `yarn build:docs`.
@@ -1899,21 +1955,24 @@ console.dir(output, { depth: null })
 // --- Create a new one
 sock.newsletterCreate('@teamolduser/baileys', '📣 Fresh updates weekly')
 
-// --- Get info
-const metadata = sock.newsletterMetadata('1231111111111@newsletter')
+// --- Get info (the follower count is `subscribers` in the result)
+const metadata = await sock.newsletterMetadata('jid', '1231111111111@newsletter')
 console.dir(metadata, { depth: null })
 
-// --- Get subscribers count
-const subscribers = await sock.newsletterSubscribers('1231111111111@newsletter')
-console.dir(subscribers, { depth: null })
+// --- Optional switches: fetchPinnedMessages, fetchStatusMetadata, fetchWamoSub, viewRole, ...
+await sock.newsletterMetadata('invite', 'inviteCode', { fetchPinnedMessages: true })
+
+// --- Get the followers (the list, not a count): id, phoneNumber, displayName, username, role, followTime
+const followers = await sock.newsletterSubscribers('1231111111111@newsletter', { count: 100 })
+console.dir(followers, { depth: null })
 
 // --- Follow and Unfollow
 sock.newsletterFollow('1231111111111@newsletter')
 sock.newsletterUnfollow('1231111111111@newsletter')
 
-// --- Mute and Unmute
-sock.newsletterMute('1231111111111@newsletter')
-sock.newsletterUnmute('1231111111111@newsletter')
+// --- Mute and Unmute (a user setting; resolves with { id, state })
+await sock.newsletterMute('1231111111111@newsletter')
+await sock.newsletterUnmute('1231111111111@newsletter')
 
 // --- Demote admin
 sock.newsletterDemote('1231111111111@newsletter', '6281111111111@s.whatsapp.net')
@@ -1944,7 +2003,7 @@ sock.newsletterReactMessage('1231111111111@newsletter', '100', '💛')
 // --- Get admin count
 const count = await sock.newsletterAdminCount('1231111111111@newsletter')
 
-// --- Get all subscribed newsletters
+// --- Get all subscribed newsletters (optional: { fetchStatusMetadata, fetchWamoSub })
 const newsletters = await sock.newsletterSubscribed()
 console.dir(newsletters, { depth: null })
 
@@ -3692,6 +3751,8 @@ await sock.sendMessage(jid, {
 })
 ```
 
+`hideVoter` works as an alias, and `endDate` / `canAddOption` also switch the poll to V6 (see *Elaina 1.4.7 follow-up sync*).
+
 Omit `hideVoterNames` (or set it `false`) for a normal poll — the standard
 V2/V3/V1 format is used as before.
 
@@ -5330,6 +5391,8 @@ await sock.newsletterRecommended({ limit: 10 })        // + newsletterSimilar(ji
 await sock.newsletterDirectoryList({ view: 'RECOMMENDED' })   // + newsletterDirectorySearch('news'), newsletterDirectoryCategories()
 ```
 
+Events `newsletter-admin-profile.update` / `mex.notification`, `newsletterMeta` on live channel messages and `key.isNewsletterSender` are described in *Elaina 1.4.7 follow-up sync*.
+
 ### Channel statuses
 
 ```ts
@@ -5423,7 +5486,7 @@ Everything that `@rexxhayanasi/elaina-baileys` 1.4.5 had and this fork did not i
 
 ## WhatsApp version and WAProto
 
-- Default WhatsApp Web version is `2.3000.1050764678`.
+- Default WhatsApp Web version was `2.3000.1050764678` at 1.4.5; it is now `2.3000.1051456098` (see *Elaina 1.4.7 follow-up sync*).
 - `WAProto/WAProto.proto` was updated from elaina's compiled proto (new messages such as `ChatThemeSetting` wallpapers, split payments,
   `PollAddOptionMessage` updates, `GroupHistoryToggleAction`, `ThreadPinAction`, ... plus the new fields on existing messages) and
   `index.js` / `index.d.ts` were regenerated (`yarn gen:protobuf`; `fix-imports.js` re-attaches the `merge.js` bridge).
@@ -5439,6 +5502,8 @@ Everything that `@rexxhayanasi/elaina-baileys` 1.4.5 had and this fork did not i
 | `pairingCodeTimeoutMs` | `180000` | how long a requested pairing code stays pending (+ `PAIRING_RESPONSE_GRACE_MS` = 30 s) |
 | `maxEventListeners` | `64` | `setMaxListeners` for `sock.ev` |
 | `AnchorGuard` / `AnchorGuardConfig` | `false` / `{}` | anti-crash guard, needs the optional `@rexxhayanasi/elaina-anchorguard`; exposed as `sock.anchorGuard` |
+| `maxRetryQueueSize` | `64` | max messages waiting for a retry request at once, extra ones are acked without a retry |
+| `inlineSenderKeyDistribution` | `true` | embed the SKDM in group messages when a sender key exists |
 | `voiceRecognition` | off | `{ enabled: true, transcribe(ctx), allowFromMe?, pttOnly?, maxDuration? }` - transcribe incoming voice notes |
 
 ```ts
@@ -5574,7 +5639,7 @@ All five accept `{ id, replace, insertAt }` like the other `add*` methods, and t
 
 ### Elaina sync notes (30-sep to 21-oct)
 
-- Default WhatsApp Web version is `2.3000.1050764678` (`src/Defaults/index.ts`, `src/Utils/generics.ts`, `src/Defaults/baileys-version.json`, `WAProto/WAProto.proto` header).
+- Default WhatsApp Web version was `2.3000.1050764678` here (now `2.3000.1051456098`; `src/Defaults/index.ts`, `src/Utils/generics.ts`, `src/Defaults/baileys-version.json`, `WAProto/WAProto.proto` header).
 - Carousel biz node: `shouldIncludeBizBinaryNode` only returns `true` for a carousel when at least one card holds a native flow message, and `getBizBinaryNode` falls back to the mixed native-flow node when only a later card carries the buttons.
 - Interactive message headers (`generateWAMessageContent`) and `AIRich` headers no longer send an empty `title` / `subtitle` (`headerText` in `src/Utils/messages.ts`).
 - WAProto additions from the 21-oct build: `Conversation.acp2HistoryWithheld`, `DeviceCapabilities.hostWriteMutationSupport`, `HistorySync.favoriteStickers` / `omittedConversations` / `omittedConversationsProvided`, `Message.instantImageMessage`, `MsgOpaqueData.musicData`, `PollAdditionalMetadata.originalOptions`, `SyncActionValue.communityNestingStateAction` / `sharedDeviceSecretAction`, `WebMessageInfo.eventInviteAdditionalMetadata`, plus the types `RecoverableHistoryConversation`, `EventInviteAdditionalMetadata`, `HostWriteMutationSupport`, `MusicData`, `CommunityNestingStateAction` and `SharedDeviceSecretAction`. `Message.requestLocationMessage` (136) / `requestLocationUpdateMessage` (138) are included too, but elaina references their message types without ever defining them, so here `Message.RequestLocationMessage` and `Message.RequestLocationUpdateMessage` are empty placeholder messages: they encode and decode, and any real contents WhatsApp sends are kept as unknown fields until the real definitions are known. The generated `WAProto/index.js` / `index.d.ts` were patched by hand for these additions; `yarn gen:protobuf` regenerates them from `WAProto/WAProto.proto`.
@@ -5583,6 +5648,10 @@ All five accept `{ id, replace, insertAt }` like the other `add*` methods, and t
 - `libsignal` stays on `@teamolduser/libsignal@1.0.1`; elaina's switch to the registry `libsignal@^6.0.0` was not adopted.
 - `.github/workflows/auto-update.yml` follows elaina's 21-oct flow (manual runs publish only with `publish: true`) but uses yarn, `yarn update:version`, and this package name; the proto refresh stays in `update-proto.yml`.
 - `sock.MB` and `sock.AIRich` are attached to the socket (`src/Extras/socket.ts`) and bound to it, so they need no `sock` argument. The global `MB` is unchanged from elaina-baileys (`new MB.AIRich(sock)`).
+- ffmpeg: VoIP audio/video feeders and media conversion now spawn the bundled `ffmpeg-static` binary when it exists (`src/Utils/ffmpeg-path.ts`), and fall back to `ffmpeg` on PATH. `package.json` allows only the `ffmpeg-static` install script to run (`dependenciesMeta`), so `yarn install` downloads its binary even when Yarn disables dependency build scripts by default. If it was installed before this change, run `yarn rebuild ffmpeg-static` once; no system ffmpeg or PATH change is needed.
+- Comparison against elaina-baileys 1.4.7 (exports, socket methods and behaviour): every socket method and export of elaina exists here (only `Carousel` is named `CarouselV2`, see above). Differences that were found and fixed: `sock.fetchNewChatMessageCap()` now sends the real query type `INDIVIDUAL_NEW_CHAT_THREAD` with id `27910975521856601` and returns the parsed object (`status`, `capped`, `warned`, `unlimited`, `remaining`, ...; see [Account health signals](#%EF%B8%8F-account-health-signals)); `normalizeMessageContent` unwraps all 32 `FUTURE_PROOF_MESSAGE_KEYS` instead of 11; a `quoted` message without readable content is sent without the quote (with a warning) instead of throwing; `requestPairingCode` validates the phone number format and strips punctuation; the `wa:update`, `wa:diff`, `audit:apk`, `verify:proto`, `verify:mex`, `fetch:bundle`, `check:proto`, `sync:proto`, `test:pairing` and `proto:update` npm scripts are wired and adapted to the TypeScript layout (see [Updating the WhatsApp Web version](#-updating-the-whatsapp-web-version)).
+- Also taken from elaina 1.4.7: the persisted-query ids and paths of the core newsletter operations in `src/Types/Mex.ts` (`CREATE`, `METADATA`, `SUBSCRIBERS`/`FOLLOWERS`, `SUBSCRIBED`, `ADMIN_COUNT`, `CHANGE_OWNER`, `DEMOTE` and the `xwa2_newsletter_admin_demote` path) together with their call shapes: `newsletterSubscribers()` now returns the follower list (the count is `subscribers` of `newsletterMetadata()`), `newsletterMetadata()` and `newsletterSubscribed()` take the optional switches, `newsletterMute()` / `newsletterUnmute()` go through the user setting, and `newsletterUpdate()` no longer overwrites an update's own `settings` with `null`. `requestPairingCode` rejects an answer that carries no `link_code_pairing_ref` ("accepted without registering it") instead of saving `creds.me`; the pairing tests' server replies now include that reference like the real server's. Ack error `475` raises `message-capping.update`; `NACK_REASONS` gained `StaleGroupAddressingMode` (421) and `NewChatMessagesCapped` (475); 1:1 messages that carry a message secret get the recipient `deviceListMetadata`; `executeWMexQuery` errors name the query and carry the variables that were sent; `isValidUsername` / `validateUsername` follow WhatsApp's real username rules (3-35 characters, `_` allowed at the edges, at least one letter, no leading/trailing/double `.`, no reserved words or domain endings).
+- Kept as Anya's own, because it is the better of the two: `fetchLatestBaileysVersion` (live version from wppconnect with a fallback, where elaina reads its own repository's `Defaults/index.js` by line number), `makeNewsletterStatus*` (thin aliases of one shared `makeNewsletterStatusExtras`), `useMongoAuthState` next to elaina's `useMongoAuthState2`, and `downloadMediaMessage`'s handling of Boom status codes. Whether the newsletter ids above are still served can be checked at any time with `npm run verify:mex`.
 - Tests: `src/__tests__/Extras/airich-widgets.test.ts` and the extra cases in `src/__tests__/binary/carousel-biz-node.test.ts`.
 
 ### A2UI cards and AIRichMessage
@@ -5936,6 +6005,586 @@ MB.Carousel === CarouselV2      // true
 
 - The `V2` aliases (222) are exported from `src/Extras/v2.ts` and re-exported through `src/Extras/index.ts`; they are the same functions / classes as the original names. The complete list is in [`docs/elaina-interactive-apis-v2.md`](docs/elaina-interactive-apis-v2.md).
 - Do not run two VoIP clients on one socket: both signaling engines own the call state.
+
+## Elaina 1.4.7 follow-up sync
+
+Gaps found by diffing `@rexxhayanasi/elaina-baileys` 1.4.7 against this fork. Everything is patched into the `.ts` sources (no compiled JS copied).
+
+### WhatsApp version
+
+Default WhatsApp Web version is now `2.3000.1051456098` (`src/Defaults/index.ts`, `src/Utils/generics.ts`, `src/Defaults/baileys-version.json`).
+`WAProto/WAProto.proto` was **not** regenerated for this bump (its header still shows the previous build).
+
+### New socket config options
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `maxRetryQueueSize` | `64` | max undecryptable messages waiting for a retry request at once; beyond it the message is acked without a retry (`UnhandledError` nack, no nack for status) so a retry flood cannot exhaust memory / CPU |
+| `inlineSenderKeyDistribution` | `true` | embed the sender key distribution message inside group messages when a sender key already exists; set `false` to turn it off |
+
+```ts
+const sock = makeWASocket({
+	auth: state,
+	maxRetryQueueSize: 32,
+	inlineSenderKeyDistribution: false
+})
+```
+
+### Automatic stanza changes (no API)
+
+- `pinInChatMessage`, `keepInChatMessage` and `reactionMessage` now also send `<meta content_type="add_on"/>`.
+- `decrypt-fail="hide"` is now set for pin, keep, reaction, member label (`protocolMessage.memberLabel`), edit and `mediaNotifyMessage`.
+
+### Channel (newsletter) additions
+
+```ts
+// admin profile changed (xwa2_notify_newsletter_on_admin_metadata_update)
+sock.ev.on('newsletter-admin-profile.update', ({ id, adminProfile }) => {
+	// adminProfile: { id, name, pictureId, pictureDirectPath } | null
+	console.log(id, adminProfile?.name)
+})
+
+// mex notifications this library does not model are no longer dropped
+sock.ev.on('mex.notification', ({ operation, data }) => console.log(operation, data))
+
+// live channel messages now carry the <meta> info and the sender flag
+sock.ev.on('messages.upsert', ({ messages }) => {
+	for (const m of messages) {
+		if (!m.key.remoteJid?.endsWith('@newsletter')) continue
+		// { adminProfile?, paidPartnership?, aiContent?, editTimestamp?, originalTimestamp? }
+		console.log((m as any).newsletterMeta, m.pushName) // pushName falls back to the admin profile name
+		if (m.key.isNewsletterSender) console.log('sent by this account') // key.fromMe is true as well
+	}
+})
+```
+
+`NotificationNewsletterPaidPartnershipUpdate` is handled like `NotificationNewsletterPaidPartnership`.
+`extractNewsletterMessageMeta` moved to `src/Utils/newsletter-meta.ts` and is still exported from `src/Extras/newsletter-extras.ts`.
+
+### Polls: `hideVoter`, `endDate`, `canAddOption`
+
+`hideVoter` is an alias of `hideVoterNames`. Any of `hideVoterNames` / `hideVoter`, `endDate` or `canAddOption` makes the poll use the V6 format.
+
+```ts
+await sock.sendMessage(jid, {
+	poll: {
+		name: 'Lunch?',
+		values: ['Pizza', 'Sushi'],
+		selectableCount: 1,
+		hideVoter: true,                              // = hideVoterNames
+		endDate: new Date(Date.now() + 24 * 3600e3),  // voting closes
+		canAddOption: true                            // members may add options
+	}
+})
+```
+
+| Poll | Format |
+| --- | --- |
+| plain, `selectableCount: 1` | `pollCreationMessageV3` |
+| plain, `selectableCount > 1` | `pollCreationMessage` |
+| `hideVoter` / `hideVoterNames`, `endDate` or `canAddOption` | `pollCreationMessageV6` |
+| `toAnnouncementGroup` (without `hideVoterNames`) | `pollCreationMessageV2` |
+| option images | `pollCreationMessageV3` |
+| `pollType: 1` (quiz) | `pollCreationMessageV5` |
+
+### Browser / platform
+
+`Browsers.appropriate()` now has explicit `cygwin` and `netbsd` entries; both still resolve to `Unknown OS` as before (no behaviour change, the map is just complete).
+
+### Extra scripts
+
+Elaina's variants of scripts that already existed here are added with a `2` suffix (the originals are unchanged):
+
+| Script | Runs |
+| --- | --- |
+| `yarn test2` | `node --test "test/*.test.js"` |
+| `yarn update:version2` | `node ./script/updatewa.js` |
+| `yarn build:docs2` | `node ./script/apiref.js site-api.json && node ./script/builddocs.js site` |
+| `yarn verify:assets2` | `node ./script/verifyassets.js` |
+| `yarn proto:update2` | `sync:proto` -> `verify:proto` -> `verify:mex` -> `wa:update --apply --keep 2` -> `update:version2` |
+
+> These scripts were written for elaina's file layout (`src/*.js`, `src/assets/wasm`). Here they currently fail on missing paths (for example
+> `test2` imports `../src/MessageBuilder/*.js`, `verify:assets2` looks for `src/assets/wasm/README.md`); use the original script names unless you adapt the paths.
+
+### Checked and left as is
+
+- `getTxMutex`: this fork already has the same ref-counted per-type read mutex (`getReadMutex`) **plus** one shared transaction mutex per store, so elaina's version was not ported.
+- `@rexxhayanasi/wangcap-id-bridge` (elaina) is a renamed rebuild of `whatsapp-rust-bridge` with identical wasm exports / imports; this fork keeps the upstream `whatsapp-rust-bridge`.
+
+## 🔄 Updating the WhatsApp Web version
+
+One command runs the whole check. Build the library first, because the round-trip check reads the compiled `lib/`:
+
+```bash
+yarn build
+npm run wa:update
+```
+
+It reads the pinned revision, fetches the live one, downloads the bundle into `.wa-bundle/<revision>/`, parses WhatsApp Web's protobuf specification and compares it with `WAProto`, compares the new snapshot with the previous one, pushes every field through the encoder for a round trip, then writes `.wa-bundle/report.md` and `report.json`.
+
+The report ends with a single verdict:
+
+| Verdict | Meaning |
+|---|---|
+| `no-change` | the live revision is the same as the pinned one |
+| `bump-only` | the revision moved, no wire surface changed |
+| `bump-and-review` | the revision moved **and** a wire surface changed — read the diff |
+| `needs-work` | WhatsApp declares protobuf fields that `WAProto` does not have |
+| `blocked` | the encoder round trip failed; do not raise the version |
+
+Add `--apply` to raise the pinned revision. It is refused unless the verdict is a bump and the encoder passes.
+
+```bash
+npm run wa:update -- --apply
+```
+
+The pinned revision lives in `src/Defaults/index.ts`, `src/Utils/generics.ts` and `src/Defaults/baileys-version.json`; `--apply` rewrites all three together.
+
+Supporting commands:
+
+| Command | Purpose |
+|---|---|
+| `npm run wa:diff -- <old> <new>` | compare two bundle snapshots on their own |
+| `npm run check:proto` | only the protobuf-gap check |
+| `npm run sync:proto` | add the missing protobuf fields to `WAProto` |
+| `npm run verify:proto` | only the encoder round trip (needs `yarn build`) |
+| `npm run verify:mex` | match every `w:mex` query against the persisted queries in the bundle (needs `yarn build`) |
+| `npm run verify:assets` | checksums and scan of the bundled VoIP resources |
+| `npm run fetch:bundle -- <dir>` | download the raw bundle |
+| `yarn update:version` | raise the pinned revision to the latest one, without any check (the original Anya script) |
+| `npm run audit:apk -- <dir>` | compare `WAProto` with an extracted Android APK |
+| `npm run sync:proto -- --gaps <file>` | patch `WAProto` from the `--json` output of an audit |
+| `npm run test:pairing -- <number> --check-only` | check a pairing request without touching a running bot (needs `yarn build`) |
+| `npm run proto:update` | the whole round: sync, build, verify, bump |
+
+`proto:update` runs `sync:proto`, then `build`, then `verify:proto`, then `verify:mex`, then `wa:update --apply`, then `script/updatewa.js`, and that order carries weight. `wa:update` exits non-zero on a `needs-work` verdict and refuses `--apply`, so the protobuf gaps have to be closed first or the chain stops before it gets there.
+
+**Checking the `w:mex` queries.** Channels, usernames, text status and the two account-health signals all run through persisted GraphQL queries — numeric ids kept in `src/Types/Mex.ts` (compiled to `lib/Types/Mex.js`). If WhatsApp changes an id, adds a required variable or renames a root field, the call fails on the server and no test notices. `verify:mex` reads the `params:{id,name}` and `LocalArgument` of every query in the bundle snapshot and matches them against each `executeWMexQuery` call in `lib/Socket`: ids that are no longer served, missing or undeclared variables, and `dataPath`s that the query's answer does not contain.
+
+```bash
+npm run verify:mex
+PROTO_BUNDLE_DIR=.wa-bundle/1047416414 npm run verify:mex
+```
+
+Without `PROTO_BUNDLE_DIR` it uses the highest revision snapshot in `.wa-bundle`.
+
+**Auditing against Android.** Everything above reads the WhatsApp **Web** bundle, so a field that the Android client knows and Web does not never reaches `WAProto`. `audit:apk` closes that blind spot: point it at a directory of extracted `classes*.dex` files and it parses the protobuf model classes straight from the dex — reading every `*_FIELD_NUMBER` constant and its value — then reports which fields and whole types are missing, with their field numbers.
+
+```bash
+npm run audit:apk -- /path/to/extracted-apk
+```
+
+Add `--json <file>` and it writes the gaps in the form `sync:proto` consumes, so the same generator that patches from the Web bundle can patch from the APK:
+
+```bash
+npm run audit:apk -- /path/to/extracted-apk /dev/null --json gaps.json
+npm run sync:proto -- --gaps gaps.json
+npm run verify:proto
+```
+
+Nothing is written by hand, and `sync:proto` is additive: it reads the existing `WAProto` as its base.
+
+**Android is not the client this library presents.** Baileys links as a WhatsApp Web device, so a field the Web bundle does not declare is a field a real Web client never sends — decoding it costs nothing, while sending it makes this client look like neither Web nor Android. The auditor cross-checks every candidate against the Web bundle and flags the difference:
+
+```
+ANDROID-ONLY Message.AlbumMessage.caption — safe to decode, send only if intended
+```
+
+Treat that flag as a reason to keep the field readable but off by default.
+
+Two more safeguards matter, because a name can match while the numbering does not: the auditor keeps only the one APK class that overlaps a type the most (several classes carry similar field names and the losers are false positives), and it refuses any field whose number is already taken in that type. Without the second safeguard `CtwaContextData.canonicalUrl=3` would be written straight over `sourceUrl` and silently corrupt the wire format.
+
+The diff covers every surface through which a WhatsApp change can reach the wire — protobuf spec, stanza tags and attributes, `xmlns`, MEX operations, media paths — so a release that only moved UI code is reported as exactly that.
+
+Set `PROTO_BUNDLE_DIR` to read from a local directory and `PROTO_OFFLINE=1` to skip the live revision lookup. Where the built-in `fetch` is refused, the scripts fall back to `curl` automatically. The scripts need network access to `web.whatsapp.com`.
+
+`.wa-bundle/` is listed in `.gitignore`. For automated releases, commit only the files the updater actually changed and `package.json`; never commit `node_modules`.
+
+---
+
+## 🛡️ Account health signals
+
+WhatsApp tracks how an account reaches out to people it has never talked to, and tells its client where it stands. Reading those two signals is far more dependable than guessing a safe pause.
+
+Both are the same `w:mex` queries WA Web runs, so the answer comes from WhatsApp's server, not from a local count:
+
+| Function | Persisted query | When it can be called |
+| --- | --- | --- |
+| `fetchNewChatMessageCap()` | `WAWebMexFetchNewChatMessageCappingInfoJobQuery` (`27910975521856601`) | any time after connecting |
+| `fetchAccountReachoutTimelock()` | `WAWebMexFetchReachoutTimelockJobQuery` (`23983697327930364`) | any time after connecting |
+
+### New-chat quota
+
+```js
+const cap = await sock.fetchNewChatMessageCap()
+```
+
+What comes back:
+
+| Field | Meaning |
+| --- | --- |
+| `status` | `NONE` → `FIRST_WARNING` → `SECOND_WARNING` → `CAPPED`, WhatsApp's own escalation ladder |
+| `capped` | `true` once `status` is `CAPPED`: sending to new chats is refused |
+| `warned` | `true` on both `FIRST_WARNING` and `SECOND_WARNING` |
+| `unlimited` | `true` when the server sent no quota (or a negative one), so there is nothing to count down |
+| `totalQuota` | the new-chat allowance for one cycle |
+| `usedQuota` | how much of it the cycle has used |
+| `remaining` | `totalQuota - usedQuota`, never negative; `null` when `unlimited` |
+| `cycleStart`, `cycleEnd` | start and end of the cycle, **unix seconds** — multiply by 1000 for `new Date` |
+| `serverTime` | the server clock when it answered, to compare `cycleEnd` without trusting your machine's clock |
+| `oteStatus`, `mvStatus`, `subscriptionStatus` | verification and subscription status that ride along in the answer |
+| `response` | the raw reply, if you want a field that is not mapped yet |
+
+Only **starting** a chat with a number you have never talked to uses the quota. Replying in a conversation someone else started does not count, and neither does sending again to an existing chat.
+
+Worth knowing: this query asks for one kind of quota, `INDIVIDUAL_NEW_CHAT_THREAD` — the new-chat **thread** quota, not a message count. Earlier Anya builds sent `INDIVIDUAL_NEW_CHAT_MSG`, a name no WhatsApp client has, which is why the call could come back with an error or empty numbers, and returned the raw reply without the fields above. The server also pushes this state on its own as the `message-capping.update` event (the raw payload, snake_case). A send that WhatsApp refuses because of the quota (ack error `475`) raises the same event with `capping_status: 'CAPPED'`, the `jid` and the `messageId` of the rejected message, and is never retried.
+
+### Reachout timelock
+
+```js
+const lock = await sock.fetchAccountReachoutTimelock()
+```
+
+| Field | Meaning |
+| --- | --- |
+| `isActive` | the account is currently restricted from contacting new people |
+| `timeEnforcementEnds` | a `Date` for when the restriction lifts, `undefined` when the server sends `0` |
+| `enforcementType` | the reason — `BIZ_QUALITY` is quality-based, `BIZ_COMMERCE_VIOLATION_*` are policy categories |
+
+Calling it also emits `connection.update`, so one call informs the whole bot. The state also arrives unasked:
+
+```js
+sock.ev.on('connection.update', ({ reachoutTimeLock }) => {
+  if (reachoutTimeLock?.isActive) stopSending()
+})
+```
+
+### Using it as a guard
+
+```js
+const guard = async () => {
+  const lock = await sock.fetchAccountReachoutTimelock()
+  if (lock.isActive) return { send: false, reason: 'reachout timelock until ' + lock.timeEnforcementEnds }
+
+  const cap = await sock.fetchNewChatMessageCap()
+  if (cap.capped) return { send: false, reason: 'new-chat quota used up until ' + new Date(cap.cycleEnd * 1000) }
+  if (cap.warned) return { send: false, reason: 'WhatsApp has already warned this account: ' + cap.status }
+  if (cap.remaining !== null && cap.remaining < 10) return { send: false, reason: 'only ' + cap.remaining + ' left in this cycle' }
+
+  return { send: true, remaining: cap.remaining }
+}
+```
+
+Check before a round and again every batch — `SECOND_WARNING` is the last state before the quota lands, so stopping there is the difference between a pause and a block.
+
+> [!NOTE]
+> Bulk sending through an unofficial client is outside WhatsApp's Terms of Service, whatever the recipients agreed to. The sanctioned route for opt-in bulk sending is the WhatsApp Business Platform. These signals reduce the chance of tripping an automatic limit; they do not make an account safe.
+
+---
+
+## 📨 All message types
+
+`message.message` is a box with exactly one key filled in, and the key names the type. Two things trip up almost everyone who is new, so read this section before hunting a bug that is not there.
+
+### Why `conversation` is sometimes empty
+
+**32 of the types are wrappers.** They carry no content of their own — they hold another message inside. A view-once photo is not an `imageMessage`, it is a `viewOnceMessageV2` that contains an `imageMessage`. A group-status reply is a `groupStatusMessageV2` that contains whatever was actually said. Read the outer key and you find nothing:
+
+```js
+const m = messages[0]
+console.log(m.message.conversation)          // undefined
+console.log(Object.keys(m.message))          // [ 'groupStatusMessageV2' ]
+```
+
+`normalizeMessageContent` unwraps them for you, up to five layers deep, because wrappers nest — a view-once photo that was edited inside a disappearing-messages chat is three wrappers stacked:
+
+```js
+import { normalizeMessageContent, getContentType } from '@teamolduser/baileys'
+
+const content = normalizeMessageContent(m.message)
+const type = getContentType(content)        // 'imageMessage'
+const text = content?.conversation || content?.extendedTextMessage?.text
+```
+
+Always normalize before you look. The full list of wrappers, so you recognize them when you meet one (also exported as `FUTURE_PROOF_MESSAGE_KEYS`):
+
+| Group | Wrappers |
+|---|---|
+| Ephemeral and view-once | `ephemeralMessage`, `viewOnceMessage`, `viewOnceMessageV2`, `viewOnceMessageV2Extension`, `limitSharingMessage` |
+| Edits and replies | `editedMessage`, `associatedChildMessage`, `questionMessage`, `questionReplyMessage` |
+| Status | `statusMentionMessage`, `statusAddYours`, `groupStatusMessage`, `groupStatusMessageV2`, `groupStatusMentionMessage` |
+| Group | `groupMentionedMessage` |
+| Bot | `botInvokeMessage`, `botTaskMessage`, `botForwardedMessage`, `botGroupParticipantMessage`, `botPlatformRegistrationSuccessMessage` |
+| Channel | `newsletterAdminProfileMessage`, `newsletterAdminProfileMessageV2`, `newsletterAdminProfileStatusMessage`, `newsletterScheduledMessage` |
+| Polls and media | `pollCreationMessageV4`, `pollCreationOptionImageMessage`, `documentWithCaptionMessage`, `lottieStickerMessage`, `audioStickerMessage`, `eventCoverImage`, `spoilerMessage` |
+| Settings | `acp2SettingMessage` |
+
+Earlier Anya builds unwrapped only eleven of these (`ephemeralMessage`, the three view-once wrappers, `documentWithCaptionMessage`, `editedMessage`, `associatedChildMessage`, the two group-status wrappers, `spoilerMessage` and `lottieStickerMessage`), so a bot that received any of the others saw an opaque key and an empty `conversation`.
+
+The list is kept honest by `npm run verify:proto`: it reads every `FutureProofMessage` field from the live WhatsApp Web bundle and fails if `normalizeMessageContent` would leave one wrapped. That check is what caught `acp2SettingMessage` and `audioStickerMessage` — both had been sitting in the protocol for a long time without being opened.
+
+`audioStickerMessage` (field 134) arrives with one sibling, `stickerMessage.audioMessage` (field 26, inside the new `audio` oneof): a sticker that carries a voice clip. Both can be decoded and nothing renders them yet — WhatsApp Web maps `audioStickerMessage` to no message type at all, and its sticker parser does not read `audioMessage` back out. Treat both as fields to recognize when they start arriving, not to send.
+
+### The rest
+
+These carry their own content. You will use a handful all the time and never touch the others, but knowing they exist saves you from deciding a message is malformed when it is simply a type you have not met.
+
+| Group | Types |
+|---|---|
+| Text and location | `conversation`, `extendedTextMessage`, `locationMessage`, `liveLocationMessage`, `contactMessage`, `contactsArrayMessage`, `groupInviteMessage`, `albumMessage`, `musicMessage`, `conditionalRevealMessage` |
+| Media | `imageMessage`, `videoMessage`, `audioMessage`, `documentMessage`, `stickerMessage`, `stickerPackMessage`, `stickerSyncRmrMessage`, `ptvMessage` |
+| Legacy | `chat` |
+| Buttons and lists | `buttonsMessage`, `buttonsResponseMessage`, `listMessage`, `listResponseMessage`, `templateMessage`, `templateButtonReplyMessage`, `interactiveMessage`, `interactiveResponseMessage`, `highlyStructuredMessage` |
+| Polls and events | `pollCreationMessage` … `pollCreationMessageV6`, `pollUpdateMessage`, `pollAddOptionMessage`, `pollResultSnapshotMessage`, `pollResultSnapshotMessageV3`, `eventMessage`, `eventInviteMessage`, `questionResponseMessage`, `keepInChatMessage` |
+| Status | `statusNotificationMessage`, `statusQuestionAnswerMessage`, `statusQuotedMessage`, `statusStickerInteractionMessage`, `statusLinkPreviewMetadata` |
+| Channel | `newsletterFollowerInviteMessage`, `newsletterFollowerInviteMessageV2`, `newsletterAdminInviteMessage` |
+| Calls | `call`, `bcallMessage`, `callLogMesssage`, `scheduledCallCreationMessage`, `scheduledCallEditMessage` |
+| Payments and shop | `sendPaymentMessage`, `requestPaymentMessage`, `declinePaymentRequestMessage`, `cancelPaymentRequestMessage`, `paymentInviteMessage`, `paymentReminderMessage`, `splitPaymentMessage`, `splitPaymentUpdateMessage`, `productMessage`, `orderMessage`, `invoiceMessage` |
+| Reactions and comments | `reactionMessage`, `encReactionMessage`, `commentMessage`, `encCommentMessage`, `pinInChatMessage`, `encEventResponseMessage` |
+| Bot and AI | `richResponseMessage`, `placeholderMessage` |
+| Protocol and sync | `protocolMessage`, `deviceSentMessage`, `senderKeyDistributionMessage`, `fastRatchetKeySenderKeyDistributionMessage`, `messageContextInfo`, `messageHistoryBundle`, `messageHistoryNotice`, `secretEncryptedMessage`, `requestPhoneNumberMessage`, `groupRootKeyShare`, `rootSecretDistributeMessage` |
+
+`protocolMessage` deserves a mention of its own: deletions, edits, disappearing-timer changes and app-state sync all arrive as this one type, told apart by its `type`. A bot that ignores it will look as if it never noticed a message was deleted.
+
+### Reading rich messages
+
+Messages from other bots — AI Rich, A2UI, Bloks — leave `conversation` empty, and `getContentType` only reports the wrapper. `readRichMessage` normalizes all of them into one shape; see [A2UI cards and AIRichMessage](#a2ui-cards-and-airichmessage).
+
+---
+
+## 🎧 Call queues, screen sharing and group calls
+
+These options belong to the media-call methods of the unified `voip` client — `voip.call()`, `voip.callGroup()` and `voip.joinGroupCall()` (the Elaina-style engine). See the [unified VoIP API](#unified-voip-api) note about switching engines, and [Voice calling](#30-voice-calling-wasm-based-same-session) for the basics.
+
+### Audio queue
+
+```js
+const voip = await sock.makeVoipClient()
+
+const call = await voip.call('628123456789', {
+  playlist: ['intro.mp3', 'song.mp3'],
+  idleGraceMs: 30000,   // wait this long after the queue runs dry before hanging up
+  durationMs: 0         // 0 = no fixed length, the queue decides
+})
+
+call.enqueue('next-track.mp3')   // add a track while the call is running
+call.queued()                    // tracks still waiting
+call.nowPlaying()                // the track being played
+call.skip()                      // jump to the next track
+```
+
+By default the call ends once the queue is empty, after `idleGraceMs` (0 unless you set it); pass `endWhenQueueEmpty: false` to keep it open until you end it. Sources can be files, URLs or anything ffmpeg reads.
+
+### Video queue
+
+One-to-one and group calls both accept video. Frames come from ffmpeg just like the audio does, so the video source can be a file, a URL, a still image or a `lavfi:` generator.
+
+```js
+const call = await voip.call('628123456789', {
+  video: true,
+  videoPlaylist: ['clip.mp4'],
+  playlist: ['song.mp3'],
+  durationMs: 0
+})
+
+call.on('videotrack', track => console.log('now showing', track))
+```
+
+```js
+const call = await voip.callGroup('12345-67890@g.us', {
+  video: true,
+  videoPlaylist: ['clip.mp4']
+})
+```
+
+Video has its own queue, separate from the audio queue: `playVideo`, `enqueueVideo`, `skipVideo`, `queuedVideo` and `nowPlayingVideo`, with the `videotrack` and `videotrackend` events. The rule for ending the call stays tied to the audio queue, so the call ends when the audio runs out, not when the pictures do.
+
+A still image is looped rather than shown for a single frame, which makes it an easy way to send a steady card:
+
+```js
+await voip.call('628123456789', { video: true, videoSource: './poster.jpg', playlist: ['song.mp3'] })
+```
+
+The engine picks the resolution and frame rate when the call connects, and the feeder scales to fit, padding so the aspect ratio is kept. Frames go to the WASM encoder as I420. When the queue runs dry the last frame is held instead of cutting to black, so a stall reads as a frozen picture, not a flicker.
+
+Audio and video are two ffmpeg processes with two different clocks. Playing the same file through both will drift apart; if you need the two locked together, give the file to `playlist` only and keep the picture a still image.
+
+### Screen sharing
+
+The same video, sent as a screen share rather than as a camera. It is a separate WASM entry point, so the receiver sees it labelled as a shared screen instead of as if the bot turned its camera on.
+
+```js
+const call = await voip.call('628123456789', {
+  screenShare: true,
+  videoPlaylist: ['slide.png'],
+  playlist: ['narration.mp3']
+})
+```
+
+`screenShare: true` already implies `video: true`. Switch it on and off mid-call with `call.startScreenShare()` and `call.stopScreenShare()`; `call.isScreenShare()` reports which one is live.
+
+Which is better depends on what you send, and both are worth testing on a real call:
+
+- **Screen share** suits still content — slides, lyrics, a single card. The encoder favours sharpness over motion, and a 16:9 source is not forced into a portrait camera frame.
+- **The camera path** suits moving pictures and reaches everyone. Screen sharing is gated by `calling_screen_share_milestone_version`: a recipient on an older WhatsApp gets an "please update" dialog instead of your content. Groups also cap how many participants may share, and usually only one may share at a time.
+
+### Group calls
+
+```js
+const call = await voip.callGroup('12345-67890@g.us', {
+  playlist: ['one.mp3', 'two.mp3'],
+  idleGraceMs: 30000,
+  durationMs: 0
+})
+```
+
+`callGroup` reads the member list from the group's metadata, resolves each member's LID and devices, then calls them all. Pass `participants` to call only some of them, or `metadata` if you already have it and want to skip the fetch.
+
+To join a call somebody else started, hand `joinGroupCall` what the incoming offer says:
+
+```js
+const call = await voip.joinGroupCall({
+  callId,
+  callCreatorJid,
+  groupJid,
+  playlist: ['one.mp3']
+})
+```
+
+The queue behaves the same in a group call as in a one-to-one call.
+
+Media is produced by ffmpeg: Anya uses the bundled `ffmpeg-static` binary when it exists and falls back to `ffmpeg` on the `PATH`; set `ffmpegPath` on the client to point at a specific binary. The VoIP resources (`whatsapp.wasm`, `loader.js`, `worker-modules.js`) are WhatsApp Web's own files, carried byte for byte; `npm run verify:assets` re-checks their checksums.
+
+---
+
+## 🐞 Troubleshooting
+
+### `Cannot read properties of undefined (reading 'undefined')` when replying
+
+You handed `quoted` a message that has **no readable content**. The quote path normalizes it, gets nothing, then indexes `undefined` with `undefined`. Three common ways to get there:
+
+| What you quoted | Why it has no content |
+| --- | --- |
+| A message that failed to decrypt | its `messageStubType` is `CIPHERTEXT`; the key is real but `message` is missing |
+| A message read back from a store | some stores keep the key and drop the body |
+| A hand-built `{ key }` | there is no `message` field at all |
+
+This is now guarded — the send goes ahead **without** the quote and logs once:
+
+```
+WARN  nothing quotable here, sending without the quote
+      jid: "120363000000000000@g.us"  quotedId: "3EB0…"  quotedContentType: undefined
+```
+
+That matters more than it sounds. A bot that quotes the message it replies to, in a chat whose messages cannot be decrypted, used to throw on **every send** — so it went completely silent in that one chat while every other chat looked fine. The failure was in building the reply, not in the group.
+
+If you would rather not send at all than send without the quote, check before calling:
+
+```js
+import { normalizeMessageContent, getContentType } from '@teamolduser/baileys'
+
+const quotable = !!getContentType(normalizeMessageContent(m.message))
+await sock.sendMessage(m.key.remoteJid, { text: 'hello' }, quotable ? { quoted: m } : {})
+```
+
+### The bot answers in every group except one
+
+A group where no message gets through — not one reply, while every other group is fine — is almost always a **sender key** problem, not your handler. Group messages are encrypted once with a single group sender key and then fanned out; that key has to reach each member device separately, and the library remembers who already has it in `sender-key-memory`, keyed **per group**. That is why the symptom is one group and not the whole account.
+
+Encryption is attempted per device, and a device that fails must not be recorded as having received the key. A device is marked only once its key node is really inside the stanza; the rest are logged and retried on the next send:
+
+```
+WARN  sender key did not reach every device, leaving them unmarked so the next send retries
+      jid: "120363000000000000@g.us"
+      skipped: [ "628000:12@s.whatsapp.net" ]
+```
+
+If a group got stuck before that, clear its memory once and the next message will redistribute the key to everyone:
+
+```js
+const reset = await sock.resetGroupSenderKey('120363000000000000@g.us')
+console.log(reset)
+// { jid: '120363000000000000@g.us', cleared: 4, devices: [ '628000:12@s.whatsapp.net', … ] }
+
+await sock.sendMessage('120363000000000000@g.us', { text: 'hello' })
+```
+
+It only accepts a group jid, and it does not delete sessions or keys — it just forgets who was told, so the next send tells everyone again. It is safe to run on any group at any time; the cost is one larger stanza.
+
+**Read the `cleared` number, it is the diagnosis.** Above zero means there really was stale bookkeeping and the next send should fix the group. `cleared: 0` means nothing was stored for that jid at all — so the sender key is not the problem, and the cause is one of the three below. Clearing again will not help.
+
+Before blaming the sender key, rule out two cheaper causes:
+
+| What to check | What it means |
+| --- | --- |
+| Does the group message reach `messages.upsert` at all? | If nothing arrives, it is decryption on the way in, not sending. Look for `failed to decrypt message` in the log — the library answers that with an automatic retry request. |
+| Is `messageStubType` `CIPHERTEXT`? | The message arrived but cannot be read. Same as above; it usually clears itself within a message or two. |
+| Does `sendMessage` throw for that jid? | Then it is the group metadata fetch, not the encryption — check the error, not the key. |
+
+### The pairing code must be exactly 8 characters
+
+When using a custom pairing code:
+
+```js
+await sock.requestPairingCode(phone, 'ANYA0001')
+```
+
+The custom value must be exactly eight characters.
+
+### `phoneNumber must be in international format`
+
+`requestPairingCode` takes digits only, as `<country code><national number>` — no leading `0`, between 6 and 15 digits. Punctuation is stripped for you, so `+91 98765-43210` works; `098765 43210` does not.
+
+### A pairing code shows up but the phone never prompts
+
+Look at what the request threw before blaming the notification. `requestPairingCode` waits for the server and reports a refusal instead of returning a code that never registered:
+
+| Message | Meaning |
+|---|---|
+| `rate-overlimit` (`429`) | too many attempts — wait, trying again makes it worse |
+| `not-allowed` / a feature error | link-with-phone-number is not enabled for that account |
+| `phoneNumber must be in international format` (`400`) | the number is not `<country code><national number>` |
+| `the server accepted the pairing request without registering it` (`500`) | the server answered but sent no pairing reference, so the code could never be entered; nothing is saved, request a new one |
+| `Companion registration timed out` | no answer came from the server at all |
+
+If none of these appears and the code was registered, enter it by hand through **WhatsApp → Linked Devices → Link with phone number**. If it is accepted there, the registration is fine and only the push notification is not arriving, which is decided on the server side.
+
+Verify from outside your bot with `node script/testpairing.js <number> --check-only` (run `yarn build` first).
+
+### The pairing request is rejected with 409
+
+Another code is still pending. Wait for it to expire or call `sock.cancelPairingCode()` first — see [Request custom pairing code](#-request-custom-pairing-code).
+
+### `Socket is required`
+
+The builder classes need a live Baileys socket:
+
+```js
+const button = new MB.Button(sock)
+```
+
+Do not create one without handing it `sock`.
+
+### Button or AIRich renders differently
+
+WhatsApp's interactive payloads can depend on:
+
+- the WhatsApp app version
+- Web protocol changes
+- account/server rollout
+- message-type compatibility
+
+Always test experimental message formats before using them in production.
+
+### I got a LID, not a phone-number JID
+
+This is normal in WhatsApp's newer addressing flow. Check `participantAlt` or `remoteJidAlt` when available, rather than blindly turning `@lid` into `@s.whatsapp.net`. See [JID utilities & LID support](#17-jid-utilities--lid-support).
+
+### The session was logged out
+
+If WhatsApp returns `DisconnectReason.loggedOut`, delete the invalid local session and pair the account again.
+
+---
 
 # About This Fork (@teamolduser/baileys)
 

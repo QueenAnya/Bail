@@ -64,17 +64,27 @@ export const normalizeUsername = (username: string): string => {
 	return username.trim().replace(/^@/, '').trim().toLowerCase()
 }
 
+/**
+ * `true` when the text has the *shape* of a WhatsApp username (3-35 letters, digits, `_` and `.`, at least one
+ * letter, no leading/trailing/double `.`). Reserved words and domain-like endings are not checked here, so this stays
+ * usable to tell a username apart from a phone number; `validateUsername` applies the full rules.
+ */
 export const isValidUsername = (username: string): boolean => {
 	if (typeof username !== 'string') return false
-	const u = username.trim().replace(/^@/, '').trim().toLowerCase()
+	const result = validateUsernameFormat(username.trim().replace(/^@/, '').trim().toLowerCase())
 	return (
-		u.length >= 3 && u.length <= 30 && !/^\d+$/.test(u) && /^[a-z0-9][a-z0-9._]*[a-z0-9]$/.test(u) && !u.includes('..')
+		result.isValid ||
+		result.errorType === UsernameValidationError.INVALID_WWW_PREFIX ||
+		result.errorType === UsernameValidationError.INVALID_DOMAIN_SUFFIX ||
+		result.errorType === UsernameValidationError.INVALID_WORD
 	)
 }
 
+/** Normalizes the username and throws `UsernameInvalidError` (with the reason) when WhatsApp would reject it. */
 export const validateUsername = (username: string): string => {
 	const normalized = normalizeUsername(username)
-	if (!isValidUsername(normalized)) throw new UsernameInvalidError(username, 'Invalid username format')
+	const result = validateUsernameFormat(normalized)
+	if (!result.isValid) throw new UsernameInvalidError(username, `Invalid username format (${result.errorType})`)
 	return normalized
 }
 

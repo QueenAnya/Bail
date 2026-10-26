@@ -7,6 +7,7 @@
  * @author ShellTear
  */
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process'
+import { getFfmpegBin } from '../Utils/ffmpeg-path'
 
 const LOW_WATERMARK_CHUNKS = 16
 const MAX_QUEUED_CHUNKS = 1024
@@ -58,7 +59,7 @@ export class AudioFeeder {
 
 		const inputArgs = this.#resolveInputArgs()
 
-		this.#proc = spawn('ffmpeg', [
+		this.#proc = spawn(getFfmpegBin(), [
 			'-hide_banner',
 			'-loglevel',
 			'error',

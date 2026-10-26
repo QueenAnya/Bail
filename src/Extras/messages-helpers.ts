@@ -156,7 +156,7 @@ export const warnOnNativeFlowConstraints = (buttons, logger) => {
 	)
 }
 
-export const FUTURE_PROOF_MESSAGE_KEYS = [
+const FUTURE_PROOF_MESSAGE_KEYS = [
 	'acp2SettingMessage',
 	'associatedChildMessage',
 	'audioStickerMessage',
@@ -190,3 +190,5 @@ export const FUTURE_PROOF_MESSAGE_KEYS = [
 	'viewOnceMessageV2',
 	'viewOnceMessageV2Extension'
 ]
+
+export { FUTURE_PROOF_MESSAGE_KEYS } from '../Utils/messages'

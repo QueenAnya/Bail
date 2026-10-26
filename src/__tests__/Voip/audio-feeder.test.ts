@@ -1,11 +1,17 @@
 import { jest } from '@jest/globals'
+import { spawnSync } from 'node:child_process'
+import { getFfmpegBin } from '../../Utils/ffmpeg-path'
 import { AudioFeeder } from '../../Voip/audio-feeder'
 
 const SR = 16000
 const CH = 1
 const FRAMES = 320 // 20ms per chunk
 
-describe('AudioFeeder', () => {
+// AudioFeeder decodes audio through the ffmpeg binary on PATH; without it the feeder can not emit chunks
+const hasFfmpeg = spawnSync(getFfmpegBin(), ['-version'], { stdio: 'ignore' }).status === 0
+const describeFfmpeg = hasFfmpeg ? describe : describe.skip
+
+describeFfmpeg('AudioFeeder', () => {
 	jest.setTimeout(15000)
 	const feeders: AudioFeeder[] = []
 	const make = (...args: ConstructorParameters<typeof AudioFeeder>) => {

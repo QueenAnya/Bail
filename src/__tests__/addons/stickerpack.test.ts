@@ -1,5 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals'
 import { promises as fs } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import sharp from 'sharp'
 import {
 	isAnimatedWebP,
@@ -161,7 +163,7 @@ describe('prepareStickerPackMessage', () => {
 			del: async (k: string) => void store.delete(k),
 			flushAll: async () => store.clear()
 		}
-		const dir = await fs.mkdtemp('/tmp/stk-')
+		const dir = await fs.mkdtemp(join(tmpdir(), 'stk-'))
 		await fs.writeFile(`${dir}/a.webp`, WEBP)
 		const { options, uploads } = makeOptions({ mediaCache })
 		const input = { cover: WEBP, stickers: [{ data: { url: `${dir}/a.webp` } }] }

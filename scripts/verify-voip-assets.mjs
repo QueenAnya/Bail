@@ -18,7 +18,10 @@ for (const [name, expectedHash] of Object.entries(expected)) {
     missing.push(name)
     continue
   }
-  const actual = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+  let content = fs.readFileSync(file)
+  // a Windows checkout can turn LF into CRLF; the checksums are for the LF files, so compare those
+  if (/\.m?js$/.test(name)) content = Buffer.from(content.toString('latin1').replace(/\r\n/g, '\n'), 'latin1')
+  const actual = crypto.createHash('sha256').update(content).digest('hex')
   if (actual !== expectedHash) mismatched.push({ name, expected: expectedHash, actual })
 }
 const readme = path.join(wasmDir, 'README.md')

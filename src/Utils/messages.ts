@@ -51,7 +51,7 @@ import type {
 	WATextMessage
 } from '../Types'
 import { WAMessageStatus, WAProto } from '../Types'
-import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, jidNormalizedUser } from '../WABinary'
+import { isJidGroup, isJidNewsletter, isJidStatusBroadcast, isLidUser, isPnUser, jidNormalizedUser } from '../WABinary'
 import { sha256 } from './crypto'
 import { generateKeyUuid, generateMessageIDV2, getKeyAuthor, unixTimestampSeconds } from './generics'
 import type { ILogger } from './logger'
@@ -839,11 +839,17 @@ export const generateWAMessageContent = async (
 			})
 		}
 
+		// `hideVoter` is the Elaina-style alias of `hideVoterNames`
+		const hideVoterNames = message.poll.hideVoterNames ?? message.poll.hideVoter ?? false
+		// end date / add-option / hidden voters all need the V6 poll format
+		const usesExtendedPollSettings =
+			hideVoterNames || Boolean(message.poll.endDate) || message.poll.canAddOption === true
+
 		const pollCreationMessage: proto.Message.IPollCreationMessage = {
 			name: message.poll.name,
 			selectableOptionsCount: message.poll.selectableCount,
 			options: pollOptions,
-			hideVoterNames: message.poll.hideVoterNames ?? false,
+			hideVoterNames,
 			endTime: message.poll.endDate ? message.poll.endDate.getTime() : undefined,
 			allowAddOption: message.poll.canAddOption ?? false
 		}
@@ -866,8 +872,8 @@ export const generateWAMessageContent = async (
 		} else if (hasPollOptionImage && !message.poll.toAnnouncementGroup) {
 			// photo polls ride on the V3 poll message
 			m.pollCreationMessageV3 = pollCreationMessage
-		} else if (message.poll.hideVoterNames) {
-			// V6 — hidden-voter-names poll (PR #2725, reverse-engineered from live WA)
+		} else if (hideVoterNames || (usesExtendedPollSettings && !message.poll.toAnnouncementGroup)) {
+			// V6 — hidden-voter-names / end-date / add-option poll (PR #2725, reverse-engineered from live WA)
 			m.pollCreationMessageV6 = pollCreationMessage
 		} else if (message.poll.toAnnouncementGroup) {
 			// poll v2 is for community announcement groups (single select and multiple)
@@ -1361,14 +1367,14 @@ export const generateWAMessageContent = async (
 		if ('text' in message) {
 			interactiveMessage.body = { text: message.text }
 			interactiveMessage.header = {
-				...headerText(message as any),
+				...headerText(message),
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
 			// FIX Bug 1: same Object.assign corruption as interactiveButtons — fixed
 			interactiveMessage.header = {
-				...headerText(message as any),
+				...headerText(message),
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
@@ -1404,14 +1410,14 @@ export const generateWAMessageContent = async (
 		if ('text' in message) {
 			interactiveMessage.body = { text: message.text }
 			interactiveMessage.header = {
-				...headerText(message as any),
+				...headerText(message),
 				hasMediaAttachment: false
 			}
 		} else if ('caption' in message) {
 			interactiveMessage.body = { text: (message as { caption?: string }).caption ?? '' }
 			// FIX Bug 1: same Object.assign corruption — fixed
 			interactiveMessage.header = {
-				...headerText(message as any),
+				...headerText(message),
 				hasMediaAttachment: !!(m.imageMessage || m.videoMessage || m.documentMessage),
 				imageMessage: m.imageMessage ?? undefined,
 				videoMessage: m.videoMessage ?? undefined,
@@ -1548,7 +1554,7 @@ export const generateWAMessageContent = async (
 				text: message.text ?? ''
 			})
 			interactiveMessage.header = WAProto.Message.InteractiveMessage.Header.create({
-				...headerText(message as any),
+				...headerText(message),
 				hasMediaAttachment: false
 			})
 		}
@@ -1860,7 +1866,16 @@ export const generateWAMessageFromContent = (
 
 	const isNewsletter = isJidNewsletter(jid)
 
-	if (quoted) {
+	// A quoted message with no readable content (it failed to decrypt, a store kept only its key, or `{ key }` was
+	// built by hand) used to crash here while indexing `undefined`, silencing the bot in that chat on every send.
+	// Send without the quote instead, and say so once.
+	const quotedContentType = quoted ? getContentType(normalizeMessageContent(quoted.message)) : undefined
+	if (quoted && (!quotedContentType || !key || !innerMessage[key])) {
+		options.logger?.warn(
+			{ jid, quotedId: quoted.key?.id, quotedContentType, contentType: key },
+			'nothing quotable here, sending without the quote'
+		)
+	} else if (quoted) {
 		const participant = quoted.key.fromMe
 			? userJid // TODO: Add support for LIDs
 			: quoted.participant || quoted.key.participant || quoted.key.remoteJid
@@ -1915,6 +1930,16 @@ export const generateWAMessageFromContent = (
 		}
 	}
 
+	// WhatsApp clients attach the recipient's device-list hash to every 1:1 message that carries a message secret
+	const messageContextInfo = message.messageContextInfo
+	if (messageContextInfo?.messageSecret && (isPnUser(jid) || isLidUser(jid))) {
+		messageContextInfo.deviceListMetadata = {
+			recipientKeyHash: randomBytes(10),
+			recipientTimestamp: unixTimestampSeconds()
+		}
+		messageContextInfo.deviceListMetadataVersion = 2
+	}
+
 	message = WAProto.Message.create(message)
 
 	const messageJSON = {
@@ -1966,7 +1991,65 @@ export const getContentType = (content: proto.IMessage | undefined) => {
 }
 
 /**
- * Normalizes ephemeral, view once messages to regular message content
+ * Message fields that wrap another message (`{ message: ... }`) and have to be unwrapped before the real content
+ * (`conversation`, `imageMessage`, ...) can be read. Without a key listed here, `normalizeMessageContent` leaves that
+ * message wrapped and its text/media looks empty.
+ */
+export const FUTURE_PROOF_MESSAGE_KEYS = [
+	'acp2SettingMessage',
+	'associatedChildMessage',
+	'audioStickerMessage',
+	'botForwardedMessage',
+	'botGroupParticipantMessage',
+	'botInvokeMessage',
+	'botPlatformRegistrationSuccessMessage',
+	'botTaskMessage',
+	'documentWithCaptionMessage',
+	'editedMessage',
+	'ephemeralMessage',
+	'eventCoverImage',
+	'groupMentionedMessage',
+	'groupStatusMentionMessage',
+	'groupStatusMessage',
+	'groupStatusMessageV2',
+	'limitSharingMessage',
+	'lottieStickerMessage',
+	'newsletterAdminProfileMessage',
+	'newsletterAdminProfileMessageV2',
+	'newsletterAdminProfileStatusMessage',
+	'newsletterScheduledMessage',
+	'pollCreationMessageV4',
+	'pollCreationOptionImageMessage',
+	'questionMessage',
+	'questionReplyMessage',
+	'spoilerMessage',
+	'statusAddYours',
+	'statusMentionMessage',
+	'viewOnceMessage',
+	'viewOnceMessageV2',
+	'viewOnceMessageV2Extension'
+] as const
+
+type FutureProofWrapper = { message?: WAMessageContent | null } | null | undefined
+
+const getFutureProofMessage = (message: WAMessageContent | null | undefined): FutureProofWrapper => {
+	if (!message) {
+		return undefined
+	}
+
+	for (const key of FUTURE_PROOF_MESSAGE_KEYS) {
+		const wrapper = (message as Record<string, FutureProofWrapper>)[key]
+		if (wrapper) {
+			return wrapper
+		}
+	}
+
+	return undefined
+}
+
+/**
+ * Normalizes ephemeral, view once (and every other wrapper in `FUTURE_PROOF_MESSAGE_KEYS`) messages to regular
+ * message content
  * Eg. image messages in ephemeral messages, in view once messages etc.
  * @param content
  * @returns
@@ -1987,8 +2070,9 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 	}
 
 	return content!
+}
 
-	function getFutureProofMessage(message: typeof content) {
+function getFutureProofMessagee(message: proto.IMessage | null | undefined) {
 		return (
 			message?.ephemeralMessage ||
 			message?.viewOnceMessage ||
@@ -2003,7 +2087,6 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 			message?.lottieStickerMessage
 		)
 	}
-}
 
 /**
  * Extract the true message content from a message

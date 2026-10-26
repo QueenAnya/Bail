@@ -2804,6 +2804,8 @@ __metadata:
   dependenciesMeta:
     "@rexxhayanasi/elaina-anchorguard":
       optional: true
+    ffmpeg-static:
+      built: true
   peerDependenciesMeta:
     audio-decode:
       optional: true

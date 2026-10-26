@@ -896,13 +896,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				return
 			}
 
+			const isAddOnMessage = !!(messages.pinInChatMessage || messages.keepInChatMessage || messages.reactionMessage)
 			if (
-				messages.pinInChatMessage ||
-				messages.keepInChatMessage ||
-				messages.reactionMessage ||
-				messages.protocolMessage?.editedMessage
+				isAddOnMessage ||
+				messages.protocolMessage?.memberLabel ||
+				messages.protocolMessage?.editedMessage ||
+				messages.protocolMessage?.mediaNotifyMessage
 			) {
-				extraAttrs['decrypt-fail'] = 'hide' // todo: expand for reactions and other types
+				extraAttrs['decrypt-fail'] = 'hide'
 			}
 
 			if (messages.interactiveResponseMessage?.nativeFlowResponseMessage) {
@@ -971,10 +972,32 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					throw new Boom('Per-jid patching is not supported in groups')
 				}
 
-				const bytes = encodeWAMessage(patched)
-				reportingMessage = patched
 				const groupAddressingMode = additionalAttributes?.['addressing_mode'] || groupData?.addressingMode || 'lid'
 				const groupSenderIdentity = groupAddressingMode === 'lid' && meLid ? meLid : meId
+
+				let toEncode: proto.IMessage = patched
+				if (config.inlineSenderKeyDistribution !== false && isGroup && !patched.senderKeyDistributionMessage) {
+					try {
+						if (await signalRepository.hasSenderKey({ group: destinationJid, meId: groupSenderIdentity })) {
+							const inlineSkdm = await signalRepository.getSenderKeyDistributionMessage({
+								group: destinationJid,
+								meId: groupSenderIdentity
+							})
+							toEncode = {
+								...patched,
+								senderKeyDistributionMessage: {
+									groupId: destinationJid,
+									axolotlSenderKeyDistributionMessage: inlineSkdm
+								}
+							}
+						}
+					} catch (err) {
+						logger.warn({ err, jid: destinationJid }, 'failed to inline the sender key distribution message')
+					}
+				}
+
+				const bytes = encodeWAMessage(toEncode)
+				reportingMessage = toEncode
 
 				const { ciphertext, senderKeyDistributionMessage } = await signalRepository.encryptGroupMessage({
 					group: destinationJid,
@@ -1324,6 +1347,17 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 								}
 							: { polltype: 'creation' }
 					;(stanza.content as BinaryNode[]).push({ tag: 'meta', attrs: metaAttrs })
+				}
+			}
+
+			// pin / keep / reaction are add-ons to an existing message: the stanza needs <meta content_type="add_on"/>
+			if (isAddOnMessage && !isNewsletter) {
+				const content = stanza.content as BinaryNode[]
+				const existingMeta = content.find(n => n.tag === 'meta')
+				if (existingMeta) {
+					existingMeta.attrs = { ...existingMeta.attrs, content_type: 'add_on' }
+				} else if (!(additionalNodes ?? []).some(n => n.tag === 'meta' && 'content_type' in n.attrs)) {
+					content.push({ tag: 'meta', attrs: { content_type: 'add_on' } })
 				}
 			}
 

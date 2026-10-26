@@ -18,6 +18,7 @@ import {
 } from '../Defaults'
 import {
 	type LIDMapping,
+	type NewChatMessageCap,
 	type NewChatMessageCapInfo,
 	QueryIds,
 	ReachoutTimelockEnforcementType,
@@ -49,6 +50,7 @@ import {
 	makeEventBuffer,
 	makeNoiseHandler,
 	makePairingQRRenderer,
+	parseNewChatMessageCap,
 	printQRIfNecessaryListener,
 	promiseTimeout,
 	signedKeyPair,
@@ -1148,6 +1150,23 @@ export const makeSocket = (config: SocketConfig) => {
 			})
 		}
 
+		// An answer that carries no `link_code_pairing_ref` means the server did not register this device, so
+		// the code could never be entered: report it instead of persisting `creds.me` for a pairing that does not exist.
+		const registrationNode = getBinaryNodeChild(registration, 'link_code_companion_reg')
+		const pairingRef = registrationNode && getBinaryNodeChild(registrationNode, 'link_code_pairing_ref')
+		if (!pairingRef?.content) {
+			authState.creds.pairingCode = previousPairingCode
+			throw new Boom('the server accepted the pairing request without registering it', {
+				statusCode: 500,
+				data: { response: binaryNodeToString(registration) }
+			})
+		}
+
+		logger.info(
+			{ phoneNumber, refLength: pairingRef.content.length, stage: registrationNode?.attrs?.stage },
+			'pairing code registered with the server'
+		)
+
 		authState.creds.me = { id: jid, name: '~' }
 		ev.emit('creds.update', authState.creds)
 
@@ -1176,6 +1195,17 @@ export const makeSocket = (config: SocketConfig) => {
 				{ statusCode: 409, data: { phoneNumber: pendingPairing.phoneNumber, secondsLeft } }
 			)
 		}
+
+		// digits only: `+91 98765-43210` and `919876543210` are the same number
+		const normalizedNumber = String(phoneNumber ?? '').replace(/\D/g, '')
+		if (normalizedNumber.startsWith('0') || normalizedNumber.length < 6 || normalizedNumber.length > 15) {
+			throw new Boom(
+				'phoneNumber must be in international format: country code followed by the national number, digits only',
+				{ statusCode: 400, data: { phoneNumber } }
+			)
+		}
+
+		phoneNumber = normalizedNumber
 
 		pairingInProgress = true
 
@@ -1562,16 +1592,21 @@ export const makeSocket = (config: SocketConfig) => {
 
 	/**
 	 * Fetches your account's new chat limits.
-	 * @returns Returns the quota and the usage.
+	 *
+	 * Only *starting* a chat with someone you have never talked to uses this quota (a new chat thread, not a
+	 * message count). The query type is `INDIVIDUAL_NEW_CHAT_THREAD`; the older `INDIVIDUAL_NEW_CHAT_MSG`
+	 * name does not exist in any WhatsApp client.
+	 * @returns the escalation status (`NONE` -> `FIRST_WARNING` -> `SECOND_WARNING` -> `CAPPED`), the quota and the cycle.
 	 */
-	const fetchNewChatMessageCap = async () => {
-		return executeWMexQuery<NewChatMessageCapInfo>(
-			{ input: { type: 'INDIVIDUAL_NEW_CHAT_MSG' } },
+	const fetchNewChatMessageCap = async (): Promise<NewChatMessageCap> => {
+		const response = await executeWMexQuery<NewChatMessageCapInfo>(
+			{ input: { type: 'INDIVIDUAL_NEW_CHAT_THREAD' } },
 			QueryIds.MESSAGE_CAPPING_INFO,
 			XWAPaths.xwa2_message_capping_info,
 			query,
 			generateMessageTag
 		)
+		return parseNewChatMessageCap(response)
 	}
 
 	return {

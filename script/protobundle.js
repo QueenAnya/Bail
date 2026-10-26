@@ -259,7 +259,8 @@ export const readClientRevision = source => {
     return Number.parseInt(match[1], 10)
 }
 
-const PINNED_FILES = ['src/Defaults/index.js', 'src/Utils/generics.js']
+// Anya is TypeScript: the pinned client revision lives in these sources (and in the JSON the version helpers read)
+const PINNED_FILES = ['src/Defaults/index.ts', 'src/Utils/generics.ts', 'src/Defaults/baileys-version.json']
 const PINNED_PATTERN = /(\[\s*\d+\s*,\s*\d+\s*,\s*)(\d+)(\s*\])/
 
 export const pinnedRevision = () => {

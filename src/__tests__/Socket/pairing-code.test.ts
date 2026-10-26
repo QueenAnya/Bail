@@ -156,6 +156,19 @@ const getStanzaId = (xml: string) => {
 	return id
 }
 
+// what the server answers once it has registered the pairing request: the result carries a pairing ref
+const registeredReply = (id: string): BinaryNode => ({
+	tag: 'iq',
+	attrs: { from: '@s.whatsapp.net', id, type: 'result' },
+	content: [
+		{
+			tag: 'link_code_companion_reg',
+			attrs: { stage: 'companion_hello' },
+			content: [{ tag: 'link_code_pairing_ref', attrs: {}, content: Buffer.from('pairing-ref') }]
+		}
+	]
+})
+
 const makeSocket = (auth: AuthenticationState, logger: ILogger, overrides: Partial<SocketConfig> = {}) =>
 	makeWASocket({
 		...DEFAULT_CONNECTION_CONFIG,
@@ -190,10 +203,7 @@ describe('requestPairingCode', () => {
 		expect(xml).toContain('companion_platform_display')
 		expect(xml).toContain('Firefox (Ubuntu)')
 
-		ws.emit(`TAG:${getStanzaId(xml)}`, {
-			tag: 'iq',
-			attrs: { from: '@s.whatsapp.net', id: getStanzaId(xml), type: 'result' }
-		} satisfies BinaryNode)
+		ws.emit(`TAG:${getStanzaId(xml)}`, registeredReply(getStanzaId(xml)))
 
 		const code = await codePromise
 		expect(code).toHaveLength(8)
@@ -219,10 +229,7 @@ describe('requestPairingCode', () => {
 		expect(xml).toContain('Chrome (Windows)')
 		expect(xml).not.toContain('Firefox (Ubuntu)')
 
-		ws.emit(`TAG:${getStanzaId(xml)}`, {
-			tag: 'iq',
-			attrs: { from: '@s.whatsapp.net', id: getStanzaId(xml), type: 'result' }
-		} satisfies BinaryNode)
+		ws.emit(`TAG:${getStanzaId(xml)}`, registeredReply(getStanzaId(xml)))
 
 		await codePromise
 
@@ -245,12 +252,37 @@ describe('requestPairingCode', () => {
 		const xml = await getPairingRequestXml(logger)
 		expect(xml).toContain('Firefox (Ubuntu)')
 
+		ws.emit(`TAG:${getStanzaId(xml)}`, registeredReply(getStanzaId(xml)))
+
+		await codePromise
+
+		await sock.end(new Error('test complete'))
+	})
+
+	it('rejects an answer without a pairing ref and does not persist creds.me', async () => {
+		const auth = makeAuthState()
+		const logger = makeLogger()
+		const sock = makeSocket(auth, logger)
+		const ws = mockSockets[0]!
+
+		const codePromise = sock.requestPairingCode('1234567890')
+		await flushPromises()
+
+		ws.emit('CB:iq,type:set,pair-device', pairDeviceStanza())
+		const xml = await getPairingRequestXml(logger)
+
+		// a bare result: the server answered but never registered the device
 		ws.emit(`TAG:${getStanzaId(xml)}`, {
 			tag: 'iq',
 			attrs: { from: '@s.whatsapp.net', id: getStanzaId(xml), type: 'result' }
 		} satisfies BinaryNode)
 
-		await codePromise
+		await expect(codePromise).rejects.toMatchObject({
+			message: expect.stringContaining('without registering it'),
+			output: { statusCode: 500 }
+		})
+		expect(auth.creds.me).toBeUndefined()
+		expect(auth.creds.pairingCode).toBeUndefined()
 
 		await sock.end(new Error('test complete'))
 	})

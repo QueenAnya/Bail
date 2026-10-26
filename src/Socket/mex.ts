@@ -50,7 +50,11 @@ export const executeWMexQuery = async <T>(
 			const errorMessages = data.errors.map((err: Error) => err.message || 'Unknown error').join(', ')
 			const firstError = data.errors[0]
 			const errorCode = firstError.extensions?.error_code || 400
-			throw new Boom(`GraphQL server error: ${errorMessages}`, { statusCode: errorCode, data: firstError })
+			// the query id and the variables that were sent ride along, so a rejected id is easy to tell from a bad argument
+			throw new Boom(`GraphQL server error: ${errorMessages} (${dataPath || queryId})`, {
+				statusCode: errorCode,
+				data: { ...firstError, queryId, sent: variables }
+			})
 		}
 
 		const response = dataPath ? data?.data?.[dataPath] : data?.data

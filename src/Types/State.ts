@@ -115,4 +115,33 @@ export type NewChatMessageCapInfo = {
 	ote_status?: NewChatMessageCappingOTEStatusType
 	mv_status?: NewChatMessageCappingMVStatusType
 	capping_status?: NewChatMessageCappingStatusType
+	subscription_status?: string
+	/** set when the event comes from a rejected send (ack error 475) instead of a server push */
+	jid?: string
+	/** the id of the message that was rejected with ack error 475 */
+	messageId?: string
+}
+
+/** Normalised result of `sock.fetchNewChatMessageCap()` (the raw reply is kept in `response`). */
+export type NewChatMessageCap = {
+	status: NewChatMessageCappingStatusType | string
+	/** `true` once `status` is `CAPPED`: new chats are refused */
+	capped: boolean
+	/** `true` on `FIRST_WARNING` and `SECOND_WARNING` */
+	warned: boolean
+	/** `true` when the server sent no quota (or a negative one), i.e. there is no limit to count down */
+	unlimited: boolean
+	totalQuota?: number
+	usedQuota?: number
+	/** `totalQuota - usedQuota`, never negative; `null` when `unlimited` */
+	remaining: number | null
+	/** cycle start / end, unix **seconds** */
+	cycleStart?: number
+	cycleEnd?: number
+	/** server clock (unix seconds) when it answered */
+	serverTime?: number
+	oteStatus?: NewChatMessageCappingOTEStatusType
+	mvStatus?: NewChatMessageCappingMVStatusType
+	subscriptionStatus?: string
+	response?: NewChatMessageCapInfo
 }

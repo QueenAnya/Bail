@@ -155,6 +155,12 @@ export type BaileysEventMap = {
 	'newsletter.view': { id: string; server_id: string; count: number }
 	'newsletter-participants.update': { id: string; author: string; user: string; new_role: string; action: string }
 	'newsletter-settings.update': { id: string; update: any }
+	/** Raw mex notification for an operation this library does not model */
+	'mex.notification': { operation: string; data: any }
+	'newsletter-admin-profile.update': {
+		id: string
+		adminProfile: { id?: string; name: string; pictureId?: string; pictureDirectPath?: string } | null
+	}
 
 	'message-capping.update': NewChatMessageCapInfo
 

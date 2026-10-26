@@ -9,8 +9,8 @@ import { type ChildProcessByStdio, execFile, spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
 import type { Readable } from 'node:stream'
+import { getFfmpegBin } from '../Utils/ffmpeg-path'
 
-const FFMPEG_BIN = 'ffmpeg'
 const DEFAULT_WIDTH = 640
 const DEFAULT_HEIGHT = 480
 const DEFAULT_FPS = 15
@@ -18,8 +18,8 @@ const MAX_STDERR_CHARS = 16 * 1024
 
 let ffmpegAvailableCache: boolean | null = null
 
-/** Checks (and caches) whether an `ffmpeg` binary is reachable on PATH. */
-export const checkFfmpegAvailable = (bin = FFMPEG_BIN): Promise<boolean> => {
+/** Checks (and caches) whether an ffmpeg binary is usable: the bundled `ffmpeg-static` one, else `ffmpeg` on PATH. */
+export const checkFfmpegAvailable = (bin = getFfmpegBin()): Promise<boolean> => {
 	if (ffmpegAvailableCache !== null) return Promise.resolve(ffmpegAvailableCache)
 	return new Promise(res => {
 		execFile(bin, ['-version'], { timeout: 5000 }, err => {
@@ -125,7 +125,7 @@ export class VideoFeeder {
 		args.push('-an', '-vf', scaleFilter, '-r', String(this.fps), '-pix_fmt', 'yuv420p', '-f', 'rawvideo', 'pipe:1')
 
 		try {
-			this.#proc = spawn(FFMPEG_BIN, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+			this.#proc = spawn(getFfmpegBin(), args, { stdio: ['ignore', 'pipe', 'pipe'] })
 		} catch (err) {
 			this.#running = false
 			this.onError?.(err as Error)

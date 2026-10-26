@@ -17,6 +17,7 @@ import {
 	//	transferDevice
 } from '../WABinary'
 import { unpadRandomMax16 } from './generics'
+import { extractNewsletterMessageMeta } from './newsletter-meta'
 import type { ILogger } from './logger'
 
 export const getDecryptionJid = async (sender: string, repository: SignalRepositoryWithLIDStore): Promise<string> => {
@@ -62,7 +63,9 @@ export const DECRYPTION_RETRY_CONFIG = {
 
 /** NACK reason codes we send to the server (client → server) */
 export const NACK_REASONS = {
+	StaleGroupAddressingMode: 421,
 	SenderReachoutTimelocked: 463,
+	NewChatMessagesCapped: 475,
 	ParsingError: 487,
 	UnrecognizedStanza: 488,
 	UnrecognizedStanzaClass: 489,
@@ -91,7 +94,9 @@ export const SERVER_ERROR_CODES = {
 	 */
 	MessageAccountRestriction: '463',
 	/** Stanza validation failure (SMAX_INVALID) — likely stale device session */
-	SmaxInvalid: '479'
+	SmaxInvalid: '479',
+	/** the account used up its new-chat quota (see `sock.fetchNewChatMessageCap()`) */
+	NewChatMessagesCapped: '475'
 } as const
 
 /**
@@ -248,6 +253,21 @@ export function decodeMessageNode(stanza: BinaryNode, meId: string, meLid: strin
 		messageTimestamp: +stanza.attrs.t!,
 		pushName: pushname,
 		broadcast: isJidBroadcast(from)
+	}
+
+	if (msgType === 'newsletter') {
+		const meta = extractNewsletterMessageMeta(stanza)
+		if (meta) {
+			;(fullMessage as WAMessage & { newsletterMeta?: typeof meta }).newsletterMeta = meta
+			if (meta.adminProfile?.name) {
+				fullMessage.pushName = fullMessage.pushName || meta.adminProfile.name
+			}
+		}
+
+		if (stanza.attrs.is_sender === 'true') {
+			key.fromMe = true
+			key.isNewsletterSender = true
+		}
 	}
 
 	if (key.fromMe) {

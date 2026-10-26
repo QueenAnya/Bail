@@ -1,31 +1,14 @@
 import { describe, expect, it } from '@jest/globals'
-import { registerDefaultClient } from '../../Extras/MessageBuilder/default-client'
 import { AIRich, AIRichCarousel as Carousel, Button, MB } from '../../Extras/MessageBuilder/index'
 import { bindMessageBuilder } from '../../Extras/socket'
 
 describe('builders without a socket argument', () => {
-	it('needs an explicit socket while no socket is registered', () => {
+	it('needs an explicit socket', () => {
 		expect(() => new (AIRich as any)()).toThrow('Socket is required')
 		expect(() => new (Button as any)()).toThrow('Socket is required')
-	})
-
-	it('uses the only registered socket, and refuses to guess with several', () => {
-		const unregisterA = registerDefaultClient({ name: 'a' })
-
-		expect(new (AIRich as any)()).toBeInstanceOf(AIRich)
-		expect(new (MB.AIRich as any)()).toBeInstanceOf(AIRich)
-		expect(new (Carousel as any)()).toBeInstanceOf(Carousel)
-
-		const unregisterB = registerDefaultClient({ name: 'b' })
-		expect(() => new (AIRich as any)()).toThrow('several sockets are active')
+		expect(() => new (Carousel as any)()).toThrow('Socket is required')
 		// an explicit socket always works
 		expect(new (AIRich as any)({ name: 'explicit' })).toBeInstanceOf(AIRich)
-
-		unregisterB()
-		expect(new (AIRich as any)()).toBeInstanceOf(AIRich)
-
-		unregisterA()
-		expect(() => new (AIRich as any)()).toThrow('Socket is required')
 	})
 })
 
