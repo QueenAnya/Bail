@@ -58,7 +58,7 @@ jobs:
       - name: Build the site
         # `build:docs` is typedoc, which writes to docs/api and leaves site/ missing — the publish step below copies
         # site/, so it needs the real site builder.
-        run: yarn build:docs2
+        run: yarn build:docs
 
       - name: Identify as the repository owner
         run: |
