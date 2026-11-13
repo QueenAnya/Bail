@@ -3,6 +3,7 @@
  *
  * Stores the auth state in MySQL / MariaDB (`mysql2`, a runtime dependency).
  */
+import { normalizeAuthArgs, promoteHandle } from '../Utils/auth-args'
 import { type AuthStore, type DatabaseAuthState, loadOptionalModule, makeAuthStateFromStore } from './auth-store'
 
 export interface MySQLAuthStateOptions {
@@ -10,6 +11,8 @@ export interface MySQLAuthStateOptions {
 	pool?: any
 	/** connection URI, used when no pool is given */
 	uri?: string
+	/** Alias for `uri` — every adapter accepts the same key. */
+	url?: string
 	/** `mysql2` pool config, used when no pool is given */
 	config?: any
 	/** table name (plain identifier), default `baileys_auth` */
@@ -26,19 +29,36 @@ const quoteIdentifier = (name: string): string => {
 	return `\`${name}\``
 }
 
-export async function useMySQLAuthState(opts: MySQLAuthStateOptions = {}): Promise<DatabaseAuthState> {
+export async function useMySQLAuthState(
+	/** `(uri)`, `(uri, table, session)`, `({ uri, table, session })`, `({ pool })`. */
+	a: string | MySQLAuthStateOptions = {},
+	b?: string | MySQLAuthStateOptions,
+	c?: string
+): Promise<DatabaseAuthState> {
+	const opts = promoteHandle(
+		normalizeAuthArgs<MySQLAuthStateOptions>(
+			[a, b, c],
+			['uri', 'table', 'session'],
+			['uri', 'url', 'pool', 'config', 'table', 'session']
+		),
+		['uri', 'url'],
+		'pool',
+		(v: any) => typeof v?.query === 'function' || typeof v?.execute === 'function'
+	)
 	const table = quoteIdentifier(opts.table ?? 'baileys_auth')
 	const session = opts.session ?? 'default'
 	let pool = opts.pool
 	let owned = false
 
 	if (!pool) {
-		if (!opts.uri && !opts.config) {
+		// `url` is accepted as a synonym for `uri` so every adapter takes the same shape
+		const uri = opts.uri ?? opts.url
+		if (!uri && !opts.config) {
 			throw new Error('useMySQLAuthState needs a pool, a uri, or a config')
 		}
 
 		const mysql = await loadOptionalModule('mysql2/promise', 'useMySQLAuthState')
-		pool = mysql.createPool(opts.config ?? opts.uri)
+		pool = mysql.createPool(opts.config ?? uri)
 		owned = true
 	}
 
@@ -104,6 +124,47 @@ export async function useMySQLAuthState(opts: MySQLAuthStateOptions = {}): Promi
 				throw err
 			} finally {
 				connection.release()
+			}
+		},
+		list: async function* (type) {
+			const pageSize = 500
+			let lastId: string | null = null
+			for (;;) {
+				const page: any = lastId
+					? await pool.query(
+							`SELECT id, value FROM ${table} WHERE session = ? AND type = ? AND id > ? ORDER BY id LIMIT ?`,
+							[session, type, lastId, pageSize]
+						)
+					: await pool.query(`SELECT id, value FROM ${table} WHERE session = ? AND type = ? ORDER BY id LIMIT ?`, [
+							session,
+							type,
+							pageSize
+						])
+				const rows = page[0] as Array<{ id: string; value: string }>
+
+				if (!rows.length) {
+					return
+				}
+
+				for (const row of rows) {
+					yield [row.id, row.value] as const
+				}
+
+				if (rows.length < pageSize) {
+					return
+				}
+
+				lastId = rows[rows.length - 1]!.id
+			}
+		},
+		listIds: async function* (type) {
+			const page: any = await pool.query(`SELECT id FROM ${table} WHERE session = ? AND type = ? ORDER BY id`, [
+				session,
+				type
+			])
+			const rows = page[0] as Array<{ id: string }>
+			for (const row of rows) {
+				yield row.id
 			}
 		},
 		clear: async () => {

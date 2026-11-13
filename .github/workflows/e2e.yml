@@ -5,68 +5,51 @@ on:
     branches:
       - master
       - develop
+  pull_request:
 
 permissions:
   contents: read
 
 jobs:
   e2e:
-    name: E2E Tests
+    name: E2E (local transport harness)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    services:
-      mock-server:
-        image: ghcr.io/whiskeysockets-devtools/bartender:latest
-        credentials:
-          username: ${{ github.actor }}
-          password: ${{ secrets.BARTENDER_GHCR_TOKEN }}
-        ports:
-          - 8080:8080
-        env:
-          CHATSTATE_TTL_SECS: '3'
-          ADV_SECRET_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
-        options: --log-driver none
 
     steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Checkout code
+        uses: actions/checkout@v7
 
-      - name: Setup Node.js and Corepack
+      - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: lts/*
 
       - name: Enable Corepack and Set Yarn Version
         run: |
+          corepack cache clean
           corepack enable
           corepack prepare yarn@4.x --activate
 
-      - name: Restore Yarn Cache
-        uses: actions/cache@v6
-        with:
-          path: .yarn/cache
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
       - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Wait for mock server
+        # yarn 4, like every other workflow: `npm install` would rewrite yarn.lock in the old v1 format
         run: |
-          for i in $(seq 1 30); do
-            if curl -sk https://localhost:8080/ > /dev/null 2>&1; then
-              echo "Mock server is ready"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Mock server failed to become ready"
-          exit 1
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+
+      - name: Build
+        run: npm run build
 
       - name: Run E2E tests
-        env:
-          SOCKET_URL: 'wss://127.0.0.1:8080/ws/chat'
-          ADV_SECRET_KEY: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
-        run: yarn test:e2e
+        # `test:e2e2` is the local transport harness (no credentials, no network);
+        # `test:e2e` is the older jest suite under src/__tests__/e2e, which needs a mock server
+        run: npm run test:e2e2
+
+# Upstream's e2e job runs a mock WhatsApp server (`ghcr.io/whiskeysockets-devtools/bartender`) that needs a private
+# GHCR token, so it cannot run in a fork. This job runs the transport half of the same idea against a local `ws`
+# endpoint instead: it proves the socket opens, reaches `connection: 'connecting'` and shuts down cleanly, with no
+# credentials and no network. To exercise the full handshake, run the same suite with `SOCKET_URL` pointing at a mock
+# server you host yourself.

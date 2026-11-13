@@ -60,7 +60,9 @@ export * from './companion-reg-client-utils'
 export * from './sync-action-utils'
 export * from './reporting-utils'
 export * from './tc-token-utils'
-export * from './offline-node-processor'
+// explicit list: `MessageType` collides with the root export of the same name from Types/Message
+export { makeOfflineNodeProcessor } from './offline-node-processor'
+export type { OfflineNodeType, OfflineNodeProcessorDeps } from './offline-node-processor'
 
 export * from './passkey'
 export * from './shortcake-crypto'

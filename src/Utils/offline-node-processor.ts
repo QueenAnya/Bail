@@ -2,6 +2,9 @@ import type { BinaryNode } from '../WABinary'
 
 export type OfflineNodeType = 'message' | 'call' | 'receipt' | 'notification'
 
+/** upstream (WhiskeySockets) name for the same union — kept so code written against their exports compiles here */
+export type MessageType = OfflineNodeType
+
 type OfflineNode = {
 	type: OfflineNodeType
 	node: BinaryNode

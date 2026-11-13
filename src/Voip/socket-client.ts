@@ -6,9 +6,9 @@
  * The caller selects capabilities by invoking their method names; no engine selector
  * option is exposed. A client automatically switches the internal signaling
  * engine only when the previous engine has no active calls. Original snapshots
- * remain in repository-root `Voip/` and `Voip2/` and are not published.
+ * were dropped from this tree; the merged implementation is what ships.
  * Elaina-derived portions originate from @rexxhayanasi/elaina-baileys (MIT);
- * see the repository NOTICE.md for attribution.
+ * see the repository LICENSE for attribution.
  */
 // @ts-nocheck
 import { createHmac, randomBytes } from 'node:crypto'

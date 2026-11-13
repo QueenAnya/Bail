@@ -1,12 +1,19 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 - MessageBuilder/index.js
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x - MessageBuilder/index.js
  * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
  *
  * NOTE: this file is NOT covered by the repository's MIT license alone. It carries its author's own
  * watermark / license notice right below (Nixel). Keep that notice, do not reupload or redistribute
- * this module as a standalone product. See NOTICE.md.
+ * this module as a standalone product. See LICENSE.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
 // @ts-nocheck
+// Deliberate: one of only three files left with @ts-nocheck in src/Extras.
+// This module walks protobuf trees whose shape varies with the WAProto build; removing the
+// directive surfaces roughly 200-550 errors here, nearly all implicit-any on dynamic proto
+// paths. The other 11 ported modules were cleaned first (see the port review); this trio is
+// remaining work, not an oversight. Tackle one file at a time.
+
 // Legacy upstream module is intentionally preserved with its original loose comparisons and nesting.
 // These rules are disabled locally to avoid behavior-changing rewrites of this ported implementation.
 /* eslint eqeqeq: off, max-depth: off, @typescript-eslint/no-unused-vars: off */
@@ -42,7 +49,7 @@
 const VERSION = '4.7'
 
 /** Resolve Elaina/Anya button label aliases without altering serialized Native Flow JSON. */
-function resolvePortedButtonDisplayText(button) {
+function resolvePortedButtonDisplayText(button: any) {
 	if (!button || typeof button !== 'object') return undefined
 	const buttonText = button.buttonText
 	const candidates = [
@@ -63,7 +70,10 @@ import { generateWAMessageFromContent, prepareWAMessageMedia } from '../../Utils
 import { loadFfmpeg, loadSharp } from '../optional-media'
 import { isParsableCertificateChain } from './bot-signature'
 
-function extractIE(text, { extract = true, hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
+function extractIE(
+	text: any,
+	{ extract = true, hyperlink = true, citation = true, latex = true, deeplink = true }: any = {}
+) {
 	if (!extract) {
 		return {
 			text,
@@ -72,7 +82,7 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 		}
 	}
 
-	const createIE = (type, ie) => {
+	const createIE = (type: any, ie: any) => {
 		if (type == 'hyperlink') {
 			return {
 				key: ie.key,
@@ -269,11 +279,11 @@ function extractIE(text, { extract = true, hyperlink = true, citation = true, la
 	}
 }
 
-async function waitAllPromises(input) {
-	const isPromise = v => v && typeof v.then === 'function'
-	const isObject = v => v && typeof v === 'object'
+async function waitAllPromises(input: any) {
+	const isPromise = (v: any) => v && typeof v.then === 'function'
+	const isObject = (v: any) => v && typeof v === 'object'
 
-	const deep = async v => {
+	const deep = async (v: any) => {
 		if (isPromise(v)) return deep(await v)
 		if (Array.isArray(v)) return Promise.all(v.map(deep))
 		if (isObject(v)) {
@@ -288,7 +298,7 @@ async function waitAllPromises(input) {
 }
 
 class AIRichError extends Error {
-	constructor(message, code, meta = {}) {
+	constructor(message: any, code: any, meta = {}) {
 		super(message)
 		this.name = 'AIRichError'
 		this.code = code
@@ -297,7 +307,7 @@ class AIRichError extends Error {
 }
 
 class ItemNotFoundError extends AIRichError {
-	constructor(id, availableIds = []) {
+	constructor(id: any, availableIds = []) {
 		super(
 			`Item id "${id}" not found${availableIds.length ? ` (available: ${availableIds.join(', ')})` : ' (no items have an id yet)'}`,
 			'ITEM_NOT_FOUND',
@@ -308,21 +318,21 @@ class ItemNotFoundError extends AIRichError {
 }
 
 class DuplicateIdError extends AIRichError {
-	constructor(id) {
+	constructor(id: any) {
 		super(`Item id "${id}" already exists`, 'DUPLICATE_ID', { id })
 		this.name = 'DuplicateIdError'
 	}
 }
 
 class InvalidTargetError extends AIRichError {
-	constructor(message, meta = {}) {
+	constructor(message: any, meta = {}) {
 		super(message, 'INVALID_TARGET', meta)
 		this.name = 'InvalidTargetError'
 	}
 }
 
 class ContentValidationError extends AIRichError {
-	constructor(message, meta = {}) {
+	constructor(message: any, meta = {}) {
 		super(message, 'CONTENT_VALIDATION', meta)
 		this.name = 'ContentValidationError'
 	}
@@ -331,11 +341,14 @@ class ContentValidationError extends AIRichError {
 class Toolkit {
 	constructor() {}
 
-	static extractIE(text, { extract = true, hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
+	static extractIE(
+		text: any,
+		{ extract = true, hyperlink = true, citation = true, latex = true, deeplink = true }: any = {}
+	) {
 		return extractIE(text, { extract, hyperlink, citation, latex, deeplink })
 	}
 
-	static async resize(buffer, x, y, fit = 'cover') {
+	static async resize(buffer: any, x: any, y: any, fit = 'cover') {
 		if (!Buffer.isBuffer(buffer) || !buffer.length) {
 			throw new Error(
 				'resize needs image bytes, got ' +
@@ -355,11 +368,11 @@ class Toolkit {
 			.toBuffer()
 	}
 
-	static async waitAllPromises(input) {
+	static async waitAllPromises(input: any) {
 		return await waitAllPromises(input)
 	}
 
-	static async fetchBuffer(url, options = {}, { silent = true } = {}) {
+	static async fetchBuffer(url: any, options = {}, { silent = true }: any = {}) {
 		try {
 			if (Buffer.isBuffer(url)) return url
 			if (typeof url === 'string' && !/^(https?|data):/.test(url)) {
@@ -375,7 +388,7 @@ class Toolkit {
 		}
 	}
 
-	static async toUrl(_client, path, mediaType = 'document') {
+	static async toUrl(_client: any, path: any, mediaType = 'document') {
 		if (!path) throw new Error('Url or buffer needed')
 
 		const media = await prepareWAMessageMedia(
@@ -392,14 +405,14 @@ class Toolkit {
 	}
 
 	static async resolveMedia(
-		_client,
-		media,
+		_client: any,
+		media: any,
 		mediaType = 'image',
-		{ resolveUrl = false, resolveWAUrl = false, result = 'url', resize = false, width = 300, height = 300 } = {}
+		{ resolveUrl = false, resolveWAUrl = false, result = 'url', resize = false, width = 300, height = 300 }: any = {}
 	) {
-		const isUrl = str => /^https?:\/\/.+/i.test(str)
+		const isUrl = (str: any) => /^https?:\/\/.+/i.test(str)
 
-		const isWAUrl = str => /^https?:\/\/[^/]*\.whatsapp\.net\//i.test(str)
+		const isWAUrl = (str: any) => /^https?:\/\/[^/]*\.whatsapp\.net\//i.test(str)
 
 		if (Array.isArray(media)) {
 			return Promise.all(
@@ -465,7 +478,7 @@ class Toolkit {
 		return Toolkit.toUrl(_client, media, mediaType)
 	}
 
-	static getMp4Duration(buffer, { silent = true } = {}) {
+	static getMp4Duration(buffer: any, { silent = true }: any = {}) {
 		try {
 			if (!Buffer.isBuffer(buffer) || buffer.length < 8) {
 				if (silent) return 0
@@ -543,11 +556,11 @@ class Toolkit {
 	}
 
 	static getMp4Preview(
-		videoBuffer,
-		{ time, result = 'buffer', resize = true, width = 300, height = 300, silent = true } = {}
+		videoBuffer: any,
+		{ time, result = 'buffer', resize = true, width = 300, height = 300, silent = true }: any = {}
 	) {
 		return new Promise((resolve, reject) => {
-			const fail = err => {
+			const fail = (err: any) => {
 				if (silent) {
 					return resolve(result === 'base64' ? '' : Buffer.alloc(0))
 				}
@@ -595,7 +608,7 @@ class Toolkit {
 					.then(ffmpeg => {
 						ffmpeg(inputStream)
 							.outputOptions([`-ss ${time}`, '-vframes 1', '-vcodec png', '-f image2pipe'])
-							.on('error', err => fail(new Error(`ffmpeg error: ${err.message}`)))
+							.on('error', (err: any) => fail(new Error(`ffmpeg error: ${err.message}`)))
 							.pipe(outputStream, { end: true })
 					})
 					.catch(fail)
@@ -605,7 +618,7 @@ class Toolkit {
 		})
 	}
 
-	static stringifyEscaped(obj) {
+	static stringifyEscaped(obj: any) {
 		return JSON.stringify(obj).replace(/[\u007f-\uffff]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
 	}
 }
@@ -620,7 +633,7 @@ class BaseBuilder {
 		this._extraPayload = {}
 	}
 
-	setTitle(title) {
+	setTitle(title: any) {
 		if (typeof title !== 'string') {
 			throw new TypeError('Title must be a string')
 		}
@@ -629,7 +642,7 @@ class BaseBuilder {
 		return this
 	}
 
-	setSubtitle(subtitle) {
+	setSubtitle(subtitle: any) {
 		if (typeof subtitle !== 'string') {
 			throw new TypeError('Subtitle must be a string')
 		}
@@ -638,7 +651,7 @@ class BaseBuilder {
 		return this
 	}
 
-	setBody(body) {
+	setBody(body: any) {
 		if (typeof body !== 'string') {
 			throw new TypeError('Body must be a string')
 		}
@@ -647,7 +660,7 @@ class BaseBuilder {
 		return this
 	}
 
-	setFooter(footer) {
+	setFooter(footer: any) {
 		if (typeof footer !== 'string') {
 			throw new TypeError('Footer must be a string')
 		}
@@ -656,7 +669,7 @@ class BaseBuilder {
 		return this
 	}
 
-	setContextInfo(obj) {
+	setContextInfo(obj: any) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
 			throw new TypeError('ContextInfo must be a plain object')
 		}
@@ -665,7 +678,7 @@ class BaseBuilder {
 		return this
 	}
 
-	addPayload(obj) {
+	addPayload(obj: any) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
 			throw new TypeError('Payload must be a plain object')
 		}
@@ -679,7 +692,7 @@ class BaseBuilder {
 class Button extends BaseBuilder {
 	#client
 
-	constructor(client) {
+	constructor(client: any) {
 		super()
 		if (!client) {
 			throw new Error('Socket is required')
@@ -694,7 +707,7 @@ class Button extends BaseBuilder {
 		this._params = {}
 	}
 
-	loadFrom(msg) {
+	loadFrom(msg: any) {
 		if (!msg) throw new Error('interactiveMessage needed')
 		if (!msg.interactiveMessage) throw new Error('interactiveMessage not found')
 
@@ -711,7 +724,7 @@ class Button extends BaseBuilder {
 		this._extraPayload = extraPayload
 
 		this._buttons = Array.isArray(nativeFlow.buttons)
-			? nativeFlow.buttons.map(button => ({
+			? nativeFlow.buttons.map((button: any) => ({
 					...button,
 					buttonParamsJson:
 						typeof button.buttonParamsJson === 'string'
@@ -742,7 +755,7 @@ class Button extends BaseBuilder {
 			this._params = { ...nativeFlow.messageParamsJson }
 		}
 
-		this._currentSelectionIndex = this._buttons.findLastIndex(button => button.name === 'single_select')
+		this._currentSelectionIndex = this._buttons.findLastIndex((button: any) => button.name === 'single_select')
 
 		this._currentSectionIndex = -1
 
@@ -763,7 +776,7 @@ class Button extends BaseBuilder {
 		return this
 	}
 
-	setImage(path, options = {}) {
+	setImage(path: any, options = {}) {
 		if (!path) throw new Error('Url or buffer needed')
 		Buffer.isBuffer(path)
 			? (this._data = { image: path, ...options })
@@ -771,7 +784,7 @@ class Button extends BaseBuilder {
 		return this
 	}
 
-	setVideo(path, options = {}) {
+	setVideo(path: any, options = {}) {
 		if (!path) throw new Error('Url or buffer needed')
 		Buffer.isBuffer(path)
 			? (this._data = { video: path, ...options })
@@ -779,7 +792,7 @@ class Button extends BaseBuilder {
 		return this
 	}
 
-	setDocument(path, options = {}) {
+	setDocument(path: any, options = {}) {
 		if (!path) throw new Error('Url or buffer needed')
 		Buffer.isBuffer(path)
 			? (this._data = { document: path, ...options })
@@ -787,7 +800,7 @@ class Button extends BaseBuilder {
 		return this
 	}
 
-	setMedia(obj) {
+	setMedia(obj: any) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
 			throw new TypeError('Media must be a plain object')
 		}
@@ -801,12 +814,12 @@ class Button extends BaseBuilder {
 		return this
 	}
 
-	setParams(obj) {
+	setParams(obj: any) {
 		this._params = obj
 		return this
 	}
 
-	addButton(name, params) {
+	addButton(name: any, params: any) {
 		// Object form: addButton({ name, buttonParamsJson | params }) - same payload as addButton(name, params).
 		if (name && typeof name === 'object' && !Array.isArray(name)) {
 			params = name.buttonParamsJson ?? name.params ?? params
@@ -868,7 +881,7 @@ class Button extends BaseBuilder {
 		return this
 	}
 
-	addSelection(title, options = {}) {
+	addSelection(title: any, options = {}) {
 		this._buttons.push({ name: 'single_select', buttonParamsJson: JSON.stringify({ title, sections: [], ...options }) })
 		this._currentSelectionIndex = this._buttons.length - 1
 		this._currentSectionIndex = -1
@@ -1017,7 +1030,7 @@ class Button extends BaseBuilder {
 		}
 	}
 
-	async build(jid, { messageId, ...options } = {}) {
+	async build(jid: any, { messageId, ...options }: any = {}) {
 		const message = await this.toCard()
 
 		return generateWAMessageFromContent(
@@ -1033,7 +1046,7 @@ class Button extends BaseBuilder {
 		)
 	}
 
-	async send(jid, { messageId, additionalNodes = [], ...options } = {}) {
+	async send(jid: any, { messageId, additionalNodes = [], ...options }: any = {}) {
 		const msg = await this.build(jid, { messageId, ...options })
 
 		await this.#client.relayMessage(msg.key.remoteJid, msg.message, {
@@ -1061,7 +1074,7 @@ class Button extends BaseBuilder {
 class ButtonV2 extends BaseBuilder {
 	#client
 
-	constructor(client) {
+	constructor(client: any) {
 		super()
 		if (!client) {
 			throw new Error('Socket is required')
@@ -1073,7 +1086,7 @@ class ButtonV2 extends BaseBuilder {
 		this._buttons = []
 	}
 
-	loadFrom(msg) {
+	loadFrom(msg: any) {
 		if (!msg) throw new Error('buttonsMessage needed')
 		if (!msg.buttonsMessage) throw new Error('buttonsMessage not found')
 
@@ -1089,7 +1102,7 @@ class ButtonV2 extends BaseBuilder {
 		this._extraPayload = extraPayload
 
 		this._buttons = Array.isArray(bM.buttons)
-			? bM.buttons.map(button => ({
+			? bM.buttons.map((button: any) => ({
 					...button,
 					...(button.nativeFlowInfo
 						? {
@@ -1150,7 +1163,7 @@ class ButtonV2 extends BaseBuilder {
 		return this
 	}
 
-	addRawButton(obj) {
+	addRawButton(obj: any) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
 			throw new TypeError('Buttons must be a plain object')
 		}
@@ -1179,19 +1192,19 @@ class ButtonV2 extends BaseBuilder {
 		return this
 	}
 
-	setRawThumbnail(thumbnail) {
+	setRawThumbnail(thumbnail: any) {
 		if (!thumbnail) throw new Error('Thumbnail needed')
 		this._image = { base64: thumbnail, is_raw: true }
 		return this
 	}
 
-	setThumbnail(path) {
+	setThumbnail(path: any) {
 		if (!path) throw new Error('Url or buffer needed')
 		this._image = path
 		return this
 	}
 
-	setMedia(obj) {
+	setMedia(obj: any) {
 		if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) {
 			throw new TypeError('Media must be a plain object')
 		}
@@ -1200,7 +1213,7 @@ class ButtonV2 extends BaseBuilder {
 		return this
 	}
 
-	async build(jid, { messageId, ...options } = {}) {
+	async build(jid: any, { messageId, ...options }: any = {}) {
 		const _thumbnail = this._image?.is_raw
 			? this._image.base64
 			: this._image
@@ -1239,7 +1252,7 @@ class ButtonV2 extends BaseBuilder {
 		return msg
 	}
 
-	async send(jid, { messageId, additionalNodes = [], ...options } = {}) {
+	async send(jid: any, { messageId, additionalNodes = [], ...options }: any = {}) {
 		if (this._buttons.length < 1) throw new Error('ButtonV2 requires at least one button')
 		const msg = await this.build(jid, { messageId, ...options })
 
@@ -1268,7 +1281,7 @@ class ButtonV2 extends BaseBuilder {
 class Carousel extends BaseBuilder {
 	#client
 
-	constructor(client) {
+	constructor(client: any) {
 		super()
 		if (!client) {
 			throw new Error('Socket is required')
@@ -1278,7 +1291,7 @@ class Carousel extends BaseBuilder {
 		this._cards = []
 	}
 
-	loadFrom(msg) {
+	loadFrom(msg: any) {
 		if (!msg) throw new Error('interactiveMessage needed')
 		if (!msg.interactiveMessage) throw new Error('interactiveMessage not found')
 
@@ -1292,7 +1305,7 @@ class Carousel extends BaseBuilder {
 		this._extraPayload = extraPayload
 
 		this._cards = Array.isArray(carousel.cards)
-			? carousel.cards.map(card => ({
+			? carousel.cards.map((card: any) => ({
 					...card,
 					header: {
 						...(card.header || {}),
@@ -1309,7 +1322,7 @@ class Carousel extends BaseBuilder {
 					nativeFlowMessage: {
 						...(card.nativeFlowMessage || {}),
 						buttons: Array.isArray(card.nativeFlowMessage?.buttons)
-							? card.nativeFlowMessage.buttons.map(button => ({
+							? card.nativeFlowMessage.buttons.map((button: any) => ({
 									...button,
 									buttonParamsJson:
 										typeof button.buttonParamsJson === 'string'
@@ -1328,7 +1341,7 @@ class Carousel extends BaseBuilder {
 		return this
 	}
 
-	addCard(card) {
+	addCard(card: any) {
 		const cards = Array.isArray(card) ? card : [card]
 		const baseIndex = this._cards.length
 
@@ -1342,7 +1355,7 @@ class Carousel extends BaseBuilder {
 		return this
 	}
 
-	build(jid, { messageId, ...options } = {}) {
+	build(jid: any, { messageId, ...options }: any = {}) {
 		return generateWAMessageFromContent(
 			jid,
 			{
@@ -1363,7 +1376,7 @@ class Carousel extends BaseBuilder {
 		)
 	}
 
-	async send(jid, { messageId, additionalNodes = [], ...options } = {}) {
+	async send(jid: any, { messageId, additionalNodes = [], ...options }: any = {}) {
 		const msg = this.build(jid, { messageId, ...options })
 
 		await this.#client.relayMessage(msg.key.remoteJid, msg.message, {
@@ -1391,7 +1404,7 @@ class Carousel extends BaseBuilder {
 class AIRich extends BaseBuilder {
 	#client
 
-	constructor(client, { dynamic = true, unsupportedTypeAlert = true } = {}) {
+	constructor(client: any, { dynamic = true, unsupportedTypeAlert = true }: any = {}) {
 		if (!client) {
 			throw new Error('Socket is required')
 		}
@@ -1424,7 +1437,7 @@ class AIRich extends BaseBuilder {
 		return !!this._signedUnifiedResponse
 	}
 
-	addEmbeddedScreen(screen) {
+	addEmbeddedScreen(screen: any) {
 		if (!screen || typeof screen !== 'object' || Array.isArray(screen)) {
 			throw new ContentValidationError('Embedded screens must be plain objects')
 		}
@@ -1433,7 +1446,7 @@ class AIRich extends BaseBuilder {
 		return this._dropSignature()
 	}
 
-	setBotMetadata(extra) {
+	setBotMetadata(extra: any) {
 		if (!extra || typeof extra !== 'object' || Array.isArray(extra)) {
 			throw new ContentValidationError('Bot metadata must be a plain object')
 		}
@@ -1442,7 +1455,7 @@ class AIRich extends BaseBuilder {
 		return this
 	}
 
-	addFooterSection(section) {
+	addFooterSection(section: any) {
 		if (!section || typeof section !== 'object' || Array.isArray(section)) {
 			throw new ContentValidationError('Footer sections must be plain objects')
 		}
@@ -1456,7 +1469,7 @@ class AIRich extends BaseBuilder {
 		return this._dropSignature()
 	}
 
-	loadFrom(msg) {
+	loadFrom(msg: any) {
 		if (!msg) throw new Error('AI Rich message needed')
 
 		const message = msg.message ?? msg
@@ -1500,7 +1513,7 @@ class AIRich extends BaseBuilder {
 					: Buffer.from(String(unifiedData), 'base64')
 
 			const incomingProofs = botMetadata?.verificationMetadata?.proofs ?? []
-			const carriesRealChain = incomingProofs.some(proof => isParsableCertificateChain(proof?.certificateChain))
+			const carriesRealChain = incomingProofs.some((proof: any) => isParsableCertificateChain(proof?.certificateChain))
 
 			if (rawUnified.length && carriesRealChain) {
 				this._signedUnifiedResponse = rawUnified
@@ -1540,7 +1553,7 @@ class AIRich extends BaseBuilder {
 		return this
 	}
 
-	setResponseMeta(meta) {
+	setResponseMeta(meta: any) {
 		if (!meta || typeof meta !== 'object' || Array.isArray(meta)) {
 			throw new ContentValidationError('Response metadata must be a plain object')
 		}
@@ -1551,7 +1564,7 @@ class AIRich extends BaseBuilder {
 		return this
 	}
 
-	setResponseId(id) {
+	setResponseId(id: any) {
 		if (typeof id !== 'string') {
 			throw new TypeError('ID must be a string')
 		}
@@ -1567,7 +1580,7 @@ class AIRich extends BaseBuilder {
 		return this._dropSignature()
 	}
 
-	setBotResponseId(id) {
+	setBotResponseId(id: any) {
 		if (typeof id !== 'string') {
 			throw new TypeError('ID must be a string')
 		}
@@ -1583,7 +1596,7 @@ class AIRich extends BaseBuilder {
 		return this
 	}
 
-	createAlert(type) {
+	createAlert(type: any) {
 		if (this._unsupportedTypeAlert) {
 			return {
 				messageType: 2,
@@ -1594,7 +1607,10 @@ class AIRich extends BaseBuilder {
 		return undefined
 	}
 
-	addText(text, { hyperlink = true, citation = true, latex = true, deeplink = true, id, replace, insertAt } = {}) {
+	addText(
+		text: any,
+		{ hyperlink = true, citation = true, latex = true, deeplink = true, id, replace, insertAt }: any = {}
+	) {
 		if (typeof text !== 'string') {
 			throw new TypeError('Text must be a string')
 		}
@@ -1626,7 +1642,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addFOAText(text, { id, replace, insertAt } = {}) {
+	addFOAText(text: any, { id, replace, insertAt }: any = {}) {
 		if (typeof text !== 'string') {
 			throw new TypeError('Text must be a string')
 		}
@@ -1650,7 +1666,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addCode(language, code, { id, replace, insertAt } = {}) {
+	addCode(language: any, code: any, { id, replace, insertAt }: any = {}) {
 		if (typeof language !== 'string' || typeof code !== 'string') {
 			throw new TypeError('Language and code must be a string')
 		}
@@ -1680,7 +1696,10 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addTable(table, { hyperlink = true, citation = true, latex = true, deeplink = true, id, replace, insertAt } = {}) {
+	addTable(
+		table: any,
+		{ hyperlink = true, citation = true, latex = true, deeplink = true, id, replace, insertAt }: any = {}
+	) {
 		if (!Array.isArray(table)) {
 			throw new TypeError('Table must be an array')
 		}
@@ -1729,7 +1748,7 @@ class AIRich extends BaseBuilder {
 			id,
 			replace,
 			insertAt
-		} = {}
+		}: any = {}
 	) {
 		if (!Array.isArray(places) || !places.length) {
 			throw new TypeError('addMap needs at least one place with a latitude and a longitude')
@@ -1745,7 +1764,7 @@ class AIRich extends BaseBuilder {
 			return { ...place, latitude, longitude, annotationNumber: index + 1 }
 		})
 
-		const middle = key => points.reduce((sum, point) => sum + point[key], 0) / points.length
+		const middle = (key: any) => points.reduce((sum, point) => sum + point[key], 0) / points.length
 
 		const submessages = [
 			{
@@ -1802,14 +1821,16 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addSource(sources = [], { id, replace, insertAt } = {}) {
+	addSource(sources = [], { id, replace, insertAt }: any = {}) {
 		if (!Array.isArray(sources)) {
 			throw new TypeError('Sources must be an array of strings, arrays, or objects')
 		}
 
 		const isStringArray = sources.every(item => typeof item === 'string')
 
-		const isArrayFormat = sources.every(item => Array.isArray(item) && item.every(value => typeof value === 'string'))
+		const isArrayFormat = sources.every(
+			item => Array.isArray(item) && item.every((value: any) => typeof value === 'string')
+		)
 
 		const isObjectFormat = sources.every(item => item && typeof item === 'object' && !Array.isArray(item))
 
@@ -1868,7 +1889,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addReels(reelsItems = [], { id, replace, insertAt } = {}) {
+	addReels(reelsItems = [], { id, replace, insertAt }: any = {}) {
 		if (!(
 			(reelsItems && typeof reelsItems === 'object' && !Array.isArray(reelsItems)) ||
 			(Array.isArray(reelsItems) && reelsItems.every(item => item && typeof item === 'object' && !Array.isArray(item)))
@@ -1929,7 +1950,10 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addImage(imageUrl, { width, height, status = 'READY', update_text, resolveUrl = false, id, replace, insertAt } = {}) {
+	addImage(
+		imageUrl: any,
+		{ width, height, status = 'READY', update_text, resolveUrl = false, id, replace, insertAt }: any = {}
+	) {
 		if (!(
 			typeof imageUrl === 'string' ||
 			Buffer.isBuffer(imageUrl) ||
@@ -1998,8 +2022,8 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addVideo(videoUrl, { autoFill = true, status = 'READY', estimatedTime, id, replace, insertAt } = {}) {
-		const isObjectVideo = v => v && typeof v === 'object' && !Array.isArray(v) && v.url
+	addVideo(videoUrl: any, { autoFill = true, status = 'READY', estimatedTime, id, replace, insertAt }: any = {}) {
+		const isObjectVideo = (v: any) => v && typeof v === 'object' && !Array.isArray(v) && v.url
 
 		const isValidPrimitive =
 			typeof videoUrl === 'string' ||
@@ -2095,7 +2119,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addProduct(data = {}, { id, replace, insertAt } = {}) {
+	addProduct(data = {}, { id, replace, insertAt }: any = {}) {
 		if (!(
 			(data && typeof data === 'object' && !Array.isArray(data)) ||
 			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
@@ -2137,8 +2161,8 @@ class AIRich extends BaseBuilder {
 	}
 
 	addHtmlCard(
-		html,
-		{ mimeType = 'text/html', width = 300, height = 200, cardType, sandbox, id, replace, insertAt } = {}
+		html: any,
+		{ mimeType = 'text/html', width = 300, height = 200, cardType, sandbox, id, replace, insertAt }: any = {}
 	) {
 		if (typeof html !== 'string') {
 			throw new TypeError('html must be a string')
@@ -2163,7 +2187,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addSelectableText(text, { selectionId, id, replace, insertAt } = {}) {
+	addSelectableText(text: any, { selectionId, id, replace, insertAt }: any = {}) {
 		if (typeof text !== 'string') {
 			throw new TypeError('text must be a string')
 		}
@@ -2186,7 +2210,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addQuiz(question, options = [], { explanation, id, replace, insertAt } = {}) {
+	addQuiz(question: any, options = [], { explanation, id, replace, insertAt }: any = {}) {
 		if (typeof question !== 'string') {
 			throw new TypeError('question must be a string')
 		}
@@ -2218,7 +2242,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addComparisonTable(columns = [], rows = [], { highlightLabel, id, replace, insertAt } = {}) {
+	addComparisonTable(columns = [], rows = [], { highlightLabel, id, replace, insertAt }: any = {}) {
 		if (!Array.isArray(columns) || !Array.isArray(rows)) {
 			throw new TypeError('columns and rows must be arrays')
 		}
@@ -2239,7 +2263,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addSports(games = [], { league, id, replace, insertAt } = {}) {
+	addSports(games = [], { league, id, replace, insertAt }: any = {}) {
 		const items = Array.isArray(games) ? games : [games]
 
 		if (!items.length) {
@@ -2266,7 +2290,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addPost(data = {}, { id, replace, insertAt } = {}) {
+	addPost(data = {}, { id, replace, insertAt }: any = {}) {
 		if (!(
 			(data && typeof data === 'object' && !Array.isArray(data)) ||
 			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
@@ -2313,7 +2337,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addMetadata(text, { id, replace, insertAt } = {}) {
+	addMetadata(text: any, { id, replace, insertAt }: any = {}) {
 		if (typeof text !== 'string') {
 			throw new TypeError('Text must be a string')
 		}
@@ -2335,7 +2359,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addTip(text, { id, replace, insertAt } = {}) {
+	addTip(text: any, { id, replace, insertAt }: any = {}) {
 		if (typeof text !== 'string') {
 			throw new TypeError('Text must be a string')
 		}
@@ -2357,7 +2381,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addWidget(data, { layout, id, replace, insertAt, ...options } = {}) {
+	addWidget(data: any, { layout, id, replace, insertAt, ...options }: any = {}) {
 		if (!(
 			(data && typeof data === 'object' && !Array.isArray(data)) ||
 			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
@@ -2382,7 +2406,7 @@ class AIRich extends BaseBuilder {
 				__typename: 'GenAI3PExtCalendarEventList',
 				sections: item.sections ?? [],
 
-				ctas: (item.actions ?? []).map(action => ({
+				ctas: (item.actions ?? []).map((action: any) => ({
 					__typename: 'GenAI3PExtWidgetCTA',
 					label: action.label ?? '',
 					state: action.state ?? 'PENDING',
@@ -2416,7 +2440,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addFooterAction(data, { layout, id, replace, insertAt, ...options } = {}) {
+	addFooterAction(data: any, { layout, id, replace, insertAt, ...options }: any = {}) {
 		if (!(
 			(data && typeof data === 'object' && !Array.isArray(data)) ||
 			(Array.isArray(data) && data.every(item => item && typeof item === 'object' && !Array.isArray(item)))
@@ -2453,7 +2477,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	addSuggest(suggestion, { scroll = true, layout, id, replace, insertAt } = {}) {
+	addSuggest(suggestion: any, { scroll = true, layout, id, replace, insertAt }: any = {}) {
 		if (!(
 			typeof suggestion === 'string' ||
 			(Array.isArray(suggestion) && suggestion.every(v => typeof v === 'string'))
@@ -2489,7 +2513,7 @@ class AIRich extends BaseBuilder {
 	}
 
 	async build(
-		jid,
+		jid: any,
 		{
 			bypassDownload = true,
 			forwarded = true,
@@ -2507,7 +2531,7 @@ class AIRich extends BaseBuilder {
 			quotedParticipant,
 			messageId,
 			...options
-		} = {}
+		}: any = {}
 	) {
 		const forward = forwarded
 			? {
@@ -2545,7 +2569,9 @@ class AIRich extends BaseBuilder {
 				}
 			: {}
 
-		const resolvedSections = (await waitAllPromises(this._sections)).map(section => AIRich.normalizeSection(section))
+		const resolvedSections = (await waitAllPromises(this._sections)).map((section: any) =>
+			AIRich.normalizeSection(section)
+		)
 
 		const sections = this._footer
 			? [
@@ -2557,7 +2583,7 @@ class AIRich extends BaseBuilder {
 				]
 			: resolvedSections
 
-		const footerSections = (await waitAllPromises(this._footerSections)).map(section =>
+		const footerSections = (await waitAllPromises(this._footerSections)).map((section: any) =>
 			AIRich.normalizeSection(section)
 		)
 		const embeddedScreens = await waitAllPromises(this._embeddedScreens)
@@ -2634,7 +2660,7 @@ class AIRich extends BaseBuilder {
 		return built
 	}
 
-	async buildEdit(targetJid, targetId, { msg, messageId, forwardWrapper = true, ...options } = {}) {
+	async buildEdit(targetJid: any, targetId: any, { msg, messageId, forwardWrapper = true, ...options }: any = {}) {
 		if (!msg) {
 			msg = (await this.build(targetJid, { forwardWrapper, ...options })).message
 		}
@@ -2662,7 +2688,7 @@ class AIRich extends BaseBuilder {
 		)
 	}
 
-	async sendEdit(jid, id, { msg, messageId, additionalNodes = [], ...options } = {}) {
+	async sendEdit(jid: any, id: any, { msg, messageId, additionalNodes = [], ...options }: any = {}) {
 		jid = jid ?? this._lastMessageKey?.remoteJid
 		id = id ?? this._lastMessageKey?.id
 
@@ -2689,7 +2715,7 @@ class AIRich extends BaseBuilder {
 	}
 
 	async send(
-		jid,
+		jid: any,
 		{
 			bypassDownload = true,
 			forwarded = true,
@@ -2699,7 +2725,7 @@ class AIRich extends BaseBuilder {
 			messageId,
 			additionalNodes = [],
 			...options
-		} = {}
+		}: any = {}
 	) {
 		const msg = await this.build(jid, {
 			forwarded,
@@ -2736,7 +2762,7 @@ class AIRich extends BaseBuilder {
 		return msg
 	}
 
-	static tokenizer(code, lang = 'javascript') {
+	static tokenizer(code: any, lang = 'javascript') {
 		const keywordsMap = {
 			javascript: new Set([
 				'break',
@@ -3252,7 +3278,7 @@ class AIRich extends BaseBuilder {
 
 		let i = 0
 
-		const push = (content, type) => {
+		const push = (content: any, type: any) => {
 			if (!content) return
 
 			const last = tokens[tokens.length - 1]
@@ -3267,7 +3293,7 @@ class AIRich extends BaseBuilder {
 			}
 		}
 
-		const isIdentifier = char => {
+		const isIdentifier = (char: any) => {
 			switch (lang.toLowerCase()) {
 				case 'css':
 					return /[a-zA-Z0-9_$-]/.test(char)
@@ -3401,7 +3427,7 @@ class AIRich extends BaseBuilder {
 		}
 	}
 
-	static toTableMetadata(arr, { hyperlink = true, citation = true, latex = true, deeplink = true } = {}) {
+	static toTableMetadata(arr: any, { hyperlink = true, citation = true, latex = true, deeplink = true }: any = {}) {
 		if (!Array.isArray(arr) || !arr.every(row => Array.isArray(row) && row.every(cell => typeof cell === 'string'))) {
 			throw new TypeError('Table must be a nested array of strings')
 		}
@@ -3410,7 +3436,7 @@ class AIRich extends BaseBuilder {
 
 		const maxLen = Math.max(header.length, ...rows.map(r => r.length))
 
-		const normalize = r => [...r, ...Array(maxLen - r.length).fill('')]
+		const normalize = (r: any) => [...r, ...Array(maxLen - r.length).fill('')]
 
 		const unified_rows = [
 			{
@@ -3449,7 +3475,7 @@ class AIRich extends BaseBuilder {
 		}
 	}
 
-	static isMetaSignature(verificationMetadata) {
+	static isMetaSignature(verificationMetadata: any) {
 		const chain = verificationMetadata?.proofs?.[0]?.certificateChain?.[0]
 		if (!chain) {
 			return false
@@ -3459,7 +3485,7 @@ class AIRich extends BaseBuilder {
 		return !bytes.subarray(0, AIRich.PLACEHOLDER_MARKER.length).equals(AIRich.PLACEHOLDER_MARKER)
 	}
 
-	static _warnPlaceholderSignature(client) {
+	static _warnPlaceholderSignature(client: any) {
 		if (AIRich._placeholderWarned) {
 			return
 		}
@@ -3517,7 +3543,7 @@ class AIRich extends BaseBuilder {
 
 	static BOT_ENTRY_POINT_META_AI_FORWARD = 31
 
-	static wrapRichResponse(richResponseMessage, forwardWrapper = true) {
+	static wrapRichResponse(richResponseMessage: any, forwardWrapper = true) {
 		return forwardWrapper ? { botForwardedMessage: { message: { richResponseMessage } } } : { richResponseMessage }
 	}
 
@@ -3538,7 +3564,7 @@ class AIRich extends BaseBuilder {
 
 	static UNIFIED_RESPONSE_TYPENAME = 'XMSGGenAIUnifiedResponse'
 
-	static normalizeSection(section) {
+	static normalizeSection(section: any) {
 		if (!section || typeof section !== 'object' || Array.isArray(section) || typeof section.then === 'function') {
 			return section
 		}
@@ -3546,7 +3572,7 @@ class AIRich extends BaseBuilder {
 		return section.__typename ? section : { __typename: AIRich.SECTION_TYPENAME, ...section }
 	}
 
-	static newLayout(name, data, extra = {}) {
+	static newLayout(name: any, data: any, extra = {}) {
 		const field = AIRich.LAYOUT_FIELDS[name] ?? (Array.isArray(data) ? 'primitives' : 'primitive')
 		return {
 			__typename: AIRich.SECTION_TYPENAME,
@@ -3558,11 +3584,11 @@ class AIRich extends BaseBuilder {
 		}
 	}
 
-	_makeNode(id, section, submessage) {
+	_makeNode(id: any, section: any, submessage: any) {
 		return { id: id ?? null, section: section ?? null, submessage: submessage ?? null }
 	}
 
-	_registerId(node, id) {
+	_registerId(node: any, id: any) {
 		if (id === undefined || id === null || id === '') return
 
 		if (typeof id !== 'string') {
@@ -3577,13 +3603,13 @@ class AIRich extends BaseBuilder {
 		this._idIndex.set(id, node)
 	}
 
-	_unregisterId(node) {
+	_unregisterId(node: any) {
 		if (node.id && this._idIndex.get(node.id) === node) {
 			this._idIndex.delete(node.id)
 		}
 	}
 
-	hasId(id) {
+	hasId(id: any) {
 		return typeof id === 'string' && this._idIndex.has(id)
 	}
 
@@ -3591,7 +3617,7 @@ class AIRich extends BaseBuilder {
 		return [...this._idIndex.keys()]
 	}
 
-	peek(id) {
+	peek(id: any) {
 		const node = this._idIndex.get(id)
 
 		if (!node) return null
@@ -3603,7 +3629,7 @@ class AIRich extends BaseBuilder {
 		}
 	}
 
-	assignId(index, id) {
+	assignId(index: any, id: any) {
 		if (!Number.isInteger(index) || index < 0 || index >= this._nodes.length) {
 			throw new InvalidTargetError(`Node index ${index} is out of range (0-${this._nodes.length - 1})`, { index })
 		}
@@ -3622,7 +3648,7 @@ class AIRich extends BaseBuilder {
 		return this
 	}
 
-	_getNode(id) {
+	_getNode(id: any) {
 		if (typeof id !== 'string' || !id) {
 			throw new ContentValidationError('Item id must be a non-empty string', { id })
 		}
@@ -3636,7 +3662,7 @@ class AIRich extends BaseBuilder {
 		return node
 	}
 
-	_resolveTarget(target) {
+	_resolveTarget(target: any) {
 		if (Array.isArray(target)) {
 			if (target.length < 1 || target.length > 2) {
 				throw new ContentValidationError('Target must be id or [id, offset]', { target })
@@ -3662,7 +3688,7 @@ class AIRich extends BaseBuilder {
 		return { id: target, offset: 0 }
 	}
 
-	_resolveNodeIndex(target) {
+	_resolveNodeIndex(target: any) {
 		const { id, offset } = this._resolveTarget(target)
 		const node = this._getNode(id)
 		const baseIndex = this._nodes.indexOf(node)
@@ -3685,7 +3711,7 @@ class AIRich extends BaseBuilder {
 		return { id, offset, baseIndex, index }
 	}
 
-	_validateSections(section) {
+	_validateSections(section: any) {
 		const items = Array.isArray(section) ? section : [section]
 
 		if (!items.length) {
@@ -3701,7 +3727,7 @@ class AIRich extends BaseBuilder {
 		return items.map(item => AIRich.normalizeSection(item))
 	}
 
-	_validateSubmessages(submessage) {
+	_validateSubmessages(submessage: any) {
 		if (submessage === undefined || submessage === null) {
 			return []
 		}
@@ -3717,12 +3743,12 @@ class AIRich extends BaseBuilder {
 		return items
 	}
 
-	_pairSubmessages(sections, submessages) {
+	_pairSubmessages(sections: any, submessages: any) {
 		const n = sections.length
 		const m = submessages.length
 
 		if (m === 0) return sections.map(() => null)
-		if (m === 1) return sections.map((_, i) => (i === 0 ? submessages[0] : null))
+		if (m === 1) return sections.map((_: any, i: any) => (i === 0 ? submessages[0] : null))
 		if (m === n) return submessages
 
 		throw new ContentValidationError(`Cannot pair ${m} submessage(s) with ${n} section(s): expected 0, 1, or ${n}`, {
@@ -3731,7 +3757,7 @@ class AIRich extends BaseBuilder {
 		})
 	}
 
-	_addContent(section, submessage, { id, replace, insertAt } = {}) {
+	_addContent(section: any, submessage: any, { id, replace, insertAt }: any = {}) {
 		this._dropSignature()
 
 		const hasReplace = replace !== undefined && replace !== null && replace !== ''
@@ -3834,7 +3860,7 @@ class AIRich extends BaseBuilder {
 		return this
 	}
 
-	addSection(section, { submessage, text, ...options } = {}) {
+	addSection(section: any, { submessage, text, ...options }: any = {}) {
 		const paired =
 			submessage !== undefined
 				? submessage
@@ -3844,7 +3870,7 @@ class AIRich extends BaseBuilder {
 		return this._addContent(section, paired, options)
 	}
 
-	addSubmessage(submessage, { id, replace, insertAt } = {}) {
+	addSubmessage(submessage: any, { id, replace, insertAt }: any = {}) {
 		const items = this._validateSubmessages(submessage)
 
 		if (!items.length) {
@@ -3918,7 +3944,7 @@ class AIRich extends BaseBuilder {
 		return this
 	}
 
-	delete(target) {
+	delete(target: any) {
 		this._dropSignature()
 
 		const { index } = this._resolveNodeIndex(target)
@@ -3930,11 +3956,11 @@ class AIRich extends BaseBuilder {
 	}
 
 	get _sections() {
-		return this._nodes.filter(n => n.section !== null).map(n => n.section)
+		return this._nodes.filter((n: any) => n.section !== null).map((n: any) => n.section)
 	}
 
 	get _submessages() {
-		return this._nodes.filter(n => n.submessage !== null).map(n => n.submessage)
+		return this._nodes.filter((n: any) => n.submessage !== null).map((n: any) => n.submessage)
 	}
 
 	get sections() {
@@ -3942,7 +3968,7 @@ class AIRich extends BaseBuilder {
 	}
 
 	get items() {
-		return this._sections.flatMap(section => {
+		return this._sections.flatMap((section: any) => {
 			const vm = section?.view_model
 
 			if (Array.isArray(vm?.primitives)) {

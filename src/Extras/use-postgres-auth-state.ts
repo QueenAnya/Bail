@@ -3,6 +3,7 @@
  *
  * Stores the auth state in PostgreSQL (`pg`, a runtime dependency).
  */
+import { normalizeAuthArgs, promoteHandle } from '../Utils/auth-args'
 import { type AuthStore, type DatabaseAuthState, loadOptionalModule, makeAuthStateFromStore } from './auth-store'
 
 export interface PostgresAuthStateOptions {
@@ -10,6 +11,8 @@ export interface PostgresAuthStateOptions {
 	pool?: any
 	/** connection string, used when no pool is given */
 	connectionString?: string
+	/** Alias for `connectionString` — every adapter accepts the same key. */
+	url?: string
 	/** `pg` Pool config, used when no pool is given */
 	config?: any
 	/** table name (plain identifier), default `baileys_auth` */
@@ -26,19 +29,36 @@ const quoteIdentifier = (name: string): string => {
 	return `"${name}"`
 }
 
-export async function usePostgresAuthState(opts: PostgresAuthStateOptions = {}): Promise<DatabaseAuthState> {
+export async function usePostgresAuthState(
+	/** `(connectionString)`, `(connectionString, table, session)`, `({ connectionString, table, session })`, `({ pool })`. */
+	a: string | PostgresAuthStateOptions = {},
+	b?: string | PostgresAuthStateOptions,
+	c?: string
+): Promise<DatabaseAuthState> {
+	const opts = promoteHandle(
+		normalizeAuthArgs<PostgresAuthStateOptions>(
+			[a, b, c],
+			['connectionString', 'table', 'session'],
+			['connectionString', 'url', 'pool', 'config', 'table', 'session']
+		),
+		['connectionString', 'url'],
+		'pool',
+		(v: any) => typeof v?.query === 'function'
+	)
 	const table = quoteIdentifier(opts.table ?? 'baileys_auth')
 	const session = opts.session ?? 'default'
 	let pool = opts.pool
 	let owned = false
 
 	if (!pool) {
-		if (!opts.connectionString && !opts.config) {
+		// `url` is accepted as a synonym for `connectionString` so every adapter takes the same shape
+		const connectionString = opts.connectionString ?? opts.url
+		if (!connectionString && !opts.config) {
 			throw new Error('usePostgresAuthState needs a pool, a connectionString, or a config')
 		}
 
 		const pg = await loadOptionalModule('pg', 'usePostgresAuthState')
-		pool = new pg.Pool(opts.config ?? { connectionString: opts.connectionString })
+		pool = new pg.Pool(opts.config ?? { connectionString })
 		owned = true
 	}
 
@@ -103,6 +123,48 @@ export async function usePostgresAuthState(opts: PostgresAuthStateOptions = {}):
 				throw err
 			} finally {
 				client.release()
+			}
+		},
+		/**
+		 * Paged so a large account is streamed rather than buffered — `migrateAuthState` consumes this directly.
+		 */
+		list: async function* (type) {
+			const pageSize = 500
+			let lastId: string | null = null
+			for (;;) {
+				const result: { rows: { id: string; value: string }[] } = lastId
+					? await pool.query(
+							`SELECT id, value FROM ${table} WHERE session = $1 AND type = $2 AND id > $3 ORDER BY id LIMIT $4`,
+							[session, type, lastId, pageSize]
+						)
+					: await pool.query(`SELECT id, value FROM ${table} WHERE session = $1 AND type = $2 ORDER BY id LIMIT $3`, [
+							session,
+							type,
+							pageSize
+						])
+
+				if (!result.rows.length) {
+					return
+				}
+
+				for (const row of result.rows) {
+					yield [row.id, row.value] as const
+				}
+
+				if (result.rows.length < pageSize) {
+					return
+				}
+
+				lastId = result.rows[result.rows.length - 1]!.id
+			}
+		},
+		listIds: async function* (type) {
+			const result: { rows: { id: string }[] } = await pool.query(
+				`SELECT id FROM ${table} WHERE session = $1 AND type = $2 ORDER BY id`,
+				[session, type]
+			)
+			for (const row of result.rows) {
+				yield row.id
 			}
 		},
 		clear: async () => {

@@ -1062,16 +1062,43 @@ const processMessage = async (
 			})
 		}
 
+		const readStubJson = (index: number) => {
+			const raw = message.messageStubParameters?.[index]
+			if (typeof raw !== 'string') {
+				return undefined
+			}
+
+			try {
+				return JSON.parse(raw)
+			} catch {
+				logger?.warn({ jid, stubType: message.messageStubType, raw }, 'group stub parameter is not JSON, skipping it')
+				return undefined
+			}
+		}
+
+		const readStubParticipants = () => {
+			const raw = message.messageStubParameters
+			if (!Array.isArray(raw)) {
+				logger?.warn(
+					{ jid, stubType: message.messageStubType },
+					'group stub carries no parameters, treating it as an empty participant list'
+				)
+				return []
+			}
+
+			return raw.map((_, index) => readStubJson(index)).filter(entry => entry !== undefined)
+		}
+
 		const participantsIncludesMe = () => participants.find(jid => areJidsSameUser(meId, jid.phoneNumber)) // ADD SUPPORT FOR LID
 
 		switch (message.messageStubType) {
 			case WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER:
-				participants = message.messageStubParameters.map((a: any) => JSON.parse(a as string)) || []
+				participants = readStubParticipants()
 				emitParticipantsUpdate('modify')
 				break
 			case WAMessageStubType.GROUP_PARTICIPANT_LEAVE:
 			case WAMessageStubType.GROUP_PARTICIPANT_REMOVE:
-				participants = message.messageStubParameters.map((a: any) => JSON.parse(a as string)) || []
+				participants = readStubParticipants()
 				emitParticipantsUpdate('remove')
 				// mark the chat read only if you left the group
 				if (participantsIncludesMe()) {
@@ -1082,7 +1109,7 @@ const processMessage = async (
 			case WAMessageStubType.GROUP_PARTICIPANT_ADD:
 			case WAMessageStubType.GROUP_PARTICIPANT_INVITE:
 			case WAMessageStubType.GROUP_PARTICIPANT_ADD_REQUEST_JOIN:
-				participants = message.messageStubParameters.map((a: any) => JSON.parse(a as string)) || []
+				participants = readStubParticipants()
 				if (participantsIncludesMe()) {
 					chat.readOnly = false
 				}
@@ -1090,11 +1117,11 @@ const processMessage = async (
 				emitParticipantsUpdate('add')
 				break
 			case WAMessageStubType.GROUP_PARTICIPANT_DEMOTE:
-				participants = message.messageStubParameters.map((a: any) => JSON.parse(a as string)) || []
+				participants = readStubParticipants()
 				emitParticipantsUpdate('demote')
 				break
 			case WAMessageStubType.GROUP_PARTICIPANT_PROMOTE:
-				participants = message.messageStubParameters.map((a: any) => JSON.parse(a as string)) || []
+				participants = readStubParticipants()
 				emitParticipantsUpdate('promote')
 				break
 			case WAMessageStubType.GROUP_CHANGE_ANNOUNCE:

@@ -299,6 +299,8 @@ const assertMusicHost = (value: string | undefined, label: string) => {
 	return value
 }
 
+const embeddedMusicOf = (options: any) => (musicSticker(options) as any).embeddedContent.embeddedMusic
+
 export const buildMusicMessage = ({
 	songUri,
 	artworkUri,
@@ -307,7 +309,7 @@ export const buildMusicMessage = ({
 	...music
 }: MusicStickerOptions & { songUri?: string; artworkUri?: string; style?: number; contextInfo?: any } = {}) =>
 	trimUndefined({
-		embeddedMusic: (musicSticker(music) as any).embeddedContent.embeddedMusic,
+		embeddedMusic: embeddedMusicOf(music),
 		songUri: assertMusicHost(songUri, 'songUri'),
 		artworkUri: assertMusicHost(artworkUri, 'artworkUri'),
 		style,

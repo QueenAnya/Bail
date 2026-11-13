@@ -1,25 +1,27 @@
 import { test } from 'node:test';
-import { getImageProcessingLibrary } from '../src/Utils/messages-media.js';
+import { generateWAMessageContent } from './ported-helpers.js';
+import { getImageProcessingLibrary } from '../lib/Utils/messages-media.js';
 import assert from 'node:assert/strict';
-import { FUTURE_PROOF_MESSAGE_KEYS, generateWAMessageContent, extractMessageContent, generateWAMessage, getContentType, nativeFlowButtonsViolateConstraints, normalizeMessageContent } from '../src/Utils/messages.js';
-import { NATIVE_FLOW_BUTTON_LIMIT, checkNativeFlowButtons, getNativeFlowNameByButtonName } from '../src/Utils/native-flow.js';
+import { FUTURE_PROOF_MESSAGE_KEYS, extractMessageContent, generateWAMessage, getContentType, normalizeMessageContent } from '../lib/Utils/messages.js';
+import { nativeFlowButtonsViolateConstraints, prepareProductMessage } from '../lib/Extras/messages-helpers.js';
+import { NATIVE_FLOW_BUTTON_LIMIT, checkNativeFlowButtons, getNativeFlowNameByButtonName } from '../lib/Extras/native-flow.js';
 import { promises as fs, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { proto } from '../WAProto/index.js';
-import { SocialMediaPostType, buildSocialPreview, readSocialPreview, videoEndCard } from '../src/Utils/link-preview-metadata.js';
-import { MONEY_OFFSET, ReminderFrequency, ReminderStatus, SplitPaymentStatus, buildPaymentReminder, buildSplitPayment, buildSplitPaymentUpdate, money, readMoney, readPaymentReminder, readSplitPayment } from '../src/Utils/payment-messages.js';
-import { aesEncryptGCM, hmacSign } from '../src/Utils/crypto.js';
-import processMessage from '../src/Utils/process-message.js';
-import { generateMessageID, generateMessageIDV2, encodeWAMessage } from '../src/Utils/generics.js';
-import { hasOptionalMedia, loadFfmpeg, loadSharp } from '../src/Utils/optional-media.js';
-import { SCHEDULED_MSG_META_TYPE, SCHEDULED_MSG_REVEAL_KEY_BYTES, SCHEDULED_MSG_REVEAL_KEY_IV_BYTES, SCHEDULED_MSG_WINDOW, buildScheduledMsgMetaNode, buildUnscheduleProtocolMessage, decodeScheduledMessage, encodeScheduledMessage, generateRevealKey, isScheduledTimeValid } from '../src/Utils/scheduled-message.js';
-import { getMessageReportingToken, shouldIncludeReportingToken } from '../src/Utils/reporting-utils.js';
-import { buildSpamListNode, readSpamReportResult } from '../src/Socket/chats.js';
-import { buildMemberLabelMessage } from '../src/Socket/messages-send.js';
-import { DEFAULT_CACHE_MAX_KEYS, MEMBER_LABEL_MAX_LENGTH } from '../src/Defaults/index.js';
-import { TTLCache } from '../src/Utils/ttl-cache.js';
-import { SPAM_FLOWS } from '../src/Types/index.js';
+import { SocialMediaPostType, buildSocialPreview, readSocialPreview, videoEndCard } from '../lib/Extras/link-preview-metadata.js';
+import { MONEY_OFFSET, ReminderFrequency, ReminderStatus, SplitPaymentStatus, buildPaymentReminder, buildSplitPayment, buildSplitPaymentUpdate, money, readMoney, readPaymentReminder, readSplitPayment } from '../lib/Extras/payment-messages.js';
+import { aesEncryptGCM, hmacSign } from '../lib/Utils/crypto.js';
+import processMessage from '../lib/Utils/process-message.js';
+import { generateMessageID, generateMessageIDV2, encodeWAMessage } from '../lib/Utils/generics.js';
+import { hasOptionalMedia, loadFfmpeg, loadSharp } from '../lib/Extras/optional-media.js';
+import { SCHEDULED_MSG_META_TYPE, SCHEDULED_MSG_REVEAL_KEY_BYTES, SCHEDULED_MSG_REVEAL_KEY_IV_BYTES, SCHEDULED_MSG_WINDOW, buildScheduledMsgMetaNode, buildUnscheduleProtocolMessage, decodeScheduledMessage, encodeScheduledMessage, generateRevealKey, isScheduledTimeValid } from '../lib/Extras/scheduled-message.js';
+import { getMessageReportingToken, shouldIncludeReportingToken } from '../lib/Utils/reporting-utils.js';
+import { buildSpamListNode, readSpamReportResult } from '../lib/Extras/chats-extras.js';
+import { buildMemberLabelMessage } from '../lib/Socket/messages-send.js';
+import { DEFAULT_CACHE_MAX_KEYS, MEMBER_LABEL_MAX_LENGTH } from '../lib/Defaults/index.js';
+import { TTLCache } from '../lib/Extras/ttl-cache.js';
+import { SPAM_FLOWS } from '../lib/Extras/chats-extras.js';
 
 const JPEG_320x200_BASE64 = '/9j/2wBDABQODxIPDRQSEBIXFRQYHjIhHhwcHj0sLiQySUBMS0dARkVQWnNiUFVtVkVGZIhlbXd7gYKBTmCNl4x9lnN+gXz/2wBDARUXFx4aHjshITt8U0ZTfHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHz/wAARCADIAUADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAT/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFgEBAQEAAAAAAAAAAAAAAAAAAAIF/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AmAQ2gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/2Q==';
 
@@ -85,7 +87,7 @@ test('external-ad-reply', async () => {
         const { options } = collect();
         await assert.rejects(
             generateWAMessageContent({ text: 'hello', externalAdReply: { thumbnail: 'https://cdn.example.com/pic.jpg' } }, options),
-            /Thumbnail must in buffer type/
+            /Thumbnail must (in buffer type|be a Buffer)/
         );
     }
 });
@@ -329,15 +331,55 @@ test('payment-messages', async () => {
      * so the amount taken here is always the human one.
      */
     {
-        assert.deepEqual(money(50000, 'IDR'), { value: 50000000, offset: MONEY_OFFSET, currencyCode: 'IDR' });
+        assert.deepEqual(money(50000, 'INR'), { value: 50000000, offset: MONEY_OFFSET, currencyCode: 'INR' });
         assert.deepEqual(money(1.5, 'usd'), { value: 1500, offset: 1000, currencyCode: 'USD' }, 'the code is upper cased');
-        assert.deepEqual(readMoney(money(50000, 'IDR')), { amount: 50000, currencyCode: 'IDR' });
+        assert.deepEqual(readMoney(money(50000, 'INR')), { amount: 50000, currencyCode: 'INR' });
         assert.equal(readMoney(undefined), undefined);
         assert.equal(readMoney({ value: 1 }), undefined, 'no offset means no scale to read it by');
 
-        assert.throws(() => money(-1, 'IDR'), /non-negative/);
+        assert.throws(() => money(-1, 'INR'), /non-negative/);
         assert.throws(() => money(1, 'RUPIAH'), /three letter currency/);
-        assert.throws(() => money(1, 'IDR', 0), /positive integer/);
+        assert.throws(() => money(1, 'INR', 0), /positive integer/);
+    }
+
+    /**
+     * `money()` itself demands an explicit code, but the product content builder defaults to INR and lets the caller
+     * override it. The default is what a bot that never passes a currency ends up charging in, so it is pinned here.
+     */
+    {
+        const png = Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            'base64'
+        );
+        const base = { businessOwnerJid: 'b@s.whatsapp.net', product: { title: 't', productImage: png } };
+
+        // prepareWAMessageMedia needs somewhere to put the image; a fake upload is enough to reach the currency default
+        const productOptions = {
+            ...options,
+            upload: async () => ({
+                mediaUrl: 'https://mmg.whatsapp.net/x',
+                directPath: '/x',
+                fileEncSha256: Buffer.alloc(32),
+                fileSha256: Buffer.alloc(32),
+                fileLength: 1,
+                mediaKey: Buffer.alloc(32),
+                mediaKeyTimestamp: 1
+            })
+        };
+
+        const defaulted = await prepareProductMessage(base, productOptions);
+        assert.equal(defaulted.product.currencyCode, 'INR', 'the product default is INR');
+
+        const overridden = await prepareProductMessage(
+            { ...base, product: { ...base.product, currencyCode: 'USD' } },
+            productOptions
+        );
+        assert.equal(overridden.product.currencyCode, 'USD', 'an explicit code wins');
+        await assert.rejects(
+            () => prepareProductMessage({ product: { productImage: png } }, productOptions),
+            /businessOwnerJid/,
+            'a product without an owner jid is refused before anything is uploaded'
+        );
     }
 
     /** A split needs an id the update can name, and someone to split with. */
@@ -350,7 +392,7 @@ test('payment-messages', async () => {
         const built = buildSplitPayment({
             splitId: 's1',
             total: 150000,
-            currency: 'IDR',
+            currency: 'INR',
             participants: [{ jid: 'a@s.whatsapp.net' }]
         });
         assert.equal(built.participants[0].status, SplitPaymentStatus.PENDING, 'unpaid by default');
@@ -364,7 +406,7 @@ test('payment-messages', async () => {
             splitPayment: {
                 splitId: 's1',
                 total: 150000,
-                currency: 'IDR',
+                currency: 'INR',
                 description: 'Eating together',
                 requesterJid: '628@s.whatsapp.net',
                 participants: [
@@ -376,9 +418,9 @@ test('payment-messages', async () => {
 
         const read = readSplitPayment(roundTrip(content));
         assert.equal(read.splitId, 's1');
-        assert.deepEqual(read.total, { amount: 150000, currencyCode: 'IDR' });
+        assert.deepEqual(read.total, { amount: 150000, currencyCode: 'INR' });
         assert.equal(read.participants.length, 2);
-        assert.deepEqual(read.participants[0].amount, { amount: 50000, currencyCode: 'IDR' });
+        assert.deepEqual(read.participants[0].amount, { amount: 50000, currencyCode: 'INR' });
         assert.equal(read.participants[1].status, SplitPaymentStatus.PAID);
 
         const update = await generateWAMessageContent({
@@ -399,7 +441,7 @@ test('payment-messages', async () => {
                 reminderId: 'r1',
                 description: 'Sewa',
                 amount: 500000,
-                currency: 'IDR',
+                currency: 'INR',
                 frequency: ReminderFrequency.MONTHLY
             }
         }, options);
@@ -408,7 +450,7 @@ test('payment-messages', async () => {
         assert.equal(read.reminderId, 'r1');
         assert.equal(read.frequency, ReminderFrequency.MONTHLY);
         assert.equal(read.status, ReminderStatus.ACTIVE, 'active unless told otherwise');
-        assert.deepEqual(read.amount, { amount: 500000, currencyCode: 'IDR' });
+        assert.deepEqual(read.amount, { amount: 500000, currencyCode: 'INR' });
     }
 
     /** Neither reader claims a message that is not theirs. */
@@ -678,20 +720,21 @@ test('message-edit', async () => {
 });
 
 test('message-id', async () => {
-    const WEB_SHA256 = /^3EB0[0-9A-F]{18}$/;
-    const WEB_LEGACY = /^3EB0[0-9A-F]{16}$/;
+    // Anya prefixes its ids with 4NY4W3B instead of Elaina's 3EB0
+    const WEB_SHA256 = /^4NY4W3B[0-9A-F]{18}$/;
+    const WEB_LEGACY = /^4NY4W3B[0-9A-F]{18}$/;
 
     for (const userId of ['628111@s.whatsapp.net', '628111:12@s.whatsapp.net', undefined]) {
         const id = generateMessageIDV2(userId);
         assert.match(id, WEB_SHA256);
-        assert.equal(id.length, 22);
+        assert.equal(id.length, 25);
         assert.equal(id.includes('STARFALL'), false);
     }
 
     for (let i = 0; i < 4; i++) {
         const id = generateMessageID();
         assert.match(id, WEB_LEGACY);
-        assert.equal(id.length, 20);
+        assert.equal(id.length, 25);
     }
 
     const banyak = new Set(Array.from({ length: 500 }, () => generateMessageIDV2('628111@s.whatsapp.net')));
@@ -839,7 +882,7 @@ test('optional-media', async () => {
     assert.equal(await hasOptionalMedia('fluent-ffmpeg'), true);
     assert.equal(await hasOptionalMedia('a-package-that-does-not-exist'), false);
 
-    const builder = await import('../src/MessageBuilder/index.js');
+    const builder = await import('../lib/Extras/MessageBuilder/index.js');
     const pixels = await sharp({
         create: { width: 8, height: 8, channels: 4, background: { r: 1, g: 2, b: 3, alpha: 1 } }
     }).png().toBuffer();
@@ -857,7 +900,7 @@ test('scheduled-message', async () => {
     assert.equal(encoded.encIv.length, SCHEDULED_MSG_REVEAL_KEY_IV_BYTES);
     assert.equal(
         encoded.message.conditionalRevealMessage.conditionalRevealMessageType,
-        proto.Message.ConditionalRevealMessage.ConditionalRevealMessageType.SCHEDULED_MESSAGE
+        proto.ConditionalRevealMessage.ConditionalRevealMessageType.SCHEDULED_MESSAGE
     );
     assert.ok(encoded.revealKeyId.length > 0);
 
@@ -927,7 +970,7 @@ test('reporting-token', async () => {
 });
 
 test('inline-skdm', async () => {
-    const src = readFileSync(new URL('../src/Socket/messages-send.js', import.meta.url), 'utf8');
+    const src = readFileSync(new URL('../lib/Socket/messages-send.js', import.meta.url), 'utf8');
     const awal = src.indexOf('let toEncode = patched;');
     const akhir = src.indexOf('const bytes = encodeWAMessage(toEncode);');
     assert.ok(awal > 0 && akhir > awal, 'inline SKDM block must exist');
@@ -950,7 +993,7 @@ test('inline-skdm', async () => {
     assert.equal(getContentType(withSenderKeyDistribution), 'extendedTextMessage', 'inline SKDM must not be treated as the content type');
     assert.equal(getContentType({ conversation: 'hello', senderKeyDistributionMessage: {} }), 'conversation');
 
-    const decode = readFileSync(new URL('../src/Utils/decode-wa-message.js', import.meta.url), 'utf8');
+    const decode = readFileSync(new URL('../lib/Utils/decode-wa-message.js', import.meta.url), 'utf8');
     assert.ok(decode.includes('if (msg.senderKeyDistributionMessage)'), 'receiver processes inline SKDM');
     assert.ok(decode.includes('processSenderKeyDistributionMessage'), 'then forwards its content');
 });
@@ -1133,10 +1176,9 @@ test('event-time', async () => {
     const open = await generateWAMessageContent({ event: { name: 'meeting', startDate: new Date(1700000000000) } }, options);
     assert.equal(open.eventMessage.endTime, undefined, 'an event without an end stays open');
 
-    await assert.rejects(
-        generateWAMessageContent({ event: { name: 'meeting' } }, options),
-        /event startDate must be a Date or a unix timestamp/
-    );
+    // Anya keeps the older leniency: an event without a start date starts tomorrow instead of being rejected
+    const noStart = await generateWAMessageContent({ event: { name: 'meeting' } }, options);
+    assert.ok(noStart.eventMessage.startTime > Math.floor(Date.now() / 1000));
 });
 
 test('interactive-mixing', async () => {
@@ -1266,9 +1308,10 @@ test('future-proof-unwrap', async () => {
 });
 
 test('airich-namespace', async () => {
-    const { AIRich, Button, ButtonV2, Carousel, Toolkit, MB, MessageBuilder } = await import('../src/index.js');
-    const extras = await import('../src/MessageBuilder/extras.js');
-    const metaai = await import('../src/MessageBuilder/metaai.js');
+    // Elaina's `Carousel` is exported as `CarouselV2` at the root of this fork (the name `Carousel` was already taken)
+    const { AIRich, Button, ButtonV2, CarouselV2: Carousel, Toolkit, MB, MessageBuilder } = await import('../lib/index.js');
+    const extras = await import('../lib/Extras/MessageBuilder/extras.js');
+    const metaai = await import('../lib/Extras/MessageBuilder/metaai.js');
 
     const members = [...Object.keys(extras), ...Object.keys(metaai)].filter(name => name !== 'default');
     assert.equal(new Set(members).size, members.length, 'extras and metaai must not export the same name twice');
@@ -1294,9 +1337,9 @@ test('airich-namespace', async () => {
         assert.equal(typeof MB[name], 'function', `MB.${name} has to be the class`);
     }
     assert.equal(MB.AIRich, AIRich, 'MB holds the same class, not a copy');
-    assert.equal(Object.keys(MB).length, 212, 'the README quotes this count, update both together');
+    assert.equal(Object.keys(MB).length, 213, 'Anya exports one more member than Elaina, update the README together');
 
-    const lib = await import('../src/index.js');
+    const lib = await import('../lib/index.js');
     for (const builder of [Button, ButtonV2, Carousel, AIRich, Toolkit]) {
         assert.equal(builder.dividerSection, extras.dividerSection, `${builder.name} carries the shared members`);
         assert.equal(builder.checkNativeFlowButtons, lib.checkNativeFlowButtons, `${builder.name} carries the native flow checks`);
@@ -1314,7 +1357,7 @@ test('airich-namespace', async () => {
 });
 
 test('toolkit-image-source', async () => {
-    const { Toolkit } = await import('../src/index.js');
+    const { Toolkit } = await import('../lib/index.js');
     const bytes = Buffer.from(JPEG_320x200_BASE64, 'base64');
     const file = join(tmpdir(), `elaina-toolkit-${Date.now()}.jpg`);
     await fs.writeFile(file, bytes);
@@ -1339,7 +1382,7 @@ test('toolkit-image-source', async () => {
 });
 
 test('airich-node-catalog', async () => {
-    const MB = (await import('../src/index.js')).MB;
+    const MB = (await import('../lib/index.js')).MB;
 
     assert.equal(MB.AI_RICH_NODES.length, 50, 'every entry is backed by a <name>Impl.kt model class in the APK');
     assert.equal(new Set(MB.AI_RICH_NODES).size, MB.AI_RICH_NODES.length, 'no duplicates');
@@ -1369,7 +1412,7 @@ test('airich-node-catalog', async () => {
 });
 
 test('airich-quota-upsell', async () => {
-    const MB = (await import('../src/index.js')).MB;
+    const MB = (await import('../lib/index.js')).MB;
 
     const section = MB.quotaUpsellSection({
         title: 'Meta AI Plus',
@@ -1400,7 +1443,7 @@ test('airich-quota-upsell', async () => {
 });
 
 test('airich-section-typename', async () => {
-    const { AIRich } = await import('../src/index.js');
+    const { AIRich } = await import('../lib/index.js');
 
     const bare = { view_model: { __typename: 'GenAISingleLayoutViewModel', primitive: { __typename: 'GenAIMarkdownTextUXPrimitive', text: 'hello' } } };
     assert.equal(AIRich.normalizeSection(bare).__typename, 'GenAIUnifiedResponseSection');
@@ -1415,7 +1458,7 @@ test('airich-section-typename', async () => {
 });
 
 test('airich-deep-decode', async () => {
-    const MB = (await import('../src/index.js')).MB;
+    const MB = (await import('../lib/index.js')).MB;
 
     const unified = {
         response_id: 'r1',

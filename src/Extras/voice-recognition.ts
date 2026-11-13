@@ -1,8 +1,8 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/voice-recognition.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/voice-recognition.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 import { normalizeMessageContent } from '../Utils/messages'
 import { downloadContentFromMessage } from '../Utils/messages-media'
 import { areJidsSameUser, isJidGroup, jidNormalizedUser } from '../WABinary'
@@ -10,7 +10,7 @@ import { areJidsSameUser, isJidGroup, jidNormalizedUser } from '../WABinary'
 const DEFAULT_MAX_DURATION = 60
 const DEFAULT_MAX_BYTES = 16 * 1024 * 1024
 
-const streamToBuffer = async (stream, maxBytes) => {
+const streamToBuffer = async (stream: any, maxBytes: number) => {
 	const chunks = []
 	let total = 0
 	for await (const chunk of stream) {
@@ -26,7 +26,7 @@ const streamToBuffer = async (stream, maxBytes) => {
 	return Buffer.concat(chunks)
 }
 
-export const normalizeVoiceText = value =>
+export const normalizeVoiceText = (value: any) =>
 	String(value ?? '')
 		.normalize('NFKD')
 		.replace(/\p{M}/gu, '')
@@ -35,7 +35,7 @@ export const normalizeVoiceText = value =>
 		.replace(/\s+/g, ' ')
 		.trim()
 
-export const matchVoiceWakePhrase = (transcript, phrases = []) => {
+export const matchVoiceWakePhrase = (transcript: string, phrases: string[] = []) => {
 	const normalizedTranscript = normalizeVoiceText(transcript)
 	if (!normalizedTranscript) {
 		return null
@@ -63,7 +63,7 @@ export const matchVoiceWakePhrase = (transcript, phrases = []) => {
 	return null
 }
 
-export const removeVoiceWakePhrase = (transcript, wakePhrase) => {
+export const removeVoiceWakePhrase = (transcript: string, wakePhrase: string) => {
 	const normalizedTranscript = normalizeVoiceText(transcript)
 	const normalizedPhrase = normalizeVoiceText(wakePhrase)
 	if (!normalizedPhrase) {
@@ -82,12 +82,12 @@ export const removeVoiceWakePhrase = (transcript, wakePhrase) => {
 	return words.join(' ').trim()
 }
 
-const getVoiceSenderJid = message =>
+const getVoiceSenderJid = (message: any) =>
 	jidNormalizedUser(
 		message?.key?.participantAlt || message?.key?.participant || message?.key?.remoteJidAlt || message?.key?.remoteJid
 	)
 
-const isQuotedToSelf = async ({ message, audioMessage, meId, meLid, getMessage }) => {
+const isQuotedToSelf = async ({ message, audioMessage, meId, meLid, getMessage }: any) => {
 	const contextInfo = audioMessage?.contextInfo
 	if (!contextInfo?.quotedMessage && !contextInfo?.stanzaId) {
 		return false
@@ -111,7 +111,7 @@ const isQuotedToSelf = async ({ message, audioMessage, meId, meLid, getMessage }
 	return target?.key?.fromMe === true
 }
 
-const normalizeTranscriptionResult = value => {
+const normalizeTranscriptionResult = (value: any) => {
 	if (typeof value === 'string') {
 		return { text: value }
 	}
@@ -126,7 +126,7 @@ const normalizeTranscriptionResult = value => {
 	return { text: '' }
 }
 
-const getWakePhrases = async (voiceRecognition, context) => {
+const getWakePhrases = async (voiceRecognition: any, context: any) => {
 	const staticPhrases = Array.isArray(voiceRecognition.wakePhrases)
 		? voiceRecognition.wakePhrases
 		: voiceRecognition.wakePhrases
@@ -143,7 +143,7 @@ const getWakePhrases = async (voiceRecognition, context) => {
 	]
 }
 
-export const bindVoiceRecognition = (sock, config = {}, dependencies = {}) => {
+export const bindVoiceRecognition = (sock: any, config: any = {}, dependencies: any = {}) => {
 	const voiceRecognition = config.voiceRecognition
 	if (!voiceRecognition?.enabled || typeof voiceRecognition.transcribe !== 'function') {
 		return () => undefined
@@ -152,7 +152,7 @@ export const bindVoiceRecognition = (sock, config = {}, dependencies = {}) => {
 	const downloadContent = dependencies.downloadContentFromMessage || downloadContentFromMessage
 	const getMessage = config.getMessage
 	const logger = config.logger
-	const handler = async ({ messages, type }) => {
+	const handler = async ({ messages, type }: any) => {
 		if (type !== 'notify') {
 			return
 		}

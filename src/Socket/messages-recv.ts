@@ -171,6 +171,8 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 	/** this mutex ensures that each retryRequest will wait for the previous one to finish */
 	const retryMutex = makeMutex()
 	let retryQueueDepth = 0
+	/** messages queued behind messageMutex that have not started decrypting yet */
+	let waitingMessages = 0
 
 	const msgRetryCache =
 		config.msgRetryCounterCache ||
@@ -2190,7 +2192,9 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 				logger.debug({ jid: msg.key.remoteJid, id: msg.key.id }, 'Added message to recent cache for retry receipts')
 			}
 
+			waitingMessages++
 			await messageMutex.mutex(async () => {
+				waitingMessages--
 				await decrypt()
 
 				if (msg.key?.remoteJid && msg.key?.id && msg.message && messageRetryManager) {
@@ -2280,9 +2284,11 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 							}
 						}
 
-						if (retryQueueDepth >= maxRetryQueueSize) {
+						// messageMutex runs one message at a time, so the backlog that matters is the number of
+						// messages still waiting behind this one: past the cap a flood is acked instead of retried
+						if (retryQueueDepth + waitingMessages >= maxRetryQueueSize) {
 							logger.warn(
-								{ msgId: msg.key.id, retryQueueDepth, maxRetryQueueSize },
+								{ msgId: msg.key.id, retryQueueDepth, waitingMessages, maxRetryQueueSize },
 								'retry queue full, acking without retry'
 							)
 							acked = true
@@ -2296,7 +2302,6 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
 
 						retryQueueDepth++
 						try {
-
 							// WAWeb only retry-receipts here; server emits PreKeyLow if prekeys run low.
 							await retryMutex.mutex(async () => {
 								try {

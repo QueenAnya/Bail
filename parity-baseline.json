@@ -1,0 +1,25 @@
+{
+	"upstream": "elaina-baileys 1.4.7",
+	"modules": {
+		"MessageBuilder/index.ts": {
+			"hash": "3d429020eada3941",
+			"reason": "adds resolvePortedButtonDisplayText + display-text fallbacks for button payloads that vary between clients",
+			"recordedOn": "2026-11-05"
+		},
+		"MessageBuilder/extras.ts": {
+			"hash": "7c80d1a1a5c8ad9a",
+			"reason": "imports rewired to Anya modules; wires checkHtmlApp into the rich-html path",
+			"recordedOn": "2026-11-05"
+		},
+		"MessageBuilder/metaai.ts": {
+			"hash": "ceb74b0fb7e7c8ce",
+			"reason": "imports rewired to Anya modules (Utils/messages, extras, bot-signature)",
+			"recordedOn": "2026-11-05"
+		},
+		"MessageBuilder/bot-signature.ts": {
+			"hash": "28e411f149396785",
+			"reason": "adds an empty-certificate-chain guard and one extra helper",
+			"recordedOn": "2026-11-05"
+		}
+	}
+}

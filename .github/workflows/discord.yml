@@ -5,50 +5,48 @@ on:
   # GitHub activity
   # ------------------------------------------------------------
 
-#  push:
-#    branches:
-#      - master
-#      - main
-#      - develop
+  # Uncomment the triggers you want. They were left commented out while the notifier was being tested; only the
+  # workflow_run trigger below is active, plus a manual dispatch.
+  # push:
+  #   branches:
+  #     - master
+  #     - main
+  #     - develop
+  #
+  # pull_request:
+  #   types:
+  #     - opened
+  #     - closed
+  #     - reopened
+  #     - synchronize
+  #     - ready_for_review
+  #
+  # issues:
+  #   types:
+  #     - opened
+  #     - closed
+  #     - reopened
+  #
+  # release:
+  #   types:
+  #     - published
 
-#  pull_request:
-#    types:
-#      - opened
-#      - closed
-#      - reopened
-#      - synchronize
-#      - ready_for_review
-
-#  issues:
-#    types:
-#      - opened
-#      - closed
-#      - reopened
-
-#  release:
-#    types:
-#7      - published
-
-on:
   workflow_dispatch:
-    inputs:
-      increment:
-        type: string
-        description: 'Must be: patch, minor, major, pre* or <version>'
-        required: true
-        default: 'patch'
-
-permissions: write-all
 
   # ------------------------------------------------------------
   # CI/CD workflow status
   # ------------------------------------------------------------
+  #
+  # Turned off: this workflow posts to Discord on every workflow completion. Enable it by uncommenting the trigger
+  # below (and setting DISCORD_WEBHOOK in the repository secrets).
+  #
+  # workflow_run:
+  #   workflows:
+  #     - "*"
+  #   types:
+  #     - completed
 
-  workflow_run:
-    workflows:
-      - "*"
-    types:
-      - completed
+permissions: write-all
 
 jobs:
 

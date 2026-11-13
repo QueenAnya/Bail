@@ -15,7 +15,6 @@
  */
 
 import { randomBytes } from 'crypto'
-import ffmpegStatic from 'ffmpeg-static'
 import * as fs from 'fs'
 import { createRequire } from 'module'
 import * as os from 'os'
@@ -26,12 +25,30 @@ const require = createRequire(import.meta.url)
 
 const webpmux = require('node-webpmux')
 
-// Configure ffmpeg path from static binary
+// Configure ffmpeg path. `ffmpeg-static` resolves through the shared helper, which falls back to a system ffmpeg:
+// the bundled binary when it was installed, the system `ffmpeg` otherwise. A static `import 'ffmpeg-static'`
+// here would throw ERR_MODULE_NOT_FOUND at load time whenever the bundled download is missing, taking the
+// whole media path down instead of just needing ffmpeg on PATH.
 import ffmpegLib from 'fluent-ffmpeg'
+import { getFfmpegBin } from '../Utils/ffmpeg-path'
 
-if (ffmpegStatic) {
-	ffmpegLib.setFfmpegPath(ffmpegStatic)
+/**
+ * With no usable binary the failure surfaces as a bare `spawn ffmpeg ENOENT`. Turn that into something
+ * that says what to install — the same wording the sticker path uses.
+ */
+const explainFfmpegError = (error: unknown): Error => {
+	const err = error as NodeJS.ErrnoException
+	if (err?.code === 'ENOENT' || /ENOENT/.test(String(err?.message ?? ''))) {
+		return new Error(
+			'ffmpeg not found - install ffmpeg on PATH, or reinstall `ffmpeg-static` so its bundled binary is downloaded ' +
+				'(`npm install ffmpeg-static`) to use the bundled binary'
+		)
+	}
+
+	return err instanceof Error ? err : new Error(String(error))
 }
+
+ffmpegLib.setFfmpegPath(getFfmpegBin())
 
 export type StickerMetadata = {
 	packname?: string
@@ -85,7 +102,7 @@ export class MediaManager {
 					])
 					.output(tempOutput)
 					.on('end', () => resolve())
-					.on('error', (err: unknown) => reject(err))
+					.on('error', (err: unknown) => reject(explainFfmpegError(err)))
 					.run()
 			})
 
@@ -193,7 +210,7 @@ export class MediaManager {
 					.format('ogg')
 					.output(tempOutput)
 					.on('end', () => resolve())
-					.on('error', (err: unknown) => reject(err))
+					.on('error', (err: unknown) => reject(explainFfmpegError(err)))
 					.run()
 			})
 

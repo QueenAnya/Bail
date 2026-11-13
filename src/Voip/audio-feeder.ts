@@ -22,7 +22,10 @@ export type AudioFeederOptions = {
 
 export class AudioFeeder {
 	#proc: ChildProcessWithoutNullStreams | null = null
-	#pending = Buffer.alloc(0)
+	// ffmpeg hands over arbitrary pipe-sized buffers: keep them as a list and copy once per chunk
+	// instead of re-concatenating one growing Buffer on every read (quadratic)
+	#pendingParts: Buffer[] = []
+	#pendingBytes = 0
 	#queue: Float32Array[] = []
 	#emitTimer: NodeJS.Timeout | null = null
 	#nextEmitAtMs = 0
@@ -46,6 +49,66 @@ export class AudioFeeder {
 		private readonly options: AudioFeederOptions = {}
 	) {}
 
+	/** chunks waiting for the 20 ms emit timer */
+	get queuedChunks(): number {
+		return this.#queue.length
+	}
+
+	/** internals, read by the node tests only */
+	get _queue(): Float32Array[] {
+		return this.#queue
+	}
+
+	get _pendingBytes(): number {
+		return this.#pendingBytes
+	}
+
+	get _pendingParts(): Buffer[] {
+		return this.#pendingParts
+	}
+
+	/** takes raw f32le bytes from ffmpeg and queues every complete chunk (public so it can be fed directly) */
+	_absorb(chunk: Buffer): void {
+		const chunkSamples = this.framesPerChunk * this.channels
+		const chunkBytes = chunkSamples * Float32Array.BYTES_PER_ELEMENT
+		this.#pendingParts.push(chunk)
+		this.#pendingBytes += chunk.length
+		while (this.#pendingBytes >= chunkBytes) {
+			if (this.#queue.length >= MAX_QUEUED_CHUNKS) {
+				this.#proc?.stdout.pause()
+				return
+			}
+
+			const frame =
+				this.#pendingParts.length === 1 && this.#pendingParts[0]!.length === chunkBytes
+					? this.#pendingParts.shift()!
+					: this.#takeFromParts(chunkBytes)
+			this.#pendingBytes -= chunkBytes
+			this.bytesProduced += chunkBytes
+			const out = new Float32Array(chunkSamples)
+			out.set(new Float32Array(frame.buffer, frame.byteOffset, chunkSamples))
+			this.#queue.push(out)
+		}
+	}
+
+	#takeFromParts = (bytes: number): Buffer => {
+		const frame = Buffer.allocUnsafe(bytes)
+		let filled = 0
+		while (filled < bytes) {
+			const part = this.#pendingParts[0]!
+			const take = Math.min(part.length, bytes - filled)
+			part.copy(frame, filled, 0, take)
+			filled += take
+			if (take === part.length) {
+				this.#pendingParts.shift()
+			} else {
+				this.#pendingParts[0] = part.subarray(take)
+			}
+		}
+
+		return frame
+	}
+
 	start = (): void => {
 		if (this.#proc) return
 		this.#finished = false
@@ -54,7 +117,6 @@ export class AudioFeeder {
 		this.emittedDurationMs = 0
 
 		const chunkSamples = this.framesPerChunk * this.channels
-		const chunkBytes = chunkSamples * Float32Array.BYTES_PER_ELEMENT
 		const chunkIntervalMs = (this.framesPerChunk / this.sampleRate) * 1000
 
 		const inputArgs = this.#resolveInputArgs()
@@ -77,22 +139,7 @@ export class AudioFeeder {
 
 		const proc = this.#proc
 
-		proc.stdout.on('data', (chunk: Buffer) => {
-			this.#pending = Buffer.concat([this.#pending, chunk])
-			while (this.#pending.length >= chunkBytes) {
-				if (this.#queue.length >= MAX_QUEUED_CHUNKS) {
-					this.#proc?.stdout.pause()
-					break
-				}
-
-				const frame = this.#pending.subarray(0, chunkBytes)
-				this.#pending = this.#pending.subarray(chunkBytes)
-				const out = new Float32Array(chunkSamples)
-				out.set(new Float32Array(frame.buffer, frame.byteOffset, chunkSamples))
-				this.bytesProduced += chunkBytes
-				this.#queue.push(out)
-			}
-		})
+		proc.stdout.on('data', (chunk: Buffer) => this._absorb(chunk))
 
 		proc.stderr?.on('data', () => {})
 
@@ -124,7 +171,8 @@ export class AudioFeeder {
 
 		this.#proc?.kill('SIGKILL')
 		this.#proc = null
-		this.#pending = Buffer.alloc(0)
+		this.#pendingParts = []
+		this.#pendingBytes = 0
 		this.#queue = []
 		this.#warmupUntilMs = 0
 	}

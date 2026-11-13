@@ -74,7 +74,12 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Dependencies
-        run: yarn install --immutable
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
 
       - name: Publish in NPM
         run: npm publish --access public --provenance --tag ${{ steps.get_previous_version.outputs.prerelease_tag }}

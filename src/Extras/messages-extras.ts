@@ -14,16 +14,16 @@ import { generateMessageIDV2 } from '../Utils/generics'
 import { generateWAMessage } from '../Utils/messages'
 import type { BinaryNode } from '../WABinary'
 import { isJidGroup } from '../WABinary'
+import { senderKeyResetSummary } from './sender-key-memory'
 
 export const AssociationType = proto.MessageAssociation.AssociationType
 
-export const senderKeyResetSummary = (
-	stored: Record<string, Record<string, boolean> | undefined> | undefined,
-	jid: string
-) => {
-	const devices = Object.keys(stored?.[jid] || {})
-	return { jid, cleared: devices.length, devices }
-}
+/**
+ * Anya-specific alias for `senderKeyResetSummary` (Elaina's name, which is the canonical export in
+ * `./sender-key-memory`). This used to be a second, separately ported copy of the same logic; there is
+ * now one implementation and both names point at it.
+ */
+export const senderKeyMemoryResetSummary = senderKeyResetSummary
 
 export interface MessagesExtrasSocket {
 	query: (node: BinaryNode) => Promise<BinaryNode>

@@ -30,6 +30,51 @@ jobs:
           path: source
           persist-credentials: false
 
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack and Set Yarn Version
+        working-directory: source
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Install
+        working-directory: source
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+
+      - name: Build the library
+        working-directory: source
+        run: yarn build
+
+      - name: Pack the installable tarball
+        id: pack
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          # the destination has no build tooling, so the packed tarball ships with the docs and can be installed straight
+          # from that repository. Not `--json`: the `prepack` build writes to stdout and would corrupt it.
+          rm -f ./*.tgz
+          npm pack --silent
+          TARBALL=$(ls -t ./*.tgz | head -1 | xargs basename)
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+          echo "Packed $TARBALL"
+
+      - name: Build the site
+        # the destination repository holds only the published docs — no package.json, no src — so the site has to be
+        # built here and shipped as finished HTML
+        working-directory: source
+        run: yarn build:docs2
+
       - name: Validate required source files
         working-directory: source
         shell: bash
@@ -39,6 +84,14 @@ jobs:
           test -f index.html
           test -d docs
           test -f .github/README.md
+          # referenced by README.md and by docs/wiki/*.md — without these the destination renders broken images/links
+          test -f LICENSE
+          test -f SECURITY.md
+          test -d Media
+          test -f Example/example.ts
+          test -d assets/examples
+          # the two documentation pipelines travel with the docs they build
+          test -f site/index.html
 
       - name: Checkout destination repository
         uses: actions/checkout@v4
@@ -54,17 +107,43 @@ jobs:
         run: |
           set -euo pipefail
           # Replace only these paths; unrelated destination files remain untouched.
-          rm -rf destination/docs
-          mkdir -p destination/.github
+          #
+          # The set is not just the docs: README.md links Media/logo.png, LICENSE, SECURITY.md and Example/example.ts,
+          # and docs/wiki/*.md links ../../SECURITY.md. Copying docs alone produced a destination with a broken logo
+          # and four dead links.
+          rm -rf destination/docs destination/Media destination/Example
+          mkdir -p destination/.github/workflows
+
           cp source/README.md destination/README.md
           cp source/index.html destination/index.html
           cp -a source/docs destination/docs
           cp source/.github/README.md destination/.github/README.md
+
+          cp -a source/Media destination/Media
+          mkdir -p destination/Example destination/assets
+          cp source/Example/example.ts destination/Example/example.ts
+          cp -a source/assets/examples destination/assets/examples
+          cp source/LICENSE destination/LICENSE
+          cp source/SECURITY.md destination/SECURITY.md
+
+          # the prebuilt site, and the one workflow the destination can actually run
+          rm -rf destination/site
+          cp -a source/site destination/site
+          cp source/.github/workflows/pages.yml destination/.github/workflows/pages.yml
+
+          # the installable package itself: exactly one tarball, so the download link never goes stale
+          rm -rf destination/tarball
+          mkdir -p destination/tarball
+          cp "source/${{ steps.pack.outputs.tarball }}" "destination/tarball/${{ steps.pack.outputs.tarball }}"
+
+          # docs.yml and docs2.yml are NOT copied: both run `yarn install` and `tsc`, and the destination has neither
+          # package.json nor src, so they would fail on every push. pages.yml deploys the folder above instead.
           cat > destination/PUBLISHED-FROM.txt <<EOF
           Source repository: $GITHUB_REPOSITORY
           Source commit: ${{ github.event.workflow_run.head_sha }}
           Release workflow: ${{ github.event.workflow_run.name }}
           Release run: ${{ github.event.workflow_run.html_url }}
+          Tarball: tarball/${{ steps.pack.outputs.tarball }}
           EOF
 
       - name: Commit and push destination update
@@ -76,7 +155,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md index.html docs .github/README.md PUBLISHED-FROM.txt
+          git add README.md index.html docs .github/README.md \
+                  Media Example assets LICENSE SECURITY.md \
+                  site tarball .github/workflows/pages.yml \
+                  PUBLISHED-FROM.txt
           if git diff --cached --quiet; then
             echo "Selected docs are already up to date."
             exit 0

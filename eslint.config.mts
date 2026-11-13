@@ -72,11 +72,15 @@ export default defineConfig([
 					asyncArrow: 'always'
 				}
 			],
+			// `!= null` is kept: it is the intentional null-or-undefined check, not a typo for `!==`
+			eqeqeq: ['error', 'always', { null: 'ignore' }],
 			'@typescript-eslint/no-floating-promises': 'error',
 			'@typescript-eslint/no-unused-vars': [
 				'error',
 				{
-					caughtErrors: 'none'
+					caughtErrors: 'none',
+					// `const { id: _id, ...rest } = value` is the idiom for "everything except id"
+					ignoreRestSiblings: true
 				}
 			]
 		}

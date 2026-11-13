@@ -1,0 +1,109 @@
+name: Docs2 (GitHub Pages)
+
+# Builds the documentation site and publishes it with GitHub Pages.
+#
+# The address is not hardcoded: `actions/deploy-pages` reports it, `scripts/sync-docs-url.mjs` writes it into the
+# READMEs and the bot commits it. Fork the repository and the links fix themselves on the first run.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'script/apiref.js'
+      - 'script/builddocs.js'
+      - 'script/markdown.js'
+      - 'scripts/sync-docs-url.mjs'
+      - '.github/workflows/docs2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write      # to commit the URL sync
+  pages: write         # to publish
+  id-token: write      # required by deploy-pages
+
+concurrency:
+  group: anya-baileys-docs
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Install Dependencies
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+      - name: Build the library
+        # the API reference reads the emitted .d.ts, so the site cannot be built without this
+        run: yarn build
+
+      - name: Build the site
+        run: yarn build:docs2
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Point the READMEs at the deployed site
+        env:
+          DOCS_SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node scripts/sync-docs-url.mjs "$DOCS_SITE_URL"
+
+      - name: Commit the URL if it changed
+        run: |
+          if git diff --quiet -- README.md .github/README.md; then
+            echo "READMEs already point at ${{ steps.deployment.outputs.page_url }}"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md .github/README.md
+          git -c commit.gpgsign=false commit -m "docs: point the README at ${{ steps.deployment.outputs.page_url }}"
+          git push

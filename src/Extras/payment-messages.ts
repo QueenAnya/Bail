@@ -2,7 +2,8 @@
  * Ported from @rexxhayanasi/elaina-baileys (MIT) - Utils/payment-messages.js, rewritten in TypeScript.
  *
  * Builders / readers for split payments and payment reminders (`splitPayment`, `splitPaymentUpdate`,
- * `paymentReminder` content keys, sent through `sock.sendMessage`). The default currency is INR.
+ * `paymentReminder` content keys, sent through `sock.sendMessage`). The currency is required, exactly as in
+ * Elaina's `src/Utils/payment-messages.js` — there is no default, so a missing code is a bug, not an INR charge.
  */
 export const SplitPaymentStatus = Object.freeze({ PENDING: 0, PAID: 1 })
 
@@ -25,8 +26,6 @@ export const ReminderStatus = Object.freeze({
 
 export const MONEY_OFFSET = 1000
 
-export const DEFAULT_PAYMENT_CURRENCY = 'INR'
-
 const drop = <T extends Record<string, any>>(object: T): T => {
 	for (const key of Object.keys(object)) {
 		if (object[key] === undefined || object[key] === null) {
@@ -42,11 +41,7 @@ const drop = <T extends Record<string, any>>(object: T): T => {
  * Passing the scaled value by mistake overcharges by three orders of magnitude, so the amount here is always the
  * human one (e.g. `money(500, 'INR')`).
  */
-export const money = (
-	amount: number | string,
-	currencyCode: string = DEFAULT_PAYMENT_CURRENCY,
-	offset = MONEY_OFFSET
-) => {
+export const money = (amount: number | string, currencyCode: string | undefined, offset = MONEY_OFFSET) => {
 	const value = Number(amount)
 	if (!Number.isFinite(value) || value < 0) {
 		throw new TypeError('money needs a non-negative amount')
@@ -91,7 +86,7 @@ export interface SplitPaymentInput {
 export const buildSplitPayment = ({
 	splitId,
 	total,
-	currency = DEFAULT_PAYMENT_CURRENCY,
+	currency,
 	description,
 	requesterJid,
 	participants = [],
@@ -157,7 +152,7 @@ export const buildPaymentReminder = ({
 	frequency = ReminderFrequency.MONTHLY,
 	status = ReminderStatus.ACTIVE,
 	amount,
-	currency = DEFAULT_PAYMENT_CURRENCY,
+	currency,
 	payeeVpa,
 	payeeJid,
 	payerJid

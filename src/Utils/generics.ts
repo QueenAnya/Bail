@@ -2,7 +2,7 @@ import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import type Long from 'long'
 import { proto } from '../../WAProto/index.js'
-const baileysVersion = [2, 3000, 1051456098] // fallback WA client version — client_revision from https://web.whatsapp.com/sw.js
+const baileysVersion = [2, 3000, 1053624037] // fallback WA client version — client_revision from https://web.whatsapp.com/sw.js; kept in step with elaina-baileys 1.4.9
 import type {
 	BaileysEventEmitter,
 	BaileysEventMap,
@@ -50,7 +50,6 @@ export const getKeyAuthor = (key: WAMessageKey | undefined | null, meId = 'me') 
 	(key?.fromMe ? meId : key?.participantAlt || key?.remoteJidAlt || key?.participant || key?.remoteJid) || ''
 
 export const isStringNullOrEmpty = (value: string | null | undefined): value is null | undefined | '' =>
-	// eslint-disable-next-line eqeqeq
 	value == null || value === ''
 
 export const writeRandomPadMax16 = (msg: Uint8Array) => {

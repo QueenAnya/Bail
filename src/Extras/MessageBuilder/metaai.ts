@@ -1,8 +1,15 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - MessageBuilder/metaai.js
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - MessageBuilder/metaai.js
  * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
 // @ts-nocheck
+// Deliberate: one of only three files left with @ts-nocheck in src/Extras.
+// This module walks protobuf trees whose shape varies with the WAProto build; removing the
+// directive surfaces roughly 200-550 errors here, nearly all implicit-any on dynamic proto
+// paths. The other 11 ported modules were cleaned first (see the port review); this trio is
+// remaining work, not an oversight. Tackle one file at a time.
+
 import { generateWAMessageFromContent } from '../../Utils/messages'
 import { BOT_SIGNATURE_USE_CASE_WA_BOT_MSG, verifyBotSignature } from './bot-signature'
 import { AddonActionType } from './extras'
@@ -144,7 +151,7 @@ export const UnifiedResponseMessageGroupKind = Object.freeze({
 	PRIMARY_RESPONSE: 'PRIMARY_RESPONSE'
 })
 
-const trimEmpty = object => {
+const trimEmpty = (object: any) => {
 	for (const key of Object.keys(object)) {
 		if (object[key] === undefined) {
 			delete object[key]
@@ -154,17 +161,18 @@ const trimEmpty = object => {
 	return object
 }
 
-const typed = (typename, fields) => trimEmpty({ ...fields, __typename: typename })
+const typed = (typename: any, fields: any) => trimEmpty({ ...fields, __typename: typename })
 
-const layoutSection = (name, data, viewModelFields = {}) => {
+const layoutSection = (name: any, data: any, viewModelFields = {}) => {
 	const section = AIRich.newLayout(name, data)
 	Object.assign(section.view_model, trimEmpty({ ...viewModelFields }))
 	return section
 }
 
-const url = (value, fallback) => (value === undefined ? undefined : { url: value, url_fallback: fallback ?? value })
+const url = (value: any, fallback: any) =>
+	value === undefined ? undefined : { url: value, url_fallback: fallback ?? value }
 
-export const customSection = (typename, fields = {}, { layout = 'Single' } = {}) => {
+export const customSection = (typename: any, fields = {}, { layout = 'Single' }: any = {}) => {
 	if (typeof typename !== 'string' || !typename) {
 		throw new TypeError('customSection needs a __typename, that is the only thing the client dispatches on')
 	}
@@ -194,7 +202,7 @@ export const placeItem = ({
 	postalCode,
 	timezone,
 	marketplace
-} = {}) =>
+}: any = {}) =>
 	typed('GenAIPlaceDetailsItem', {
 		id: id === undefined ? undefined : String(id),
 		name,
@@ -207,7 +215,7 @@ export const placeItem = ({
 				: typed('GenAIPlaceDetailsItemCategory', { category_id: categoryId, display_name: categoryName }),
 		price_level: priceLevel,
 		opening_status: openingStatus,
-		opening_hours: openingHours?.map(hours =>
+		opening_hours: openingHours?.map((hours: any) =>
 			typed('GenAIPlaceDetailsItemOpeningHours', {
 				day: hours.day,
 				time: hours.time,
@@ -245,7 +253,7 @@ export const mapSection = ({
 	staticMapUrl,
 	staticMapDarkUrl,
 	queryStatus = MapQueryStatus.FETCHED
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIMapPrimitive', {
@@ -277,7 +285,7 @@ const sportsTeam = (team = {}) =>
 			team.icon === undefined ? undefined : typed('GenAISportsTeamIcon', { image: url(team.icon, team.iconFallback) })
 	})
 
-const sportsRecord = record =>
+const sportsRecord = (record: any) =>
 	record === undefined
 		? undefined
 		: typed('GenAISportsTeamRecord', { wins: record.wins, losses: record.losses, ties: record.ties })
@@ -300,7 +308,7 @@ export const sportsSection = ({
 	seasonType,
 	week,
 	contentTypename = 'GenAIAmericanFootballGameContent'
-} = {}) => {
+}: any = {}) => {
 	if (!gameId) {
 		throw new TypeError('sportsSection requires gameId, the widget is keyed on it')
 	}
@@ -355,7 +363,7 @@ export const videoSection = ({
 	sourceApp,
 	progressiveUrls = [],
 	dashManifests = []
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIVideoPrimitive', {
@@ -372,10 +380,10 @@ export const videoSection = ({
 			is_verified: isVerified,
 			source_app: sourceApp,
 			video_delivery_response: typed('GenAIVideoDeliveryResponse', {
-				progressive_urls: progressiveUrls.map(value =>
+				progressive_urls: progressiveUrls.map((value: any) =>
 					typed('GenAIProgressiveUrlResponse', { progressive_url: value })
 				),
-				dash_manifests: dashManifests.map(value => typed('GenAIDashManifestResponse', { manifest_xml: value }))
+				dash_manifests: dashManifests.map((value: any) => typed('GenAIDashManifestResponse', { manifest_xml: value }))
 			})
 		})
 	)
@@ -390,7 +398,7 @@ export const reminderSection = ({
 	thumbnailUrl,
 	fullSizeUrl,
 	mediaKey
-} = {}) => {
+}: any = {}) => {
 	if (!reminderId) {
 		throw new TypeError('reminderSection requires reminderId')
 	}
@@ -420,7 +428,7 @@ export const commentSection = ({
 	likes,
 	replies,
 	isVerified
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAICommentPrimitive', {
@@ -445,7 +453,7 @@ export const compactEntitySection = ({
 	entityType = CompactEntityType.PERSON,
 	actionType,
 	isVerified
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAICompactEntityPrimitive', {
@@ -468,7 +476,7 @@ export const actionListRow = ({
 	icon,
 	url: rowUrl,
 	rowType = ActionListRowType.ACTION
-} = {}) =>
+}: any = {}) =>
 	typed('GenAIActionListRow', {
 		title,
 		subtitle,
@@ -488,7 +496,7 @@ const plannerFields = ({
 	searchEngine,
 	facepileFavicons = [],
 	responseId
-} = {}) => ({
+}: any = {}) => ({
 	response_id: responseId,
 	sources,
 	steps,
@@ -498,7 +506,7 @@ const plannerFields = ({
 	facepile_favicons: facepileFavicons
 })
 
-export const plannerStep = ({ title, instruction, status = SearchPlannerStepStatus.PLANNED } = {}) =>
+export const plannerStep = ({ title, instruction, status = SearchPlannerStepStatus.PLANNED }: any = {}) =>
 	typed('GenAISearchPlannerStep', {
 		title,
 		status,
@@ -516,7 +524,7 @@ export const plannerSnippetSection = ({
 	currentStep,
 	totalSteps,
 	status = SearchPlannerStepStatus.IN_PROGRESS
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAISearchPlannerStepSnippetPrimitive', {
@@ -527,7 +535,7 @@ export const plannerSnippetSection = ({
 		})
 	)
 
-export const chainOfThoughtSection = ({ header, subtitle, plannerState, imageArtifacts, text } = {}) =>
+export const chainOfThoughtSection = ({ header, subtitle, plannerState, imageArtifacts, text }: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIChainOfThoughtStepPrimitive', {
@@ -539,7 +547,7 @@ export const chainOfThoughtSection = ({ header, subtitle, plannerState, imageArt
 		})
 	)
 
-export const searchAdSection = ({ storyId, actorName, actorImageUrl, imageUrl, message } = {}) =>
+export const searchAdSection = ({ storyId, actorName, actorImageUrl, imageUrl, message }: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAISearchAdPrimitive', {
@@ -551,7 +559,7 @@ export const searchAdSection = ({ storyId, actorName, actorImageUrl, imageUrl, m
 		})
 	)
 
-export const transparencySignal = ({ id, signalType, value, memory } = {}) =>
+export const transparencySignal = ({ id, signalType, value, memory }: any = {}) =>
 	typed('GenAIP13nUiSignalValue', {
 		id: id === undefined ? undefined : String(id),
 		signal_type: signalType,
@@ -559,7 +567,7 @@ export const transparencySignal = ({ id, signalType, value, memory } = {}) =>
 		memory
 	})
 
-export const transparencySection = ({ annotation, signals = [], responseId } = {}) =>
+export const transparencySection = ({ annotation, signals = [], responseId }: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIP13NTransparencyPrimitive', {
@@ -587,7 +595,7 @@ export const professionalConsentSection = ({
 	originalPrompt,
 	learnMoreLabel,
 	learnMoreUrl
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIProfessionalConsentPrimitive', {
@@ -611,7 +619,7 @@ export const professionalConsentSection = ({
 		})
 	)
 
-export const accountLinkingApp = ({ label, integrationFbid, integrationSlug, iconUrl } = {}) =>
+export const accountLinkingApp = ({ label, integrationFbid, integrationSlug, iconUrl }: any = {}) =>
 	typed('GenAI3PAccountLinkingBottomsheetAppItem', {
 		label,
 		integration_fbid: integrationFbid === undefined ? undefined : String(integrationFbid),
@@ -630,7 +638,7 @@ export const accountLinkingSection = ({
 	integrationStatus = AccountLinkingStatus.UNLINKED,
 	integrationId,
 	apps
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAI3PAccountLinkingUpsellPrimitive', {
@@ -656,7 +664,7 @@ export const calendarEvent = ({
 	recurrenceText,
 	deeplink,
 	attendees = []
-} = {}) =>
+}: any = {}) =>
 	typed('GenAI3PExtCalendarEventItem', {
 		title,
 		start_time: startTime,
@@ -665,7 +673,7 @@ export const calendarEvent = ({
 		description,
 		recurrence_text: recurrenceText,
 		deeplink,
-		attendees: attendees.map(attendee =>
+		attendees: attendees.map((attendee: any) =>
 			typed('GenAI3PExtCalendarAttendee', {
 				email: attendee.email,
 				display_name: attendee.displayName ?? attendee.name
@@ -673,18 +681,18 @@ export const calendarEvent = ({
 		)
 	})
 
-export const calendarWidgetSection = ({ title, iconUrls = [], sections = [], ctas = [], toast } = {}) =>
+export const calendarWidgetSection = ({ title, iconUrls = [], sections = [], ctas = [], toast }: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAI3PExtWidgetPrimitive', {
 			header: typed('GenAI3PExtWidgetStandardHeader', { title, leading_items: iconUrls }),
-			sections: sections.map(section =>
+			sections: sections.map((section: any) =>
 				typed('GenAI3PExtCalendarDateSection', {
 					date: section.date,
 					events: typed('GenAI3PExtCalendarEventList', { events: section.events ?? [] })
 				})
 			),
-			ctas: ctas.map(cta =>
+			ctas: ctas.map((cta: any) =>
 				typed('GenAI3PExtWidgetCTA', {
 					label: cta.label,
 					kind: cta.kind ?? WidgetCtaKind.CONFIRM,
@@ -705,7 +713,7 @@ export const chainingSuggestionSection = ({
 	externalConversationId,
 	topic,
 	cardId
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIChainingSuggestionPrimitive', {
@@ -727,7 +735,7 @@ export const mediaItem = ({
 	contentHash,
 	assetQueryStatus = ImageAssetQueryStatus.FETCHED,
 	followUpPills = []
-} = {}) =>
+}: any = {}) =>
 	typed('GenAIMediaItem', {
 		preview_image: url(previewUrl),
 		full_image: url(fullUrl),
@@ -736,7 +744,7 @@ export const mediaItem = ({
 		source,
 		content_hash: contentHash,
 		asset_query_status: assetQueryStatus,
-		follow_up_pills: followUpPills.map(pill =>
+		follow_up_pills: followUpPills.map((pill: any) =>
 			typed('GenAIFollowUpSuggestionPillPrimitive', {
 				prompt_text: typeof pill === 'string' ? pill : pill.promptText,
 				category:
@@ -763,11 +771,11 @@ export const contextualSourcesSection = (sources = []) =>
 		})
 	)
 
-export const threadSurfingItem = ({ entity, entityType = ThreadSurfingEntityType.INFO_TERM, prompts = [] } = {}) =>
+export const threadSurfingItem = ({ entity, entityType = ThreadSurfingEntityType.INFO_TERM, prompts = [] }: any = {}) =>
 	typed('GenAIThreadSurfingItem', {
 		entity,
 		entity_type: entityType,
-		prompts: prompts.map((prompt, index) =>
+		prompts: prompts.map((prompt: any, index: any) =>
 			typed('GenAIThreadSurfingPrompt', {
 				prompt: typeof prompt === 'string' ? prompt : prompt.prompt,
 				prompt_id: typeof prompt === 'string' ? String(index) : String(prompt.promptId ?? index)
@@ -775,7 +783,15 @@ export const threadSurfingItem = ({ entity, entityType = ThreadSurfingEntityType
 		)
 	})
 
-export const socialEntityItem = ({ entityId, name, fullName, pictureUrl, entityUrl, entityType, isVerified } = {}) =>
+export const socialEntityItem = ({
+	entityId,
+	name,
+	fullName,
+	pictureUrl,
+	entityUrl,
+	entityType,
+	isVerified
+}: any = {}) =>
 	typed('GenAISocialEntityItem', {
 		entity_id: entityId === undefined ? undefined : String(entityId),
 		entity_name: name,
@@ -786,7 +802,7 @@ export const socialEntityItem = ({ entityId, name, fullName, pictureUrl, entityU
 		is_verified: isVerified
 	})
 
-export const placeEntityItem = ({ placeId, name, imageUrl, motivation } = {}) =>
+export const placeEntityItem = ({ placeId, name, imageUrl, motivation }: any = {}) =>
 	typed('GenAIPlaceEntityItem', {
 		place_id: placeId === undefined ? undefined : String(placeId),
 		name,
@@ -806,13 +822,13 @@ export const productEntityItem = ({
 	sourceType = ProductSourceType.CATALOG,
 	isUnavailable,
 	adTrackingCode
-} = {}) =>
+}: any = {}) =>
 	typed('GenAIProductEntityItem', {
 		product_id: productId === undefined ? undefined : String(productId),
 		title,
 		product_url: productUrl,
 		image: url(imageUrl),
-		additional_images: additionalImages.map(value => url(value)),
+		additional_images: additionalImages.map((value: any) => url(value)),
 		price,
 		sale_price: salePrice,
 		brand,
@@ -830,7 +846,7 @@ export const sideBySideSurveyItem = ({
 	simonSessionFbid,
 	tessaSessionFbid,
 	testArmName
-} = {}) =>
+}: any = {}) =>
 	typed('GenAISideBySideSurveyItem', {
 		survey_id: surveyId === undefined ? undefined : String(surveyId),
 		thread_id: threadId === undefined ? undefined : String(threadId),
@@ -844,14 +860,14 @@ export const sideBySideSurveyItem = ({
 
 export const multipleResponseSection = (
 	responses = [],
-	{ layoutType = MultipleResponseLayoutType.IN_THREAD, survey } = {}
+	{ layoutType = MultipleResponseLayoutType.IN_THREAD, survey }: any = {}
 ) => layoutSection('MultipleResponse', responses, { layout_type: layoutType, survey_metadata: survey })
 
 export const bloomCardSection = (primitives = []) => AIRich.newLayout('IGSuggestedBloomCard', primitives)
 
 const ADDON_ACTION_UNSUPPORTED_PRIMITIVES = Object.freeze(['GenAIFooterActionPrimitive'])
 
-export const addonActionSection = (primitives = [], { actionType, alignment = AddonActionAlignment.END } = {}) => {
+export const addonActionSection = (primitives = [], { actionType, alignment = AddonActionAlignment.END }: any = {}) => {
 	if (!Object.values(AddonActionType).includes(actionType)) {
 		throw new TypeError('addonActionSection actionType must be one of ' + Object.values(AddonActionType).join(', '))
 	}
@@ -877,7 +893,7 @@ export const addonActionSection = (primitives = [], { actionType, alignment = Ad
 
 export const QuotaUpsellMeterUsageType = Object.freeze({ META_AI_THINK_HARD: 'META_AI_THINK_HARD' })
 
-export const quotaUpsellButton = ({ label, action, deeplink } = {}) =>
+export const quotaUpsellButton = ({ label, action, deeplink }: any = {}) =>
 	typed('GenAIMetaSubsQuotaUpsellButton', { label, action, deeplink })
 
 export const quotaUpsellSection = ({
@@ -888,7 +904,7 @@ export const quotaUpsellSection = ({
 	meterUsageType,
 	benefitType,
 	buttons = []
-} = {}) =>
+}: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIMetaSubsQuotaUpsellPrimitive', {
@@ -902,7 +918,7 @@ export const quotaUpsellSection = ({
 		})
 	)
 
-export const quizQuestion = ({ question, options = [], correctIndices = [], explanation, hints = [] } = {}) =>
+export const quizQuestion = ({ question, options = [], correctIndices = [], explanation, hints = [] }: any = {}) =>
 	typed('GenAIQuizQuestion', {
 		question,
 		options: options.length ? options : undefined,
@@ -911,13 +927,13 @@ export const quizQuestion = ({ question, options = [], correctIndices = [], expl
 		hints: hints.length ? hints : undefined
 	})
 
-export const quizSection = ({ title, subject, questions = [] } = {}) =>
+export const quizSection = ({ title, subject, questions = [] }: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIQuizPrimitive', {
 			title,
 			subject,
-			questions: questions.map(question => (question && question.__typename ? question : quizQuestion(question)))
+			questions: questions.map((question: any) => (question?.__typename ? question : quizQuestion(question)))
 		})
 	)
 
@@ -928,7 +944,7 @@ export const actionGroupButton = ({
 	deeplink,
 	deeplinkUrl,
 	androidDeeplinkUrl
-} = {}) =>
+}: any = {}) =>
 	typed('GenAIActionButton', {
 		action_id: actionId,
 		client_action_id: clientActionId,
@@ -938,17 +954,17 @@ export const actionGroupButton = ({
 		android_deeplink_url: androidDeeplinkUrl
 	})
 
-export const actionGroupSection = ({ groupId, recommendedActionId, buttons = [] } = {}) =>
+export const actionGroupSection = ({ groupId, recommendedActionId, buttons = [] }: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIActionGroupPrimitive', {
 			group_id: groupId,
 			recommended_action_id: recommendedActionId,
-			buttons: buttons.map(button => (button && button.__typename ? button : actionGroupButton(button)))
+			buttons: buttons.map((button: any) => (button?.__typename ? button : actionGroupButton(button)))
 		})
 	)
 
-export const fusedComparisonCta = ({ label, uri } = {}) => typed('GenAIFusedComparisonCTA', { label, uri })
+export const fusedComparisonCta = ({ label, uri }: any = {}) => typed('GenAIFusedComparisonCTA', { label, uri })
 
 export const fusedComparisonColumn = ({
 	productId,
@@ -959,7 +975,7 @@ export const fusedComparisonColumn = ({
 	price,
 	originalPrice,
 	cta
-} = {}) =>
+}: any = {}) =>
 	typed('GenAIFusedComparisonColumn', {
 		product_id: productId === undefined ? undefined : String(productId),
 		title,
@@ -971,24 +987,24 @@ export const fusedComparisonColumn = ({
 		cta: cta?.__typename ? cta : cta ? fusedComparisonCta(cta) : undefined
 	})
 
-export const fusedComparisonRow = ({ label, cells = [] } = {}) =>
+export const fusedComparisonRow = ({ label, cells = [] }: any = {}) =>
 	typed('GenAIFusedComparisonRow', {
 		label,
 		cells: cells.length ? cells : undefined
 	})
 
-export const fusedComparisonSection = ({ columns = [], rows = [], labelColumnIndex, pinLabelColumn } = {}) =>
+export const fusedComparisonSection = ({ columns = [], rows = [], labelColumnIndex, pinLabelColumn }: any = {}) =>
 	AIRich.newLayout(
 		'Single',
 		typed('GenAIFusedComparisonTablePrimitive', {
-			columns: columns.map(column => (column && column.__typename ? column : fusedComparisonColumn(column))),
-			rows: rows.map(row => (row && row.__typename ? row : fusedComparisonRow(row))),
+			columns: columns.map((column: any) => (column?.__typename ? column : fusedComparisonColumn(column))),
+			rows: rows.map((row: any) => (row?.__typename ? row : fusedComparisonRow(row))),
 			label_column_index: labelColumnIndex,
 			pin_label_column: pinLabelColumn
 		})
 	)
 
-const toBytes = value => {
+const toBytes = (value: any) => {
 	if (value === undefined || value === null) {
 		return undefined
 	}
@@ -1004,7 +1020,7 @@ const toBytes = value => {
 	return Buffer.from(String(value), 'base64')
 }
 
-const richResponseOf = msg => {
+const richResponseOf = (msg: any) => {
 	const message = msg?.message ?? msg
 	if (!message) {
 		return { message: undefined, richResponseMessage: undefined }
@@ -1014,7 +1030,7 @@ const richResponseOf = msg => {
 	return { message, richResponseMessage: inner?.richResponseMessage }
 }
 
-export const readSignedRichResponse = msg => {
+export const readSignedRichResponse = (msg: any) => {
 	const { message, richResponseMessage } = richResponseOf(msg)
 	if (!richResponseMessage) {
 		return null
@@ -1022,7 +1038,7 @@ export const readSignedRichResponse = msg => {
 
 	const botMetadata = message.messageContextInfo?.botMetadata
 	const proofs = botMetadata?.verificationMetadata?.proofs ?? []
-	const proof = proofs.find(item => Number(item?.useCase) === BOT_SIGNATURE_USE_CASE_WA_BOT_MSG)
+	const proof = proofs.find((item: any) => Number(item?.useCase) === BOT_SIGNATURE_USE_CASE_WA_BOT_MSG)
 	const data = toBytes(richResponseMessage.unifiedResponse?.data)
 	return {
 		richResponseMessage,
@@ -1034,7 +1050,7 @@ export const readSignedRichResponse = msg => {
 	}
 }
 
-export const verifyRichResponseSignature = (msg, { at } = {}) => {
+export const verifyRichResponseSignature = (msg: any, { at }: any = {}) => {
 	const signed = readSignedRichResponse(msg)
 	if (!signed) {
 		return { status: 'failed', reason: 'not a rich response' }
@@ -1049,10 +1065,10 @@ export const verifyRichResponseSignature = (msg, { at } = {}) => {
 }
 
 export const forwardRichResponse = async (
-	sock,
-	jid,
-	msg,
-	{ quoted, contextInfo, messageId, additionalNodes = [], forwardWrapper = true, ...options } = {}
+	sock: any,
+	jid: any,
+	msg: any,
+	{ quoted, contextInfo, messageId, additionalNodes = [], forwardWrapper = true, ...options }: any = {}
 ) => {
 	const signed = readSignedRichResponse(msg)
 	if (!signed) {

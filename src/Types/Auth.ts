@@ -105,6 +105,20 @@ export type SignalKeyStore = {
 	listIds?<T extends keyof SignalDataTypeMap>(type: T): AsyncIterable<string>
 }
 
+/**
+ * A store that can enumerate its records.
+ *
+ * `list` is optional on {@link SignalKeyStore} because a third-party store may not be able to enumerate. Every adapter
+ * in this package implements it, so they return this narrower type — which makes the compiler, not a runtime check,
+ * the thing that stops a non-enumerable store being used as a migration source.
+ */
+export type SignalKeyStoreWithListing = SignalKeyStore & {
+	list<T extends keyof SignalDataTypeMap>(type: T): AsyncIterable<readonly [id: string, value: SignalDataTypeMap[T]]>
+}
+
+/** An {@link AuthenticationState} whose keys can be enumerated — the source side of `migrateAuthState`. */
+export type AuthenticationStateWithListing = Omit<AuthenticationState, 'keys'> & { keys: SignalKeyStoreWithListing }
+
 export type SignalKeyStoreWithTransaction = SignalKeyStore & {
 	isInTransaction: () => boolean
 	transaction<T>(exec: () => Promise<T>, key: string): Promise<T>

@@ -2,7 +2,7 @@ name: Update WAProtos
 
 on:
   schedule:
-    - cron: '10 1 1,15 * *'
+    - cron: '30 18 * * *'
   workflow_dispatch:
 
 permissions:

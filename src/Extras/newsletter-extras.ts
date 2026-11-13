@@ -16,9 +16,10 @@ import { createHash } from 'crypto'
 import { proto } from '../../WAProto/index.js'
 import { executeWMexQuery as genericExecuteWMexQuery } from '../Socket/mex'
 import { QueryIds } from '../Types'
+import { extractNewsletterMessageMeta } from '../Utils/newsletter-meta'
 import type { BinaryNode } from '../WABinary'
 import { getBinaryNodeChild, getBinaryNodeChildren, S_WHATSAPP_NET } from '../WABinary'
-import { extractNewsletterMessageMeta } from '../Utils/newsletter-meta'
+import { toNewsletterServerId } from './newsletter-status'
 
 export const PortedNewsletterQueryIds = {
 	UPDATE_USER_SETTING: '31938993655691868',
@@ -77,20 +78,6 @@ export const PortedNewsletterPaths = {
 const NEWSLETTER_REACTION_SETTINGS = new Set(['ALL', 'BASIC', 'NONE', 'BLOCKLIST'])
 
 /** The server only accepts newsletter message server ids in this range. */
-export const NEWSLETTER_SERVER_ID_MIN = 99
-export const NEWSLETTER_SERVER_ID_MAX = 2147476647
-
-export const toNewsletterServerId = (value: unknown, label?: string): string => {
-	const parsed = typeof value === 'number' ? value : Number(String(value).trim())
-	if (!Number.isInteger(parsed) || parsed < NEWSLETTER_SERVER_ID_MIN || parsed > NEWSLETTER_SERVER_ID_MAX) {
-		throw new TypeError(
-			`${JSON.stringify(value)} is not a newsletter server id${label ? ` for ${label}` : ''}; the server accepts ${NEWSLETTER_SERVER_ID_MIN}..${NEWSLETTER_SERVER_ID_MAX}, and you get one from newsletterFetchMessages or a sent status`
-		)
-	}
-
-	return String(parsed)
-}
-
 export const toNewsletterServerIds = (serverIds: unknown): string[] => {
 	const list = Array.isArray(serverIds) ? serverIds : [serverIds]
 	if (!list.length) {

@@ -1,0 +1,179 @@
+name: Build Tarball
+
+# Packs the library with `npm pack` and publishes the resulting .tgz two ways:
+#   - as a downloadable workflow artifact (link appears in the run summary)
+#   - on a `tarball` branch, so the file has a stable URL that survives artifact expiry
+#
+# Run it by hand from the Actions tab, or let it run on every push to the default branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or commit to pack (empty = the branch you picked when running)'
+        required: false
+        default: ''
+      branch:
+        description: 'Branch that holds the tarball'
+        required: false
+        default: 'tarball'
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write # pushing the tarball branch
+  actions: read
+
+concurrency:
+  group: tarball-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    outputs:
+      tarball: ${{ steps.pack.outputs.tarball }}
+      version: ${{ steps.pack.outputs.version }}
+      url: ${{ steps.publish.outputs.url }}
+      artifact_url: ${{ steps.upload.outputs.artifact-url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Install Dependencies
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+
+      - name: Build
+        run: yarn build
+
+      - name: Pack
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          # NOT `--json`: this package has a `prepack` script, and its output lands on stdout too, which turns the JSON
+          # into "building now\n[{…}]". Pack quietly and take the file npm just wrote.
+          rm -f ./*.tgz
+          npm pack --silent
+          TARBALL=$(ls -t ./*.tgz | head -1 | xargs basename)
+          VERSION=$(node -p "require('./package.json').version")
+          SIZE=$(du -b "$TARBALL" | cut -f1)
+          COUNT=$(tar -tzf "$TARBALL" | wc -l)
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Packed $TARBALL — $SIZE bytes, $COUNT entries"
+
+      - name: Upload the tarball as an artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.tarball }}
+          path: ${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish it on the tarball branch
+        id: publish
+        shell: bash
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+          VERSION: ${{ steps.pack.outputs.version }}
+          TARGET_BRANCH: ${{ inputs.branch || 'tarball' }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          REMOTE="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          rm -rf out
+
+          # the branch may not exist yet — then start it empty (orphan), otherwise take what is there and replace in place
+          if git ls-remote --exit-code --heads "$REMOTE" "$TARGET_BRANCH" >/dev/null 2>&1; then
+            git clone --depth 1 --branch "$TARGET_BRANCH" "$REMOTE" out
+            echo "branch $TARGET_BRANCH exists — replacing the file"
+          else
+            mkdir out
+            git -C out init -b "$TARGET_BRANCH"
+            git -C out remote add origin "$REMOTE"
+            echo "branch $TARGET_BRANCH does not exist — creating it"
+          fi
+
+          # exactly one tarball lives on the branch: drop any older one so the URL never points at a stale build
+          find out -maxdepth 1 -name '*.tgz' -delete
+          cp "$TARBALL" "out/$TARBALL"
+
+          {
+            echo "# Tarball"
+            echo
+            echo "Built from \`${GITHUB_SHA}\` by [${GITHUB_WORKFLOW}](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID})."
+            echo
+            echo "| file | size |"
+            echo "| --- | --- |"
+            echo "| \`$TARBALL\` | $(du -h "out/$TARBALL" | cut -f1) |"
+            echo
+            echo "Install it with:"
+            echo
+            echo '```bash'
+            echo "npm install https://github.com/${REPO}/raw/${TARGET_BRANCH}/${TARBALL}"
+            echo '```'
+          } > out/README.md
+
+          cd out
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing changed on $TARGET_BRANCH."
+          else
+            git commit -m "tarball: ${TARBALL}"
+            git push origin "HEAD:${TARGET_BRANCH}"
+          fi
+
+          URL="https://github.com/${REPO}/raw/${TARGET_BRANCH}/${TARBALL}"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Tarball: $URL"
+
+      - name: Summary
+        shell: bash
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+          VERSION: ${{ steps.pack.outputs.version }}
+          URL: ${{ steps.publish.outputs.url }}
+          ARTIFACT: ${{ steps.upload.outputs.artifact-url }}
+          TARGET_BRANCH: ${{ inputs.branch || 'tarball' }}
+        run: |
+          {
+            echo "## Tarball ready — \`$VERSION\`"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| File | \`$TARBALL\` |"
+            echo "| Install from the branch | \`npm install $URL\` |"
+            echo "| Raw URL | $URL |"
+            echo "| Branch | [\`$TARGET_BRANCH\`](https://github.com/${{ github.repository }}/tree/$TARGET_BRANCH) |"
+            echo "| Artifact | $ARTIFACT |"
+            echo
+            echo "The artifact expires; the branch copy does not."
+          } >> "$GITHUB_STEP_SUMMARY"

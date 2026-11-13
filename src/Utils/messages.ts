@@ -2,6 +2,7 @@ import { Boom } from '@hapi/boom'
 import { createHash, randomBytes } from 'crypto'
 import { promises as fs } from 'fs'
 import { type Transform } from 'stream'
+import './proto-compat'
 import { proto } from '../../WAProto/index.js'
 import {
 	buildAdminInviteMessage,
@@ -34,7 +35,13 @@ import {
 	WA_DEFAULT_EPHEMERAL
 } from '../Defaults'
 import { buildSocialPreview } from '../Extras/link-preview-metadata'
-import { prepareLinkThumbnail, songThumbnail, trimEmptyValues } from '../Extras/messages-helpers'
+import {
+	prepareLinkThumbnail,
+	songThumbnail,
+	trimEmptyValues,
+	warnOnNativeFlowConstraints
+} from '../Extras/messages-helpers'
+import { normalizeStickers } from '../Extras/status-stickers'
 import type {
 	AnyMediaMessageContent,
 	AnyMessageContent,
@@ -142,7 +149,7 @@ export const generateLinkPreviewIfRequired = async (
 const assertColor = async (color: any) => {
 	let assertedColor
 	if (typeof color === 'number') {
-		assertedColor = color > 0 ? color : 0xffffffff + Number(color) + 1
+		return color >= 0 ? color : 0xffffffff + Number(color) + 1
 	} else {
 		let hex = color.trim().replace('#', '')
 		if (hex.length <= 6) {
@@ -187,6 +194,17 @@ export const prepareWAMessageMedia = async (
 		media: (message as any)[mediaType]
 	}
 	delete (uploadData as any)[mediaType]
+
+	// `statusStickers` is an alias of `interactiveAnnotations` (image / video only)
+	const stickerAnnotations = (uploadData as any).statusStickers ?? (uploadData as any).interactiveAnnotations
+	delete (uploadData as any).statusStickers
+	if (stickerAnnotations) {
+		if (mediaType !== 'image' && mediaType !== 'video') {
+			throw new Boom('status stickers only ride on an image or a video', { statusCode: 400 })
+		}
+
+		;(uploadData as any).interactiveAnnotations = normalizeStickers(stickerAnnotations)
+	}
 
 	// check if cacheable + generate cache key (must run BEFORE sticker webp conversion below,
 	// since conversion replaces a {url} media reference with a raw Buffer)
@@ -302,7 +320,7 @@ export const prepareWAMessageMedia = async (
 		(mediaType === 'image' || mediaType === 'video') && typeof uploadData['jpegThumbnail'] === 'undefined'
 	const requiresWaveformProcessing =
 		mediaType === 'audio' && uploadData.ptt === true && typeof uploadData.waveform === 'undefined'
-	const requiresAudioBackground = options.backgroundColor && mediaType === 'audio' && uploadData.ptt === true
+	const requiresAudioBackground = options.backgroundColor != null && mediaType === 'audio' && uploadData.ptt === true
 	const requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation
 	const { mediaKey, encFilePath, originalFilePath, fileEncSha256, fileSha256, fileLength } = await encryptedStream(
 		uploadData.media,
@@ -326,6 +344,12 @@ export const prepareWAMessageMedia = async (
 			return result
 		})(),
 		(async () => {
+			// the colour is a plain conversion: compute it before the passes that shell out and can fail
+			if (requiresAudioBackground) {
+				uploadData.backgroundArgb = await assertColor(options.backgroundColor)
+				logger?.debug('computed backgroundColor audio status')
+			}
+
 			try {
 				if (requiresThumbnailComputation) {
 					const { thumbnail, originalImageDimensions } = await generateThumbnail(
@@ -351,11 +375,6 @@ export const prepareWAMessageMedia = async (
 				if (requiresWaveformProcessing) {
 					uploadData.waveform = await getAudioWaveform(originalFilePath!, logger)
 					logger?.debug('processed waveform')
-				}
-
-				if (requiresAudioBackground) {
-					uploadData.backgroundArgb = await assertColor(options.backgroundColor)
-					logger?.debug('computed backgroundColor audio status')
 				}
 			} catch (error) {
 				logger?.warn({ trace: (error as any).stack }, 'failed to obtain extra info')
@@ -530,7 +549,7 @@ export const generateWAMessageContent = async (
 	} else if (hasNonNullishProperty(message, 'text')) {
 		const extContent = { text: message.text } as WATextMessage
 
-		let urlInfo = message.linkPreview
+		let urlInfo: any = message.linkPreview
 		if (typeof urlInfo === 'undefined' || urlInfo === true) {
 			// `undefined` (omitted) and explicit `linkPreview: true` both mean
 			// "auto-detect from `text`" — previously `true` fell through to
@@ -544,6 +563,17 @@ export const generateWAMessageContent = async (
 			// WAUrlInfo object, so `.title`/`.description`/`.jpegThumbnail`
 			// were all silently undefined and the preview rendered empty.
 			urlInfo = await generateLinkPreviewIfRequired(urlInfo, options.getUrlInfo, options.logger)
+		}
+
+		// a caller supplied `image` (Buffer / url) becomes the small card plus the encrypted large preview
+		if (urlInfo?.image && !urlInfo.highQualityThumbnail) {
+			urlInfo = {
+				...urlInfo,
+				...(await prepareLinkThumbnail(urlInfo.image, options, {
+					thumbnailWidth: urlInfo.thumbnailWidth,
+					upload: urlInfo.large !== false
+				}))
+			}
 		}
 
 		if (urlInfo) {
@@ -569,11 +599,15 @@ export const generateWAMessageContent = async (
 
 		extContent.faviconMMSMetadata = await buildFaviconMMSMetadata(message.favicon, options, prepareWAMessageMedia)
 
-		if (options.backgroundColor) {
+		if (options.backgroundColor != null) {
 			extContent.backgroundArgb = await assertColor(options.backgroundColor)
 		}
 
-		if (options.font) {
+		if ((options as any).textColor != null) {
+			extContent.textArgb = await assertColor((options as any).textColor)
+		}
+
+		if (options.font != null) {
 			extContent.font = options.font
 		}
 
@@ -839,8 +873,9 @@ export const generateWAMessageContent = async (
 			})
 		}
 
-		// `hideVoter` is the Elaina-style alias of `hideVoterNames`
-		const hideVoterNames = message.poll.hideVoterNames ?? message.poll.hideVoter ?? false
+		// three names for one flag: `hideParticipantName` (proto/elaina), `hideVoterNames` (older Anya), `hideVoter` (elaina alias)
+		const hideVoterNames =
+			message.poll.hideParticipantName ?? message.poll.hideVoterNames ?? message.poll.hideVoter ?? false
 		// end date / add-option / hidden voters all need the V6 poll format
 		const usesExtendedPollSettings =
 			hideVoterNames || Boolean(message.poll.endDate) || message.poll.canAddOption === true
@@ -849,7 +884,7 @@ export const generateWAMessageContent = async (
 			name: message.poll.name,
 			selectableOptionsCount: message.poll.selectableCount,
 			options: pollOptions,
-			hideVoterNames,
+			hideParticipantName: hideVoterNames,
 			endTime: message.poll.endDate ? message.poll.endDate.getTime() : undefined,
 			allowAddOption: message.poll.canAddOption ?? false
 		}
@@ -1014,9 +1049,26 @@ export const generateWAMessageContent = async (
 			totalCurrencyCode: opts.currency ?? 'INR'
 		}
 	} else if (hasNonNullishProperty(message, 'album')) {
-		m.albumMessage = {
-			expectedImageCount: message.album.expectedImageCount,
-			expectedVideoCount: message.album.expectedVideoCount
+		const album: any = message.album
+		const albumCaption = (message as any).caption ?? album?.caption
+		if (Array.isArray(album)) {
+			const videoCount = album.filter(item => item && 'video' in item).length
+			const imageCount = album.filter(item => item && 'image' in item).length
+			if (videoCount + imageCount < 2) {
+				throw new Boom('Minimum provide 2 media to upload album message', { statusCode: 400 })
+			}
+
+			m.albumMessage = {
+				expectedImageCount: imageCount,
+				expectedVideoCount: videoCount,
+				...(albumCaption ? { caption: String(albumCaption) } : {})
+			}
+		} else {
+			m.albumMessage = {
+				expectedImageCount: album.expectedImageCount,
+				expectedVideoCount: album.expectedVideoCount,
+				...(albumCaption ? { caption: String(albumCaption) } : {})
+			}
 		}
 	} else if (hasNonNullishProperty(message, 'sharePhoneNumber')) {
 		m.protocolMessage = {
@@ -1353,6 +1405,7 @@ export const generateWAMessageContent = async (
 			prepareMedia: prepareWAMessageMedia as any,
 			options
 		})
+		warnOnNativeFlowConstraints(m.interactiveMessage?.nativeFlowMessage?.buttons ?? [], options.logger)
 	}
 
 	// ── shop → InteractiveMessage (shopStorefrontMessage) ─────────────────────
@@ -1577,6 +1630,14 @@ export const generateWAMessageContent = async (
 	}
 
 	if (hasOptionalProperty(message, 'viewOnce') && !!message.viewOnce) {
+		// flag the inner content too when it carries a `viewOnce` field (extendedTextMessage, media)
+		const v1Key = getContentType(m)
+		const v1Inner: any = v1Key && (m as any)[v1Key]
+		const v1Class = v1Key && (proto.Message as any)[v1Key.charAt(0).toUpperCase() + v1Key.slice(1)]
+		if (v1Inner && typeof v1Inner === 'object' && v1Class?.prototype && 'viewOnce' in v1Class.prototype) {
+			v1Inner.viewOnce = true
+		}
+
 		m = { viewOnceMessage: { message: m } }
 	}
 
@@ -1587,8 +1648,13 @@ export const generateWAMessageContent = async (
 			!hasOptionalProperty(message, 'viewOnce')) ||
 		false
 	) {
-		const inner: any = m.imageMessage || m.videoMessage || m.audioMessage
-		if (inner) inner.viewOnce = true
+		// any content type that carries a `viewOnce` flag (media, but also extendedTextMessage)
+		const innerKey = getContentType(m)
+		const inner: any = innerKey && (m as any)[innerKey]
+		const innerClass = innerKey && (proto.Message as any)[innerKey.charAt(0).toUpperCase() + innerKey.slice(1)]
+		if (inner && typeof inner === 'object' && innerClass?.prototype && 'viewOnce' in innerClass.prototype) {
+			inner.viewOnce = true
+		}
 	}
 
 	// ── viewOnceExt → viewOnceMessageV2Extension ──────────────────────────────
@@ -1621,6 +1687,13 @@ export const generateWAMessageContent = async (
 			contextInfo.featureEligibilities ??= { canBeReshared: true, canReceiveMultiReact: true }
 			if (options.userJid && !contextInfo.statusAttributions?.length) {
 				contextInfo.statusAttributions = [{ type: 5 /* GROUP_STATUS */, groupStatus: { authorJid: options.userJid } }]
+			}
+
+			// caller supplied contextInfo (statusAudience metadata, mentions, ...) belongs on the inner message
+			// next to isGroupStatus, not on the groupStatusMessageV2 wrapper
+			if ((message as any).contextInfo) {
+				Object.assign(contextInfo, (message as any).contextInfo)
+				contextInfo.isGroupStatus = (message as any).groupStatus
 			}
 		}
 
@@ -1656,9 +1729,16 @@ export const generateWAMessageContent = async (
 		// always wins over the shorthand.
 		const resolvedUrl = url ?? FALLBACK_LINK_URL
 
-		adReply.mediaUrl ??= resolvedUrl
+		// the page url is where the card points, not a picture: mediaUrl / thumbnailUrl stay
+		// unset unless the caller passes real image urls, otherwise the client would try to
+		// load an html page as the card artwork
 		adReply.sourceUrl ??= resolvedUrl
-		adReply.thumbnailUrl ??= resolvedUrl
+
+		if (!adReply.thumbnail && !adReply.thumbnailUrl) {
+			options.logger?.warn?.(
+				'externalAdReply has no thumbnail and no thumbnailUrl, so the card draws without a picture'
+			)
+		}
 
 		if (largeThumbnail !== undefined) {
 			adReply.renderLargerThumbnail ??= largeThumbnail
@@ -1812,7 +1892,7 @@ export const generateWAMessageContent = async (
 		}
 	}
 
-	if (hasOptionalProperty(message, 'contextInfo') && !!message.contextInfo) {
+	if (hasOptionalProperty(message, 'contextInfo') && !!message.contextInfo && !(m as any).groupStatusMessageV2) {
 		const messageType = Object.keys(m)[0]! as Extract<keyof proto.IMessage, MessageWithContextInfo>
 		const key = m[messageType]
 		if ('contextInfo' in key! && !!key.contextInfo) {
@@ -2072,7 +2152,15 @@ export const normalizeMessageContent = (content: WAMessageContent | null | undef
 	return content!
 }
 
-function getFutureProofMessagee(message: proto.IMessage | null | undefined) {
+/**
+ * Elaina's spelling of the wrapper lookup above, with the doubled `e`.
+ *
+ * The literal Elaina function is kept below as a comment; the alias under it is what runs. It returns the same
+ * wrapper object as `getFutureProofMessage`, so ported code that imports the misspelled name keeps working without
+ * a second copy of the wrapper chain.
+ */
+/*"
+function getFutureProofMessagee(message: typeof content) {
 		return (
 			message?.ephemeralMessage ||
 			message?.viewOnceMessage ||
@@ -2087,6 +2175,9 @@ function getFutureProofMessagee(message: proto.IMessage | null | undefined) {
 			message?.lottieStickerMessage
 		)
 	}
+*/
+
+export const getFutureProofMessagee = getFutureProofMessage
 
 /**
  * Extract the true message content from a message

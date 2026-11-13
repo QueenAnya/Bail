@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HTML_APP_BYTE_LIMIT, checkHtmlApp, HTML_APP_BYTE_BUDGET } from '../src/Utils/html-app.js';
+import { HTML_APP_BYTE_LIMIT, checkHtmlApp, HTML_APP_BYTE_BUDGET } from '../lib/Extras/html-app.js';
 import { createHash } from 'node:crypto';
-import { AIRich, ContentValidationError } from '../src/MessageBuilder/index.js';
-import { botMediaMetadata, decodeAIRich, prepareFileArtifact, sendHtmlArtifact, dataUri, htmlMedia } from '../src/MessageBuilder/extras.js';
-import { htmlMultiplayerPrelude, withHtmlMultiplayer } from '../src/Utils/html-multiplayer.js';
+import { AIRich, ContentValidationError } from '../lib/Extras/MessageBuilder/index.js';
+import { botMediaMetadata, decodeAIRich, prepareFileArtifact, sendHtmlArtifact, dataUri, htmlMedia } from '../lib/Extras/MessageBuilder/extras.js';
+import { htmlMultiplayerPrelude, withHtmlMultiplayer } from '../lib/Extras/html-multiplayer.js';
 
 test('html-app-guard', async () => {
     const clean = checkHtmlApp('<style>html,body{height:300px;margin:0}</style><div>hello</div>', { height: 300 });

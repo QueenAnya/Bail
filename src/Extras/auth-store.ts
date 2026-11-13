@@ -6,7 +6,7 @@
  * interface plus `makeAuthStateFromStore`, which turns any such store into a Baileys `AuthenticationState`.
  */
 import { proto } from '../../WAProto/index.js'
-import type { AuthenticationCreds, AuthenticationState, SignalDataSet, SignalDataTypeMap } from '../Types'
+import type { AuthenticationCreds, AuthenticationStateWithListing, SignalDataSet, SignalDataTypeMap } from '../Types'
 import { initAuthCreds } from '../Utils/auth-utils'
 import { BufferJSON } from '../Utils/generics'
 
@@ -25,13 +25,22 @@ export interface AuthStore {
 	write: (type: string, id: string, value: string) => Promise<void>
 	/** applies all writes and removals (transactionally where the backend supports it) */
 	apply: (writes: AuthStoreEntry[], removals: Omit<AuthStoreEntry, 'value'>[]) => Promise<void>
+	/**
+	 * Enumerate every `(id, value)` pair for a type.
+	 *
+	 * Required: every backend behind this helper (SQL, Redis, Mongo, NekoDB) can enumerate its rows, and
+	 * `migrateAuthState` needs it. Requiring it here is what lets these adapters return a provably migratable state.
+	 */
+	list: (type: string) => AsyncIterable<readonly [string, string]>
+	/** ids-only fast path, for adapters that can answer without reading the values */
+	listIds?: (type: string) => AsyncIterable<string>
 	/** removes every row of this session */
 	clear: () => Promise<void>
 	close?: () => Promise<void>
 }
 
 export interface DatabaseAuthState {
-	state: AuthenticationState
+	state: AuthenticationStateWithListing
 	saveCreds: () => Promise<void>
 	/** deletes the whole session from the backend */
 	clearAuth: () => Promise<void>
@@ -68,11 +77,25 @@ export const loadOptionalModule = async (name: string, usedBy: string): Promise<
 	}
 }
 
+/**
+ * Reset a creds object in place. `clearAuth()` empties the store, but the creds object is handed to the socket by
+ * reference — if it is not reset too, the next `saveCreds()` writes the old credentials straight back into the store
+ * that was just emptied, and the account silently comes back. Mutating in place keeps the identity the socket holds.
+ */
+export const resetCredsInPlace = (creds: AuthenticationCreds): void => {
+	const fresh = initAuthCreds()
+	for (const key of Object.keys(creds)) {
+		delete (creds as Record<string, unknown>)[key]
+	}
+
+	Object.assign(creds, fresh)
+}
+
 export const makeAuthStateFromStore = async (store: AuthStore): Promise<DatabaseAuthState> => {
 	const stored = await store.read(CREDS_KEY, CREDS_KEY)
 	const creds: AuthenticationCreds = decodeAuthValue(CREDS_KEY, stored) ?? initAuthCreds()
 
-	const state: AuthenticationState = {
+	const state: AuthenticationStateWithListing = {
 		creds,
 		keys: {
 			get: async (type, ids) => {
@@ -91,9 +114,8 @@ export const makeAuthStateFromStore = async (store: AuthStore): Promise<Database
 				const writes: AuthStoreEntry[] = []
 				const removals: Omit<AuthStoreEntry, 'value'>[] = []
 				for (const type in data) {
-					const entries = data[type as keyof SignalDataTypeMap]!
-					for (const id in entries) {
-						const value = entries[id]
+					for (const id in data[type as keyof SignalDataTypeMap]) {
+						const value = data[type as keyof SignalDataTypeMap]![id]
 						if (value) {
 							writes.push({ type, id, value: encodeAuthValue(value) })
 						} else {
@@ -105,7 +127,23 @@ export const makeAuthStateFromStore = async (store: AuthStore): Promise<Database
 				if (writes.length || removals.length) {
 					await store.apply(writes, removals)
 				}
+			},
+			list: async function* (type) {
+				for await (const [id, raw] of store.list(type)) {
+					const value = decodeAuthValue(type, raw)
+					if (value !== null && value !== undefined) {
+						yield [id, value] as const
+					}
+				}
 			}
+		}
+	}
+
+	// `listIds` stays optional: it is only the fast path `skipExisting` uses.
+	if (store.listIds) {
+		const listIds = store.listIds
+		state.keys.listIds = async function* (type) {
+			yield* listIds(type)
 		}
 	}
 
@@ -116,6 +154,7 @@ export const makeAuthStateFromStore = async (store: AuthStore): Promise<Database
 		},
 		clearAuth: async () => {
 			await store.clear()
+			resetCredsInPlace(creds)
 		},
 		close: async () => {
 			await store.close?.()

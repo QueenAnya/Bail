@@ -876,6 +876,23 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					binaryNodeContent.push(...additionalNodes)
 				}
 
+				// channel question messages need <meta questiontype="question|reply|response"/>
+				const questionType = (patched as proto.IMessage).questionMessage
+					? 'question'
+					: (patched as proto.IMessage).questionReplyMessage
+						? 'reply'
+						: (patched as proto.IMessage).questionResponseMessage
+							? 'response'
+							: undefined
+				if (questionType) {
+					const metaNode = binaryNodeContent.find(n => n?.tag === 'meta')
+					if (metaNode) {
+						metaNode.attrs = { ...metaNode.attrs, questiontype: questionType }
+					} else {
+						binaryNodeContent.push({ tag: 'meta', attrs: { questiontype: questionType } })
+					}
+				}
+
 				binaryNodeContent.push({
 					tag: 'plaintext',
 					attrs: extraAttrs,
@@ -1361,6 +1378,17 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				}
 			}
 
+			// poll votes carry <meta polltype="vote"/>
+			if (messages.pollUpdateMessage) {
+				const content = stanza.content as BinaryNode[]
+				const existingMeta = content.find(n => n.tag === 'meta')
+				if (existingMeta) {
+					existingMeta.attrs = { ...existingMeta.attrs, polltype: existingMeta.attrs.polltype ?? 'vote' }
+				} else {
+					content.push({ tag: 'meta', attrs: { polltype: 'vote' } })
+				}
+			}
+
 			// Group Status — WhatsApp only treats a groupStatusMessage(V2) as a group status (instead of a
 			// plain message) when the stanza carries <meta is_group_status="true"/>. Applies to every
 			// path that relays one: sendMessage({ groupStatus: true }), sock.GroupStatus(), sendGroupStatus*.
@@ -1521,7 +1549,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			// StickerPack message type routing
 			return 'sticker_pack'
 		} else if (message.stickerMessage) {
-			return 'sticker'
+			return message.stickerMessage.isLottie
+				? '1p_sticker'
+				: message.stickerMessage.isAvatar
+					? 'avatar_sticker'
+					: 'sticker'
 		} else if (message.listMessage) {
 			return 'list'
 		} else if (message.listResponseMessage) {
@@ -1534,8 +1566,17 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			return 'product'
 		} else if (message.interactiveResponseMessage) {
 			return 'native_flow_response'
-		} else if (message.groupInviteMessage) {
+		} else if (message.extendedTextMessage?.matchedText || message.groupInviteMessage) {
 			return 'url'
+		}
+
+		const plainText = message.extendedTextMessage?.text || message.conversation || ''
+		if (plainText.includes('://wa.me/c/')) {
+			return 'cataloglink'
+		}
+
+		if (plainText.includes('://wa.me/p/')) {
+			return 'productlink'
 		}
 
 		return ''
@@ -2131,6 +2172,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				const isEditMsg = 'edit' in content && !!content.edit
 				const isPinMsg = 'pin' in content && !!content.pin
 				const isPollMessage = 'poll' in content && !!content.poll
+				const isPollResultMsg = 'pollResult' in content && !!content.pollResult
 				const additionalAttributes: BinaryNodeAttributes = {}
 				const additionalNodes: BinaryNode[] = []
 				// required for delete
@@ -2170,6 +2212,11 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 					additionalNodes.push({
 						tag: 'meta',
 						attrs: pollAttrs
+					})
+				} else if (isPollResultMsg) {
+					additionalNodes.push({
+						tag: 'meta',
+						attrs: { polltype: 'result_snapshot' }
 					})
 				} else if (isEventMsg) {
 					additionalNodes.push({

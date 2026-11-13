@@ -44,6 +44,8 @@ export class MessageStore {
 
 	private startCleanup() {
 		this.cleanupTimer = setInterval(() => this.cleanup(), this.options.cleanupInterval)
+		// a housekeeping timer must never be the only thing keeping the process alive
+		this.cleanupTimer.unref?.()
 	}
 
 	stopCleanup() {

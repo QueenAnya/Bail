@@ -86,6 +86,42 @@ import { executeWMexQuery } from './mex.js'
  * - query phone connection
  */
 
+/**
+ * Hosts the socket is allowed to dial without an explicit opt-in.
+ *
+ * WhatsApp's own hosts, plus loopback so a local test server works. Anything else — an arbitrary domain, an IP,
+ * a tunnel — is refused unless the caller sets `allowCustomEndpoint`. This is the difference between "a library
+ * that talks to WhatsApp" and "a library that will talk to whoever configures it".
+ */
+export const WA_ENDPOINT_HOSTS = Object.freeze(['web.whatsapp.com', 'web.whatsapp.net', 'g.whatsapp.net'])
+
+const LOOPBACK_HOSTS = Object.freeze(['localhost', '127.0.0.1', '::1', '[::1]'])
+
+export const isAllowedEndpoint = (url: URL): boolean => {
+	const host = url.hostname.toLowerCase()
+	return WA_ENDPOINT_HOSTS.includes(host) || LOOPBACK_HOSTS.includes(host)
+}
+
+const assertEndpointAllowed = (url: URL, config: SocketConfig): void => {
+	if (isAllowedEndpoint(url) || config.allowCustomEndpoint) {
+		if (config.allowCustomEndpoint && !isAllowedEndpoint(url)) {
+			config.logger?.warn(
+				{ host: url.hostname },
+				'connecting to a non-WhatsApp endpoint because allowCustomEndpoint is set'
+			)
+		}
+
+		return
+	}
+
+	throw new Boom(
+		`refusing to connect to ${url.hostname}: not a WhatsApp endpoint. Set allowCustomEndpoint to override`,
+		{
+			statusCode: DisconnectReason.loggedOut
+		}
+	)
+}
+
 export const makeSocket = (config: SocketConfig) => {
 	const {
 		waWebSocketUrl,
@@ -134,6 +170,8 @@ export const makeSocket = (config: SocketConfig) => {
 	}
 
 	const url = typeof waWebSocketUrl === 'string' ? new URL(waWebSocketUrl) : waWebSocketUrl
+
+	assertEndpointAllowed(url, config)
 
 	if (config.mobile || url.protocol === 'tcp:') {
 		throw new Boom('Mobile API is not supported anymore', { statusCode: DisconnectReason.loggedOut })

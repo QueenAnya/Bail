@@ -1,12 +1,12 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/sender-key-memory.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/sender-key-memory.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 
 export const pickSenderKeyRecipients = (
-	devices,
-	senderKeyMap,
+	devices: any[],
+	senderKeyMap: Record<string, any>,
 	{ force = false, skip }: { force?: boolean; skip?: (device: any) => boolean } = {}
 ) => {
 	const recipients = []
@@ -30,7 +30,7 @@ export const pickSenderKeyRecipients = (
 	return recipients
 }
 
-export const deliveredSenderKeyJids = nodes => {
+export const deliveredSenderKeyJids = (nodes?: any[]) => {
 	const delivered = new Set()
 	for (const node of nodes || []) {
 		const jid = node?.attrs?.jid
@@ -42,12 +42,12 @@ export const deliveredSenderKeyJids = nodes => {
 	return delivered
 }
 
-export const senderKeyMemoryResetSummary = (stored, jid) => {
+export const senderKeyResetSummary = (stored: Record<string, any> | undefined, jid: string) => {
 	const devices = Object.keys(stored?.[jid] || {})
 	return { jid, cleared: devices.length, devices }
 }
 
-export const commitSenderKeyDelivery = (senderKeyMap, recipients, nodes) => {
+export const commitSenderKeyDelivery = (senderKeyMap: Record<string, any>, recipients: string[], nodes?: any[]) => {
 	const delivered = deliveredSenderKeyJids(nodes)
 	const marked = []
 	const skipped = []

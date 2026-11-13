@@ -99,10 +99,10 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 	const { user, device } = jidDecode(userJid)!
 	const payload: proto.IClientPayload = {
 		...getClientPayload(config),
-		// passive: false — WA server rejects existing companion sessions with 428
-		// when passive: true is used on reconnect. Registration already uses false.
-		// Source: PR #2682 (gobeyondpty)
-		passive: false,
+		// passive: false by default — WA server rejects existing companion sessions with 428 when passive: true is
+		// used on reconnect. Registration already uses false. Source: PR #2682 (gobeyondpty).
+		// `config.passiveLogin` restores upstream's `true` for callers who want to compare the two.
+		passive: config.passiveLogin === true,
 		pull: true,
 		username: +user,
 		device: device,

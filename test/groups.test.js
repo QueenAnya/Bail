@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractGroupMetadata } from '../src/Socket/groups.js';
-import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../src/Utils/group-metadata-cache.js';
-import { toNewsletterUserSettingInput, toNewsletterServerIds } from '../src/Socket/newsletter.js';
-import { QueryIds, XWAPaths } from '../src/Types/index.js';
+import { extractGroupMetadata } from '../lib/Socket/groups.js';
+import { describeUnusableGroupMetadata, isUsableGroupMetadata } from '../lib/Extras/group-metadata-cache.js';
+import { toNewsletterUserSettingInput, toNewsletterServerIds } from '../lib/Extras/newsletter-extras.js';
+import { QueryIds, XWAPaths } from '../lib/Types/index.js';
 import { EventEmitter } from 'node:events';
-import { parseNewsletterStatusAck, waitForNewsletterStatusServerId } from '../src/Utils/newsletter-status.js';
-import { processSyncAction } from '../src/Utils/chat-utils.js';
-import { GroupHistoryToggleMode } from '../src/Types/index.js';
+import { parseNewsletterStatusAck, waitForNewsletterStatusServerId } from '../lib/Extras/newsletter-status.js';
+import { processSyncAction } from '../lib/Utils/chat-utils.js';
+import { GroupHistoryToggleMode } from '../lib/Types/index.js';
 
 test('group-metadata', async () => {
     const node = (addressingMode, participants) => ({
@@ -165,14 +165,16 @@ test('newsletter-mute', async () => {
     }
 
     /**
-     * The dedicated mute operations are gone from both WhatsApp Web and the Android
-     * client, so nothing may reach for them again: the mutation above is the whole
-     * path. Their ids were MUTE 29766401636284406 and UNMUTE 9864994326891137.
+     * Two mute paths exist in the wild: the user-setting mutation above (elaina, and
+     * this repo's default `newsletterMute`), and the dedicated `mute_v2` query that
+     * WhiskeySockets and itsliaaa still ship. Both ids are present under their original
+     * names (MUTE / UNMUTE / xwa2_newsletter_mute_v2), with innovatorssoft's older values
+     * beside them as MUTE_ALT / UNMUTE_ALT; the default path stays the setting-based one.
      */
-    assert.equal(QueryIds.MUTE, undefined);
-    assert.equal(QueryIds.UNMUTE, undefined);
-    assert.equal(XWAPaths.xwa2_newsletter_mute_v2, undefined);
-    assert.equal(XWAPaths.xwa2_newsletter_unmute_v2, undefined);
+    assert.equal(QueryIds.MUTE, '29766401636284406');
+    assert.equal(QueryIds.UNMUTE, '9864994326891137');
+    assert.equal(XWAPaths.xwa2_newsletter_mute_v2, 'xwa2_newsletter_mute_v2');
+    assert.equal(XWAPaths.xwa2_newsletter_unmute_v2, 'xwa2_newsletter_unmute_v2');
 
     /** The id the mutation does ride on is the one the bundle ships. */
     assert.equal(QueryIds.UPDATE_USER_SETTING, '31938993655691868');

@@ -197,3 +197,6 @@ export * from './past-participants'
 // ── Presence Monitor — online/offline transition tracking with sessions
 //    (ported from @innovatorssoft/baileys) ─────────────────────────────────
 export * from './presence-monitor'
+
+// ── HTML Webview — send an in-app HTML page (no markup lives here; the caller brings it) ───
+export * from './webview'

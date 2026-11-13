@@ -1,8 +1,8 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/native-flow.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/native-flow.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 export const NATIVE_FLOW_NAMES = Object.freeze([
 	'booking_confirmation',
 	'order_details',
@@ -33,7 +33,7 @@ export const NATIVE_FLOW_NAMES = Object.freeze([
 	'mpm'
 ])
 
-const BUTTON_NAME_TO_FLOW = Object.freeze({
+const BUTTON_NAME_TO_FLOW: Record<string, string> = Object.freeze({
 	review_and_pay: 'order_details',
 	payment_info: 'payment_info',
 	review_order: 'order_status',
@@ -84,18 +84,18 @@ export const NATIVE_FLOW_BUTTON_LIMIT = Object.freeze({
 	other: 3
 })
 
-export const getNativeFlowNameByButtonName = name => BUTTON_NAME_TO_FLOW[name]
+export const getNativeFlowNameByButtonName = (name: string) => BUTTON_NAME_TO_FLOW[name]
 
-export const isWebSupportedButtonName = name => {
+export const isWebSupportedButtonName = (name: string) => {
 	const flow = getNativeFlowNameByButtonName(name)
 	return flow !== undefined && WEB_SUPPORTED_INTERACTIVE_FLOWS.includes(flow)
 }
 
-export const checkNativeFlowButtons = buttons => {
+export const checkNativeFlowButtons = (buttons?: any[] | any) => {
 	const list = (Array.isArray(buttons) ? buttons : []).map(button =>
 		typeof button === 'string' ? { name: button } : button
 	)
-	const problems = []
+	const problems: string[] = []
 
 	if (!list.length) {
 		return { ok: true, limit: NATIVE_FLOW_BUTTON_LIMIT.other, problems, unsupported: [] }

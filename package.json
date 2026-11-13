@@ -1,80 +1,45 @@
 {
   "name": "@teamolduser/baileys",
-  "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "A WebSockets library for interacting with WhatsApp Web",
-  "keywords": [
-    "whatsapp",
-    "automation"
-  ],
-  "homepage": "https://github.com/Teamolduser/Baileys/",
-  "repository": {
-    "url": "git@github.com:Teamolduser/Baileys.git"
-  },
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
-  "author": "OLDUSER 06",
+  "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
     "lib/**/*",
     "WAProto/**/*",
-    "engine-requirements.js",
-    "NOTICE.md",
     "assets/wasm/whatsapp.wasm",
     "assets/wasm/loader.js",
     "assets/wasm/worker-modules.js",
-    "assets/examples/example.js",
-    "assets/wasm/README.md"
+    "assets/wasm/README.md",
+    "assets/examples/**",
+    "engine-requirements.js",
+    "engine-requirements2.js",
+    "engine-requirements-anya.js",
+    "!assets/examples/example.mp4"
   ],
-  "scripts": {
-    "build:all": "yarn build && yarn build:docs",
-    "build:docs": "typedoc",
-    "build": "tsc -P tsconfig.build.json && tsc-esm-fix --tsconfig=tsconfig.build.json --ext=.js && node ./scripts/verify-voip-assets.mjs",
-    "changelog:last": "conventional-changelog -p angular -r 2",
-    "changelog:preview": "conventional-changelog -p angular -u",
-    "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
-    "example": "tsx ./Example/example.ts",
-    "gen:protobuf": "sh WAProto/GenerateStatics.sh",
-    "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
-    "formattt": "prettier --write .",
-    "formatt": "prettier --write *",
-    "lint": "tsc && eslint src --ext .js,.ts",
-    "lint:fix": "yarn format && tsc && eslint src --ext .js,.ts --fix",
-    "lint:fixAlt": "yarn format && yarn lint --fix",
-    "prepack": "yarn build",
-    "prepare": "yarn build",
-    "preinstall": "node ./engine-requirements.js",
-    "release": "release-it",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --testMatch '**/*.test.ts'",
-    "test2": "node --test \"test/*.test.js\"",
-    "update:version2": "node ./script/updatewa.js",
-    "build:docs2": "node ./script/apiref.js site-api.json && node ./script/builddocs.js site",
-    "verify:assets2": "node ./script/verifyassets.js",
-    "proto:update2": "npm run sync:proto && npm run verify:proto && npm run verify:mex && npm run wa:update -- --apply --keep 2 && npm run update:version2",
-    "test:e2e": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-vm-modules ./node_modules/.bin/jest --runInBand --forceExit --testMatch '**/*.test-e2e.ts'",
-    "update:version": "tsx ./scripts/update-version.ts",
-    "check:proto": "node ./script/checkproto.js",
-    "sync:proto": "node ./script/syncproto.js",
-    "wa:update": "node ./script/waupdate.js",
-    "wa:diff": "node ./script/diffbundle.js",
-    "audit:apk": "node ./script/auditapk.js",
-    "verify:proto": "node ./script/verifyproto.js",
-    "verify:mex": "node ./script/verifymex.js",
-    "fetch:bundle": "node ./script/fetchbundle.js",
-    "test:pairing": "node ./script/testpairing.js",
-    "proto:update": "npm run sync:proto && npm run build && npm run verify:proto && npm run verify:mex && npm run wa:update -- --apply --keep 2 && node ./script/updatewa.js",
-    "test:compat": "node --test test/builder.test.js test/groups.test.js test/html.test.js test/messages.test.js test/runtime.test.js test/status.test.js test/username.test.js test/voip.test.js",
-    "test:all": "npm run build && npm test && npm run test:compat",
-    "verify:assets": "node ./scripts/verify-voip-assets.mjs"
+  "keywords": [
+    "whatsapp",
+    "automation"
+  ],
+  "author": "OLDUSER 06",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Teamolduser/Baileys.git"
   },
+  "bugs": {
+    "url": "https://github.com/Teamolduser/Baileys/issues"
+  },
+  "homepage": "https://github.com/Teamolduser/Baileys/",
   "dependencies": {
     "@cacheable/node-cache": "^3.1.1",
     "@hapi/boom": "^10.0.1",
+    "@libsql/client": "^0.15.0",
     "@napi-rs/image": "^1.14.0",
+    "@rexxhayanasi/elaina-anchorguard": "^1.0.0",
     "@roamhq/wrtc": "^0.9.0",
+    "@seald-io/nedb": "^4.1.2",
     "async-mutex": "^0.5.0",
     "better-sqlite3": "^13.0.3",
     "fflate": "^0.8.2",
@@ -95,9 +60,24 @@
     "pino": "^10.3",
     "protobufjs": "^8.8.0",
     "qrcode-terminal": "^0.12.0",
+    "redis": "^6.3.1",
     "sharp": "^0.34.4",
     "whatsapp-rust-bridge": "0.5.5",
     "ws": "^8.21.0"
+  },
+  "peerDependencies": {
+    "audio-decode": "^2.2.3",
+    "better-sqlite3": "^13.0.3",
+    "jimp": "^1.6.1",
+    "link-preview-js": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "audio-decode": {
+      "optional": true
+    },
+    "link-preview-js": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
@@ -133,14 +113,54 @@
     "typedoc-plugin-markdown": "4.4.2",
     "typescript": "^5.8.2"
   },
-  "optionalDependencies": {
-    "@rexxhayanasi/elaina-anchorguard": "^1.0.0"
-  },
-  "peerDependencies": {
-    "audio-decode": "^2.2.3",
-    "better-sqlite3": "^13.0.3",
-    "jimp": "^1.6.1",
-    "link-preview-js": "^5.0.0"
+  "scripts": {
+    "audit:apk": "node ./script/auditapk.js",
+    "build": "tsc -P tsconfig.build.json && tsc-esm-fix --tsconfig=tsconfig.build.json --ext=.js",
+    "build:all": "npm run build && npm run build:docs",
+    "build:docs": "typedoc",
+    "build:docs2": "node ./script/apiref.js site-api.json && node ./script/builddocs.js site",
+    "changelog:last": "conventional-changelog -p angular -r 2",
+    "changelog:preview": "conventional-changelog -p angular -u",
+    "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+    "check:engine": "node engine-requirements-anya.js",
+    "check:proto": "node ./script/checkproto.js",
+    "check:tracked": "node scripts/check-tracked.mjs",
+    "example": "tsx ./Example/example.ts",
+    "fetch:bundle": "node ./script/fetchbundle.js",
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
+    "formatt": "prettier --write *",
+    "formattt": "prettier --write .",
+    "gen:protobuf": "sh WAProto/GenerateStatics.sh",
+    "lint": "tsc && eslint src --ext .js,.ts",
+    "lint:fix": "npm run format && tsc && eslint src --ext .js,.ts --fix",
+    "lint:fixAlt": "npm run format && npm run lint -- --fix",
+    "preinstall": "node ./engine-requirements-anya.js",
+    "prepack": "npm run build",
+    "prepare": "npm run build",
+    "proto:update": "npm run sync:proto && npm run build && npm run verify:proto && npm run verify:mex && npm run wa:update -- --apply --keep 2 && node ./script/updatewa.js",
+    "proto:update2": "npm run sync:proto && npm run verify:proto && npm run verify:mex && npm run wa:update -- --apply --keep 2 && npm run update:version2",
+    "readme": "node scripts/build-readme.mjs",
+    "readme:apply": "node scripts/generate-readme.mjs --apply",
+    "readme:check": "node scripts/build-readme.mjs --quiet",
+    "readme:generate": "node scripts/generate-readme.mjs",
+    "readme:index": "node scripts/generate-readme.mjs --index",
+    "release": "release-it",
+    "sync:proto": "node ./script/syncproto.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --testMatch '**/*.test.ts'",
+    "test2": "node --test \"test/*.test.js\"",
+    "test:all": "npm run build && npm test && npm run test:compat",
+    "test:compat": "node --test test/builder.test.js test/groups.test.js test/html.test.js test/messages.test.js test/runtime.test.js test/status.test.js test/username.test.js test/voip.test.js",
+    "test:e2e": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --experimental-vm-modules ./node_modules/.bin/jest --runInBand --forceExit --testMatch '**/*.test-e2e.ts'",
+    "test:e2e2": "node --test \"test/e2e/*.test.js\"",
+    "test:pairing": "node ./script/testpairing.js",
+    "update:version": "tsx ./scripts/update-version.ts",
+    "update:version2": "node ./script/updatewa.js",
+    "verify:assets": "node ./scripts/verify-voip-assets.mjs",
+    "verify:assets2": "node ./script/verifyassets.js",
+    "verify:mex": "node ./script/verifymex.js",
+    "verify:proto": "node ./script/verifyproto.js",
+    "wa:diff": "node ./script/diffbundle.js",
+    "wa:update": "node ./script/waupdate.js"
   },
   "resolutions": {
     "ajv@npm:^6.12.4": "^6.14.0",
@@ -171,13 +191,8 @@
     "underscore": "^1.13.8",
     "yaml@npm:^2.6.1": "^2.8.4"
   },
-  "peerDependenciesMeta": {
-    "audio-decode": {
-      "optional": true
-    },
-    "link-preview-js": {
-      "optional": true
-    }
+  "publishConfig": {
+    "access": "public"
   },
   "dependenciesMeta": {
     "ffmpeg-static": {

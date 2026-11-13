@@ -120,7 +120,7 @@ describe('Interactive Carousel Biz Node', () => {
 
 		expect(shouldIncludeBizBinaryNode(plain)).toBe(false)
 		expect(shouldIncludeBizBinaryNode(empty)).toBe(false)
-		expect(shouldIncludeBizBinaryNode({ conversation: 'halo' } as any)).toBe(false)
+		expect(shouldIncludeBizBinaryNode({ conversation: 'halo' })).toBe(false)
 	})
 
 	it('builds the mixed native flow biz node when only a later card holds native flow buttons', () => {

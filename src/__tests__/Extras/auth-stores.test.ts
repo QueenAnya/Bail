@@ -26,6 +26,12 @@ const makeMemoryStore = () => {
 			return out
 		},
 		write: async (type, id, value) => void rows.set(k(type, id), value),
+		list: async function* (type) {
+			for (const [key, value] of rows) {
+				const [rowType, id = ''] = key.split('\u0000')
+				if (rowType === type) yield [id, value] as const
+			}
+		},
 		apply: async (writes: AuthStoreEntry[], removals) => {
 			for (const w of writes) rows.set(k(w.type, w.id), w.value)
 			for (const r of removals) rows.delete(k(r.type, r.id))

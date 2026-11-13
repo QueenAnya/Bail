@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { proto } from '../WAProto/index.js';
-import { A2UI_BASIC_CATALOG, A2UI_VERSION, AI_RICH_SUBMESSAGE_CONTENT_ITEMS, AI_RICH_SUBMESSAGE_INLINE_IMAGE, AI_RICH_SUBMESSAGE_KINDS, AI_RICH_SUBMESSAGE_TABLE, AI_RICH_SUBMESSAGE_TEXT, AIRichMessage, aiRichInlineImage, aiRichSubmessage, aiRichTable, BLOKS_A2UI_TYPE, a2uiCard, a2uiColumn, a2uiFallback, a2uiImage, a2uiInfoCard, a2uiListCard, a2uiRow, a2uiSurface, a2uiText, a2uiWidget, buildA2UISection, decodeBloksWidget, sendA2UI, sendA2UIBloks, sendAIRichMessage, autoHeight, HTML_APP_BRIDGE, AI_RICH_PRIMITIVES, BLOKS_A2UI_REPLY_ACTION, BLOKS_A2UI_SUPPORTED_ELEMENTS, bloksSection, bloksWidget, decodeAIRich, sendBloksWidget, AI_RICH_INLINE_ENTITIES, AI_RICH_SECTION_TYPENAME, EMBEDDED_SCREEN_PRESENTATION, EMBEDDED_SCREEN_TABBED_TYPENAME, SourceProvider, botSourcesMetadata, embeddedScreen, embeddedTab, embeddedTabbedContent, htmlSection, readEmbeddedSections, readEmbeddedTabs, readRichMessage, HTML_MIME_TYPE, fileLinkSection, fileSection, sendHtmlDocument, FooterActionType, footerActionSection, AI_RICH_HTML_PRIMITIVE, AI_RICH_PRIMITIVES_WEB_RENDERED, lockHeight, sendHtmlApp, AI_RICH_ITEMS, AI_RICH_LAYOUTS } from '../src/MessageBuilder/extras.js';
-import { AIRich, Toolkit, ContentValidationError } from '../src/MessageBuilder/index.js';
-import { checkHtmlApp } from '../src/Utils/html-app.js';
-import { accountLinkingApp, accountLinkingSection, actionListRow, actionListSection, addonActionSection, calendarEvent, calendarWidgetSection, chainOfThoughtSection, chainingSuggestionSection, commentSection, compactEntitySection, contextualSourcesSection, customSection, locationPermissionSection, mapSection, mediaGridSection, mediaItem, multipleResponseSection, placeItem, plannerSnippetSection, plannerStep, productEntityItem, reminderSection, searchAdSection, searchPlannerSection, searchResultV2Section, sideBySideSurveyItem, socialEntityItem, sportsSection, threadSurfingItem, timestampPlaceholderSection, transparencySection, transparencySignal, videoSection, ActionListRowType, CompactEntityType, MapQueryStatus, MultipleResponseLayoutType, SearchPlannerStepStatus, SportsGameStatus, SportsLeague, forwardRichResponse, readSignedRichResponse, verifyRichResponseSignature } from '../src/MessageBuilder/metaai.js';
-import { NATIVE_FLOW_BUTTON_LIMIT, NATIVE_FLOW_NAMES, checkNativeFlowButtons, getNativeFlowNameByButtonName, isWebSupportedButtonName } from '../src/Utils/native-flow.js';
-import { BOT_SIGNATURE_ROOT_CERTIFICATE, constructSignaturePayload, loadBotSignatureRoot, verifyBotSignature } from '../src/MessageBuilder/bot-signature.js';
+import { A2UI_BASIC_CATALOG, A2UI_VERSION, AI_RICH_SUBMESSAGE_CONTENT_ITEMS, AI_RICH_SUBMESSAGE_INLINE_IMAGE, AI_RICH_SUBMESSAGE_KINDS, AI_RICH_SUBMESSAGE_TABLE, AI_RICH_SUBMESSAGE_TEXT, AIRichMessage, aiRichInlineImage, aiRichSubmessage, aiRichTable, BLOKS_A2UI_TYPE, a2uiCard, a2uiColumn, a2uiFallback, a2uiImage, a2uiInfoCard, a2uiListCard, a2uiRow, a2uiSurface, a2uiText, a2uiWidget, buildA2UISection, decodeBloksWidget, sendA2UI, sendA2UIBloks, sendAIRichMessage, autoHeight, HTML_APP_BRIDGE, AI_RICH_PRIMITIVES, BLOKS_A2UI_REPLY_ACTION, BLOKS_A2UI_SUPPORTED_ELEMENTS, bloksSection, bloksWidget, decodeAIRich, sendBloksWidget, AI_RICH_INLINE_ENTITIES, AI_RICH_SECTION_TYPENAME, EMBEDDED_SCREEN_PRESENTATION, EMBEDDED_SCREEN_TABBED_TYPENAME, SourceProvider, botSourcesMetadata, embeddedScreen, embeddedTab, embeddedTabbedContent, htmlSection, readEmbeddedSections, readEmbeddedTabs, readRichMessage, HTML_MIME_TYPE, fileLinkSection, fileSection, sendHtmlDocument, FooterActionType, footerActionSection, AI_RICH_HTML_PRIMITIVE, AI_RICH_PRIMITIVES_WEB_RENDERED, lockHeight, sendHtmlApp, AI_RICH_ITEMS, AI_RICH_LAYOUTS } from '../lib/Extras/MessageBuilder/extras.js';
+import { AIRich, Toolkit, ContentValidationError } from '../lib/Extras/MessageBuilder/index.js';
+import { checkHtmlApp } from '../lib/Extras/html-app.js';
+import { accountLinkingApp, accountLinkingSection, actionListRow, actionListSection, addonActionSection, calendarEvent, calendarWidgetSection, chainOfThoughtSection, chainingSuggestionSection, commentSection, compactEntitySection, contextualSourcesSection, customSection, locationPermissionSection, mapSection, mediaGridSection, mediaItem, multipleResponseSection, placeItem, plannerSnippetSection, plannerStep, productEntityItem, reminderSection, searchAdSection, searchPlannerSection, searchResultV2Section, sideBySideSurveyItem, socialEntityItem, sportsSection, threadSurfingItem, timestampPlaceholderSection, transparencySection, transparencySignal, videoSection, ActionListRowType, CompactEntityType, MapQueryStatus, MultipleResponseLayoutType, SearchPlannerStepStatus, SportsGameStatus, SportsLeague, forwardRichResponse, readSignedRichResponse, verifyRichResponseSignature } from '../lib/Extras/MessageBuilder/metaai.js';
+import { NATIVE_FLOW_BUTTON_LIMIT, NATIVE_FLOW_NAMES, checkNativeFlowButtons, getNativeFlowNameByButtonName, isWebSupportedButtonName } from '../lib/Extras/native-flow.js';
+import { BOT_SIGNATURE_ROOT_CERTIFICATE, constructSignaturePayload, loadBotSignatureRoot, verifyBotSignature } from '../lib/Extras/MessageBuilder/bot-signature.js';
 import { X509Certificate, sign as cryptoSign, createPrivateKey } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -360,7 +360,7 @@ test('bloks-widget', async () => {
 
     const richCalls = [];
     const richSock = { user: { id: '1@s.whatsapp.net' }, relayMessage: async (jid, message) => { richCalls.push({ jid, message }); } };
-    const { AIRich } = await import('../src/MessageBuilder/index.js');
+    const { AIRich } = await import('../lib/Extras/MessageBuilder/index.js');
     const rich = new AIRich(richSock);
     rich._addContent(bloksSection(BLOKS_A2UI_TYPE, { title: 'card' }));
     await rich.send('2@s.whatsapp.net');
@@ -1547,7 +1547,7 @@ test('airich-wrapper', async () => {
 });
 
 test('new-airich-sections-2.26.37.6', async () => {
-    const MB = (await import('../src/MessageBuilder/metaai.js'));
+    const MB = (await import('../lib/Extras/MessageBuilder/metaai.js'));
 
     const quiz = MB.quizSection({ title: 'Quiz', subject: 'General', questions: [{ question: '1+1?', options: ['1', '2'], correctIndices: [1], explanation: 'two', hints: ['number'] }] });
     assert.equal(quiz.view_model.primitive.__typename, 'GenAIQuizPrimitive');

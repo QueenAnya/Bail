@@ -269,8 +269,7 @@ describe('isTcTokenExpired', () => {
 	})
 
 	it('returns true for null', () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		expect(isTcTokenExpired(null as any)).toBe(true)
+		expect(isTcTokenExpired(null)).toBe(true)
 	})
 
 	it('returns true for NaN string', () => {

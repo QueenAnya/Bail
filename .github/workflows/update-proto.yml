@@ -2,7 +2,7 @@ name: Update WAProto
 
 on:
   schedule:
-    - cron: '10 1 * * *'
+    - cron: '30 18 * * *'
   workflow_dispatch:
 
 permissions:
@@ -28,15 +28,13 @@ jobs:
           corepack enable
           corepack prepare yarn@4.x --activate
 
-      - name: Install packages
+      - name: Install Dependencies
         run: |
           yarn cache clean
           rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
           yarn install --no-immutable
-          yarn --cwd proto-extract install --no-immutable
-
       - name: Update WAProto.proto
         id: wa_proto_info
         run: |

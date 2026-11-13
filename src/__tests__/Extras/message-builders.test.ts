@@ -35,18 +35,20 @@ const gen = (content: any) =>
 		upload
 	})
 
-describe('payment messages (INR by default)', () => {
-	it('money scales by the offset, defaults to INR and validates its input', () => {
-		expect(money(500)).toEqual({ value: 500000, offset: 1000, currencyCode: 'INR' })
+describe('payment messages (currency is required, as in Elaina)', () => {
+	it('money scales by the offset and validates its input', () => {
+		expect(money(500, 'INR')).toEqual({ value: 500000, offset: 1000, currencyCode: 'INR' })
 		expect(money('12.5', 'usd')).toEqual({ value: 12500, offset: 1000, currencyCode: 'USD' })
-		expect(() => money(-1)).toThrow('non-negative')
+		expect(() => money(-1, 'INR')).toThrow('non-negative')
 		expect(() => money(1, 'RUPEE')).toThrow('three letter')
+		expect(() => (money as any)(500)).toThrow('three letter')
 	})
 
 	it('buildSplitPayment / readSplitPayment round-trip through the proto', async () => {
 		const split = buildSplitPayment({
 			splitId: 's1',
 			total: 900,
+			currency: 'INR',
 			description: 'dinner',
 			participants: [
 				{ jid: 'a@s.whatsapp.net', amount: 300 },
@@ -56,7 +58,12 @@ describe('payment messages (INR by default)', () => {
 		expect(split.totalAmount).toEqual({ value: 900000, offset: 1000, currencyCode: 'INR' })
 
 		const msg: any = await gen({
-			splitPayment: { splitId: 's1', total: 900, participants: [{ jid: 'a@s.whatsapp.net', amount: 300 }] }
+			splitPayment: {
+				splitId: 's1',
+				total: 900,
+				currency: 'INR',
+				participants: [{ jid: 'a@s.whatsapp.net', amount: 300 }]
+			}
 		})
 		const decoded = proto.Message.decode(proto.Message.encode(msg.message).finish()).toJSON()
 		const read = readSplitPayment(decoded)!
@@ -71,9 +78,11 @@ describe('payment messages (INR by default)', () => {
 	})
 
 	it('paymentReminder goes through sendMessage content and reads back', async () => {
-		const reminder = buildPaymentReminder({ reminderId: 'r1', amount: 99 })
+		const reminder = buildPaymentReminder({ reminderId: 'r1', amount: 99, currency: 'INR' })
 		expect((reminder.amount as any).currencyCode).toBe('INR')
-		const msg: any = await gen({ paymentReminder: { reminderId: 'r1', amount: 99, payeeVpa: 'a@upi' } })
+		const msg: any = await gen({
+			paymentReminder: { reminderId: 'r1', amount: 99, currency: 'INR', payeeVpa: 'a@upi' }
+		})
 		const read = readPaymentReminder(msg.message)!
 		expect(read.reminderId).toBe('r1')
 		expect(read.payeeVpa).toBe('a@upi')

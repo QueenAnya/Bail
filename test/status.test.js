@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { proto } from '../WAProto/index.js';
-import { MusicMessageStyle, STICKER_DEFAULT_AREA, StatusLinkType, channelSticker, linkSticker, locationSticker, messageSticker, musicSticker, normalizeStickers, readStickers, buildMusicMessage, isMusicHostAllowed, MUSIC_ALLOWED_HOSTS, readMusicMessage, stickerArea } from '../src/Utils/status-stickers.js';
+import { MusicMessageStyle, STICKER_DEFAULT_AREA, StatusLinkType, channelSticker, linkSticker, locationSticker, messageSticker, musicSticker, normalizeStickers, readStickers, buildMusicMessage, isMusicHostAllowed, MUSIC_ALLOWED_HOSTS, readMusicMessage, stickerArea } from '../lib/Extras/status-stickers.js';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { StatusFont, AssociationType, StatusNotificationType } from '../src/Types/Message.js';
-import { generateWAMessage, normalizeMessageContent, getContentType } from '../src/Utils/messages.js';
-import { STATUS_NOTIFICATION_TYPES, makeMessageAssociation, makeStatusAddYoursAssociation, makeStatusMentionMessage, prepareModernMessageContent, STATUS_AUDIENCE_DEFAULT_EMOJI, STATUS_AUDIENCE_DEFAULT_LIST_NAME, makeStatusAudienceMetadata } from '../src/Utils/modern-messages.js';
+import { StatusFont, StatusNotificationType } from '../lib/Types/Message.js';
+import { AssociationType } from '../lib/Extras/messages-extras.js';
+import { generateWAMessage, normalizeMessageContent, getContentType } from '../lib/Utils/messages.js';
+import { STATUS_NOTIFICATION_TYPES, makeMessageAssociation, makeStatusAddYoursAssociation, makeStatusMentionMessage, prepareModernMessageContent, STATUS_AUDIENCE_DEFAULT_EMOJI, STATUS_AUDIENCE_DEFAULT_LIST_NAME, makeStatusAudienceMetadata } from '../lib/Extras/modern-messages.js';
 
 test('status-stickers', async () => {
     /**
@@ -145,7 +146,7 @@ test('status-stickers', async () => {
      * "stickers" is already the sticker-pack content, so the name had to differ.
      */
     {
-        const { generateWAMessageContent } = await import('../src/Utils/messages.js');
+        const { generateWAMessageContent } = await import('./ported-helpers.js');
         const media = Buffer.alloc(1024, 7);
         const options = {
             upload: async () => ({ mediaUrl: 'https://mmg.whatsapp.net/x', directPath: '/x' }),
@@ -214,7 +215,7 @@ test('status-stickers', async () => {
 
     /** sendMessage takes it as music, next to the other content keys. */
     {
-        const { generateWAMessageContent } = await import('../src/Utils/messages.js');
+        const { generateWAMessageContent } = await import('./ported-helpers.js');
         const content = await generateWAMessageContent(
             { music: { songId: '123', title: 'Song', songUri: 'https://mmg.whatsapp.net/v/song.m4a' } },
             { upload: async () => ({}), logger: { debug() {}, warn() {}, info() {} } }
@@ -257,7 +258,7 @@ test('status-stickers', async () => {
      * library can still do is carry a real entry across unchanged.
      */
     {
-        const { generateWAMessageContent } = await import('../src/Utils/messages.js');
+        const { generateWAMessageContent } = await import('./ported-helpers.js');
         const options = { upload: async () => ({ directPath: '/v/x' }), logger: { debug() {}, warn() {}, info() {} } };
 
         const relayed = await generateWAMessageContent({
@@ -284,7 +285,7 @@ test('status-stickers', async () => {
      * consumption gate.
      */
     {
-        const { generateWAMessageContent } = await import('../src/Utils/messages.js');
+        const { generateWAMessageContent } = await import('./ported-helpers.js');
         const options = { upload: async () => ({ directPath: '/v/t62.7/abc.enc' }), logger: { debug() {}, warn() {}, info() {} } };
         const artwork = Buffer.from(
             '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/'

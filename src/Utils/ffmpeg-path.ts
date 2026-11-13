@@ -15,6 +15,13 @@ export const getFfmpegBin = (): string => {
 		return cached
 	}
 
+	// an explicit override wins over everything, so a deployment can pin its own build
+	const override = process.env.FFMPEG_PATH?.trim()
+	if (override) {
+		cached = override
+		return override
+	}
+
 	try {
 		const bundled: unknown = createRequire(import.meta.url)('ffmpeg-static')
 		const path = typeof bundled === 'string' ? bundled : (bundled as { default?: unknown } | null)?.default

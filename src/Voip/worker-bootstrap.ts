@@ -419,10 +419,27 @@ if (typeof self === 'undefined') (global as any).self = global
 ;(global as any).self = global
 if (typeof (global as any).window === 'undefined') (global as any).window = global
 
+/**
+ * `importScripts` shim: the WhatsApp VoIP worker expects a browser global that loads sibling scripts by path.
+ *
+ * Two deliberate restrictions, because this is the one place in the package that executes a file's contents:
+ *   1. only files inside the package directory are read — a path from outside it is refused, so a caller cannot
+ *      point this at an arbitrary file on disk;
+ *   2. only `.js` / `.mjs` files, checked against the resolved real path so a symlink cannot escape the package.
+ * A refusal is silent on purpose: the worker treats a failed script load as "that global is not available".
+ */
+const PACKAGE_ROOT = path.resolve(path.dirname(__voipFilename), '..', '..')
+
 global.importScripts = function (...urls: string[]): void {
 	for (const url of urls) {
 		try {
-			const code = fs.readFileSync(url, 'utf8')
+			const resolved = fs.realpathSync(path.resolve(url))
+			const insidePackage = resolved === PACKAGE_ROOT || resolved.startsWith(`${PACKAGE_ROOT}${path.sep}`)
+			if (!insidePackage || !/\.(m?js)$/.test(resolved)) {
+				continue
+			}
+
+			const code = fs.readFileSync(resolved, 'utf8')
 			eval(code)
 		} catch (e) {}
 	}

@@ -63,7 +63,12 @@ jobs:
           echo "Prerelease tag: ${{ steps.get_previous_version.outputs.prerelease_tag }}"
 
       - name: Install Dependencies
-        run: pnpm install
+        # this repository ships no pnpm-lock.yaml, and pnpm defaults to --frozen-lockfile in CI, so the install has to
+        # be told to resolve fresh
+        run: |
+          pnpm store prune
+          rm -f pnpm-lock.yaml
+          pnpm install --no-frozen-lockfile
 
       - name: Publish in NPM (as `@teamolduser/baileys` in regular)
         # if: steps.get_previous_version.outputs.version_increased == 'true' && steps.get_previous_version.outputs.is_beta == 'false'
@@ -110,13 +115,13 @@ jobs:
       - name: Generate Changelog
         id: generate_changelog
         run: |
-          changelog=$(npm run changelog:last --silent)
+          changelog=$(pnpm run changelog:last --silent)
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "${changelog}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Make Package
-        run: npm pack
+        run: pnpm pack
 
       - name: Rename Pack
         run: mv *.tgz baileys.tgz

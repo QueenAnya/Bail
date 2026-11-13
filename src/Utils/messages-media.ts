@@ -124,10 +124,17 @@ export const extractVideoThumb = (
 ): Promise<Buffer> =>
 	new Promise((resolve, reject) => {
 		const args = [
+			'-loglevel',
+			'error',
 			'-ss',
 			time,
 			'-i',
 			path,
+			'-an',
+			'-sn',
+			'-dn',
+			'-map_metadata',
+			'-1',
 			'-y',
 			'-vf',
 			`scale=${size.width}:-1`,

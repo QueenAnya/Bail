@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import P from 'pino'
 import { LIDMappingStore } from '../../Signal/lid-mapping'
-import type { LIDMapping, SignalDataTypeMap, SignalKeyStoreWithTransaction } from '../../Types'
+import type { LIDMapping, SignalKeyStoreWithTransaction } from '../../Types'
 
 const HOSTED_DEVICE_ID = 99
 
@@ -28,7 +28,7 @@ describe('LIDMappingStore', () => {
 			const pnUser = '54321'
 
 			// @ts-ignore
-			mockKeys.get.mockResolvedValue({ [`12345_reverse`]: pnUser } as SignalDataTypeMap['lid-mapping'])
+			mockKeys.get.mockResolvedValue({ [`12345_reverse`]: pnUser })
 
 			const result = await lidMappingStore.getPNForLID(lidWithHostedDevice)
 			expect(result).toBe(`${pnUser}:${HOSTED_DEVICE_ID}@s.whatsapp.net`)
@@ -38,7 +38,7 @@ describe('LIDMappingStore', () => {
 			const lid = 'nonexistent@lid'
 
 			// @ts-ignore
-			mockKeys.get.mockResolvedValue({} as SignalDataTypeMap['lid-mapping']) // Simulate not found in DB
+			mockKeys.get.mockResolvedValue({}) // Simulate not found in DB
 
 			const result = await lidMappingStore.getPNForLID(lid)
 			expect(result).toBeNull()

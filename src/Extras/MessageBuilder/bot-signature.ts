@@ -1,8 +1,8 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - MessageBuilder/bot-signature.js
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - MessageBuilder/bot-signature.js
  * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 import { verify as cryptoVerify, X509Certificate } from 'crypto'
 
 export const BOT_SIGNATURE_VERSION = '1'
@@ -28,7 +28,7 @@ hkjOPQQDAgNIADBFAiAINhjk9DbP416vx/WjqdUfexgic08aQsxnpDDsNE5M0gIh
 ANorq7KwCQVMtS2or5uKJAQsx1FxCHyDafq2GCk9t0AN
 -----END CERTIFICATE-----`
 
-let rootCertificate = null
+let rootCertificate: X509Certificate | null = null
 
 export const loadBotSignatureRoot = () => {
 	if (!rootCertificate) {
@@ -38,10 +38,17 @@ export const loadBotSignatureRoot = () => {
 	return rootCertificate
 }
 
-export const constructSignaturePayload = ({ botFbid, messageDigest, version = BOT_SIGNATURE_VERSION }) =>
-	Buffer.concat([Buffer.from(version, 'utf8'), Buffer.from(String(botFbid), 'utf8'), Buffer.from(messageDigest)])
+export const constructSignaturePayload = ({
+	botFbid,
+	messageDigest,
+	version = BOT_SIGNATURE_VERSION
+}: {
+	botFbid: string
+	messageDigest: string | Uint8Array
+	version?: string
+}) => Buffer.concat([Buffer.from(version, 'utf8'), Buffer.from(String(botFbid), 'utf8'), Buffer.from(messageDigest)])
 
-export const isParsableCertificateChain = chain => {
+export const isParsableCertificateChain = (chain: any) => {
 	if (!Array.isArray(chain) || !chain.length) {
 		return false
 	}
@@ -57,12 +64,26 @@ export const isParsableCertificateChain = chain => {
 	}
 }
 
-const failed = reason => ({ status: 'failed', reason })
+const failed = (reason: string) => ({ status: 'failed' as const, reason })
 
-const validAt = (certificate, at) => {
+const validAt = (certificate: X509Certificate, at: number) => {
 	const from = Date.parse(certificate.validFrom)
 	const to = Date.parse(certificate.validTo)
 	return Number.isFinite(from) && Number.isFinite(to) && at >= from && at <= to
+}
+
+export interface BotSignatureProof {
+	version?: number | string
+	signature?: any
+	certificateChain?: any[]
+}
+
+export interface VerifyBotSignatureInput {
+	botJid?: string
+	unifiedResponseBytes?: any
+	proof?: BotSignatureProof
+	at?: number
+	root?: X509Certificate
 }
 
 export const verifyBotSignature = ({
@@ -71,7 +92,7 @@ export const verifyBotSignature = ({
 	proof,
 	at = Date.now(),
 	root = loadBotSignatureRoot()
-} = {}) => {
+}: VerifyBotSignatureInput = {}) => {
 	if (!proof) {
 		return failed('no WA_BOT_MSG proof')
 	}
@@ -97,30 +118,39 @@ export const verifyBotSignature = ({
 		return failed('no bot jid, the fbid is part of the signed payload')
 	}
 
-	let chain
+	let chain: X509Certificate[]
 	try {
-		chain = proof.certificateChain.map(entry => new X509Certificate(Buffer.from(entry)))
+		chain = proof.certificateChain.map((entry: any) => new X509Certificate(Buffer.from(entry)))
 	} catch (error) {
-		return failed(`certificate did not parse: ${error.message}`)
+		return failed(`certificate did not parse: ${(error as Error).message}`)
 	}
 
-	const [leaf] = chain
+	const leaf = chain[0]
+	if (!leaf) {
+		return failed('empty certificate chain')
+	}
+
 	if (!validAt(leaf, at)) {
 		return failed('leaf certificate is outside its validity window')
 	}
 
-	const full = [...chain, root]
+	const full: X509Certificate[] = [...chain, root]
 	for (let index = 0; index < full.length - 1; index += 1) {
 		const issuer = full[index + 1]
+		const subject = full[index]
+		if (!issuer || !subject) {
+			return failed(`chain is incomplete at position ${index}`)
+		}
+
 		if (!validAt(issuer, at)) {
 			return failed(`issuer at position ${index + 1} is outside its validity window`)
 		}
 
 		let ok = false
 		try {
-			ok = full[index].verify(issuer.publicKey)
+			ok = subject.verify(issuer.publicKey)
 		} catch (error) {
-			return failed(`chain verification threw at position ${index}: ${error.message}`)
+			return failed(`chain verification threw at position ${index}: ${(error as Error).message}`)
 		}
 
 		if (!ok) {
@@ -133,7 +163,7 @@ export const verifyBotSignature = ({
 	try {
 		ok = cryptoVerify(null, payload, leaf.publicKey, Buffer.from(proof.signature))
 	} catch (error) {
-		return failed(`signature verification threw: ${error.message}`)
+		return failed(`signature verification threw: ${(error as Error).message}`)
 	}
 
 	return ok ? { status: 'passed' } : failed('signature does not match the unified response bytes')

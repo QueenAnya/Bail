@@ -1,8 +1,8 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/html-app.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/html-app.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 
 export const HTML_APP_MESSAGE_CEILING = 1024 * 1024
 
@@ -10,7 +10,7 @@ export const HTML_APP_BYTE_BUDGET = 960 * 1024
 
 export const HTML_APP_BYTE_LIMIT = HTML_APP_BYTE_BUDGET
 
-export const wireBytes = html =>
+export const wireBytes = (html: string) =>
 	Buffer.byteLength(
 		JSON.stringify(String(html)).replace(
 			/[\u007f-\uffff]/g,
@@ -21,17 +21,22 @@ export const wireBytes = html =>
 
 const STORAGE_APIS = ['localStorage', 'sessionStorage', 'indexedDB', 'document.cookie', 'caches']
 
-const strip = html =>
+const strip = (html: string) =>
 	html
 		.replace(/<!--[\s\S]*?-->/g, '')
 		.replace(/data:[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]*;base64,[A-Za-z0-9+/=]+/gi, 'data:')
 
-const hasVisibilityGuard = source =>
+const hasVisibilityGuard = (source: string) =>
 	/document\.(hidden|visibilityState)|visibilitychange|IntersectionObserver|cancelAnimationFrame|clearInterval/.test(
 		source
 	)
 
-export const checkHtmlApp = (html, { height, maxBytes = HTML_APP_BYTE_BUDGET } = {}) => {
+export interface HtmlAppCheckOptions {
+	height?: number
+	maxBytes?: number
+}
+
+export const checkHtmlApp = (html: string, { height, maxBytes = HTML_APP_BYTE_BUDGET }: HtmlAppCheckOptions = {}) => {
 	if (typeof html !== 'string') {
 		throw new TypeError('checkHtmlApp requires an HTML string')
 	}
@@ -119,7 +124,7 @@ export const checkHtmlApp = (html, { height, maxBytes = HTML_APP_BYTE_BUDGET } =
 	}
 
 	const dataUris = [...html.matchAll(/data:[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]*;base64,([A-Za-z0-9+/=]+)/gi)]
-	const embedded = dataUris.reduce((total, match) => total + match[1].length, 0)
+	const embedded = dataUris.reduce((total, match) => total + match[1]!.length, 0)
 	if (embedded > bytes * 0.6 && dataUris.length) {
 		warnings.push(
 			`${Math.round(embedded / 1024)}KB of the page is embedded media — shrink it before the byte budget forces you to`

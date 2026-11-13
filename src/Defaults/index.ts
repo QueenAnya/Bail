@@ -7,7 +7,8 @@ import logger from '../Utils/logger'
 
 export { PHONENUMBER_MCC } from './phonenumber-mcc'
 
-const version = [2, 3000, 1051456098] // client_revision from https://web.whatsapp.com/sw.js
+// client_revision from https://web.whatsapp.com/sw.js; kept in step with elaina-baileys 1.4.9
+const version = [2, 3000, 1053624037]
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
@@ -95,6 +96,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
 	customUploadHosts: [],
 	retryRequestDelayMs: 250,
 	maxMsgRetryCount: 5,
+	maxEventListeners: 64,
 	maxRetryQueueSize: 64,
 	ackRetryDelayMs: 750,
 	maxAckRetryCount: 3,

@@ -18,6 +18,13 @@
     "noEmit": true,
 
     // Type Safety
+    // Explicitly empty: the transitive @types/* packages pulled in by the dev tooling
+    // (babel__generator, istanbul-lib-report, unist, webidl-conversions, yargs-parser ...) are not
+    // installed, and their absence made tsc report only TS2688 and skip checking the source entirely.
+    // An implicit-any parameter used to pass `yarn build` silently. With this set, the source is checked.
+    // `node` and `jest` are listed explicitly because this config also type-checks src/__tests__: without them the
+    // test files fail on every `it`/`expect` and `yarn lint` (tsc && eslint) never reaches eslint.
+    "types": ["node", "jest"],
     "strict": true,
     "strictNullChecks": true,
     "noFallthroughCasesInSwitch": true,

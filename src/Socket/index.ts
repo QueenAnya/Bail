@@ -1,3 +1,4 @@
+import { webView, type WebViewOptions, type WebViewResult } from '../Addons/webview'
 import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
 import { makePortedSocket } from '../Extras/socket'
 import { bindVoiceRecognition } from '../Extras/voice-recognition'
@@ -62,7 +63,8 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 	// opt-in voice-note transcription (config.voiceRecognition = { enabled, transcribe, ... })
 	bindVoiceRecognition(sock, newConfig)
 
-	// opt-in anti-crash guard (config.AnchorGuard = true); needs the optional anchorguard package
+	// opt-in anti-crash guard (config.AnchorGuard = true), ported from Elaina Baileys. The guard package
+	// (@rexxhayanasi/elaina-anchorguard) ships as a dependency but is imported lazily, so a missing copy only warns
 	if (newConfig.AnchorGuard) {
 		const anchorGuardPackage = '@rexxhayanasi/elaina-anchorguard'
 		import(anchorGuardPackage)
@@ -80,7 +82,18 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 			})
 	}
 
-	return Object.assign(sock, { makeVoipClient: makeSocketVoipClient })
+	// In-app HTML webview, bound to this socket so callers do not have to pass it back in:
+	//   await sock.webView(jid, { html })
+	// The standalone `webView(sock, jid, options)` export stays for code that already passes the socket.
+	const boundWebView = (chatId: string, options: WebViewOptions): Promise<WebViewResult> =>
+		webView(sock, chatId, options)
+
+	return Object.assign(sock, {
+		makeVoipClient: makeSocketVoipClient,
+		webView: boundWebView,
+		web: boundWebView,
+		sendHtmlWebview: boundWebView
+	})
 }
 
 export default makeWASocket

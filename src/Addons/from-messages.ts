@@ -286,7 +286,10 @@ const isVideoBuffer = (b: Buffer) =>
 /** ffmpeg binary: bundled `ffmpeg-static` if its binary exists, else the system `ffmpeg`. */
 const getFfmpegPath = async (): Promise<string> => {
 	try {
-		const mod: any = await import('ffmpeg-static')
+		// non-literal specifier: `ffmpeg-static` resolves through the shared helper so a failed binary download
+		// checking (and load) on machines that skipped it. The try/catch below is the real guard.
+		const specifier = 'ffmpeg-static'
+		const mod: any = await import(specifier)
 		const path: unknown = mod?.default ?? mod
 		if (typeof path === 'string') {
 			await fs.access(path)

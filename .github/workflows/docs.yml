@@ -3,7 +3,7 @@ name: Docs
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'docs/**'
       - 'lib/**/*.d.ts'
@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: elaina-baileys-docs
+  group: anya-baileys-docs-web
   cancel-in-progress: true
 
 jobs:
@@ -39,13 +39,31 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Install Dependencies
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+      - name: Build the library
+        run: yarn build
+
       - name: Build the site
-        run: npm run build:docs
+        # `build:docs` is typedoc, which writes to docs/api and leaves site/ missing — the publish step below copies
+        # site/, so it needs the real site builder.
+        run: yarn build:docs2
 
       - name: Identify as the repository owner
         run: |
-          git config user.name "RexxHayanasi Pengen S.Kom"
-          git config user.email "150516773+rexxzyid@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Publish to the web branch
         run: |
@@ -63,7 +81,7 @@ jobs:
           git add -A
 
           if git diff --staged --quiet; then
-            echo "Situs tidak berubah."
+            echo "Site unchanged."
             exit 0
           fi
 
@@ -77,5 +95,5 @@ jobs:
             git pull --rebase origin web || true
           done
 
-          echo "Push gagal setelah 4 percobaan."
+          echo "Push failed after 4 attempts."
           exit 1

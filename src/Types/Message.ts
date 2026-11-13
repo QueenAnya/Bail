@@ -497,6 +497,8 @@ export type StatusMentionOptions = {
 	text: string
 	/** Background color */
 	backgroundColor?: string
+	/** text colour of a text status, `#rrggbb`, `#aarrggbb` or an ARGB number */
+	textColor?: string | number
 	/** Font */
 	font?: number
 }
@@ -586,8 +588,10 @@ export type PollMessageOptions = {
 	 * Hide voter names — when true, poll uses V6 format and shows 'Names hidden' badge.
 	 * PR #2725 — reverse-engineered from live WhatsApp.
 	 */
+	hideParticipantName?: boolean
+	/** @deprecated elaina/upstream name is `hideParticipantName`; kept so existing callers keep compiling */
 	hideVoterNames?: boolean
-	/** alias of `hideVoterNames` */
+	/** alias of `hideParticipantName` */
 	hideVoter?: boolean
 	/** poll expiration timestamp; after this the poll can no longer be voted on */
 	endDate?: Date

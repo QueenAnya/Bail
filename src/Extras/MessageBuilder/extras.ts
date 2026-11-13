@@ -1,8 +1,15 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - MessageBuilder/extras.js
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - MessageBuilder/extras.js
  * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
 // @ts-nocheck
+// Deliberate: one of only three files left with @ts-nocheck in src/Extras.
+// This module walks protobuf trees whose shape varies with the WAProto build; removing the
+// directive surfaces roughly 200-550 errors here, nearly all implicit-any on dynamic proto
+// paths. The other 11 ported modules were cleaned first (see the port review); this trio is
+// remaining work, not an oversight. Tackle one file at a time.
+
 import { randomUUID } from 'crypto'
 import { extractMessageContent, generateWAMessageFromContent, prepareWAMessageMedia } from '../../Utils/messages'
 import { checkHtmlApp } from '../html-app'
@@ -155,7 +162,7 @@ export const AddonActionType = Object.freeze({
 	FOLLOW_UP_PROMPT: 'FOLLOW_UP_PROMPT'
 })
 
-const trimEmpty = object => {
+const trimEmpty = (object: any) => {
 	for (const key of Object.keys(object)) {
 		if (object[key] === undefined) {
 			delete object[key]
@@ -165,19 +172,19 @@ const trimEmpty = object => {
 	return object
 }
 
-export const dividerSection = ({ dividerType = DividerType.HORIZONTAL_LINE } = {}) =>
+export const dividerSection = ({ dividerType = DividerType.HORIZONTAL_LINE }: any = {}) =>
 	AIRich.newLayout('Single', {
 		divider_type: dividerType,
 		__typename: 'GenAIDividerPrimitive'
 	})
 
-export const spacerSection = ({ spacing = 1 } = {}) =>
+export const spacerSection = ({ spacing = 1 }: any = {}) =>
 	AIRich.newLayout('Single', {
 		spacing,
 		__typename: 'GenAISpacerPrimitive'
 	})
 
-export const imageSection = (url, { fallbackUrl, previewUrl, previewFallbackUrl } = {}) =>
+export const imageSection = (url: any, { fallbackUrl, previewUrl, previewFallbackUrl }: any = {}) =>
 	AIRich.newLayout('Single', {
 		full_image: { url, url_fallback: fallbackUrl ?? '' },
 		preview_image: { url: previewUrl ?? url, url_fallback: previewFallbackUrl ?? fallbackUrl ?? '' },
@@ -199,8 +206,8 @@ export const taskSection = ({ taskId, title = '', subtitle = '', status = TaskSt
 }
 
 export const latexSection = (
-	expression,
-	{ image, width = 100, height = 100, fontHeight = 83.333333333333, padding = 15 } = {}
+	expression: any,
+	{ image, width = 100, height = 100, fontHeight = 83.333333333333, padding = 15 }: any = {}
 ) =>
 	AIRich.newLayout('Single', {
 		latex_expression: expression,
@@ -215,8 +222,11 @@ export const latexSection = (
 	})
 
 const statusSection =
-	typename =>
-	(title, { icon = ThinkingIcon.THINKING, inProgress = true, metaSearchApps = [], thoughtDurationSec } = {}) =>
+	(typename: any) =>
+	(
+		title: any,
+		{ icon = ThinkingIcon.THINKING, inProgress = true, metaSearchApps = [], thoughtDurationSec }: any = {}
+	) =>
 		AIRich.newLayout(
 			'Single',
 			trimEmpty({
@@ -232,7 +242,7 @@ const statusSection =
 export const thinkingSection = statusSection('GenAIBotThinkingStatusPrimitive')
 export const progressSection = statusSection('GenAIBotProgressStatusPrimitive')
 
-export const lockHeight = height => {
+export const lockHeight = (height: any) => {
 	const px = Number(height)
 	if (!Number.isFinite(px) || px <= 0) {
 		throw new TypeError('height must be a positive number of pixels')
@@ -257,7 +267,7 @@ export const lockHeight = height => {
 
 export const HTML_APP_BRIDGE = 'AndroidBridge'
 
-export const dataUri = (bytes, mimetype) => {
+export const dataUri = (bytes: any, mimetype: any) => {
 	if (typeof mimetype !== 'string' || !mimetype.includes('/')) {
 		throw new TypeError('dataUri needs a mimetype like video/mp4')
 	}
@@ -273,7 +283,7 @@ export const dataUri = (bytes, mimetype) => {
 const MEDIA_TAGS = new Set(['video', 'audio', 'img'])
 
 export const htmlMedia = (
-	bytes,
+	bytes: any,
 	{
 		mimetype,
 		tag = 'video',
@@ -336,7 +346,7 @@ export const scrollControls = ({
 	size = 36,
 	side = 'right',
 	inset = 6
-} = {}) => {
+}: any = {}) => {
 	const px = Number(step)
 	const hold = Number(holdMs)
 	const box = Number(size)
@@ -432,7 +442,7 @@ export const scrollControls = ({
 	)
 }
 
-export const autoHeight = ({ min = 60, max = 900, settleMs = 120, maxReports = 24 } = {}) => {
+export const autoHeight = ({ min = 60, max = 900, settleMs = 120, maxReports = 24 }: any = {}) => {
 	const low = Number(min)
 	const high = Number(max)
 	const wait = Number(settleMs)
@@ -486,7 +496,10 @@ export const autoHeight = ({ min = 60, max = 900, settleMs = 120, maxReports = 2
 	)
 }
 
-export const htmlSection = (html, { trustedSources = [], height, typename = AI_RICH_HTML_PRIMITIVE } = {}) => {
+export const htmlSection = (
+	html: any,
+	{ trustedSources = [], height, typename = AI_RICH_HTML_PRIMITIVE }: any = {}
+) => {
 	if (typeof html !== 'string' || html.trim() === '') {
 		throw new TypeError('htmlSection requires a non-empty HTML string')
 	}
@@ -507,9 +520,9 @@ export const htmlSection = (html, { trustedSources = [], height, typename = AI_R
 }
 
 export const sendHtmlApp = async (
-	sock,
-	jid,
-	html,
+	sock: any,
+	jid: any,
+	html: any,
 	{
 		title = '',
 		label,
@@ -522,7 +535,7 @@ export const sendHtmlApp = async (
 		bypassDownload = false,
 		guard = 'warn',
 		...options
-	} = {}
+	}: any = {}
 ) => {
 	if (!sock) {
 		throw new TypeError('sendHtmlApp requires a socket as the first argument')
@@ -578,7 +591,12 @@ export const sendHtmlApp = async (
 
 export const HTML_MIME_TYPE = 'text/html'
 
-export const sendHtmlDocument = async (sock, jid, html, { fileName = 'app.html', caption, ...options } = {}) => {
+export const sendHtmlDocument = async (
+	sock: any,
+	jid: any,
+	html: any,
+	{ fileName = 'app.html', caption, ...options }: any = {}
+) => {
 	if (!sock) {
 		throw new TypeError('sendHtmlDocument requires a socket as the first argument')
 	}
@@ -606,8 +624,8 @@ export const sendHtmlDocument = async (sock, jid, html, { fileName = 'app.html',
 }
 
 const fileArtifact =
-	typename =>
-	(url, { title = '', fileExtension = 'html', fileLength = 0, pageCount, previewImage } = {}) => {
+	(typename: any) =>
+	(url: any, { title = '', fileExtension = 'html', fileLength = 0, pageCount, previewImage }: any = {}) => {
 		if (typeof url !== 'string' || url.trim() === '') {
 			throw new TypeError('a file section requires a non-empty url')
 		}
@@ -629,14 +647,14 @@ const fileArtifact =
 export const fileSection = fileArtifact('GenAIFilePrimitive')
 export const fileLinkSection = fileArtifact('GenAIFileLinkPrimitive')
 
-const b64 = value =>
+const b64 = (value: any) =>
 	value === undefined || value === null
 		? undefined
 		: Buffer.isBuffer(value) || value instanceof Uint8Array
 			? Buffer.from(value).toString('base64')
 			: String(value)
 
-export const botMediaMetadata = documentMessage => {
+export const botMediaMetadata = (documentMessage: any) => {
 	if (!documentMessage) {
 		throw new TypeError('botMediaMetadata requires a prepared document message')
 	}
@@ -652,9 +670,9 @@ export const botMediaMetadata = documentMessage => {
 }
 
 export const prepareFileArtifact = async (
-	sock,
-	content,
-	{ mimetype = HTML_MIME_TYPE, fileName = 'app.html', title, id } = {}
+	sock: any,
+	content: any,
+	{ mimetype = HTML_MIME_TYPE, fileName = 'app.html', title, id }: any = {}
 ) => {
 	if (!sock) {
 		throw new TypeError('prepareFileArtifact requires a socket as the first argument')
@@ -695,10 +713,10 @@ export const prepareFileArtifact = async (
 }
 
 export const sendHtmlArtifact = async (
-	sock,
-	jid,
-	html,
-	{ fileName = 'app.html', title, label, id, bypassDownload = false, ...options } = {}
+	sock: any,
+	jid: any,
+	html: any,
+	{ fileName = 'app.html', title, label, id, bypassDownload = false, ...options }: any = {}
 ) => {
 	if (!jid) {
 		throw new TypeError('sendHtmlArtifact requires a target jid')
@@ -720,7 +738,7 @@ export const sendHtmlArtifact = async (
 
 export const SourceProvider = Object.freeze({ UNKNOWN: 0, BING: 1, GOOGLE: 2, SUPPORT: 3, OTHER: 4 })
 
-export const botSourcesMetadata = sources => {
+export const botSourcesMetadata = (sources: any) => {
 	if (!Array.isArray(sources) || sources.length === 0) {
 		throw new TypeError('botSourcesMetadata requires a non-empty array of sources')
 	}
@@ -816,7 +834,7 @@ export const AI_RICH_NODES = Object.freeze([
 	'GenAIWidgetPlacesItemAddress'
 ])
 
-const readTypename = (label, value) => {
+const readTypename = (label: any, value: any) => {
 	if (value === undefined) {
 		return undefined
 	}
@@ -828,7 +846,7 @@ const readTypename = (label, value) => {
 	return value
 }
 
-export const embeddedTab = ({ id, header, tabHeader, sections = [], typename } = {}) => {
+export const embeddedTab = ({ id, header, tabHeader, sections = [], typename }: any = {}) => {
 	if (!Array.isArray(sections)) {
 		throw new TypeError('embeddedTab sections must be an array of sections')
 	}
@@ -842,7 +860,7 @@ export const embeddedTab = ({ id, header, tabHeader, sections = [], typename } =
 	})
 }
 
-export const embeddedTabbedContent = (tabs, { typename = EMBEDDED_SCREEN_TABBED_TYPENAME } = {}) => {
+export const embeddedTabbedContent = (tabs: any, { typename = EMBEDDED_SCREEN_TABBED_TYPENAME }: any = {}) => {
 	if (!Array.isArray(tabs)) {
 		throw new TypeError('embeddedTabbedContent tabs must be an array of tabs')
 	}
@@ -874,7 +892,7 @@ export const embeddedScreen = ({
 	stepEntries,
 	sources,
 	pollId
-} = {}) => {
+}: any = {}) => {
 	if (content !== undefined && !Array.isArray(content)) {
 		throw new TypeError('embeddedScreen content must be an array of sections')
 	}
@@ -914,7 +932,7 @@ export const embeddedScreen = ({
 	})
 }
 
-export const readEmbeddedTabs = screen => {
+export const readEmbeddedTabs = (screen: any) => {
 	const tabs = []
 	if (Array.isArray(screen?.tabs)) {
 		tabs.push(...screen.tabs)
@@ -929,7 +947,7 @@ export const readEmbeddedTabs = screen => {
 	return tabs
 }
 
-export const readEmbeddedSections = screen => {
+export const readEmbeddedSections = (screen: any) => {
 	const sections = []
 	for (const entry of Array.isArray(screen?.content) ? screen.content : []) {
 		if (entry?.view_model) {
@@ -951,7 +969,7 @@ export const readEmbeddedSections = screen => {
 	return sections
 }
 
-export const footerActionSection = (actionType, { buttonText = '', url } = {}) => {
+export const footerActionSection = (actionType: any, { buttonText = '', url }: any = {}) => {
 	if (!Object.values(FooterActionType).includes(actionType)) {
 		throw new TypeError('footerActionSection actionType must be one of ' + Object.values(FooterActionType).join(', '))
 	}
@@ -968,7 +986,7 @@ export const BLOKS_A2UI_TYPE = 'im_a2ui'
 export const BLOKS_A2UI_REPLY_ACTION = 'a2ui_reply_action'
 export const BLOKS_A2UI_SUPPORTED_ELEMENTS = Object.freeze(['info_card', 'list_card'])
 
-const bloksPayloadData = data => {
+const bloksPayloadData = (data: any) => {
 	if (data === undefined || data === null) {
 		return ''
 	}
@@ -984,7 +1002,7 @@ const bloksPayloadData = data => {
 	return JSON.stringify(data)
 }
 
-const bloksType = (type, caller) => {
+const bloksType = (type: any, caller: any) => {
 	if (typeof type !== 'string' || type.trim() === '') {
 		throw new TypeError(caller + ' requires a non-empty bloks type')
 	}
@@ -992,7 +1010,7 @@ const bloksType = (type, caller) => {
 	return type
 }
 
-export const bloksSection = (type, data, { uuid, initialResponse = '', versioningId = '' } = {}) =>
+export const bloksSection = (type: any, data: any, { uuid, initialResponse = '', versioningId = '' }: any = {}) =>
 	AIRich.newLayout('Single', {
 		type: bloksType(type, 'bloksSection'),
 		data: bloksPayloadData(data),
@@ -1002,7 +1020,7 @@ export const bloksSection = (type, data, { uuid, initialResponse = '', versionin
 		__typename: 'FOABloksPrimitive'
 	})
 
-export const bloksWidget = ({ type, data, uuid, fallback = '' } = {}) => ({
+export const bloksWidget = ({ type, data, uuid, fallback = '' }: any = {}) => ({
 	type: bloksType(type, 'bloksWidget'),
 	data: bloksPayloadData(data),
 	uuid: uuid ?? randomUUID(),
@@ -1014,8 +1032,8 @@ export const A2UI_BASIC_CATALOG = 'https://a2ui.org/specification/v0_9/catalogs/
 export const A2UI_ROOT_ID = 'root'
 
 const a2uiNode =
-	component =>
-	(id, extra = {}) => {
+	(component: any) =>
+	(id: any, extra = {}) => {
 		if (typeof id !== 'string' || id.trim() === '') {
 			throw new TypeError('every a2ui component needs a non-empty id')
 		}
@@ -1023,9 +1041,10 @@ const a2uiNode =
 		return trimEmpty({ id, component, ...extra })
 	}
 
-export const a2uiText = (id, text, { variant = 'body' } = {}) => a2uiNode('Text')(id, { text: String(text), variant })
+export const a2uiText = (id: any, text: any, { variant = 'body' }: any = {}) =>
+	a2uiNode('Text')(id, { text: String(text), variant })
 
-export const a2uiImage = (id, url, { variant = 'header', fit = 'cover' } = {}) => {
+export const a2uiImage = (id: any, url: any, { variant = 'header', fit = 'cover' }: any = {}) => {
 	if (typeof url !== 'string' || url.trim() === '') {
 		throw new TypeError('a2uiImage requires a url')
 	}
@@ -1034,8 +1053,8 @@ export const a2uiImage = (id, url, { variant = 'header', fit = 'cover' } = {}) =
 }
 
 const a2uiContainer =
-	component =>
-	(id, children = []) => {
+	(component: any) =>
+	(id: any, children = []) => {
 		if (!Array.isArray(children)) {
 			throw new TypeError('a2ui container children must be an array of component ids')
 		}
@@ -1046,7 +1065,7 @@ const a2uiContainer =
 export const a2uiColumn = a2uiContainer('Column')
 export const a2uiRow = a2uiContainer('Row')
 
-export const a2uiCard = (id, child) => {
+export const a2uiCard = (id: any, child: any) => {
 	if (typeof child !== 'string' || child.trim() === '') {
 		throw new TypeError('a2uiCard takes the id of one child component, not an array')
 	}
@@ -1055,7 +1074,7 @@ export const a2uiCard = (id, child) => {
 }
 
 const a2uiElement =
-	type =>
+	(type: any) =>
 	(element = {}) => {
 		if (element === null || typeof element !== 'object' || Array.isArray(element)) {
 			throw new TypeError('a2ui ' + type + ' element must be a plain object')
@@ -1069,7 +1088,7 @@ export const a2uiListCard = a2uiElement('list_card')
 
 const A2UI_FALLBACK_KEYS = Object.freeze(['text', 'title', 'label', 'body'])
 
-export const a2uiFallback = components => {
+export const a2uiFallback = (components: any) => {
 	const list = Array.isArray(components) ? components : components && typeof components === 'object' ? [components] : []
 	return list
 		.map(
@@ -1083,8 +1102,8 @@ export const a2uiFallback = components => {
 }
 
 export const a2uiSurface = (
-	components,
-	{ surfaceId, root = A2UI_ROOT_ID, catalogId, sendDataModel, version = A2UI_VERSION, type, title } = {}
+	components: any,
+	{ surfaceId, root = A2UI_ROOT_ID, catalogId, sendDataModel, version = A2UI_VERSION, type, title }: any = {}
 ) => {
 	if (!Array.isArray(components) || components.length === 0) {
 		throw new TypeError('a2uiSurface requires at least one component')
@@ -1109,8 +1128,8 @@ export const a2uiSurface = (
 }
 
 export const a2uiWidget = (
-	components,
-	{ uuid, surfaceId, root, catalogId, sendDataModel, version, type, title, fallback, data } = {}
+	components: any,
+	{ uuid, surfaceId, root, catalogId, sendDataModel, version, type, title, fallback, data }: any = {}
 ) => {
 	const id = uuid ?? randomUUID()
 	const payload =
@@ -1136,10 +1155,10 @@ export const a2uiWidget = (
 }
 
 export const sendA2UI = async (
-	sock,
-	jid,
-	components,
-	{ buttons = [], contextInfo, messageId, additionalNodes = [], ...options } = {}
+	sock: any,
+	jid: any,
+	components: any,
+	{ buttons = [], contextInfo, messageId, additionalNodes = [], ...options }: any = {}
 ) => {
 	if (!sock) {
 		throw new TypeError('sendA2UI requires a socket as the first argument')
@@ -1192,8 +1211,20 @@ export const sendA2UI = async (
 }
 
 export const buildA2UISection = (
-	components,
-	{ uuid, surfaceId, root, catalogId, sendDataModel, version, type, title, data, initialResponse, versioningId } = {}
+	components: any,
+	{
+		uuid,
+		surfaceId,
+		root,
+		catalogId,
+		sendDataModel,
+		version,
+		type,
+		title,
+		data,
+		initialResponse,
+		versioningId
+	}: any = {}
 ) =>
 	bloksSection(
 		BLOKS_A2UI_TYPE,
@@ -1202,9 +1233,9 @@ export const buildA2UISection = (
 	)
 
 export const sendA2UIBloks = async (
-	sock,
-	jid,
-	components,
+	sock: any,
+	jid: any,
+	components: any,
 	{
 		uuid,
 		surfaceId,
@@ -1218,7 +1249,7 @@ export const sendA2UIBloks = async (
 		initialResponse,
 		versioningId,
 		...options
-	} = {}
+	}: any = {}
 ) => {
 	if (!sock) {
 		throw new TypeError('sendA2UIBloks requires a socket as the first argument')
@@ -1256,11 +1287,11 @@ export const AI_RICH_SUBMESSAGE_CONTENT_ITEMS = 9
 const AIRICH_TYPENAME = 'FOABloksPrimitive'
 
 const AI_RICH_SUBMESSAGE_FACTORIES = Object.freeze({
-	text: text => ({
+	text: (text: any) => ({
 		messageType: AI_RICH_SUBMESSAGE_TEXT,
 		messageText: String(text)
 	}),
-	inline_image: ({ previewUrl, highResUrl, sourceUrl, text = '', alignment, tapLinkUrl } = {}) => {
+	inline_image: ({ previewUrl, highResUrl, sourceUrl, text = '', alignment, tapLinkUrl }: any = {}) => {
 		if (typeof previewUrl !== 'string' || previewUrl.trim() === '') {
 			throw new TypeError('inline_image requires a previewUrl')
 		}
@@ -1279,7 +1310,7 @@ const AI_RICH_SUBMESSAGE_FACTORIES = Object.freeze({
 			})
 		}
 	},
-	table: ({ rows, title } = {}) => {
+	table: ({ rows, title }: any = {}) => {
 		if (!Array.isArray(rows) || rows.length === 0) {
 			throw new TypeError('table requires a non-empty rows array')
 		}
@@ -1292,7 +1323,7 @@ const AI_RICH_SUBMESSAGE_FACTORIES = Object.freeze({
 			})
 		}
 	},
-	content_items: ({ items, ...rest } = {}) => {
+	content_items: ({ items, ...rest }: any = {}) => {
 		if (!Array.isArray(items) || items.length === 0) {
 			throw new TypeError('content_items requires a non-empty items array')
 		}
@@ -1306,7 +1337,7 @@ const AI_RICH_SUBMESSAGE_FACTORIES = Object.freeze({
 
 export const AI_RICH_SUBMESSAGE_KINDS = Object.freeze(Object.keys(AI_RICH_SUBMESSAGE_FACTORIES))
 
-export const aiRichSubmessage = (kind, payload = {}) => {
+export const aiRichSubmessage = (kind: any, payload = {}) => {
 	const factory = AI_RICH_SUBMESSAGE_FACTORIES[kind]
 
 	if (!factory) {
@@ -1318,13 +1349,13 @@ export const aiRichSubmessage = (kind, payload = {}) => {
 	return factory(payload)
 }
 
-export const aiRichText = text => aiRichSubmessage('text', text)
+export const aiRichText = (text: any) => aiRichSubmessage('text', text)
 
-export const aiRichInlineImage = image => aiRichSubmessage('inline_image', image)
+export const aiRichInlineImage = (image: any) => aiRichSubmessage('inline_image', image)
 
-export const aiRichTable = table => aiRichSubmessage('table', table)
+export const aiRichTable = (table: any) => aiRichSubmessage('table', table)
 
-export const aiRichContentItems = content => aiRichSubmessage('content_items', content)
+export const aiRichContentItems = (content: any) => aiRichSubmessage('content_items', content)
 
 export const AIRichMessage = {
 	SUBMESSAGE_KINDS: AI_RICH_SUBMESSAGE_KINDS,
@@ -1333,19 +1364,19 @@ export const AIRichMessage = {
 	table: aiRichTable,
 	contentItems: aiRichContentItems,
 	submessage: aiRichSubmessage,
-	textSection: text =>
+	textSection: (text: any) =>
 		AIRich.newLayout('Single', {
 			__typename: AIRICH_TYPENAME,
 			messageText: String(text)
 		}),
-	nativeFlowSection: (name, params, { uuid, initialResponse = '', versioningId = '' } = {}) =>
+	nativeFlowSection: (name: any, params: any, { uuid, initialResponse = '', versioningId = '' }: any = {}) =>
 		bloksSection(name, params, { uuid, initialResponse, versioningId })
 }
 
 export const sendAIRichMessage = async (
-	sock,
-	jid,
-	{ sections = [], text, nativeFlow, submessages = [], forwardWrapper, ...options } = {}
+	sock: any,
+	jid: any,
+	{ sections = [], text, nativeFlow, submessages = [], forwardWrapper, ...options }: any = {}
 ) => {
 	if (!sock) {
 		throw new TypeError('sendAIRichMessage requires a socket as the first argument')
@@ -1389,9 +1420,9 @@ export const sendAIRichMessage = async (
 }
 
 export const sendBloksWidget = async (
-	sock,
-	jid,
-	{ type, data, uuid, fallback = '', body, contextInfo, messageId, additionalNodes = [], ...options } = {}
+	sock: any,
+	jid: any,
+	{ type, data, uuid, fallback = '', body, contextInfo, messageId, additionalNodes = [], ...options }: any = {}
 ) => {
 	if (!sock) {
 		throw new TypeError('sendBloksWidget requires a socket as the first argument')
@@ -1438,7 +1469,7 @@ export const sendBloksWidget = async (
 	return msg
 }
 
-export const decodeBloksWidget = msg => {
+export const decodeBloksWidget = (msg: any) => {
 	const message = msg?.message ?? msg
 	const interactive =
 		message?.interactiveMessage ??
@@ -1466,7 +1497,7 @@ export const decodeBloksWidget = msg => {
 	}
 }
 
-export const collectTypenames = (root, { limit = 20000 } = {}) => {
+export const collectTypenames = (root: any, { limit = 20000 }: any = {}) => {
 	const found = new Set()
 	const stack = [root]
 	let seen = 0
@@ -1502,7 +1533,7 @@ export const collectTypenames = (root, { limit = 20000 } = {}) => {
 	return [...found].sort()
 }
 
-export const decodeAIRich = msg => {
+export const decodeAIRich = (msg: any) => {
 	const message = msg?.message ?? msg
 	const rich =
 		message?.botForwardedMessage?.message?.richResponseMessage ??
@@ -1527,7 +1558,7 @@ export const decodeAIRich = msg => {
 	const footerSections = Array.isArray(unified?.footer_sections) ? unified.footer_sections : []
 	const embeddedScreens = Array.isArray(unified?.embedded_screens) ? unified.embedded_screens : []
 
-	const readPrimitives = section => {
+	const readPrimitives = (section: any) => {
 		const view = section?.view_model
 		if (Array.isArray(view?.primitives)) return view.primitives
 		if (view?.primitive) return [view.primitive]
@@ -1536,23 +1567,23 @@ export const decodeAIRich = msg => {
 
 	return {
 		responseId: unified?.response_id,
-		layouts: sections.map(section =>
+		layouts: sections.map((section: any) =>
 			String(section?.view_model?.__typename ?? '').replace(/^GenAI(.*)LayoutViewModel$/, '$1')
 		),
 		typenames: [
 			...new Set(
-				sections.flatMap(section =>
+				sections.flatMap((section: any) =>
 					readPrimitives(section)
-						.map(primitive => primitive?.__typename)
+						.map((primitive: any) => primitive?.__typename)
 						.filter(Boolean)
 				)
 			)
 		],
 		footerTypenames: [
 			...new Set(
-				footerSections.flatMap(section =>
+				footerSections.flatMap((section: any) =>
 					readPrimitives(section)
-						.map(primitive => primitive?.__typename)
+						.map((primitive: any) => primitive?.__typename)
 						.filter(Boolean)
 				)
 			)
@@ -1570,7 +1601,7 @@ export const decodeAIRich = msg => {
 
 const A2UI_TEXT_KEYS = Object.freeze(['text', 'label', 'title'])
 
-const readPrimitiveText = primitive => {
+const readPrimitiveText = (primitive: any) => {
 	if (!primitive || typeof primitive !== 'object') {
 		return ''
 	}
@@ -1586,13 +1617,13 @@ const readPrimitiveText = primitive => {
 	return ''
 }
 
-const readA2UIText = components =>
+const readA2UIText = (components: any) =>
 	components
-		.filter(component => component?.component === 'Text' || component?.component === 'Heading')
-		.map(component => A2UI_TEXT_KEYS.map(key => component[key]).find(value => typeof value === 'string') ?? '')
+		.filter((component: any) => component?.component === 'Text' || component?.component === 'Heading')
+		.map((component: any) => A2UI_TEXT_KEYS.map(key => component[key]).find(value => typeof value === 'string') ?? '')
 		.filter(Boolean)
 
-const parseBloksParams = data => {
+const parseBloksParams = (data: any) => {
 	if (!data || typeof data !== 'string') {
 		return null
 	}
@@ -1604,7 +1635,7 @@ const parseBloksParams = data => {
 	}
 }
 
-export const readRichMessage = msg => {
+export const readRichMessage = (msg: any) => {
 	const raw = msg?.message ?? msg
 	if (!raw || typeof raw !== 'object') {
 		return null
@@ -1623,7 +1654,7 @@ export const readRichMessage = msg => {
 		return null
 	}
 
-	const buttons = (interactive?.nativeFlowMessage?.buttons ?? []).map(button => {
+	const buttons = (interactive?.nativeFlowMessage?.buttons ?? []).map((button: any) => {
 		let params = null
 		try {
 			params = button?.buttonParamsJson ? JSON.parse(button.buttonParamsJson) : null
@@ -1636,8 +1667,8 @@ export const readRichMessage = msg => {
 
 	const isA2UIWidget = widget?.type === BLOKS_A2UI_TYPE
 
-	const sectionPrimitives = sections =>
-		sections.flatMap(section => {
+	const sectionPrimitives = (sections: any) =>
+		sections.flatMap((section: any) => {
 			const view = section?.view_model
 			if (Array.isArray(view?.primitives)) return view.primitives
 			return view?.primitive ? [view.primitive] : []
@@ -1647,7 +1678,7 @@ export const readRichMessage = msg => {
 	const embeddedPrimitives = sectionPrimitives(rich?.embeddedSections ?? [])
 
 	const richBloks = primitives.find(
-		primitive => primitive?.__typename === 'FOABloksPrimitive' && primitive?.type === BLOKS_A2UI_TYPE
+		(primitive: any) => primitive?.__typename === 'FOABloksPrimitive' && primitive?.type === BLOKS_A2UI_TYPE
 	)
 	const a2uiParams = isA2UIWidget ? widget.params : parseBloksParams(richBloks?.data)
 	const surface = a2uiParams?.createSurface
@@ -1661,7 +1692,7 @@ export const readRichMessage = msg => {
 	const bodyDuplicatesWidget = bodyText !== '' && bodyText === widgetFallback
 
 	const lines = [
-		...primitives.filter(primitive => primitive !== richBloks).map(readPrimitiveText),
+		...primitives.filter((primitive: any) => primitive !== richBloks).map(readPrimitiveText),
 		...a2uiTextLines,
 		bodyDuplicatesWidget && a2uiTextLines.length ? '' : bodyText,
 		interactive?.footer?.text ?? ''

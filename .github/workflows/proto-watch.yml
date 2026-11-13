@@ -2,7 +2,7 @@ name: Proto Watch
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '30 18 * * *'
 
   workflow_dispatch:
     inputs:
@@ -17,10 +17,11 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
   issues: write
 
 concurrency:
-  group: elaina-baileys-proto-watch
+  group: anya-baileys-proto-watch
   cancel-in-progress: false
 
 jobs:
@@ -51,13 +52,27 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
       - name: Install dependencies
-        run: npm install --package-lock=false --ignore-scripts
+        # yarn 4 like every other workflow — `npm install` here used to rewrite yarn.lock in the v1 format, and this
+        # workflow commits with `git add -A`, so that would have landed in the repository
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
 
       - name: Configure Git identity
         run: |
-          git config user.name "RexxHayanasi Pengen S.Kom"
-          git config user.email "150516773+rexxzyid@users.noreply.github.com"
+          # commits from this workflow land in this repository, so they are authored by the bot, not by upstream
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Restore previous bundle snapshot
         uses: actions/cache@v4
@@ -156,6 +171,8 @@ jobs:
 
       - name: Commit and push changes
         id: commit
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         if: always() && steps.report.outcome == 'success' && steps.report.outputs.verdict != 'crashed' && steps.report.outputs.verdict != 'blocked' && steps.verify.outcome == 'success' && (env.APPLY_CHANGES != 'true' || (steps.version.outcome == 'success' && steps.sync.outcome == 'success'))
         run: |
           git add -A
@@ -178,20 +195,29 @@ jobs:
 
           git -c commit.gpgsign=false commit -m "$SUBJECT"
 
-          for attempt in 1 2 3 4; do
-            if git push origin "HEAD:$GITHUB_REF_NAME"; then
-              exit 0
-            fi
+          # This used to push straight to the default branch. It now pushes a branch and opens a pull request, so a
+          # proto or revision bump is reviewed before it lands — same as the other update workflows.
+          BRANCH="chore/wa-proto-$(date -u +%Y%m%d-%H%M)"
+          git checkout -b "$BRANCH"
+          git push -f origin "$BRANCH"
 
-            if ! git pull --rebase origin "$GITHUB_REF_NAME"; then
-              git rebase --abort || true
-            fi
-
-            sleep $((2 ** attempt))
-          done
-
-          echo "Push gagal setelah 4 percobaan."
-          exit 1
+          if [ -z "$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')" ]; then
+            gh pr create \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$BRANCH" \
+              --title "$SUBJECT" \
+              --body "$(printf '%s\n' \
+                "Automated WhatsApp Web sync." \
+                "" \
+                "- pinned revision: \`${{ steps.report.outputs.pinned }}\`" \
+                "- live revision: \`${{ steps.report.outputs.live }}\`" \
+                "- protobuf gaps: ${{ steps.report.outputs.proto_gaps }}" \
+                "- round-trip verify: ${{ steps.report.outputs.verify_passed }}" \
+                "" \
+                "Review the WAProto diff, then merge to release.")"
+          else
+            echo "A pull request for $BRANCH already exists."
+          fi
 
       - name: Report automation failure
         if: always() && (steps.report.outcome == 'failure' || steps.report.outputs.verdict == 'blocked' || steps.report.outputs.verdict == 'crashed' || steps.report.outputs.verdict == 'bump-and-review' || steps.report.outputs.protocol_touched == 'true' || steps.version.outcome == 'failure' || steps.sync.outcome == 'failure' || steps.verify.outcome == 'failure')

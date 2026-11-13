@@ -11,6 +11,7 @@ const PLATFORM_MAP: Record<string, string | undefined> = {
 	openbsd: 'OpenBSD',
 	sunos: 'Solaris',
 	cygwin: undefined,
+	haiku: undefined,
 	netbsd: undefined,
 	linux: 'Linux',
 	ubuntu: 'Ubuntu',

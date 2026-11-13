@@ -1,5283 +1,1042 @@
-# 🌱 @teamolduser/baileys
+<div align="center">
 
-<h1 align='center'><img alt="Baileys logo" src="Media/logo.png" height="75"/></h1>
+<img alt="Anya Baileys" src="../Media/logo.png" height="90" />
 
-<p align="center">
-   An extended fork of Baileys — the WebSockets-based TypeScript library for the WhatsApp Web API — with 35+ addon modules, interactive messages, albums, LaTeX rendering, rich responses, and additional message types.
-   <br><br>
-   <a href="https://www.npmjs.com/package/@teamolduser/baileys">
-      <img src="https://img.shields.io/npm/v/@teamolduser/baileys?style=for-the-badge&logo=npm"/>
-   </a>
-   <a href="https://github.com/Teamolduser/Baileys">
-      <img src="https://img.shields.io/github/stars/Teamolduser/Baileys?style=for-the-badge&logo=github"/>
-   </a>
-   <a href="LICENSE">
-      <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge"/>
-   </a>
-   <a href="https://nodejs.org">
-      <img src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&labelColor=green&logoColor=white&style=for-the-badge"/>
-   </a>
-   <a href="#">
-      <img src="https://img.shields.io/badge/ESM-only?logo=javascript&labelColor=yellow&logoColor=black&style=for-the-badge"/>
-   </a>
-   <a href="https://deepwiki.com/Teamolduser/Baileys">
-      <img src="https://deepwiki.com/badge.svg" alt="Ask Deep-Wiki"/>
-   </a>
-</p>
+# @teamolduser/baileys
+
+**An extended Baileys — the WebSockets-based TypeScript library for the WhatsApp Web API — with the ports, adapters and fixes upstream has not shipped yet.**
+
+<a href="https://www.npmjs.com/package/@teamolduser/baileys"><img alt="npm" src="https://img.shields.io/npm/v/@teamolduser/baileys?style=for-the-badge&logo=npm&labelColor=161b22&color=cb3837" /></a>
+<a href="https://www.npmjs.com/package/@teamolduser/baileys"><img alt="downloads" src="https://img.shields.io/npm/dm/@teamolduser/baileys?style=for-the-badge&logo=npm&labelColor=161b22&color=cb3837" /></a>
+<a href="https://github.com/Teamolduser/Baileys/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/Teamolduser/Baileys?style=for-the-badge&logo=github&labelColor=161b22" /></a>
+<a href="../LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-3da639?style=for-the-badge&labelColor=161b22" /></a>
+<a href="https://nodejs.org"><img alt="node" src="https://img.shields.io/badge/node-%E2%89%A522-339933?style=for-the-badge&logo=node.js&labelColor=161b22" /></a>
+<a href="#"><img alt="esm" src="https://img.shields.io/badge/module-ESM-f7df1e?style=for-the-badge&logo=javascript&labelColor=161b22&logoColor=black" /></a>
+
+[Quick start](#-quick-start) · [Install](#-install) · [Usage](#-connecting-an-account) · [Reference](#-links) · [Docs site](https://teamolduser.github.io/Baileys/)
+
+</div>
+
+---
+
+> [!TIP]
+> **Documentation site** — <https://teamolduser.github.io/Baileys/>: the same pages as [`docs/wiki/`](../docs/wiki/),
+> rendered with search. It is rebuilt from `master` on every push that touches `docs/`, and the link here updates
+> itself from the deployment, so forks do not need to edit it.
 
 ---
 
 ## ⚠️ Important Notice
 
-This library is an unofficial, community-maintained fork and is in no way affiliated with or endorsed by WhatsApp/Meta. Use at your own discretion. Do not spam people with this. We discourage any stalkerware, bulk or automated messaging usage.
+This is an **unofficial** library. It is not affiliated with, endorsed by, or supported by WhatsApp or Meta.
 
----
+> [!WARNING]
+> Using it can get a number **banned**. Do not use it with a number you care about. The maintainers take no
+> responsibility for account loss, data loss, or anything else that follows from using it.
 
-## 📌 Overview
+Prefer the official [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp) for anything that matters.
 
-### ✨ Highlights
-
-| Feature | What it covers |
-|---|---|
-| 🔌 Multi-Device | Connects to WhatsApp through the Baileys Multi-Device protocol. |
-| 🔐 Pairing code | Supports the regular pairing code and a custom 8-character code. |
-| 🖱️ Interactive buttons | Quick reply, URL, copy, call, list/select, location and the other native-flow buttons. |
-| 🧱 MessageBuilder built in | `Button`, `ButtonV2`, `Carousel` (exported as `CarouselV2` / `MB.Carousel`), `AIRich` and `Toolkit` ship in the same package. |
-| 🖼️ Albums | Sends several images/videos as a single album message. |
-| 📢 Channels | Creates, follows, edits, reacts to and reads WhatsApp Channels. |
-| 👥 Groups | Group creation, member management, metadata, description changes and more. |
-| 🪪 LID / PN addressing | Supports the newer LID addressing and exposes the PN/JID alternative WhatsApp provides when there is one. |
-| 📷 Profile photo | Fetches, changes and removes profile photos. |
-| 🤖 AI Rich | Experimental rich-response builder for text, code, tables, media, suggestions and other layouts. |
-| 📞 Voice and video calls | Audio, video and screen-share calls on sessions the bot already owns, with a playlist driving the call. |
-| 🗄️ Database sessions | Keeps the session in SQLite, PostgreSQL, MySQL, MongoDB, Redis or NekoDB instead of files. |
-| 📦 ESM | ESM-first package; needs Node.js 22 or newer. |
-
-### 🗺️ What can it do?
-
-New here? This is the whole library at a glance. Every row links to the section that shows the code.
-
-| I want to… | Use | Read |
-|---|---|---|
-| Log in and stay logged in | `useMultiFileAuthState`, `usePostgresAuthState`, … | [Session storage](docs/en/sessions.md), [Database auth states](#database-auth-states) |
-| Log in without scanning a QR | pairing code | [Pairing code guide](docs/en/pairing.md), [Request custom pairing code](#-request-custom-pairing-code) |
-| React to incoming messages | `messages.upsert` | [Messages guide](docs/en/messages.md), [Events](#-events) |
-| Send text, images, video, files, location, polls | `sock.sendMessage` | [Sending messages](#%EF%B8%8F-sending-messages), [Sending media](#-sending-media-messages) |
-| Send buttons, lists, carousels | `Button`, `ButtonV2`, `CarouselV2` (`MB.Carousel`) | [Sending interactive messages](#-sending-interactive-messages), [MessageBuilder / AIRich](#messagebuilder--airich) |
-| Send AI-style cards | `AIRich`, A2UI | [MessageBuilder / AIRich](#messagebuilder--airich), [A2UI cards](#a2ui-cards-and-airichmessage) |
-| Read rich messages sent by other bots | `readRichMessage` | [A2UI cards](#a2ui-cards-and-airichmessage), [All message types](#-all-message-types) |
-| Send several photos as one post | album message | [Album](#%EF%B8%8F-album-image--video) |
-| Manage channels | channel helpers | [Newsletter management](#-newsletter-management), [Channel methods](#channel-newsletter-methods) |
-| Manage groups | `groupCreate`, `groupParticipantsUpdate`, … | [Group management](#-group-management) |
-| Manage communities | community helpers | [Community management](#-community-management) |
-| Block, unblock, report spam | `updateBlockStatus`, `reportSpam` | [Account and chat methods](#account-and-chat-methods), [Privacy management](#-privacy-management) |
-| Show typing, read receipts, presence | `sendPresenceUpdate`, `readMessages` | [Chat control](#10-chat-control-typing--pinned-messages--read-receipts), [Presence monitor](#33-presence-monitor-onlineoffline-tracking) |
-| Pin, archive, mute, star chats | `chatModify` | [Chat control](#10-chat-control-typing--pinned-messages--read-receipts), [Account and chat methods](#account-and-chat-methods) |
-| Use business labels and the catalog | label and catalog helpers | [Business management](#-business-management), [Account and chat methods](#account-and-chat-methods) |
-| Create call links, reject calls | `createCallLink`, `rejectCall` | [Call handling](#16-call-handling-full) |
-| Call people and play audio | `makeVoipClient`, `voip.call` | [Voice calling](#30-voice-calling-wasm-based-same-session) |
-| Play a queue of tracks in a call | `playlist`, `enqueue`, `idleGraceMs` | [Call queues](#audio-queue) |
-| Send video or share the screen in a call | `video: true`, `screenShare: true` | [Video calls](#video-calls), [Screen sharing](#screen-sharing) |
-| Call a whole group at once | `voip.callGroup` | [Group calls](#group-calls) |
-| Change or read profile photos | profile photo helpers | [Profile management](#-profile-management) |
-| Schedule messages for later | scheduled messages | [Message scheduler](#8-message-scheduler), [Scheduled-message protocol helpers](#scheduled-message-protocol-helpers) |
-| Follow WhatsApp Web changes | `npm run wa:update` | [Updating the WhatsApp Web version](#-updating-the-whatsapp-web-version) |
-| Know when my number is in trouble | account health signals | [Account health signals](#%EF%B8%8F-account-health-signals) |
-| Understand LID vs PN jids | addressing helpers | [JID utilities & LID support](#17-jid-utilities--lid-support) |
-| Find out why `conversation` is empty | `normalizeMessageContent` | [All message types](#-all-message-types) |
-| Fix what is broken | — | [Troubleshooting](#-troubleshooting) |
-
----
-
-### 📚 Documentation
-
-English guides are maintained in [`docs/en/`](docs/en/index.md): [getting started](docs/en/getting-started.md), [MessageBuilder](docs/en/builder.md), [groups](docs/en/groups.md), [newsletters](docs/en/newsletter.md), [session storage](docs/en/sessions.md), [sticker packs](docs/en/sticker-packs.md), [unified VoIP](docs/en/voip.md), and the [porting/compatibility change log](docs/en/porting-changes.md). See [`docs/README.md`](docs/README.md) for the guide index. The generated TypeScript API reference can be built with `yarn build:docs`.
-
-### Ported-feature usage map
-
-The cumulative Anya/Elaina work is documented below; start with the examples in this README, then use the focused guides for details.
-
-| Feature / API | Where to find usage |
-| --- | --- |
-| MessageBuilder / AIRich, `MB` static helpers | [MessageBuilder guide](docs/en/builder.md), [README section](#messagebuilder--airich) |
-| Store root exports (`makeInMemoryStore`, `makeOrderedDictionary`, `ObjectRepository`) | [README section](#store-apis-at-the-package-root), [porting guide](docs/en/porting-changes.md#2-store-root-exports) |
-| MongoDB `useMongoAuthState2`, SQLite `useSqliteAuthState2` | [Session guide](docs/en/sessions.md), [README auth-state sections](#mongodb-auth-state-2-usemongoauthstate2) |
-| PostgreSQL, MySQL/MariaDB, Redis and NekoDB auth adapters | [Session guide](docs/en/sessions.md), [README database auth states](#database-auth-states) |
-| Sticker packs: Elaina flat syntax and Anya nested syntax | [Sticker-pack guide](docs/en/sticker-packs.md), [README sticker-pack section](#-sticker-pack) |
-| TTL cache, HTML mini-app validation / multiplayer, voice transcription / wake phrases | [README ported utilities](#additional-ported-utilities), [addons reference](src/Addons/README.md) |
-| Status stickers, social/video preview metadata, scheduled-message helpers | [README ported utilities](#additional-ported-utilities), [porting guide](docs/en/porting-changes.md) |
-| Native-flow validation and group-metadata guards | [README ported utilities](#additional-ported-utilities) |
-| Unified Anya + Elaina VoIP (`sock.makeVoipClient()`) | [VoIP guide](docs/en/voip.md), [README unified VoIP section](#unified-voip-api) |
-| Remaining protocol/socket additions, newsletter/account/message APIs | [README compatibility and ported API sections](#innovatorssoft-readme-compatibility), [porting changelog](docs/en/porting-changes.md) |
-
-The root README is the broad usage catalog. The guide pages explain setup and lifecycle details. Ported source files retain their source and license headers where applicable.
-
-### ✨ Highlights
-
-This fork is based on the original open-source Baileys library
-and adds fork-exclusive functionality on top of it — 35+ addon modules
-(rich responses, interactive buttons, scheduling, status posting, call
-handling, extra auth-state backends, and more), a WhatsApp username API,
-album send, sticker packs, LaTeX rendering, and features ported from other
-community forks (credited inline throughout this README and in
-`src/Addons/`).
-
-> [!IMPORTANT]
-> Full credit and respect for the original library belong to
-> its maintainers and contributors:
-> [purpshell](https://github.com/purpshell),
-> [jlucaso1](https://github.com/jlucaso1),
-> [adiwajshing](https://github.com/adiwajshing). Where a specific feature
-> in this fork was ported from another community fork rather than written
-> from scratch, it is credited at the point it's documented below and in
-> the source comment where it lives.
-
-### 📥 Install
-
-```
-yarn add @teamolduser/baileys
-```
-
-or
-
-```
-npm install @teamolduser/baileys
-```
-
-For the latest unreleased fixes/features straight from source, clone this
-repository and install locally:
-
-```
-git clone https://github.com/Teamolduser/Baileys
-cd Bail
-yarn install
-yarn build
-```
-
-Then import your code using:
+## 🚀 Quick Start
 
 ```ts
-import makeWASocket from '@teamolduser/baileys'
-```
+import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@teamolduser/baileys'
 
-Do check out & run [example.ts](Example/example.ts) or
-[assets/examples/example.js](assets/examples/example.js) to see an example
-usage of the library, covering most common use cases plus this fork's
-addon-based features (pairing code, media handling, link previews, and
-more).
+const { state, saveCreds } = await useMultiFileAuthState('auth_info')
+const sock = makeWASocket({ auth: state })
 
-### 🚀 Quick Start
-
-Connect, listen for messages, and auto-reply — in under 15 lines:
-
-```ts
-import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@teamolduser/baileys'
-import { Boom } from '@hapi/boom'
-
-async function connect() {
-	const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info')
-	const sock = makeWASocket({ auth: state, printQRInTerminal: true })
-
-	sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
-		if (connection === 'close') {
-			const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
-			if (shouldReconnect) connect()
-		} else if (connection === 'open') {
-			console.log('✅ Connected!')
-		}
-	})
-
-	sock.ev.on('messages.upsert', ({ messages }) => {
-		for (const msg of messages) {
-			if (!msg.key.fromMe) sock.sendMessage(msg.key.remoteJid!, { text: 'Hello!' })
-		}
-	})
-
-	sock.ev.on('creds.update', saveCreds)
-}
-
-connect()
-```
-
-> 💡 Scan the QR code printed in your terminal with WhatsApp on your phone to log in.
-> Prefer a pairing code instead? See [Request Custom Pairing Code](#-request-custom-pairing-code) below.
-
-#### 📋 A Few More, Copy-Paste Ready
-
-**1️⃣ Text with mentions**
-```ts
-await sock.sendMessage(jid, { text: 'Hi @123456789!', mentions: ['123456789@s.whatsapp.net'] })
-```
-
-**2️⃣ Image with caption**
-```ts
-await sock.sendMessage(jid, { image: { url: './photo.jpg' }, caption: 'Check this out 📸' })
-```
-
-**3️⃣ Interactive buttons**
-```ts
-await sock.sendMessage(jid, {
-	text: 'Pick one:',
-	interactiveButtons: [
-		{ text: 'Visit site', url: 'https://example.com' },
-		{ text: 'Reply', id: 'reply-1' }
-	]
+sock.ev.on('creds.update', saveCreds)
+sock.ev.on('connection.update', ({ connection, qr, lastDisconnect }) => {
+	if (qr) console.log('scan this:', qr)
+	if (connection === 'close') {
+		const code = lastDisconnect?.error?.output?.statusCode
+		if (code !== DisconnectReason.loggedOut) console.log('reconnecting…')
+	}
+})
+sock.ev.on('messages.upsert', ({ messages }) => {
+	for (const m of messages) console.log(m.key.remoteJid, m.message)
 })
 ```
 
-**4️⃣ Poll**
-```ts
-await sock.sendMessage(jid, { poll: { name: 'Best day?', values: ['Mon', 'Fri'], selectableCount: 1 } })
-```
-
-Every feature this fork adds beyond upstream Baileys — album send, sticker
-packs, rich AI-style responses, LaTeX, scheduling helpers, and more — is
-documented in full below, in
-[🧩 @teamolduser/baileys Fork-Exclusive Features](#-teamolduserbaileys-fork-exclusive-features).
-
-### 📋 Table of Contents
-- [🚀 Quick Start](#-quick-start)
-- [📋 Table of Contents](#-table-of-contents)
-- [✨ Highlights](#-highlights)
-- [🛠️ Internal Adjustments](#%EF%B8%8F-internal-adjustments)
-- [📨 Messages Handling & Compatibility](#-highlights)
-- [🧩 Additional Message Options](#-additional-message-options)
-- [📥 Installation](#-installation)
-   - [🧩 Import (ESM & CJS)](#-import-esm--cjs)
-- [🌐 Connect to WhatsApp (Quick Step)](#-connect-to-whatsapp-quick-step)
-   - [🔐 Auth State](#-auth-state)
-- [🗄️ Implementing Data Store](#%EF%B8%8F-implementing-data-store)
-- [🪪 WhatsApp IDs Explain](#-whatsapp-ids-explain)
-- [✉️ Sending Messages](#%EF%B8%8F-sending-messages)
-   - [🔠 Text](#-text)
-   - [🔔 Mention](#-mention)
-   - [😁 Reaction](#-reaction)
-   - [📌 Pin Message](#-pin-message)
-   - [🔖 Keep Chat](#-keep-chat)
-   - [➡️ Forward Message](#%EF%B8%8F-forward-message)
-   - [👤 Contact](#-contact)
-   - [📍 Location](#-location)
-   - [🗓️ Event](#%EF%B8%8F-event)
-   - [👥 Group Invite](#-group-invite)
-   - [🛍️ Product](#%EF%B8%8F-product)
-   - [📊 Poll](#-poll)
-   - [💭 Button Response](#-button-response)
-   - [✨ Rich Response](#-rich-response)
-   - [🧾 Message with Code Block](#-message-with-code-block)
-   - [🌏 Message with Inline Entities](#-message-with-inline-entities)
-   - [📋 Message with Table](#-message-with-table)
-   - [🎞️ Status Mention](#%EF%B8%8F-status-mention)
-- [📁 Sending Media Messages](#-sending-media-messages)
-   - [🖼️ Image](#%EF%B8%8F-image)
-   - [🎥 Video](#-video)
-   - [📃 Sticker](#-sticker)
-   - [💽 Audio](#-audio)
-   - [🗂️ Document](#%EF%B8%8F-document)
-   - [🖼️ Album (Image & Video)](#%EF%B8%8F-album-image--video)
-   - [📦 Sticker Pack](#-sticker-pack)
-- [👉🏻 Sending Interactive Messages](#-sending-interactive-messages)
-   - [🔘 Buttons](#-buttons)
-   - [📋 List](#-list)
-   - [🗄️ Interactive](#%EF%B8%8F-interactive)
-   - [🫙 Hydrated Template](#-hydrated-template)
-- [💳 Sending Payment Messages](#-sending-payment-messages)
-   - [➕ Invite Payment](#-invite-payment)
-   - [🧾 Invoice](#-invoice)
-   - [🛍️ Order](#%EF%B8%8F-order)
-   - [💳 Request Payment](#-request-payment)
-- [👁️ Other Message Options](#%EF%B8%8F-other-message-options)
-   - [🤖 AI Icon](#-ai-icon)
-   - [🕒 Ephemeral](#-ephemeral)
-   - [📰 External Ad Reply](#-external-ad-reply)
-   - [🧑‍🧑‍🧒 Group Status](#%E2%80%8D%E2%80%8D-group-status)
-   - [🐱 Lottie Sticker](#-lottie-sticker)
-   - [🧩 Raw](#-raw)
-   - [🏷️ Secure Meta Service Label](#%EF%B8%8F-secure-meta-service-label)
-   - [📑 Spoiler](#-spoiler)
-   - [👁️ View Once](#%EF%B8%8F-view-once)
-   - [👁️ View Once V2](#%EF%B8%8F-view-once-v2)
-   - [👁️ View Once V2 Extension](#%EF%B8%8F-view-once-v2-extension)
-- [♻️ Modify Messages](#%EF%B8%8F-modify-messages)
-   - [🗑️ Delete Messages](#%EF%B8%8F-delete-messages)
-   - [✏️ Edit Messages](#%EF%B8%8F-edit-messages)
-- [🧰 Additional Contents](#-additional-contents)
-   - [🏷️ Find User ID (JID|PN/LID)](#%EF%B8%8F-find-user-id-jidpnlid)
-   - [🔑 Request Custom Pairing Code](#-request-custom-pairing-code)
-   - [🖼️ Image Processing](#%EF%B8%8F-image-processing)
-   - [📣 Newsletter Management](#-newsletter-management)
-   - [👥 Group Management](#-group-management)
-   - [👥 Community Management](#-community-management)
-   - [👤 Profile Management](#-profile-management)
-   - [🛒 Business Management](#-business-management)
-   - [🔐 Privacy Management](#-privacy-management)
-   - [📡 Events](#-events)
-- [🧩 @teamolduser/baileys Fork-Exclusive Features](#-teamolduserbaileys-fork-exclusive-features)
-- [📦 Fork Base](#-fork-base)
-- [📣 Credits](#-credits)
-- [Elaina Baileys 1.4.5 sync](#elaina-baileys-145-sync)
-
-### 🛠️ Internal Adjustments
-- 🖼️ Fixed an issue where media could not be sent to newsletters due to an upstream issue.
-- 📁 Reintroduced [`makeInMemoryStore`](#%EF%B8%8F-implementing-data-store) with a minimal ESM adaptation and small adjustments for Baileys v7.
-- 📦 Switched FFmpeg execution from `exec` to `spawn` for safer process handling.
-- 🗃️ Added [`@napi-rs/image`](https://www.npmjs.com/package/@napi-rs/image) as a supported image processing backend in [`getImageProcessingLibrary()`](#%EF%B8%8F-image-processing), offering a balance between performance and compatibility.
-
-### 📨 Messages Handling & Compatibility
-- 📩 Expanded messages support for:
-   - 🖼️ [Album Message](#%EF%B8%8F-album-image--video)
-   - 👤 [Group Status Message](#%E2%80%8D%E2%80%8D-group-status)
-   - 👉🏻 [Interactive Message](#-sending-interactive-messages) (buttons, lists, native flows, templates, carousels).
-   - 🎞️ [Status Mention Message](#%EF%B8%8F-status-mention)
-   - 📦 [Sticker Pack Message](#-sticker-pack)
-   - ✨ [Rich Response Message](#-rich-response) **[NEW]**
-   - 🧾 [Message with Code Blocks](#-message-with-code-block) **[NEW]**
-   - [🌏 Message with Inline Entities](#-message-with-inline-entities) **[NEW]**
-   - 📋 [Message with Table](#-message-with-table) **[NEW]**
-   - 💳 [Payment-related Message](#-sending-payment-messages) (payment requests, invites, orders, invoices).
-- 📰 Simplified sending messages with ad thumbnail using [`externalAdReply`](#-external-ad-reply), without requiring manual `contextInfo`.
-- 💭 Added support for quoting messages inside channel (newsletter). **[NEW]**
-- 🎀 Added support for [custom button icon](#%EF%B8%8F-interactive). **[NEW]**
-
-### 🧩 Additional Message Options
-- 👁️ Added optional boolean flags for message handling:  
-   - 🤖 [`ai`](#-ai-icon) - AI icon on message
-   - 📣 [`mentionAll`](#-mention) - Mention all group participants without requiring their JIDs in `mentions` or `mentionedJid` **[NEW]**
-   - 🔧 [`ephemeral`](#-ephemeral), [`groupStatus`](#%E2%80%8D%E2%80%8D-group-status), [`isLottie`](#-lottie-sticker), [`spoiler`](#-spoiler), [`viewOnce`](#%EF%B8%8F-view-once), [`viewOnceV2`](#%EF%B8%8F-view-once-v2), [`viewOnceV2Extension`](#%EF%B8%8F-view-once-v2-extension), [`interactiveAsTemplate`](#%EF%B8%8F-interactive) - Message wrappers
-   - 🔒 [`secureMetaServiceLabel`](#%EF%B8%8F-secure-meta-service-label) - Secure meta service label on message **[NEW]**
-   - 📄 [`raw`](#-raw) - Build your message manually **(DO NOT USE FOR EXPLOITATION)**
-
-### 📥 Installation
-
-- 📄 Via `package.json`
-
-```json
-# NPM
-"dependencies": {
-   "@teamolduser/baileys": "latest"
-}
-
-# GitHub
-"dependencies": {
-   "@teamolduser/baileys": "github:Teamolduser/Baileys"
-}
-```
-
-- ⌨️ Via terminal
+## 📦 Install
 
 ```bash
-# NPM
-npm i @teamolduser/baileys@latest
-
-# GitHub
-npm i github:Teamolduser/Baileys
+npm install @teamolduser/baileys
+# or
+yarn add @teamolduser/baileys
+# or
+pnpm add @teamolduser/baileys
 ```
 
-#### 🧩 Import (ESM & CJS)
+Straight from GitHub:
 
-```javascript
-// --- ESM
-import { makeWASocket } from '@teamolduser/baileys'
-
-// --- CJS (tested and working on Node.js 24 ✅)
-const { makeWASocket } = require('@teamolduser/baileys')
+```bash
+npm install github:Teamolduser/Baileys
 ```
-
-### 🌐 Connect to WhatsApp (Quick Step)
-
-```javascript
-import { makeWASocket, delay, DisconnectReason, useMultiFileAuthState } from '@teamolduser/baileys'
-import { Boom } from '@hapi/boom'
-import pino from 'pino'
-
-// --- Connect with pairing code
-const myPhoneNumber = '6288888888888'
-
-const logger = pino({ level: 'silent' })
-
-const connectToWhatsApp = async () => {
-   const { state, saveCreds } = await useMultiFileAuthState('session')
-    
-   const sock = makeWASocket({
-      logger,
-      auth: state
-   })
-
-   sock.ev.on('creds.update', saveCreds)
-
-   sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect } = update
-      if (connection === 'connecting' && !sock.authState.creds.registered) {
-         await delay(1500)
-         const code = await sock.requestPairingCode(myPhoneNumber)
-         console.log('🔗 Pairing code', ':', code)
-      }
-      else if (connection === 'close') {
-         const shouldReconnect = new Boom(connection?.lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
-         console.log('⚠️ Connection closed because', lastDisconnect.error, ', reconnecting ', shouldReconnect)
-         if (shouldReconnect) {
-            connectToWhatsApp()
-         }
-      }
-      else if (connection === 'open') {
-         console.log('✅ Successfully connected to WhatsApp')
-      }
-   })
-
-   sock.ev.on('messages.upsert', async ({ messages }) => {
-      for (const message of messages) {
-         if (!message.message) continue
-
-         console.log('🔔 Got new message', ':', message)
-         await sock.sendMessage(message.key.remoteJid, {
-            text: '👋🏻 Hello world'
-         })
-      }
-   })
-}
-
-connectToWhatsApp()
-```
-
-#### 🔐 Auth State
-
-> [!NOTE]
-> You can use the experimental `useSingleFileAuthState` and `useSqliteAuthState` as an alternative to `useMultiFileAuthState`. However, `useSingleFileAuthState` already includes an internal caching mechanism, so there is no need to wrap `state.keys` with `makeCacheableSignalKeyStore`.
-
-### 🗄️ Implementing Data Store
-
-> [!CAUTION]
-> I highly recommend building your own data store, as keeping an entire chat history in memory can lead to excessive RAM usage.
-
-```javascript
-import { makeWASocket, makeInMemoryStore, delay, DisconnectReason, useMultiFileAuthState } from '@teamolduser/baileys'
-import { Boom } from '@hapi/boom'
-import pino from 'pino'
-
-const myPhoneNumber = '6288888888888'
-
-// --- Create your store path
-const storePath = './store.json'
-
-const logger = pino({ level: 'silent' })
-
-const connectToWhatsApp = async () => {
-   const { state, saveCreds } = await useMultiFileAuthState('session')
-    
-   const sock = makeWASocket({
-      logger,
-      auth: state
-   })
-
-   const store = makeInMemoryStore({
-      logger,
-      socket: sock
-   })
-
-   store.bind(sock.ev)
-
-   sock.ev.on('creds.update', saveCreds)
-
-   sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect } = update
-      if (connection === 'connecting' && !sock.authState.creds.registered) {
-         await delay(1500)
-         const code = await sock.requestPairingCode(myPhoneNumber)
-         console.log('🔗 Pairing code', ':', code)
-      }
-      else if (connection === 'close') {
-         const shouldReconnect = new Boom(connection?.lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
-         console.log('⚠️ Connection closed because', lastDisconnect.error, ', reconnecting ', shouldReconnect)
-         if (shouldReconnect) {
-            connectToWhatsApp()
-         }
-      }
-      else if (connection === 'open') {
-         console.log('✅ Successfully connected to WhatsApp')
-      }
-   })
-
-   sock.ev.on('chats.upsert', () => {
-      console.log('✉️ Got chats', store.chats.all())
-   })
-
-   sock.ev.on('contacts.upsert', () => {
-      console.log('👥 Got contacts', Object.values(store.contacts))
-   })
-
-   // --- Read store from file
-   store.readFromFile(storePath)
-
-   // --- Save store every 3 minutes
-   setInterval(() => {
-      store.writeToFile(storePath)
-   }, 180000)
-}
-
-connectToWhatsApp()
-```
-
-### 🪪 WhatsApp IDs Explain
-
-`id` is the WhatsApp ID, called `jid` and `lid` too, of the person or group you're sending the message to.
-- It must be in the format `[country code][phone number]@s.whatsapp.net`
-   - Example for people: `19999999999@s.whatsapp.net` and `12699999999@lid`.
-   - For groups, it must be in the format `123456789-123345@g.us`.
-- For Meta AI, it's `11111111111@bot`.
-- For broadcast lists, it's `[timestamp of creation]@broadcast`.
-- For stories, the ID is `status@broadcast`.
-
-### ✉️ Sending Messages
-
-> [!NOTE]
-> You can get the `jid` from `message.key.remoteJid` in the first example.
-
-#### 🔠 Text
-
-```javascript
-// --- Send a regular text message
-sock.sendMessage(jid, {
-   text: '👋🏻 Hello'
-}, {
-   quoted: message
-})
-
-// --- Send a text message with a link preview
-const urlA = 'https://www.npmjs.com/package/@teamolduser/baileys'
-
-sock.sendMessage(jid, {
-   text: urlA + ' 👆🏻 Check it out!',
-   linkPreview: {
-      'matched-text': urlA,
-      title: '🌱 @teamolduser/baileys',
-      description: 'Underrated Baileys Fork',
-      previewType: 0, // --- Use 1 for video playback in the link preview
-      jpegThumbnail: fs.readFileSync('./path/to/image.jpg')
-   }
-})
-
-> [!NOTE]
-> **`linkPreview` field shapes:**
-> - Omit it, or pass `linkPreview: true` → auto-detects the first URL in
->   `text` and fetches a preview for it automatically. (`true` used to fall
->   through and silently produce a broken, empty preview — fixed to behave
->   the same as omitting it.)
-> - A full object (as above) → used as-is, no fetch.
-> - A bare string, e.g. `linkPreview: 'https://example.com'` → fetches a
->   preview for *that* URL specifically, even if it differs from what's in
->   `text`. (Passing a string used to silently produce a broken, empty
->   preview — fixed to actually fetch now.)
-> - `null` → forces no preview at all, even if `text` contains a URL.
->
-> **Auto-detection requires `link-preview-js` to be installed** —
-> it's an optional peer dependency (not pulled in automatically by
-> `npm install @teamolduser/baileys`), since not everyone needs link
-> previews. Run `npm install link-preview-js` (or `yarn add
-> link-preview-js`) once, or the message still sends fine but silently
-> without a preview. A one-line warning is logged if it's missing.
-
-#### `sock.sendLinkPreviewFor()` — fetch + send a preview for a specific URL
-
-A reusable helper for "fetch a real preview for this URL and send it",
-rather than hand-rolling `getUrlInfo` + `prepareWAMessageMedia` +
-`generateWAMessageFromContent` + `relayMessage` yourself each time:
-
-```javascript
-// Just the URL — message text defaults to the URL itself
-await sock.sendLinkPreviewFor(jid, 'https://github.com/WhiskeySockets/Baileys')
-
-// Custom message text, real fetched preview
-await sock.sendLinkPreviewFor(jid, url, '🚀 Check this out!')
-
-// Keep the real fetched OG image/description, override just the title
-await sock.sendLinkPreviewFor(jid, url, { text: '🚀 Check this out!', title: 'My own title' })
-```
-
-Unlike the auto-detect-from-`text` path (which fails silently by
-design — a preview is a nice-to-have, it shouldn't block sending), this
-throws if the URL genuinely can't be resolved, since here you explicitly
-asked for a preview of it. Same optional-`link-preview-js`/
-`generateHighQualityLinkPreview` behavior applies underneath.
-
-// --- Send a text message with a large link preview and favicon
-import { prepareWAMessageMedia } from '@teamolduser/baileys'
-
-const urlB = 'https://www.npmjs.com/package/@teamolduser/baileys#readme'
-
-const { imageMessage: image } = await prepareWAMessageMedia({
-   image: {
-      url: './path/to/image.jpg'
-   }
-}, {
-   upload: sock.waUploadToServer,
-   mediaTypeOverride: 'thumbnail-link'
-})
-
-// --- Set the thumbnail display size
-image.height = 720
-image.width = 480
-
-sock.sendMessage(jid, {
-   text: urlB + ' 👆🏻 Check it out!',
-   linkPreview: {
-      'matched-text': urlB,
-      title: '🌱 @teamolduser/baileys',
-      description: 'Underrated Baileys Fork',
-      previewType: 0,
-      jpegThumbnail: fs.readFileSync('./path/to/image.jpg'),
-      highQualityThumbnail: image,
-      linkPreviewMetadata: {
-         linkMediaDuration: 0, // --- Duration in seconds (for video/audio content)
-         socialMediaPostType: 1, // --- Enum: 0 = NONE, 1 = REEL, 2 = LIVE_VIDEO, 3 = LONG_VIDEO, 4 = SINGLE_IMAGE, 5 = CAROUSEL
-      } // --- Additional metadata for large link preview
-   },
-   favicon: {
-      url: './path/to/tiny-image.ico'
-   }
-})
-```
-
-#### 🔔 Mention
-
-```javascript
-// --- Regular mention
-sock.sendMessage(jid, {
-   text: '👋🏻 Hello @628123456789',
-   mentions: ['628123456789@s.whatsapp.net']
-}, {
-   quoted: message
-})
-
-// --- Mention all
-sock.sendMessage(jid, {
-   text: '👋🏻 Hello @all',
-   mentionAll: true
-}, {
-   quoted: message
-})
-
-// --- Mention a group (the `@<group id>` token is appended to the text when it is missing)
-sock.sendMessage(jid, {
-   text: '📣 Join us in',
-   groupMentions: [{ groupJid: '120363000000000000@g.us', groupSubject: 'Team chat' }]
-})
-```
-
-#### 😁 Reaction
-
-```javascript
-sock.sendMessage(jid, {
-   react: {
-      key: message.key,
-      text: '✨'
-   }
-})
-```
-
-#### 📌 Pin Message
-
-```javascript
-sock.sendMessage(jid, {
-   pin: message.key,
-   time: 86400, // --- Set the value in seconds: 86400 (1d), 604800 (7d), or 2592000 (30d)
-   type: 1 // --- Or 2 to remove
-})
-```
-
-#### 🔖 Keep Chat
-
-> [!NOTE]
-> Keep Chat can only be used in chats or groups with disappearing messages enabled.
-
-```javascript
-sock.sendMessage(jid, {
-   keep: message.key,
-   type: 1 // --- Or 2 to remove
-})
-```
-
-#### ➡️ Forward Message
-
-```javascript
-sock.sendMessage(jid, {
-   forward: message,
-   force: true // --- Optional
-})
-```
-
-#### 👤 Contact
-
-```javascript
-const vcard = 'BEGIN:VCARD\n'
-            + 'VERSION:3.0\n'
-            + 'FN:Jane Doe\n'
-            + 'ORG:Waitress;\n'
-            + 'TEL;type=CELL;type=VOICE;waid=628123456789:+62 8123 4567 89\n'
-            + 'END:VCARD'
-
-sock.sendMessage(jid, {
-   contacts: {
-      displayName: 'Jane Doe',
-      contacts: [
-         { vcard }
-      ]
-   }
-}, {
-   quoted: message
-})
-```
-
-#### 📍 Location
-
-```javascript
-sock.sendMessage(jid, {
-   location: {
-      degreesLatitude: 24.121231,
-      degreesLongitude: 55.1121221,
-      name: '👋🏻 I am here'
-   }
-}, {
-   quoted: message
-})
-```
-
-#### 🗓️ Event
-
-```javascript
-sock.sendMessage(jid, {
-   event: {
-      name: '🎶 Meet & Mingle Party',
-      description: 'Meet & Mingle Party is a fun, casual gathering to connect, chat, and build new relationships within the community.',
-      call: 'audio', // --- Or "video", this field is optional
-      startDate: new Date(Date.now() + 3600000),
-      endDate: new Date(Date.now() + 28800000),
-      isCancelled: false, // --- Optional
-      isScheduleCall: false, // --- Optional
-      extraGuestsAllowed: false, // --- Optional
-      location: {
-         name: 'Jakarta',
-         degreesLatitude: -6.2,
-         degreesLongitude: 106.8
-      }
-   }
-}, {
-   quoted: message
-})
-```
-
-#### 👥 Group Invite
-
-```javascript
-const inviteCode = groupUrl
-   .split('chat.whatsapp.com/')[1]
-   ?.split('?')[0]
-
-const groupJid = '1201111111111@g.us'
-const groupName = '@teamolduser/baileys'
-
-sock.sendMessage(jid, {
-   groupInvite: {
-      inviteCode,
-      inviteExpiration: Date.now() + 86400000,
-      text: '👋🏻 Hello, we invite you to join our group.',
-      jid: groupJid,
-      subject: groupName,
-   }
-}, {
-   quoted: message
-})
-```
-
-#### 👥 Group Invite (v4, direct to a participant)
-
-Lower-level than `content.groupInvite` above — it doesn't auto-fetch the
-group's profile picture, so pass `jpegThumbnail` yourself if you want one
-shown. Available both as dedicated functions and as `sendMessage` content
-keys; `sendGroupV4Invite`/`sock.sendGroupV4Invite` and
-`sendGroupInviteV4`/`sock.sendGroupInviteV4` are identical aliases of each
-other, so use whichever name reads better to you.
-
-```javascript
-// --- As a dedicated function call
-await sock.sendGroupV4Invite(
-   groupJid,          // --- The group's jid
-   participantJid,    // --- Who to send the invite to
-   inviteCode,
-   Date.now() + 86400000, // --- inviteExpiration, optional
-   groupName,          // --- optional
-   '👋🏻 Hello, we invite you to join our group.', // --- caption, optional
-   jpegThumbnail        // --- Buffer, optional
-)
-
-// --- Alias, same signature
-await sock.sendGroupInviteV4(groupJid, participantJid, inviteCode)
-
-// --- As sendMessage content-key shorthand
-sock.sendMessage(participantJid, {
-   sendGroupV4Invite: {
-      groupJid,
-      inviteCode,
-      inviteExpiration: Date.now() + 86400000, // --- Optional
-      groupName,                                // --- Optional
-      caption: '👋🏻 Hello, we invite you to join our group.', // --- Optional
-      jpegThumbnail                             // --- Buffer, optional
-   }
-})
-
-// --- Same, via the sendGroupInviteV4 alias key
-sock.sendMessage(participantJid, {
-   sendGroupInviteV4: {
-      groupJid,
-      inviteCode,
-      inviteExpiration: Date.now() + 86400000,
-      groupName,
-      caption: '👋🏻 Hello, we invite you to join our group.',
-      jpegThumbnail
-   }
-})
-```
-
-#### 🛍️ Product
-
-```javascript
-import { randomUUID } from 'crypto'
-
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   body: '👋🏻 Check my product here!',
-   footer: '@teamolduser/baileys',
-   product: {
-      currencyCode: 'INR',
-      description: '🛍️ Interesting product!',
-      priceAmount1000: 70_000_000,
-      productId: randomUUID(),
-      productImageCount: 1,
-      salePriceAmount1000: 65_000_000,
-      signedUrl: 'https://www.npmjs.com/package/@teamolduser/baileys',
-      title: '📦 Store (Premium)',
-      url: 'https://www.npmjs.com/package/@teamolduser/baileys'
-   },
-   businessOwnerJid: '0@s.whatsapp.net'
-})
-```
-
-#### 📊 Poll
-
-```javascript
-// --- Regular poll message
-sock.sendMessage(jid, {
-   poll: {
-      name: '🔥 Voting time',
-      values: ['Yes', 'No'],
-      selectableCount: 1,
-      toAnnouncementGroup: false,
-      endDate: new Date(Date.now() + 28800000), // --- Optional
-      hideVoter: false, // --- Optional
-      canAddOption: false // --- Optional
-   }
-}, {
-   quoted: message
-})
-
-// --- Photo poll: options with a picture (V3 poll message, each picture is sent as a linked message)
-sock.sendMessage(jid, {
-   poll: {
-      name: '🍕 Pick one',
-      values: [
-         { name: 'Margherita', image: { url: './margherita.jpg' } },
-         { name: 'Pepperoni', image: { url: './pepperoni.jpg' } },
-         'No picture option'
-      ],
-      selectableCount: 1
-   }
-})
-// `{ name, optionHash }` reuses a picture that was already uploaded: getPollOptionHash(name, fileSha256)
-
-// --- Quiz (only for newsletter)
-sock.sendMessage('1211111111111@newsletter', {
-   poll: {
-      name: '🔥 Quiz',
-      values: ['Yes', 'No'],
-      correctAnswer: 'Yes',
-      pollType: 1
-   }
-}, {
-   quoted: message
-})
-
-// --- Poll result
-sock.sendMessage(jid, {
-   pollResult: {
-      name: '📝 Poll Result',
-      votes: [{
-         name: 'Nice',
-         voteCount: 10
-      }, {
-         name: 'Nah',
-         voteCount: 2
-      }],
-      pollType: 0 // Or 1 for quiz
-   }
-}, {
-   quoted: message
-})
-
-// --- Poll update
-sock.sendMessage(jid, {
-   pollUpdate: {
-      metadata: {},
-      key: message.key,
-      vote: {
-         enclv: /* <Buffer> */,
-         encPayload: /* <Buffer> */
-      }
-   }
-}, {
-   quoted: message
-})
-```
-
-#### 💭 Button Response
-
-```javascript
-// --- Using buttonsResponseMessage
-sock.sendMessage(jid, {
-   type: 'plain',
-   buttonReply: {
-      id: '#Menu',
-      displayText: '✨ Interesting Menu'
-   }
-}, {
-   quoted: message
-})
-
-// --- Using interactiveResponseMessage
-sock.sendMessage(jid, {
-   flowReply: {
-      format: 0,
-      text: '💭 Response',
-      name: 'menu_options',
-      paramsJson: JSON.stringify({
-         id: '#Menu',
-         description: '✨ Interesting Menu'
-      })
-   }
-}, {
-   quoted: message
-})
-
-// --- Using listResponseMessage
-sock.sendMessage(jid, {
-   listReply: {
-      title: '📄 See More',
-      description: '✨ Interesting Menu',
-      id: '#Menu'
-   }
-}, {
-   quoted: message
-})
-
-// --- Using templateButtonReplyMessage
-sock.sendMessage(jid, {
-   type: 'template',
-   buttonReply: {
-      id: '#Menu',
-      displayText: '✨ Interesting Menu',
-      index: 1
-   }
-}, {
-   quoted: message
-})
-```
-
-#### ✨ Rich Response
-
-> [!NOTE]
-> `richResponse[]` is a representation of [`submessages[]`](https://baileys.wiki/docs/api/namespaces/proto/interfaces/IAIRichResponseSubMessage) inside `richResponseMessage`.
-
-> [!TIP]
-> You can still use the original [`submessages[]`](https://baileys.wiki/docs/api/namespaces/proto/interfaces/IAIRichResponseSubMessage) field directly.
-> The code example below is just an implementation using a helper, not a required structure.
-
-```javascript
-sock.sendMessage(jid, {
-   disclaimerText: 'RAW submessages structure example',
-   richResponse: [{
-      text: 'Example Usage',
-   }, {
-      language: 'javascript',
-      code: [{
-         highlightType: 0,
-         codeContent: 'console.log("Hello, World!")'
-      }]
-   }, {
-      text: 'Pretty simple, right?\n'
-   }, {
-      text: 'Comparison between Node.js, Bun, and Deno',
-   }, {
-      title: 'Runtime Comparison',
-      table: [{
-         isHeading: true,
-         items: ['', 'Node.js', 'Bun', 'Deno']
-      }, {
-         isHeading: false,
-         items: ['Engine', 'V8 (C++)', 'JavaScriptCore (C++)', 'V8 (C++)']
-      }, {
-         isHeading: false,
-         items: ['Performance', '4/5', '5/5', '4/5']
-      }]
-   }, {
-      text: 'Does this help clarify the differences?'
-   }]
-})
-```
-
-> [!TIP]
-> You can easily add syntax highlighting by importing `tokenizeCode` directly from Baileys.
-
-```javascript
-import { tokenizeCode } from '@teamolduser/baileys'
-
-const language = 'javascript'
-const code = 'console.log("Hello, World!")'
-
-sock.sendMessage(jid, {
-   disclaimerText: 'Example of tokenizing Code Block',
-   richResponse: [{
-      text: 'Example Usage',
-   }, {
-      language,
-      code: tokenizeCode(code, language)
-   }, {
-      text: 'Pretty simple, right?'
-   }]
-})
-```
-
-> 💡 Supported Languages: `css`, `html`, `javascript`, `typescript`, `python`, `golang`, `rust`, `c`, `c#`, `c++`, `bash`, `bat`, `powershell`.
-
-#### 🧾 Message with Code Block
-
-> [!NOTE]
-> This feature already includes a built-in tokenizer with `tokenizeCode`.
-
-```javascript
-sock.sendMessage(jid, {
-   disclaimerText: 'Code Block',
-   headerText: '## Example Usage',
-   contentText: '---',
-   code: 'console.log("Hello, World!")',
-   language: 'javascript',
-   footerText: 'Pretty simple, right?'
-})
-```
-
-#### 🌏 Message with Inline Entities
-
-```javascript
-sock.sendMessage(jid, {
-   disclaimerText: 'Inline Entities',
-   headerText: '## Check Out!',
-   contentText: '---',
-   links: [{
-      text: '1. Google',
-      title: 'Popular Search Engine',
-      url: 'https://www.google.com/'
-   }, {
-      text: '2. YouTube',
-      title: 'Popular Streaming Platform',
-      url: 'https://www.youtube.com/'
-   }, {
-      text: '3. Modded Baileys',
-      title: 'Underrated Baileys Fork',
-      url: 'https://www.npmjs.com/package/@teamolduser/baileys'
-   }],
-   footerText: '---'
-})
-```
-
-#### 📋 Message with Table
-
-```javascript
-sock.sendMessage(jid, {
-   disclaimerText: 'Table',
-   headerText: '## Comparison between Node.js, Bun, and Deno',
-   contentText: '---',
-   title: 'Runtime Comparison',
-   table: [
-      ['', 'Node.js', 'Bun', 'Deno'],
-      ['Engine', 'V8 (C++)', 'JavaScriptCore (C++)', 'V8 (C++)'],
-      ['Performance', '4/5', '5/5', '4/5']
-   ],
-   noHeading: false, // --- Optional
-   footerText: 'Does this help clarify the differences?'
-})
-```
-
-#### 🎞️ Status Mention
-
-Posts a single status update and mentions each jid — group jids are
-automatically expanded to their participants, so you can mix users and
-groups freely. Works with any status content (text, image, video, or
-audio), and each mentioned user gets an individual mention notification
-in addition to the status post.
-
-```javascript
-// shorthand — array as the jid
-sock.sendMessage([jidA, jidB, jidC], {
-   text: 'Hello! 👋🏻'
-})
-
-// same thing, via the named method
-sock.sendStatusMentions([jidA, jidB, groupJid], {
-   text: 'Hello! 👋🏻'
-})
-
-// works with media too
-sock.sendStatusMentions([jidA, jidB], {
-   image: { url: './path/to/image.jpg' },
-   caption: 'Check this out!'
-})
-```
-
-### 📁 Sending Media Messages
-
-> [!NOTE]
-> For media messages, you can pass a `Buffer` directly, or an object with either `{ stream: Readable }` or `{ url: string }` (local file path or HTTP/HTTPS URL).
-
-#### 🖼️ Image
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '🔥 Superb'
-}, {
-   quoted: message
-})
-```
-
-#### 🎥 Video
-
-```javascript
-sock.sendMessage(jid, {
-   video: {
-      url: './path/to/video.mp4'
-   },
-   gifPlayback: false, // --- Set true if you want to send video as GIF
-   ptv: false,  // --- Set true if you want to send video as PTV
-   caption: '🔥 Superb'
-}, {
-   quoted: message
-})
-```
-
-#### 📃 Sticker
-
-```javascript
-sock.sendMessage(jid, {
-   sticker: {
-      url: './path/to/sticker.webp'
-   }
-}, {
-   quoted: message
-})
-```
-
-#### 💽 Audio
-
-```javascript
-sock.sendMessage(jid, {
-   audio: {
-      url: './path/to/audio.mp3'
-   },
-   ptt: false // --- Set true if you want to send audio as Voice Note
-}, {
-   quoted: message
-})
-```
-
-#### 🗂️ Document
-
-```javascript
-sock.sendMessage(jid, {
-   document: {
-      url: './path/to/document.pdf'
-   },
-   mimetype: 'application/pdf',
-   caption: '✨ My work!'
-}, {
-   quoted: message
-})
-```
-
-#### 🖼️ Album (Image & Video)
-
-```javascript
-sock.sendMessage(jid, {
-   album: [{
-      image: {
-         url: './path/to/image.jpg'
-      },
-      caption: '1st image'
-   }, {
-      video: {
-         url: './path/to/video.mp4'
-      },
-      caption: '1st video'
-   }, {
-      image: {
-         url: './path/to/image.jpg'
-      },
-      caption: '2nd image'
-   }, {
-      video: {
-         url: './path/to/video.mp4'
-      },
-      caption: '2nd video'
-   }]
-}, {
-   quoted: message
-})
-```
-
-#### 📦 Sticker Pack
 
 > [!IMPORTANT]
-> **No limits**: any number of stickers (100+ works) and no size cap (25MB+ packs work). Media keeps its **original size and
-> quality**. `sharp` and `@napi-rs/image` are both installed automatically with this package and convert non-WebP media (`sharp` first,
-> `@napi-rs/image` as the fallback) - already-WebP media never needs a converter; if neither can load on your platform, `cover` and
-> `stickers` must already be WebP. Lottie (`.was` / raw Lottie JSON) stickers are kept as Lottie.
-> WebP is sent untouched; PNG/JPG/GIF/video are converted to WebP at the original size and original quality (lossless; optional `maxSize` /
-> `quality` / `concurrency`, Lottie stickers and the other builders: [Sticker Packs](#4-sticker-packs)).
+> **Node 22 or newer is required.** The SQLite auth state and the Framework store import `better-sqlite3 ^13`, which
+needs it. `npm run check:engine` enforces the floor; `engine-requirements.js` and `engine-requirements2.js` are the
+upstream files, kept verbatim for diffing.
 
-```javascript
-sock.sendMessage(jid, {
-   cover: {
-      url: './path/to/image.webp'
-   },
-   stickers: [{
-      data: {
-         url: './path/to/image.webp'
-      },
-      emojis: ['😀'], // optional (default ['✨'])
-      accessibilityLabel: 'Smile', // optional
-      // `sticker: {...}` also works as an alias of `data`
-      isAnimated: false, // optional (auto-detected)
-      isLottie: false // optional (auto-detected, Lottie `.was` / raw Lottie JSON)
-   }, {
-      data: {
-         url: './path/to/image.webp'
-      }
-   }, {
-      data: {
-         url: './path/to/image.webp'
-      }
-   }],
-   name: '📦 @teamolduser/baileys Sticker Pack System',
-   publisher: '🌟 @teamolduser/baileys Publisher System',
-   description: '🏷️ @teamolduser/baileys Description System',
-   // packId: 'my-pack-001', // optional (random if omitted)
-   // concurrency: 10, // optional: stickers converted at once (default 15)
-   // maxSize: 512, // optional: longest side in px for converted stickers (default: original size)
-   // quality: 'original' // optional: 'original' (default, lossless) or 1-100 (lossy, smaller files)
-}, {
-   quoted: message
-})
+The package is **ESM-only**. From CommonJS use `await import('@teamolduser/baileys')`.
 
-// nested style, same result
-sock.sendMessage(jid, { stickerPack: { cover, stickers, name: 'My pack' } })
-```
+Installing runs a Node version check first (`preinstall` → `engine-requirements-anya.js`): below Node.js 20 it stops,
+and on 20 or 21 it warns.
 
-Sticker packs built from URL-based stickers are cached when `mediaCache` is configured.
+`better-sqlite3` — used by the SQLite auth state and the Framework store — declares `node >=22`. It stays a regular
+dependency on purpose: `src/Framework/Store/SQLiteStore.ts` and `src/Framework/StatsManager.ts` import it statically, so
+without it the package root cannot be imported at all (`ERR_MODULE_NOT_FOUND`). Node.js **22+ is therefore the real
+floor** for this package, even though the check only hard-fails below 20.
 
-Two more ways to send the same pack:
+## ✨ What is in the box
 
-```javascript
-import { prepareStickerPackMessage } from '@teamolduser/baileys'
+A quick map of what this fork adds on top of upstream Baileys, so you know where to look.
 
-const pack = {
-   cover: { url: './path/to/image.webp' },
-   stickers: [{ data: { url: './path/to/image.webp' } }],
-   name: '📦 @teamolduser/baileys Sticker Pack System',
-   publisher: '🌟 @teamolduser/baileys Publisher System'
-   // concurrency / maxSize / quality work here too
-}
+| Area | What you get | Where |
+|---|---|---|
+| Auth backends | 14 adapters — files, SQLite ×2, Postgres, MySQL, Turso, Redis ×2, Mongo ×2, NekoDB, NeDB, cache-manager | [Sessions and auth state](#sessions-and-auth-state) |
+| Moving backends | `migrateAuthState` copies creds and every signal key without a re-pair | [Moving credentials](#moving-credentials-to-another-backend) |
+| Call shapes | every adapter takes `(a)`, `(a, b, c)`, `({ a })`, `({ a, b, c })` and the mixes | [Sessions and auth state](#sessions-and-auth-state) |
+| Newsletter / channels | 55 methods — create, follow, mute, admin invites, insights, directory, reports | [Newsletter and channels](#newsletter-and-channels) |
+| MessageBuilder | buttons, lists, carousels, AIRich, native flow, A2UI cards | [MessageBuilder, AIRich and webview](#messagebuilder-airich-and-webview) |
+| Rich content | link previews, ad-style cards, payments, scheduled messages, modern content types | [Rich content](#rich-content) |
+| VoIP | call signalling, group calls, screen sharing, diagnostics | [VoIP](#voip) |
+| HTML webview | `webView` / `web` / `sendHtmlWebview` bound to the socket | [MessageBuilder, AIRich and webview](#messagebuilder-airich-and-webview) |
+| Extras catalogue | ~90 modules ported from other forks, documented module by module | [Extras and Addons](#-extras-and-addons) |
+| Full reference | every wiki page, every feature guide, every export — inline in this file | [Full reference](#-full-reference) |
 
-// prepare + relay
-const stickerPackMessage = await prepareStickerPackMessage(pack, { upload: sock.waUploadToServer })
-await sock.relayMessage(jid, { stickerPackMessage }, {})
+Everything is TypeScript, ships with its own types, and is tested by `npm run test2` (202 tests, no network).
 
-// the same in one call
-await sock.sendStickerPack(jid, pack)
-```
+## 📚 Index
 
-### 👉🏻 Sending Interactive Messages
+- [@teamolduser/baileys](#teamolduserbaileys)
+  - [⚠️ Important Notice](#-important-notice)
+  - [🚀 Quick Start](#-quick-start)
+  - [📦 Install](#-install)
+  - [✨ What is in the box](#-what-is-in-the-box)
+  - [🔌 Connecting an account](#-connecting-an-account)
+  - [💾 Sessions and auth state](#-sessions-and-auth-state)
+    - [Picking an adapter](#picking-an-adapter)
+    - [Sessions in one database](#sessions-in-one-database)
+    - [Moving credentials to another backend](#moving-credentials-to-another-backend)
+  - [📡 Handling events](#-handling-events)
+  - [💬 Sending messages](#-sending-messages)
+  - [👥 Groups](#-groups)
+  - [🏘️ Communities](#-communities)
+  - [💬 Chats](#-chats)
+  - [👤 Profile and privacy](#-profile-and-privacy)
+  - [📇 Contacts and presence](#-contacts-and-presence)
+  - [📨 Message operations](#-message-operations)
+  - [🛍️ Business and catalog](#-business-and-catalog)
+  - [📞 Calls](#-calls)
+  - [✨ Rich content](#-rich-content)
+  - [🗄️ Data store](#-data-store)
+  - [🔧 Raw access](#-raw-access)
+  - [🪪 WhatsApp IDs: JID, PN, LID](#-whatsapp-ids-jid-pn-lid)
+  - [⚙️ Socket config](#-socket-config)
+  - [🎨 MessageBuilder, AIRich and webview](#-messagebuilder-airich-and-webview)
+  - [📰 Newsletters — channels](#-newsletters-channels)
+  - [📞 VoIP](#-voip)
+  - [🧩 Extras and Addons](#-extras-and-addons)
+  - [🔗 Links](#-links)
+  - [🙏 Credits](#-credits)
+    - [This fork](#this-fork)
+    - [Upstream](#upstream)
+    - [Forks whose work is ported here](#forks-whose-work-is-ported-here)
+    - [Third-party packages](#third-party-packages)
+    - [Thanks](#thanks)
+  - [📖 Full reference](#-full-reference)
+    - [Auth state adapters](#auth-state-adapters)
+    - [Database auth states](#database-auth-states)
+    - [MongoDB Auth State 2 (`useMongoAuthState2`)](#mongodb-auth-state-2-usemongoauthstate2)
+    - [SQLite Auth State 2 (`useSqliteAuthState2`)](#sqlite-auth-state-2-usesqliteauthstate2)
+    - [Turso / libSQL Auth State (`useTursoAuthState`)](#turso-libsql-auth-state-usetursoauthstate)
+    - [Migrating between adapters](#migrating-between-adapters)
+    - [Auth adapter examples](#auth-adapter-examples)
+    - [How the arguments line up](#how-the-arguments-line-up)
+    - [One positional argument](#one-positional-argument)
+    - [Argument order](#argument-order)
+    - [Options object with just the location](#options-object-with-just-the-location)
+    - [Options object with every level](#options-object-with-every-level)
+    - [Return shapes](#return-shapes)
+    - [Sharing one backend between bots](#sharing-one-backend-between-bots)
+    - [Moving between adapters later](#moving-between-adapters-later)
+    - [Store APIs](#store-apis)
+    - [Store APIs at the package root](#store-apis-at-the-package-root)
+    - [Socket methods](#socket-methods)
+    - [Account and chat methods](#account-and-chat-methods)
+    - [Message helpers](#message-helpers)
+    - [Message content](#message-content)
+    - [New message content keys](#new-message-content-keys)
+    - [MessageBuilder and AIRich](#messagebuilder-and-airich)
+    - [MessageBuilder / AIRich](#messagebuilder-airich)
+    - [Native flow payloads](#native-flow-payloads)
+    - [Direct Native Flow examples (without helper builders)](#direct-native-flow-examples-without-helper-builders)
+    - [V2 interactive names](#v2-interactive-names)
+    - [Elaina-derived interactive APIs (V2 naming)](#elaina-derived-interactive-apis-v2-naming)
+    - [Newsletter and channels](#newsletter-and-channels)
+    - [Channel (newsletter) methods](#channel-newsletter-methods)
+    - [Newsletter API](#newsletter-api)
+    - [Calls, queues and screen sharing](#calls-queues-and-screen-sharing)
+    - [🎧 Call queues, screen sharing and group calls](#-call-queues-screen-sharing-and-group-calls)
+    - [VoIP](#voip)
+    - [Unified VoIP API](#unified-voip-api)
+    - [VoIP diagnostics and call timelines](#voip-diagnostics-and-call-timelines)
+    - [In-app HTML webview](#in-app-html-webview)
+    - [In-app HTML webview (`webView`)](#in-app-html-webview-webview)
+    - [Account health signals](#account-health-signals)
+    - [🛡️ Account health signals](#-account-health-signals)
+    - [Pairing code](#pairing-code)
+    - [AnchorGuard](#anchorguard)
+    - [External ad reply](#external-ad-reply)
+    - [Rich link cards and status previews](#rich-link-cards-and-status-previews)
+    - [A2UI cards](#a2ui-cards)
+    - [Message types](#message-types)
+    - [Message content keys](#message-content-keys)
+    - [Modern message API](#modern-message-api)
+    - [Scheduled messages](#scheduled-messages)
+    - [Group administration](#group-administration)
+    - [Communities](#communities)
+    - [Chat state, labels and history](#chat-state-labels-and-history)
+    - [Privacy and disappearing messages](#privacy-and-disappearing-messages)
+    - [Presence and read receipts](#presence-and-read-receipts)
+    - [Profile photos](#profile-photos)
+    - [Business, catalog and labels](#business-catalog-and-labels)
+    - [Channel administration](#channel-administration)
+    - [Calls in depth](#calls-in-depth)
+    - [Event reference](#event-reference)
+    - [Socket config reference](#socket-config-reference)
+    - [Framework](#framework)
+    - [`SQLiteStore`](#sqlitestore)
+    - [`SessionManager`](#sessionmanager)
+    - [`MediaManager`](#mediamanager)
+    - [`StatsManager`](#statsmanager)
+    - [`Bot`](#bot)
+    - [`Context`](#context)
+    - [Example](#example)
+    - [Internals](#internals)
+    - [`src/Socket`](#srcsocket)
+    - [`src/Signal`](#srcsignal)
+    - [`src/Voip`](#srcvoip)
+    - [`src/WABinary`, `src/WAM`, `src/WAUSync`](#srcwabinary-srcwam-srcwausync)
+    - [`src/Defaults`](#srcdefaults)
+    - [`src/Extras/MessageBuilder/bot-signature.ts`](#srcextrasmessagebuilderbot-signaturets)
+    - [Reading a stack trace](#reading-a-stack-trace)
+    - [Addons that are entry points rather than helpers](#addons-that-are-entry-points-rather-than-helpers)
+    - [Type-only folders](#type-only-folders)
+    - [The remaining internals](#the-remaining-internals)
+    - [Useful exports](#useful-exports)
+    - [Updating the WhatsApp Web version](#updating-the-whatsapp-web-version)
+    - [Getting a tarball](#getting-a-tarball)
+    - [Notable behaviour changes](#notable-behaviour-changes)
+    - [Coming from upstream Baileys](#coming-from-upstream-baileys)
+    - [Troubleshooting](#troubleshooting)
+  - [📘 Feature guides](#-feature-guides)
+    - [account health](#account-health)
+    - [🛡️ Account health signals](#-account-health-signals-1)
+    - [auth state](#auth-state)
+    - [Database auth states](#database-auth-states-1)
+    - [MongoDB Auth State 2 (`useMongoAuthState2`)](#mongodb-auth-state-2-usemongoauthstate2-1)
+    - [SQLite Auth State 2 (`useSqliteAuthState2`)](#sqlite-auth-state-2-usesqliteauthstate2-1)
+    - [Turso / libSQL Auth State (`useTursoAuthState`)](#turso-libsql-auth-state-usetursoauthstate-1)
+    - [Moving credentials to another backend](#moving-credentials-to-another-backend-1)
+    - [builder](#builder)
+    - [Imports](#imports)
+    - [Build an interactive button message](#build-an-interactive-button-message)
+    - [Static helper attachment](#static-helper-attachment)
+    - [Main builder families](#main-builder-families)
+    - [Compatibility notes](#compatibility-notes)
+    - [Access paths](#access-paths)
+    - [calls](#calls)
+    - [🎧 Call queues, screen sharing and group calls](#-call-queues-screen-sharing-and-group-calls-1)
+    - [elaina parity](#elaina-parity)
+    - [What "parity" means here](#what-parity-means-here)
+    - [All fifteen are identical](#all-fifteen-are-identical)
+    - [What the stanza suite covers](#what-the-stanza-suite-covers)
+    - [Provenance](#provenance)
+    - [What parity does not cover](#what-parity-does-not-cover)
+    - [Dependency trust](#dependency-trust)
+    - [examples](#examples)
+    - [Text command bot skeleton](#text-command-bot-skeleton)
+    - [MongoDB auth with isolated sessions](#mongodb-auth-with-isolated-sessions)
+    - [Store chats and messages in memory](#store-chats-and-messages-in-memory)
+    - [AIRich widgets, A2UI and AIRichMessage](#airich-widgets-a2ui-and-airichmessage)
+    - [WAProto additions (offline check)](#waproto-additions-offline-check)
+    - [getting started](#getting-started)
+    - [Requirements](#requirements)
+    - [Install](#install)
+    - [Create a socket and persist credentials](#create-a-socket-and-persist-credentials)
+    - [Important session rule](#important-session-rule)
+    - [groups](#groups)
+    - [Create a group](#create-a-group)
+    - [Update participants](#update-participants)
+    - [Group metadata and admin operations](#group-metadata-and-admin-operations)
+    - [index](#index)
+    - [Start here](#start-here)
+    - [Package](#package)
+    - [interactive v2](#interactive-v2)
+    - [Elaina-derived interactive APIs (V2 naming)](#elaina-derived-interactive-apis-v2-naming-1)
+    - [live verification](#live-verification)
+    - [Before you start](#before-you-start)
+    - [Step 1 — build the library](#step-1-build-the-library)
+    - [Step 2 — pair once, if you have not already](#step-2-pair-once-if-you-have-not-already)
+    - [Step 3 — run the checks](#step-3-run-the-checks)
+    - [Step 4 — read the result](#step-4-read-the-result)
+    - [Step 5 — if something fails](#step-5-if-something-fails)
+    - [What this does not cover](#what-this-does-not-cover)
+    - [If you want the strongest signal](#if-you-want-the-strongest-signal)
+    - [message content](#message-content-1)
+    - [New message content keys](#new-message-content-keys-1)
+    - [messagebuilder](#messagebuilder)
+    - [MessageBuilder / AIRich](#messagebuilder-airich-1)
+    - [messages](#messages)
+    - [Receive new messages](#receive-new-messages)
+    - [Extract simple text](#extract-simple-text)
+    - [Send a text message](#send-a-text-message)
+    - [Mark messages as read](#mark-messages-as-read)
+    - [Interactive messages](#interactive-messages)
+    - [native flow](#native-flow)
+    - [Direct Native Flow examples (without helper builders)](#direct-native-flow-examples-without-helper-builders-1)
+    - [newsletter](#newsletter)
+    - [Create and update a channel](#create-and-update-a-channel)
+    - [Ported newsletter extras](#ported-newsletter-extras)
+    - [Server IDs versus message keys](#server-ids-versus-message-keys)
+    - [pairing](#pairing)
+    - [porting changes](#porting-changes)
+    - [1. MessageBuilder static helper attachment](#1-messagebuilder-static-helper-attachment)
+    - [2. Store root exports](#2-store-root-exports)
+    - [3. MongoDB `useMongoAuthState2`](#3-mongodb-usemongoauthstate2)
+    - [4. SQLite `useSqliteAuthState2`](#4-sqlite-usesqliteauthstate2)
+    - [5. Package metadata and compatibility tests](#5-package-metadata-and-compatibility-tests)
+    - [6. Cumulative ZIP and ported-folder organization](#6-cumulative-zip-and-ported-folder-organization)
+    - [Elaina name compatibility](#elaina-name-compatibility)
+    - [Elaina sync: commit f025122 to the 21-oct build](#elaina-sync-commit-f025122-to-the-21-oct-build)
+    - [sessions](#sessions)
+    - [Multi-file auth state](#multi-file-auth-state)
+    - [Database-backed auth states](#database-backed-auth-states)
+    - [`useMongoAuthState2`](#usemongoauthstate2)
+    - [`useSqliteAuthState2`](#usesqliteauthstate2)
+    - [`useTursoAuthState`](#usetursoauthstate)
+    - [Sessions across the file-based adapters](#sessions-across-the-file-based-adapters)
+    - [Store lifecycle](#store-lifecycle)
+    - [Production guidance](#production-guidance)
+    - [socket methods](#socket-methods-1)
+    - [Account and chat methods](#account-and-chat-methods-1)
+    - [Message helpers](#message-helpers-1)
+    - [stability checklist](#stability-checklist)
+    - [Step 0 — build and run the local suite (5 minutes, no account)](#step-0-build-and-run-the-local-suite-5-minutes-no-account)
+    - [Step 1 — pair a spare number (10 minutes, needs a phone)](#step-1-pair-a-spare-number-10-minutes-needs-a-phone)
+    - [Step 2 — prove the stanzas are accepted (15 minutes, needs the paired session)](#step-2-prove-the-stanzas-are-accepted-15-minutes-needs-the-paired-session)
+    - [Step 3 — reconnect storm (5 minutes, needs the paired session)](#step-3-reconnect-storm-5-minutes-needs-the-paired-session)
+    - [Step 4 — soak (24 hours, needs the paired session)](#step-4-soak-24-hours-needs-the-paired-session)
+    - [Step 5 — put it in CI (10 minutes)](#step-5-put-it-in-ci-10-minutes)
+    - [Step 6 — keep the revision fresh (ongoing)](#step-6-keep-the-revision-fresh-ongoing)
+    - [What is still unprovable from here](#what-is-still-unprovable-from-here)
+    - [store](#store)
+    - [Store APIs at the package root](#store-apis-at-the-package-root-1)
+    - [voip](#voip-1)
+    - [Unified VoIP API](#unified-voip-api-1)
+    - [VoIP diagnostics and call timelines](#voip-diagnostics-and-call-timelines-1)
+    - [webview](#webview)
+    - [In-app HTML webview (`webView`)](#in-app-html-webview-webview-1)
+  - [🔎 API reference](#-api-reference)
+    - [Extras](#extras)
+    - [Addons](#addons)
+    - [Utils](#utils)
+  - [📄 License](#-license)
 
-#### 🔘 Buttons
+## 🔌 Connecting an account
 
-```javascript
-// --- Regular buttons message
-sock.sendMessage(jid, {
-   text: '👆🏻 Buttons!',
-   footer: '@teamolduser/baileys',
-   buttons: [{
-      text: '👋🏻 SignUp',
-      id: '#SignUp'
-   }]
-}, {
-   quoted: message
-})
+> [!TIP]
+> `printQRInTerminal` prints the QR in the terminal for you. To render it yourself, read `qr` from `connection.update`
+> and draw it with any QR library.
 
-// --- Buttons with Media & Native Flow
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '👆🏻 Buttons and Native Flow!',
-   footer: '@teamolduser/baileys',
-   buttons: [{
-      text: '👋🏻 Rating',
-      id: '#Rating'
-   }, {
-      text: '📋 Select',
-      sections: [{
-         title: '✨ Section 1',
-         rows: [{
-            header: '',
-            title: '💭 Secret Ingredient',
-            description: '',
-            id: '#SecretIngredient'
-         }]
-      }, {
-         title: '✨ Section 2',
-         highlight_label: '🔥 Popular',
-         rows: [{
-            header: '',
-            title: '🏷️ Coupon',
-            description: '',
-            id: '#CouponCode'
-         }]
-      }]
-   }]
-}, {
-   quoted: message
-})
-```
-
-#### 📋 List
-
-> [!NOTE]
-> It only works in private chat (`@s.whatsapp.net`).
-
-```javascript
-sock.sendMessage(jid, {
-   text: '📋 List!',
-   footer: '@teamolduser/baileys',
-   buttonText: '📋 Select',
-   title: '👋🏻 Hello',
-   sections: [{
-      title: '🚀 Menu 1',
-      rows: [{
-         title: '✨ AI',
-         description: '',
-         rowId: '#AI'
-      }]
-   }, {
-      title: '🌱 Menu 2',
-      rows: [{
-         title: '🔍 Search',
-         description: '',
-         rowId: '#Search'
-      }]
-   }]
-}, {
-   quoted: message
-})
-```
-
-#### 🗄️ Interactive
-
-```javascript
-// --- Native Flow
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '🗄️️ Interactive!',
-   footer: '@teamolduser/baileys',
-   optionText: '👉🏻 Select Options', // --- Optional, wrap all native flow into a single list
-   optionTitle: '📄 Select Options', // --- Optional
-   offerText: '🏷️ Newest Coupon!', // --- Optional, add an offer into message
-   offerCode: '@teamolduser/baileys', // --- Optional
-   offerUrl: 'https://www.npmjs.com/package/@teamolduser/baileys', // --- Optional, falls back to FALLBACK_LINK_URL if omitted
-   offerExpiration: Date.now() + 3_600_000, // --- Optional
-   nativeFlow: [{
-      text: '👋🏻 Greeting',
-      id: '#Greeting',
-      icon: 'review' // --- Optional
-   }, {
-      text: '📞 Call',
-      call: '628123456789'
-   }, {
-      text: '📋 Copy',
-      copy: '@teamolduser/baileys'
-   }, {
-      text: '🌐 Source',
-      url: 'https://www.npmjs.com/package/@teamolduser/baileys',
-      useWebview: true // --- Optional
-   }, {
-      text: '📋 Select',
-      sections: [{
-         title: '✨ Section 1',
-         rows: [{
-            header: '',
-            title: '🏷️ Coupon',
-            description: '',
-            id: '#CouponCode'
-         }]
-      }, {
-         title: '✨ Section 2',
-         highlight_label: '🔥 Popular',
-         rows: [{
-            header: '',
-            title: '💭 Secret Ingredient',
-            description: '',
-            id: '#SecretIngredient'
-         }]
-      }],
-      icon: 'default' // --- Optional
-   }],
-   interactiveAsTemplate: false, // --- Optional, wrap the interactive message into a template
-}, {
-   quoted: message
-})
-
-// --- Carousel & Native Flow
-sock.sendMessage(jid, {
-   text: '🗂️ Interactive with Carousel!',
-   footer: '@teamolduser/baileys',
-   cards: [{
-      image: {
-         url: './path/to/image.jpg'
-      },
-      caption: '🖼️ Image 1',
-      footer: '🏷️️ Pinterest',
-      nativeFlow: [{
-         text: '🌐 Source',
-         url: 'https://www.npmjs.com/package/@teamolduser/baileys',
-         useWebview: true
-      }]
-   }, {
-      image: {
-         url: './path/to/image.jpg'
-      },
-      caption: '🖼️ Image 2',
-      footer: '🏷️ Pinterest',
-      offerText: '🏷️ New Coupon!',
-      offerCode: '@teamolduser/baileys',
-      offerUrl: 'https://www.npmjs.com/package/@teamolduser/baileys',
-      offerExpiration: Date.now() + 3_600_000,
-      nativeFlow: [{
-         text: '🌐 Source',
-         url: 'https://www.npmjs.com/package/@teamolduser/baileys'
-      }]
-   }, {
-      image: {
-         url: './path/to/image.jpg'
-      },
-      caption: '🖼️ Image 3',
-      footer: '🏷️ Pinterest',
-      optionText: '👉🏻 Select Options',
-      optionTitle: '👉🏻 Select Options',
-      offerText: '🏷️ New Coupon!',
-      offerCode: '@teamolduser/baileys',
-      offerUrl: 'https://www.npmjs.com/package/@teamolduser/baileys',
-      offerExpiration: Date.now() + 3_600_000,
-      nativeFlow: [{
-         text: '🛒 Product',
-         id: '#Product',
-         icon: 'default'
-      }, {
-         text: '🌐 Source',
-         url: 'https://www.npmjs.com/package/@teamolduser/baileys'
-      }]
-   }]
-}, {
-   quoted: message
-})
-
-// --- Native Flow with Audio in the Footer
-sock.sendMessage(jid, {
-   text: '🔈 Music in the footer!',
-   audioFooter: {
-      url: './path/to/audio.mp3'
-   }, // --- Like other media upload methods, buffers and streams are supported
-   nativeFlow: [{
-      text: '👍🏻 Good, next',
-      id: '#Next',
-      icon: 'review'
-   }, {
-      text: '👎🏻 Skip',
-      id: '#Skip',
-      icon: 'default'
-   }]
-}, {
-   quoted: message
-})
-```
-
-#### 🫙 Hydrated Template
-
-```javascript
-sock.sendMessage(jid, {
-   title: '👋🏻 Hello',
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '🫙 Template!',
-   footer: '@teamolduser/baileys',
-   templateButtons: [{
-      text: '👉?? Tap Here',
-      id: '#Order'
-   }, {
-      text: '🌐 Source',
-      url: 'https://www.npmjs.com/package/@teamolduser/baileys'
-   }, {
-      text: '📞 Call',
-      call: '628123456789'
-   }]
-}, {
-   quoted: message
-})
-```
-
-### 💳 Sending Payment Messages
-
-#### 💰 Request Payment
-
-```javascript
-sock.sendMessage(jid, {
-   payment: {
-      note: 'Payment for services',
-      currency: 'INR', // optional - defaults to 'INR'
-      amount: 100, // smallest currency unit — 100 = ₹1.00 (paise)
-      expiry: Date.now() + 86400000
-   }
-})
-```
-
-#### ➕ Invite Payment
-
-```javascript
-sock.sendMessage(jid, {
-   paymentInviteServiceType: 3 // 1, 2, or 3
-})
-```
-
-#### 🧾 Invoice
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   invoiceNote: '🏷️ Invoice'
-})
-```
-
-#### 🛍️ Order
-
-```javascript
-sock.sendMessage(chat, {
-   orderText: '🛍️ Order',
-   thumbnail: fs.readFileSync('./path/to/image.jpg') // --- Must in buffer format
-}, {
-   quoted: message
-})
-```
-
-#### 💳 Request Payment
-
-```javascript
-sock.sendMessage(jid, {
-   text: '💳 Request Payment',
-   requestPaymentFrom: '0@s.whatsapp.net'
-})
-```
-
-### 👁️ Other Message Options
-
-#### 🤖 AI Icon
+**QR** — print the string from `connection.update` and render it yourself, or scan it from
+*WhatsApp → Linked devices*.
 
 > [!NOTE]
-> It only works in private chat (`@s.whatsapp.net`).
+> The phone number must be digits only — country code, no `+`, no spaces or dashes.
 
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '🤖 With AI icon!',
-   ai: true
-}, {
-   quoted: message
-})
-```
-
-#### 🕒 Ephemeral
-
-> [!NOTE]
-> Wrap message into `ephemeralMessage`
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '👁️ Ephemeral',
-   ephemeral: true
-})
-```
-
-#### 📰 External Ad Reply
-
-> [!NOTE]
-> Add an ad thumbnail to messages (may not be displayed on some WhatsApp versions).
-
-```javascript
-sock.sendMessage(jid, {
-   text: '📰 External Ad Reply',
-   externalAdReply: {
-      title: '📝 Did you know?',
-      body: '❓ I dont know',
-      thumbnail: fs.readFileSync('./path/to/image.jpg'), // --- Must in buffer format
-      largeThumbnail: false, // --- Or true for bigger thumbnail
-      url: 'https://www.npmjs.com/package/@teamolduser/baileys' // --- Optional, used for WhatsApp internal thumbnail caching and direct URL
-   }
-}, {
-   quoted: message
-})
-```
-
-> [!NOTE]
-> `url` and `largeThumbnail` are friendly shorthand — the real WhatsApp
-> proto has no such fields, only `mediaUrl`/`sourceUrl`/`thumbnailUrl` and
-> `renderLargerThumbnail`. `url` maps to all three URL fields at once, and
-> `largeThumbnail` maps to `renderLargerThumbnail`. If you already set one
-> of the real proto field names explicitly, it always wins over the
-> shorthand. If you omit `url` entirely, it falls back to
-> [`FALLBACK_LINK_URL`](src/Defaults/index.ts) (defaults to this repo's
-> own link) rather than leaving the ad-reply's link fields empty — change
-> that constant if you want a different default, or always pass your own
-> `url` to avoid the fallback.
-
-#### 🧑‍🧑‍🧒 Group Status
-
-> [!NOTE]
-> It only works in group chat (`@g.us`)
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '👥 Group Status!',
-   groupStatus: true
-})
-```
-
-> [!NOTE]
-> Besides `contextInfo.isGroupStatus`, `groupStatus: true` also auto-fills
-> `statusAttributions` (crediting you as the author — needs `sendMessage`'s
-> own `userJid`, which is always available when called through the socket),
-> `featureEligibilities` (`canBeReshared`/`canReceiveMultiReact`, both
-> `true`), and `pairedMediaType`/`forwardingScore` (both `0`) — a group
-> status built with only `isGroupStatus` set doesn't get these, and some
-> WhatsApp clients then don't treat it as fully reshare/react-eligible.
-> Set any of these fields yourself in advance (e.g. via `relayMessage`
-> with hand-built content) if you need different values — an explicit
-> value always wins over these defaults.
-
-#### 🐱 Lottie Sticker
-
-> [!NOTE]
-> Wrap message into `lottieStickerMessage`
-
-```javascript
-sock.sendMessage(jid, {
-   sticker: {
-      url: './path/to/sticker.webp'
-   },
-   isLottie: true
-})
-```
-
-`isLottie: true` is auto-detected and doesn't need to be passed explicitly
-if the sticker's mimetype is already `application/was` (the `.was` Lottie
-sticker format) — either way, it's wrapped in `lottieStickerMessage`
-rather than sent as a plain sticker, since mobile clients silently drop
-Lottie payloads sent as a plain `stickerMessage` even with `isLottie` set
-on it (PR: `Baileys-feat-lottie-sticker-message`).
-
-#### 🧩 Raw
-
-```javascript
-sock.sendMessage(jid, {
-   extendedTextMessage: {
-      text: '📃 Built manually from scratch using the raw WhatsApp proto structure',
-      contextInfo: {
-         externalAdReply: {
-            title: '@teamolduser/baileys',
-            thumbnail: fs.readFileSync('./path/to/image.jpg'),
-            sourceApp: 'whatsapp',
-            showAdAttribution: true,
-            mediaType: 1
-         }
-      }
-   },
-   raw: true
-}, {
-   quoted: message
-})
-```
-
-#### 🏷️ Secure Meta Service Label
-
-```javascript
-sock.sendMessage(jid, {
-   text: '🏷️ Just a label!',
-   secureMetaServiceLabel: true
-})
-```
-
-#### 📑 Spoiler
-
-> [!NOTE]
-> Wrap message into `spoilerMessage`
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '❔ Spoiler',
-   spoiler: true
-})
-```
-
-#### 👁️ View Once
-
-> [!NOTE]
-> Wrap message into `viewOnceMessage`
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '👁️ View Once',
-   viewOnce: true
-})
-```
-
-#### 👁️ View Once V2
-
-> [!NOTE]
-> Wrap message into `viewOnceMessageV2`
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '👁️ View Once V2',
-   viewOnceV2: true
-})
-```
-
-#### 👁️ View Once V2 Extension
-
-> [!NOTE]
-> Wrap message into `viewOnceMessageV2Extension`
-
-```javascript
-sock.sendMessage(jid, {
-   image: {
-      url: './path/to/image.jpg'
-   },
-   caption: '👁️ View Once V2 Extension',
-   viewOnceV2Extension: true
-})
-```
-
-### ♻️ Modify Messages
-
-#### 🗑️ Delete Messages
-
-```javascript
-sock.sendMessage(jid, {
-   delete: message.key
-})
-```
-
-#### ✏️ Edit Messages
-
-```javascript
-// --- Edit plain text
-sock.sendMessage(jid, {
-   text: '✨ I mean, nice!',
-   edit: message.key
-})
-
-// --- Edit media messages caption
-sock.sendMessage(jid, {
-   caption: '✨ I mean, here is the image!',
-   edit: message.key
-})
-```
-
-### 🧰 Additional Contents
-
-#### 🏷️ Find User ID (JID|PN/LID)
-
-> [!NOTE]
-> The ID must contain numbers only (no +, (), or -) and must include the country code with WhatsApp ID format.
-
-```javascript
-// --- PN (Phone Number)
-const phoneNumber = '6281111111111@s.whatsapp.net'
-
-const ids = await sock.findUserId(phoneNumber)
-
-console.log('🏷️ Got user ID', ':', ids)
-
-// --- LID (Local Identifier)
-const lid = '43411111111111@lid'
-
-const ids = await sock.findUserId(lid)
-
-console.log('🏷️ Got user ID', ':', ids)
-
-// --- Output
-// {
-//    phoneNumber: '6281111111111@s.whatsapp.net',
-//    lid: '43411111111111@lid'
-// }
-// --- Output when failed
-// {
-//    phoneNumber: '6281111111111@s.whatsapp.net',
-//    lid: undefined
-// }
-// --- Same output shape regardless of input type
-```
-
-#### 🔑 Request Custom Pairing Code
-
-> [!NOTE]
-> The phone number must contain numbers only (no +, (), or -) and must include the country code.
-
-```javascript
-const phoneNumber = '6281111111111'
-const customPairingCode = 'STARFALL'
-
-await sock.requestPairingCode(phoneNumber, customPairingCode)
-
-console.log('🔗 Pairing code', ':', customPairingCode)
-
-// A registered pairing code stays pending until it is used or expires
-// (`pairingCodeTimeoutMs`, default 180000, plus a 30 s grace for the phone's reply).
-// Requesting another one meanwhile throws a 409 - cancel the pending one first:
-sock.cancelPairingCode() // -> true when one was pending
-```
-
-#### 🖼️ Image Processing
-
-> [!NOTE]
-> Automatically use available image processing library: `sharp`, `@napi-rs/image`, or `jimp`
-
-```javascript
-import { getImageProcessingLibrary } from '@teamolduser/baileys'
-import { readFile } from 'fs/promises'
-
-const lib = await getImageProcessingLibrary()
-
-const bufferOrFilePath = './path/to/image.jpg'
-const width = 512
-
-let output
-
-// --- If sharp installed
-if (lib.sharp?.default) {
-   const img = lib.sharp.default(bufferOrFilePath)
-
-   output = await img.resize(width)
-      .jpeg({ quality: 80 })
-      .toBuffer()
-}
-
-// --- If @napi-rs/image installed
-else if (lib.image?.Transformer) {
-   // --- Must in buffer format
-   const inputBuffer = Buffer.isBuffer(bufferOrFilePath)
-      ? bufferOrFilePath
-      : await readFile(bufferOrFilePath)
-
-   const img = new lib.image.Transformer(inputBuffer)
-
-   output = await img.resize(width, undefined, 0)
-      .jpeg(50)
-}
-
-// --- If jimp installed
-else if (lib.jimp?.Jimp) {
-   const img = await lib.jimp.Jimp.read(bufferOrFilePath)
-
-   output = await img
-      .resize({ w: width, mode: lib.jimp.ResizeStrategy.BILINEAR })
-      .getBuffer('image/jpeg', { quality: 50 })
-}
-
-// --- Fallback
-else {
-   throw new Error('No image processing available')
-}
-
-console.log('✅ Process completed!')
-console.dir(output, { depth: null })
-```
-
-#### 📣 Newsletter Management
-
-```javascript
-// --- Create a new one
-sock.newsletterCreate('@teamolduser/baileys', '📣 Fresh updates weekly')
-
-// --- Get info (the follower count is `subscribers` in the result)
-const metadata = await sock.newsletterMetadata('jid', '1231111111111@newsletter')
-console.dir(metadata, { depth: null })
-
-// --- Optional switches: fetchPinnedMessages, fetchStatusMetadata, fetchWamoSub, viewRole, ...
-await sock.newsletterMetadata('invite', 'inviteCode', { fetchPinnedMessages: true })
-
-// --- Get the followers (the list, not a count): id, phoneNumber, displayName, username, role, followTime
-const followers = await sock.newsletterSubscribers('1231111111111@newsletter', { count: 100 })
-console.dir(followers, { depth: null })
-
-// --- Follow and Unfollow
-sock.newsletterFollow('1231111111111@newsletter')
-sock.newsletterUnfollow('1231111111111@newsletter')
-
-// --- Mute and Unmute (a user setting; resolves with { id, state })
-await sock.newsletterMute('1231111111111@newsletter')
-await sock.newsletterUnmute('1231111111111@newsletter')
-
-// --- Demote admin
-sock.newsletterDemote('1231111111111@newsletter', '6281111111111@s.whatsapp.net')
-
-// --- Change owner
-sock.newsletterChangeOwner('1231111111111@newsletter', '6281111111111@s.whatsapp.net')
-
-// --- Update newsletter
-sock.newsletterUpdate('1231111111111@newsletter', { name: '@teamolduser/baileys' })
-
-// --- Change name
-sock.newsletterUpdateName('1231111111111@newsletter', '📦 @teamolduser/baileys')
-
-// --- Change description
-sock.newsletterUpdateDescription('1231111111111@newsletter', '📣 Fresh updates weekly')
-
-// --- Change photo
-sock.newsletterUpdatePicture('1231111111111@newsletter', {
-   url: 'path/to/image.jpg'
-})
-
-// --- Remove photo
-sock.newsletterRemovePicture('1231111111111@newsletter')
-
-// --- React to a message
-sock.newsletterReactMessage('1231111111111@newsletter', '100', '💛')
-
-// --- Get admin count
-const count = await sock.newsletterAdminCount('1231111111111@newsletter')
-
-// --- Get all subscribed newsletters (optional: { fetchStatusMetadata, fetchWamoSub })
-const newsletters = await sock.newsletterSubscribed()
-console.dir(newsletters, { depth: null })
-
-// --- Fetch newsletter messages
-const messages = sock.newsletterFetchMessages('jid', '1231111111111@newsletter', 50, 0, 0)
-console.dir(messages, { depth: null })
-
-// --- Delete newsletter
-sock.newsletterDelete('1231111111111@newsletter')
-```
-
-#### 👥 Group Management
-
-```javascript
-// --- Create a new one and add participants using their JIDs
-const group = sock.groupCreate('@teamolduser/baileys', ['628123456789@s.whatsapp.net'])
-console.dir(group, { depth: null })
-
-// --- Get info
-const metadata = await sock.groupMetadata(jid)
-console.dir(metadata, { depth: null })
-
-// --- Get group invite code
-const inviteCode = await sock.groupInviteCode(jid)
-console.dir(inviteCode, { depth: null })
-
-
-// --- Revoke invite link
-sock.groupRevokeInvite(jid)
-
-// --- Accept group invite
-sock.groupAcceptInvite(inviteCode)
-
-// --- Leave group
-sock.groupLeave(jid)
-
-// --- Add participants
-sock.groupParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'add')
-
-// --- Add a participant, automatically falling back to a v4 group invite
-// (see "👥 Group Invite (v4, direct to a participant)" above) for anyone
-// WhatsApp refuses to add directly (status 403). Returns one result per
-// participant: { jid, status, invited, message }. `invited: true` means a
-// v4 invite was sent instead of a direct add; other non-200 statuses
-// (401, 404, 409, ...) are reported with their own message and no invite sent.
-const inviteResults = await sock.sendGroupInvite(jid, '628123456789@s.whatsapp.net')
-console.dir(inviteResults, { depth: null })
-
-// --- Remove participants
-sock.groupParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'remove')
-
-// --- Promote to admin
-sock.groupParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'promote')
-
-// --- Demote from admin
-sock.groupParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'demote')
-
-// --- Accept join requests
-sock.groupRequestParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'approve')
-
-// --- Change name
-sock.groupUpdateSubject(jid, '📦 @teamolduser/baileys')
-
-// --- Change description
-sock.groupUpdateDescription(jid, 'Updated description')
-
-// --- Change photo
-sock.updateProfilePicture(jid, {
-   url: 'path/to/image.jpg'
-})
-
-// --- Remove photo
-sock.removeProfilePicture(jid)
-
-// --- Set group as admin only for chatting
-sock.groupSettingUpdate(jid, 'announcement')
-
-// --- Set group as open to all for chatting
-sock.groupSettingUpdate(jid, 'not_announcement')
-
-// --- Set admin only can edit group info
-sock.groupSettingUpdate(jid, 'locked')
-
-// --- Set all participants can edit group info
-sock.groupSettingUpdate(jid, 'unlocked')
-
-// --- Set admin only can add participants
-sock.groupMemberAddMode(jid, 'admin_add')
-
-// --- Set all participants can add participants
-sock.groupMemberAddMode(jid, 'all_member_add')
-
-// --- Enable or disable temporary messages with seconds format
-sock.groupToggleEphemeral(jid, 86400)
-
-// --- Disable temporary messages
-sock.groupToggleEphemeral(jid, 0)
-
-// --- Enable or disable membership approval mode
-sock.groupJoinApprovalMode(jid, 'on')
-sock.groupJoinApprovalMode(jid, 'off')
-
-// --- Get all groups metadata
-const groups = await sock.groupFetchAllParticipating()
-console.dir(groups, { depth: null })
-
-// --- Get pending join requests
-const requests = await sock.groupRequestParticipantsList(jid)
-console.dir(requests, { depth: null })
-
-// --- Get group info from link
-const group = await sock.groupGetInviteInfo('ABC123456789')
-console.log('👥 Got group info from invite code', ':', group)
-
-// --- Update bot member label
-sock.updateMemberLabel(jid, '@teamolduser/baileys')
-```
-
-#### 👥 Community Management
-
-```javascript
-// --- Create a new one and add description
-const community = await sock.communityCreate('@teamolduser/baileys', '📣 Fresh updates weekly')
-console.dir(community, { depth: null })
-
-// --- Create a subgroup for community and add participants using their JIDs
-const group = await sock.communityCreateGroup('📢 Announcements', ['628123456789@s.whatsapp.net'], communityJid)
-
-// --- Link an existing group
-sock.communityLinkGroup(groupJid, communityJid)
-
-// --- Unlink an existing group
-sock.communityUnlinkGroup(groupJid, communityJid)
-
-// --- Get info
-const metadata = await sock.communityMetadata(jid)
-console.dir(metadata, { depth: null })
-
-// --- Get community invite code
-const inviteCode = await sock.communityInviteCode(jid)
-console.dir(inviteCode, { depth: null })
-
-// --- Revoke invite link
-sock.communityRevokeInvite(jid)
-
-// --- Accept community invite
-sock.communityAcceptInvite(inviteCode)
-
-// --- Leave community
-sock.communityLeave(jid)
-
-// --- Accept join requests
-sock.communityRequestParticipantsUpdate(jid, ['628123456789@s.whatsapp.net'], 'approve')
-
-// --- Change name
-sock.communityUpdateSubject(jid, '📦 @teamolduser/baileys')
-
-// --- Change description
-sock.communityUpdateDescription(jid, 'Updated description')
-
-// --- Set community as admin only for chatting
-sock.communitySettingUpdate(jid, 'announcement')
-
-// --- Set community as open to all for chatting
-sock.communitySettingUpdate(jid, 'not_announcement')
-
-// --- Set admin only can edit community info
-sock.communitySettingUpdate(jid, 'locked')
-
-// --- Set all participants can edit community info
-sock.communitySettingUpdate(jid, 'unlocked')
-
-// --- Set admin only can add participants
-sock.communityMemberAddMode(jid, 'admin_add')
-
-// --- Set all participants can add participants
-sock.communityMemberAddMode(jid, 'all_member_add')
-
-// --- Enable or disable temporary messages with seconds format
-sock.communityToggleEphemeral(jid, 86400)
-
-// --- Disable temporary messages
-sock.communityToggleEphemeral(jid, 0)
-
-// --- Enable or disable membership approval mode
-sock.communityJoinApprovalMode(jid, 'on')
-sock.communityJoinApprovalMode(jid, 'off')
-
-// --- Get all communities metadata
-const communities = await sock.communityFetchAllParticipating()
-console.dir(communities, { depth: null })
-
-// --- Get all community linked groups
-const linked = await sock.communityFetchLinkedGroups(jid)
-console.dir(linked, { depth: null })
-
-// --- Get pending join requests
-const requests = await sock.communityRequestParticipantsList(jid)
-console.dir(requests, { depth: null })
-
-// --- Get community info from link
-const community = await sock.communityGetInviteInfo('ABC123456789')
-console.log('👥 Got community info from invite code', ':', community)
-```
-
-#### 👤 Profile Management
-
-```javascript
-// --- Get user profile picture
-const url = await sock.profilePictureUrl(jid, 'image')
-console.log('🖼️ Got user profile url', url)
-
-// --- Update profile picture
-sock.updateProfilePicture(jid, buffer)
-sock.updateProfilePicture(jid, { url })
-
-// --- Remove profile picture
-sock.removeProfilePicture(jid)
-
-// --- Update profile name
-sock.updateProfileName('My Name')
-
-// --- Update profile status
-sock.updateProfileStatus('Available')
-
-// --- Presence
-sock.sendPresenceUpdate('available', jid)
-sock.presenceSubscribe(jid)
-
-// --- Read receipts
-sock.readMessages([message.key])
-sock.sendReceipt(jid, participant, [messageId], 'read')
-
-// --- Block user
-sock.updateBlockStatus(jid, 'block')
-
-// --- Unblock user
-sock.updateBlockStatus(jid, 'unblock')
-
-// --- Fetch blocklist
-const blocked = await sock.fetchBlocklist()
-console.dir(blocked, { depth: null })
-
-// --- Modify chats
-sock.chatModify({
-   archive: true,
-   lastMessageOrig: message,
-   lastMessage: message
-}, jid)
-
-// --- Star messages
-sock.star(jid, [{ id: messageId, fromMe: true }], true)
-
-// --- Contact
-sock.addOrEditContact(jid, { displayName: 'Store' })
-sock.removeContact(jid)
-
-// --- Label
-sock.addChatLabel(jid, labelId)
-sock.removeChatLabel(jid, labelId)
-sock.addMessageLabel(jid, messageId, labelId)
-
-// --- App state sync
-sock.resyncAppState(['regular', 'critical_block'], true)
-
-// --- Get business profile
-const profile = await sock.getBusinessProfile(jid)
-console.dir(profile, { depth: null })
-
-// --- Get broadcast list info (⚠️ experimental — see note below)
-const bList = await sock.getBroadcastListInfo('1234567890@broadcast')
-console.log(`Name: ${bList.name}, Recipients: ${bList.recipients}`)
-```
-
-> **⚠️ `getBroadcastListInfo` is experimental / unverified.** It was
-> documented in the upstream fork this was ported from, but was never
-> actually implemented there either — there's no known-working reference
-> to copy, so this is a best-effort query using the same IQ shape as
-> `getBusinessProfile` with the `w:b` (broadcast) namespace. It has not
-> been confirmed against a live WhatsApp connection. Test it before
-> relying on it, and treat an empty `recipients` array as "unconfirmed",
-> not necessarily "no recipients."
-
-
-#### 🛒 Business Management
-
-```javascript
-// --- Create a new product
-const product = await sock.productCreate({
-   name: '🧩 Store (Premium)',
-   description: 'Get a full version of Starseed!',
-   price: 100000,
-   currency: 'INR',
-   originCountryCode: 'ID',
-   images: [
-      bufferImage,
-      {
-         url: './path/to/image.jpg'
-      }
-   ]
-})
-console.dir(product, { depth: null })
-
-// --- Update product
-await sock.productUpdate(productId, {
-   name: '🧩 Store (Premium)',
-   description: 'Get a full version of Starseed with more features!',
-   price: 75000,
-   currency: 'INR',
-   images: [
-      {
-         url: './path/to/image.jpg'
-      }
-   ]
-})
-
-// --- Delete product
-sock.productDelete([productId])
-
-// --- Get catalog info
-const { products, nextPageCursor } = await sock.getCatalog({
-  jid: '628123456789@s.whatsapp.net',
-  limit: 10
-})
-
-// --- Get collections
-const collections = await sock.getCollections('628123456789@s.whatsapp.net', 10)
-console.dir(collections, { depth: null })
-
-// --- Get order info
-const order = await sock.getOrderDetails(orderId, tokenBase64)
-console.dir(order, { depth: null })
-
-// --- Get order info for a specific seller/buyer jid (optional 3rd param).
-// Fetched via WhatsApp's MEX endpoint, which rejects your own LID jid —
-// if `jid` is one of your own aliases, it's automatically resolved to
-// your PN form for you.
-const orderForJid = await sock.getOrderDetails(orderId, tokenBase64, sellerJid)
-
-// --- Update business profile
-await sock.updateBusinessProfile({
-   address: 'Jakarta, Indonesia',
-   description: '🛒 Official Store',
-   websites: ['https://www.npmjs.com/package/@teamolduser/baileys'],
-   email: 'store@example.com',
-   hours: {
-      timezone: 'Asia/Jakarta',
-      days: [{ day: 'mon', mode: 'open_24h' }]
-   }
-})
-
-// --- Update cover
-sock.updateCoverPhoto({
-   url: './path/to/image.jpg'
-})
-
-// --- Remove cover
-sock.removeCoverPhoto(coverId)
-
-// --- Update quick replies
-sock.addOrEditQuickReply({
-  shortcut: 'hello',
-  message: 'Hello from business account',
-})
-
-// --- Remove quick reply
-sock.removeQuickReply(timestamp)
-```
-
-#### 🔐 Privacy Management
-
-```javascript
-// --- Update last seen privacy
-sock.updateLastSeenPrivacy('all')
-sock.updateLastSeenPrivacy('contacts')
-sock.updateLastSeenPrivacy('contact_blacklist')
-sock.updateLastSeenPrivacy('nobody')
-
-// --- Update online privacy
-sock.updateOnlinePrivacy('all')
-sock.updateOnlinePrivacy('match_last_seen')
-
-// --- Update profile picture privacy
-sock.updateProfilePicturePrivacy('contacts')
-
-// --- Update status privacy
-sock.updateStatusPrivacy('contacts')
-
-// --- Update read receipts privacy
-sock.updateReadReceiptsPrivacy('all')
-sock.updateReadReceiptsPrivacy('none')
-
-// --- Update groups add privacy
-sock.updateGroupsAddPrivacy('all')
-sock.updateGroupsAddPrivacy('contacts')
-
-// --- Update messages privacy
-sock.updateMessagesPrivacy('all')
-sock.updateMessagesPrivacy('contacts')
-sock.updateMessagesPrivacy('nobody')
-
-// --- Update call privacy
-sock.updateCallPrivacy('everyone')
-
-// --- Update default disappearing mode (seconds, or a shorthand: 24 / 1 = 24h, 7 = 7 days, 30 = 30 days, 90 = 90 days, 0 = off)
-sock.updateDefaultDisappearingMode(86400)
-sock.updateDefaultDisappearing(7)        // alias → 7 days (604800 s)
-sock.updateDisappearingDuration('30')    // alias → 30 days (2592000 s), numeric strings work too
-sock.updateDisappearingDuration(0)       // off
-
-// --- Update link previews privacy
-sock.updateDisableLinkPreviewsPrivacy(true)
-```
-
-#### 📡 Events
-
-```javascript
-sock.ev.on('connection.update', (update) => {})
-sock.ev.on('creds.update', (update) => {})
-sock.ev.on('messaging-history.set', (update) => {})
-sock.ev.on('messaging-history.status', (update) => {})
-sock.ev.on('chats.upsert', (update) => {})
-sock.ev.on('chats.update', (update) => {})
-sock.ev.on('chats.delete', (update) => {})
-sock.ev.on('chats.lock', (update) => {})
-sock.ev.on('lid-mapping.update', (update) => {})
-sock.ev.on('presence.update', (update) => {})
-sock.ev.on('contacts.upsert', (update) => {})
-sock.ev.on('contacts.update', (update) => {})
-sock.ev.on('messages.delete', (update) => {})
-sock.ev.on('messages.update', (update) => {})
-sock.ev.on('messages.media-update', (update) => {})
-sock.ev.on('messages.upsert', (update) => {})
-sock.ev.on('messages.reaction', (update) => {})
-sock.ev.on('message-receipt.update', (update) => {})
-sock.ev.on('groups.upsert', (update) => {})
-sock.ev.on('groups.update', (update) => {})
-sock.ev.on('group-participants.update', (update) => {})
-sock.ev.on('group.join-request', (update) => {})
-sock.ev.on('group.member-tag.update', (update) => {})
-sock.ev.on('blocklist.set', (update) => {})
-sock.ev.on('blocklist.update', (update) => {})
-sock.ev.on('call', (update) => {})
-sock.ev.on('labels.edit', (update) => {})
-sock.ev.on('labels.association', (update) => {})
-sock.ev.on('newsletter.reaction', (update) => {})
-sock.ev.on('newsletter.view', (update) => {})
-sock.ev.on('newsletter-participants.update', (update) => {})
-sock.ev.on('newsletter-settings.update', (update) => {})
-sock.ev.on('settings.update', (update) => {})
-```
-
-### 🧩 @teamolduser/baileys Fork-Exclusive Features
-
-Everything below this point is exclusive to this fork (`@teamolduser/baileys`)
-and does not exist in the upstream library.
-
-### 1. Rich AI-Style Responses
-
-Native WhatsApp "rich response" content — tables, syntax-highlighted code
-blocks, LaTeX, markdown, and citations, rendered as native UI primitives
-(not plain text).
-
-### Quick content-type shorthand
+**Pairing code** — no camera needed:
 
 ```ts
-await sock.sendMessage(jid, {
-	richResponse: {
-		text: 'Here is a JavaScript example:',
-		code: `const greet = (name) => console.log('Hello, ' + name)`,
-		language: 'javascript'
-	}
-})
+const sock = makeWASocket({ auth: state, printQRInTerminal: false })
+const phoneNumber = '919999999999'          // country code, no +
+const code = await sock.requestPairingCode(phoneNumber)
+console.log(code)                            // type it into WhatsApp → Linked devices → Link with phone number
 ```
 
-Also accepts `table`, `links`, `inlineImage`, `latex` (array), `headerText`,
-`footerText`, `disclaimerText`, `noHeading`. Can combine several in one call:
-
-```ts
-await sock.sendMessage(jid, {
-	headerText: 'Search results:',
-	links: [{ text: 'Docs', url: 'https://example.com', sources: [{ displayName: 'Wiki' }] }],
-	code: 'npm install foo',
-	language: 'bash',
-	latex: ['E=mc^2'],
-	footerText: 'Powered by Baileys'
-})
-```
-
-### Socket-level helpers
-
-```ts
-await sock.sendTable(
-	jid,
-	'Price List',
-	['Item', 'Qty', 'Price'],
-	[
-		['Apple', '3', '₹1.50'],
-		['Banana', '6', '₹0.90']
-	]
-)
-
-await sock.sendList(jid, 'Todo', ['Buy milk', 'Walk dog'])
-
-await sock.sendCodeBlock(jid, 'console.log("Hello World")', null, {
-	title: 'Example',
-	language: 'javascript'
-})
-
-await sock.sendLatex(jid, 'E=mc^2') // inline text-style
-await sock.sendLatexImage(jid, null, 'E=mc^2') // rendered as PNG (local MathJax, no external API)
-await sock.sendLatexInlineImage(jid, null, 'E=mc^2') // inline variant
-
-await sock.sendMarkdown(jid, '# H1\n## H2\n==Highlighted==\n_Italics_ and **Bold**!')
-
-await sock.sendRichHtml(jid, '<b>Hello</b> <i>world</i>!', null, {
-	title: 'My HTML Message',
-	source: 'example.com'
-})
-```
-
-#### Inline entities — links, citations, and LaTeX
-
-`sendMarkdown`/`sendRichMessage` content is scanned for inline
-`[text](url)`-style syntax and turned into real, natively-rendered
-entities instead of being sent as plain bracket text:
-
-```ts
-// Hyperlink — renders as a clickable, styled link
-await sock.sendMarkdown(jid, 'Check out [Google](https://google.com)!')
-
-// Untrusted link — prefix the URL with `!` to mark it as untrusted
-await sock.sendMarkdown(jid, 'Careful: [this site](!https://sketchy.example)')
-
-// Citation — empty link text renders as a numbered reference
-await sock.sendMarkdown(jid, 'As shown in the docs. [](https://openai.com)')
-
-// LaTeX image embed — `[expression|width|height]<imageUrl>`
-await sock.sendMarkdown(jid, '[E=mc^2|400|200]<https://example.com/eq.png>')
-```
-
-Each of these can be toggled off individually via the `extract` options
-(`hyperlink`, `citation`, `latex`, or `extract: false` to disable all
-parsing and send the raw bracket text as-is):
-
-```ts
-await sock.sendMarkdown(jid, text, null, { citation: false })
-```
-
-Underlying machinery: `extractIE` (`src/Addons/message-composer.ts`).
-
-### Fully custom — raw submessages + native rendering
-
-```ts
-import { RichSubMessageType } from '@teamolduser/baileys'
-
-await sock.sendRichMessage(jid, [
-  { messageType: RichSubMessageType.TEXT, messageText: 'Report:' },
-  { messageType: RichSubMessageType.CODE, codeMetadata: { codeLanguage: 'python', codeBlocks: [...] } }
-], /* quoted */ null, { useMarkdown: true }) // useMarkdown: renders as native primitives, not plain text
-```
-
-### Capturing AI-style unified responses (for logging/analytics)
-
-```ts
-import { captureUnifiedResponse, sendUnifiedResponse, getCapturedResponses } from '@teamolduser/baileys'
-
-captureUnifiedResponse(someIncomingMessage)
-const captured = getCapturedResponses()
-```
-
-Underlying machinery:
-`generateRichMessageContent`, `generateMarkdownContent`, `generateTableContent`,
-`generateCodeBlockContent` (`src/Addons/message-composer.ts`), and
-`prepareRichResponseMessage`/`toUnified` (`src/Addons/bot-forwarded-message.ts`).
-
----
-
-### 2. Interactive Buttons
-
-### Shorthand builder (recommended)
-
-```ts
-import { generateCombinedButtons } from '@teamolduser/baileys'
-
-const msg = generateCombinedButtons(
-	'Choose an option:',
-	[
-		{ type: 'reply', displayText: 'Track Order', id: 'track', icon: 'default' },
-		{ type: 'url', displayText: 'Visit Site', url: 'https://example.com', useWebview: true },
-		{ type: 'copy', displayText: 'Copy Code', copyCode: 'SALE10' },
-		{ type: 'call', displayText: 'Call Us', phoneNumber: '+11234567890' },
-		{
-			type: 'sections',
-			displayText: 'Pick a category',
-			sections: [{ title: 'Fruits', rows: [{ title: 'Apple', id: 'apple' }] }]
-		},
-		// Bare native format also works, no `type` field needed — auto-detected:
-		{ name: 'cta_catalog', buttonParamsJson: JSON.stringify({ business_phone_number: '628xxx' }) }
-	],
-	{
-		footer: 'Powered by Baileys',
-		offer: { text: '10% off today!', code: 'SALE10' }, // → limited_time_offer banner
-		bottomSheet: { title: 'More options', buttonText: 'View' } // → collapses into a sheet
-	}
-)
-
-await sock.sendMessage(jid, msg)
-```
-
-### Content-type shorthand
-
-```ts
-await sock.sendMessage(jid, {
-	interactiveButtons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Yes', id: 'yes' }) }]
-})
-```
-
-Implementation: `src/Addons/interactive-message.ts`.
-
----
-
-### 3. Carousel Messages (multi-card, native flow)
-
-```ts
-await sock.sendMessage(jid, {
-	text: 'Check out these products!',
-	footer: '@teamolduser/baileys',
-	cards: [
-		{
-			image: { url: 'https://example.com/1.jpg' },
-			caption: 'Product 1', // alias for `body`
-			nativeFlow: [
-				// alias for `buttons`, shorthand-converted
-				{ text: 'Buy Now', url: 'https://shop.example.com/1', useWebview: true }
-			]
-		},
-		{
-			image: { url: 'https://example.com/2.jpg' },
-			caption: 'Product 2 — On Sale!',
-			offerText: '20% off',
-			offerCode: 'SALE20',
-			offerUrl: 'https://example.com',
-			nativeFlow: [{ text: 'Order', id: '#order-2', icon: 'cart' }]
-		},
-		{
-			image: { url: 'https://example.com/3.jpg' },
-			caption: 'Product 3',
-			optionText: 'More info',
-			optionTitle: 'Select an option',
-			nativeFlow: [
-				{ text: 'Details', id: '#details-3' },
-				{ text: 'Source', url: 'https://example.com' }
-			]
-		}
-	]
-})
-```
-
-Implementation: `src/Utils/messages.ts`, `cards` content-type
-dispatch, including the fix for carousel messages not sending their
-required `biz` binary node.
-
----
-
-### 4. Sticker Packs
-
-Both APIs are supported: **Elaina-compatible flat `stickers` syntax** and Anya's existing nested `stickerPack` syntax. The flat API is not a replacement; it is an additional compatible entry point, and both accept the same pack options (`cover`, `stickers`, `name`, `publisher`, `description`, `packId`, `concurrency`, `maxSize`, and `quality`). `sock.sendStickerPack()` and `prepareStickerPackMessage()` remain available too.
-
-**Elaina-compatible flat syntax:**
-
-```ts
-await sock.sendMessage(jid, {
-  cover,
-  stickers: [{ data: stickerBuffer, emojis: ['😀'] }],
-  name: 'My pack',
-  publisher: 'My bot',
-  description: 'Sticker pack description',
-  packId: 'my-pack-001',
-  concurrency: 5,
-  maxSize: 512,
-  quality: 80
-})
-```
-
-**Anya's existing nested syntax (still supported):**
-
-```ts
-await sock.sendMessage(jid, {
-  stickerPack: {
-    cover,
-    stickers: [{ data: stickerBuffer, emojis: ['😀'] }],
-    name: 'My pack',
-    publisher: 'My bot',
-    description: 'Sticker pack description',
-    packId: 'my-pack-001',
-    concurrency: 5,
-    maxSize: 512,
-    quality: 80
-  }
-})
-```
-
-Two implementations are available — pick whichever fits your workflow:
-
-### A. Raw proto builder (upstream-PR-based, `from-messages.ts`)
-
-Full pipeline (WebP conversion incl. Lottie/WAS animated stickers, ZIP,
-encrypt, upload) built into `sock.sendMessage`:
-
-```ts
-await sock.sendMessage(jid, {
-	stickerPack: {
-		name: '📦 @teamolduser/baileys Sticker Pack System',
-		publisher: '🌟 @teamolduser/baileys Publisher System',
-		stickers: [
-			{ data: fs.readFileSync('./sticker1.png') },
-			{ data: 'https://example.com/sticker2.webp', emojis: ['😀'] }
-		],
-		cover: fs.readFileSync('./cover.png')
-	}
-})
-```
-
-**Media handling (both builders)** - WebP stickers are used at their **original size and quality**
-(the innovatorssoft way) and non-WebP media is converted to WebP automatically (the itsliaaa way):
-
-| Input | Result |
-| --- | --- |
-| WebP (static or animated) | used as-is - bytes untouched (size, quality, EXIF, animation kept) |
-| PNG / JPG / GIF / ... | converted to WebP at the **original size** and **original quality** (lossless, never lowered automatically). Set `maxSize` (e.g. `512`, WhatsApp's own sticker size) to scale the longest side **down** - smaller images are never upscaled. `quality: 1-100` switches to lossy WebP (smaller files). Animated GIFs stay animated |
-| Video (mp4 / webm / mkv) | animated WebP via `ffmpeg` (`ffmpeg-static` or a system `ffmpeg`), original fps, lossless by default (`quality` for lossy), scaled down like images when `maxSize` is set, first 10s |
-| Lottie (`.was` / raw Lottie JSON) | kept as Lottie (`sendMessage({ stickerPack })` builder only) |
-
-The converter uses `sharp` and falls back to `@napi-rs/image` (both regular dependencies, installed automatically);
-if neither can load on your platform you get a clear error (or pass WebP directly). Sticker media goes in `data`; `sticker` works as an alias (the field name used by
-`@innovatorssoft/baileys`), and `packId` is honoured by both builders.
-
-There is **no sticker-count limit and no per-sticker or total size cap** - packs with more than 60 stickers and
-stickers/packs of 10MB and more are sent as they are (quality is never lowered). Stickers are processed in
-batches of 15 concurrently by default; at least 1 sticker and a cover are still required.
-
-**Size / quality of converted stickers.** Images that have to be converted (PNG/JPG/GIF/video) keep their **original size**
-and **original quality** (lossless WebP) by default (no cap, never upscaled; files can be big). Big images such as phone screenshots (e.g. 1080x2400) can make WhatsApp
-show the pack card and cover fine but the stickers inside as empty grey boxes - for those set `maxSize` (stickers made with
-WhatsApp's own "create sticker" are 512x512). `quality` is `'original'` by default (lossless); give a number 1-100 only if you
-want smaller lossy files.
-
-```ts
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers } })                     // default: original size, quality: 'original' (lossless)
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 512 } })       // longest side max 512 px
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, quality: 'original' } })  // same as the default: lossless
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, quality: 80 } })         // lossy WebP quality 80 (smaller files)
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, concurrency: 5 } })     // 5 stickers converted at once (default 15)
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: 512, quality: 80, concurrency: 5 } }) // all together
-await sock.sendMessage(jid, { stickerPack: { name, publisher, cover, stickers, maxSize: false } })     // same as the default: original size
-```
-
-`maxSize` and `quality` only apply to stickers that are converted - WebP you pass in is never touched. The tray icon
-inside the pack always stays at its original size and quality (`maxSize` / `quality` don't touch it); the cover picture on the card comes from a separate 252x252 thumbnail.
-Sticker file names inside the zip use the same scheme as `@itsliaaa/baileys` (base64 with `/` -> `-`).
-
-**Memory / speed knob:** set `concurrency` to change how many stickers are converted at the same time -
-lower it on low-RAM hosts (phone / Termux, big GIF or video packs), raise it on a strong server. Works the same in
-`sock.sendMessage(jid, { stickerPack })`, the flat style, `prepareStickerPackMessage` and `sock.sendStickerPack`:
-
-```ts
-await sock.sendMessage(jid, {
-	stickerPack: { name: 'My pack', publisher: 'Me', cover, stickers, concurrency: 10 } // default 15
-})
-await sock.sendStickerPack(jid, { cover, stickers, concurrency: 5 })
-```
-
-Rough peak RAM while converting is `concurrency x (width x height x 4 bytes x frames x ~2)` per batch, so `10` uses
-about two thirds of what `15` does; already-WebP stickers are not converted and barely count. Invalid values
-(0, negative, NaN, text) fall back to 15, decimals are rounded down. It only affects speed and memory - never the
-number of stickers in the pack or their order. A random `packId` is generated automatically
-if you don't supply one — pass `packId: generateStickerPackId()` yourself
-if you need to know it ahead of time (e.g. to reference the pack elsewhere
-before sending).
-
-**Options reference** (same names in all four ways):
-
-| Pack option | Default | What it does |
-| --- | --- | --- |
-| `cover` | required | tray icon / card cover - always kept at its original size and quality |
-| `stickers` | required (1+) | list of stickers, no count limit |
-| `name` / `publisher` / `description` | `'📦 Sticker Pack'` / `'@teamolduser/baileys'` / - | pack metadata |
-| `packId` | random | fixed pack id (`generateStickerPackId()` makes one) |
-| `concurrency` | `15` | stickers converted at the same time (lower = less RAM) |
-| `maxSize` | `false` (original size) | longest side in px for converted stickers, never upscaled (e.g. `512`) |
-| `quality` | `'original'` (lossless) | `'original'` or a number `1-100` (lossy WebP, smaller files) |
-
-| Sticker option | Default | What it does |
-| --- | --- | --- |
-| `data` (alias `sticker`) | required | Buffer / `{ url }` / stream / path |
-| `emojis` | `['✨']` | emoji tags |
-| `accessibilityLabel` | - | accessibility text |
-| `isAnimated` | auto-detected | force animated / static |
-| `isLottie` | auto-detected | force Lottie (`.was` / raw Lottie JSON) |
-
-```ts
-await sock.sendMessage(jid, {
-	stickerPack: {
-		name: 'My pack',
-		publisher: 'Me',
-		cover,
-		stickers: [
-			{ data: fs.readFileSync('./a.png'), emojis: ['😀'], accessibilityLabel: 'Smile' },
-			{ sticker: { url: './b.webp' } },                                   // `sticker` = alias of `data`
-			{ data: fs.readFileSync('./c.json'), isLottie: true }               // Lottie sticker (raw JSON -> .was)
-		],
-		maxSize: 512,          // optional, default: original size
-		quality: 'original',   // optional, default 'original' (lossless) - or 1-100
-		concurrency: 10        // optional, default 15
-	}
-})
-```
-
-### B. Alternate builder (standalone, returns a ready-to-send message)
-
-A second, independent sticker-pack builder — use whichever produces
-the result you need; both are fully supported.
-
-```ts
-import { prepareStickerPackMessage } from '@teamolduser/baileys'
-
-const stickerPackMessage = await prepareStickerPackMessage(
-	{
-		cover: coverBuffer,
-		stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-		name: '📦 @teamolduser/baileys Sticker Pack System',
-		publisher: '🌟 @teamolduser/baileys Publisher System'
-	},
-	{
-		upload: sock.waUploadToServer, // required
-		mediaCache: myOptionalCache, // optional — caches by sticker URLs + pack settings
-		mediaUploadTimeoutMs: 60_000 // optional
-	}
-)
-
-await sock.relayMessage(jid, { stickerPackMessage }, {})
-```
-
-Or use the dedicated socket method, which does the same thing in one call:
-
-```ts
-await sock.sendStickerPack(jid, {
-	cover: coverBuffer,
-	stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-	name: '📦 @teamolduser/baileys Sticker Pack System',
-	publisher: '🌟 @teamolduser/baileys Publisher System',
-	maxSize: 512, // optional (default: original size)
-	quality: 'original', // optional (default 'original' = lossless, or 1-100)
-	concurrency: 10 // optional (default 15)
-}, { mediaCache: myOptionalCache }) // 3rd argument: optional mediaCache / mediaUploadTimeoutMs
-```
-
-Need just a sticker (not a pack)? `convertToWebP` converts any Buffer / URL / stream to a WebP sticker at original size and quality:
-
-```ts
-import { convertToWebP } from '@teamolduser/baileys'
-const { buffer, isAnimated } = await convertToWebP({ url: './pic.png' })
-```
-
-#### All four ways at a glance
-
-Same media rules everywhere (WebP untouched, non-WebP converted at the original size and original (lossless) quality unless `maxSize` / `quality` are set, no sticker-count or file-size limit), same optional
-`packId`, `concurrency`, `maxSize` and `quality` (you can leave them out). Sticker media goes in `data` (`sticker` is accepted as an alias).
-
-```ts
-const stickers = [
-	{ data: fs.readFileSync('./a.webp'), emojis: ['😀'] },
-	{ data: fs.readFileSync('./b.png') },                      // converted to WebP automatically
-	{ data: { url: 'https://example.com/c.gif' } }
-]
-const cover = fs.readFileSync('./cover.png')
-const meta = { name: 'My pack', publisher: 'Me', description: 'Hello' }
-// optional extras for `meta`: packId: 'my-pack-001', concurrency: 10 (stickers converted at once, default 15),
-//                            maxSize: 512 (default: original size), quality: 'original' (default, lossless) or 1-100
-
-// 1) nested style (also supports Lottie stickers)
-await sock.sendMessage(jid, { stickerPack: { ...meta, cover, stickers } })
-
-// 2) flat style - same builder as 1)
-await sock.sendMessage(jid, { ...meta, cover, stickers })
-
-// 3) prepare + relay - alternate builder, you get the message object first
-import { prepareStickerPackMessage } from '@teamolduser/baileys'
-const stickerPackMessage = await prepareStickerPackMessage(
-	{ ...meta, cover, stickers },
-	{ upload: sock.waUploadToServer, mediaUploadTimeoutMs: 120_000 } // `logger` and `mediaCache` are optional too
-)
-await sock.relayMessage(jid, { stickerPackMessage }, {})
-
-// 4) the same as 3) in one call
-await sock.sendStickerPack(jid, { ...meta, cover, stickers })
-```
-
-Runnable versions of all four: `assets/examples/example.js` (`!stickerpack`, `!stickerpackflat`, `!stickerpackprep`,
-`!stickerpack2`).
-
-### Standalone WebP converter
-
-```ts
-import { convertToWebP } from '@teamolduser/baileys'
-
-const { buffer, isAnimated } = await convertToWebP('https://example.com/pic.png')
-// or: await convertToWebP(fs.readFileSync('./sticker.jpg'))
-```
-
-Implementation: shell/proto from `Baileys-feat-add-stickerpack-support`
-(a real upstream PR); `convertToWebP` and the safety limits above.
-
----
-
-### 5. Newsletter Extensions
-
-Beyond the standard newsletter methods, this fork adds:
-
-```ts
-await sock.newsletterSubscribed() // list all subscribed newsletters
-await sock.newsletterReactionMode(newsletterJid, 'admin') // who can react to posts
-await sock.newsletterAction(newsletterJid, 'FOLLOW') // generic QueryIds dispatcher
-await sock.newsletterFetchUpdates(newsletterJid, 50) // fetch state-update events (not message content)
-```
-
----
-
-### 6. Chat History Helpers
-
-```ts
-import { getLastMessageInChat, getOldestMessageInChat, copyNForward, makeSimpleInMemoryStore } from '@teamolduser/baileys'
-
-const store = makeSimpleInMemoryStore()
-store.bind(sock.ev)
-
-const last = getLastMessageInChat(store, jid)
-const oldest = getOldestMessageInChat(store, jid) // useful as fetchMessageHistory's cursor
-
-await copyNForward(sock, targetJid, someMessage) // re-send/forward a message
-```
-
-Note: these three didn't exist as real implementations elsewhere — they
-were "implement this yourself" stubs, implemented here for real on top
-of the store + `generateForwardMessageContent`.
-
----
-
-### 6b. Past Group Participants (history sync)
-
-WhatsApp's history sync can include a list of people who've left/been
-removed from a group (`pastParticipants`), sent as raw protobuf data on
-the `messaging-history.set` event. `processPastParticipants` turns that
-into a plain, easy-to-use shape:
-
-```ts
-import { processPastParticipants, hasPastParticipants } from '@teamolduser/baileys'
-
-sock.ev.on('messaging-history.set', ({ pastParticipants }) => {
-	if (!pastParticipants?.length) return
-
-	const results = processPastParticipants(pastParticipants)
-	for (const { groupJid, participants } of results) {
-		for (const p of participants) {
-			console.log(`${p.jid} ${p.leaveReason} group ${groupJid} at ${p.leaveTs}`)
-		}
-	}
-})
-
-// hasPastParticipants(event) is a quick boolean check for the same field,
-// if you just need to know whether any are present.
-```
-
-Implementation: `src/Addons/past-participants.ts` (PR: `Baileys-pastParticepnts`).
-
----
-
-### 7. Auto-Reply System
-
-```ts
-import { createAutoReply } from '@teamolduser/baileys'
-
-const autoReply = createAutoReply(sock.sendMessage, (jid, presence) => sock.sendPresenceUpdate(presence, jid), {
-	simulateTyping: true,
-	typingDuration: 1500,
-	globalCooldown: 1000
-})
-
-autoReply.addRule({ keywords: ['hi', 'hello'], response: 'Hey there! 👋' })
-autoReply.addRule({
-	pattern: /order\s+#?(\d+)/i,
-	response: async (match, msg) => `Looking up order ${match[1]}...`
-})
-
-sock.ev.on('messages.upsert', ({ messages }) => {
-	for (const msg of messages) autoReply.processMessage(msg)
-})
-```
-
-Implementation: `src/Addons/auto-reply.ts`.
-
----
-
-### 8. Message Scheduler
-
-```ts
-import { createMessageScheduler } from '@teamolduser/baileys'
-
-const scheduler = createMessageScheduler(sock.sendMessage, {
-	onSent: (s, msg) => console.log(`Sent to ${s.jid}`),
-	onFailed: (s, err) => console.error(`Failed: ${err.message}`)
-})
-
-scheduler.schedule(jid, { text: 'Happy New Year!' }, new Date('2027-01-01T00:00:00'))
-scheduler.scheduleDelay(jid, { text: 'Reminder' }, 60_000) // in 1 minute
-```
-
-Implementation: `src/Addons/scheduling.ts`.
-
----
-
-### 9. Anti-Delete
-
-```ts
-import { createAntiDeleteHandler, makeInMemoryStore } from '@teamolduser/baileys'
-
-const store = makeInMemoryStore()
-store.bind(sock.ev)
-
-const antiDelete = createAntiDeleteHandler(store, { notifyJid: yourOwnJid })
-sock.ev.on('messages.update', updates => antiDelete.handleUpdates(updates, sock))
-```
-
-`makeInMemoryStore().bind(sock.ev)` above feeds the store automatically. If
-you're using your own `MessageStore`-compatible store instead and want a
-ready-made `messages.upsert` handler for it (filters out protocol/
-sender-key-distribution messages before storing), use
-`createMessageStoreHandler(store)`:
-```ts
-import { createMessageStoreHandler } from '@teamolduser/baileys'
-
-sock.ev.on('messages.upsert', createMessageStoreHandler(store))
-```
-
-Implementation: `src/Addons/anti-delete.ts`.
-
----
-
-### 10. Chat Control (Typing / Pinned Messages / Read Receipts)
-
-```ts
-import {
-	createTypingIndicator,
-	createPinnedMessagesManager,
-	createReadReceiptController,
-	DISAPPEARING_DURATIONS
-} from '@teamolduser/baileys'
-
-const typing = createTypingIndicator(sock.sendPresenceUpdate)
-await typing.start(jid)
-await typing.stop(jid)
-
-const pinned = createPinnedMessagesManager()
-pinned.pin(jid, messageKey, DISAPPEARING_DURATIONS.ONE_DAY)
-
-const receipts = createReadReceiptController(sock.readMessages)
-```
-
-Implementation: `src/Addons/chat-control.ts`.
-
----
-
-### 11. Status Posting (StatusHelper)
-
-```ts
-import { StatusHelper, STATUS_BACKGROUNDS, STATUS_FONTS } from '@teamolduser/baileys'
-
-await sock.sendMessage(
-	'status@broadcast',
-	StatusHelper.createTextStatus({
-		text: 'Hello world!',
-		backgroundColor: STATUS_BACKGROUNDS.gradient.sunset,
-		font: STATUS_FONTS.BEBASNEUE
-	})
-)
-
-await sock.sendMessage('status@broadcast', StatusHelper.createImageStatus(buffer, { caption: 'Nice view' }))
-await sock.sendMessage('status@broadcast', StatusHelper.createVideoStatus(buffer))
-await sock.sendMessage('status@broadcast', StatusHelper.gif(buffer)) // video status marked as gifPlayback
-```
-
-Implementation: `src/Addons/status-helpers.ts`. Colors
-and font IDs verified byte-identical.
-
----
-
-### 12. Message Templates
-
-Reusable text templates with `{{variable}}` placeholders. A placeholder can carry a default: `{{variable:default}}`.
-
-```ts
-import { createTemplateManager, renderTemplate, PRESET_TEMPLATES } from '@teamolduser/baileys'
-
-const templates = createTemplateManager(true) // true = load the built-in presets (false = empty manager)
-
-// render a built-in preset by id
-const invoiceText = templates.render('invoice', {
-	invoiceNumber: 'INV-111',
-	customerName: 'John Doe',
-	invoiceDate: '2026-01-15',
-	dueDate: 'on receipt',
-	items: '1x Widget - ₹10',
-	subtotal: '₹10',
-	total: '₹10'
-})
-await sock.sendMessage(jid, { text: invoiceText })
-
-// quick one-off render without a manager
-const quick = renderTemplate('Hi {{name}}, your order #{{orderId}} is {{status:processing}}', {
-	name: 'Alice',
-	orderId: '123'
-}) // → 'Hi Alice, your order #123 is processing'
-```
-
-**Built-in presets**
-
-| id | name | category | variables (`?` = has a default) |
-| --- | --- | --- | --- |
-| `order_confirmation` | Order Confirmation | `order` | `orderId`, `customerName`, `orderDate`, `items`, `total` |
-| `welcome` | Welcome Message | `greeting` | `name`, `companyName?` |
-| `reminder` | Reminder | `notification` | `name`, `subject`, `date`, `time`, `location?` |
-| `support_ticket` | Support Ticket | `support` | `ticketId`, `subject`, `name`, `responseTime?` |
-| `birthday` | Birthday Wishes | `greeting` | `name`, `code`, `discount?` |
-| `invoice` | Invoice | `invoice` | `invoiceNumber`, `customerName`, `invoiceDate`, `dueDate?`, `items`, `subtotal`, `total` |
-
-The same data is available as `PRESET_TEMPLATES` (`ORDER_CONFIRMATION`, `WELCOME`, `REMINDER`, `SUPPORT_TICKET`, `BIRTHDAY`, `INVOICE`);
-list the ids with `templates.getAll().map(t => t.id)`.
-
-**Your own templates**
-
-```ts
-const promo = templates.create({
-	name: 'Promo Message',                 // required
-	content: 'Hello {{name}}! Use code {{code}} for {{discount:10}}% off.', // required
-	category: 'marketing',                 // optional
-	description: 'Weekly promo',           // optional
-	id: 'promo'                            // optional - generated (`tpl_...`) when omitted
-})
-
-templates.render('promo', { name: 'Budi', code: 'SAVE' })          // by id
-templates.render('Promo Message', { name: 'Budi', code: 'SAVE' })  // by exact name
-templates.render('promo_message', { name: 'Budi', code: 'SAVE' })  // by name slug (lower-case, spaces → `_`)
-
-templates.validate('promo', { name: 'Budi' }) // → { valid: false, missing: ['code'] }  (variables with a default are optional)
-
-templates.get('promo')                // template by id
-templates.getByName('Promo Message')  // template by exact name
-templates.getAll()                    // every template
-templates.getByCategory('marketing')  // templates of one category
-templates.update('promo', { content: 'Hi {{name}}!' }) // variables are re-detected
-templates.delete('promo')
-
-// persist / restore
-const json = templates.export()
-templates.import(json, /* overwrite */ false) // returns how many templates were imported
-```
-
-Lookup order for `render` / `validate`: **id first**, then exact name / name slug. When several templates share a name, the most
-recently added one wins - so a template you create called `Welcome Message` is used for `render('welcome_message')` instead of the
-built-in `welcome` preset (which can still be rendered with `render('welcome')`). A missing template throws `Template not found: <id>`.
-
-Try it in `assets/examples/example.js`: `!msgtemplate list`, `!msgtemplate render invoice invoiceNumber=INV-1 ...`,
-`!msgtemplate create Name | Hello {{name}}`, `!msgtemplate delete <id>`, `!templaterender`.
-
-Implementation: `src/Addons/templates.ts`.
-
----
-
-### 13. vCard Contact Builder
-
-```ts
-import { generateVCard, createContactCard, createContactCards, quickContact } from '@teamolduser/baileys'
-
-const vcard = generateVCard({
-  fullName: 'John Doe',
-  phones: [{ number: '+11234567890', type: 'CELL' }],
-  emails: [{ email: 'john@example.com' }]
-})
-
-await sock.sendMessage(jid, createContactCard({ fullName: 'John Doe', phones: [...] }))
-await sock.sendMessage(jid, createContactCards([contact1, contact2]))
-
-// quickContact — shorthand for a simple single-contact ContactData object
-await sock.sendMessage(jid, createContactCard(quickContact('Jane Doe', '+11234567890', { organization: 'Acme', email: 'jane@example.com' })))
-```
-
-Implementation: `src/Addons/vcard.ts`.
-
----
-
-### 14. Message Search (client-side index)
-
-```ts
-import { createMessageSearch } from '@teamolduser/baileys'
-
-const search = createMessageSearch(store) // pass your message store
-const results = search.searchMessages(jid, 'invoice', { limit: 10 })
-```
-
-Implementation: `src/Addons/message-search.ts`.
-
----
-
-### 15. Alternate Auth State Backends
-
-```ts
-import { useSqliteAuthState } from '@teamolduser/baileys'
-import { useCacheManagerAuthState } from '@teamolduser/baileys' // Redis/Memcached/etc via cache-manager v5
-import { useMongoFileAuthState } from '@teamolduser/baileys'
-import { useSingleFileAuthState } from '@teamolduser/baileys'
-
-// `dbPath` = file path (created if missing). To reuse your own better-sqlite3 handle pass `{ database: db }` instead.
-const { state, saveCreds } = await useSqliteAuthState({ dbPath: './auth.db' })
-```
-
-> **Name aliases:** `useMongoAuthState` is the same function as `useMongoFileAuthState`, and
-> `makeCacheManagerAuthState` the same as `useCacheManagerAuthState` (the name used by
-> `@innovatorssoft/baileys`), so code written against either fork keeps working.
-> `useSqliteAuthState` needs `better-sqlite3` (a regular dependency of this package); if it is missing the
-> error tells you to run `yarn add better-sqlite3`.
-
-> **Legacy variant:** `useSingleFileAuthStateLegacy` is also available —
-> a synchronous, non-cached, non-debounced implementation kept only for
-> exact compatibility with the original upstream reference example.
-> **Not recommended for production** (no atomic writes, writes to disk on
-> every single `set()` call); use `useSingleFileAuthState` instead unless
-> you specifically need this file's exact legacy behavior.
-
----
-
-### 16. Call Handling (Full)
-
-```ts
-// Wired directly into every socket via Socket/messages-recv.ts — no
-// import needed beyond sock = makeWASocket(...):
-
-// Convenience wrapper — calls offerCall() and tracks it in the call-offer
-// cache for you, returning the generated callId:
-const { callId, to, isVideo } = await sock.WAInitiateCall(jid, { isVideo: true })
-
-await sock.offerCall(jid, isVideo)
-await sock.acceptCall(callId, callFrom, isVideo)
-await sock.preacceptCall(callId, callCreator, isVideo)
-await sock.terminateCall(callId, callTo)
-await sock.cancelCall(callId, callTo) // alias for terminateCall
-await sock.muteCall(callId, callCreator, to, muted)
-await sock.joinCallLink(link)
-await sock.queryCallLink(token)
-await sock.sendHeartbeat(callId, callCreator)
-await sock.sendCallDuration(callId, callCreator, to, durationSeconds)
-```
-
-Implementation: `Socket/messages-recv.ts`'s call-handling section (full
-offer/accept/preaccept/terminate/mute/heartbeat/transport/relay-latency/
-enc-rekey/video-state support), including `sanitizeCallerPn` for a
-Brazilian-landline caller-ID quirk. `WAInitiateCall`/`offerCall` only
-place the WhatsApp-protocol call **signal** (rings the other device) —
-there's no actual audio/video media here; for a call that streams real
-audio/video, use `sock.initiateCall()` from
-[§30 Voice Calling](#30-voice-calling-wasm-based-same-session) instead.
-`src/Addons/call-handler.ts` documents the same signaling-only API as a
-standalone, uninjected addon — kept for reference, but not wired into
-the socket: every method it provides already exists, fully wired, in
-`messages-recv.ts` (wiring it in as well would just duplicate working
-code, and its `initiateCall` export would collide with the unrelated
-WASM-based `sock.initiateCall()` mentioned above).
-
----
-
-### 17. JID Utilities & LID Support
-
-```ts
-import { getSenderPn, normalizePhoneToJid, plotJid } from '@teamolduser/baileys'
-
-// sock.onWhatsApp() accepts LID (@lid) jids directly, alongside phone-number
-// jids — LID jids are resolved to their phone-number form internally and
-// existence-checked the same way, with results reported back under the
-// original LID.
-const result = await sock.onWhatsApp('1234567890', '5511@lid')
-```
-
-Implementation: `jid-plotting.ts` for `plotJid`/`normalizePhoneToJid`/
-`getSenderPn`; LID support in `onWhatsApp` from the real
-`Baileys-fix-on-whatsapp-lid-support` upstream PR branch, wired into
-`sock.onWhatsApp()` directly via
-[`src/Addons/lid-support.ts`](src/Addons/lid-support.ts).
-
----
-
-### 18. Browser Presets
-
-```ts
-import { Browsers } from '@teamolduser/baileys'
-
-makeWASocket({ browser: Browsers.android('Chrome') })
-makeWASocket({ browser: Browsers.solaris('Chrome') })
-```
-
-`solaris` preset is exclusive to this fork.
-`android` preset + `ANDROID_PHONE` PlatformType fallback are from real
-upstream PR branches (`Baileys-android-browser`,
-`InfiniteAPI-feat-android-browser-upstream`).
-
----
-
-### 19. Miscellaneous PR-Sourced Fixes (real upstream PR branches, unmerged)
-
-These are core-file patches, not addons — no import needed, they just work:
-
-- **Pairing-code queue fix** — waits for `pair-device` stanza before sending
-  the pairing IQ (PR: `Baileys-fix-pairing-code`)
-- **Pairing-code companion_platform_display OS fallback** — a non-canonical
-  `browser[0]` (e.g. a custom product name like `"Aidy Staging"` instead of
-  `"Mac OS"`/`"Windows"`/`"Ubuntu"`) used to be sent to WhatsApp verbatim
-  (a leftover no-op fallback), which the pairing-code registration endpoint
-  rejects with a 400. It now falls back to `"Ubuntu"` when the browser name
-  is Firefox (even overriding an already-canonical `os`), or `"Mac OS"` for
-  every other browser — same as `config.companionPlatformDisplay` already
-  let you override manually (PR:
-  `Baileys-fix-pairing-code-regression-upstream`)
-- **Community metadata group-node fallback** — `sock.communityMetadata()`
-  (and anything built on `extractCommunityMetadata`, e.g.
-  `communityGetInviteInfo`) used to crash with a raw "Cannot read
-  properties of undefined" if WhatsApp responded with a `<group>` node
-  instead of `<community>`; it now falls back to `<group>` and throws a
-  descriptive `Boom` error only if neither is present (PR:
-  `Baileys-fix-community-metadata-group-fallback`)
-- **Order-details PN/LID fix** — `sock.getOrderDetails()` now queries
-  through WhatsApp's MEX endpoint instead of the legacy `fb:thrift_iq`
-  query, and auto-resolves your own LID jid to its PN alias when you're
-  fetching your own order (the MEX endpoint rejects LID jids for this)
-  (PR: `Baileys-fix-order-details-pn-lid`)
-- **Profile status MEX+legacy dual-write fallback** — see
-  [§29 Profile Status](#29-profile-status--emoji--auto-expiry) (PR:
-  `Baileys-fix-update-profile-status-about`)
-- **Username ingestion** — `Contact.username` populated from
-  `participant_username`/`username` attrs (PR: `Baileys-username-ingest`)
-- **Mex notification dispatch** & **linked-profiles fix** (PRs:
-  `Baileys-feat-mex-notification-dispatch`, `Baileys-fix-mex-linked-profiles`)
-- **Browser identity in QR pairing data** (PR: `Baileys-feat-add-browser-to-qr`)
-- **`companion_reg_refresh` QR-pairing fix** — when WhatsApp retires an
-  unpaired companion's registration mid-flow (a `<notification
-  type="companion_reg_refresh">`), Baileys now rotates the advertisement
-  secret and re-renders the on-screen QR with it, instead of leaving a QR
-  code on screen that the phone will always report as a failed link.
-  Nothing to call — it applies automatically while a QR is displayed and
-  pairing hasn't completed yet. (Upstream PR #2765, fixes #2737)
-- **`INITIAL_STATUS_V3` history sync** — statuses posted before you linked
-  the device are now parsed out of history sync and delivered through the
-  normal `messaging-history.set` event, instead of being downloaded and
-  silently dropped. Nothing to call — just listen for
-  `messaging-history.set` as usual and status messages (`key.remoteJid ===
-  'status@broadcast'`) will be included. (Upstream PR #2756)
-- **Newsletter admin-demote events** — `NotificationNewsletterAdminDemote`
-  is routed to this fork's legacy-mex newsletter handler alongside
-  `NotificationNewsletterAdminPromote`, but had no case of its own there,
-  so every demotion fell through to the "unhandled" default and never
-  emitted `newsletter-participants.update`. It now emits the same event a
-  promotion does, with `action: 'demote'` and `new_role: 'SUBSCRIBER'`
-  via `emitNewsletterRoleUpdate` in
-  [`src/Addons/newsletter-role-updates.ts`](src/Addons/newsletter-role-updates.ts).
-  (`author`/`user` also default to an empty string rather than
-  `undefined` if the server omits them.)
-- **`lottieStickerMessage` unwrapping** — messages get wrapped in
-  `lottieStickerMessage` when sent as animated (Lottie) stickers, but the
-  content-normalization helper that unwraps future-proof envelopes
-  (`ephemeralMessage`, `viewOnceMessage`, `editedMessage`, etc.) didn't
-  know about that wrapper, so callers reading `message.message` on a
-  Lottie sticker got the wrapper instead of the actual sticker content.
-  Nothing to call — normal message handling now unwraps it like any
-  other envelope type.
-- **`a.whatsapp.net` no longer used as a media download host** —
-  `downloadContentFromMessage` builds its download URL from, in order: an
-  explicit `host` option, the host parsed from the message's `url` field,
-  then `DEF_MEDIA_HOST`. `a.whatsapp.net` is the host WhatsApp puts on
-  that generic `url` field, not an actual media CDN host, so treating it
-  as a valid directPath host made those downloads fail. It's now treated
-  the same as "no host was carried on the message", i.e. `DEF_MEDIA_HOST`
-  is used instead. See `resolveDownloadHost` in
-  [`src/Utils/messages-media.ts`](src/Utils/messages-media.ts).
-- **`blocklist.set` now actually fires** — `BaileysEventMap` has always
-  declared a `blocklist.set` event (the full blocklist snapshot, as
-  opposed to `blocklist.update`'s incremental add/remove), and
-  `fetchBlocklist()` has always queried the server for the full list on
-  every connection open as part of `executeInitQueries()` — but the
-  result was discarded rather than emitted, so nothing that only listened
-  for `blocklist.set` ever received the initial blocklist. It's now
-  emitted from inside `fetchBlocklist()`
-  ([`src/Socket/chats.ts`](src/Socket/chats.ts)) right after the fetch,
-  both on the automatic connect-time call and any manual
-  `sock.fetchBlocklist()` call.
-- **`'everyone'`/`'nobody'` privacy value aliases** — the various
-  `update*Privacy()` functions (`updateLastSeenPrivacy`,
-  `updateReadReceiptsPrivacy`, etc.) accept these as friendlier aliases
-  for the wire-protocol values `'all'`/`'none'`. Only added where the
-  canonical value they alias is itself valid for that setting —
-  `updateMessagesPrivacy`, for instance, has no `'none'`/`'nobody'` level
-  upstream (only `'all'`/`'contacts'`), so it accepts `'everyone'` but not
-  `'nobody'`. The alias is normalized to the canonical value in
-  `privacyQuery()` ([`src/Socket/chats.ts`](src/Socket/chats.ts)) right
-  before it reaches WhatsApp's privacy XML — the server itself never sees
-  `'everyone'`/`'nobody'` literally.
-- **`updateBusinessProfile` alias** — this fork's business profile
-  updater was originally named `updateBussinesProfile` (missing an "s"
-  in "Business"). That name is unchanged for backwards compatibility,
-  but `sock.updateBusinessProfile(...)` — the correctly-spelled name
-  used by most examples — now resolves to the same function too. See
-  [`src/Socket/business.ts`](src/Socket/business.ts).
-- **Encrypted message edits** (`secretEncryptedMessage` /
-  `SecretEncType.MESSAGE_EDIT`) — WhatsApp added an E2EE envelope for
-  message edits (May 2026) alongside the older
-  `protocolMessage.editedMessage` path. This fork didn't decrypt it at
-  all before, so an edit sent through the new path was silently dropped.
-  It's now decrypted (same HKDF-derivation pattern as the existing poll
-  vote / event response decryption right above it in the same file) and
-  surfaced through the same `messages.update` event the legacy edit path
-  already uses, so no new event type is needed. See
-  `decryptMessageEdit`/`buildEditUpdate` in
-  [`src/Utils/process-message.ts`](src/Utils/process-message.ts).
-- **`businessOwnerJid` validation on product messages** — sending a
-  `product:` message with no `businessOwnerJid` now throws immediately
-  instead of silently building a malformed `productMessage` that
-  WhatsApp would reject anyway.
-- **Standalone `interactiveButtons` messages now have full parity with
-  carousel cards** — the carousel `cards` path already accepted
-  convenient button shorthand (`{ text, url }`, `{ text, copy }`,
-  `{ text, call }`, `{ text, sections }`, or the default `{ text, id }`
-  quick-reply shape), `offerText`/`offerCode`/`offerUrl`/
-  `offerExpiration` (a limited-time-offer banner), `optionText`/
-  `optionTitle` (a "view more" bottom sheet), and converted it all to
-  native_flow's `{ name, buttonParamsJson }` form. A standalone
-  (non-carousel) interactive message with `interactiveButtons` only
-  accepted the fully-formed button objects and had none of the
-  offer/option support. Both paths now share
-  `convertNativeFlowButtons` and `buildNativeFlowMessageParamsJson`
-  (both in [`src/Utils/messages.ts`](src/Utils/messages.ts)), so the same
-  shorthand and offer/option fields work either way. An `audioFooter`
-  option (audio instead of a text footer) was also added to the
-  standalone path, matching what carousel cards already had.
-- **Quoting inside newsletters (channels)** — `generateWAMessageFromContent`
-  previously disabled quoting entirely when the target was a newsletter
-  (`if (quoted && !isJidNewsletter(jid))`). Quoting now works inside
-  newsletters; only `contextInfo.remoteJid` is skipped for them, since
-  that field only makes sense for cross-chat (group) quoting.
-- **`previewType` on link previews** — `WAUrlInfo` gained a
-  `previewType` field (e.g. to request video-style preview playback);
-  previously always hardcoded to `0` regardless of what was passed. Only
-  takes effect if you set it — omitted, behavior is unchanged.
-- **Poll expiry, add-option, and quiz support** — `PollMessageOptions`
-  gained `endDate` (expiration), `canAddOption` (let participants add
-  their own options), and `pollType`/`correctAnswer` (quiz polls,
-  newsletter-only — throws if `correctAnswer` is missing when
-  `pollType: 1`). Required adding `endTime` and `allowAddOption` fields
-  to `PollCreationMessage` in `WAProto.proto` itself (verified against
-  another fork's actual wire encoding before adding — WhatsApp had
-  added these to the protocol but this fork's proto never had them) and
-  regenerating the proto bindings.
-- **`pollResult` (poll-results summary) now actually works** —
-  `AnyMessageContent` had a `pollResult` type declared, but nothing in
-  `generateWAMessageContent` ever implemented it — sending it did
-  nothing (same bug class as the `blocklist.set` fix). Replaced with a
-  friendly `PollResultOptions` (`name`/`votes`/`pollType`) type and a
-  real implementation.
-- **`pollUpdate`** (send a raw, pre-encrypted poll vote) — new, advanced/
-  low-level API; the caller supplies an already-encrypted vote payload.
-- **`richResponse[]` array format is now correctly typed** — the runtime
-  already supported passing `richResponse` as an array of submessages
-  (text/code/table items), via `src/Addons/rich-message-utils.ts`, but
-  the public `AnyMessageContent` type only declared the flat
-  single-object shorthand — passing an array was a TypeScript error even
-  though it worked at runtime. Fixed by using the addon's own
-  (already-correct) `RichContent` type for the public API instead of a
-  narrower duplicate declaration.
-- **`flowReply`** (reply to a native-flow interactive message,
-  `interactiveResponseMessage`) — was completely missing; proto already
-  supported it.
-- **`buttons:` array shorthand now supports `sections`/native-flow
-  buttons** — previously every button in a plain `buttons:` array was
-  force-set to a classic `RESPONSE` type, so a button with `sections`
-  (meant to become a `single_select` native-flow button) was silently
-  turned into a broken/invalid button. Buttons with `sections` or a raw
-  `name` now correctly route to native_flow; everything else still
-  becomes a classic response button.
-- **`templateButtons:` shorthand** — previously required fully-formed
-  `IHydratedTemplateButton` objects; now also accepts `{ text, id }` →
-  quickReplyButton, `{ text, url }` → urlButton, `{ text, call }` →
-  callButton shorthand, matching the documented examples.
-- **Convenience proto enum aliases** — `ButtonHeaderType`, `ButtonType`,
-  `CarouselCardType`, `ProtocolType` exported as shorter aliases for
-  their `WAProto.Message.*` equivalents (e.g. `ButtonType` for
-  `WAProto.Message.ButtonsMessage.Button.Type`). No new capability —
-  the underlying enums were already reachable via `WAProto`, just longer
-  to type.
-- **Quiz-poll-only-in-newsletter validation** — sending a quiz poll
-  (`pollType: 1`) outside a newsletter now throws instead of silently
-  producing a poll WhatsApp would reject.
-- **Correct `edit` attribute for newsletter message edits** — was always
-  `'1'`; edits inside a newsletter now correctly send `'3'`. Keep-in-chat
-  messages are now grouped with delete-messages for this attribute
-  (both need the same admin-delete-detection logic).
-- **AI-icon-only-in-private-chat now throws instead of silently no-op'ing**
-  — sending `{ ai: true }` outside a 1:1 chat previously just skipped
-  adding the AI icon without telling the caller; it now throws so the
-  mistake is caught immediately.
-- **Album minimum-2-media validation** — sending an album with fewer
-  than 2 items now throws instead of producing a malformed album
-  message.
-- **`externalAdReply` direct shorthand** — attach an ad-reply preview
-  without building `contextInfo` yourself first:
-  `sock.sendMessage(jid, { text, externalAdReply: {...} })`. Includes a
-  thumbnail-buffer-type validation. The capability already existed via
-  raw `contextInfo.externalAdReply`; this is a shorthand, not new
-  reach.
-- **Poll `messageContextInfo` ordering bug** — `m.messageContextInfo`
-  was being set on the message object *before* the actual
-  `pollCreationMessage*` field. Several downstream steps
-  (`groupStatus`, `spoiler`, `externalAdReply`, mentions, ephemeral
-  expiration) detect "the message type" via `Object.keys(m)[0]` —
-  with `messageContextInfo` set first, that resolved to
-  `'messageContextInfo'` instead of the actual poll field, silently
-  misplacing any of those options when combined with a poll. Fixed by
-  setting `messageContextInfo` after the poll field, matching every
-  other message type's ordering.
-- **`refreshMediaConn` race condition** — wasn't guarded by a mutex, so
-  two concurrent calls needing a refresh (e.g. two messages sent at
-  once) could race: duplicate network requests and inconsistent shared
-  state. Now uses the same `makeKeyedMutex` pattern already used for
-  Signal session encryption in the same file.
-- **`sock.onWhatsApp()` now accepts LID jids** — previously only accepted
-  phone-number jids and logged a warning for any LID passed in. LID jids
-  are now resolved to their phone-number form via
-  `signalRepository.lidMapping.getPNForLID()` and existence-checked the
-  same way as any other number, with results reported back under the
-  original LID. A LID with no known PN mapping is reported as not
-  existing rather than guessed at. Uses the helpers in
-  [`src/Addons/lid-support.ts`](src/Addons/lid-support.ts).
-- **`sock.sendStickerPack()`** — a dedicated method for the alternate
-  sticker-pack builder (`prepareStickerPackMessage`,
-  [`src/Addons/stickerpack.ts`](src/Addons/stickerpack.ts)). This builder
-  is a separate implementation from the one
-  `sock.sendMessage(jid, { stickerPack: {...} })` already uses
-  internally; both remain available, and `sendStickerPack` gives the
-  alternate one a normal `sock.*` call instead of requiring
-  `sock.relayMessage()` directly:
-  ```ts
-  await sock.sendStickerPack(jid, {
-     cover: coverBuffer,
-     stickers: [{ data: sticker1Buffer, emojis: ['🎉'] }, { data: sticker2Buffer }],
-     name: '📦 @teamolduser/baileys Sticker Pack System',
-     publisher: '🌟 @teamolduser/baileys Publisher System'
-  })
-  ```
-- **Dual content/options flags** — `groupStatus`, `isLottie`, `spoiler`,
-  `secureMetaServiceLabel`, `ai`, and `ephemeral` can each be set either
-  as a content-level property or as an options-level property —
-  whichever is set wins; if both are set, content takes priority:
-  ```ts
-  // these two are equivalent
-  await sock.sendMessage(jid, { image: {...}, spoiler: true })
-  await sock.sendMessage(jid, { image: {...} }, { spoiler: true })
-  ```
-- **`ephemeral: true` shorthand** — sends a disappearing message using
-  WhatsApp's default expiration, without needing to compute
-  `ephemeralExpiration` yourself (an explicit `ephemeralExpiration`
-  always takes priority if given):
-  ```ts
-  await sock.sendMessage(jid, { image: {...}, ephemeral: true })
-  ```
-
----
-
-### 20. Album Send
-
-Send multiple images/videos as a native WhatsApp album (carousel of media):
-
-```ts
-await sock.sendMessage(jid, {
-    album: [
-        { image: { url: 'https://example.com/photo1.jpg' }, caption: 'First photo' },
-        { image: fs.readFileSync('./photo2.png') },
-        { video: { url: 'https://example.com/clip.mp4' }, caption: 'Short clip' }
-    ]
-}, {
-    delayMs: 800  // delay between each media relay (default: 800ms)
-})
-```
-
-**How it works:**
-1. An `albumMessage` container is sent first (with expected image/video counts)
-2. Each media item is then relayed individually, linked back to the parent via `messageAssociation`
-3. `hasValidAlbumMedia` validates each item is image or video before sending
-4. Invalid items throw `400 Bad Request` instead of silently failing
-
----
-
-### 21. WhatsApp Username Socket
-
-Full WhatsApp username management — check availability, set, pin, find users:
-
-```ts
-// Check if username is available
-const result = await sock.checkUsername('myusername')
-if (result.available) {
-    console.log('Available!')
-} else {
-    console.log('Taken. Suggestions:', result.suggestions)
-}
-
-// Set your username
-await sock.setUsername('myusername', {
-    source: 'USER_INPUT' // or 'FB', 'IG', 'SUGGESTION'
-})
-
-// Get your current username
-const username = await sock.getMyUsername()
-
-// Pin username with a PIN (for cross-platform discovery)
-await sock.setUsernamePin('1234')
-
-// Find a user by their username (returns their JID)
-const user = await sock.findUserByUsername('theirusername')
-console.log(user?.jid) // '1234567890@s.whatsapp.net'
-
-// Fetch usernames of known contacts (USync)
-const contacts = await sock.fetchContactUsernames(
-    '1234567890@s.whatsapp.net',
-    '0987654321@s.whatsapp.net'
-)
-
-// Check multiple usernames at once
-const multi = await sock.checkUsernameMulti(['name1', 'name2', 'name3'])
-
-// Delete your username
-await sock.deleteUsername()
-
-// Get username recommendations
-const recs = await sock.getUsernameRecommendations()
-```
-
-> **Note:** `USERNAME_QUERY_IDS` are captured from live WA Web sessions and
-> may rotate with WA updates. Use the `proto-extract` tool to refresh them.
-
-**Constants exposed:**
-```ts
-sock.USERNAME_QUERY_IDS  // { CHECK, CHECK_MULTI, SET, GET, GET_RECOMMENDATIONS, PIN_SET }
-sock.USERNAME_CHECK_RESULT  // { SUCCESS, INVALID }
-sock.USERNAME_SOURCE  // { FB, IG, USER_INPUT, SUGGESTION }
-```
-
----
-
-### 22. Enterprise Bot Framework (`src/Framework/`)
-
-A high-level `Bot` class with middleware routing, command handling, SQLite-backed
-sessions/stats, and automatic reconnect with message queueing.
-
-```ts
-import { Bot } from '@teamolduser/baileys'
-import { useMultiFileAuthState } from '@teamolduser/baileys'
-import pino from 'pino'
-
-const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
-const logger = pino({ level: 'info' })
-
-const bot = new Bot({
-    socketConfig: { auth: state, logger },
-    dbPath: './bot_store.db',   // per-instance — avoids shared-DB collisions
-    enableStats: true,
-    logger
-})
-
-await bot.start()                          // creates bot.socket
-bot.socket!.ev.on('creds.update', saveCreds) // register AFTER start()
-
-bot.command('!sticker', async ctx => {
-    await ctx.replySticker(imageBuffer, { packname: '📦 @teamolduser/baileys Sticker Pack System', author: '🌟 @teamolduser/baileys Publisher System' })
-})
-
-bot.command('!ghosts', async ctx => {
-    const ghosts = await bot.stats!.getGhosts(ctx.remoteJid!, true, 30)
-    // ...
-})
-```
-
-**Source:** PR #2710 (LuferOS). The upstream PR had **12
-reviewer-flagged bugs across P0–P3 severity and was never revised** — all are
-fixed here before inclusion:
-
-| # | Bug | Severity | Fix |
-|---|---|---|---|
-| 1 | `bot.socket?.ev.on('creds.update', ...)` called before `bot.start()` — socket is `undefined`, listener silently never registers, session lost on every restart | P0 | `bot-example.ts` now calls `await bot.start()` **first**, then registers `creds.update` |
-| 2 | `require('node-webpmux')` — CJS `require` crashes in ESM at import time | P1 | `createRequire(import.meta.url)` in `MediaManager.ts` |
-| 3 | Voice notes missing `-ac 1` / `-ar 16000` / `-application voip` — WA rejects or misplays non-mono Opus | P1 | Full param set added in `convertToVoiceNote()` |
-| 4 | Stats stored/queried with raw (non-normalized) JIDs — device-suffix variants split into separate entries, active users misreported as "ghosts" | P1 | `jidNormalizedUser()` applied in `observeMessage()` and `getGhosts()` |
-| 5 | `text.startsWith(cmd)` matches `!stickerSpam` for command `!sticker` | P2 | `Bot.command()` now requires exact match or `cmd + ' '` prefix |
-| 6 | Message queue never rejected on `DisconnectReason.loggedOut` — pending promises hang forever | P2 | `rejectQueue()` called on logged-out close with `Boom(401)` |
-| 7 | `fs.writeFileSync`/`readFileSync`/`unlinkSync` block the event loop during media conversion | P2 | All I/O switched to `fs.promises.*` in `MediaManager.ts` |
-| 8 | `SQLiteStore.set()` stored raw strings unconditionally — `get<string>()` on a JSON-looking string round-trips incorrectly | P2 | Always `JSON.stringify()` on write, `JSON.parse()` on read, with legacy fallback |
-| 9 | `new SQLiteStore('baileys_store.db')` hardcoded — two Bot instances in the same directory share (and corrupt) state | P2 | `BotConfig.dbPath` is now required/configurable, defaults documented |
-| 10 | All logging via `console.log`, including raw JIDs in log lines — no log-level control, not Pino-compatible | P2 | `BotConfig.logger: ILogger` — structured, Pino-compatible logging throughout |
-| 11 | `Context.text` only reads `conversation`/`extendedTextMessage` — a command sent as an image caption never matches | P3 | `text` getter also checks `imageMessage.caption`, `videoMessage.caption`, `documentMessage.caption` |
-| 12 | `import makeWASocket` (value import) used only as a type — breaks under `verbatimModuleSyntax` | P1 | Changed to `import type makeWASocket` in `Context.ts` |
-
-**Dependencies:** `node-webpmux`, `fluent-ffmpeg`, `ffmpeg-static`, `better-sqlite3` are
-regular (hard) dependencies of this package — since `Framework/` is exported
-unconditionally from the package root, they must always be installed rather
-than left as optional peer dependencies (which previously caused `Cannot find
-module` build failures for anyone who hadn't separately installed them).
-
----
-
-### 23. WAProto Schema Extensions
-
-74 extra message types beyond the real upstream library — bots,
-polls-add-option, split-payments, event-invites, chat-theming,
-subscription/broadcast app-state-sync actions, and more. **Schema-only**
-— encode/decode works
-(`proto.SplitPaymentMessage.create({...})`), but no `Socket` helper sends
-or recognizes them automatically yet. See `WAProto/WAProto.proto` for the
-full schema.
-
-### 24. Hidden-Voter Polls (V6)
-
-Send a poll where WhatsApp hides individual voter names in the results:
-
-```ts
-await sock.sendMessage(jid, {
-	poll: {
-		name: 'Pick a time',
-		values: ['9 AM', '2 PM', '6 PM'],
-		selectableCount: 1,
-		hideVoterNames: true // uses the V6 poll wire format
-	}
-})
-```
-
-`hideVoter` works as an alias, and `endDate` / `canAddOption` also switch the poll to V6 (see *Elaina 1.4.7 follow-up sync*).
-
-Omit `hideVoterNames` (or set it `false`) for a normal poll — the standard
-V2/V3/V1 format is used as before.
-
-### 25. Phone-Generated Link Previews
-
-Ask the paired phone to generate a high-quality link preview natively
-(better quality than fetching + parsing the URL yourself), instead of the
-default local `link-preview-js` fetch:
-
-```ts
-const requestId = await sock.requestPhoneLinkPreview('https://example.com')
-
-sock.ev.on('link-preview.update', ({ requestId: id, url, urlInfo }) => {
-	console.log('Preview ready for', url, urlInfo.title)
-	// use urlInfo as the `linkPreview` field when you send the actual message
-})
-```
-
-The response arrives asynchronously via the `link-preview.update` event —
-match it to your request using the returned `requestId`.
-
-### 26. Shortcake Passkey Companion Linking
-
-Complete WhatsApp's passkey-based companion-linking handshake headlessly,
-by providing a callback that signs the WA challenge with your platform's
-passkey/WebAuthn provider:
+**Full history** — the server only sends recent history to a browser identity. Ask for a Desktop sub-platform:
 
 ```ts
 const sock = makeWASocket({
 	auth: state,
-	signPasskeyAssertion: async challenge => {
-		// sign `challenge` with your platform's FIDO2/WebAuthn authenticator
-		// and return the raw assertion signature bytes
-		return await myPasskeyProvider.sign(challenge)
-	}
-})
-
-sock.ev.on('connection.update', ({ passkeyRequest }) => {
-	if (passkeyRequest) {
-		console.log('Passkey linking step:', passkeyRequest.type)
-		// handshake completes automatically if signPasskeyAssertion is set;
-		// this event fires either way so you can show UI/logs
-	}
+	browser: Browsers.windows('Desktop'),
+	syncFullHistory: true
 })
 ```
 
-Without `signPasskeyAssertion`, the `passkeyRequest` event still fires (so
-you know a passkey step occurred), but the handshake itself won't be
-completed automatically.
+## 💾 Sessions and auth state
 
-### 27. Jimp Profile-Picture Generators (`media-messages.ts` / `media-set.ts`)
+### Picking an adapter
 
-Lower-level Jimp-based image resizing + profile-picture setters, useful
-when you want to generate the resized buffer yourself before sending (e.g.
-to preview it, cache it, or pick which variant to upload):
+Every adapter returns `{ state, saveCreds }`. Some also expose `clearAuth()` and `close()`.
 
-```ts
-import {
-	generateProfilePictureFull, // wide/panoramic-style resize (720 or 324 wide, by aspect)
-	generateProfilePictureFP, // square: { img: 720x720 fit, preview: normalized }
-	generatePP, // alias of generateProfilePictureFP
-	generateProfilePicturee, // flexible input (Buffer | { url } | { stream }), 720px longer side
-	updateProfilePictureFull, // sets the main (scaled-to-fit) image via w:profile:picture IQ
-	updateProfilePictureFull2, // sets the normalized preview image via w:profile:picture IQ
-	groupStatus, // send a group-only status update to one group
-	groupStatusV2, // send a group-only status update to multiple groups
-	groupSetMemberLabel // set/update a member's label in a group (awaited)
-} from '@teamolduser/baileys'
-
-// Resize + set a group's profile picture in one go:
-const buffer = await fs.promises.readFile('./photo.jpg')
-await updateProfilePictureFull(groupJid, buffer, sock)
-
-// Or generate the buffer yourself first (e.g. to preview before sending):
-const { img, preview } = await generateProfilePictureFP(buffer)
-```
-
-> For most cases, prefer the standard [`updateProfilePicture`](#change-profile)
-> (see Change Profile, above) — these lower-level generators are for when
-> you specifically need the resized buffer itself, or the group-status /
-> member-label helpers, which aren't in the standard API.
->
-> `changeprofileFull` is an alias of `generateProfilePictureFull`.
-> `groupLabel(jid, text, sock)` is a fire-and-forget variant of
-> `groupSetMemberLabel` (errors are swallowed rather than thrown) —
-> prefer `groupSetMemberLabel` if you need to await/observe failures.
-
-### 28. Panoramic (Wide/Banner) Profile Picture
-
-Set a full-width banner-style profile picture (in addition to the normal
-square one) without square cropping:
-
-```ts
-const buffer = await fs.promises.readFile('./wide-banner.jpg')
-await sock.updatePanoramaProfilePicture(jid, buffer, {
-	maxWidth: 720, // optional, defaults to 720
-	quality: 90 // optional JPEG quality, defaults to 100
-})
-```
-
-### 29. Profile Status — Emoji & Auto-Expiry
-
-The standard `updateProfileStatus` now optionally accepts an emoji and an
-auto-expiry duration (in seconds). (Upstream PR #2755)
-
-```ts
-// Plain text status (unchanged, still works)
-await sock.updateProfileStatus('Busy right now')
-
-// With emoji + auto-expiry after 1 hour
-await sock.updateProfileStatus('In a meeting', '📅', 3600)
-
-// Object form — same fields, explicit
-await sock.updateProfileStatus({ text: 'In a meeting', emoji: '📅', ephemeralDuration: 3600 })
-
-// Clear the status
-await sock.updateProfileStatus('')
-```
-
-Status text is truncated to 50 Unicode code points if longer (matching
-WhatsApp's current About-text limit). If you don't pass a duration, it
-defaults to 24 hours — WhatsApp's MEX endpoint rejects an explicit `0`
-with a 400 error when *setting* a status (`0` is only valid when
-*clearing* one).
-
-This writes through both WhatsApp's modern MEX endpoint and the legacy
-`xmlns: 'status'` IQ — some surfaces still read the legacy field, so both
-get updated. If the MEX write fails, the legacy one is still attempted
-rather than failing outright immediately (PR:
-`Baileys-fix-update-profile-status-about`).
-
-To **read** a contact's modern text status (emoji + auto-expiry included,
-unlike the legacy plain-text status), use a USync query with
-`withTextStatusProtocol()`:
-
-```ts
-import { USyncQuery, USyncUser } from '@teamolduser/baileys'
-
-const query = new USyncQuery()
-	.withTextStatusProtocol()
-	.withUser(new USyncUser().withPhoneNumber('12345678901'))
-
-const result = await sock.executeUSyncQuery(query)
-const textStatus = result?.list[0]?.text_status
-// { text, emoji, ephemeralDurationSeconds, lastUpdateTime }
-```
-
-### 30. Voice Calling (WASM-based, same session)
-
-Place an actual voice call — real audio in and out — directly from your
-existing socket, no separate connection needed:
-
-```ts
-const call = await sock.initiateCall(normalizedJid, {
-	audioSource: './audio.mp3', // MP3/WAV file path, or 'silence' for an empty uplink
-	durationMs: 30000 // optional; auto-hangup after this long (default 120000)
-})
-
-call.on('ringing', () => console.log('Call is ringing...'))
-call.on('connected', () => console.log('Connected & streaming audio!'))
-call.on('audio', pcmChunk => {
-	/* incoming 16 kHz Float32Array PCM */
-})
-call.on('ended', reason => console.log('Call ended:', reason))
-call.on('error', err => console.log('Call error:', err))
-```
-
-The WASM voice-calling engine only initializes on your **first**
-`initiateCall()` — bots that never place a call pay no extra startup cost.
-The required runtime dependency `@roamhq/wrtc` (native WebRTC bindings) is installed automatically with the package. Its platform-specific native binary must be available for your OS/CPU architecture.
-
-#### Video Calls
-
-```ts
-const videoCall = await sock.initiateCall(normalizedJid, {
-	isVideo: true,
-	videoSource: './video.mp4',
-	audioSource: './audio.mp3', // or 'silence', or the same file as videoSource
-	videoWidth: 640,            // default: 640 (rounded up to even)
-	videoHeight: 480,           // default: 480 (rounded up to even)
-	videoFps: 15,               // default: 15
-	videoLoop: true,            // loop the video source until durationMs
-	durationMs: 30000
-})
-
-videoCall.on('videoStarted', () => console.log('video stream started'))
-videoCall.on('videoEnded', () => console.log('video stream ended (source EOF)'))
-videoCall.on('videoError', err => console.error('video stream error:', err))
-```
-
-Video frames are decoded from `videoSource` (MP4/MKV/MOV/AVI, anything
-ffmpeg reads) into raw YUV420p and pushed into the same call the audio
-pipeline uses — video starts once the call's audio pipeline is confirmed
-live, since that's a reliably-observed signal; there's no separate
-WASM-side "video ready" callback to wait on.
-
-##### Orientation (landscape video)
-
-```ts
-const videoCall = await sock.initiateCall(normalizedJid, {
-	isVideo: true,
-	videoSource: './video.mp4',
-	isHorizontal: true // stream landscape instead of the default portrait
-	// or set the raw orientation flag directly: orientation: 2
-})
-```
-
-#### Repeating the audio/video source
-
-By default `audioSource`/`videoSource` play once and then the call falls
-back to silence/frozen frame until `durationMs` hits. Pass `repeatAudio`
-(alias: `repeat`) / `videoLoop` (aliases: `repeatVideo`, `loop`) to loop
-the file continuously for the life of the call instead:
-
-```ts
-const call = await sock.initiateCall(normalizedJid, {
-	audioSource: './hold-music.mp3',
-	repeatAudio: true, // loops hold-music.mp3 until durationMs / call.end()
-	durationMs: 60000
-})
-```
-
-#### Call status, muting, and waiting for the end
-
-Besides the numeric `call.state` (mirrors the raw WASM `CallState`),
-every call also exposes a higher-level `call.status` string plus a
-`stateChange` event — useful when you just want to know "is this call
-still going" without decoding WASM state numbers:
-
-```ts
-const call = await sock.initiateCall(normalizedJid, { audioSource: './hi.mp3' })
-
-call.on('stateChange', status => console.log('status →', status))
-// idle → initiating → ringing → accepted → connected → audio_ready → streaming → ended
-// (or: → unreachable / rejected / timeout / failed, if the call doesn't connect)
-
-call.on('accepted', () => console.log('remote device accepted the call'))
-call.on('audioReady', () => console.log('audio pipeline is live'))
-call.on('streaming', () => console.log('first audio chunk sent'))
-
-call.mute(true) // mute your outgoing audio without ending the call
-const reason = await call.waitForEnd() // resolves once the call ends, with the reason
-
-console.log(call.peerJid, call.phoneNumber, call.startedAt, call.getSummary())
-```
-
-If the remote device never confirms ringing within `preRingingTimeoutMs`
-(default 20000ms), the call auto-ends with status `'unreachable'` instead
-of sitting around until `durationMs` — useful for detecting dead/invalid
-numbers quickly:
-
-```ts
-const call = await sock.initiateCall(normalizedJid, {
-	audioSource: './hi.mp3',
-	preRingingTimeoutMs: 8000 // fail fast after 8s of no ringing confirmation
-})
-call.on('ended', reason => {
-	// reason is one of: 'completed' | 'unreachable' | 'rejected' | 'timeout' |
-	//                    'remote_end' | 'disconnect' | 'ended' | <error message>
-})
-```
-
-#### Concurrent calls
-
-`initiateCall()` can be called multiple times without waiting for the
-previous call to end — each call gets its own isolated WASM engine, so
-they don't share audio/video buffers or interfere with each other:
-
-```ts
-// Place several calls at once
-const [placedCall1, placedCall2] = await Promise.all([
-	sock.initiateCall('12345678901', { audioSource: './a.mp3' }),
-	sock.initiateCall('19876543210', { audioSource: './b.mp3' })
-])
-
-// or the batch helper, which doesn't let one failure stop the rest
-const calls = await sock.initiateCalls([
-	{ jid: '12345678901', options: { audioSource: './a.mp3' } },
-	{ jid: '19876543210', options: { audioSource: './b.mp3' } }
-])
-
-// Manage everything currently open on this socket
-console.log(await sock.getActiveCallCount())
-console.log(await sock.getActiveCalls()) // CallSummary[]
-const one = await sock.getCall(placedCall1.callId)
-await sock.endCall(placedCall1.callId)
-await sock.endAllCalls()
-
-// Cap how many calls this socket will run at once (default: unlimited)
-await sock.setVoipOptions({ maxConcurrentCalls: 5 })
-```
-
-#### Call links & rejecting incoming calls
-
-```ts
-// Get a shareable call.whatsapp.com link (doesn't place a call itself)
-const token = await sock.createCallLink('video') // or 'audio'
-console.log(`https://call.whatsapp.com/video/${token}`)
-
-// Reject an incoming call (e.g. from a call-offer event)
-sock.ev.on('call', async ([call]) => {
-	if (call.status === 'offer') {
-		await sock.rejectCall(call.id, call.from)
-	}
-})
-```
-
-Ported from [`baileys-caller`](https://github.com/SheIITear/baileys-caller)
-and adapted to run on your **existing** socket/session (the original
-package creates its own separate connection).
-
-#### Legacy standalone client (reference-only)
-
-The older `createVoipClient({ authDir })` factory has been removed from the public exports (its source is retained under `Voip/` and `Voip2/` for maintainers and is not included in npm releases). The Elaina class names `VoipClient` (separate-session client), `ActiveCall`, `AudioFeeder`, `VideoFeeder` and `VIDEO_FORMAT_I420` **are exported again from the package root** so Elaina code keeps working - see [Elaina name compatibility](#elaina-name-compatibility). For a socket you already have, use the unified same-socket API above.
-
-### 31. `companionPlatformDisplay` Override (Pairing by Code)
-
-WhatsApp validates the `companion_platform_display` field sent during
-pairing-by-code registration. Baileys derives it from your `browser`
-config as `` `${browser[1]} (${browser[0]})` `` — e.g. `Chrome (Windows)`.
-QR pairing accepts any value here, but pairing **by code** does not: if
-you put a product name in `browser[0]` (a common integrator pattern, since
-that's also what shows up under WhatsApp's "Linked devices" list), the
-server rejects the `companion_hello` with `400 bad-request`.
-
-Because `requestPairingCode()` generates the code locally before the
-stanza is even acknowledged, this failure used to be **silent** — the
-promise resolved, a code came back, and the user would type a code that
-could never work, with no error surfaced anywhere below `trace`-level
-logging.
-
-Two fixes ship together here:
-
-1. An optional `companionPlatformDisplay` on the socket config lets you
-   keep a product name in `browser[0]` (for the Linked-devices UI) while
-   sending a value WhatsApp actually accepts for validation.
-   `DEFAULT_CONNECTION_CONFIG` (`src/Defaults/index.ts`) carries a real
-   default for it, derived from the same `Browsers.ubuntu('Firefox')` used
-   for the default `browser`. If you override `browser` without also
-   setting `companionPlatformDisplay`, you'll get this default's display
-   string rather than one derived from your own `browser` — set both
-   together if you're overriding `browser`.
-2. The registration IQ is now awaited (`query` instead of fire-and-forget),
-   and credentials are only persisted after the server actually accepts —
-   so a rejected or timed-out registration now throws instead of quietly
-   handing back a dead code.
-
-```ts
-const sock = makeWASocket({
-	browser: ['My Product', 'Chrome', '10.0'], // shown under Linked Devices
-	companionPlatformDisplay: 'Chrome (Windows)' // what WhatsApp validates — omit to fall back to `${browser[1]} (${browser[0]})`
-})
-
-const code = await sock.requestPairingCode('XXXXXXXXXXX')
-```
-
-If omitted, behavior is unchanged (byte-identical payload to before). If the
-server rejects the registration (bad `companionPlatformDisplay` value,
-rate-limited, or timed out), `requestPairingCode()` now throws instead of
-returning a code that will never work.
-
-(Upstream PR #2769)
-
----
-
-
-### 32. Recent Merged Updates & New APIs
-
-This section collects the newer additions/ports that were merged after
- the earlier feature documentation. The APIs below are available from
-`@teamolduser/baileys` unless noted otherwise.
-
-#### Group Status — explicit socket helper
-
-Group-status sending is available both through the normal `sendMessage()`
-shorthand and through an explicit socket helper.
-
-```ts
-// Simple shorthand — wraps the generated message in groupStatusMessageV2
-await sock.sendMessage('120363000000000000@g.us', {
-	text: 'Hello group!',
-	groupStatus: true
-})
-
-// Explicit helper
-await sock.sendGroupStatus('120363000000000000@g.us', {
-	text: 'Hello group!'
-})
-```
-
-The helper validates that the target is a group JID, generates the inner
-message using the normal Baileys message pipeline, marks its `contextInfo`
-with `isGroupStatus`, wraps it in `groupStatusMessageV2`, and relays it with
-the generated message ID.
-
-A second helper, `sendGroupStatusV2`, is available alongside `sendGroupStatus`
-rather than replacing it:
-
-```ts
-await sock.sendGroupStatusV2('120363000000000000@g.us', {
-	text: 'Hello group!'
-})
-```
-
-It does the same `groupStatusMessageV2` wrap and `isGroupStatus` marking, but
-differs in a couple of ways: it requires `sock.user` to already be set
-(throwing if the socket isn't authenticated yet, rather than passing a
-possibly-undefined JID through), and it assigns its own `4NY4W3B`-prefixed
-message ID — matching the ID shape a real WhatsApp client uses for
-group-status messages — unless the caller already supplied one via
-`options.messageId`.
-
-#### Local LaTeX rendering — MathJax + Sharp
-
-LaTeX image rendering no longer needs a remote equation-rendering service.
-The addon uses `mathjax-full` to generate SVG and `sharp` to convert it to
-PNG locally.
-
-```ts
-import {
-	convertLatexToSvg,
-	convertLatexToPng,
-	renderLatexToPng
-} from '@teamolduser/baileys'
-
-const svg = convertLatexToSvg('E = mc^2')
-
-const { buffer, width, height } = await renderLatexToPng('\\frac{a}{b} = c', {
-	outputScale: 2,
-	background: '#ffffff'
-})
-
-// convertLatexToPng is an alias of renderLatexToPng
-const png = await convertLatexToPng('\\sqrt{x^2 + y^2}')
-```
-
-Supported scale values include numeric values and presets such as `50%`,
-`100%`, `200%`, and `500%`. Unsafe TeX commands such as `\\input`,
-`\\include`, and `\\write18` are rejected.
-
-The rich-message helpers (`sendLatex`, `sendLatexImage`, and
-`sendLatexInlineImage`) use the local renderer through the message-composer
-pipeline.
-
-`sock.sendLatexImage`/`sock.sendLatexInlineImage` accept a flexible call
-shape — a bare LaTeX string, `{ formula }`/`{ latex }`/`{ text }`, a bare
-array of expressions, or the full `{ expressions: LatexExpression[] }`
-form — and `quoted`/`renderLatexToPng`/`uploadFn` are all optional,
-defaulting to the local MathJax renderer and the socket's own upload
-function:
-
-```ts
-// All of these work:
-await sock.sendLatexImage(jid, null, 'E=mc^2')
-await sock.sendLatexImage(jid, quotedMsg, { formula: 'E=mc^2' })
-await sock.sendLatexImage(jid, null, { expressions: [{ latexExpression: 'E=mc^2' }] })
-
-// Bring your own renderer/uploader if you need to override the defaults —
-// still supported, just no longer required:
-await sock.sendLatexImage(jid, null, { expressions: [...] }, myRenderFn, myUploadFn)
-```
-
-#### WhatsApp Username resolution + cache
-
-The username socket now includes direct username-to-JID resolution with
-positive/negative caching, batch resolution, cache invalidation, and refresh.
-
-```ts
-// Resolve one username
-const user = await sock.resolveUsername('alice')
-console.log(user?.jid, user?.pn, user?.lid)
-
-// Resolve several usernames
-const users = await sock.resolveUsernames(['alice', 'bob', 'charlie'])
-
-// Force a fresh lookup
-await sock.refreshUsername('alice')
-
-// Remove one cached result
-await sock.invalidateUsername('alice')
-```
-
-The existing username management APIs remain available as well:
-`checkUsername`, `checkUsernameMulti`, `setUsername`, `deleteUsername`,
-`getMyUsername`, `setUsernamePin`, `findUserByUsername`,
-`fetchContactUsernames`, and `getUsernameRecommendations`.
-
-A custom cache can be supplied through `SocketConfig.usernameCache`.
-Username resolution also attempts to preserve/store PN↔LID mappings when both
-forms are available.
-
-#### Mixed `sock.onWhatsApp()` lookup — phone numbers, LIDs, and usernames
-
-`sock.onWhatsApp()` accepts phone numbers, LID (`@lid`) jids, `@username`
-strings, and `{ type: 'username', username }` target objects in the same
-call, and every result — regardless of which kind of target it came from —
-carries `jid`, `exists`, `lid`, and `pn` where known:
-
-```ts
-const results = await sock.onWhatsApp(
-	'+1234567890',
-	'169702865256530@lid',
-	'@midsoune',
-	{ type: 'username', username: 'another_user' }
-)
-
-for (const res of results) {
-	console.log(`JID: ${res.jid} | Exists: ${res.exists} | LID: ${res.lid ?? 'N/A'} | PN: ${res.pn ?? 'N/A'}`)
-}
-```
-
-Username-type targets resolve through the same `resolveUsername()`/
-`resolveUsernames()` path documented above (so they get its caching too),
-rather than a separate raw USync-only lookup that didn't carry `lid`/`pn`.
-Phone/LID-type targets also now report `pn` (previously only `lid` was
-populated for those) — for a plain phone number it's the same value as
-`jid`; for a LID that resolves to a known phone number, it's that resolved
-number; if no PN mapping is known for a given LID, `pn` is left `undefined`.
-
-#### PN ↔ LID JID plotting utilities
-
-For applications that need an in-memory mapping independent of the socket's
-Signal repository, the JID plot addon provides a small explicit API:
-
-```ts
-import {
-	plotJidPair,
-	plotJidPairs,
-	resolvePnJid,
-	resolveLidJid,
-	hasLidMapping,
-	hasPnMapping,
-	getAllJidPlotEntries,
-	clearJidPlot,
-	normalizeJidForSend
-} from '@teamolduser/baileys'
-
-plotJidPair(
-	'1234567890@s.whatsapp.net',
-	'1234567890@lid'
-)
-
-console.log(resolveLidJid('1234567890@s.whatsapp.net'))
-console.log(resolvePnJid('1234567890@lid'))
-console.log(normalizeJidForSend('1234567890@c.us'))
-```
-
-`normalizeJidForSend()` also converts `@c.us` to `@s.whatsapp.net`, removes
-device information where appropriate, and resolves a known LID back to PN.
-
-#### Raw protobuf messages
-
-For message types that do not have a dedicated high-level content helper,
-`sendMessage()` can accept a pre-built protobuf `IMessage` through `raw`.
-This bypasses normal content generation.
-
-```ts
-import { proto } from '@teamolduser/baileys'
-
-const rawMessage: proto.IMessage = {
-	extendedTextMessage: {
-		text: 'Hello from a raw protobuf message'
-	}
-}
-
-await sock.sendMessage(jid, { raw: rawMessage })
-```
-
-Use this only when you intentionally want to work at the protobuf/message
-layer. The supplied object is sent as the message content rather than being
-converted by the normal `AnyMessageContent` builders.
-
-#### Button helper is vendored, not a runtime dependency
-
-The enhanced button sender implementation is included directly in
-`src/Addons/button-sender.ts`. It does not require installing
-`@ryuu-reinzz/button-helper` at runtime.
-
-```ts
-import { sendButtons, sendInteractiveMessage } from '@teamolduser/baileys'
-
-await sendButtons(sock, jid, {
-	text: 'Choose an option',
-	buttons: [
-		{ type: 'reply', displayText: 'Yes', id: 'yes' },
-		{ type: 'reply', displayText: 'No', id: 'no' }
-	]
-})
-```
-
-The implementation includes normalization for native-flow button payloads
-and is kept inside the fork so deployments do not depend on that helper
-package being installed separately.
-
-#### Internal reliability / compatibility hardening
-
-The merged source also contains several internal fixes that require no new
-application API:
-
-- Event-buffer merges preserve an existing decoded `messageTimestamp`.
-- Media output streams propagate source-stream errors instead of silently
-  ending.
-- Signal-key-store transactions use a per-underlying-store mutex to avoid
-  concurrent transaction races.
-- LID↔PN mappings discovered from history/group metadata are retained and
-  reused by the socket's mapping layer.
-- Username/LID/PN resolution paths preserve useful identifiers instead of
-  dropping alternate forms.
-- The pairing flow supports `companionPlatformDisplay` and waits for server
-  acceptance before treating pairing-by-code registration as successful.
-- The bundled WAProto schema extensions are merged directly under
-  `WAProto/`, while the existing fork-specific protobuf types are preserved.
-
-These changes are mostly transparent to existing bots; they are intended to
-improve compatibility with current WhatsApp Web behavior and reduce edge-case
-failures.
-
-### 33. Presence Monitor (online/offline tracking)
-
-_Source: `@innovatorssoft/baileys` fork._
-
-> ⚠️ **Use responsibly.** This watches when a contact comes online/offline and
-> for how long. Only monitor accounts you own or contacts who have agreed to
-> be tracked — using this to monitor someone without their knowledge or
-> consent is a misuse of the feature.
-
-`monitorPresence(sock, targets, options?)` watches one or more contacts'
-`presence.update` events and turns them into `online` / `offline` / `session`
-events with computed durations — no polling, and it reuses the socket's
-existing event emitter rather than opening anything new. It's also available
-as `sock.monitorPresence(targets, options?)` directly on the socket — the
-convenience wrapper used in the examples below.
-
-#### Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `logToConsole` | `boolean` | `false` | Log transitions to console automatically |
-| `autoResubscribe` | `boolean` | `false` | Re-subscribe automatically when the socket reconnects |
-| `timezone` | `string` | `undefined` | Display timezone offset, e.g. `'+05:00'` |
-
-**Basic usage — single contact:**
-
-```javascript
-import { makeWASocket, useMultiFileAuthState } from '@teamolduser/baileys'
-
-const { state, saveCreds } = await useMultiFileAuthState('auth')
-const sock = makeWASocket({ auth: state, logger: require('pino')({ level: 'silent' }) })
-
-const pm = sock.monitorPresence('923001234567@s.whatsapp.net', {
-    logToConsole: true,
-    autoResubscribe: true,
-    timezone: '+05:00'
-})
-
-pm.on('online',  data => console.log(`🟢 ${data.jid} ONLINE at ${new Date(data.onlineAt).toLocaleTimeString()}`))
-pm.on('offline', data => console.log(`🔴 ${data.jid} OFFLINE (was online for ${data.duration})`))
-pm.on('session', data => console.log(`📋 Session: ${data.jid} — ${data.duration}`))
-pm.on('error',   err  => console.error('[Presence] Error:', err.message))
-
-// Later, stop monitoring:
-// pm.stop()
-```
-
-**Multiple contacts at once:**
-
-```javascript
-const pm = sock.monitorPresence([
-    '923001234567@s.whatsapp.net',
-    '447498792682@s.whatsapp.net'
-], { autoResubscribe: true })
-```
-
-**Event payload shapes:**
-
-```javascript
-// 'online' event
-{
-    jid: '923001234567@s.whatsapp.net',   // JID as originally requested
-    status: 'online',
-    onlineAt: 1731806400000,               // epoch ms
-    lastSeen?: 1731806400                  // optional, if WhatsApp provides it (unix seconds)
-}
-
-// 'offline' event
-{
-    jid: '923001234567@s.whatsapp.net',
-    status: 'offline',
-    onlineAt: 1731806400000,
-    offlineAt: 1731806500000,              // epoch ms
-    durationMs: 100000,
-    duration: '00:01:40',                  // HH:MM:SS (hours don't wrap at 24)
-    lastSeen?: 1731806500
-}
-
-// 'session' event — same shape as 'offline', emitted right after the session is recorded
-```
-
-**Query methods:**
-
-```javascript
-// Current state for one JID
-const state = pm.getState('923001234567@s.whatsapp.net')
-// → { jid, status: 'online'|'offline', onlineAt, offlineAt, durationMs, duration, lastSeen }
-
-// All monitored JIDs
-const allStates = pm.getState()
-// → { '923001234567@s.whatsapp.net': {...}, '447498792682@s.whatsapp.net': {...} }
-
-// Most recent session for a JID
-const lastSession = pm.getSession('923001234567@s.whatsapp.net')
-
-// All sessions for a JID (or for all if omitted)
-const sessions = pm.getSessions()
-
-// Check if a JID is being monitored
-pm.isMonitoring('923001234567@s.whatsapp.net') // → true
-
-// List of originally requested JIDs
-pm.getMonitoredJids() // → ['923001234567@s.whatsapp.net', '447498792682@s.whatsapp.net']
-
-// Stop watching (cannot be restarted — create a new monitor instead)
-pm.stop()
-```
-
-**Wiring it into `connection.update`:**
-
-```javascript
-sock.ev.on('connection.update', async (update) => {
-    const { connection } = update
-
-    if (connection === 'open') {
-        const targets = ['923001234567@s.whatsapp.net', '447498792682@s.whatsapp.net']
-
-        const pm = sock.monitorPresence(targets, {
-            logToConsole: false,
-            autoResubscribe: true,
-            timezone: '+05:00'
-        })
-
-        pm.on('online',  d => console.log(`[Presence] 🟢 ${d.jid} ONLINE at ${new Date(d.onlineAt).toLocaleTimeString()}`))
-        pm.on('offline', d => console.log(`[Presence] 🔴 ${d.jid} OFFLINE (was online for ${d.duration})`))
-        pm.on('session', d => console.log(`[Presence] 📋 Session ended: ${d.jid} — ${d.duration}`))
-        pm.on('error',   e => console.error('[Presence] Error:', e.message))
-    }
-})
-```
-
-**`formatDuration` (standalone export):**
-
-```javascript
-import { formatDuration } from '@teamolduser/baileys'
-
-formatDuration(0)           // '00:00:00'
-formatDuration(90000)       // '00:01:30'
-formatDuration(991504000)   // '27:32:30' (hours don't wrap)
-```
-
-**Behavior notes:**
-
-- Accepts a single jid or an array of jids; each is tracked independently.
-- `autoResubscribe: true` re-subscribes presence after a reconnect
-  (`connection.update` → `connection === 'open'`) without fabricating fake
-  online/offline transitions for the gap.
-- Resolves PN↔LID automatically: tries the phone-number jid first, falls back
-  to `signalRepository.lidMapping.getLIDForPN` (then `sock.onWhatsApp`) to
-  also subscribe the LID form, and keeps matching presence events addressed
-  to either form to the same tracked contact.
-- `lastSeen` is only ever set from a real WhatsApp-provided timestamp on the
-  presence payload — never inferred from `offlineAt` — and is left off events
-  entirely when WhatsApp doesn't supply one (privacy settings permitting).
-- Duplicate `available`/`unavailable` events are idempotent: no repeated
-  online/offline/session emissions, and an `unavailable` with no prior online
-  state updates the status but emits nothing (no fake duration).
-
-### 34. Additional Message & Addon Recipes
-
-Small recipes that complement the sections above. Everything here is wired
-into the socket or exported from `@teamolduser/baileys`.
-
-#### HD image / video
-
-```ts
-await sock.sendMessage(jid, { image: { url: 'https://example.com/photo.jpg' }, caption: 'Full quality', hd: true })
-await sock.sendMessage(jid, { video: { url: 'https://example.com/video.mp4' }, caption: 'HD video', hd: true })
-```
-
-#### Scheduled call message
-
-```ts
-// Schedules a call entry in the chat (does not ring — use sock.initiateCall() for a real call)
-await sock.sendMessage(jid, { call: { name: 'Team Call', time: Date.now() + 3600000, type: 1 } }) // 1 = audio, 2 = video
-```
-
-#### Admin invite (newsletter)
-
-```ts
-await sock.sendMessage(jid, {
-  adminInvite: {
-    jid: '120363xxxxxx@newsletter',
-    name: 'My Channel',
-    caption: 'Join my channel!',
-    expiration: Date.now() + 604800000
-  }
-})
-```
-
-#### Share / request phone number
-
-```ts
-await sock.sendMessage(jid, { sharePhoneNumber: true })
-await sock.sendMessage(jid, { requestPhoneNumber: true })
-```
-
-#### Disappearing messages & clear message
-
-```ts
-await sock.sendMessage(jid, { disappearingMessagesInChat: true })   // 24h
-await sock.sendMessage(jid, { disappearingMessagesInChat: 604800 }) // 7 days
-await sock.sendMessage(jid, { disappearingMessagesInChat: false })  // off
-
-// Clear/delete a message for me only
-await sock.clearMessage(jid, messageKey, messageTimestamp)
-```
-
-#### Shop & Collection messages
-
-```ts
-await sock.sendMessage(jid, {
-  text: 'Welcome to our shop!',
-  title: 'Our Store',
-  footer: 'Shop Now',
-  shop: { surface: 1, id: 'https://example.com/shop' }
-})
-
-await sock.sendMessage(jid, {
-  text: 'Product Collection',
-  footer: 'Browse All',
-  collection: { bizJid: '628xxx@s.whatsapp.net', id: 'collection_id', version: 1 }
-})
-```
-
-#### Native-flow buttons: CTA, PAY, PIX
-
-```ts
-await sock.sendMessage(jid, {
-  image: { url: 'https://example.com/img.jpg' },
-  caption: 'Choose an action',
-  footer: 'Footer',
-  hasMediaAttachment: true,
-  interactiveButtons: [
-    { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: '🌐 Visit', url: 'https://example.com' }) },
-    { name: 'cta_copy', buttonParamsJson: JSON.stringify({ display_text: '📋 Copy Code', copy_code: 'ABC123' }) },
-    { name: 'cta_call', buttonParamsJson: JSON.stringify({ display_text: '📞 Call', phone_number: '+911234567890' }) }
-  ]
-})
-
-// PAY — review_and_pay
-await sock.sendMessage(jid, {
-  text: 'Complete your payment',
-  interactiveButtons: [{
-    name: 'review_and_pay',
-    buttonParamsJson: JSON.stringify({
-      currency: 'INR',
-      total_amount: { value: '100000', offset: '100' },
-      reference_id: 'REF123',
-      type: 'physical-goods',
-      payment_type: 'confirm',
-      payment_status: 'captured',
-      payment_timestamp: Math.floor(Date.now() / 1000),
-      order: {
-        status: 'completed',
-        order_type: 'PAYMENT_REQUEST',
-        subtotal: { value: '100000', offset: '100' },
-        items: [{ retailer_id: 'item_001', name: 'Product Name', amount: { value: '100000', offset: '100' }, quantity: '1' }]
-      }
-    })
-  }]
-})
-
-// PIX — payment_info
-await sock.sendMessage(jid, {
-  text: '',
-  interactiveButtons: [{
-    name: 'payment_info',
-    buttonParamsJson: JSON.stringify({
-      payment_settings: [{
-        type: 'pix_static_code',
-        pix_static_code: { merchant_name: 'My Store', key: 'example@email.com', key_type: 'EMAIL' } // PHONE | EMAIL | CPF | EVP
-      }]
-    })
-  }]
-})
-```
-
-#### Interactive helpers
-
-```ts
-import {
-  generateQuickReplyButtons,
-  generateUrlButtonMessage,
-  generateCopyCodeButton,
-  generateCombinedButtons,
-  generateInteractiveListMessage
-} from '@teamolduser/baileys'
-
-const qr = generateQuickReplyButtons('Choose an option:', [
-  { id: 'btn1', displayText: '✅ Accept' },
-  { id: 'btn2', displayText: '❌ Reject' }
-], { footer: 'Powered by Bot' })
-await sock.sendMessage(jid, qr.interactiveMessage)
-
-const url = generateUrlButtonMessage('Visit our website', [{ displayText: '🌐 Open', url: 'https://example.com' }], { title: 'Our Site', footer: 'Click to open' })
-await sock.sendMessage(jid, url.interactiveMessage)
-
-const copy = generateCopyCodeButton('Your OTP:', '483920', '📋 Copy OTP')
-await sock.sendMessage(jid, copy.interactiveMessage)
-
-const combined = generateCombinedButtons('What would you like?', [
-  { type: 'url', displayText: '🌐 Website', url: 'https://example.com' },
-  { type: 'reply', displayText: '💬 Chat', id: 'start_chat' },
-  { type: 'copy', displayText: '📋 Promo', copyCode: 'PROMO2025' },
-  { type: 'call', displayText: '📞 Call', phoneNumber: '+911234567890' }
-], { footer: 'Choose any option' })
-await sock.sendMessage(jid, combined.interactiveMessage)
-
-const list = generateInteractiveListMessage({
-  title: '📋 Menu',
-  buttonText: 'Open Menu',
-  description: 'Select an item',
-  footer: 'Bot',
-  sections: [{ title: 'Food', rows: [{ rowId: 'rice', title: 'Rice', description: '₹2' }] }]
-})
-await sock.sendMessage(jid, list.listMessage)
-```
-
-#### Status to a specific audience
-
-```ts
-await sock.sendMessage(
-  'status@broadcast',
-  { text: 'Hello Everyone! 👋', backgroundColor: '#25D366', font: 2 },
-  { statusJidList: ['628xxx@s.whatsapp.net', '629xxx@s.whatsapp.net'] }
-)
-
-await sock.sendMessage(
-  'status@broadcast',
-  { image: { url: 'https://example.com/img.jpg' }, caption: 'Good morning! ☀️' },
-  { statusJidList: ['628xxx@s.whatsapp.net'] }
-)
-```
-
-#### Addon extras
-
-```ts
-// Message Scheduler (§8)
-scheduler.cancelForJid(jid) // cancel everything queued for one chat
-scheduler.clearAll()        // cancel all
-scheduler.stop(); scheduler.start()
-
-// Auto-Reply (§7)
-autoReply.setRuleActive('rule_id', false) // enable/disable a rule at runtime
-
-// Message Templates (§12)
-const { valid, missing } = manager.validate('order', { orderId: '123' })
-if (!valid) console.log('Missing:', missing)
-
-// Message Search (§14)
-const search = new MessageSearchManager()
-search.searchRegex(/\d{6}/, { limit: 5 })
-search.getByType('image')
-search.getByJid('group@g.us')
-
-// Chat Control (§10)
-await typing.startRecording(jid, { duration: 2000 }) // "recording audio…" indicator
-
-// JID helpers (§17)
-import { parseJid, isSameUser, formatJidDisplay, getJidVariants, createJidPlotter } from '@teamolduser/baileys'
-
-parseJid('628xxx@s.whatsapp.net')                       // { isPn, isGroup, user, ... }
-isSameUser('628xxx@s.whatsapp.net', '628xxx@lid')       // true when both map to one user
-formatJidDisplay('628xxx:2@s.whatsapp.net', { showDevice: true, showType: true })
-getJidVariants('628123456789')                          // all JID forms for a number
-
-const plotter = createJidPlotter(
-  pn => signalRepository.lidMapping.getLIDForPN(pn),
-  lid => signalRepository.lidMapping.getPNForLID(lid)
-)
-const { pn, lid } = await plotter.plotBidirectional('628xxx@s.whatsapp.net')
-```
-
----
-
-### 📦 Fork Base
-
-This fork is based on the original open-source Baileys library.
-
-### 📣 Credits
-
-This fork uses Protocol Buffer definitions maintained by [WPP Connect](https://github.com/wppconnect-team) via [`wa-proto`](https://github.com/wppconnect-team/wa-proto).
-
-Full credit is attributed to the original maintainers and contributors of Baileys:
-- [purpshell](https://github.com/purpshell)
-- [jlucaso1](https://github.com/jlucaso1)
-- [adiwajshing](https://github.com/adiwajshing)
-
-Several fork-exclusive features documented above were adapted from other
-community projects in the Baileys ecosystem, including the third-party
-[baileys-caller](https://github.com/SheIITear/baileys-caller) SDK
-(VoIP calling).
-
----
-
-### 35. Interactive Messages — Buttons, List, Native Flow, Carousel, Template (fixed & unified)
-
-Ported/aligned with `@itsliaaa/baileys` and `@innovatorssoft/baileys`. Logic lives in
-`src/Addons/native-flow-interactive.ts` and is used by `sock.sendMessage(...)` for every
-shape below (all examples were verified to build the right WhatsApp proto).
-
-| Key | Result | Notes |
+| Adapter | Import | Storage |
 | --- | --- | --- |
-| `buttons` (+ optional `image`/`video`/`document`) | `buttonsMessage` | classic `{ buttonId, buttonText }` or shorthand `{ text, id }` / `{ text, sections }` |
-| `sections` + `buttonText` | `listMessage` | private chats only |
-| `nativeFlow` | `interactiveMessage` (native flow) | shorthand buttons, optional media header |
-| `interactiveButtons` | `interactiveMessage` (native flow) | shorthand **or** raw `{ name, buttonParamsJson }` |
-| `cards` | carousel `interactiveMessage` | each card needs `image`/`video`/`product`; `nativeFlow` or `buttons` |
-| `templateButtons` | `templateMessage` | `{ text, id \| url \| call }`; `title` only without media |
-| `interactiveAsTemplate: true` (+ `id`) | `templateMessage.interactiveMessageTemplate` | wraps any native-flow message |
-| `interactiveMessage` / `buttonsMessage` / `listMessage` / `templateMessage` | raw pass-through | normalised via proto `fromObject` |
+| `useMultiFileAuthState` | root | one JSON file per key, inside a folder |
+| `useSingleFileAuthState` | root | one JSON file |
+| `useSqliteAuthState` | root | SQLite (`better-sqlite3`) |
+| `useSqliteAuthState2` | root | SQLite, Elaina-compatible |
+| `useMySQLAuthState` | root | MySQL / MariaDB |
+| `usePostgresAuthState` | root | PostgreSQL |
+| `useRedisAuthState` | root | Redis — works with `ioredis` or node-redis; both ship with the package |
+| `useRedisAuthState2` | root | Redis — node-redis (`redis` v4+) only, explicit API |
+| `useMongoAuthState` | root | MongoDB |
+| `useMongoAuthState2` | root | MongoDB, Elaina-compatible |
+| `useMongoFileAuthState` | root | MongoDB collection you pass in, `{ session }` namespaces the `_id`s |
+| `useNekoDBAuth` | root | NekoDB (Elaina-compatible) |
+| `useNedbAuthState` | root | NeDB via `@seald-io/nedb` — embedded, file or in-memory |
+| `useTursoAuthState` | root | Turso / libSQL — `{ path }` for local, `{ url, authToken }` for cloud |
 
-```javascript
-// Native flow shorthand (image header optional)
-await sock.sendMessage(jid, {
-   image: { url: './image.jpg' },
-   caption: 'Native flow!',
-   footer: '@teamolduser/baileys',
-   optionText: '👉🏻 Select Options',   // optional bottom sheet
-   offerText: '🏷️ Coupon', offerCode: 'CODE', offerUrl: 'https://example.com',
-   offerExpiration: Date.now() + 3_600_000, // ms, converted to seconds
-   nativeFlow: [
-      { text: 'Reply', id: '#reply' },
-      { text: 'Open', url: 'https://example.com', useWebview: true },
-      { text: 'Copy', copy: 'CODE' },
-      { text: 'Call', call: '628123456789' },
-      { text: 'Select', sections: [{ title: 'S1', rows: [{ title: 'Row', id: '#row' }] }] }
-   ]
-})
-
-// Raw pass-through + template wrapper
-await sock.sendMessage(jid, {
-   interactiveMessage: {
-      body: { text: 'Hello!' },
-      nativeFlowMessage: { buttons: [{ name: 'quick_reply', buttonParamsJson: '{"display_text":"Click","id":"1"}' }] }
-   },
-   interactiveAsTemplate: true,
-   id: 'my-template-001'
-})
-```
-
-Button labels accept `text`, `display_text`, `displayText` (and `buttonText`) interchangeably in
-`buttons`, `nativeFlow`, `cards`, `interactiveButtons`, `templateButtons` and `sendButtons()`;
-the list button accepts `buttonText` / `display_text`.
-
-Fixed in this release: `nativeFlow` was ignored; media sent next to `buttons` /
-`interactiveButtons` was dropped; raw `interactiveMessage` / `buttonsMessage` / `listMessage` /
-`templateMessage` threw "Invalid media type"; `offerText` used the wrong JSON keys;
-templates lacked `templateId`; carousels lacked `messageVersion`.
-
-### 36. Example Bot Parity with `@innovatorssoft/baileys` (`assets/examples/example.js`)
-
-`assets/examples/example.js` now has the same command set as the innovatorssoft example:
-`!presence [number]`, `!timezone` / `!tz`, `!isonwhatsapp`, `!resolveusername`,
-`!acceptcall`, `!rejectcall`, `!mute`, `!unmute`, `!voipstats`, and a `!callinfo` that
-includes VoIP resource stats, plus the `call.incoming` auto-answer handler. Presence tracking uses `monitorPresence(...)` with a
-timezone, and the helpers `formatDuration`, `formatTimeAgo`, `normalizeContactJid`.
-
-New socket helpers (same shape as innovatorssoft):
-
-```javascript
-const stats = await sock.getVoipMemoryStats()
-// { process: { rssMb, heapUsedMb, heapTotalMb, externalMb },
-//   calls: { activeCalls, maxConcurrentCalls },
-//   resourceManager: { activeWorkers, activeRelayConnections, activeFfmpegProcesses, compiledModulesCached } }
-
-const voip = await sock.getVoipClient()   // { calls: Map<callId, call>, getCall, endCall, endAllCalls, ... }
-voip.calls.get(callId)?.mute(true)
-```
-
-#### Incoming calls (answer + stream audio)
-
-Pass `voip` in the socket config to turn incoming-call handling on. Each incoming offer rings the
-caller (`preaccept`), gets its own isolated WASM engine, and is emitted as `call.incoming`.
-
-```javascript
-const sock = makeWASocket({ auth: state, voip: { maxConcurrentCalls: 3 } })
-
-sock.ev.on('call.incoming', async (session) => {
-   console.log(session.callId, session.peerJid, session.callerPn, session.isVideo, session.status)
-
-   session.on('connected', () => console.log('connected'))
-   session.on('audio', (pcm) => { /* 16 kHz mono Float32Array from the caller */ })
-   session.on('ended', (reason) => console.log('ended', reason))
-
-   await session.accept({ audioSource: './audio.mp3', repeatAudio: false }) // or 'silence'
-   // await session.reject('busy')                    // decline instead
-})
-
-// by id (works for incoming calls and falls back to plain signaling for others)
-await sock.acceptCall(callId, undefined, false, { audio: './audio.mp3' })
-await sock.rejectCall(callId, undefined, 'declined')
-
-const voip = await sock.getVoipClient()
-voip.calls.get(callId)?.mute(true)
-```
-
-| Option (`accept`) | Meaning |
-| --- | --- |
-| `audioSource` / `audio` | MP3/WAV path streamed to the caller, or `'silence'` (default) |
-| `repeatAudio` | loop the audio for the whole call |
-| `durationMs` | auto-hangup (default 120000, `0` = no limit) |
-| `videoSource` | video file for incoming video calls |
-
-Calls arriving while `maxConcurrentCalls` is reached are rejected as `busy`; offers older than
-90 s (offline replays) are ignored; an unanswered call is declined after 90 s.
-
-> [!NOTE]
-> Verified offline: ring → `call.incoming`, capacity/busy, stale-offer filtering, caller hang-up,
-> `reject`, and the real WASM engine accepting a fed offer. The accept → audio path itself follows
-> the same stanza order as `@innovatorssoft/baileys` (`mute_v2` → `transport` → `accept(enc)` →
-> engine accept) but needs a real WhatsApp call to confirm end-to-end on your account.
-
-`sock.sendRichHtml` accepts both forms: `sendRichHtml(jid, '<div/>', quoted, opts)` and the
-innovatorssoft form `sendRichHtml(jid, { id, title, html, source }, quoted)`. The default HTML
-primitive typename now matches `@innovatorssoft/baileys`; override with `typename`.
-`sock.captureUnifiedResponse` is an alias of `sock.extractUnifiedResponse`. `viewOnceV2` /
-`viewOnceV2Extension` now flag the inner media `viewOnce: true`.
-
-`renderLatexToPng` (used by `sendLatexImage`, `sendLatexInlineImage`, `sendRichMessage`) no longer needs
-`sharp`: it tries `sharp`, then `@napi-rs/image`, then the online codecogs renderer, and throws one clear
-error listing what was tried. Lottie stickers (`isLottie: true` with a `.was` zip) are sent untouched instead of
-being converted to WebP. Group statuses now carry `<meta is_group_status="true"/>` (same as `@itsliaaa/baileys`),
-and `secureMetaServiceLabel` only adds the `<biz>` node (the invented `meta_secure_service` node was removed).
-
-### 37. Compatibility Ports — `@itsliaaa/baileys` & `@innovatorssoft/baileys`
-
-Small gaps that were still open after the big merges. Everything below is exported from the package root.
-
-#### Carousel card header check (from `@itsliaaa/baileys`)
-
-Every card in `cards` needs real media — `image`, `video`, `document` or `product`. A card without one used to be
-sent anyway and rejected by WhatsApp; now `sendMessage` throws a `Boom` (`400`, `Invalid media type for carousel card`).
+Every adapter accepts the same eight call shapes — positional, an options object, or any mix:
 
 ```ts
-await sock.sendMessage(jid, {
-  cards: [
-    { image: { url: 'https://example.com/a.jpg' }, title: 'Card 1', caption: 'Hello', buttons: [/* ... */] },
-    { video: { url: 'https://example.com/b.mp4' }, title: 'Card 2', caption: 'World' }
-  ]
-})
-
-import { hasValidCarouselHeader } from '@teamolduser/baileys' // (proto.IMessage) => boolean
+// the same eight shapes, shown on the PostgreSQL adapter
+usePostgresAuthState(connectionString, table, session)
+usePostgresAuthState({ connectionString, table, session })
+usePostgresAuthState(connectionString)
+usePostgresAuthState({ connectionString })
+usePostgresAuthState(connectionString, { table, session })
+usePostgresAuthState({ connectionString }, table, session)
+usePostgresAuthState(connectionString, table, { session })
+usePostgresAuthState(connectionString, { table }, session)
 ```
 
-#### Group / community notification events (from `@innovatorssoft/baileys`)
+The first argument is always where the data lives — a filename, a folder, a dbPath, a url, a uri, a connection string,
+or a live handle such as a pool, client or collection. The second is the next level down, when the backend has one: a
+token, a collection, a table or a connection name. The third is the session, so several bots can share one database or
+folder. Adapters without a middle level simply take the session in its place.
 
-| Event | Payload | Fires when |
+### Sessions in one database
+
+All nine carry a `session` option: one database or folder can hold several bots, and each session only sees its own
+keys. File-based adapters use a subfolder, database adapters use a key prefix.
+
+```ts
+const { state, saveCreds } = await useTursoAuthState({
+	url: process.env.TURSO_URL,
+	authToken: process.env.TURSO_TOKEN,
+	session: 'bot-a'
+})
+```
+
+### Moving credentials to another backend
+
+Switching auth backends normally means scanning the QR code again. `migrateAuthState` copies the whole state —
+credentials plus every signal key — so the device stays paired.
+
+```ts
+import { migrateAuthState, useMultiFileAuthState, usePostgresAuthState } from '@teamolduser/baileys'
+
+const oldAuth = await useMultiFileAuthState('./auth')
+const newAuth = await usePostgresAuthState({ pool, session: 'prod' })
+
+const { creds, counts, verified } = await migrateAuthState({ from: oldAuth, to: newAuth })
+// creds   : { copied: true, saved: true }
+// counts  : { 'pre-key': 32, session: 14, … }
+// verified: true
+```
+
+Pass the adapter objects and the destination's creds are saved for you. Pass bare states
+(`{ from: oldAuth.state, to: newAuth.state }`) and call `newAuth.saveCreds()` yourself — the result then reports
+`creds.saved: false`.
+
+Records are streamed in batches (`batchSize`, default 100), so a large account is never held in memory. Re-running
+after a crash resumes safely: existing ids are skipped (`skipExisting`, default true) and writes are upserts.
+`verify` (default true) compares both id sets afterwards and reports mismatches in `warnings`.
+
+The source is never modified. When you are happy with the copy, delete the old state yourself — and only after
+`verified` came back true:
+
+```ts
+if (verified) {
+	await oldAuth.clearAuth() // this session only; other bots in the same store keep theirs
+}
+```
+
+Every adapter implements `list(type)`, so any of them can be the source — file, SQLite, Postgres, MySQL, Turso,
+Redis, MongoDB, NekoDB or cache-manager. The deprecated `useSingleFileAuthStateLegacy` is the one exception.
+
+## 📡 Handling events
+
+```ts
+sock.ev.on('messages.upsert', ({ messages, type }) => {})        // type: 'notify' | 'append'
+sock.ev.on('messages.update', updates => {})
+sock.ev.on('message-receipt.update', updates => {})
+sock.ev.on('presence.update', ({ id, presences }) => {})
+sock.ev.on('groups.upsert', groups => {})
+sock.ev.on('groups.update', updates => {})
+sock.ev.on('group-participants.update', update => {})
+sock.ev.on('contacts.upsert', contacts => {})
+sock.ev.on('contacts.update', updates => {})
+sock.ev.on('chats.upsert', chats => {})
+sock.ev.on('chats.update', updates => {})
+sock.ev.on('connection.update', update => {})
+sock.ev.on('creds.update', saveCreds)
+sock.ev.on('call', calls => {})
+```
+
+## 💬 Sending messages
+
+```ts
+await sock.sendMessage(jid, { text: 'hello' })
+
+await sock.sendMessage(jid, { image: { url: './photo.jpg' }, caption: 'hi' })
+await sock.sendMessage(jid, { video: { url: './clip.mp4' }, gifPlayback: true })
+await sock.sendMessage(jid, { audio: { url: './voice.ogg' }, ptt: true })
+await sock.sendMessage(jid, { document: { url: './file.pdf' }, mimetype: 'application/pdf', fileName: 'file.pdf' })
+
+await sock.sendMessage(jid, { react: { text: '👍', key: message.key } })
+await sock.sendMessage(jid, { poll: { name: 'lunch?', values: ['a', 'b'], selectableCount: 1 } })
+await sock.sendMessage(jid, { location: { degreesLatitude: 19.07, degreesLongitude: 72.87 } })
+```
+
+Extended content — buttons, lists, carousels, AIRich, albums, native flow, LaTeX — is in
+the reference sections below and in `src/Extras`.
+
+**Status update:**
+
+```ts
+await sock.sendMessage('status@broadcast', { text: 'hello' }, { statusJidList: [sock.user.id] })
+```
+
+## 👥 Groups
+
+```ts
+
+const group = await sock.groupCreate('My group', ['919999999999@s.whatsapp.net'])
+
+const meta = await sock.groupMetadata(group.id)
+console.log(meta.subject, meta.participants.length, meta.addressingMode)
+
+await sock.groupParticipantsUpdate(group.id, ['918888888888@s.whatsapp.net'], 'add')      // add | remove | promote | demote
+
+await sock.groupUpdateSubject(group.id, 'New subject')
+await sock.groupUpdateDescription(group.id, 'What this group is for')
+await sock.groupSettingUpdate(group.id, 'announcement')     // announcement | not_announcement | locked | unlocked
+await sock.groupToggleEphemeral(group.id, 7 * 24 * 3600)    // disappearing messages, seconds
+await sock.groupMemberAddMode(group.id, 'all_member_add')   // admin_add | all_member_add
+await sock.groupJoinApprovalMode(group.id, 'on')            // on | off
+```
+
+Invites:
+
+```ts
+
+const code = await sock.groupInviteCode(group.id)
+await sock.groupRevokeInvite(group.id)
+
+const info = await sock.groupGetInviteInfo(code)
+const joined = await sock.groupAcceptInvite(code)          // returns the group jid
+
+await sock.groupLeave(group.id)
+```
+
+Join requests, when approval mode is on:
+
+```ts
+
+const pending = await sock.groupRequestParticipantsList(group.id)
+await sock.groupRequestParticipantsUpdate(group.id, [pending[0].jid], 'approve')   // approve | reject
+```
+
+## 🏘️ Communities
+
+```ts
+
+const community = await sock.communityCreate('My community', 'Description')
+await sock.communityCreateGroup('Group inside it', ['919999999999@s.whatsapp.net'], community.id)
+
+const meta = await sock.communityMetadata(community.id)
+const linked = await sock.communityFetchLinkedGroups(community.id)
+
+await sock.communityLinkGroup(community.id, groupJid)
+await sock.communityUnlinkGroup(community.id, groupJid)
+
+await sock.communityParticipantsUpdate(community.id, [jid], 'add')
+await sock.communityRequestParticipantsList(community.id)
+await sock.communityRequestParticipantsUpdate(community.id, [jid], 'approve')
+
+await sock.communityUpdateSubject(community.id, 'New name')
+await sock.communityUpdateDescription(community.id, 'New description')
+await sock.communityToggleEphemeral(community.id, 86400)
+await sock.communitySettingUpdate(community.id, 'locked')
+await sock.communityInviteCode(community.id)
+await sock.communityRevokeInvite(community.id)
+const joined = await sock.communityAcceptInvite(code)
+await sock.communityLeave(community.id)
+```
+
+## 💬 Chats
+
+`chatModify` covers archive, pin, mute and read state in one call:
+
+```ts
+
+await sock.chatModify({ archive: true, lastMessages: [] }, jid)
+await sock.chatModify({ pin: true }, jid)
+await sock.chatModify({ mute: 8 * 60 * 60 * 1000 }, jid)          // null unmutes
+await sock.chatModify({ markRead: true, lastMessages: [message] }, jid)
+await sock.chatModify({ clear: true }, jid)                        // clear messages, keep the chat
+await sock.deleteChat(jid, message.key, message.messageTimestamp)  // remove the chat
+```
+
+```ts
+
+await sock.star(jid, [{ id: message.key.id!, fromMe: true }], true)
+const statuses = await sock.fetchStatus('919999999999@s.whatsapp.net')
+
+const labels = await sock.addLabel(jid, { id: '1', name: 'VIP', color: 1, deleted: false })
+await sock.addChatLabel(jid, '1')
+await sock.addMessageLabel(message.key.id!, '1')
+await sock.removeMessageLabel(message.key.id!, '1')
+```
+
+## 👤 Profile and privacy
+
+```ts
+
+await sock.updateProfileName('My bot')
+await sock.updateProfileStatus('available')
+await sock.updateProfilePicture(jid, { url: './avatar.jpg' })
+await sock.removeProfilePicture(jid)
+await sock.updateCoverPhoto({ url: './cover.jpg' })
+await sock.updatePanoramaProfilePicture({ url: './pano.jpg' })
+
+const url = await sock.profilePictureUrl(jid, 'image')   // 'preview' | 'image'
+```
+
+```ts
+
+const privacy = await sock.fetchPrivacySettings(true)
+await sock.updateLastSeenPrivacy('contacts')            // all | contacts | contact_blacklist | none
+await sock.updateReadReceiptsPrivacy('all')             // all | none
+await sock.updateOnlinePrivacy('match_last_seen')
+await sock.updateStatusPrivacy('contacts')
+await sock.updateGroupsAddPrivacy('contacts')
+await sock.updateDefaultDisappearing(7 * 24 * 3600)
+await sock.updateMessagesPrivacy('contacts')
+await sock.updateCallPrivacy('contacts')
+await sock.updateDisableLinkPreviewsPrivacy(true)
+```
+
+## 📇 Contacts and presence
+
+```ts
+
+const results = await sock.onWhatsApp('919999999999')          // [{ jid, exists }]
+const users = await sock.onWhatsAppUsername({ username: 'someone' })
+
+await sock.addOrEditContact('919999999999@s.whatsapp.net', { firstName: 'Someone' })
+await sock.removeContact('919999999999@s.whatsapp.net')
+
+await sock.updateBlockStatus(jid, 'block')                     // block | unblock
+const blocked = await sock.fetchBlocklist()
+
+await sock.presenceSubscribe(jid)
+await sock.sendPresenceUpdate('composing', jid)                // composing | recording | paused | available | unavailable
+
+const business = await sock.getBusinessProfile(jid)
+await sock.updateBusinessProfile({ description: 'We sell things' })
+```
+
+## 📨 Message operations
+
+```ts
+
+await sock.readMessages([message.key])
+await sock.sendReceipt(jid, undefined, [message.key.id!], 'read')
+
+await sock.copyNForward(targetJid, message, true)              // forward with a fresh message id
+await sock.sendRawMessage(buffer)                              // raw protobuf bytes
+await sock.updateMediaMessage(message)                         // re-upload media, new URL
+
+/** wait for the server's answer to a message you just sent */
+const reply = await sock.waitForMessage(messageId, 30_000)
+
+/** ask the server to re-send a message you could not decrypt */
+await sock.requestPlaceholderResend(message.key)
+```
+
+## 🛍️ Business and catalog
+
+```ts
+await sock.productCreate({ name: 'Widget', price: 199900, currency: 'INR', isHidden: false })
+await sock.productUpdate(productId, { price: 149900 })
+await sock.productDelete([productId])
+
+const catalog = await sock.getCatalog({ jid: businessJid, limit: 20 })
+const collections = await sock.getCollections(businessJid)
+const order = await sock.getOrderDetails(orderId, tokenBase64, businessJid)
+```
+
+## 📞 Calls
+
+```ts
+
+const call = await sock.offerCall(jid, false)                  // isVideo
+await sock.acceptCall(call.id, call.from, false)
+await sock.rejectCall(call.id, call.from)
+await sock.terminateCall(call.id, call.to, call.from)
+await sock.muteCall(call.id, call.from, call.to, true)
+await sock.unmuteCall(call.id, call.from, call.to)
+await sock.sendCallDuration(call.id, call.to, 12)
+
+const link = await sock.createCallLink('video')                // 'audio' | 'video'
+await sock.queryCallLink(link)
+await sock.joinCallLink(link)
+```
+
+Incoming calls arrive on `sock.ev.on('call', calls => …)`.
+
+## ✨ Rich content
+
+Beyond plain media, the socket can send structured payloads:
+
+```ts
+
+await sock.sendList(jid, 'Pick one', ['first', 'second'])
+await sock.sendMarkdown(jid, '# heading\n**bold** and *italic*')
+await sock.sendCodeBlock(jid, 'console.log(1)', undefined, { language: 'js', title: 'example.js' })
+await sock.sendTable(jid, 'Results', ['name', 'score'], [['a', '1'], ['b', '2']])
+await sock.sendLatex(jid, quoted, { expressions: [{ latex: 'x^2' }] })
+await sock.sendRichMessage(jid, [{ type: 'text', text: 'rich' }])
+await sock.sendStickerPack(jid, { name: 'pack', stickers: [] })
+await sock.sendGroupStatus(groupJid, { text: 'group status' })
+```
+
+## 🗄️ Data store
+
+```ts
+import { makeInMemoryStore } from '@teamolduser/baileys'
+
+const store = makeInMemoryStore({})
+store.bind(sock.ev)
+
+sock.ev.on('messages.upsert', () => {
+	console.log(store.messages['919999999999@s.whatsapp.net']?.array)
+})
+```
+
+Persist it yourself — `store.writeToFile('store.json')` and `makeInMemoryStore({})` on start.
+
+## 🔧 Raw access
+
+```ts
+const response = await sock.query({ tag: 'iq', attrs: { type: 'get', xmlns: 'w:p' }, content: [] })
+await sock.sendNode({ tag: 'presence', attrs: { type: 'available' }, content: [] })
+
+await sock.logout('bye')       // unlinks the device and closes the socket
+```
+
+## 🪪 WhatsApp IDs: JID, PN, LID
+
+| Term | Meaning |
+| --- | --- |
+| **JID** | `number@s.whatsapp.net` (user) or `id@g.us` (group) |
+| **PN** | phone-number JID — the classic form |
+| **LID** | linked-ID JID (`…@lid`) — an opaque id newer chats are addressed by |
+
+Newer contacts arrive as `@lid`, and the phone number has to be recovered from the local mapping store. When a message
+carries no `*_pn` attribute, this package resolves it from that store rather than leaving an unresolvable sender
+(upstream PR #2744).
+
+```ts
+const pn = await sock.signalRepository.getStoredLIDForPN('919999999999')
+```
+
+## ⚙️ Socket config
+
+The full list is in `src/Types/Socket.ts`. The ones that differ from stock Baileys:
+
+| Option | Default | What it does |
 | --- | --- | --- |
-| `limit-sharing.update` | `{ id, author, action: 'on' \| 'off', trigger?, update_time? }` | "Limit sharing" is toggled — from the MEX notification *and* from the `LIMIT_SHARING` protocol message |
-| `community-owner.update` | `{ id, author, user, new_role, update_time? }` | A community owner / super-admin role changes |
-| `groups.update` | `[{ id, author, member_link_mode }]` | Who may share the group link changes (`member_link_mode`) |
+| `passiveLogin` | `false` | Send `passive: true` in the login node (upstream behaviour). Flip it to compare the two on one account |
+| `allowCustomEndpoint` | `false` | Permit a non-WhatsApp `waWebSocketUrl` (localhost and a proxy you control only) |
+| `cachedGroupMetadata` | — | Reuse group metadata instead of refetching on every send |
+| `qrTimeout` | `60000` | How long one QR lives |
+| `getMessage` | — | Retry-message lookup for decryption failures |
+
+## 🎨 MessageBuilder, AIRich and webview
+
+`MessageBuilder` (ported from elaina-baileys) builds interactive payloads without hand-writing protobuf:
 
 ```ts
-sock.ev.on('limit-sharing.update', ({ id, author, action }) => console.log(id, 'limit sharing', action, 'by', author))
-sock.ev.on('community-owner.update', ({ id, user, new_role }) => console.log(user, 'is now', new_role, 'in', id))
-sock.ev.on('groups.update', updates => {
-  for (const u of updates) if (u.member_link_mode) console.log(u.id, 'link mode ->', u.member_link_mode)
-})
+import { MessageBuilder } from '@teamolduser/baileys'
+
+const mb = new MessageBuilder()
+	.text('pick one')
+	.button({ name: 'yes', id: 'yes' })
+	.button({ name: 'no', id: 'no' })
+
+await sock.sendMessage(jid, mb.build())
 ```
 
-#### `sock.unmuteCall`
+`webView` renders an HTML page inside WhatsApp. It sits on the socket under three names, so you never pass the socket
+back in:
 
 ```ts
-await sock.muteCall(callId, callCreator, to, true)  // mute
-await sock.unmuteCall(callId, callCreator, to)      // = muteCall(..., false)
-// for calls placed with sock.initiateCall() you can also just use call.mute(true) / call.unmute()
+await sock.webView(jid, { html: '<h1>hello</h1>', title: 'Order status' })
+await sock.web(jid, { html: '<h1>hello</h1>' })             // same method
+await sock.sendHtmlWebview(jid, { html: '<h1>hello</h1>' })  // the name it shipped under first
 ```
 
-#### Presence helpers (from `@innovatorssoft/baileys`)
-
-`PresenceTracker` is the same class as `PresenceMonitor`, and `createPresenceTracker` the same function as
-`monitorPresence` (see section 33). Plus the small helpers:
+The standalone form still works for code that already holds the socket:
 
 ```ts
-import {
-  createPresenceTracker, PresenceTracker,
-  isOnlinePresence, isOfflinePresence,
-  setDefaultTimezone, getDefaultTimezone, formatTime, formatDateTime
-} from '@teamolduser/baileys'
+import { webView } from '@teamolduser/baileys'
 
-setDefaultTimezone('+05:00')            // '+05:00', '+5', 5, 'Asia/Karachi' or 'UTC' (default: 'UTC')
-formatTime(Date.now())                  // 'HH:MM:SS' in the default timezone
-formatDateTime(new Date(), 'UTC')       // 'YYYY-MM-DD HH:MM:SS' in an explicit zone
-
-isOnlinePresence('composing')           // true  (available | composing | recording | paused)
-isOfflinePresence('unavailable')        // true
-
-const tracker = createPresenceTracker(sock, ['1234567890@s.whatsapp.net'])
+await webView(sock, jid, { html: '<h1>hello</h1>', title: 'Order status' })
 ```
 
-> The global default is `'UTC'` here (innovatorssoft hard-codes `+05:00`) — call `setDefaultTimezone('+05:00')`
-> once if you relied on that. A monitor's own `timezone` option still wins over the global default.
+The Elaina export name `Carousel` is `AIRichCarousel` here (also `CarouselV2`), because `Carousel` is already a message
+type.
 
-#### Voice calling compat layer — `CallManager`, `CallSession`, `VoipResourceManager`, `ensureWasmAssets`
+## 📰 Newsletters — channels
 
-These sit **on top of** the same-session engine from section 30 (`sock.initiateCall()`); they do not start a second
-engine and never touch call stanzas.
+55 methods on `sock.newsletter` — create, update, mute, follow, react, fetch messages, admin requests, insights,
+directory search. 
 
 ```ts
-import {
-  CallManager, CallSession, CallDirection, CallMediaType,
-  VoipResourceManager, resolvePthreadPoolSize, ensureWasmAssets
-} from '@teamolduser/baileys'
-
-// Concurrency limit with an optional waiting queue (the engine itself has no limit by default)
-const calls = new CallManager({ sock, maxConcurrentCalls: 2, onLimit: 'queue' }) // or 'reject' (default) -> throws at the limit
-
-calls.on('call.queued', ({ jid, position }) => console.log(jid, 'is waiting at', position))
-calls.on('call.started', call => console.log('started', call.callId))
-calls.on('call.ended', ({ callId, reason }) => console.log('ended', callId, reason))
-
-const call = await calls.startCall('12345678901', { audioSource: './hello.mp3' }) // resolves once the call really starts
-calls.activeCallCount; calls.waitingCallCount
-calls.getActiveCalls(); calls.getWaitingCalls(); calls.getMemoryStats()
-calls.endCall(call.callId); calls.endAllCalls(); calls.cleanup()
-
-// ActiveCall == CallSession; handy getters: call.direction (CallDirection), call.isIncoming, call.isOutgoing,
-// call.canAccept, call.mediaType (CallMediaType.Audio | CallMediaType.Video)
-
-// WASM assets: verify, or copy into a writable folder and pass that as `resourcesPath`
-ensureWasmAssets()              // -> '<package>/assets/wasm' (or null if something is missing)
-ensureWasmAssets('./voip-wasm') // copies whatsapp.wasm, loader.js, worker-modules.js there if absent
-
-VoipResourceManager.getMemoryStats()    // process memory + worker/relay counters + cached WASM modules
-resolvePthreadPoolSize('auto')          // 2–6 depending on CPU cores; a number is clamped to 2–16; default 4
+const meta = await sock.newsletterMetadata('jid', '120363000000000000@newsletter')
+await sock.newsletterFollow('120363000000000000@newsletter')
+await sock.newsletterReactMessage(jid, serverId, '👍')
 ```
 
-> **Answering incoming calls:** `sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false })` (options as the
-> 2nd argument, innovatorssoft style) and `session.accept({ ... })` do the same for a ringing `call.incoming` session.
-> `sock.acceptCall(callId, callFrom, isVideo)` still sends the plain signaling accept for anything else.
-> `sock.getVoipMemoryStats()` also returns `calls.waitingCalls` (always `0` - this engine does not queue incoming calls)
-> and `calls.totalManagedCalls`.
+## 📞 VoIP
 
-> `resolvePthreadPoolSize` is a helper only: this fork's engine keeps its fixed 20-thread pthread pool per call.
-> `VoipResourceManager`'s worker/relay counters are not auto-registered by the engine — `CallManager.getMemoryStats()`
-> fills them from the number of open calls (one isolated engine per call), like `sock.getVoipMemoryStats()` does.
-
-#### `PHONENUMBER_MCC`
+Call signalling, call state, screen sharing and group calls. Diagnostics helper:
 
 ```ts
-import { PHONENUMBER_MCC } from '@teamolduser/baileys'
-PHONENUMBER_MCC['92']   // 410  (dialing prefix -> mobile country code; NANP territories use keys like '1-684')
+import { voipDiagnostics } from '@teamolduser/baileys'
+
+voipDiagnostics.logFile = './voip-debug.log'   // opt-in: nothing is written by default
 ```
 
-## innovatorssoft README compatibility
+## 🧩 Extras and Addons
 
-Everything documented in the `@innovatorssoft/baileys` README works here in the same format. Where this fork already had its own
-shape (upstream style), **both forms are accepted** - nothing that worked before changed. The sections below show each form;
-`assets/examples/example.js` has a ready-to-run command for every one of them (listed at the end).
+Beyond the socket API, the package ships two folders of extras. Everything below is exported from the package root.
 
-### Live location
+**`src/Extras`** — features ported from other Baileys forks (each file names its source in the header).
 
-```ts
-await sock.sendMessage(jid, {
-    location: { degreesLatitude: 24.121231, degreesLongitude: 55.1121221 },
-    live: true // sends a liveLocationMessage instead of a plain locationMessage
-})
-```
+| Module | Gives you | Reach for it when |
+|---|---|---|
+| `messages-extras` | `makeMessagesExtras` — association types, sender-key memory summaries | you need the ported message helpers |
+| `messages-helpers` | `trimEmptyValues`, `songThumbnail`, `prepareLinkThumbnail` | building message payloads by hand |
+| `modern-messages` | `makeQuestionMessage`, `makeQuestionResponseMessage`, status notification types | polls-with-questions, modern content |
+| `newsletter-extras` | `makeNewsletterExtras` — admin invites, followers, insights, directory, reports, labels | running a channel |
+| `newsletter-status` | `getNewsletterStatusMediaType`, `NEWSLETTER_SERVER_ID_MIN` / `MAX` | posting channel statuses |
+| `newsletter-status-socket` | `makeNewsletterStatusExtras` — send / react / revoke / fetch statuses | status work on a channel |
+| `chats-extras` | `makeChatsExtras` — query ids, paths, spam flows | chat-level operations not on the socket |
+| `status-stickers` | `stickerArea`, `StatusLinkType`, sticker defaults | posting sticker statuses |
+| `payment-messages` | `buildSplitPayment`, `buildPaymentReminder`, `money`, `readSplitPayment` | payments and reminders |
+| `scheduled-message` | `encodeScheduledMessage`, `decodeScheduledMessage`, reveal keys | scheduled messages at the proto level |
+| `sender-key-memory` | `pickSenderKeyRecipients`, `senderKeyResetSummary` | group fan-out debugging |
+| `group-metadata-cache` | `isUsableGroupMetadata`, `describeUnusableGroupMetadata` | deciding whether cached metadata is still good |
+| `link-preview-metadata` | `buildSocialPreview`, `readSocialPreview`, `videoEndCard` | rich link previews |
+| `native-flow` | `NATIVE_FLOW_NAMES`, `buttonLimitFor`, `isWebSupportedButtonName` | native-flow interactive messages |
+| `html-app` | `HTML_APP_BYTE_BUDGET`, `HTML_APP_MESSAGE_CEILING`, `checkHtmlApp` | sizing an HTML webview app |
+| `html-multiplayer` | `withHtmlMultiplayer`, `htmlMultiplayerPrelude` | multiplayer webview apps |
+| `voice-recognition` | `matchVoiceWakePhrase`, `normalizeVoiceText` | wake-word handling |
+| `optional-media` | `loadSharp`, `loadFfmpeg`, `hasOptionalMedia` | media work without a hard dependency |
+| `ttl-cache` | `TTLCache` — in-memory cache with expiry | caching anything per key |
+| `auth-store` | `makeAuthStateFromStore`, `encodeAuthValue`, `decodeAuthValue` | writing your own auth backend |
+| `socket` | `makePortedSocket`, `bindMessageBuilder` | wiring the ported pieces onto a socket |
 
-### Pin message
+**`src/Addons`** — smaller, self-contained helpers.
 
-```ts
-// innovatorssoft form
-await sock.sendMessage(jid, { pin: { key: message.key, type: 1, time: 86400 } }) // type 2 = unpin
-// upstream form (still works)
-await sock.sendMessage(jid, { pin: message.key, type: 1, time: 86400 })
-```
+| Module | Gives you | Reach for it when |
+|---|---|---|
+| `anti-delete` | `MessageStore`, `isDeleteMessage`, `getDeletedMessageKey` | keeping a copy of deleted messages |
+| `auto-reply` | `createAutoReply`, `AutoReplyHandler` | rules-based replies |
+| `message-scheduler` / `scheduling` | `scheduleMessage`, `scheduleMessageAfter`, `createMessageScheduler` | sending later |
+| `message-search` | `searchMessages`, `searchMessagesRegex`, `extractMessageText` | searching a chat history |
+| `templates` | `createTemplateManager`, `PRESET_TEMPLATES` | reusable message templates |
+| `chat-control` / `disappearing` | `createTypingIndicator`, `DISAPPEARING_DURATIONS`, `normalizeDisappearingDuration` | typing state, disappearing timers |
+| `presence-monitor` | `monitorPresence`, `createPresenceTracker`, `setDefaultTimezone` | online/offline tracking |
+| `button-sender` / `interactive-message` | `buildInteractiveButtons`, `generateInteractiveListMessage`, validators | building interactive payloads |
+| `native-flow-interactive` | `convertNativeFlowButtons`, `buildNativeFlowMessageParamsJson` | native-flow payloads |
+| `stickerpack` | `buildStickerPackProto`, `convertToWebP`, `generateStickerPackId` | sticker packs |
+| `vcard` | `generateVCard`, `parseVCard`, `escapeVCard` | contact cards |
+| `jid-plot` / `jid-plotting` / `lid-support` | `plotJidPair`, `parseJid`, `splitJidsByType`, `resolvePnJid` | PN/LID juggling |
+| `media-set` / `media-messages` | `updateProfilePictureFull`, `changeprofileFull`, `generateProfilePictureFull` | setting avatars in full quality |
+| `resize-image` / `image-processing` | `resizeImage`, `getImageProcessingLibrary`, `clearImageProcessingLibraryCache` | resizing, and detecting sharp/ffmpeg |
+| `group-status-v2` / `send-group-status-v2` | `GroupStatusV2`, `sendGroupStatusV2` | group statuses |
+| `status-posting` / `status-helpers` | `STATUS_BROADCAST_JID`, `STATUS_BACKGROUNDS`, `STATUS_FONTS` | posting a status with styling |
+| `call-handler` / `from-messages-recv` | `makeCallHandlerAddon`, `makeCallHandlers` | reacting to calls |
+| `raw-message` | `buildRawMessageContent`, `RAW_MODE_HELPER_KEYS` | sending hand-built protos |
+| `message-utils` | `getMessageType`, `getMediaType`, `getButtonType` | classifying a message |
+| `from-chats` | `createChatHelpers`, `buildClearMessageModification` | the ported chat helpers |
+| `from-messages` | `buildAdminInviteMessage`, `buildCallMessage`, `buildPaymentInviteMessage` | ported message builders |
+| `from-messages-send` | `normalizeStatusContent`, `buildStatusMentionNode`, `execSendStatusMentions` | status mentions on send |
+| `send-group-v4-invite` | `sendGroupV4Invite`, `sendGroupInvite` | inviting into a group |
+| `newsletter-role-updates` | `emitNewsletterRoleUpdate` | reacting to channel role changes |
+| `message-composer` | `CPP_KEYWORDS`, `JS_KEYWORDS`, … keyword sets for code blocks | syntax-highlighted code messages |
+| `bot-forwarded-message` / `rich-message-utils` | `toUnified`, bot metadata signature helpers | bot-forwarded content |
+| `baileys-event-stream` | `captureEventStream`, `readAndEmitEventStream` | replaying events |
+| `pairing-fix` | `createPairingQueue` | serialising pairing attempts |
+| `browser-presets` | `androidBrowserPreset`, `getPlatformDisplayName` | browser fingerprints |
+| `find-user-id` | `findUserId` | resolving a user id |
+| `past-participants` | `processPastParticipants` | reading old group members |
+| `link-preview-extras` | `applyLinkPreviewMetadata` | thumbnail metadata |
+| `mathjax` | `getMathJax`, `convertLatexToPng`, `convertLatexToSvg` | LaTeX rendering |
+| `use-cache-manager-auth-state` | `useCacheManagerAuthState` | any cache-manager v5 store as the auth backend |
+| `use-sqlite-auth-state` | `useSqliteAuthState` | SQLite via a pre-existing handle |
 
-`time` is 86400 (24h), 604800 (7d) or 2592000 (30d).
+A one-file example for each of these lives in `Example/`, and the full reference is in [`docs/wiki/`](../docs/wiki/).
 
-### Poll result
+## 🔗 Links
 
-```ts
-// innovatorssoft form
-await sock.sendMessage(jid, {
-    pollResult: { name: 'Favourite', values: [['Option 1', 1000], ['Option 2', 2000]] }
-})
-// upstream form (still works)
-await sock.sendMessage(jid, {
-    pollResult: { name: 'Favourite', votes: [{ name: 'Option 1', voteCount: 1000 }] }
-})
-```
+The deep reference lives in [`docs/wiki/`](../docs/wiki/), one page per topic — the same split upstream keeps on its wiki:
 
-Without `values` or `votes` it throws `Invalid pollResult values` (400).
-
-### Event message
-
-```ts
-await sock.sendMessage(jid, {
-    event: {
-        name: 'Holiday together!',
-        description: 'Who wants to come along?',
-        startTime: Math.floor(Date.now() / 1000) + 3600, // unix seconds (milliseconds are accepted too)
-        endTime: Math.floor(Date.now() / 1000) + 7200,
-        isCanceled: false,                               // `isCancelled` works as well
-        location: { degreesLatitude: 24.121231, degreesLongitude: 55.1121221, name: 'Place' },
-        call: 'audio',                                   // 'audio' | 'video' (needs getCallLink)
-        extraGuestsAllowed: true
-    }
-})
-// upstream form (still works): startDate / endDate as Date objects
-```
-
-`startTime`/`startDate` is optional - it defaults to tomorrow.
-
-### Group invite message
-
-```ts
-// innovatorssoft form
-await sock.sendMessage(jid, {
-    groupInvite: {
-        jid: '123xxx@g.us',
-        name: 'group_name',
-        caption: 'Please join my WhatsApp group',
-        code: 'invite_code',
-        expiration: 86400,
-        jpegThumbnail: buffer // optional - when given, the profile picture is not fetched
-    }
-})
-// upstream form (still works): { inviteCode, inviteExpiration, text, jid, subject }
-```
-
-### Payment message
-
-```ts
-await sock.sendMessage(jid, {
-    payment: {
-        note: 'Hi!',
-        currency: 'INR',             // default 'INR'
-        amount: '10000',             // number or numeric string, in the currency's smallest unit
-        offset: 100,                 // optional, default 100 (0 / unset = 100)
-        expiry: 0,                   // optional
-        from: '628xxxx@s.whatsapp.net', // optional, same as `receiverJid`
-        image: {                     // optional - bubble background colours (ARGB numbers)
-            placeholderArgb: 4278190080,
-            textArgb: 4294967295,
-            subtextArgb: 4294967295
-        }
-    }
-})
-```
-
-> `amount` is interpreted in the currency's smallest unit (offset 100, paise for INR), so `'10000'` is shown as `₹100.00` - use `'1000000'` for `₹10,000.00`. The default currency is `INR`.
-
-> **Default currency is `INR` everywhere**: `payment`, `requestPaymentFrom`, `orderText` / `order` (`totalCurrencyCode`),
-> `product` messages (`currencyCode`, also when the product is a shop / interactive header), `interactivePAY` and
-> `sock.productCreate({ ... })` (`currency`). Pass any other ISO code (e.g. `'USD'`) to override it. `productUpdate` leaves the currency unchanged unless you pass one.
-
-### Shop / Collection with location or product header
-
-`shop` and `collection` messages accept `image`, `video`, `document`, **`location`** and **`product`** as the header:
-
-```ts
-await sock.sendMessage(jid, {
-    product: { productImage: { url }, productId: '836xxx', title: 'Title', description: 'Description',
-               currencyCode: 'INR', priceAmount1000: '283000', retailerId: 'shop', url: 'https://example.com', productImageCount: 1 },
-    businessOwnerJid: '628xxx@s.whatsapp.net',
-    caption: 'Body', title: 'Title', subtitle: 'Subtitle', footer: 'Footer',
-    shop: { surface: 1, id: 'https://example.com' },
-    viewOnce: true
-})
-```
-
-### Raw message (`raw: true`)
-
-Build a message straight from `proto.Message` keys:
-
-```ts
-await sock.sendMessage(jid, {
-    extendedTextMessage: {
-        text: 'Built manually from the raw WhatsApp proto structure',
-        contextInfo: { externalAdReply: { title: 'Title', thumbnail: buffer, sourceApp: 'whatsapp', showAdAttribution: true, mediaType: 1 } }
-    },
-    raw: true
-}, { quoted: message })
-```
-
-Rules (checked before anything else, so they cannot be bypassed by another content key):
-
-- `raw: true` is explicit - no guessing.
-- Every top-level key must be a valid `proto.Message` key, otherwise `Raw mode payload contains unsupported top-level keys: ...` (400).
-- Helper fields (`text`, `image`, `buttons`, `interactiveButtons`, `mentions`, ...) must **not** be mixed in: `Raw mode does not support helper fields: text` (400).
-- An empty payload throws `Raw mode payload must include at least one proto message key`.
-- The older `{ raw: { extendedTextMessage: { ... } } }` form still works.
-
-The helper is exported as `buildRawMessageContent` (`Addons/raw-message.ts`).
-
-### `sendRichHtml`
-
-```ts
-import { sendRichHtml } from '@teamolduser/baileys'
-
-// socket method
-await sock.sendRichHtml(jid, { id: 'dashboard-001', title: 'Sales Dashboard', html: '<div>...</div>', source: 'dashboard_service' }, quoted)
-
-// standalone function: sendRichHtml(socket, jid, options, quoted?, relayOptions?)
-await sendRichHtml(sock, jid, { id: 'card', title: 'Card', html: '<div>Hello</div>', source: 'custom' }, null, { /* relayMessage options */ })
-```
-
-Both return `{ message, messageId }`.
-
-### `sock.resize`
-
-Resizes an image to exactly `width` x `height` and returns a JPEG `Buffer` - handy for `jpegThumbnail`:
-
-```ts
-const thumb = await sock.resize('https://example.com/pic.jpg', 320, 320) // URL, file path, Buffer, { url } or { stream }
-await sock.sendMessage(jid, { document: { url }, mimetype: 'image/jpeg', jpegThumbnail: thumb, caption: 'Body' })
-```
-
-Uses whichever image library is installed (`sharp`, `@napi-rs/image` or `jimp`); the same helper is exported as `resizeImage`.
-
-### `sock.copyNForward`
-
-```ts
-await sock.copyNForward(jid, message, forceForward /* default false */, options /* sendMessage options */)
-// same as sock.sendMessage(jid, { forward: message, force: forceForward }, options)
-```
-
-### Other small compatibility additions
-
-```ts
-// presence tracker: every monitored contact at once (Map keyed by the JID you passed in)
-const pm = monitorPresence(sock, ['923001234567@s.whatsapp.net'])
-const all = pm.getAllStatuses()
-
-// single-file auth: `saveState` is the same function as `saveCreds`
-const { state, saveState } = await useSingleFileAuthState('./auth.json')
-sock.ev.on('creds.update', saveState)
-
-// templates: render by id, by exact name or by name slug (an id match wins; your own templates win over presets) - see §12
-templates.create({ name: 'Promo Message', content: 'Hello {{name}}!', category: 'marketing' })
-templates.render('promo_message', { name: 'Budi' })
-
-// default disappearing timer: `updateDefaultDisappearingMode` has two aliases and takes shorthands
-// 24 / 1 = 24h · 7 = 7 days · 30 = 30 days · 90 = 90 days · 0 = off · any other number = seconds
-await sock.updateDisappearingDuration(7)    // = updateDefaultDisappearing(7) = updateDefaultDisappearingMode(604800)
-
-// incoming calls: options may be the 2nd argument (ringing call.incoming sessions only)
-await sock.acceptCall(callId, { audioSource: './audio.mp3', repeatAudio: false })
-```
-
-### Example commands
-
-`assets/examples/example.js` (send them to the bot as `!command`):
-
-| Command | Shows |
+| Page | What is in it |
 | --- | --- |
-| `!live` | live location (`live: true`) |
-| `!pin` | pin the message you send (`pin: { key, type, time }`) |
-| `!pollresult` | `pollResult` with `values` |
-| `!event` | `event` with `startTime` / `endTime` |
-| `!groupinvite` | `groupInvite` with `code` / `name` / `caption` (groups only) |
-| `!payment` | `payment` with `from`, `offset`, `image` |
-| `!shopproduct` | shop message with a product header |
-| `!raw` | `raw: true` (and a rejected mix with `text`) |
-| `!richhtml2` | standalone `sendRichHtml(sock, jid, ...)` |
-| `!resize` | `sock.resize` |
-| `!forward` | `sock.copyNForward` |
-| `!allstatuses` | `getAllStatuses()` of the presence tracker |
-| `!templaterender` | custom template overriding a preset, rendered by name slug |
-| `!msgtemplate` | `list` / `render <id> k=v ...` / `create Name \| content` / `delete <id>` message templates |
-| `!defaultdisappearing` | `updateDisappearingDuration(24 \| 7 \| 30 \| 90 \| 0 \| seconds)` |
+| [Auth state adapters](../docs/wiki/auth-state.md) | every adapter, its options, `session`, `clearAuth`, `close` |
+| [Store APIs](../docs/wiki/store.md) | `makeInMemoryStore`, ordered dictionary, chat/message keys |
+| [Newsletter / channels](../docs/wiki/newsletter.md) | all 55 newsletter methods, query ids, endpoint allowlist |
+| [Socket methods](../docs/wiki/socket-methods.md) | account, chat and message helper methods |
+| [Message content](../docs/wiki/message-content.md) | every content key and every message type |
+| [MessageBuilder and AIRich](../docs/wiki/messagebuilder.md) | buttons, carousels, rich responses, bot signature |
+| [VoIP](../docs/wiki/voip.md) | call signalling, diagnostics, call timelines |
+| [In-app HTML webview](../docs/wiki/webview.md) | `webView` payload and options |
+| [Calls, queues and screen sharing](../docs/wiki/calls.md) | group calls, queue handling |
+| [Native flow payloads](../docs/wiki/native-flow.md) | raw native-flow examples without the builders |
+| [V2 interactive names](../docs/wiki/interactive-v2.md) | the 222 `…V2` aliases and where they come from |
+| [Account health signals](../docs/wiki/account-health.md) | reachout timelock, new-chat caps, enforcement |
+| [Live testing](../docs/live-test.md) | checking the risky paths on a real account |
 
-# Ported from other forks (`src/Extras`)
+- **Documentation site** — <https://teamolduser.github.io/Baileys/> (built from `docs/`, published to the `web` branch)
+- **Wiki source** — [`docs/wiki/`](../docs/wiki/README.md), the same content as plain markdown
 
-Code ported from [`@rexxhayanasi/elaina-baileys`](https://www.npmjs.com/package/@rexxhayanasi/elaina-baileys) 1.4.5 (MIT) and rewritten
-in TypeScript. It lives in `src/Extras`, next to `src/Addons`, so it is always clear where it came from; every file names its
-source in its header and the applicable source/license notices are retained with the ported code. All of it is exported from the package root and the
-socket methods are available on `sock` like any other.
+Other entry points:
 
-> **MessageBuilder / AIRich:** `src/Extras/MessageBuilder` is copied from elaina-baileys together with its author's watermark and
-> license header (Nixel, `MessageBuilder/index.ts`). That header has to stay in the file, and the module may not be reuploaded or
-> redistributed as a standalone product - keep the original watermark and license header in that file.
->
-> `cancelPairingCode` and `outboundResendCache` are implemented in the core socket (`src/Socket/socket.ts`, `messages-send.ts`), not in
-> `src/Extras`.
->
-> **Note:** the query ids and stanza formats come from elaina-baileys. They were checked with fake sockets (70+ tests in
-> `src/__tests__/Extras`) but **not against a live WhatsApp server** - test on your own bot before relying on them.
+- [`Example/example.ts`](../Example/example.ts) — a runnable bot skeleton
+- [`SECURITY.md`](../SECURITY.md) — how to report a vulnerability
+- [`docs/en/`](../docs/en/) — per-feature guides
 
-## Database auth states
+## 🙏 Credits
+
+### This fork
+
+Anya Baileys is maintained by [Teamolduser](https://github.com/Teamolduser). Bug reports and pull requests go to
+[Teamolduser/Baileys](https://github.com/Teamolduser/Baileys).
+
+### Upstream
+
+Built on [WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) — the Multi-Device socket, the proto
+definitions and the crypto layer are theirs. MIT licensed, notices preserved.
+
+### Forks whose work is ported here
+
+| Fork | What came from it |
+|---|---|
+| [rexxzyid/Elaina-baileys](https://github.com/rexxzyid/Elaina-baileys) | the auth adapters, payment messages, modern content builders, newsletter extras |
+| [itsliaaa/baileys](https://github.com/itsliaaa/baileys) | newsletter query ids, channel helpers |
+| [innovatorssoft/baileys](https://github.com/innovatorssoft/baileys) | MessageBuilder pieces, cache-manager auth, status helpers |
+| [WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) | the base socket, `auth-utils`, store |
+
+Every ported file names its source and licence in its header, and `src/Extras/index.ts` keeps the list in one place.
+
+### Third-party packages
+
+`libsignal` (Teamolduser build), `@hapi/boom`, `async-mutex`, `pino`, `qrcode-terminal`, `@cacheable/node-cache`,
+`@seald-io/nedb`, and the database drivers listed under [Install](#-install). Each keeps its own licence.
+
+### Thanks
+
+To everyone who filed an issue with a reproducible case — the fixes for wrapper keys, retry behaviour and the pairing
+queue all came from reports like those.
+
+
+## 📖 Full reference
+
+Everything below is the deep reference, written out in full so you do not have to leave this file. The same material is
+published as separate pages under [`docs/wiki/`](../docs/wiki/) for the documentation site — this section is maintained by
+hand alongside it, so if you change one, change the other.
+
+### Auth state adapters
+
+Every adapter accepts the same eight call shapes — positional, an options object, or any mix:
 
 ```ts
-import makeWASocket, { usePostgresAuthState, useMySQLAuthState, useRedisAuthState, useNekoDBAuth } from '@teamolduser/baileys'
+// the same eight shapes, shown on the PostgreSQL adapter
+usePostgresAuthState(connectionString, table, session)
+usePostgresAuthState({ connectionString, table, session })
+usePostgresAuthState(connectionString)
+usePostgresAuthState({ connectionString })
+usePostgresAuthState(connectionString, { table, session })
+usePostgresAuthState({ connectionString }, table, session)
+usePostgresAuthState(connectionString, table, { session })
+usePostgresAuthState(connectionString, { table }, session)
+```
+
+The first argument is always where the data lives — a filename, a folder, a dbPath, a url, a uri, a connection string,
+or a live handle such as a pool, client or collection. The second is the next level down, when the backend has one: a
+token, a collection, a table or a connection name. The third is the session, so several bots can share one database or
+folder. Adapters without a middle level simply take the session in its place.
+
+
+
+[← back to the README](../README.md)
+
+### Database auth states
+
+```ts
+import makeWASocket, { usePostgresAuthState, useMySQLAuthState, useRedisAuthState, useNekoDBAuth, useTursoAuthState } from '@teamolduser/baileys'
 
 // PostgreSQL (`pg` is installed with the package) - pass a connectionString / config, or your own Pool
+// `url` is accepted everywhere a uri or connectionString is, so `{ url: process.env.DATABASE_URL }` also works
 const { state, saveCreds, clearAuth, close } = await usePostgresAuthState({ connectionString: process.env.DATABASE_URL, session: 'bot-1' })
 // MySQL / MariaDB (`mysql2` is installed with the package)
 const mysql = await useMySQLAuthState({ uri: 'mysql://user:pass@host/db', table: 'baileys_auth', session: 'bot-1' })
-// Redis (`ioredis` is installed with the package) - one hash per key type: <prefix>:<session>:<type>
+// Redis - one hash per key type: <prefix>:<session>:<type>
+// `useRedisAuthState` speaks both clients and loads whichever package is installed (`ioredis` ships with the package,
+// `redis` is yours to add). `useRedisAuthState2` is the node-redis-only variant: same layout, explicit API.
 const redis = await useRedisAuthState({ uri: 'redis://localhost:6379', session: 'bot-1' })
+// `url` is the same option — handy when the value comes from REDIS_URL
+const redisFromEnv = await useRedisAuthState({ url: process.env.REDIS_URL, session: 'bot-1' })
+const redis2 = await useRedisAuthState2({ uri: 'redis://localhost:6379', session: 'bot-2' })
+
+// or bring your own client - both accept one, and neither closes a client it did not create
+const ioredis = new Redis('redis://localhost:6379')
+await useRedisAuthState({ client: ioredis })
+const nodeRedis = createClient({ url: 'redis://localhost:6379' })
+await nodeRedis.connect()
+await useRedisAuthState2({ client: nodeRedis })
 // NekoDB - pass a connected NekoDB instance
 const neko = await useNekoDBAuth(db, 'baileys_auth')
+// Turso / libSQL - local file, or Turso cloud with a token
+const tursoLocal = await useTursoAuthState({ path: './auth.db', session: 'bot-1' })
+const tursoCloud = await useTursoAuthState({ url: 'libsql://my-db-myorg.turso.io', authToken: process.env.TURSO_TOKEN, session: 'bot-1' })
 
 const sock = makeWASocket({ auth: state })
 sock.ev.on('creds.update', saveCreds)
 ```
 
-- The MongoDB (`mongodb`), MySQL/MariaDB (`mysql2`), PostgreSQL (`pg`), and Redis (`ioredis`) drivers are declared as runtime dependencies, so the package manager installs them automatically. They are loaded only when the corresponding adapter is used. NekoDB still expects you to pass an already connected database instance.
-- `session` lets several bots share one table / Redis. `clearAuth()` deletes the whole session, `close()` closes a connection the
-  helper created itself (a pool / client you passed in is never closed).
+- The MongoDB (`mongodb`), MySQL/MariaDB (`mysql2`), PostgreSQL (`pg`), SQLite (`better-sqlite3`), Turso (`@libsql/client`) and Redis (`ioredis` **and** `redis`) drivers are declared as runtime dependencies, so the package manager installs them automatically. They are loaded only when the corresponding adapter is used. NekoDB still expects you to pass an already connected database instance.
+- `session` is supported by **every** adapter — multi-file (subfolder), single-file and mongo-file (key prefix), and
+  every database adapter (prefix or table suffix). `useMongoFileAuthState(collection, { session })` prefixes the
+  document `_id`s with `<session>:`, so several bots can share one collection.
+- `session` lets several bots share one backend — a table, a Redis prefix, a folder or a file. Every adapter takes it
+  now, including the file-based ones (`useMultiFileAuthState(folder, { session })`, `useSingleFileAuthState(file, { session })`);
+  see sessions across the file-based adapters. `clearAuth()`
+  deletes only that session, `close()` closes a connection the helper created itself (a pool / client you passed in is
+  never closed).
 - Writes are transactional (PostgreSQL / MySQL) or `MULTI` (Redis). Table names must be plain identifiers.
 - `makeAuthStateFromStore(store)` builds the same thing on top of any key/value store that implements `AuthStore`.
 
-## MongoDB Auth State 2 (`useMongoAuthState2`)
+### MongoDB Auth State 2 (`useMongoAuthState2`)
 
 `useMongoAuthState2` is the Elaina-compatible MongoDB adapter added without changing the existing `useMongoAuthState` API. The `mongodb` driver is declared as a runtime dependency and is installed automatically with the package. Create a MongoDB-backed auth state from a URI:
 
@@ -5304,7 +1063,7 @@ sock.ev.on('creds.update', auth.saveCreds)
 
 You can instead pass an existing MongoDB `client`, `db`, or `collection`; those resources remain caller-owned and `close()` will not close them. Use the same `session` string to resume a bot and a different string for each independent bot sharing the collection. `clearAuth()` is destructive for that session. The adapter creates a unique `{ session, type, id }` index and uses batched reads plus `bulkWrite` for key updates/removals.
 
-## SQLite Auth State 2 (`useSqliteAuthState2`)
+### SQLite Auth State 2 (`useSqliteAuthState2`)
 
 `useSqliteAuthState2` is a separate Elaina-compatible SQLite adapter. The existing `useSqliteAuthState` remains unchanged. This adapter adds `clearAuth()` and `close()` lifecycle methods.
 
@@ -5326,7 +1085,393 @@ To reuse an existing `better-sqlite3` connection, pass `{ database: db }`. The a
 
 ---
 
-## Store APIs at the package root
+### Turso / libSQL Auth State (`useTursoAuthState`)
+
+One adapter for both shapes Turso offers, because `@libsql/client` speaks the same protocol for each:
+
+| Target | What to pass | Resulting URL |
+| --- | --- | --- |
+| Local file | `{ path: './auth.db' }` | `file:./auth.db` |
+| Turso cloud | `{ url: 'libsql://<db>-<org>.turso.io', authToken: '…' }` | used as given |
+| Explicit | `{ url: 'file:./auth.db' }` | used as given |
+
+```ts
+import makeWASocket, { useTursoAuthState } from '@teamolduser/baileys'
+
+// local database file — no account, no token
+const auth = await useTursoAuthState({ path: './auth.db', session: 'bot-1' })
+
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// Turso cloud
+const cloud = await useTursoAuthState({
+    url: 'libsql://my-db-myorg.turso.io',
+    authToken: process.env.TURSO_TOKEN,
+    session: 'bot-1'
+})
+
+// Destructive: removes every row of this session
+// await auth.clearAuth()
+
+// Closes the client only when the adapter created it
+await auth.close()
+```
+
+- A token is only sent when you supply one, so the local file needs neither an account nor a token.
+- `session` lets several bots share one database; `table` (default `baileys_auth`) names the table. Rows are
+  `(session, type, id, value)` with a composite primary key.
+- `apply()` runs through `client.batch(…, 'write')`, so an app-state patch lands in one transaction.
+- `@libsql/client` is a declared runtime dependency but is loaded lazily — a bot that never uses Turso does not touch it.
+- `toLibsqlUrl({ path })` is exported if you want to resolve the URL yourself before calling.
+
+---
+
+### Migrating between adapters
+
+`migrateAuthState` copies creds and every signal key record from one adapter to another, so the device stays paired and
+no QR scan is needed.
+
+```ts
+import { migrateAuthState } from '@teamolduser/baileys'
+
+const from = await useMultiFileAuthState('./auth')
+const to = await usePostgresAuthState({ pool, session: 'prod' })
+
+const result = await migrateAuthState({ from, to })
+```
+
+`from` and `to` each accept either the adapter object or the bare `.state`. Passing the adapter lets the migrator call
+`saveCreds()` for you; with a bare state you must call it yourself.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `batchSize` | `100` | records buffered between a `list` pull and a `set` push |
+| `skipExisting` | `true` | skip ids already on the destination, so a partial run resumes |
+| `verify` | `true` | re-enumerate both sides afterwards and compare id sets |
+| `logger` | — | receives `info` / `warn` progress lines |
+
+Result:
+
+```ts
+{
+	creds: { copied: true, saved: true },
+	counts: { 'pre-key': 32, session: 14, 'app-state-sync-key': 3 },
+	verified: true,
+	warnings: []
+}
+```
+
+The source is never modified. Listing bypasses the cache layer, so the durable content is what gets copied.
+
+#### Which adapters can be a source?
+
+All of them — each implements `list(type)`:
+
+| Adapter | How it enumerates |
+|---|---|
+| multi-file | scans the session folder |
+| single-file | scans the JSON keys |
+| sqlite / sqlite2 | `SELECT id, value FROM signal_keys` |
+| Postgres / MySQL / Turso | paged `SELECT`, 500 rows at a time |
+| Redis / Redis2 | `HGETALL <prefix>:<session>:<type>` |
+| mongo / mongo-file | `find({ session, type })` |
+| NekoDB | `findMany` plus a key prefix |
+| NeDB (`@seald-io/nedb`) | `find` on the `k` prefix |
+| cache-manager | `keys()` plus a key prefix |
+
+`useSingleFileAuthStateLegacy` is the exception: it is a byte-for-byte upstream reference kept for parity and is
+deprecated — migrate *away* from it by first opening the same file with `useSingleFileAuthState`.
+
+#### Clearing the old auth afterwards
+
+The migrator does not delete anything on the source. That is deliberate: if verification fails you would lose your
+only copy.
+
+Clear it yourself, and only once `verified` came back true:
+
+```ts
+const result = await migrateAuthState({ from: oldAuth, to: newAuth })
+
+if (result.verified) {
+	await oldAuth.clearAuth()
+} else {
+	console.warn('not verified — keeping the old state', result.warnings)
+}
+```
+
+| Adapter | How to clear |
+|---|---|
+| multi-file | `clearAuth()` — removes that session's `.json` files |
+| single-file | `clearAuth()` — removes that session's keys from the shared file |
+| sqlite2, Postgres, MySQL, Turso, Redis, Redis2, mongo2, NekoDB | `clearAuth()` — deletes only this session's rows |
+| cache-manager | `clearState()` (the name differs) |
+| mongo-file | no `clearAuth()` — delete the documents from the collection yourself |
+
+Take a backup first — `cp -r ./auth ./auth.bak`, or a database dump. Clearing is not reversible, and clearing the
+wrong session costs another QR scan.
+
+_Also published at [docs/wiki/auth-state.md](../docs/wiki/auth-state.md)_
+
+### Auth adapter examples
+
+Every adapter returns an `AuthenticationState` for `makeWASocket`, plus a way to persist the credentials:
+
+```ts
+import makeWASocket from '@teamolduser/baileys'
+
+const { state, saveCreds } = await useMultiFileAuthState('./auth') // or any adapter below
+const sock = makeWASocket({ auth: state })
+sock.ev.on('creds.update', saveCreds)
+```
+
+### How the arguments line up
+
+Every adapter is called the same way: the location first, then the next level down where the backend has one, then the
+session. Each of those three can also arrive inside an options object.
+
+| Position | What goes there | Examples |
+| --- | --- | --- |
+| location | where the data lives | filename, folder, `dbPath`, `url`, `uri`, `connectionString`, or a live pool / client / collection |
+| second level | only where the backend has one | token, collection, table, connection name |
+| session | which bot's data this is | `'bot-1'`, `'bot-a'` |
+
+```ts
+await useMultiFileAuthState('./auth')                                  // location only
+await useMultiFileAuthState({ foldername: './auth', session: 'bot-a' }) // options object
+await usePostgresAuthState(connectionString, table, session)           // all three, positional
+await usePostgresAuthState({ connectionString, table, session })       // all three, options object
+```
+
+---
+
+### One positional argument
+
+Where the data lives, and nothing else.
+
+#### `useSingleFileAuthStateLegacy(filename)`
+
+**Deprecated.** Byte-for-byte upstream: synchronous, no debounce, no atomic swap. Returns `{ state, saveState }` —
+`saveState`, not `saveCreds`, and it is not async.
+
+```ts
+const { state, saveState } = useSingleFileAuthStateLegacy('./auth.json')
+saveState()
+```
+
+---
+
+### Argument order
+
+Every adapter takes its arguments positionally: where the data lives, then the next level down where the backend has
+one (a collection, a table, a connection name), then the session. An options object works anywhere a positional one
+does — `useXAuthState({ uri, table, session })` is the same call as `useXAuthState(uri, table, session)`.
+
+#### `useMultiFileAuthState(foldername, { session })`
+
+First argument: the folder. The session becomes a subfolder. One JSON file per key type.
+
+```ts
+const { state, saveCreds, clearAuth } = await useMultiFileAuthState('./auth')
+const botB = await useMultiFileAuthState('./auth', { session: 'bot-b' }) // ./auth/bot-b/
+```
+
+#### `useSingleFileAuthState(filename, { session })`
+
+First argument: the file. Debounced (3 s) atomic writes; `flush()` writes now.
+
+```ts
+const { state, saveCreds, flush, clearAuth } = await useSingleFileAuthState('./auth.json')
+await saveCreds()
+await flush() // before shutdown
+```
+
+#### `useMongoFileAuthState(collection, { session })`
+
+First argument: the collection object itself; the session is the second. Also exported as `useMongoAuthState`.
+
+```ts
+const collection = client.db('bot').collection('baileys_auth')
+const { state, saveCreds } = await useMongoFileAuthState(collection, { session: 'bot-a' })
+```
+
+#### `useNekoDBAuth(db, collectionname, { session })`
+
+Takes the connected NekoDB instance, then the collection name, then the session. Positional only — it does not take
+an options object.
+
+```ts
+const { state, saveCreds, clearAuth } = await useNekoDBAuth(db, 'baileys_auth', { session: 'bot-a' })
+```
+
+#### `useCacheManagerAuthState(store, sessionname)`
+
+Takes a cache-manager v5 store (`set` / `get` / `del` / `keys`), then the session name as a plain string.
+Clearing is `clearState`, not `clearAuth`.
+
+```ts
+const { state, saveCreds, clearState } = await useCacheManagerAuthState(cache, 'bot-a')
+```
+
+---
+
+### Options object with just the location
+
+#### `useSqliteAuthState({ dbpath })`
+
+Takes a `dbPath`, or an existing `database` handle instead.
+
+```ts
+const { state, saveCreds } = await useSqliteAuthState({ dbPath: './auth.db' })
+```
+
+---
+
+### Options object with every level
+
+Where it lives, then the token / table / collection, then the session.
+
+#### `useSqliteAuthState2({ dbpath, session })`
+
+Takes a `dbPath` (alias `path`) or an existing `database`, then the session.
+
+```ts
+const { state, saveCreds, clearAuth, close } = await useSqliteAuthState2({
+	dbPath: './auth.db',
+	session: 'bot-a'
+})
+```
+
+#### `usePostgresAuthState({ connectionstring, table, session })`
+
+Takes a `connectionString` (or its alias `url`, or a `pool` / `config`), then the table, then the session.
+
+```ts
+const { state, saveCreds, close } = await usePostgresAuthState({
+	connectionString: process.env.DATABASE_URL,
+	table: 'baileys_auth',
+	session: 'bot-a'
+})
+```
+
+#### `useMySQLAuthState({ uri, table, session })`
+
+Takes a `uri` (or its alias `url`, or a `pool` / `config`), then the table, then the session.
+
+```ts
+const { state, saveCreds, close } = await useMySQLAuthState({
+	uri: process.env.MYSQL_URL,
+	table: 'baileys_auth',
+	session: 'bot-a'
+})
+```
+
+#### `useTursoAuthState({ url, token, table, session })`
+
+Takes a `url` for a cloud database, or a `path` for a local file; then the `authToken` / table, then the session.
+
+```ts
+const local = await useTursoAuthState({ path: './auth.db', session: 'bot-a' })
+
+const cloud = await useTursoAuthState({
+	url: process.env.TURSO_URL, // libsql://my-db-myorg.turso.io
+	authToken: process.env.TURSO_TOKEN,
+	session: 'bot-a'
+})
+```
+
+#### `useRedisAuthState({ uri, session })`
+
+Takes a `uri` (or its alias `url`, or an existing `client`), then the session. `prefix` defaults to `baileys_auth`.
+Speaks `ioredis` and node-redis — commands are looked up by name.
+
+```ts
+const { state, saveCreds } = await useRedisAuthState({
+	uri: 'redis://localhost:6379', // or { url: process.env.REDIS_URL }
+	session: 'bot-a'
+})
+```
+
+#### `useRedisAuthState2({ url, session })`
+
+The node-redis-only variant. Same key layout, so you can swap it with `useRedisAuthState` without migrating.
+
+```ts
+const { state, saveCreds, close } = await useRedisAuthState2({
+	url: process.env.REDIS_URL,
+	session: 'bot-a',
+	closeClient: true // also close a client you passed in
+})
+```
+
+#### `useMongoAuthState(...)` — one name, both shapes
+
+`useMongoAuthState` is the name every fork exports, and it takes both forms:
+
+```ts
+// a connection: a bare string, { uri } or { url } — this is useMongoAuthState2 underneath
+await useMongoAuthState('mongodb://user:pass@host/db')
+await useMongoAuthState({ uri: process.env.MONGO_URL, collectionName: 'baileys_auth', session: 'bot-1' })
+await useMongoAuthState('mongodb://…', 'baileys_auth', 'bot-1')
+
+// an existing collection: the original Anya adapter (no clearAuth / close, it never owns a client)
+await useMongoAuthState({ collection })
+```
+
+A string, or a bag with `uri` / `url`, is a connection; anything carrying a `collection` is a handle.
+
+#### `useMongoAuthState2({ uri, collectionName, session })`
+
+Takes a `uri` (or its alias `url`, or a `collection` / `db` / `client`), then the collection name (`dbName` goes
+with it), then the session.
+
+```ts
+const { state, saveCreds, clearAuth, close } = await useMongoAuthState2({
+	uri: process.env.MONGO_URL, // `url` works too, and so does a bare string: useMongoAuthState2('mongodb://…')
+	dbName: 'bot',
+	collectionName: 'baileys_auth',
+	session: 'bot-a'
+})
+```
+
+---
+
+### Return shapes
+
+Most adapters return `{ state, saveCreds, clearAuth, close }`. The exceptions:
+
+| Adapter | Differs how |
+|---|---|
+| `useMultiFileAuthState` | no `close` (nothing to close) |
+| `useSingleFileAuthState` | adds `flush()` and an alias `saveState` |
+| `useSingleFileAuthStateLegacy` | sync, returns `{ state, saveState }` only |
+| `useMongoFileAuthState` | returns `{ state, saveCreds }` — no `clearAuth` |
+| `useNekoDBAuth` | `clearAuth()` drops the whole collection |
+| `useCacheManagerAuthState` | `clearState()` instead of `clearAuth()` |
+| `useSqliteAuthState` | returns `{ state, saveCreds }` |
+
+### Sharing one backend between bots
+
+Every adapter takes `c` (session). Omit it (or pass `'default'`) and the layout stays exactly as it was, so existing
+deployments do not move.
+
+```ts
+const botA = await usePostgresAuthState({ pool, session: 'shop' })
+const botB = await usePostgresAuthState({ pool, session: 'support' })
+```
+
+### Moving between adapters later
+
+`migrateAuthState` copies creds and every signal key, so switching backends does not need another QR scan. See
+[auth-state.md](auth-state.md#migrating-between-adapters).
+
+_Also published at [docs/wiki/auth-examples.md](../docs/wiki/auth-examples.md)_
+
+### Store APIs
+
+[← back to the README](../README.md)
+
+### Store APIs at the package root
 
 The existing in-memory store is available from the package root. It subscribes to socket events when bound and keeps an in-memory view of chats, contacts, messages, groups, presences, and labels. It is not a durable database by itself.
 
@@ -5366,49 +1511,13 @@ console.log(labels.findById('label-1'), labels.findAll())
 
 `store.readFromFile()` / `writeToFile()` are synchronous JSON helpers. Protect the file appropriately and prefer a database-backed store if you need durability, concurrent writers, or large histories.
 
-## Channel (newsletter) methods
+_Also published at [docs/wiki/store.md](../docs/wiki/store.md)_
 
-```ts
-const jid = '120363xxxxxxxxxxxx@newsletter'
-await sock.newsletterUpdateUserSetting(jid, 'ADMIN_NOTIFICATIONS', true)   // mute / unmute
-await sock.newsletterUpdateReactions(jid, 'BASIC')                          // ALL | BASIC | NONE | BLOCKLIST
-await sock.newsletterAdminInfo(jid)               // { adminCount, adminProfile, adminProfilesEnabled }
-await sock.newsletterAdminCapabilities(jid)       // ['CHANNEL_STATUS_PRODUCER', ...]
-await sock.newsletterCanPostStatus(jid)           // { canPost, canPostMusic, capabilities }
-await sock.newsletterCreateAdminInvite(jid, '9199xxxxxxxx@s.whatsapp.net')
-await sock.newsletterRevokeAdminInvite(jid, userJid)   // + newsletterAcceptAdminInvite(jid), newsletterPendingAdminInvites(jid)
-await sock.newsletterFollowers(jid, { count: 100 })
-await sock.newsletterInsights(jid, { metrics: ['NET_FOLLOWS', 'UNFOLLOWS'] })
-await sock.newsletterPinMessages(jid, [150, 151])      // + newsletterUnpinMessages  (server ids are 99..2147476647)
-await sock.newsletterLabelAiContent(jid, 150)          // + newsletterLabelPaidPartnership
-await sock.newsletterPollVoters(jid, 150)              // + newsletterReactionSenders(jid, 150)
-await sock.newsletterSendPollVote(jid, 150, ['Option A'])
-await sock.newsletterFetchMessageUpdates(jid, { count: 20 })
-await sock.newsletterQuestionResponses(jid, 150)       // + newsletterQuestionResponseState(...)
-await sock.newsletterMyAddOns()                        // + newsletterStatusMyAddOns()
-await sock.newsletterEnforcements(jid)                 // + newsletterReports(), newsletterAppealReport(reportId, reason)
-await sock.newsletterRecommended({ limit: 10 })        // + newsletterSimilar(jid)
-await sock.newsletterDirectoryList({ view: 'RECOMMENDED' })   // + newsletterDirectorySearch('news'), newsletterDirectoryCategories()
-```
+### Socket methods
 
-Events `newsletter-admin-profile.update` / `mex.notification`, `newsletterMeta` on live channel messages and `key.isNewsletterSender` are described in *Elaina 1.4.7 follow-up sync*.
+[← back to the README](../README.md)
 
-### Channel statuses
-
-```ts
-const sent = await sock.sendNewsletterStatus(jid, { text: 'New post!' })            // text / image / video / gif / audio / question
-await sock.sendNewsletterStatus(jid, { image: { url: './pic.jpg' }, caption: 'hi' }, { aiContent: true })
-await sock.sendNewsletterStatusReaction(jid, sent.newsletterStatusServerId, '🔥')   // reaction: null removes it
-await sock.revokeNewsletterStatus(jid, sent.key.id)
-const list = await sock.getNewsletterStatuses(jid, { count: 20 })                    // { jid, t, statuses: [...] }
-const updates = await sock.getNewsletterStatusUpdates(jid, { since: 1700000000 })
-```
-
-You must be an admin with the `CHANNEL_STATUS_PRODUCER` capability (`sock.newsletterCanPostStatus(jid)` tells you). The status
-is acknowledged by the server; its server id (needed for reactions / revoke) arrives in a separate `<status>` stanza, which is
-waited for automatically (`resolveServerId: false` skips that).
-
-## Account and chat methods
+### Account and chat methods
 
 ```ts
 await sock.getUsername()                         // { username, state, pin }   (built on tb2's username socket)
@@ -5427,7 +1536,7 @@ await sock.getServerProps({ refresh: true })     // + fetchProps({ full: true })
 await sock.checkAccountHealth('9199xxxxxxxx')    // { exists, isBusiness, about, hasProfilePhoto, self: { capped, warned, remaining }, notes }
 ```
 
-## Message helpers
+### Message helpers
 
 ```ts
 await sock.sendHD(jid, { image: { url: './photo.jpg' }, caption: 'HD' })        // SD message + linked HD child (image or video)
@@ -5438,7 +1547,13 @@ await sock.groupQuery(jid, 'get', [{ tag: 'query', attrs: { request: 'interactiv
 await sock.executeWMexQuery({ newsletter_id: jid }, queryId, 'xwa2_newsletter_admin')       // raw WMex query
 ```
 
-## New message content keys
+_Also published at [docs/wiki/socket-methods.md](../docs/wiki/socket-methods.md)_
+
+### Message content
+
+[← back to the README](../README.md)
+
+### New message content keys
 
 `sock.sendMessage` understands these extra content keys (they are converted into raw proto content, see `src/Extras/modern-messages.ts`):
 
@@ -5465,7 +1580,7 @@ await sock.executeWMexQuery({ newsletter_id: jid }, queryId, 'xwa2_newsletter_ad
 | `forwardedNewsletter` | `{ text, forwardedNewsletter: { newsletterJid, serverMessageId, newsletterName } }` - "Forwarded from channel" header |
 | `newsletterStatus` / `groupStatusAttribution` / `statusAttributions` | decorate a status with a channel / group reshare attribution |
 
-- Money is the **human amount** and the default currency is **INR** (`money(500)` -> 500 INR; pass `currency: 'USD'` for another).
+- Money is the **human amount** and the default currency is **INR** for message content (payment, request payment, order, product, catalog create; pass `currency: 'USD'` for another). The standalone `money(amount, currencyCode)` helper keeps upstream behaviour and requires an explicit code, e.g. `money(500, 'INR')`.
 - `pollAddOption` and `eventInvite` use `PollAddOptionMessage` / `EventInviteMessage` from this WAProto (found under `proto.Message` or as
   flat `proto.*` classes). The channel-status attribution type 9 is sent as a number.
 - `addYours` / `statusAudience` cannot be combined with a key that builds its own message (`question`, `comment`, ...) - an error says so.
@@ -5474,91 +1589,18 @@ await sock.executeWMexQuery({ newsletter_id: jid }, queryId, 'xwa2_newsletter_ad
   `normalizeStickers`, `readStickers`, `encodeScheduledMessage`, `decodeScheduledMessage`, `buildScheduledMsgMetaNode`,
   `buildUnscheduleProtocolMessage`, `isScheduledTimeValid`, `prepareModernMessageContent`.
 
-### Example commands
+#### Example commands
 
 `assets/examples/example.js`: `!question`, `!comment`, `!addyours`, `!splitpay`, `!remind`, `!hd`, `!motion`, `!health <number>`, `!about <number>`,
 `!serverprops`, `!serverlink <url>`, `!nlinfo <channel jid>`, `!nldirectory <text>`, `!nlstatus <channel jid> <text>`, `!resetkey` (group).
 
-# Elaina Baileys 1.4.5 sync
+_Also published at [docs/wiki/message-content.md](../docs/wiki/message-content.md)_
 
-Everything that `@rexxhayanasi/elaina-baileys` 1.4.5 had and this fork did not is now here. Checked by instantiating both sockets: every
-`sock.*` method of elaina-baileys exists in this package.
+### MessageBuilder and AIRich
 
-## WhatsApp version and WAProto
+[← back to the README](../README.md)
 
-- Default WhatsApp Web version was `2.3000.1050764678` at 1.4.5; it is now `2.3000.1051456098` (see *Elaina 1.4.7 follow-up sync*).
-- `WAProto/WAProto.proto` was updated from elaina's compiled proto (new messages such as `ChatThemeSetting` wallpapers, split payments,
-  `PollAddOptionMessage` updates, `GroupHistoryToggleAction`, `ThreadPinAction`, ... plus the new fields on existing messages) and
-  `index.js` / `index.d.ts` were regenerated (`yarn gen:protobuf`; `fix-imports.js` re-attaches the `merge.js` bridge).
-- Where elaina and this proto disagree (e.g. `Message.pollResultSnapshotMessageV3` has another tag here) the existing definition was kept.
-
-## New socket config options
-
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `ackRetryDelayMs` | `750` | base delay between resends after a retryable server nack (multiplied by the attempt) |
-| `maxAckRetryCount` | `3` | max resends of one message after retryable nacks (`408`, `429`, `500`, `503`) |
-| `outboundResendCache` | in-memory | cache (`get/set/del`) of recently sent messages used for those resends; exposed as `sock.outboundResendCache` |
-| `pairingCodeTimeoutMs` | `180000` | how long a requested pairing code stays pending (+ `PAIRING_RESPONSE_GRACE_MS` = 30 s) |
-| `maxEventListeners` | `64` | `setMaxListeners` for `sock.ev` |
-| `AnchorGuard` / `AnchorGuardConfig` | `false` / `{}` | anti-crash guard, needs the optional `@rexxhayanasi/elaina-anchorguard`; exposed as `sock.anchorGuard` |
-| `maxRetryQueueSize` | `64` | max messages waiting for a retry request at once, extra ones are acked without a retry |
-| `inlineSenderKeyDistribution` | `true` | embed the SKDM in group messages when a sender key exists |
-| `voiceRecognition` | off | `{ enabled: true, transcribe(ctx), allowFromMe?, pttOnly?, maxDuration? }` - transcribe incoming voice notes |
-
-```ts
-const sock = makeWASocket({ auth: state, ackRetryDelayMs: 1000, maxAckRetryCount: 2 })
-sock.cancelPairingCode()   // abandon a pending pairing code
-```
-
-## Core changes
-
-- **Retryable nack resend**: a `408/429/500/503` ack resends the same message (from `outboundResendCache`, falling back to `getMessage`)
-  up to `maxAckRetryCount` times.
-- **Cached group metadata** is only used when it has participants *and* an `addressingMode` (`isUsableGroupMetadata`); otherwise it is refetched.
-- **Sender keys**: only devices that actually received the SKDM are remembered (`pickSenderKeyRecipients` / `commitSenderKeyDelivery`).
-- **Edits**: `resolveMessageEditAuthor` maps LID senders/editors to phone numbers before the edit is decrypted.
-- **Read mutexes** are reference counted, idle ones are dropped (the transaction mutex stays one per store).
-- **Member labels**: `buildMemberLabelMessage(groupJid, label)` (labels are cut at `MEMBER_LABEL_MAX_LENGTH` = 30); an empty label sends `user_delete`.
-- **Sync actions**: `GroupHistoryToggleAction` emits `groups.update` with `groupHistoryToggleMode` (`GroupHistoryToggleMode.DEFAULT/ON/OFF`).
-- **Helpers**: `LOCATION_BROADCAST_JID` / `isJidLocationBroadcast`, `getPollOptionHash`, `countAuthFileLocks`, `DEFAULT_MAX_EVENT_LISTENERS`,
-  `DEFAULT_MAX_MSG_RETRY_COUNT`, `DEFAULT_CACHE_MAX_KEYS`, `RETRYABLE_ACK_CODES`, `ListType`, `StatusFont`, `StatusNotificationType`.
-- **Usernames**: `validateUsernameFormat(name)` (returns `{ isValid, errorType }`), `assertUsername`, `displayUsername`, `stripUsernamePrefix`,
-  `isUsernamePin`, `UsernameValidationError`, `USERNAME_MIN_LENGTH/MAX_LENGTH/PIN_LENGTH`. (`validateUsername` keeps throwing as before.)
-
-## Ported modules (`src/Extras`)
-
-The table below maps each ported module family to its usage section in this README. The socket wrapper is installed internally; use the resulting `sock` methods rather than calling the wrapper yourself.
-
-| Module / files | Public API or usage example in this README |
-| --- | --- |
-| `socket.ts` | Socket methods are installed by the library; see [Channel methods](#channel-newsletter-methods), [Account and chat methods](#account-and-chat-methods), and [Message helpers](#message-helpers). |
-| `auth-store.ts` | `AuthStore`, `makeAuthStateFromStore` — [Database auth states](#database-auth-states). |
-| `store-exports.ts` | `makeInMemoryStore`, `makeOrderedDictionary`, `ObjectRepository` — [Store APIs](#store-apis-at-the-package-root). |
-| `use-mongo-auth-state2.ts` | `useMongoAuthState2`, session isolation, `clearAuth()`, `close()` — [MongoDB Auth State 2](#mongodb-auth-state-2-usemongoauthstate2). |
-| `use-sqlite-auth-state2.ts` | `useSqliteAuthState2`, `clearAuth()`, owned-connection `close()` — [SQLite Auth State 2](#sqlite-auth-state-2-usesqliteauthstate2). |
-| `use-postgres-auth-state.ts`, `use-mysql-auth-state.ts`, `use-redis-auth-state.ts`, `use-nekodb-auth-state.ts` | Optional database auth adapters — [Database auth states](#database-auth-states). |
-| `newsletter-extras.ts`, `newsletter-status.ts` | Newsletter admin, directory, followers, insights, status send/reaction/revoke/fetch — [Channel methods](#channel-newsletter-methods) and [Channel statuses](#channel-statuses). |
-| `chats-extras.ts` | Username, about, privacy, server properties, account health, spam reporting — [Account and chat methods](#account-and-chat-methods). |
-| `messages-extras.ts`, `messages-helpers.ts` | HD/motion media, sender-key reset, native-flow and message helpers — [Message helpers](#message-helpers) and [Native-flow validation](#native-flow-validation-and-group-metadata-guards). |
-| `modern-messages.ts` | Question, comment, status, association, music, social preview, split-payment, reminder and other content keys — [New message content keys](#new-message-content-keys). |
-| `payment-messages.ts` | Split-payment and payment-reminder builders/readers — [New message content keys](#new-message-content-keys). |
-| `scheduled-message.ts` | Scheduled-call content plus scheduled-message encode/decode and validation — [New message content keys](#new-message-content-keys). |
-| `status-stickers.ts` | Location/channel/link/music/message annotations and sticker readers — [Status stickers and annotation helpers](#status-stickers-and-annotation-helpers). |
-| `group-metadata-cache.ts`, `ttl-cache.ts` | Metadata guards and bounded TTL cache — [Native-flow validation](#native-flow-validation-and-group-metadata-guards) and [TTL cache](#ttl-cache). |
-| `sender-key-memory.ts` | Recipient selection and sender-key reset helpers — [Message helpers](#message-helpers). |
-| `optional-media.ts` | Lazy optional media dependency loading — [Native-flow validation](#native-flow-validation-and-group-metadata-guards). |
-| `native-flow.ts` | Button names/limits and `checkNativeFlowButtons` — [Native-flow validation](#native-flow-validation-and-group-metadata-guards). |
-| `html-app.ts`, `html-multiplayer.ts` | HTML size checks, mini-app sending, secure multiplayer prelude — [HTML mini-app validation and multiplayer prelude](#html-mini-app-validation-and-multiplayer-prelude). |
-| `link-preview-metadata.ts` | Social preview build/read helpers — [New message content keys](#new-message-content-keys) and [Account and chat methods](#account-and-chat-methods). |
-| `voice-recognition.ts` | Opt-in transcription binding and wake phrases — [Voice transcription and wake-phrase events](#voice-transcription-and-wake-phrase-events). |
-| `MessageBuilder/` and `MessageBuilder/attach-static-helpers.ts` | `MB`, `MessageBuilder`, `Button`, `ButtonV2`, `AIRich`, `AIRichCarousel`, `Toolkit`, A2UI/Bloks/HTML helpers, static attachment — [MessageBuilder / AIRich](#messagebuilder--airich). |
-
-
-> These modules are copied from elaina-baileys with only their imports changed and are type-checked loosely (`@ts-nocheck`).
-> They are covered by a few unit tests, but **not tested against a live WhatsApp server**.
-
-## MessageBuilder / AIRich
+### MessageBuilder / AIRich
 
 ```ts
 import { MB, MessageBuilder, AIRich, Button, sendA2UI, sendHtmlApp, sendAIRichMessage, readRichMessage, verifyRichResponseSignature, forwardRichResponse } from '@teamolduser/baileys'
@@ -5586,10 +1628,10 @@ if (parsedRich && signature.status === 'passed') {
 ```
 
 - The builder covers tables, code, A2UI cards, HTML mini apps, embedded screens and Meta AI sections (sports, places, quiz, search, ...).
-- The Elaina name `Carousel` is **`CarouselV2`** here (the bare name `Carousel` is already a message type, so it is not exported). `CarouselV2`, `AIRichCarousel`, `AIRichCarouselV2` and `MB.Carousel` are all the same class - see [Elaina name compatibility](#elaina-name-compatibility).
+- The Elaina name `Carousel` is **`CarouselV2`** here (the bare name `Carousel` is already a message type, so it is not exported). `CarouselV2`, `AIRichCarousel`, `AIRichCarouselV2` and `MB.Carousel` are all the same class .
 - The builder is **licensed separately by its author** - keep the watermark in `src/Extras/MessageBuilder/index.ts` and keep the original watermark and license header in that file.
 
-### AIRich widgets (`addHtmlCard`, `addSelectableText`, `addQuiz`, `addComparisonTable`, `addSports`)
+#### AIRich widgets (`addHtmlCard`, `addSelectableText`, `addQuiz`, `addComparisonTable`, `addSports`)
 
 Added from elaina-baileys commit `f025122` ("tambah primitive baru 2.26.39.3 ke MessageBuilder"). Elaina dropped these five methods again in its 15-oct build; they are kept here. They live in `src/Extras/MessageBuilder` next to the other `add*` helpers, each returns the builder, and each also exists as an `...V2` alias (`addQuizV2`, ...). They are experimental, so check that your target clients draw them.
 
@@ -5637,7 +1679,7 @@ sock.MB.AIRich                // 4. same class through sock.MB; sock.MB.sendA2UI
 
 All five accept `{ id, replace, insertAt }` like the other `add*` methods, and throw a `TypeError` for invalid input. A runnable version is in `assets/examples/airich_widgets.js`.
 
-### Elaina sync notes (30-sep to 21-oct)
+#### Elaina sync notes (30-sep to 21-oct)
 
 - Default WhatsApp Web version was `2.3000.1050764678` here (now `2.3000.1051456098`; `src/Defaults/index.ts`, `src/Utils/generics.ts`, `src/Defaults/baileys-version.json`, `WAProto/WAProto.proto` header).
 - Carousel biz node: `shouldIncludeBizBinaryNode` only returns `true` for a carousel when at least one card holds a native flow message, and `getBizBinaryNode` falls back to the mixed native-flow node when only a later card carries the buttons.
@@ -5649,12 +1691,12 @@ All five accept `{ id, replace, insertAt }` like the other `add*` methods, and t
 - `.github/workflows/auto-update.yml` follows elaina's 21-oct flow (manual runs publish only with `publish: true`) but uses yarn, `yarn update:version`, and this package name; the proto refresh stays in `update-proto.yml`.
 - `sock.MB` and `sock.AIRich` are attached to the socket (`src/Extras/socket.ts`) and bound to it, so they need no `sock` argument. The global `MB` is unchanged from elaina-baileys (`new MB.AIRich(sock)`).
 - ffmpeg: VoIP audio/video feeders and media conversion now spawn the bundled `ffmpeg-static` binary when it exists (`src/Utils/ffmpeg-path.ts`), and fall back to `ffmpeg` on PATH. `package.json` allows only the `ffmpeg-static` install script to run (`dependenciesMeta`), so `yarn install` downloads its binary even when Yarn disables dependency build scripts by default. If it was installed before this change, run `yarn rebuild ffmpeg-static` once; no system ffmpeg or PATH change is needed.
-- Comparison against elaina-baileys 1.4.7 (exports, socket methods and behaviour): every socket method and export of elaina exists here (only `Carousel` is named `CarouselV2`, see above). Differences that were found and fixed: `sock.fetchNewChatMessageCap()` now sends the real query type `INDIVIDUAL_NEW_CHAT_THREAD` with id `27910975521856601` and returns the parsed object (`status`, `capped`, `warned`, `unlimited`, `remaining`, ...; see [Account health signals](#%EF%B8%8F-account-health-signals)); `normalizeMessageContent` unwraps all 32 `FUTURE_PROOF_MESSAGE_KEYS` instead of 11; a `quoted` message without readable content is sent without the quote (with a warning) instead of throwing; `requestPairingCode` validates the phone number format and strips punctuation; the `wa:update`, `wa:diff`, `audit:apk`, `verify:proto`, `verify:mex`, `fetch:bundle`, `check:proto`, `sync:proto`, `test:pairing` and `proto:update` npm scripts are wired and adapted to the TypeScript layout (see [Updating the WhatsApp Web version](#-updating-the-whatsapp-web-version)).
+- Comparison against elaina-baileys 1.4.7 (exports, socket methods and behaviour): every socket method and export of elaina exists here (only `Carousel` is named `CarouselV2`, see above). Differences that were found and fixed: `sock.fetchNewChatMessageCap()` now sends the real query type `INDIVIDUAL_NEW_CHAT_THREAD` with id `27910975521856601` and returns the parsed object (`status`, `capped`, `warned`, `unlimited`, `remaining`, ...; see Account health signals); `normalizeMessageContent` unwraps all 32 `FUTURE_PROOF_MESSAGE_KEYS` instead of 11; a `quoted` message without readable content is sent without the quote (with a warning) instead of throwing; `requestPairingCode` validates the phone number format and strips punctuation; the `wa:update`, `wa:diff`, `audit:apk`, `verify:proto`, `verify:mex`, `fetch:bundle`, `check:proto`, `sync:proto`, `test:pairing` and `proto:update` npm scripts are wired and adapted to the TypeScript layout .
 - Also taken from elaina 1.4.7: the persisted-query ids and paths of the core newsletter operations in `src/Types/Mex.ts` (`CREATE`, `METADATA`, `SUBSCRIBERS`/`FOLLOWERS`, `SUBSCRIBED`, `ADMIN_COUNT`, `CHANGE_OWNER`, `DEMOTE` and the `xwa2_newsletter_admin_demote` path) together with their call shapes: `newsletterSubscribers()` now returns the follower list (the count is `subscribers` of `newsletterMetadata()`), `newsletterMetadata()` and `newsletterSubscribed()` take the optional switches, `newsletterMute()` / `newsletterUnmute()` go through the user setting, and `newsletterUpdate()` no longer overwrites an update's own `settings` with `null`. `requestPairingCode` rejects an answer that carries no `link_code_pairing_ref` ("accepted without registering it") instead of saving `creds.me`; the pairing tests' server replies now include that reference like the real server's. Ack error `475` raises `message-capping.update`; `NACK_REASONS` gained `StaleGroupAddressingMode` (421) and `NewChatMessagesCapped` (475); 1:1 messages that carry a message secret get the recipient `deviceListMetadata`; `executeWMexQuery` errors name the query and carry the variables that were sent; `isValidUsername` / `validateUsername` follow WhatsApp's real username rules (3-35 characters, `_` allowed at the edges, at least one letter, no leading/trailing/double `.`, no reserved words or domain endings).
 - Kept as Anya's own, because it is the better of the two: `fetchLatestBaileysVersion` (live version from wppconnect with a fallback, where elaina reads its own repository's `Defaults/index.js` by line number), `makeNewsletterStatus*` (thin aliases of one shared `makeNewsletterStatusExtras`), `useMongoAuthState` next to elaina's `useMongoAuthState2`, and `downloadMediaMessage`'s handling of Boom status codes. Whether the newsletter ids above are still served can be checked at any time with `npm run verify:mex`.
 - Tests: `src/__tests__/Extras/airich-widgets.test.ts` and the extra cases in `src/__tests__/binary/carousel-biz-node.test.ts`.
 
-### A2UI cards and AIRichMessage
+#### A2UI cards and AIRichMessage
 
 Synced from the elaina-baileys 15-oct / 21-oct docs. The render notes below are elaina's findings from testing against real clients; they have not been re-verified for this package.
 
@@ -5716,7 +1758,7 @@ await MB.sendAIRichMessage(sock, jid, {
 - `AIRich.addSubmessage` works without a section, so a submessage can be attached to a message whose sections are empty.
 - `FOABloksPrimitive` now has a factory, `bloksSection`.
 
-### Button label and payload forms
+#### Button label and payload forms
 
 All forms below produce the same wire payload. The display-text aliases `display_text`, `text`, `displayText`, `displaytext` and
 `buttonText` (string or `{ displayText }`) are accepted, and an already serialized `buttonParamsJson` string is kept byte-for-byte.
@@ -5739,929 +1781,17 @@ new ButtonV2(sock)
 - `Button.addButton` throws a `TypeError` when no native flow button name is given.
 - `ButtonV2.addButton({ id })` without any label falls back to an empty label.
 
-## Additional ported utilities
+_Also published at [docs/wiki/messagebuilder.md](../docs/wiki/messagebuilder.md)_
 
-### TTL cache
+### Native flow payloads
 
-`TTLCache` is a bounded LRU cache with optional default TTL in seconds and per-entry TTL overrides:
+[← back to the README](../README.md)
 
-```ts
-import { TTLCache } from '@teamolduser/baileys'
-
-const cache = new TTLCache({ stdTTL: 60, maxKeys: 500 })
-cache.set('group:123@g.us', { subject: 'Example' })
-cache.set('temporary-token', 'abc', 5) // expires after about 5 seconds
-
-const metadata = cache.get('group:123@g.us')
-const many = cache.mget(['group:123@g.us', 'missing'])
-console.log(cache.getStats()) // hits, misses, keys
-cache.del('temporary-token')
-// cache.close() clears the in-memory entries; it does not persist them.
-```
-
-### HTML mini-app validation and multiplayer prelude
-
-The HTML app helpers validate the HTML payload against WhatsApp's size and WebView constraints before sending. Embed required assets as data URIs; remote subresources and ordinary HTTP requests are not available in the opaque app context.
-
-```ts
-import { checkHtmlApp, sendHtmlApp, withHtmlMultiplayer } from '@teamolduser/baileys'
-
-const html = '<!doctype html><html><body><h1>Hello from WhatsApp</h1></body></html>'
-const report = checkHtmlApp(html, { height: 320 })
-if (!report.ok) throw new Error(report.problems.join('; '))
-console.log(report.bytes, report.wireBytes, report.warnings)
-await sendHtmlApp(sock, jid, html, { title: 'Mini app', height: 320 })
-
-// For a multiplayer page, supply a real secure WebSocket endpoint and a room id.
-// The returned HTML includes a small window.room API (send/on/close).
-const multiplayerHtml = withHtmlMultiplayer(html, {
-  url: 'wss://your-game.example/ws',
-  room: 'room-42',
-  seat: 'player-1'
-})
-await sendHtmlApp(sock, jid, multiplayerHtml, { title: 'Multiplayer demo', height: 420 })
-```
-
-The multiplayer helper only injects client-side connection code; you must operate the `wss://` server yourself. Do not put credentials or secrets in the HTML payload.
-
-### Voice transcription and wake-phrase events
-
-`bindVoiceRecognition` is an opt-in event binding. Supply your own transcription provider—the library downloads eligible incoming voice notes and passes the audio buffer to your callback. It does not bundle a speech-to-text service.
-
-```ts
-import { bindVoiceRecognition } from '@teamolduser/baileys'
-
-const unbindVoice = bindVoiceRecognition(sock, {
-  getMessage: store.getMessage,
-  voiceRecognition: {
-    enabled: true,
-    pttOnly: true,
-    maxDuration: 60,
-    maxBytes: 16 * 1024 * 1024,
-    wakePhrases: ['hey anya', 'okay anya'],
-    transcribe: async ({ buffer, mimetype }) => {
-      // Call your chosen speech-to-text service here.
-      // Return a string or { text: 'recognized words' }.
-      return await yourTranscriptionFunction(buffer, mimetype)
-    }
-  }
-})
-
-sock.ev.on('voice.transcription', event => {
-  console.log('Transcript:', event.transcript)
-})
-sock.ev.on('voice.command', event => {
-  console.log('Activation:', event.activation, 'Command:', event.commandText)
-})
-
-// When shutting down or disabling this feature:
-unbindVoice()
-```
-
-The `transcribe` callback above is an application-provided placeholder, not a built-in function. Configure access controls and size/duration limits before enabling transcription in groups.
-
-Runnable example: [`assets/examples/voice_recognition.js`](assets/examples/voice_recognition.js).
-
-### Status stickers and annotation helpers
-
-The port exports helpers to build supported interactive annotations for location, newsletter, link, music, and embedded-message stickers. The coordinates are fractions of the media dimensions (0–1), not pixels:
-
-```ts
-import { stickerArea, locationSticker, channelSticker, linkSticker, messageSticker, readStickers } from '@teamolduser/baileys'
-
-const area = stickerArea({ x: 0.1, y: 0.1, width: 0.3, height: 0.2 })
-const locationAnnotation = locationSticker({ latitude: 37.7749, longitude: -122.4194, name: 'San Francisco', area: { x: 0.1, y: 0.1, width: 0.3, height: 0.2 } })
-const channelAnnotation = channelSticker({ jid: '120363xxxxxxxxxxxx@newsletter', name: 'Updates', serverMessageId: 150 })
-const linkAnnotation = linkSticker({ url: 'https://example.com', title: 'Open site' })
-const embeddedAnnotation = messageSticker({ message: { conversation: 'Quoted content' } })
-
-// Inspect annotations already present on an incoming image/video message:
-const annotations = readStickers(incomingMessage.message)
-```
-
-Music annotations and standalone music messages:
-
-```ts
-import { musicSticker, buildMusicMessage, readMusicMessage } from '@teamolduser/baileys'
-
-// A music annotation needs a songId or a mediaId (both come from the Meta music catalog).
-const musicAnnotation = musicSticker({
-  songId: '1234567890',
-  title: 'Song name',
-  author: 'Artist',
-  startTimeMs: 0,
-  durationMs: 15000,
-  area: { x: 0.3, y: 0.75, width: 0.4, height: 0.15 }
-})
-
-// songUri / artworkUri must be hosted on a WhatsApp, Facebook or Instagram host;
-// any other host throws, because the client draws nothing for it.
-const musicMessage = buildMusicMessage({
-  songId: '1234567890',
-  title: 'Song name',
-  author: 'Artist',
-  songUri: 'https://mmg.whatsapp.net/v/t62.0000-0/song.mp4',
-  artworkUri: 'https://mmg.whatsapp.net/v/t62.0000-0/artwork.jpg'
-})
-console.log(readMusicMessage({ musicMessage }))
-```
-
-Runnable example: [`assets/examples/status_stickers.js`](assets/examples/status_stickers.js).
-
-These helpers produce/parse annotation data; attach it only through a message shape supported by the target WhatsApp client and test on the client versions you intend to support. They do not upload media or guarantee server-side acceptance by themselves.
-
-### Social/video link-preview metadata
-
-The port provides explicit builders/readers for the fork's social-video preview metadata. Duration values are seconds, not milliseconds.
-
-```ts
-import { buildSocialPreview, readSocialPreview, videoEndCard, SocialMediaPostType } from '@teamolduser/baileys'
-
-const preview = buildSocialPreview({
-  postType: SocialMediaPostType.REEL,
-  videoUrl: 'https://media.example/video.mp4',
-  videoCaption: 'Demo clip',
-  durationSeconds: 42,
-  muted: true,
-  endCards: [videoEndCard({ username: 'example', caption: 'More clips', thumbnailUrl: 'https://example.com/thumb.jpg' })]
-})
-
-// `preview` is metadata to combine with the corresponding supported message content.
-// On an incoming message, readSocialPreview accepts either WAMessage or its `.message` payload.
-const parsedPreview = readSocialPreview(incomingMessage)
-```
-
-`buildSocialPreview` only constructs metadata; it does not download or host the media. Supply URLs/assets that your target client and the relevant WhatsApp message type can actually access.
-
-### Scheduled-message protocol helpers
-
-For applications that need the low-level conditional-reveal payload format, the exported helpers can encode and decode a protobuf message. This is a protocol-level building block, not a general-purpose job queue or a replacement for a durable scheduler.
-
-```ts
-import { proto, encodeScheduledMessage, decodeScheduledMessage, isScheduledTimeValid } from '@teamolduser/baileys'
-
-const scheduledAtSeconds = Math.floor(Date.now() / 1000) + 60 * 10
-if (!isScheduledTimeValid(scheduledAtSeconds)) {
-  throw new Error('The requested time is outside the supported scheduling window')
-}
-
-const original = { conversation: 'This content is revealed later' }
-const encoded = encodeScheduledMessage(original)
-// Persist encoded.revealKey and encoded.revealKeyId securely with the schedule metadata.
-const decoded = decodeScheduledMessage(encoded.message, encoded.revealKey)
-console.log(proto.Message.toObject(decoded), encoded.revealKeyId)
-```
-
-Do not log or expose `revealKey`; anyone holding it can decrypt the payload. The socket protocol metadata helpers (`buildScheduledMsgMetaNode`, `buildUnscheduleProtocolMessage`) are low-level primitives and should only be used with the matching protocol flow.
-
-Runnable example: [`assets/examples/scheduled_message.js`](assets/examples/scheduled_message.js).
-
-### Optional media dependencies
-
-```ts
-import { hasOptionalMedia, loadSharp, loadFfmpeg } from '@teamolduser/baileys'
-
-if (await hasOptionalMedia('sharp')) {
-  const sharp = await loadSharp()
-  // Use sharp for image transforms only in the code path that needs it.
-}
-if (await hasOptionalMedia('fluent-ffmpeg')) {
-  const ffmpeg = await loadFfmpeg()
-  // FFmpeg operations also require a system FFmpeg binary.
-}
-```
-
-These modules are loaded lazily. Install optional packages only when the related feature is used; the existence of a Node package alone does not guarantee that a system codec/binary is installed.
-
-### Native-flow validation and group metadata guards
-
-```ts
-import { checkNativeFlowButtons, isUsableGroupMetadata, describeUnusableGroupMetadata } from '@teamolduser/baileys'
-
-const result = checkNativeFlowButtons([
-  { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Hello', id: 'hello' }) }
-])
-console.log(result)
-
-const metadata = await sock.groupMetadata(groupJid)
-if (!isUsableGroupMetadata(metadata)) {
-  console.warn(describeUnusableGroupMetadata(metadata))
-  // Refresh/retry metadata rather than assuming participants are complete.
-}
-```
-
-The validators help detect malformed or incomplete input; they do not override WhatsApp's server-side restrictions. Optional media libraries are loaded on demand: install `sharp` or another supported image library only if you use the related image-processing feature, and install `fluent-ffmpeg` plus a system FFmpeg binary for FFmpeg-dependent operations.
-
-## Unified VoIP API
-
-Anya and Elaina call features are exposed through **one `voip` client**. No engine-selection option is required: the method you invoke automatically selects the internal signaling engine. Original source snapshots stay at repository root under `Voip/` and `Voip2/`; they are maintainer references, outside `src/`, and excluded from npm publication.
-
-```ts
-import makeWASocket from '@teamolduser/baileys'
-
-const sock = makeWASocket({ auth: state })
-const voip = await sock.makeVoipClient()
-
-// Anya multi-call API
-const call = await voip.initiateCall('15551234567', {
-  audioSource: './audio.mp3',
-  durationMs: 60_000
-})
-const activeCalls = await voip.getActiveCalls()
-
-// Elaina media/group-call API is available on the same client.
-// First end the previous call before switching internal signaling engines.
-// const mediaCall = await voip.call('15551234567', { audioSource: './audio.mp3' })
-// mediaCall.enqueue('./next-track.mp3')
-
-// Alternative: import { makeVoipClient } and use the top-level factory:
-// const socketVoip = await makeVoipClient(sock)
-```
-
-The same client exposes `initiateCall()`, `initiateCalls()`, `callMany()`, `acceptCall()`, `rejectCall()`, `call()`, `callGroup()`, `joinGroupCall()`, `getActiveCalls()`, `getCall()`, `getActiveCallCount()`, `endCall()`, `endAllCalls()`, `setOptions()`, `resetCallState()`, and `disconnect()`. The call object includes methods appropriate to the call-creation API: Anya calls expose incoming-call lifecycle and video controls; Elaina calls expose audio/video playlists and screen-sharing controls.
-
-**Safety note:** Both original engines own WhatsApp signaling state, so they cannot safely manage active calls at the same time on one socket. The unified client switches automatically only when the previous engine has no active calls; it throws a clear error if a switch is attempted while a call is active. Do not start direct `sock.initiateCall()` calls while an Elaina media call is active. See [the complete VoIP API guide](docs/en/voip.md).
-
-## Elaina name compatibility
-
-Names from `@rexxhayanasi/elaina-baileys` are available here; a few have a different name because tb2 already uses the original one.
-
-| Elaina name | Use this | Notes |
-| --- | --- | --- |
-| `Carousel` (AIRich carousel builder) | **`CarouselV2`** | same class as `AIRichCarousel` and `MB.Carousel`; the bare `Carousel` is not exported (it is already a message type here) |
-| `ActiveCall` | `ActiveCall` | call object of the unified VoIP client (`EventEmitter`) |
-| `VoipClient` | `VoipClient` | separate-session client; prefer `sock.makeVoipClient()` on an existing socket |
-| `AudioFeeder`, `VideoFeeder`, `VIDEO_FORMAT_I420` | same names | ffmpeg audio / video feeders and the I420 format constant (`0`) |
-| `MB`, `MessageBuilder` | `MB`, `MessageBuilder` (alias `MBV2`, `MessageBuilderV2`) | `MB` carries all builder helpers as members (`MB.dividerSection()`, `MB.TaskStatus`, ...) |
-| `VERSION` (builder version) | `MESSAGE_BUILDER_VERSION_V2` | |
-| every other Elaina builder / section / constant | same name, plus an explicit **`...V2`** alias | e.g. `TaskStatus` / `TaskStatusV2` |
-
-```ts
-import { CarouselV2, AIRichCarousel, MB, VoipClient, ActiveCall, AudioFeeder, VideoFeeder, VIDEO_FORMAT_I420 } from '@teamolduser/baileys'
-
-CarouselV2 === AIRichCarousel   // true
-MB.Carousel === CarouselV2      // true
-```
-
-- The `V2` aliases (222) are exported from `src/Extras/v2.ts` and re-exported through `src/Extras/index.ts`; they are the same functions / classes as the original names. The complete list is in [`docs/elaina-interactive-apis-v2.md`](docs/elaina-interactive-apis-v2.md).
-- Do not run two VoIP clients on one socket: both signaling engines own the call state.
-
-## Elaina 1.4.7 follow-up sync
-
-Gaps found by diffing `@rexxhayanasi/elaina-baileys` 1.4.7 against this fork. Everything is patched into the `.ts` sources (no compiled JS copied).
-
-### WhatsApp version
-
-Default WhatsApp Web version is now `2.3000.1051456098` (`src/Defaults/index.ts`, `src/Utils/generics.ts`, `src/Defaults/baileys-version.json`).
-`WAProto/WAProto.proto` was **not** regenerated for this bump (its header still shows the previous build).
-
-### New socket config options
-
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `maxRetryQueueSize` | `64` | max undecryptable messages waiting for a retry request at once; beyond it the message is acked without a retry (`UnhandledError` nack, no nack for status) so a retry flood cannot exhaust memory / CPU |
-| `inlineSenderKeyDistribution` | `true` | embed the sender key distribution message inside group messages when a sender key already exists; set `false` to turn it off |
-
-```ts
-const sock = makeWASocket({
-	auth: state,
-	maxRetryQueueSize: 32,
-	inlineSenderKeyDistribution: false
-})
-```
-
-### Automatic stanza changes (no API)
-
-- `pinInChatMessage`, `keepInChatMessage` and `reactionMessage` now also send `<meta content_type="add_on"/>`.
-- `decrypt-fail="hide"` is now set for pin, keep, reaction, member label (`protocolMessage.memberLabel`), edit and `mediaNotifyMessage`.
-
-### Channel (newsletter) additions
-
-```ts
-// admin profile changed (xwa2_notify_newsletter_on_admin_metadata_update)
-sock.ev.on('newsletter-admin-profile.update', ({ id, adminProfile }) => {
-	// adminProfile: { id, name, pictureId, pictureDirectPath } | null
-	console.log(id, adminProfile?.name)
-})
-
-// mex notifications this library does not model are no longer dropped
-sock.ev.on('mex.notification', ({ operation, data }) => console.log(operation, data))
-
-// live channel messages now carry the <meta> info and the sender flag
-sock.ev.on('messages.upsert', ({ messages }) => {
-	for (const m of messages) {
-		if (!m.key.remoteJid?.endsWith('@newsletter')) continue
-		// { adminProfile?, paidPartnership?, aiContent?, editTimestamp?, originalTimestamp? }
-		console.log((m as any).newsletterMeta, m.pushName) // pushName falls back to the admin profile name
-		if (m.key.isNewsletterSender) console.log('sent by this account') // key.fromMe is true as well
-	}
-})
-```
-
-`NotificationNewsletterPaidPartnershipUpdate` is handled like `NotificationNewsletterPaidPartnership`.
-`extractNewsletterMessageMeta` moved to `src/Utils/newsletter-meta.ts` and is still exported from `src/Extras/newsletter-extras.ts`.
-
-### Polls: `hideVoter`, `endDate`, `canAddOption`
-
-`hideVoter` is an alias of `hideVoterNames`. Any of `hideVoterNames` / `hideVoter`, `endDate` or `canAddOption` makes the poll use the V6 format.
-
-```ts
-await sock.sendMessage(jid, {
-	poll: {
-		name: 'Lunch?',
-		values: ['Pizza', 'Sushi'],
-		selectableCount: 1,
-		hideVoter: true,                              // = hideVoterNames
-		endDate: new Date(Date.now() + 24 * 3600e3),  // voting closes
-		canAddOption: true                            // members may add options
-	}
-})
-```
-
-| Poll | Format |
-| --- | --- |
-| plain, `selectableCount: 1` | `pollCreationMessageV3` |
-| plain, `selectableCount > 1` | `pollCreationMessage` |
-| `hideVoter` / `hideVoterNames`, `endDate` or `canAddOption` | `pollCreationMessageV6` |
-| `toAnnouncementGroup` (without `hideVoterNames`) | `pollCreationMessageV2` |
-| option images | `pollCreationMessageV3` |
-| `pollType: 1` (quiz) | `pollCreationMessageV5` |
-
-### Browser / platform
-
-`Browsers.appropriate()` now has explicit `cygwin` and `netbsd` entries; both still resolve to `Unknown OS` as before (no behaviour change, the map is just complete).
-
-### Extra scripts
-
-Elaina's variants of scripts that already existed here are added with a `2` suffix (the originals are unchanged):
-
-| Script | Runs |
-| --- | --- |
-| `yarn test2` | `node --test "test/*.test.js"` |
-| `yarn update:version2` | `node ./script/updatewa.js` |
-| `yarn build:docs2` | `node ./script/apiref.js site-api.json && node ./script/builddocs.js site` |
-| `yarn verify:assets2` | `node ./script/verifyassets.js` |
-| `yarn proto:update2` | `sync:proto` -> `verify:proto` -> `verify:mex` -> `wa:update --apply --keep 2` -> `update:version2` |
-
-> These scripts were written for elaina's file layout (`src/*.js`, `src/assets/wasm`). Here they currently fail on missing paths (for example
-> `test2` imports `../src/MessageBuilder/*.js`, `verify:assets2` looks for `src/assets/wasm/README.md`); use the original script names unless you adapt the paths.
-
-### Checked and left as is
-
-- `getTxMutex`: this fork already has the same ref-counted per-type read mutex (`getReadMutex`) **plus** one shared transaction mutex per store, so elaina's version was not ported.
-- `@rexxhayanasi/wangcap-id-bridge` (elaina) is a renamed rebuild of `whatsapp-rust-bridge` with identical wasm exports / imports; this fork keeps the upstream `whatsapp-rust-bridge`.
-
-## 🔄 Updating the WhatsApp Web version
-
-One command runs the whole check. Build the library first, because the round-trip check reads the compiled `lib/`:
-
-```bash
-yarn build
-npm run wa:update
-```
-
-It reads the pinned revision, fetches the live one, downloads the bundle into `.wa-bundle/<revision>/`, parses WhatsApp Web's protobuf specification and compares it with `WAProto`, compares the new snapshot with the previous one, pushes every field through the encoder for a round trip, then writes `.wa-bundle/report.md` and `report.json`.
-
-The report ends with a single verdict:
-
-| Verdict | Meaning |
-|---|---|
-| `no-change` | the live revision is the same as the pinned one |
-| `bump-only` | the revision moved, no wire surface changed |
-| `bump-and-review` | the revision moved **and** a wire surface changed — read the diff |
-| `needs-work` | WhatsApp declares protobuf fields that `WAProto` does not have |
-| `blocked` | the encoder round trip failed; do not raise the version |
-
-Add `--apply` to raise the pinned revision. It is refused unless the verdict is a bump and the encoder passes.
-
-```bash
-npm run wa:update -- --apply
-```
-
-The pinned revision lives in `src/Defaults/index.ts`, `src/Utils/generics.ts` and `src/Defaults/baileys-version.json`; `--apply` rewrites all three together.
-
-Supporting commands:
-
-| Command | Purpose |
-|---|---|
-| `npm run wa:diff -- <old> <new>` | compare two bundle snapshots on their own |
-| `npm run check:proto` | only the protobuf-gap check |
-| `npm run sync:proto` | add the missing protobuf fields to `WAProto` |
-| `npm run verify:proto` | only the encoder round trip (needs `yarn build`) |
-| `npm run verify:mex` | match every `w:mex` query against the persisted queries in the bundle (needs `yarn build`) |
-| `npm run verify:assets` | checksums and scan of the bundled VoIP resources |
-| `npm run fetch:bundle -- <dir>` | download the raw bundle |
-| `yarn update:version` | raise the pinned revision to the latest one, without any check (the original Anya script) |
-| `npm run audit:apk -- <dir>` | compare `WAProto` with an extracted Android APK |
-| `npm run sync:proto -- --gaps <file>` | patch `WAProto` from the `--json` output of an audit |
-| `npm run test:pairing -- <number> --check-only` | check a pairing request without touching a running bot (needs `yarn build`) |
-| `npm run proto:update` | the whole round: sync, build, verify, bump |
-
-`proto:update` runs `sync:proto`, then `build`, then `verify:proto`, then `verify:mex`, then `wa:update --apply`, then `script/updatewa.js`, and that order carries weight. `wa:update` exits non-zero on a `needs-work` verdict and refuses `--apply`, so the protobuf gaps have to be closed first or the chain stops before it gets there.
-
-**Checking the `w:mex` queries.** Channels, usernames, text status and the two account-health signals all run through persisted GraphQL queries — numeric ids kept in `src/Types/Mex.ts` (compiled to `lib/Types/Mex.js`). If WhatsApp changes an id, adds a required variable or renames a root field, the call fails on the server and no test notices. `verify:mex` reads the `params:{id,name}` and `LocalArgument` of every query in the bundle snapshot and matches them against each `executeWMexQuery` call in `lib/Socket`: ids that are no longer served, missing or undeclared variables, and `dataPath`s that the query's answer does not contain.
-
-```bash
-npm run verify:mex
-PROTO_BUNDLE_DIR=.wa-bundle/1047416414 npm run verify:mex
-```
-
-Without `PROTO_BUNDLE_DIR` it uses the highest revision snapshot in `.wa-bundle`.
-
-**Auditing against Android.** Everything above reads the WhatsApp **Web** bundle, so a field that the Android client knows and Web does not never reaches `WAProto`. `audit:apk` closes that blind spot: point it at a directory of extracted `classes*.dex` files and it parses the protobuf model classes straight from the dex — reading every `*_FIELD_NUMBER` constant and its value — then reports which fields and whole types are missing, with their field numbers.
-
-```bash
-npm run audit:apk -- /path/to/extracted-apk
-```
-
-Add `--json <file>` and it writes the gaps in the form `sync:proto` consumes, so the same generator that patches from the Web bundle can patch from the APK:
-
-```bash
-npm run audit:apk -- /path/to/extracted-apk /dev/null --json gaps.json
-npm run sync:proto -- --gaps gaps.json
-npm run verify:proto
-```
-
-Nothing is written by hand, and `sync:proto` is additive: it reads the existing `WAProto` as its base.
-
-**Android is not the client this library presents.** Baileys links as a WhatsApp Web device, so a field the Web bundle does not declare is a field a real Web client never sends — decoding it costs nothing, while sending it makes this client look like neither Web nor Android. The auditor cross-checks every candidate against the Web bundle and flags the difference:
-
-```
-ANDROID-ONLY Message.AlbumMessage.caption — safe to decode, send only if intended
-```
-
-Treat that flag as a reason to keep the field readable but off by default.
-
-Two more safeguards matter, because a name can match while the numbering does not: the auditor keeps only the one APK class that overlaps a type the most (several classes carry similar field names and the losers are false positives), and it refuses any field whose number is already taken in that type. Without the second safeguard `CtwaContextData.canonicalUrl=3` would be written straight over `sourceUrl` and silently corrupt the wire format.
-
-The diff covers every surface through which a WhatsApp change can reach the wire — protobuf spec, stanza tags and attributes, `xmlns`, MEX operations, media paths — so a release that only moved UI code is reported as exactly that.
-
-Set `PROTO_BUNDLE_DIR` to read from a local directory and `PROTO_OFFLINE=1` to skip the live revision lookup. Where the built-in `fetch` is refused, the scripts fall back to `curl` automatically. The scripts need network access to `web.whatsapp.com`.
-
-`.wa-bundle/` is listed in `.gitignore`. For automated releases, commit only the files the updater actually changed and `package.json`; never commit `node_modules`.
-
----
-
-## 🛡️ Account health signals
-
-WhatsApp tracks how an account reaches out to people it has never talked to, and tells its client where it stands. Reading those two signals is far more dependable than guessing a safe pause.
-
-Both are the same `w:mex` queries WA Web runs, so the answer comes from WhatsApp's server, not from a local count:
-
-| Function | Persisted query | When it can be called |
-| --- | --- | --- |
-| `fetchNewChatMessageCap()` | `WAWebMexFetchNewChatMessageCappingInfoJobQuery` (`27910975521856601`) | any time after connecting |
-| `fetchAccountReachoutTimelock()` | `WAWebMexFetchReachoutTimelockJobQuery` (`23983697327930364`) | any time after connecting |
-
-### New-chat quota
-
-```js
-const cap = await sock.fetchNewChatMessageCap()
-```
-
-What comes back:
-
-| Field | Meaning |
-| --- | --- |
-| `status` | `NONE` → `FIRST_WARNING` → `SECOND_WARNING` → `CAPPED`, WhatsApp's own escalation ladder |
-| `capped` | `true` once `status` is `CAPPED`: sending to new chats is refused |
-| `warned` | `true` on both `FIRST_WARNING` and `SECOND_WARNING` |
-| `unlimited` | `true` when the server sent no quota (or a negative one), so there is nothing to count down |
-| `totalQuota` | the new-chat allowance for one cycle |
-| `usedQuota` | how much of it the cycle has used |
-| `remaining` | `totalQuota - usedQuota`, never negative; `null` when `unlimited` |
-| `cycleStart`, `cycleEnd` | start and end of the cycle, **unix seconds** — multiply by 1000 for `new Date` |
-| `serverTime` | the server clock when it answered, to compare `cycleEnd` without trusting your machine's clock |
-| `oteStatus`, `mvStatus`, `subscriptionStatus` | verification and subscription status that ride along in the answer |
-| `response` | the raw reply, if you want a field that is not mapped yet |
-
-Only **starting** a chat with a number you have never talked to uses the quota. Replying in a conversation someone else started does not count, and neither does sending again to an existing chat.
-
-Worth knowing: this query asks for one kind of quota, `INDIVIDUAL_NEW_CHAT_THREAD` — the new-chat **thread** quota, not a message count. Earlier Anya builds sent `INDIVIDUAL_NEW_CHAT_MSG`, a name no WhatsApp client has, which is why the call could come back with an error or empty numbers, and returned the raw reply without the fields above. The server also pushes this state on its own as the `message-capping.update` event (the raw payload, snake_case). A send that WhatsApp refuses because of the quota (ack error `475`) raises the same event with `capping_status: 'CAPPED'`, the `jid` and the `messageId` of the rejected message, and is never retried.
-
-### Reachout timelock
-
-```js
-const lock = await sock.fetchAccountReachoutTimelock()
-```
-
-| Field | Meaning |
-| --- | --- |
-| `isActive` | the account is currently restricted from contacting new people |
-| `timeEnforcementEnds` | a `Date` for when the restriction lifts, `undefined` when the server sends `0` |
-| `enforcementType` | the reason — `BIZ_QUALITY` is quality-based, `BIZ_COMMERCE_VIOLATION_*` are policy categories |
-
-Calling it also emits `connection.update`, so one call informs the whole bot. The state also arrives unasked:
-
-```js
-sock.ev.on('connection.update', ({ reachoutTimeLock }) => {
-  if (reachoutTimeLock?.isActive) stopSending()
-})
-```
-
-### Using it as a guard
-
-```js
-const guard = async () => {
-  const lock = await sock.fetchAccountReachoutTimelock()
-  if (lock.isActive) return { send: false, reason: 'reachout timelock until ' + lock.timeEnforcementEnds }
-
-  const cap = await sock.fetchNewChatMessageCap()
-  if (cap.capped) return { send: false, reason: 'new-chat quota used up until ' + new Date(cap.cycleEnd * 1000) }
-  if (cap.warned) return { send: false, reason: 'WhatsApp has already warned this account: ' + cap.status }
-  if (cap.remaining !== null && cap.remaining < 10) return { send: false, reason: 'only ' + cap.remaining + ' left in this cycle' }
-
-  return { send: true, remaining: cap.remaining }
-}
-```
-
-Check before a round and again every batch — `SECOND_WARNING` is the last state before the quota lands, so stopping there is the difference between a pause and a block.
-
-> [!NOTE]
-> Bulk sending through an unofficial client is outside WhatsApp's Terms of Service, whatever the recipients agreed to. The sanctioned route for opt-in bulk sending is the WhatsApp Business Platform. These signals reduce the chance of tripping an automatic limit; they do not make an account safe.
-
----
-
-## 📨 All message types
-
-`message.message` is a box with exactly one key filled in, and the key names the type. Two things trip up almost everyone who is new, so read this section before hunting a bug that is not there.
-
-### Why `conversation` is sometimes empty
-
-**32 of the types are wrappers.** They carry no content of their own — they hold another message inside. A view-once photo is not an `imageMessage`, it is a `viewOnceMessageV2` that contains an `imageMessage`. A group-status reply is a `groupStatusMessageV2` that contains whatever was actually said. Read the outer key and you find nothing:
-
-```js
-const m = messages[0]
-console.log(m.message.conversation)          // undefined
-console.log(Object.keys(m.message))          // [ 'groupStatusMessageV2' ]
-```
-
-`normalizeMessageContent` unwraps them for you, up to five layers deep, because wrappers nest — a view-once photo that was edited inside a disappearing-messages chat is three wrappers stacked:
-
-```js
-import { normalizeMessageContent, getContentType } from '@teamolduser/baileys'
-
-const content = normalizeMessageContent(m.message)
-const type = getContentType(content)        // 'imageMessage'
-const text = content?.conversation || content?.extendedTextMessage?.text
-```
-
-Always normalize before you look. The full list of wrappers, so you recognize them when you meet one (also exported as `FUTURE_PROOF_MESSAGE_KEYS`):
-
-| Group | Wrappers |
-|---|---|
-| Ephemeral and view-once | `ephemeralMessage`, `viewOnceMessage`, `viewOnceMessageV2`, `viewOnceMessageV2Extension`, `limitSharingMessage` |
-| Edits and replies | `editedMessage`, `associatedChildMessage`, `questionMessage`, `questionReplyMessage` |
-| Status | `statusMentionMessage`, `statusAddYours`, `groupStatusMessage`, `groupStatusMessageV2`, `groupStatusMentionMessage` |
-| Group | `groupMentionedMessage` |
-| Bot | `botInvokeMessage`, `botTaskMessage`, `botForwardedMessage`, `botGroupParticipantMessage`, `botPlatformRegistrationSuccessMessage` |
-| Channel | `newsletterAdminProfileMessage`, `newsletterAdminProfileMessageV2`, `newsletterAdminProfileStatusMessage`, `newsletterScheduledMessage` |
-| Polls and media | `pollCreationMessageV4`, `pollCreationOptionImageMessage`, `documentWithCaptionMessage`, `lottieStickerMessage`, `audioStickerMessage`, `eventCoverImage`, `spoilerMessage` |
-| Settings | `acp2SettingMessage` |
-
-Earlier Anya builds unwrapped only eleven of these (`ephemeralMessage`, the three view-once wrappers, `documentWithCaptionMessage`, `editedMessage`, `associatedChildMessage`, the two group-status wrappers, `spoilerMessage` and `lottieStickerMessage`), so a bot that received any of the others saw an opaque key and an empty `conversation`.
-
-The list is kept honest by `npm run verify:proto`: it reads every `FutureProofMessage` field from the live WhatsApp Web bundle and fails if `normalizeMessageContent` would leave one wrapped. That check is what caught `acp2SettingMessage` and `audioStickerMessage` — both had been sitting in the protocol for a long time without being opened.
-
-`audioStickerMessage` (field 134) arrives with one sibling, `stickerMessage.audioMessage` (field 26, inside the new `audio` oneof): a sticker that carries a voice clip. Both can be decoded and nothing renders them yet — WhatsApp Web maps `audioStickerMessage` to no message type at all, and its sticker parser does not read `audioMessage` back out. Treat both as fields to recognize when they start arriving, not to send.
-
-### The rest
-
-These carry their own content. You will use a handful all the time and never touch the others, but knowing they exist saves you from deciding a message is malformed when it is simply a type you have not met.
-
-| Group | Types |
-|---|---|
-| Text and location | `conversation`, `extendedTextMessage`, `locationMessage`, `liveLocationMessage`, `contactMessage`, `contactsArrayMessage`, `groupInviteMessage`, `albumMessage`, `musicMessage`, `conditionalRevealMessage` |
-| Media | `imageMessage`, `videoMessage`, `audioMessage`, `documentMessage`, `stickerMessage`, `stickerPackMessage`, `stickerSyncRmrMessage`, `ptvMessage` |
-| Legacy | `chat` |
-| Buttons and lists | `buttonsMessage`, `buttonsResponseMessage`, `listMessage`, `listResponseMessage`, `templateMessage`, `templateButtonReplyMessage`, `interactiveMessage`, `interactiveResponseMessage`, `highlyStructuredMessage` |
-| Polls and events | `pollCreationMessage` … `pollCreationMessageV6`, `pollUpdateMessage`, `pollAddOptionMessage`, `pollResultSnapshotMessage`, `pollResultSnapshotMessageV3`, `eventMessage`, `eventInviteMessage`, `questionResponseMessage`, `keepInChatMessage` |
-| Status | `statusNotificationMessage`, `statusQuestionAnswerMessage`, `statusQuotedMessage`, `statusStickerInteractionMessage`, `statusLinkPreviewMetadata` |
-| Channel | `newsletterFollowerInviteMessage`, `newsletterFollowerInviteMessageV2`, `newsletterAdminInviteMessage` |
-| Calls | `call`, `bcallMessage`, `callLogMesssage`, `scheduledCallCreationMessage`, `scheduledCallEditMessage` |
-| Payments and shop | `sendPaymentMessage`, `requestPaymentMessage`, `declinePaymentRequestMessage`, `cancelPaymentRequestMessage`, `paymentInviteMessage`, `paymentReminderMessage`, `splitPaymentMessage`, `splitPaymentUpdateMessage`, `productMessage`, `orderMessage`, `invoiceMessage` |
-| Reactions and comments | `reactionMessage`, `encReactionMessage`, `commentMessage`, `encCommentMessage`, `pinInChatMessage`, `encEventResponseMessage` |
-| Bot and AI | `richResponseMessage`, `placeholderMessage` |
-| Protocol and sync | `protocolMessage`, `deviceSentMessage`, `senderKeyDistributionMessage`, `fastRatchetKeySenderKeyDistributionMessage`, `messageContextInfo`, `messageHistoryBundle`, `messageHistoryNotice`, `secretEncryptedMessage`, `requestPhoneNumberMessage`, `groupRootKeyShare`, `rootSecretDistributeMessage` |
-
-`protocolMessage` deserves a mention of its own: deletions, edits, disappearing-timer changes and app-state sync all arrive as this one type, told apart by its `type`. A bot that ignores it will look as if it never noticed a message was deleted.
-
-### Reading rich messages
-
-Messages from other bots — AI Rich, A2UI, Bloks — leave `conversation` empty, and `getContentType` only reports the wrapper. `readRichMessage` normalizes all of them into one shape; see [A2UI cards and AIRichMessage](#a2ui-cards-and-airichmessage).
-
----
-
-## 🎧 Call queues, screen sharing and group calls
-
-These options belong to the media-call methods of the unified `voip` client — `voip.call()`, `voip.callGroup()` and `voip.joinGroupCall()` (the Elaina-style engine). See the [unified VoIP API](#unified-voip-api) note about switching engines, and [Voice calling](#30-voice-calling-wasm-based-same-session) for the basics.
-
-### Audio queue
-
-```js
-const voip = await sock.makeVoipClient()
-
-const call = await voip.call('628123456789', {
-  playlist: ['intro.mp3', 'song.mp3'],
-  idleGraceMs: 30000,   // wait this long after the queue runs dry before hanging up
-  durationMs: 0         // 0 = no fixed length, the queue decides
-})
-
-call.enqueue('next-track.mp3')   // add a track while the call is running
-call.queued()                    // tracks still waiting
-call.nowPlaying()                // the track being played
-call.skip()                      // jump to the next track
-```
-
-By default the call ends once the queue is empty, after `idleGraceMs` (0 unless you set it); pass `endWhenQueueEmpty: false` to keep it open until you end it. Sources can be files, URLs or anything ffmpeg reads.
-
-### Video queue
-
-One-to-one and group calls both accept video. Frames come from ffmpeg just like the audio does, so the video source can be a file, a URL, a still image or a `lavfi:` generator.
-
-```js
-const call = await voip.call('628123456789', {
-  video: true,
-  videoPlaylist: ['clip.mp4'],
-  playlist: ['song.mp3'],
-  durationMs: 0
-})
-
-call.on('videotrack', track => console.log('now showing', track))
-```
-
-```js
-const call = await voip.callGroup('12345-67890@g.us', {
-  video: true,
-  videoPlaylist: ['clip.mp4']
-})
-```
-
-Video has its own queue, separate from the audio queue: `playVideo`, `enqueueVideo`, `skipVideo`, `queuedVideo` and `nowPlayingVideo`, with the `videotrack` and `videotrackend` events. The rule for ending the call stays tied to the audio queue, so the call ends when the audio runs out, not when the pictures do.
-
-A still image is looped rather than shown for a single frame, which makes it an easy way to send a steady card:
-
-```js
-await voip.call('628123456789', { video: true, videoSource: './poster.jpg', playlist: ['song.mp3'] })
-```
-
-The engine picks the resolution and frame rate when the call connects, and the feeder scales to fit, padding so the aspect ratio is kept. Frames go to the WASM encoder as I420. When the queue runs dry the last frame is held instead of cutting to black, so a stall reads as a frozen picture, not a flicker.
-
-Audio and video are two ffmpeg processes with two different clocks. Playing the same file through both will drift apart; if you need the two locked together, give the file to `playlist` only and keep the picture a still image.
-
-### Screen sharing
-
-The same video, sent as a screen share rather than as a camera. It is a separate WASM entry point, so the receiver sees it labelled as a shared screen instead of as if the bot turned its camera on.
-
-```js
-const call = await voip.call('628123456789', {
-  screenShare: true,
-  videoPlaylist: ['slide.png'],
-  playlist: ['narration.mp3']
-})
-```
-
-`screenShare: true` already implies `video: true`. Switch it on and off mid-call with `call.startScreenShare()` and `call.stopScreenShare()`; `call.isScreenShare()` reports which one is live.
-
-Which is better depends on what you send, and both are worth testing on a real call:
-
-- **Screen share** suits still content — slides, lyrics, a single card. The encoder favours sharpness over motion, and a 16:9 source is not forced into a portrait camera frame.
-- **The camera path** suits moving pictures and reaches everyone. Screen sharing is gated by `calling_screen_share_milestone_version`: a recipient on an older WhatsApp gets an "please update" dialog instead of your content. Groups also cap how many participants may share, and usually only one may share at a time.
-
-### Group calls
-
-```js
-const call = await voip.callGroup('12345-67890@g.us', {
-  playlist: ['one.mp3', 'two.mp3'],
-  idleGraceMs: 30000,
-  durationMs: 0
-})
-```
-
-`callGroup` reads the member list from the group's metadata, resolves each member's LID and devices, then calls them all. Pass `participants` to call only some of them, or `metadata` if you already have it and want to skip the fetch.
-
-To join a call somebody else started, hand `joinGroupCall` what the incoming offer says:
-
-```js
-const call = await voip.joinGroupCall({
-  callId,
-  callCreatorJid,
-  groupJid,
-  playlist: ['one.mp3']
-})
-```
-
-The queue behaves the same in a group call as in a one-to-one call.
-
-Media is produced by ffmpeg: Anya uses the bundled `ffmpeg-static` binary when it exists and falls back to `ffmpeg` on the `PATH`; set `ffmpegPath` on the client to point at a specific binary. The VoIP resources (`whatsapp.wasm`, `loader.js`, `worker-modules.js`) are WhatsApp Web's own files, carried byte for byte; `npm run verify:assets` re-checks their checksums.
-
----
-
-## 🐞 Troubleshooting
-
-### `Cannot read properties of undefined (reading 'undefined')` when replying
-
-You handed `quoted` a message that has **no readable content**. The quote path normalizes it, gets nothing, then indexes `undefined` with `undefined`. Three common ways to get there:
-
-| What you quoted | Why it has no content |
-| --- | --- |
-| A message that failed to decrypt | its `messageStubType` is `CIPHERTEXT`; the key is real but `message` is missing |
-| A message read back from a store | some stores keep the key and drop the body |
-| A hand-built `{ key }` | there is no `message` field at all |
-
-This is now guarded — the send goes ahead **without** the quote and logs once:
-
-```
-WARN  nothing quotable here, sending without the quote
-      jid: "120363000000000000@g.us"  quotedId: "3EB0…"  quotedContentType: undefined
-```
-
-That matters more than it sounds. A bot that quotes the message it replies to, in a chat whose messages cannot be decrypted, used to throw on **every send** — so it went completely silent in that one chat while every other chat looked fine. The failure was in building the reply, not in the group.
-
-If you would rather not send at all than send without the quote, check before calling:
-
-```js
-import { normalizeMessageContent, getContentType } from '@teamolduser/baileys'
-
-const quotable = !!getContentType(normalizeMessageContent(m.message))
-await sock.sendMessage(m.key.remoteJid, { text: 'hello' }, quotable ? { quoted: m } : {})
-```
-
-### The bot answers in every group except one
-
-A group where no message gets through — not one reply, while every other group is fine — is almost always a **sender key** problem, not your handler. Group messages are encrypted once with a single group sender key and then fanned out; that key has to reach each member device separately, and the library remembers who already has it in `sender-key-memory`, keyed **per group**. That is why the symptom is one group and not the whole account.
-
-Encryption is attempted per device, and a device that fails must not be recorded as having received the key. A device is marked only once its key node is really inside the stanza; the rest are logged and retried on the next send:
-
-```
-WARN  sender key did not reach every device, leaving them unmarked so the next send retries
-      jid: "120363000000000000@g.us"
-      skipped: [ "628000:12@s.whatsapp.net" ]
-```
-
-If a group got stuck before that, clear its memory once and the next message will redistribute the key to everyone:
-
-```js
-const reset = await sock.resetGroupSenderKey('120363000000000000@g.us')
-console.log(reset)
-// { jid: '120363000000000000@g.us', cleared: 4, devices: [ '628000:12@s.whatsapp.net', … ] }
-
-await sock.sendMessage('120363000000000000@g.us', { text: 'hello' })
-```
-
-It only accepts a group jid, and it does not delete sessions or keys — it just forgets who was told, so the next send tells everyone again. It is safe to run on any group at any time; the cost is one larger stanza.
-
-**Read the `cleared` number, it is the diagnosis.** Above zero means there really was stale bookkeeping and the next send should fix the group. `cleared: 0` means nothing was stored for that jid at all — so the sender key is not the problem, and the cause is one of the three below. Clearing again will not help.
-
-Before blaming the sender key, rule out two cheaper causes:
-
-| What to check | What it means |
-| --- | --- |
-| Does the group message reach `messages.upsert` at all? | If nothing arrives, it is decryption on the way in, not sending. Look for `failed to decrypt message` in the log — the library answers that with an automatic retry request. |
-| Is `messageStubType` `CIPHERTEXT`? | The message arrived but cannot be read. Same as above; it usually clears itself within a message or two. |
-| Does `sendMessage` throw for that jid? | Then it is the group metadata fetch, not the encryption — check the error, not the key. |
-
-### The pairing code must be exactly 8 characters
-
-When using a custom pairing code:
-
-```js
-await sock.requestPairingCode(phone, 'ANYA0001')
-```
-
-The custom value must be exactly eight characters.
-
-### `phoneNumber must be in international format`
-
-`requestPairingCode` takes digits only, as `<country code><national number>` — no leading `0`, between 6 and 15 digits. Punctuation is stripped for you, so `+91 98765-43210` works; `098765 43210` does not.
-
-### A pairing code shows up but the phone never prompts
-
-Look at what the request threw before blaming the notification. `requestPairingCode` waits for the server and reports a refusal instead of returning a code that never registered:
-
-| Message | Meaning |
-|---|---|
-| `rate-overlimit` (`429`) | too many attempts — wait, trying again makes it worse |
-| `not-allowed` / a feature error | link-with-phone-number is not enabled for that account |
-| `phoneNumber must be in international format` (`400`) | the number is not `<country code><national number>` |
-| `the server accepted the pairing request without registering it` (`500`) | the server answered but sent no pairing reference, so the code could never be entered; nothing is saved, request a new one |
-| `Companion registration timed out` | no answer came from the server at all |
-
-If none of these appears and the code was registered, enter it by hand through **WhatsApp → Linked Devices → Link with phone number**. If it is accepted there, the registration is fine and only the push notification is not arriving, which is decided on the server side.
-
-Verify from outside your bot with `node script/testpairing.js <number> --check-only` (run `yarn build` first).
-
-### The pairing request is rejected with 409
-
-Another code is still pending. Wait for it to expire or call `sock.cancelPairingCode()` first — see [Request custom pairing code](#-request-custom-pairing-code).
-
-### `Socket is required`
-
-The builder classes need a live Baileys socket:
-
-```js
-const button = new MB.Button(sock)
-```
-
-Do not create one without handing it `sock`.
-
-### Button or AIRich renders differently
-
-WhatsApp's interactive payloads can depend on:
-
-- the WhatsApp app version
-- Web protocol changes
-- account/server rollout
-- message-type compatibility
-
-Always test experimental message formats before using them in production.
-
-### I got a LID, not a phone-number JID
-
-This is normal in WhatsApp's newer addressing flow. Check `participantAlt` or `remoteJidAlt` when available, rather than blindly turning `@lid` into `@s.whatsapp.net`. See [JID utilities & LID support](#17-jid-utilities--lid-support).
-
-### The session was logged out
-
-If WhatsApp returns `DisconnectReason.loggedOut`, delete the invalid local session and pair the account again.
-
----
-
-# About This Fork (@teamolduser/baileys)
-
-This is an extended fork of the original open-source Baileys library, adding
-35+ addon modules (rich responses, interactive buttons, scheduling, status
-posting, call handling, extra auth-state backends, and more), a WhatsApp
-username API, album send, sticker packs, and other fork-exclusive features
-documented in [@teamolduser/baileys Fork-Exclusive Features — Usage Guide](#fork-exclusive-features--usage-guide)
-above.
-
-## Security Fixes (informational — no API surface)
-
-- **Proto globals** (`$Object`, `$BigInt`, `$Array` etc.): WAProto/index.js
-  now accesses all builtins via `$util.global.*` — prevents prototype
-  pollution and scope shadowing attacks. `protobufjs` upgraded `^7.5.6` →
-  `^8.7.0`. Critical checks (`__proto__` guard + recursion depth limit)
-  were already present; globals are the remaining layer. Ported from
-  `@biled` (AgusXzz/biled).
-- **`extractVideoThumb`**: FFmpeg invocation switched from shell-string
-  `exec()` to argument-array `spawn()`, closing a shell injection vector.
-- **`Panoramic Profile Picture`**: fixed wire attribute
-  (`type: 'preview'` → `'fullsize'`) that likely caused WhatsApp's server
-  to reject/ignore the wide banner image.
-- **`sharp` / `@napi-rs/image`**: both are now regular dependencies (installed automatically, like
-  `@innovatorssoft/baileys`), so sticker-pack conversion works out of the box instead of failing with
-  "No image processing library ... available".
-- **Single-file auth atomic write**: `useSingleFileAuthState` now writes
-  to a `.temp` file first and atomically renames it — prevents partial/corrupt
-  auth files on crash mid-write.
-
-##
-
-- Baileys does not require Selenium or any other browser to be interface with WhatsApp Web, it does so directly using a **WebSocket**.
-- Not running Selenium or Chromium saves you like **half a gig** of ram :/
-- Baileys supports interacting with the multi-device & web versions of WhatsApp.
-- Thank you to [@pokearaujo](https://github.com/pokearaujo/multidevice) for writing his observations on the workings of WhatsApp Multi-Device. Also, thank you to [@Sigalor](https://github.com/sigalor/whatsapp-web-reveng) for writing his observations on the workings of WhatsApp Web and thanks to [@Rhymen](https://github.com/Rhymen/go-whatsapp/) for the **go** implementation.
-
-> [!IMPORTANT]
-> The original repository had to be removed by the original author - we now continue development in this repository here.
-> This is the only official repository and is maintained by the community.
-> **Join the Discord [here](https://discord.gg/WeJM5FP9GG)**
-
-# Links
-- [Innovators](https://discord.gg/G3RfM6FDHS)
-- [Itsukichan](https://discord.gg/nqssuNjjSH)
-- [Teamolduser Discord](https://discord.gg/WeJM5FP9GG)
-
-# License
-
-Copyright (c) 2026 Teamolduser
-
-Licensed under the MIT License:
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-Thus, the maintainers of the project can't be held liable for any potential misuse of this project.
-
-## Direct Native Flow examples (without helper builders)
+### Direct Native Flow examples (without helper builders)
 
 These examples construct and send the payload directly. They do **not** call Anya's `generateCombinedButtons()` or Elaina's `new Button(sock)` builder. `jid` must be the destination JID and `sock` must be an authenticated, connected socket.
 
-### Anya: direct native-flow payload
+#### Anya: direct native-flow payload
 
 Anya's `src/Addons/interactive-message.ts` defines the native-flow payload fields used below. The helper examples send the returned `interactiveMessage` object as the message content; this example constructs that same content shape inline:
 
@@ -6701,7 +1831,7 @@ await sock.sendMessage(jid, {
 
 This is the raw content shape used by the Anya helper. If your application is calling a different Baileys API/version, check that version's `sendMessage()` accepted content types before using this exact call.
 
-### Elaina: direct native-flow payload and relay
+#### Elaina: direct native-flow payload and relay
 
 Elaina's `Button` builder creates a full WhatsApp message with `generateWAMessageFromContent()` and relays it with the `biz` / `native_flow` additional nodes. To do that directly, use the same lower-level steps without `new Button(sock)`:
 
@@ -6761,14 +1891,5057 @@ await sock.relayMessage(message.key.remoteJid, message.message, {
 
 **Path note:** the import above matches the relative path from `assets/buttonsbuilder/MessageBuilder.js`. If this code lives in another directory, adjust the relative import to the project's exported `generateWAMessageFromContent` entry. Elaina's builder also adds context and payload options; include those explicitly if your use case needs them.
 
-### Which one should I use?
+#### Which one should I use?
 
 - Use Anya's inline payload when you want to construct the native-flow content directly with `sock.sendMessage()`.
 - Use Elaina's lower-level `generateWAMessageFromContent()` + `sock.relayMessage()` path when you need to reproduce the builder's native-flow relay metadata without instantiating `Button`.
 - These are direct-payload examples, not proof that WhatsApp renders every button type identically on every client. Test with the target WhatsApp clients.
 
-## Elaina-derived interactive APIs (V2 naming)
+_Also published at [docs/wiki/native-flow.md](../docs/wiki/native-flow.md)_
+
+### V2 interactive names
+
+[← back to the README](../README.md)
+
+### Elaina-derived interactive APIs (V2 naming)
 
 Elaina-derived carousel, native-flow, section, list, card and rich-message helpers have explicit `V2` aliases exported from `src/Extras/v2.ts` and re-exported through `src/Extras/index.ts`. These aliases are a naming layer for the ported API, not a separate wire protocol. The Elaina general-purpose builder is also exported as `ElainaButtonV2`; do not infer that Anya had a pre-existing `ButtonV2` API.
 
-See [the V2 naming guide](docs/elaina-interactive-apis-v2.md) for import guidance and the alias families.
+See the V2 naming guide for import guidance and the alias families.
+
+_Also published at [docs/wiki/interactive-v2.md](../docs/wiki/interactive-v2.md)_
+
+### Newsletter and channels
+
+[← back to the README](../README.md)
+
+### Channel (newsletter) methods
+
+```ts
+const jid = '120363xxxxxxxxxxxx@newsletter'
+await sock.newsletterUpdateUserSetting(jid, 'ADMIN_NOTIFICATIONS', true)   // mute / unmute
+await sock.newsletterUpdateReactions(jid, 'BASIC')                          // ALL | BASIC | NONE | BLOCKLIST
+await sock.newsletterAdminInfo(jid)               // { adminCount, adminProfile, adminProfilesEnabled }
+await sock.newsletterAdminCapabilities(jid)       // ['CHANNEL_STATUS_PRODUCER', ...]
+await sock.newsletterCanPostStatus(jid)           // { canPost, canPostMusic, capabilities }
+await sock.newsletterCreateAdminInvite(jid, '9199xxxxxxxx@s.whatsapp.net')
+await sock.newsletterRevokeAdminInvite(jid, userJid)   // + newsletterAcceptAdminInvite(jid), newsletterPendingAdminInvites(jid)
+await sock.newsletterFollowers(jid, { count: 100 })
+await sock.newsletterInsights(jid, { metrics: ['NET_FOLLOWS', 'UNFOLLOWS'] })
+await sock.newsletterPinMessages(jid, [150, 151])      // + newsletterUnpinMessages  (server ids are 99..2147476647)
+await sock.newsletterLabelAiContent(jid, 150)          // + newsletterLabelPaidPartnership
+await sock.newsletterPollVoters(jid, 150)              // + newsletterReactionSenders(jid, 150)
+await sock.newsletterSendPollVote(jid, 150, ['Option A'])
+await sock.newsletterFetchMessageUpdates(jid, { count: 20 })
+await sock.newsletterQuestionResponses(jid, 150)       // + newsletterQuestionResponseState(...)
+await sock.newsletterMyAddOns()                        // + newsletterStatusMyAddOns()
+await sock.newsletterEnforcements(jid)                 // + newsletterReports(), newsletterAppealReport(reportId, reason)
+await sock.newsletterRecommended({ limit: 10 })        // + newsletterSimilar(jid)
+await sock.newsletterDirectoryList({ view: 'RECOMMENDED' })   // + newsletterDirectorySearch('news'), newsletterDirectoryCategories()
+```
+
+Events `newsletter-admin-profile.update` / `mex.notification`, `newsletterMeta` on live channel messages and `key.isNewsletterSender` are described in *Elaina 1.4.7 follow-up sync*.
+
+#### Channel statuses
+
+```ts
+const sent = await sock.sendNewsletterStatus(jid, { text: 'New post!' })            // text / image / video / gif / audio / question
+await sock.sendNewsletterStatus(jid, { image: { url: './pic.jpg' }, caption: 'hi' }, { aiContent: true })
+await sock.sendNewsletterStatusReaction(jid, sent.newsletterStatusServerId, '🔥')   // reaction: null removes it
+await sock.revokeNewsletterStatus(jid, sent.key.id)
+const list = await sock.getNewsletterStatuses(jid, { count: 20 })                    // { jid, t, statuses: [...] }
+const updates = await sock.getNewsletterStatusUpdates(jid, { since: 1700000000 })
+```
+
+You must be an admin with the `CHANNEL_STATUS_PRODUCER` capability (`sock.newsletterCanPostStatus(jid)` tells you). The status
+is acknowledged by the server; its server id (needed for reactions / revoke) arrives in a separate `<status>` stanza, which is
+waited for automatically (`resolveServerId: false` skips that).
+
+### Newsletter API
+
+Everything the four merged forks expose for channels is on the socket returned by `makeWASocket()` — 55 methods,
+no extra wiring. This section is the usage reference; the newsletter guide covers setup and
+lifecycle.
+
+**Contents**
+
+- [Quick start](#quick-start)
+- [Method reference](#method-reference) · lifecycle · reading ·
+  audience · posting · admin ·
+  discovery · moderation
+- [Mute](#mute-two-paths) · [Generic dispatch](#generic-dispatch)
+- [Types](#types) · [Query ids](#query-ids-and-generations)
+- [Helpers merged onto the socket](#helpers-merged-onto-the-socket)
+- [Endpoint allowlist](#endpoint-allowlist) · [Dependencies](#dependencies)
+- [Tests](#tests-and-guards) · [Build](#build-and-test) · [Not merged](#what-is-not-merged)
+
+#### Quick start
+
+```js
+import makeWASocket, { useMultiFileAuthState } from '@teamolduser/baileys'
+
+const { state } = await useMultiFileAuthState('auth')
+const sock = makeWASocket({ auth: state, logger: pino({ level: 'silent' }) })
+
+const channel = '120363410154606795@newsletter'
+
+// read
+const meta = await sock.newsletterMetadata('jid', channel)
+
+// follow, then post
+await sock.newsletterFollow(channel)
+await sock.newsletterUpdateName(channel, 'Daily updates')
+```
+
+`jid` values are `120363…@newsletter`. A channel can also be addressed by its invite code with
+`newsletterMetadata('invite', 'AB12CdEfGh')`.
+
+---
+
+#### Method reference
+
+##### Channel lifecycle
+
+| Method | Signature | Returns | Notes |
+| --- | --- | --- | --- |
+| `newsletterCreate` | `(name: string, description?: string)` | `NewsletterMetadata` | creates a channel you own |
+| `newsletterDelete` | `(jid: string)` | `unknown` | owner only |
+| `newsletterFollow` | `(jid: string)` | `unknown` | subscribe your account |
+| `newsletterUnfollow` | `(jid: string)` | `unknown` | |
+| `newsletterChangeOwner` | `(jid: string, newOwnerJid: string)` | `unknown` | owner only |
+| `newsletterFetchAllParticipating` | `()` | `Record<string, NewsletterMetadata>` | every channel this account follows |
+
+```js
+const created = await sock.newsletterCreate('My Channel', 'About things')
+const mine = await sock.newsletterFetchAllParticipating()
+console.log(Object.keys(mine))   // ['120363…@newsletter', …]
+```
+
+##### Reading a channel
+
+| Method | Signature | Returns | Notes |
+| --- | --- | --- | --- |
+| `newsletterMetadata` | `(type: 'invite' \| 'jid', key: string, options?)` | `NewsletterMetadata \| null` | `options`: `fetchCreationTime`, `fetchFullImage`, `fetchViewerMetadata`, `fetchPinnedMessages`, `fetchStatusMetadata`, `fetchWamoSub`, `viewRole` |
+| `newsletterSubscribers` | `(jid: string, options?: { count?: number })` | `unknown` | subscriber list |
+| `newsletterAdminCount` | `(jid: string)` | `number` | |
+| `newsletterAdminInfo` | `(jid: string)` | `unknown` | admin roster |
+| `newsletterSubscribed` | `(options?)` | `unknown` | channels *you* are subscribed to |
+
+```js
+const meta = await sock.newsletterMetadata('jid', channel, {
+    fetchViewerMetadata: true,
+    fetchPinnedMessages: true
+})
+
+const byInvite = await sock.newsletterMetadata('invite', 'AB12CdEfGh')
+const admins = await sock.newsletterAdminCount(channel)
+```
+
+##### Audience and engagement
+
+| Method | Signature | Returns | Notes |
+| --- | --- | --- | --- |
+| `newsletterFollowers` | `(jid: string, options?)` | `unknown` | `options`: `count` |
+| `newsletterPollVoters` | `(jid: string, serverId: string, options?)` | `unknown` | who voted on a poll |
+| `newsletterReactionSenders` | `(jid: string, serverId: string)` | `unknown` | who reacted |
+| `newsletterQuestionResponses` | `(jid: string, serverId: string, options?)` | `unknown` | answers to a question post |
+| `newsletterQuestionResponseState` | `(jid, serverId, responseServerId, state)` | `unknown` | |
+| `newsletterSendPollVote` | `(jid, parentServerId, options)` | `unknown` | vote as this account |
+| `newsletterFetchMessageUpdates` | `(jid: string, options?)` | `unknown` | views/reactions without bodies |
+| `newsletterFetchMessages` | `(jid, count, since, after)` | `unknown` | message bodies |
+| `newsletterFetchUpdates` | `(jid, count, after?, since?)` | `unknown` | low-level update feed |
+
+```js
+const followers = await sock.newsletterFollowers(channel, { count: 50 })
+const voters = await sock.newsletterPollVoters(channel, serverId, { count: 20 })
+const reactors = await sock.newsletterReactionSenders(channel, serverId)
+const updates = await sock.newsletterFetchMessageUpdates(channel, { count: 20 })
+```
+
+##### Posting and settings
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `newsletterUpdateName` | `(jid: string, name: string)` | |
+| `newsletterUpdateDescription` | `(jid: string, description: string)` | |
+| `newsletterUpdatePicture` | `(jid: string, content: WAMediaUpload)` | buffer, path or stream |
+| `newsletterRemovePicture` | `(jid: string)` | |
+| `newsletterPinMessages` | `(jid: string, serverIds: string \| string[])` | |
+| `newsletterUnpinMessages` | `(jid: string, serverIds: string \| string[])` | |
+| `newsletterReactionMode` | `(jid: string, mode: string)` | `ALL` · `BASIC` · `NONE` · `BLOCKLIST` |
+| `newsletterUpdateReactions` | `(jid: string, setting: string)` | validates against the same four values |
+| `newsletterUpdateUserSetting` | `(jid, type, value: boolean)` | `type`: `ADMIN_NOTIFICATIONS` · `FOLLOWER_NOTIFICATIONS` |
+| `newsletterReactMessage` | `(jid, serverId, reaction?: string)` | empty string removes the reaction |
+| `newsletterCanPostStatus` | `(jid: string)` | whether this account may post status |
+| `newsletterLabelAiContent` | `(jid, serverId, messageType = 'MESSAGE')` | AI-content label |
+| `newsletterLabelPaidPartnership` | `(jid, serverId, messageType = 'MESSAGE')` | paid-partnership label |
+
+```js
+await sock.newsletterUpdatePicture(channel, fs.readFileSync('banner.jpg'))
+await sock.newsletterPinMessages(channel, ['100', '101'])
+await sock.newsletterReactionMode(channel, 'BASIC')
+await sock.newsletterReactMessage(channel, serverId, '👍')
+```
+
+##### Admin
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `newsletterCreateAdminInvite` | `(jid: string, userJid: string)` | |
+| `newsletterRevokeAdminInvite` | `(jid: string, userJid: string)` | |
+| `newsletterAcceptAdminInvite` | `(jid: string)` | accept an invite you received |
+| `newsletterPendingAdminInvites` | `(jid: string)` | |
+| `newsletterAdminCapabilities` | `(jid: string)` | what this account may do in the channel |
+| `newsletterDemote` | `(jid: string, userJid: string)` | |
+
+```js
+await sock.newsletterCreateAdminInvite(channel, '919999999999@s.whatsapp.net')
+const pending = await sock.newsletterPendingAdminInvites(channel)
+const caps = await sock.newsletterAdminCapabilities(channel)
+```
+
+##### Discovery
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `newsletterRecommended` | `(options?)` | `limit`, `countryCodes`, `fetchStatusMetadata` |
+| `newsletterSimilar` | `(jid: string, options?)` | channels like this one |
+| `newsletterDirectoryList` | `(options?)` | `limit`, `cursorToken` |
+| `newsletterDirectorySearch` | `(searchText: string, options?)` | `categories`, `limit`, `cursorToken` |
+| `newsletterDirectoryCategories` | `(options?)` | category tree |
+
+```js
+const recs = await sock.newsletterRecommended({ limit: 10, countryCodes: ['IN'] })
+const similar = await sock.newsletterSimilar(channel, { limit: 10 })
+const found = await sock.newsletterDirectorySearch('football', { limit: 20 })
+```
+
+##### Moderation and insights
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `newsletterInsights` | `(jid: string, options?)` | reach and engagement |
+| `newsletterEnforcements` | `(jid: string, locale = 'en_US')` | enforcement records |
+| `newsletterReports` | `(locale = 'en_US')` | reports against channels |
+| `newsletterAppealReport` | `(reportId: string, reason: string)` | appeal one |
+| `newsletterMyAddOns` | `(options?)` | your add-ons (`limit`, `jid`) |
+| `newsletterStatusMyAddOns` | `(options?)` | status add-ons |
+
+```js
+const insights = await sock.newsletterInsights(channel, { limit: 20 })
+const reports = await sock.newsletterReports('en_US')
+await sock.newsletterAppealReport(reportId, 'posted by mistake')
+```
+
+---
+
+#### Mute: two paths
+
+The forks disagree about how muting works, so both paths exist. The default is elaina's.
+
+| Method | Path | When to use |
+| --- | --- | --- |
+| `newsletterMute(jid)` / `newsletterUnmute(jid)` | user settings (`ADMIN_NOTIFICATIONS`) | **default** — works against this repo's pinned client revision |
+| `newsletterMuteLegacy(jid)` / `newsletterUnmuteLegacy(jid)` | dedicated `mute_v2` query | client generations that still serve `mute_v2` (whiskeysockets / itsliaaa) |
+
+```js
+await sock.newsletterMute(channel)          // setting-based
+await sock.newsletterMuteLegacy(channel)    // dedicated query
+```
+
+If the legacy pair answers `400`, the setting-based pair is the one that works.
+
+#### Generic dispatch
+
+```js
+await sock.newsletterAction(jid, 'FOLLOW')   // any QueryIds name
+```
+
+User-called only: nothing in the library invokes it, and `test/no-auto-follow.test.js` fails if anything starts to.
+It is the one place `QueryIds[…]` may be indexed dynamically.
+
+---
+
+#### Types
+
+All of them are declared in `src/Types/Mex.ts` alongside `QueryIds` and `XWAPaths`, so the whole newsletter surface is
+one file. Import them from the package root or from `Types/Mex` — there is no separate newsletter types module.
+
+```ts
+import type {
+    NewsletterMetadata, NewsletterState, NewsletterVerification, NewsletterMute,
+    NewsletterReactionMode, NewsletterViewerMetadata, NewsletterReaction,
+    NewsletterFetchedUpdate, SubscriberAction, ReactionModeUpdate,
+    NewsletterSettingsUpdate, NewsletterMetadataExtended
+} from '@teamolduser/baileys'
+```
+
+##### `NewsletterMetadata` — 18 fields
+
+elaina's shape is the base (what every method above returns); innovatorssoft's extra fields are merged in.
+
+| Field | Type | From |
+| --- | --- | --- |
+| `id` | `string` | elaina |
+| `owner` | `string?` | elaina |
+| `name` | `string` | elaina |
+| `description` | `string?` | elaina |
+| `invite` | `string?` | elaina |
+| `creation_time` | `number?` | elaina |
+| `subscribers` | `number?` | elaina |
+| `verification` | `'VERIFIED' \| 'UNVERIFIED'?` | elaina |
+| `mute_state` | `'ON' \| 'OFF'?` | elaina |
+| `thread_metadata` | `{ creation_time?, name?, description? }?` | elaina |
+| `picture` | `{ url?, directPath?, mediaKey?, id? } \| string \| null?` | **both** — object here, path string there |
+| `reaction_codes` | `{ code, count }[] \| NewsletterReactionMode?` | **both** — tally here, single mode there |
+| `state` | `NewsletterState?` | innovatorssoft |
+| `nameTime` | `number?` | innovatorssoft |
+| `descriptionTime` | `number?` | innovatorssoft |
+| `handle` | `null?` | innovatorssoft |
+| `preview` | `string \| null?` | innovatorssoft |
+| `viewer_metadata` | `NewsletterViewerMetadata?` | innovatorssoft |
+
+`NewsletterMetadataExtended` is an alias of `NewsletterMetadata`.
+
+##### Exported union types
+
+| Type | Values |
+| --- | --- |
+| `NewsletterState` | `'ACTIVE' \| 'GEOSUSPENDED' \| 'SUSPENDED'` |
+| `NewsletterVerification` | `'VERIFIED' \| 'UNVERIFIED'` |
+| `NewsletterMute` | `'ON' \| 'OFF' \| 'UNDEFINED'` |
+| `NewsletterReactionMode` | `'ALL' \| 'BASIC' \| 'NONE'` |
+| `SubscriberAction` | `'promote' \| 'demote'` |
+
+---
+
+#### Query ids and generations
+
+`QueryIds` has 63 members, `XWAPaths` 51. The **primary** values are elaina's — the generation this repo's pinned
+client revision speaks. Other forks' values are kept as `_ALT` constants, each commented with its source:
+
+```ts
+QueryIds.FOLLOW      // '24404358912487870'  — use this
+QueryIds.FOLLOW_ALT  // '7871414976211147'   — innovatorssoft's older generation, do not use
+```
+
+| Group | Count | Source |
+| --- | --- | --- |
+| primary | 45 | elaina |
+| ours only | 3 | this repo |
+| `_ALT` alternates | 15 | whiskeysockets + itsliaaa, and innovatorssoft |
+
+`test/no-auto-follow.test.js` forbids any file outside `src/Types/Mex.ts` from referencing an `_ALT` / `_LEGACY`
+constant — a wrong-generation id fails at runtime, and a used id is a live capability.
+
+---
+
+#### Helpers merged onto the socket
+
+`makeWASocket()` runs `makeUsernameSocket()` and then `makePortedSocket()`, so ported helpers sit on the socket even
+though they live outside `Socket/`:
+
+```js
+await sock.getUsername('919999999999')      // Extras/chats-extras
+await sock.setUsername('myhandle')          // Socket/username
+await sock.fetchAbout(jid)
+await sock.reportSpam(jid)
+await sock.checkAccountHealth()
+await sock.updateTextStatus('text', {})
+await sock.fetchPrivacySettings()
+await sock.updateLastSeenPrivacy('contacts')
+```
+
+---
+
+#### Endpoint allowlist
+
+The websocket refuses any `waWebSocketUrl` that is not a WhatsApp host or loopback.
+
+```js
+makeWASocket({ ... })                                    // wss://web.whatsapp.com — allowed
+makeWASocket({ waWebSocketUrl: 'wss://proxy.local' })     // throws
+makeWASocket({ waWebSocketUrl: 'wss://proxy.local',
+               allowCustomEndpoint: true })               // allowed, logs a warning naming the host
+```
+
+Deliberate: a library that connects anywhere is indistinguishable from one that phones home. Details in
+[`SECURITY.md`](../../SECURITY.md).
+
+#### Dependencies
+
+| Dependency | State | Why |
+| --- | --- | --- |
+| `libsignal` | `npm:@teamolduser/libsignal@1.0.1` | upstream 6.0.0 with its own `console.*` calls commented out; diff recorded in `SECURITY.md` |
+| `ffmpeg-static` | regular dependency | the bundled binary is used when it downloaded; `getFfmpegBin()` still falls back to a system `ffmpeg`, so a failed download degrades instead of breaking |
+
+---
+
+#### Tests and guards
+
+```bash
+node --test test/*.test.js                                  # 128 tests
+node scripts/audit-elaina-parity.mjs ../elaina-baileys      # byte parity, 15 ported modules
+node scripts/check-revision.mjs                             # pinned revision vs the live web client
+node scripts/verify-live.mjs --payments                     # real send path, your own paired session
+```
+
+| Test file | Locks down |
+| --- | --- |
+| `no-auto-follow.test.js` | no automatic follow, no hardcoded `@newsletter` JID, alternates never used |
+| `socket-surface.test.js` | every chats/communities/groups/newsletter method from all four forks exists |
+| `newsletter-types.test.js` | the 11 newsletter types and the 18-field metadata shape |
+| `newsletter-surface.test.js` | the 55 newsletter methods in the compiled module |
+| `signal-roundtrip.test.js` | Signal encrypt/decrypt through the pinned libsignal |
+| `endpoint-allowlist.test.js` | the websocket guard, including lookalike-host and userinfo spoofing |
+
+#### Build and test
+
+```bash
+node -v            # 24.x or newer
+npm install
+npm run build      # src/*.ts → lib/*.js
+node --test test/*.test.js
+```
+
+#### What is *not* merged
+
+Stated plainly so nobody assumes more than is true: `Socket/business*`, `messages-recv`, `messages-send`,
+`rich-messages`, `mex`, `socket` and `username` were **not** diffed method-by-method against the four forks. Only the
+15 modules under `src/Extras/` have byte-level parity coverage, and `Utils/`, `WABinary/`, `Defaults/` are covered by
+the elaina parity audit alone.
+
+_Also published at [docs/wiki/newsletter.md](../docs/wiki/newsletter.md)_
+
+### Calls, queues and screen sharing
+
+[← back to the README](../README.md)
+
+### 🎧 Call queues, screen sharing and group calls
+
+These options belong to the media-call methods of the unified `voip` client — `voip.call()`, `voip.callGroup()` and `voip.joinGroupCall()` (the Elaina-style engine). See the [unified VoIP API](#unified-voip-api) note about switching engines, and Voice calling for the basics.
+
+#### Audio queue
+
+```js
+const voip = await sock.makeVoipClient()
+
+const call = await voip.call('628123456789', {
+  playlist: ['intro.mp3', 'song.mp3'],
+  idleGraceMs: 30000,   // wait this long after the queue runs dry before hanging up
+  durationMs: 0         // 0 = no fixed length, the queue decides
+})
+
+call.enqueue('next-track.mp3')   // add a track while the call is running
+call.queued()                    // tracks still waiting
+call.nowPlaying()                // the track being played
+call.skip()                      // jump to the next track
+```
+
+By default the call ends once the queue is empty, after `idleGraceMs` (0 unless you set it); pass `endWhenQueueEmpty: false` to keep it open until you end it. Sources can be files, URLs or anything ffmpeg reads.
+
+#### Video queue
+
+One-to-one and group calls both accept video. Frames come from ffmpeg just like the audio does, so the video source can be a file, a URL, a still image or a `lavfi:` generator.
+
+```js
+const call = await voip.call('628123456789', {
+  video: true,
+  videoPlaylist: ['clip.mp4'],
+  playlist: ['song.mp3'],
+  durationMs: 0
+})
+
+call.on('videotrack', track => console.log('now showing', track))
+```
+
+```js
+const call = await voip.callGroup('12345-67890@g.us', {
+  video: true,
+  videoPlaylist: ['clip.mp4']
+})
+```
+
+Video has its own queue, separate from the audio queue: `playVideo`, `enqueueVideo`, `skipVideo`, `queuedVideo` and `nowPlayingVideo`, with the `videotrack` and `videotrackend` events. The rule for ending the call stays tied to the audio queue, so the call ends when the audio runs out, not when the pictures do.
+
+A still image is looped rather than shown for a single frame, which makes it an easy way to send a steady card:
+
+```js
+await voip.call('628123456789', { video: true, videoSource: './poster.jpg', playlist: ['song.mp3'] })
+```
+
+The engine picks the resolution and frame rate when the call connects, and the feeder scales to fit, padding so the aspect ratio is kept. Frames go to the WASM encoder as I420. When the queue runs dry the last frame is held instead of cutting to black, so a stall reads as a frozen picture, not a flicker.
+
+Audio and video are two ffmpeg processes with two different clocks. Playing the same file through both will drift apart; if you need the two locked together, give the file to `playlist` only and keep the picture a still image.
+
+#### Screen sharing
+
+The same video, sent as a screen share rather than as a camera. It is a separate WASM entry point, so the receiver sees it labelled as a shared screen instead of as if the bot turned its camera on.
+
+```js
+const call = await voip.call('628123456789', {
+  screenShare: true,
+  videoPlaylist: ['slide.png'],
+  playlist: ['narration.mp3']
+})
+```
+
+`screenShare: true` already implies `video: true`. Switch it on and off mid-call with `call.startScreenShare()` and `call.stopScreenShare()`; `call.isScreenShare()` reports which one is live.
+
+Which is better depends on what you send, and both are worth testing on a real call:
+
+- **Screen share** suits still content — slides, lyrics, a single card. The encoder favours sharpness over motion, and a 16:9 source is not forced into a portrait camera frame.
+- **The camera path** suits moving pictures and reaches everyone. Screen sharing is gated by `calling_screen_share_milestone_version`: a recipient on an older WhatsApp gets an "please update" dialog instead of your content. Groups also cap how many participants may share, and usually only one may share at a time.
+
+#### Group calls
+
+```js
+const call = await voip.callGroup('12345-67890@g.us', {
+  playlist: ['one.mp3', 'two.mp3'],
+  idleGraceMs: 30000,
+  durationMs: 0
+})
+```
+
+`callGroup` reads the member list from the group's metadata, resolves each member's LID and devices, then calls them all. Pass `participants` to call only some of them, or `metadata` if you already have it and want to skip the fetch.
+
+To join a call somebody else started, hand `joinGroupCall` what the incoming offer says:
+
+```js
+const call = await voip.joinGroupCall({
+  callId,
+  callCreatorJid,
+  groupJid,
+  playlist: ['one.mp3']
+})
+```
+
+The queue behaves the same in a group call as in a one-to-one call.
+
+Media is produced by ffmpeg: Anya uses the bundled `ffmpeg-static` binary when it exists and falls back to `ffmpeg` on the `PATH`; set `ffmpegPath` on the client to point at a specific binary. The VoIP resources (`whatsapp.wasm`, `loader.js`, `worker-modules.js`) are WhatsApp Web's own files, carried byte for byte; `npm run verify:assets` re-checks their checksums.
+
+---
+
+_Also published at [docs/wiki/calls.md](../docs/wiki/calls.md)_
+
+### VoIP
+
+[← back to the README](../README.md)
+
+### Unified VoIP API
+
+Anya and Elaina call features are exposed through **one `voip` client**. No engine-selection option is required: the method you invoke automatically selects the internal signaling engine. The merged implementation in `src/Voip/` is the only VoIP source in this tree.
+
+```ts
+import makeWASocket from '@teamolduser/baileys'
+
+const sock = makeWASocket({ auth: state })
+const voip = await sock.makeVoipClient()
+
+// Anya multi-call API
+const call = await voip.initiateCall('15551234567', {
+  audioSource: './audio.mp3',
+  durationMs: 60_000
+})
+const activeCalls = await voip.getActiveCalls()
+
+// Elaina media/group-call API is available on the same client.
+// First end the previous call before switching internal signaling engines.
+// const mediaCall = await voip.call('15551234567', { audioSource: './audio.mp3' })
+// mediaCall.enqueue('./next-track.mp3')
+
+// Alternative: import { makeVoipClient } and use the top-level factory:
+// const socketVoip = await makeVoipClient(sock)
+```
+
+The same client exposes `initiateCall()`, `initiateCalls()`, `callMany()`, `acceptCall()`, `rejectCall()`, `call()`, `callGroup()`, `joinGroupCall()`, `getActiveCalls()`, `getCall()`, `getActiveCallCount()`, `endCall()`, `endAllCalls()`, `setOptions()`, `resetCallState()`, and `disconnect()`. The call object includes methods appropriate to the call-creation API: Anya calls expose incoming-call lifecycle and video controls; Elaina calls expose audio/video playlists and screen-sharing controls.
+
+**Safety note:** Both original engines own WhatsApp signaling state, so they cannot safely manage active calls at the same time on one socket. The unified client switches automatically only when the previous engine has no active calls; it throws a clear error if a switch is attempted while a call is active. Do not start direct `sock.initiateCall()` calls while an Elaina media call is active. See the complete VoIP API guide.
+
+### VoIP diagnostics and call timelines
+
+Ported from innovatorssoft/baileys. One shared instance records a bounded per-call timeline and redacts anything that
+looks like key material before it reaches a log line.
+
+```ts
+import { voipDiagnostics, VoipDiagnostics, sanitizeJid, summarizeNode } from '@teamolduser/baileys'
+
+// one shared instance; pass your pino logger so lines go wherever the rest of your logs go
+voipDiagnostics.setLogger(logger)
+voipDiagnostics.setDiagnosticMode(true)   // elevates debug -> info in production
+
+voipDiagnostics.log({
+    component: 'Signaling',
+    event: 'offer_received',
+    callId,
+    jid: peerJid,
+    data: { retry: 2, enc: 'never logged' }   // enc comes out as [REDACTED]
+})
+
+// reconstruct a failed call
+console.log(voipDiagnostics.formatTimeline(callId))
+```
+
+| Export | What it does |
+| --- | --- |
+| `voipDiagnostics` | shared `VoipDiagnostics` instance (one per process, across module copies) |
+| `new VoipDiagnostics(logger, { diagnostic, logFile })` | your own instance; `logFile` is opt-in — nothing is written to disk unless you name a file |
+| `CallTimelineStore` | the bounded timeline on its own (`maxEntriesPerCall`, `maxCalls`, `ttlMs`) |
+| `sanitizeJid` / `summarizeAttrs` / `summarizeNode` | redaction helpers, usable in your own logging |
+
+`CallSession` is the innovatorssoft name for the call object this package exposes as `ActiveCall`; both names are
+exported from the package root.
+
+_Also published at [docs/wiki/voip.md](../docs/wiki/voip.md)_
+
+### In-app HTML webview
+
+[← back to the README](../README.md)
+
+### In-app HTML webview (`webView`)
+
+Hand it the jid and the HTML, it sends the page. Nothing else — no markup helpers, no validation layer, no height
+injection. The HTML goes out exactly as you wrote it.
+
+It is on the socket, under three names:
+
+```ts
+const { messageId } = await sock.webView(jid, {
+    html: page,                 // your full HTML document, sent byte-for-byte
+    title: 'Order status',      // optional: disclaimer text + notification preview
+    label: 'tap to open',       // optional: preview line on the card
+    forwarded: false            // optional: no "Forwarded" badge
+})
+
+await sock.web(jid, { html: page })            // same method
+await sock.sendHtmlWebview(jid, { html: page }) // the name it shipped under first
+```
+
+The standalone function still exists for code that already holds the socket:
+
+```ts
+import { webView } from '@teamolduser/baileys'
+
+const { messageId } = await webView(sock, jid, { html: page })
+```
+
+| Option | Meaning |
+| --- | --- |
+| `html` | the page — required, passed through untouched |
+| `title` | `messageDisclaimerText` + notification preview |
+| `label` | the submessage preview on the card |
+| `forwarded` | `true` (default) = Meta-AI forward styling, `false` = clean origin |
+| `quoted` | quote an existing message |
+| `messageId` | reuse a specific id instead of generating one |
+
+`sock.webView`, `sock.web` and `sock.sendHtmlWebview` are the same bound method, and `webView(sock, jid, options)`,
+`web(sock, jid, options)`, `sendHtmlWebview(sock, jid, options)` are the same standalone function. Both forms send an
+identical payload.
+
+Two stanzas go out and both are needed: the `botForwardedMessage` rich response, then a `protocolMessage` **type-14
+edit** of that same message id. The second is what makes the client render the page — send only the first and the card
+never opens.
+
+Validation is not done here. If you want a page checked before sending, run your own check first — this function sends
+what you give it.
+
+_Also published at [docs/wiki/webview.md](../docs/wiki/webview.md)_
+
+### Account health signals
+
+[← back to the README](../README.md)
+
+### 🛡️ Account health signals
+
+WhatsApp tracks how an account reaches out to people it has never talked to, and tells its client where it stands. Reading those two signals is far more dependable than guessing a safe pause.
+
+Both are the same `w:mex` queries WA Web runs, so the answer comes from WhatsApp's server, not from a local count:
+
+| Function | Persisted query | When it can be called |
+| --- | --- | --- |
+| `fetchNewChatMessageCap()` | `WAWebMexFetchNewChatMessageCappingInfoJobQuery` (`27910975521856601`) | any time after connecting |
+| `fetchAccountReachoutTimelock()` | `WAWebMexFetchReachoutTimelockJobQuery` (`23983697327930364`) | any time after connecting |
+
+#### New-chat quota
+
+```js
+const cap = await sock.fetchNewChatMessageCap()
+```
+
+What comes back:
+
+| Field | Meaning |
+| --- | --- |
+| `status` | `NONE` → `FIRST_WARNING` → `SECOND_WARNING` → `CAPPED`, WhatsApp's own escalation ladder |
+| `capped` | `true` once `status` is `CAPPED`: sending to new chats is refused |
+| `warned` | `true` on both `FIRST_WARNING` and `SECOND_WARNING` |
+| `unlimited` | `true` when the server sent no quota (or a negative one), so there is nothing to count down |
+| `totalQuota` | the new-chat allowance for one cycle |
+| `usedQuota` | how much of it the cycle has used |
+| `remaining` | `totalQuota - usedQuota`, never negative; `null` when `unlimited` |
+| `cycleStart`, `cycleEnd` | start and end of the cycle, **unix seconds** — multiply by 1000 for `new Date` |
+| `serverTime` | the server clock when it answered, to compare `cycleEnd` without trusting your machine's clock |
+| `oteStatus`, `mvStatus`, `subscriptionStatus` | verification and subscription status that ride along in the answer |
+| `response` | the raw reply, if you want a field that is not mapped yet |
+
+Only **starting** a chat with a number you have never talked to uses the quota. Replying in a conversation someone else started does not count, and neither does sending again to an existing chat.
+
+Worth knowing: this query asks for one kind of quota, `INDIVIDUAL_NEW_CHAT_THREAD` — the new-chat **thread** quota, not a message count. Earlier Anya builds sent `INDIVIDUAL_NEW_CHAT_MSG`, a name no WhatsApp client has, which is why the call could come back with an error or empty numbers, and returned the raw reply without the fields above. The server also pushes this state on its own as the `message-capping.update` event (the raw payload, snake_case). A send that WhatsApp refuses because of the quota (ack error `475`) raises the same event with `capping_status: 'CAPPED'`, the `jid` and the `messageId` of the rejected message, and is never retried.
+
+#### Reachout timelock
+
+```js
+const lock = await sock.fetchAccountReachoutTimelock()
+```
+
+| Field | Meaning |
+| --- | --- |
+| `isActive` | the account is currently restricted from contacting new people |
+| `timeEnforcementEnds` | a `Date` for when the restriction lifts, `undefined` when the server sends `0` |
+| `enforcementType` | the reason — `BIZ_QUALITY` is quality-based, `BIZ_COMMERCE_VIOLATION_*` are policy categories |
+
+Calling it also emits `connection.update`, so one call informs the whole bot. The state also arrives unasked:
+
+```js
+sock.ev.on('connection.update', ({ reachoutTimeLock }) => {
+  if (reachoutTimeLock?.isActive) stopSending()
+})
+```
+
+#### Using it as a guard
+
+```js
+const guard = async () => {
+  const lock = await sock.fetchAccountReachoutTimelock()
+  if (lock.isActive) return { send: false, reason: 'reachout timelock until ' + lock.timeEnforcementEnds }
+
+  const cap = await sock.fetchNewChatMessageCap()
+  if (cap.capped) return { send: false, reason: 'new-chat quota used up until ' + new Date(cap.cycleEnd * 1000) }
+  if (cap.warned) return { send: false, reason: 'WhatsApp has already warned this account: ' + cap.status }
+  if (cap.remaining !== null && cap.remaining < 10) return { send: false, reason: 'only ' + cap.remaining + ' left in this cycle' }
+
+  return { send: true, remaining: cap.remaining }
+}
+```
+
+Check before a round and again every batch — `SECOND_WARNING` is the last state before the quota lands, so stopping there is the difference between a pause and a block.
+
+> [!NOTE]
+> Bulk sending through an unofficial client is outside WhatsApp's Terms of Service, whatever the recipients agreed to. The sanctioned route for opt-in bulk sending is the WhatsApp Business Platform. These signals reduce the chance of tripping an automatic limit; they do not make an account safe.
+
+---
+
+_Also published at [docs/wiki/account-health.md](../docs/wiki/account-health.md)_
+
+### Pairing code
+
+Instead of scanning a QR code you can pair with an 8-character code. The flow is: open the socket, wait for the
+`pair-device` stanza, then ask for the code with the phone number in international format (digits only).
+
+```ts
+const sock = makeWASocket({ auth: state, printQRInTerminal: false })
+
+if (!sock.authState.creds.registered) {
+	const phoneNumber = '919876543210' // country code + number, no +, no spaces
+	const code = await sock.requestPairingCode(phoneNumber)
+	console.log('enter on the phone:', code) // e.g. 'ABCD-1234'
+}
+```
+
+#### The request is confirmed by the server
+
+`requestPairingCode` does not invent the code locally — it sends an IQ and the server answers with the code. If you call
+it before the socket has received `pair-device`, the IQ fails with a 404 or times out. That is what
+`createPairingQueue` in `src/Addons/pairing-fix.ts` exists for: it queues the call until the socket is actually ready.
+
+```ts
+import { createPairingQueue } from '@teamolduser/baileys'
+
+const pq = createPairingQueue(sendPairingIQ) // sendPairingIQ is the raw IQ sender
+// in the pair-device handler:
+pq.setReady()
+// in the connection-close handler:
+pq.clear()
+
+const code = await pq.requestPairingCode('919876543210')
+```
+
+#### One code at a time
+
+A pairing code is valid for one attempt. Requesting a second code while the first is still pending returns `409` from
+the server, and the phone shows nothing. Wait for the attempt to finish — success, failure, or the code expiring —
+before asking again.
+
+#### A custom code
+
+The second argument lets you choose the code, which is handy for testing. It still has to be accepted by the server, so
+stick to the same alphabet the default uses (uppercase letters and digits, eight characters):
+
+```ts
+const code = await sock.requestPairingCode('919876543210', 'ANYA1234')
+```
+
+#### Checking pairing without touching the running bot
+
+Pairing mutates the credentials file, so never pair against the same auth folder a live bot is using. Copy the folder
+first, pair on the copy, and inspect the result:
+
+```bash
+cp -r ./auth ./auth-check
+### point a throwaway script at ./auth-check, pair, then read auth-check/creds.json
+```
+
+`node scripts/live-check.mjs --check 1` does exactly this — it pairs a copy and reports what came back.
+
+_Also published at [docs/wiki/pairing.md](../docs/wiki/pairing.md)_
+
+### AnchorGuard
+
+An **anti-force-close guard**, ported from Elaina Baileys. It watches the messages going in and out, spots the payloads
+that make WhatsApp Web or the phone app crash, and deletes them before anyone opens them. Optionally it blocks the
+sender, kicks them from a group, and catches the "spam-add" attack where a group is flooded with Meta AI numbers.
+
+It does **not** keep your bot process alive — a bot renders no UI, so a crash payload cannot kill it. The guard protects
+the people on the other end of the socket.
+
+The guard package ships with this one, so there is nothing extra to install:
+
+```ts
+const sock = makeWASocket({
+	auth: state,
+	AnchorGuard: true,
+	AnchorGuardConfig: {
+		autoDelete: true,
+		guardIncoming: true,
+		guardOutgoing: true,
+		blockOnBug: true,
+		kickOnBug: true,
+		onDetect: ({ direction, jid, sender, reasons }) => console.log('[guard]', direction, jid, reasons)
+	}
+})
+```
+
+Once attached the handle is `sock.anchorGuard`; `sock.anchorGuard.stop()` detaches every hook.
+
+#### How it works
+
+| Hook | What it does |
+|---|---|
+| `messages.upsert` | scans every incoming message; a flagged one is deleted before your handler sees it |
+| `sock.sendMessage` (wrapped) | scans outgoing content and throws instead of sending a payload that would crash the recipient |
+| `group-participants.update` | watches member additions for the Meta AI spam-add attack |
+
+| Situation | Response |
+|---|---|
+| Group, bot is admin | delete for everyone (revoke) + kick the sender + block the sender |
+| Group, bot is not admin | delete for me + block the sender |
+| Direct chat | delete for me + block the sender |
+| Your own message (`fromMe`) | revoked, no block |
+
+WhatsApp does not let you revoke someone else's message unless you are an admin, which is why the non-admin path falls
+back to delete-for-me.
+
+#### Options
+
+Every key goes in `AnchorGuardConfig`. Defaults are the package's own.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `autoDelete` | `true` | delete a flagged message automatically |
+| `revokeForEveryoneIfAdmin` | `true` | in a group, revoke when the bot is admin; otherwise delete-for-me |
+| `kickOnBug` | `true` | kick the sender from the group (needs admin) |
+| `blockOnBug` | `true` | block the sender (never your own number) |
+| `guardIncoming` | `true` | scan `messages.upsert` |
+| `guardOutgoing` | `true` | wrap `sendMessage` and refuse dangerous payloads |
+| `groupMetadata` | `null` | `async jid => metadata`, so admin checks can use your cache |
+| `selfOnly` | `false` | only guard your own chat |
+| `burstThreshold` | `2` | flagged messages from one sender before escalating |
+| `burstWindowMs` | `60000` | the burst window |
+| `leaveGroupOnBurst` | `false` | leave the group when a kick keeps failing during a burst |
+| `cooldownMs` | `15000` | quiet period for repeated logs from the same chat |
+| `guardGroupAdds` | `true` | watch `group-participants.update` for adds |
+| `autoKickBadAdds` | `true` | kick a dangerous number the moment it is added (needs admin) |
+| `metaAiNumbers` | `true` | treat Meta AI numbers (`1313555…`) as a dangerous add |
+| `addWatchlist` | `[]` | extra numbers to kick on sight when added |
+| `ownJid` | `sock.user.id` | your own jid |
+| `thresholds` | `{}` | override the detection limits from `ANTIBUG_DEFAULTS` |
+| `onDetect` | `null` | called with `{ direction, jid, sender, reasons }` |
+| `proto` | `null` | pass Baileys' `proto` to also check the encoded protobuf size |
+
+#### Detection without a socket
+
+```ts
+import { detectBug } from '@rexxhayanasi/elaina-anchorguard'
+
+const { flagged, reasons } = detectBug(msg.message)
+if (flagged) console.log('crash payload:', reasons)
+```
+
+#### What it catches
+
+Control and null bytes (`\u0000`, C0/C1); floods of combining or invisible / zero-width / RTL characters; giant text or
+captions and excess newlines; mention bombs; native-flow, list and carousel messages with too many buttons or rows;
+broken `buttonParamsJson`; AIRich with too many submessages; invalid location coordinates; oversized polls and contact
+arrays; `NaN` / `Infinity` in any field; wrapper nesting that is too deep; oversized or circular structures; an encoded
+protobuf over the limit when `proto` is passed.
+
+#### Limits, honestly
+
+Best effort, not a guarantee — antivirus, not a firewall. It catches known crash patterns plus structural heuristics; a
+new vector needs a package update. `thresholds` is there so a legitimately long message does not trip it, but lowering
+them weakens the protection.
+
+It ships as a dependency, but the import is still lazy and guarded: if the package is somehow missing from
+`node_modules`, the socket does **not** throw — it logs a warning through `sock.logger` naming the package and carries
+on without a guard. Attach your own logger to see that warning.
+
+### External ad reply
+
+`externalAdReply` renders the card above a message — thumbnail, title, body, and a link. It is a *content* field, so it
+goes next to the text you are sending:
+
+```ts
+await sock.sendMessage(jid, {
+	text: 'Have a look',
+	externalAdReply: {
+		title: 'Anya Baileys',
+		body: 'WhatsApp Multi-Device for Node.js',
+		mediaType: 1,
+		mediaUrl: 'https://example.com/thumb.jpg',
+		thumbnailUrl: 'https://example.com/thumb.jpg',
+		sourceUrl: 'https://github.com/Teamolduser/Baileys',
+		showAdAttribution: false
+	}
+})
+```
+
+#### Why the card sometimes does not appear
+
+| Symptom | Cause |
+|---|---|
+| Card missing entirely | `mediaType` set but no usable thumbnail — the client drops the whole card |
+| Only the text arrives | `externalAdReply` placed inside `contextInfo` instead of next to `text` |
+| Thumbnail blank but title shows | the image URL is not reachable from the phone, or is not JPEG/PNG |
+| "via ad" label appears | `showAdAttribution: true` — see below |
+
+The most reliable shape is a real, reachable image URL plus `mediaType: 1`. If you have the image as a buffer, upload it
+and use the returned URL rather than a local path.
+
+#### Click-to-WhatsApp and the "via ad" label
+
+`showAdAttribution` marks the message as coming from an advertisement. Two things that look alike but are not:
+
+- the **card** — built by `externalAdReply`, available to any bot
+- the **"via ad" label** — added by WhatsApp when a message is sent through the click-to-WhatsApp flow
+
+A bot can render the card; it cannot legitimately produce the ad label. Setting `showAdAttribution: true` on a normal
+message does not make it a real ad, and WhatsApp treats it as a mismatch. Leave it `false`.
+
+_Also published at [docs/wiki/ad-reply.md](../docs/wiki/ad-reply.md)_
+
+### Rich link cards and status previews
+
+A link preview is a thumbnail plus a title, description and canonical URL, attached to the text. `sendMessage` builds
+one for you when you pass `linkPreview`; the extras in `src/Extras/link-preview-metadata.ts` let you build and read the
+payload yourself.
+
+```ts
+import { buildSocialPreview, readSocialPreview } from '@teamolduser/baileys'
+
+const preview = buildSocialPreview({
+	url: 'https://github.com/Teamolduser/Baileys',
+	title: 'Anya Baileys',
+	description: 'WhatsApp Multi-Device for Node.js',
+	// jpegThumbnail or thumbnailUrl
+})
+
+await sock.sendMessage(jid, { text: 'https://github.com/Teamolduser/Baileys', ...preview })
+```
+
+Reading one back out of a received message:
+
+```ts
+const preview = readSocialPreview(msg.message)
+// { url, title, description, mediaType, ... } or undefined
+```
+
+For statuses the preview style is a separate field — a status link preview can be styled independently of a chat
+message, and mixing the two shapes is the usual reason a status shows the link but no card.
+
+_Also published at [docs/wiki/link-previews.md](../docs/wiki/link-previews.md)_
+
+### A2UI cards
+
+A2UI is the card format Meta uses for rich, structured replies. The builders live in
+`src/Extras/MessageBuilder/extras.ts` and produce the node tree the spec expects.
+
+```ts
+import { a2uiText, a2uiImage, A2UI_BASIC_CATALOG, BLOKS_A2UI_TYPE } from '@teamolduser/baileys'
+
+const card = {
+	type: BLOKS_A2UI_TYPE,
+	catalog: A2UI_BASIC_CATALOG,
+	body: [
+		a2uiImage('img', 'https://example.com/cover.jpg'),
+		a2uiText('title', 'Anya Baileys', { variant: 'heading' }),
+		a2uiText('body', 'Multi-device socket, MessageBuilder and channels.')
+	]
+}
+```
+
+| Export | Purpose |
+|---|---|
+| `BLOKS_A2UI_TYPE` | the `im_a2ui` type string the client expects |
+| `BLOKS_A2UI_REPLY_ACTION` | action id used when the user taps the card |
+| `A2UI_BASIC_CATALOG` | the v0.9 basic catalog URL |
+| `a2uiText(id, text, { variant })` | a text node (`body`, `heading`, …) |
+| `a2uiImage(id, url, { variant, fit })` | an image node; throws on an empty URL |
+
+Cards are validated by the client, not by us — a node with an unknown `variant` or a missing id is dropped silently, so
+send one card to a test number before wiring it into a flow.
+
+_Also published at [docs/wiki/a2ui.md](../docs/wiki/a2ui.md)_
+
+### Message types
+
+Most messages are **not** `conversation`. A disappearing message, a view-once, an edited message and a captioned document
+all wrap the real content one or more levels deep. Reading `msg.message.conversation` is therefore the single most common
+source of "my bot receives nothing".
+
+```ts
+import { extractMessageContent, extractMessageText } from '@teamolduser/baileys'
+
+const inner = extractMessageContent(msg.message) // unwraps ephemeral / viewOnce / edited / documentWithCaption
+const text = extractMessageText(msg.message)     // '' when there is no text at all
+```
+
+The wrapper keys `extractMessageContent` handles:
+
+```
+ephemeralMessage, viewOnceMessage, viewOnceMessageV2, viewOnceMessageV2Extension,
+documentWithCaptionMessage, editedMessage, associatedChildMessage,
+groupStatusMessage, groupStatusMessageV2, spoilerMessage, lottieStickerMessage
+```
+
+If you are branching on the type yourself, check the wrapper first, then the content — never assume the top level.
+
+_Also published at [docs/wiki/message-types.md](../docs/wiki/message-types.md)_
+
+### Message content keys
+
+The keys `sendMessage` accepts, with the shape each one expects. Anything not listed here is a wrapper — use
+`extractMessageContent` before reading it.
+
+| Key | Sends |
+|---|---|
+| `text` | plain text |
+| `image` / `video` | `Buffer` or `{ url }`, plus `caption` |
+| `audio` | `Buffer` or `{ url }`, plus `ptt: true` for a voice note |
+| `document` | `Buffer` or `{ url }`, plus `fileName`, `mimetype` |
+| `sticker` | `Buffer` or `{ url }` |
+| `location` | `{ degreesLatitude, degreesLongitude }` |
+| `contacts` | `{ displayName, contacts: [{ vcard }] }` |
+| `reaction` | `{ text, key }` |
+| `poll` | `{ name, values, selectableCount }` |
+| `pollResult` / `pollUpdate` | a vote |
+| `delete` | `{ remoteJid, fromMe, id }` — a revoke |
+| `edit` | `{ text, ... }` on a message you sent |
+| `forward` | `{ key }` |
+| `disappearingMessagesInChat` | the timer for a chat |
+| `buttons` / `templateButtons` / `sections` | legacy interactive payloads |
+| `listMessage` / `buttonsMessage` / `templateMessage` | pre-built protos |
+| `externalAdReply` | the ad-style card |
+| `viewOnce` | wrap a media message as view-once |
+| `ptv` | a video note |
+| `album` | several media items in one send |
+
+Wrapper keys you will *receive* (never send these as content):
+
+```
+ephemeralMessage, viewOnceMessage, viewOnceMessageV2, viewOnceMessageV2Extension,
+documentWithCaptionMessage, editedMessage, associatedChildMessage,
+groupStatusMessage, groupStatusMessageV2, spoilerMessage, lottieStickerMessage
+```
+
+_Also published at [docs/wiki/content-keys.md](../docs/wiki/content-keys.md)_
+
+### Modern message API
+
+The ported modern content types, each with its own builder. They are plain content keys, so they go through
+`sock.sendMessage` like anything else.
+
+| Builder | Sends |
+|---|---|
+| `makeQuestionMessage` | a question prompt with answers |
+| `makeQuestionResponseMessage` | a response to a question |
+| `makeQuestionReplyMessage` | a reply inside a question thread |
+| `makePollAddOptionMessage` | adds an option to a running poll |
+| `makeStatusMentionMessage` | mentions someone in a status |
+| `makeStatusQuotedMessage` | quotes a status |
+| `makeStatusStickerInteractionMessage` | sticker reaction on a status |
+| `makeStatusNotificationMessage` | a status notification |
+| `makeStatusAudienceMetadata` | custom audience (close friends) |
+| `makeStatusAddYoursAssociation` | the "add yours" prompt |
+| `makeGroupStatusReactionMessage` | group status reaction |
+| `makeCommentMessage` | comment on a channel post |
+| `makeEventInviteMessage` | event invite |
+| `makeScheduledCallCreationMessage` / `makeScheduledCallEditMessage` | scheduled calls |
+| `makeNewsletterAdminInviteMessage` | channel admin invite |
+| `makeNewsletterFollowerInviteMessage` | channel follower invite |
+
+```ts
+import { makeQuestionMessage } from '@teamolduser/baileys'
+
+await sock.sendMessage(jid, makeQuestionMessage({
+	question: 'Which release should I ship?',
+	options: ['v1', 'v2', 'neither']
+}))
+```
+
+Each builder validates its own inputs and throws a named error rather than sending a malformed proto — a rejected
+payload from the server gives you much less to work with.
+
+_Also published at [docs/wiki/modern-messages.md](../docs/wiki/modern-messages.md)_
+
+### Scheduled messages
+
+Scheduled messages are client-side: a job queue that fires `sendMessage` at the right time. Nothing is stored on
+WhatsApp's side, so a bot that is offline when the time comes does not send it.
+
+```ts
+import { attachSchedulerSendFn, scheduleMessage, scheduleMessageAfter } from '@teamolduser/baileys'
+
+attachSchedulerSendFn((jid, content, options) => sock.sendMessage(jid, content, options))
+
+const job = scheduleMessage({
+	jid,
+	content: { text: 'Good morning' },
+	sendAt: new Date('2026-11-10T03:30:00Z'),
+	repeatIntervalMs: 24 * 60 * 60 * 1000, // optional: daily
+	maxRepeats: 30
+})
+
+// or relative
+scheduleMessageAfter({ jid, content: { text: 'in 10 minutes' }, delayMs: 600_000 })
+```
+
+| Helper | Use |
+|---|---|
+| `scheduleMessage({ jid, content, sendAt })` | send at a date/time |
+| `scheduleMessageAfter({ jid, content, delayMs })` | send after a delay |
+| `getAllScheduledMessages()` | list pending jobs |
+| `cancelScheduledMessage(id)` / `cancelAllScheduledMessages()` | cancel |
+| `createMessageScheduler()` | a manager instance instead of module-level state |
+
+_Also published at [docs/wiki/scheduled-messages.md](../docs/wiki/scheduled-messages.md)_
+
+### Group administration
+
+Every group call takes the group jid (`…@g.us`). The full set, as it exists on the socket:
+
+#### Reading a group
+
+```ts
+const meta = await sock.groupMetadata(jid)
+// { id, subject, desc, owner, participants: [{ id, admin, lid }], addressingMode, ... }
+
+// every group this account is in, in one call
+const all = await sock.groupFetchAllParticipating()
+```
+
+`groupMetadata` is cached by the socket for a short while — if you need fresh participants right after a change, wait
+for the `groups.update` event instead of polling.
+
+#### Creating, leaving, renaming
+
+```ts
+const group = await sock.groupCreate('Support', ['919876543210@s.whatsapp.net'])
+await sock.groupUpdateSubject(group.id, 'Support — tier 1')
+await sock.groupUpdateDescription(group.id, 'First line support')
+await sock.groupLeave(group.id)
+```
+
+#### Participants
+
+```ts
+await sock.groupParticipantsUpdate(jid, ['919876543210@s.whatsapp.net'], 'add')      // or 'remove' | 'promote' | 'demote'
+```
+
+The server answers per participant: `200` added, `403` invite sent instead (privacy setting), `408` left recently,
+`409` already in the group, `500` group full. Always read the result array — a `200` for one participant does not mean
+the rest worked.
+
+#### Invites
+
+```ts
+const code = await sock.groupInviteCode(jid)        // e.g. 'AbCdEf123'
+const info = await sock.groupGetInviteInfo(code)    // subject, size, participants
+await sock.groupRevokeInvite(jid)                   // old link stops working
+await sock.groupAcceptInvite(code)                  // join
+```
+
+`groupInviteCode` fails with `403` when you are not an admin and the group restricts links.
+
+#### Join requests
+
+Groups with approval on queue joiners:
+
+```ts
+const pending = await sock.groupRequestParticipantsList(jid)
+await sock.groupRequestParticipantsUpdate(jid, [pending[0].jid], 'approve') // or 'reject'
+```
+
+#### Settings
+
+```ts
+await sock.groupSettingUpdate(jid, 'announcement')       // only admins can send
+await sock.groupSettingUpdate(jid, 'not_announcement')   // everyone can send
+await sock.groupSettingUpdate(jid, 'locked')             // only admins can edit group info
+await sock.groupMemberAddMode(jid, 'all_member_add')     // or 'admin_add'
+await sock.groupJoinApprovalMode(jid, 'on')              // or 'off'
+await sock.groupToggleEphemeral(jid, 86400)              // disappearing: 0 | 86400 | 604800 | 7776000
+```
+
+#### Ephemeral and addressing
+
+`addressingMode` decides whether the group is addressed by lid or by phone-number jid. Read it from `groupMetadata`
+before constructing participant jids; `splitJidsByType` from the lid-support addon does the split for you.
+
+_Also published at [docs/wiki/groups.md](../docs/wiki/groups.md)_
+
+### Communities
+
+A community is a container with linked groups. Same shape as groups, prefixed `community…`:
+
+```ts
+const community = await sock.communityCreate('Anya users', 'Everything about the library')
+await sock.communityCreateGroup(community.id, 'Announcements', ['919876543210@s.whatsapp.net'])
+await sock.communityLinkGroup(community.id, existingGroupJid)
+await sock.communityUnlinkGroup(community.id, existingGroupJid)
+
+const meta = await sock.communityMetadata(community.id)
+const groups = await sock.communityFetchLinkedGroups(community.id)
+const all = await sock.communityFetchAllParticipating()
+```
+
+Invites, participants, settings and ephemeral work exactly like groups:
+
+```ts
+await sock.communityParticipantsUpdate(community.id, [jid], 'add')
+await sock.communitySettingUpdate(community.id, 'announcement')
+await sock.communityToggleEphemeral(community.id, 86400)
+await sock.communityUpdateSubject(community.id, 'Anya users — official')
+await sock.communityUpdateDescription(community.id, 'Rules and releases')
+await sock.communityRequestParticipantsUpdate(community.id, [jid], 'approve')
+await sock.communityLeave(community.id)
+```
+
+_Also published at [docs/wiki/communities.md](../docs/wiki/communities.md)_
+
+### Chat state, labels and history
+
+#### Chat helpers
+
+`makeChatsExtras(sock)` adds the chat-level operations that are not on the socket: clearing a message modification,
+reporting spam, and reading the result back.
+
+```ts
+import { makeChatsExtras, SPAM_FLOWS } from '@teamolduser/baileys'
+
+const chats = makeChatsExtras(sock)
+
+await chats.reportSpam(jid, { flow: SPAM_FLOWS.OverflowMenuReport })
+```
+
+#### Labels
+
+Business accounts can tag chats with labels. The label helpers are part of the chats extras; the newsletter extras carry
+the channel equivalents.
+
+```ts
+await chats.addLabel(jid, labelId)
+await chats.removeLabel(jid, labelId)
+```
+
+#### History and resync
+
+When a bot restarts with an old auth state, WhatsApp may send an abbreviated history sync. If chats look empty:
+
+1. check `creds.accountSyncCounter` — a low number means the account never finished syncing
+2. do not delete the auth folder to "force" a resync; that costs a re-pair
+3. `sock.ev.on('messaging-history.set', …)` tells you what actually arrived
+
+_Also published at [docs/wiki/chat-state.md](../docs/wiki/chat-state.md)_
+
+### Privacy and disappearing messages
+
+#### Disappearing messages
+
+The timer is per chat, in seconds, and only a fixed set is accepted:
+
+```ts
+import { DISAPPEARING_DURATIONS, normalizeDisappearingDuration } from '@teamolduser/baileys'
+
+await sock.sendMessage(jid, { disappearingMessagesInChat: 86400 })
+```
+
+| Value | Meaning |
+|---|---|
+| `0` | off |
+| `86400` | 24 hours |
+| `604800` | 7 days |
+| `7776000` | 90 days |
+
+`normalizeDisappearingDuration` takes a **number** and converts the shorthands the socket accepts:
+
+| Input | Result |
+|---|---|
+| `0` | `0` (off) |
+| `1` or `24` | `86400` |
+| `7` | `604800` |
+| `30` | `2592000` |
+| `90` | `7776000` |
+| anything else | treated as seconds already |
+
+A non-numeric string (`'24h'`, `'off'`) throws a `Boom` with status 400 — it does not parse human shorthands, so convert
+those yourself before calling it.
+
+#### Blocking and reporting
+
+```ts
+await sock.updateBlockStatus(jid, 'block')   // or 'unblock'
+await sock.reportSpam(jid, { flow: SPAM_FLOWS.OverflowMenuReport })
+```
+
+Reporting is one-way and not reversible from the API; the result comes back as a node you read with
+`readSpamReportResult`.
+
+#### What a bot cannot change
+
+Privacy settings (last seen, profile photo, read receipts, group add permissions) live on the account, not the socket.
+The API can read them in some cases but cannot set them — telling users otherwise is the usual source of bug reports.
+
+_Also published at [docs/wiki/privacy.md](../docs/wiki/privacy.md)_
+
+### Presence and read receipts
+
+```ts
+await sock.sendPresenceUpdate('composing', jid)   // typing…
+await sock.sendPresenceUpdate('paused', jid)      // stopped
+await sock.sendPresenceUpdate('available')        // online
+await sock.sendPresenceUpdate('unavailable')      // offline
+
+await sock.presenceSubscribe(jid)                 // ask for their presence
+await sock.readMessages([msg.key])                // blue ticks
+```
+
+Presence arrives as events:
+
+```ts
+sock.ev.on('presence.update', ({ id, presences }) => {
+	const state = presences[id]?.lastKnownPresence // 'available' | 'composing' | 'unavailable' | …
+})
+```
+
+#### Checking a number
+
+```ts
+const [result] = await sock.onWhatsApp('919876543210')
+// { jid, exists: true } or { exists: false }
+```
+
+This is the only supported way to test whether a number is on WhatsApp. Building a jid and sending to it works for
+numbers that are registered, but fails silently otherwise.
+
+#### Read receipts
+
+`sock.readMessages` only accepts messages you actually received. Calling it with a key you sent is a no-op, which is why
+"my bot does not mark chats read" usually means the key came from the wrong place.
+
+_Also published at [docs/wiki/presence.md](../docs/wiki/presence.md)_
+
+### Profile photos
+
+```ts
+// read the URL of someone's picture
+const url = await sock.profilePictureUrl(jid, 'image')
+
+// change your own
+import { generateProfilePictureFull, updateProfilePictureFull } from '@teamolduser/baileys'
+
+const { img } = await generateProfilePictureFull(buffer) // resized and encoded the way WA wants it
+await sock.updateProfilePicture(sock.user.id, img)
+await updateProfilePictureFull(sock.user.id, buffer, sock) // full-quality variant
+
+// remove it
+await sock.removeProfilePicture(jid)
+```
+
+`generateProfilePictureFull` is the important one: WhatsApp rejects pictures outside its size and aspect rules, and the
+helper produces a payload the server accepts. Passing a raw buffer straight to `updateProfilePicture` usually fails
+silently.
+
+_Also published at [docs/wiki/profile-photos.md](../docs/wiki/profile-photos.md)_
+
+### Business, catalog and labels
+
+Business accounts get product and label calls on top of the normal surface.
+
+#### Products
+
+```ts
+const { products } = await sock.getCatalog({ jid: businessJid })
+await sock.productCreate({ name: 'Anya Pro', price: 900, currency: 'INR', … })
+await sock.productUpdate(productId, { price: 1200 })
+await sock.productDelete([productId])
+```
+
+Prices are in the smallest unit of the currency (`900` = ₹9.00 for INR, `900` = $9.00 for USD) — the same `offset`
+convention `money()` from the payment extras uses.
+
+#### Profile and quick replies
+
+```ts
+await sock.updateProfileStatus('Back at 6')
+await sock.updateProfileName('Support bot')
+await sock.updateBusinessProfile({ address: '…', email: '…', description: '…' })
+
+await sock.addOrEditQuickReply({ shortcut: '/hours', message: 'We are open 9–6 IST' })
+const replies = await sock.getQuickReply()
+```
+
+#### Group member labels
+
+Member labels are the business tags shown next to a participant:
+
+```ts
+await sock.updateMemberLabel(jid, 'VIP')
+await sock.updateMemberLabel(jid, '')   // clear
+```
+
+#### Re-fetching expired media
+
+Media URLs expire. Re-request instead of re-downloading from a saved URL:
+
+```ts
+await sock.updateMediaMessage({ key: msg.key, message: msg.message })
+```
+
+_Also published at [docs/wiki/business.md](../docs/wiki/business.md)_
+
+### Channel administration
+
+`newsletter.md` in the wiki lists all 55 methods. The ones used most:
+
+```ts
+const channel = await sock.newsletterCreate('Anya releases', 'Notes and versions')
+await sock.newsletterMetadata('JID', channelJid)
+await sock.newsletterFollow(channelJid)
+await sock.newsletterMute(channelJid)          // or newsletterUnmute
+await sock.newsletterUpdateName(channelJid, 'Anya releases — v2')
+await sock.newsletterUpdateDescription(channelJid, 'Changelog')
+await sock.newsletterReactMessage(channelJid, serverId, '👍')
+await sock.newsletterAdminCount(channelJid)
+await sock.newsletterChangeOwner(channelJid, newOwnerJid)
+```
+
+Channels use a **server id** for messages, not a message key. `toNewsletterServerId` converts one to the other, and
+`NEWSLETTER_SERVER_ID_MIN` / `MAX` bound the range the API accepts.
+
+_Also published at [docs/wiki/channels.md](../docs/wiki/channels.md)_
+
+### Calls in depth
+
+Signalling only — the audio and video themselves are yours to carry.
+
+```ts
+const call = await sock.offerCall(jid, { isVideo: false })
+sock.ev.on('call', async events => {
+	for (const event of events) {
+		if (event.status === 'offer') await sock.acceptCall(event.id, event.from)
+		if (event.status === 'terminate') { /* clean up */ }
+	}
+})
+
+await sock.rejectCall(callId, callFrom)
+await sock.terminateCall(callId, callFrom)
+```
+
+| Method | Use |
+|---|---|
+| `offerCall(jid, { isVideo })` | start a call |
+| `acceptCall(id, from)` | answer |
+| `rejectCall(id, from)` | decline |
+| `terminateCall(id, from)` | hang up |
+
+#### Group calls and screen sharing
+
+Group calls go through the relay in `src/Socket/Client`. Screen sharing is a video call with a screen track; the
+`voip.md` wiki page has the signalling sequence, and `voipDiagnostics` records timelines when you need to see what the
+server actually said:
+
+```ts
+sock.voipDiagnostics.logFile = './voip-debug.log' // opt-in
+```
+
+_Also published at [docs/wiki/calls-deep.md](../docs/wiki/calls-deep.md)_
+
+### Event reference
+
+Every event the socket emits, with the payload shape. `sock.ev.on(name, handler)` — the handler gets one object.
+
+#### Connection and credentials
+
+| Event | Payload | Fires when |
+|---|---|---|
+| `connection.update` | `{ connection, lastDisconnect, isNewLogin, qr, receivedPendingNotifications }` | the socket connects, reconnects, or drops |
+| `creds.update` | — | the credentials changed and should be saved (`saveCreds`) |
+| `messaging-history.set` | `{ chats, contacts, messages, isLatest, progress, syncType }` | history arrives after a fresh pair |
+| `messaging-history.status` | `{ syncType, progress }` | progress of the history sync |
+| `lid-mapping.update` | `{ mappings }` | a new lid ↔ phone-number mapping is learned |
+
+```ts
+sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+	if (qr) console.log('scan this:', qr)
+	if (connection === 'open') console.log('connected as', sock.user?.id)
+	if (connection === 'close') {
+		const code = (lastDisconnect?.error as Boom)?.output?.statusCode
+		if (code !== DisconnectReason.loggedOut) reconnect()
+	}
+})
+```
+
+#### Messages
+
+| Event | Payload |
+|---|---|
+| `messages.upsert` | `{ messages, type }` — `type` is `'notify'` for live messages, `'append'` for history |
+| `messages.update` | `[{ key, update }]` — status, edit, and receipt-like changes |
+| `messages.delete` | `{ keys }` (a revoke) or `{ jid, all: true }` (chat cleared) |
+| `message-receipt.update` | `[{ key, receipt }]` — delivery and read receipts |
+| `message-capping.update` | `{ … }` — new-chat send quota |
+| `link-preview.update` | `{ … }` — a link preview was resolved |
+
+```ts
+sock.ev.on('messages.upsert', ({ messages, type }) => {
+	if (type !== 'notify') return
+	for (const msg of messages) {
+		if (msg.key.fromMe) continue
+		const text = extractMessageText(msg.message) // never read .conversation directly
+		console.log(msg.key.remoteJid, text)
+	}
+})
+```
+
+#### Chats and contacts
+
+| Event | Payload |
+|---|---|
+| `chats.upsert` | `Chat[]` |
+| `chats.update` | `Partial<Chat>[]` |
+| `chats.delete` | `string[]` (jids) |
+| `contacts.upsert` | `Contact[]` |
+| `contacts.update` | `Partial<Contact>[]` |
+| `blocklist.set` | `{ blocklist }` |
+| `blocklist.update` | `{ blocklist, type }` |
+| `presence.update` | `{ id, presences }` |
+| `settings.update` | `{ … }` |
+
+#### Groups and communities
+
+| Event | Payload |
+|---|---|
+| `groups.upsert` | `GroupMetadata[]` |
+| `groups.update` | `Partial<GroupMetadata>[]` |
+| `group-participants.update` | `{ id, participants, action }` — `action` is `add`, `remove`, `promote`, `demote` |
+| `group.member-tag.update` | `{ … }` |
+| `community-owner.update` | `{ … }` |
+
+```ts
+sock.ev.on('group-participants.update', ({ id, participants, action }) => {
+	console.log(`${participants.length} ${action} in ${id}`)
+})
+```
+
+#### Channels
+
+| Event | Payload |
+|---|---|
+| `newsletter-participants.update` | `{ id, author, new_role, action }` |
+| `newsletter-settings.update` | `{ id, update }` |
+| `newsletter-admin-profile.update` | `{ id, … }` |
+| `limit-sharing.update` | `{ … }` |
+
+#### Calls
+
+| Event | Payload |
+|---|---|
+| `call` | `[{ id, from, status, isVideo, date }]` — `status` is `offer`, `ringing`, `accept`, `reject`, `terminate` |
+
+_Also published at [docs/wiki/events.md](../docs/wiki/events.md)_
+
+### Socket config reference
+
+Every option `makeWASocket` accepts, grouped by what it changes.
+
+#### Connection
+
+| Option | Default | Meaning |
+|---|---|---|
+| `version` | pinned | the WhatsApp Web version string; `scripts/update-version.ts` refreshes it |
+| `browser` | `Browsers.ubuntu('Chrome')` | the fingerprint sent on connect |
+| `connectTimeoutMs` | `60_000` | how long to wait for the handshake |
+| `defaultQueryTimeoutMs` | `60_000` | per-IQ timeout |
+| `keepAliveIntervalMs` | `30_000` | websocket keep-alive |
+| `retryRequestDelayMs` | `250` | delay between retries of one request |
+| `maxMsgRetryCount` | `5` | decrypt retries before giving up |
+| `syncFullHistory` | `false` | request the whole history on pair |
+| `shouldSyncHistoryMessage` | — | filter what is synced |
+| `markOnlineOnConnect` | `true` | appear online as soon as the socket opens |
+| `fireInitQueries` | `true` | send the initial queries (blocklist, privacy, …) |
+| `emitOwnEvents` | `false` | emit events for your own messages too |
+
+#### Auth and session
+
+| Option | Meaning |
+|---|---|
+| `auth` | the `AuthenticationState` — every adapter in this README returns one |
+| `printQRInTerminal` | show the QR in the terminal |
+| `pairingCode` / `requestPairingCode` | pair with a code instead |
+| `AnchorGuard` | opt-in anti-crash guard (see above) |
+| `AnchorGuardConfig` | options forwarded to the guard |
+
+#### Media
+
+| Option | Meaning |
+|---|---|
+| `generateHighQualityLinkPreview` | fetch a full thumbnail instead of a small one |
+| `mediaUploadTimeoutMs` | upload timeout |
+| `options` (in `sendMessage`) | per-message overrides, e.g. `{ quoted }`, `{ ephemeralExpiration }` |
+
+#### Behaviour
+
+| Option | Meaning |
+|---|---|
+| `getMessage` | callback used to re-fetch a message the store no longer has — needed for retries and decryption |
+| `cachedGroupMetadata` | supply cached group metadata to skip a round trip |
+| `enableAutoSessionRecreation` | recreate a broken signal session automatically |
+| `enableRecentMessageCache` | keep recent messages in memory for retries |
+| `logger` | a pino-compatible logger; `silent` for tests |
+
+```ts
+const sock = makeWASocket({
+	auth: state,
+	browser: Browsers.macOS('Desktop'),
+	syncFullHistory: false,
+	markOnlineOnConnect: false,
+	generateHighQualityLinkPreview: true,
+	getMessage: async key => (await store.loadMessage(key.remoteJid!, key.id!))?.message,
+	logger: pino({ level: 'warn' })
+})
+```
+
+_Also published at [docs/wiki/socket-config.md](../docs/wiki/socket-config.md)_
+
+### Framework
+
+`src/Framework` is a small, optional layer on top of the socket: a bot loop, per-chat session storage, media helpers and
+group statistics. It is plain TypeScript, uses only `better-sqlite3` (already a dependency), and nothing in it is
+required to use the socket itself.
+
+```ts
+import { Bot, MediaManager, SessionManager, SQLiteStore, StatsManager } from '@teamolduser/baileys'
+```
+
+### `SQLiteStore`
+
+The key/value store the other pieces sit on. Synchronous, because `better-sqlite3` is.
+
+```ts
+const store = new SQLiteStore('./bot.db')
+
+store.set('greeting', { text: 'hi' })   // values are JSON.stringify'd
+store.get('greeting')                   // { text: 'hi' } | undefined
+store.has('greeting')                   // boolean
+store.del('greeting')
+store.close()
+```
+
+| Method | Notes |
+|---|---|
+| `constructor(dbPath)` | opens or creates the file |
+| `set(key, value)` | always JSON — a raw string that happens to be valid JSON round-trips correctly |
+| `get(key)` | parsed value, or `undefined` |
+| `has(key)` | `true` when a value exists |
+| `del(key)` | removes one key |
+| `close()` | closes the database |
+
+### `SessionManager`
+
+Per-chat session state on top of `SQLiteStore` — one row per jid, with a read-modify-write helper.
+
+```ts
+const sessions = new SessionManager(store)
+
+sessions.set('919876543210@s.whatsapp.net', { step: 'awaiting-name' })
+sessions.get('919876543210@s.whatsapp.net')            // { step: 'awaiting-name' }
+
+sessions.update(jid, prev => ({ ...prev, step: 'done' }))  // updater gets the previous value
+sessions.has(jid)                                       // boolean
+sessions.delete(jid)
+```
+
+Keys are stored as `session_<jid>`, so a `SessionManager` and your own `SQLiteStore` keys never collide.
+
+### `MediaManager`
+
+Static helpers for the two conversions WhatsApp is picky about.
+
+```ts
+// image or video buffer -> WebP sticker, with optional pack metadata
+const sticker = await MediaManager.convertToSticker(buffer, {
+	packname: 'Anya',
+	author: 'Teamolduser'
+})
+
+// audio buffer/path -> a voice note the client will render as PTT
+const voice = await MediaManager.convertToVoiceNote(inputPathOrBuffer)
+```
+
+Both write to a temp file and shell out to `ffmpeg` when the format needs it, so `ffmpeg` must be on `PATH` for the
+video/audio paths. Images that `sharp` can handle skip the subprocess.
+
+### `StatsManager`
+
+Group activity counters, for leaderboards and quiet-member reports.
+
+```ts
+const stats = new StatsManager('./bot.db', jid => sock.groupMetadata(jid))
+
+stats.observeMessage(groupJid, userJid, isSticker)   // call from messages.upsert
+stats.getTopUsers(groupJid, 10)                      // [{ id, count }]
+stats.getTopStickers(groupJid, 10)
+await stats.getGhosts(groupJid, connected, 30)       // members quiet for 30 days
+stats.close()
+```
+
+`getGhosts` reads the participant list through the `groupMetaFn` you pass in, so it always works against current
+membership rather than a stale cache.
+
+### `Bot`
+
+A ready-made loop: connect, reconnect on disconnect, pair on first run, and expose the socket.
+
+```ts
+import { Bot } from '@teamolduser/baileys'
+
+const bot = new Bot({
+	authFolder: './auth',
+	phoneNumber: '919876543210',   // used only when the session is not registered yet
+	logger: pino({ level: 'warn' })
+})
+
+bot.on('messages.upsert', ({ messages }) => {
+	for (const msg of messages) console.log(msg.key.remoteJid)
+})
+
+await bot.start()
+```
+
+It owns the reconnect timer and the pairing flow, which is the part most bots get wrong: it waits for the socket to be
+ready before requesting a pairing code, and it backs off between reconnect attempts instead of hot-looping.
+
+### `Context`
+
+A thin wrapper passed to handlers: the socket, the message, and the parsed sender/chat ids — so a handler does not have
+to re-derive `remoteJid` and `participant` every time.
+
+```ts
+bot.on('messages.upsert', async ({ messages }) => {
+	for (const msg of messages) {
+		const ctx = Context.from(sock, msg)
+		console.log(ctx.chat, ctx.sender, ctx.text)
+	}
+})
+```
+
+### Example
+
+`src/Framework/bot-example.ts` is a runnable bot using all of the above. Copy it, point `authFolder` somewhere, and
+`node dist/Framework/bot-example.js`.
+
+_Also published at [docs/wiki/framework.md](../docs/wiki/framework.md)_
+
+### Internals
+
+A map of the folders you will end up in when something goes wrong below the socket API. None of this is required
+reading to *use* the library — it is here so a bug report can name the file it belongs to.
+
+### `src/Socket`
+
+One file per protocol area; `index.ts` assembles them into the socket you get back from `makeWASocket`.
+
+| File | Responsibility |
+|---|---|
+| `socket.ts` | the connection itself: websocket, handshake, keep-alive, QR/pairing |
+| `messages-send.ts` | `sendMessage` and every relay it builds |
+| `messages-recv.ts` | decoding incoming stanzas, decrypt, receipts, retries |
+| `groups.ts` | `group*` methods — participants, invites, settings |
+| `communities.ts` | `community*` methods |
+| `chats.ts` | chat-level operations (archive, pin, mute, read) |
+| `business.ts` / `business-mex.ts` | catalog, profile, quick replies over the `w:mex` endpoint |
+| `newsletter.ts` | the 55 channel methods |
+| `mex.ts` | the generic `w:mex` query helper the other modules use |
+| `username.ts` | the username (handle) API |
+| `Client/websocket.ts` | the socket transport, reconnect and close semantics |
+
+If a call returns `405` or `428`, the version string in `src/Defaults` is the first thing to check — the endpoints move
+with the WhatsApp Web release.
+
+### `src/Signal`
+
+The crypto layer.
+
+| File | Responsibility |
+|---|---|
+| `libsignal.ts` | the store adapter between Baileys keys and `libsignal` |
+| `lid-mapping.ts` | lid ↔ phone-number mapping, used by every `…Alt` field |
+| `Group/group_cipher.ts` | group message encrypt/decrypt |
+| `Group/group-session-builder.ts` | building a sender-key session for a group |
+| `Group/sender-key-*.ts` | the sender-key state machine (record, state, message, distribution, chain key) |
+| `Group/keyhelper.ts` | key derivation helpers |
+| `Group/ciphertext-message.ts` | the sender-key ciphertext wrapper |
+
+The sender-key files are what `pickSenderKeyRecipients` and `senderKeyResetSummary` in `src/Extras/sender-key-memory.ts`
+report on — a fan-out bug almost always ends up here.
+
+### `src/Voip`
+
+Call signalling and the WASM engine.
+
+| File | Responsibility |
+|---|---|
+| `signaling.ts` | offer / accept / reject / terminate stanzas |
+| `call-manager.ts` | call state and the event timeline |
+| `incoming-call.ts` | the receive side of an offer |
+| `relay-transport.ts` | the relay socket for media |
+| `playlist-feeder.ts` | feeding an audio queue into a call |
+| `resource-manager.ts` | the WASM engine's resources |
+| `wasm-engine.ts` / `wasm-assets.ts` | loading and verifying `whatsapp.wasm` |
+
+`npm run build` runs `scripts/verify-voip-assets.mjs`, which checks the WASM checksums — a mismatched asset is the most
+common reason calls fail to start after an upgrade.
+
+### `src/WABinary`, `src/WAM`, `src/WAUSync`
+
+| Folder | Responsibility |
+|---|---|
+| `WABinary` | the binary node encoder/decoder — `encode.ts`, `decode.ts` |
+| `WAM` | the metrics/binary-info layer that wraps outgoing nodes |
+| `WAUSync` | the usync query framework and its protocols |
+
+`WAUSync/Protocols` has one file per lookup type: `USyncContactProtocol`, `USyncDeviceProtocol`,
+`USyncDisappearingModeProtocol`, `USyncStatusProtocol`, `USyncTextStatusProtocol`, `USyncUsernameProtocol`,
+`UsyncBotProfileProtocol`, `UsyncLIDProtocol`. When a lookup returns nothing, that protocol is where it stopped.
+
+### `src/Defaults`
+
+`phonenumber-mcc.ts` is the country-code → MCC table used when building a device fingerprint. `index.ts` holds the
+WhatsApp Web version string and the default socket config.
+
+### `src/Extras/MessageBuilder/bot-signature.ts`
+
+Bot signature verification: `loadBotSignatureRoot`, `constructSignaturePayload`, `isParsableCertificateChain`,
+`verifyBotSignature`. Used when you need to prove a message really came from a verified bot account rather than one that
+merely set the header.
+
+### Reading a stack trace
+
+| Frame looks like | Area |
+|---|---|
+| `Socket/messages-recv` | decryption, retries, receipts |
+| `Socket/messages-send` | payload building, relay |
+| `Signal/Group/*` | group fan-out and sender keys |
+| `Voip/*` | call signalling |
+| `WABinary/*` | malformed node — usually a wrong field type in a hand-built proto |
+| `WAUSync/*` | a lookup returned nothing |
+| `Extras/*`, `Addons/*` | the ported helpers; each file names its source in the header |
+
+### Addons that are entry points rather than helpers
+
+Three files in `src/Addons` and `src/Utils` do not export a function — they are alternative entry points:
+
+| File | What it is |
+|---|---|
+| `Addons/voip-calling.ts` | a **standalone** voice-calling client on its own linked-device session. It opens its own socket and its own auth folder; it cannot share state with your bot socket. Use it when you want a dedicated calling session alongside a normal bot. |
+| `Addons/voip-compat.ts` | the `@innovatorssoft/baileys` naming layer over the socket-integrated VoIP engine (`sock.initiateCall()`). Nothing here starts a second engine — it only renames (`CallSession` = `ActiveCall`, plus `CallDirection` / `CallMediaType`). |
+| `Utils/message-composer.ts` | a one-line re-export of `Addons/message-composer`, kept so older import paths keep working. |
+
+### Type-only folders
+
+`src/Types` holds interfaces with no runtime code: `Bussines.ts` (catalog and profile shapes), `RichType.ts` (rich
+message payloads), `Signal.ts` (the signal key maps), `USync.ts` (usync query shapes), plus `Socket.ts`, `Events.ts`,
+`Auth.ts` and `Chat.ts` which the public API is typed against. They never need importing at runtime — `import type` only.
+
+### The remaining internals
+
+`sender-chain-key.ts`, `sender-message-key.ts`, and `sender-key-distribution-message.ts` / `sender-key-message.ts` /
+`sender-key-name.ts` / `sender-key-record.ts` / `sender-key-state.ts` under `src/Signal/Group` are the sender-key state
+machine in its individual pieces; `Voip/worker-bootstrap.ts` starts the WASM worker; `WAM/BinaryInfo.ts` describes the
+metrics wrapper; `WAUSync/USyncQuery.ts` plus `Protocols/UsyncBotProfileProtocol.ts` and `Protocols/UsyncLIDProtocol.ts`
+are the query framework and its two least-used protocols. `Socket/Client/types.ts` is the transport interface.
+
+_Also published at [docs/wiki/internals.md](../docs/wiki/internals.md)_
+
+### Useful exports
+
+A few things you will reach for once a bot grows.
+
+| Export | What it is |
+|---|---|
+| `TTLCache` | in-memory cache with per-entry expiry — safer than a plain `Map` for anything user-driven |
+| `MessageStore` | keeps a copy of received messages so deleted ones can still be read |
+| `extractMessageContent` | unwraps ephemeral / view-once / edited wrappers and returns the inner message |
+| `extractMessageText` | pulls the text out of any message type |
+| `isDeleteMessage` / `getDeletedMessageKey` | detect a revoke and find what it pointed at |
+| `getMessageType` / `getMediaType` | classify a message without a long switch |
+| `normalizeJidForSend` / `parseJid` | fix a jid before it reaches the wire |
+| `loadOptionalModule` | load a driver lazily with a helpful error when it is missing |
+
+_Also published at [docs/wiki/useful-exports.md](../docs/wiki/useful-exports.md)_
+
+### Updating the WhatsApp Web version
+
+WhatsApp Web pins a version string; when it moves, an old client starts failing with `405`/`428`. Two things keep it
+current:
+
+```bash
+node scripts/update-version.ts        # fetch the current version and write it into src/Defaults
+npm run proto:update                  # refresh the proto definitions
+```
+
+`.github/workflows/update-version.yml` runs the first daily at 00:00 IST and opens a PR with the change, and
+`proto-watch.yml` does the same for the proto. Both open a branch and a pull request rather than pushing to `master`, so
+you review the bump before it ships.
+
+### Getting a tarball
+
+`.github/workflows/tarball.yml` packs the library and hands you the file two ways: as a workflow artifact, and on a
+`tarball` branch where the URL does not expire.
+
+```bash
+# from the Actions tab, or on every push to master
+npm install https://github.com/OWNER/REPO/raw/tarball/teamolduser-baileys-1.0.0-beta.1.tgz
+```
+
+The branch always holds exactly one `.tgz` — a new run replaces the old file instead of piling up. `npm pack` output
+cannot be read with `--json` here: the `prepack` build writes to stdout and corrupts it, so the workflow takes the
+filename from `ls -t`.
+
+`publish-selected-docs.yml` ships the same tarball to the docs destination repository under `tarball/`, so that repo can
+be installed from as well.
+
+_Also published at [docs/wiki/updating-version.md](../docs/wiki/updating-version.md)_
+
+### Notable behaviour changes
+
+Things that differ from upstream Baileys, and will surprise you if you are porting code over.
+
+#### Auth state
+
+- **`list()` on every adapter.** Upstream leaves it out; here every adapter can enumerate its records, which is what
+  makes `migrateAuthState` possible.
+- **`session` on every adapter.** Omit it and the layout is byte-identical to before, so existing deployments do not
+  move.
+- **`creds.saved` in the migration result.** A bare state cannot persist itself — pass the adapter object and it is
+  saved for you.
+- **SQLite needs `dbPath`.** A missing or misspelled option throws instead of silently creating an in-memory database.
+
+#### Messages
+
+- **`extractMessageContent` first.** Wrapper keys (`ephemeralMessage`, `viewOnceMessage`, …) mean `conversation` is
+  empty for most real traffic.
+- **`sendMessage` returns the sent message.** Use `msg.key` for reactions and edits, not the key you passed in.
+- **Retries need `getMessage`.** Without it, a decrypt retry on an old message cannot be resolved.
+
+#### Socket
+
+- **`AnchorGuard` is opt-in** and needs its own package; nothing is loaded unless you ask for it.
+- **`markOnlineOnConnect` defaults to `true`.** A bot that should stay invisible must set it to `false`.
+- **`emitOwnEvents` defaults to `false`.** Set it to `true` if you want your own messages in `messages.upsert`.
+
+#### Tooling
+
+- **`npm run test2`** is the local suite (202 tests, no network). `npm test` is the jest suite over `src/__tests__`.
+- **`npm run readme`** checks that the README is complete: every source file mentioned, every internal link resolving,
+  the index listing every section, and `.github/README.md` in step. `npm run readme:check` is the quiet CI form —
+  it exits non-zero on drift. Neither command rewrites anything.
+- **`npm run readme:generate`** rebuilds the reference sections from `docs/wiki/`, `docs/en/` and the source, and writes
+  them to `README.generated.md`. The README itself is not touched — diff the two and copy what you want.
+- **`npm run readme:apply`** writes those sections straight into the README, but only between the marker pairs
+  (`<!-- BEGIN GENERATED: wiki -->` … `<!-- END GENERATED: api -->`) — hand-written prose is never touched. It always
+  rebuilds the index as well, so a single command refreshes both the reference blocks and the table of contents.
+- **`npm run readme:index`** rebuilds only the `📚 Index` table of contents from **every** heading — H1, H2 and H3 —
+  as a nested list, leaving every other line alone. Anchors follow GitHub's rules
+  (`## ⚠️ Important Notice` → `#-important-notice`) and duplicate titles get the `-1`, `-2` suffixes GitHub adds.
+  Headings inside code fences are skipped, so a bash comment like `# or` is not mistaken for a section.
+  `node scripts/generate-readme.mjs --index --depth=4` also lists the H4 sub-sections.
+- **`node scripts/sync-readme.mjs`** copies the README into `.github/README.md` with the asset paths adjusted.
+- **`clearAuth()` wipes memory too.** It empties the store *and* resets the in-memory `creds` object in place (same
+  object identity, fresh contents). Without that reset the next `saveCreds()` — which a live socket calls constantly —
+  writes the old credentials straight back into the store that was just emptied, and the account silently comes back.
+  Every adapter does this through `resetCredsInPlace()` in `src/Extras/auth-store.ts`.
+- **`yarn install`, not `npm install`, in this repository.** `yarn.lock` is a yarn 4 lockfile; npm rewrites that file in
+  the old v1 format whenever it runs. If you did run `npm install`, run `yarn install` once before committing so the lock
+  you push is the yarn 4 one.
+- **`npm run check:tracked`** proves that everything the build, the docs site and the workflows need is actually tracked
+  by git. A `.gitignore` rule like `docs/*` keeps the wiki out of the repository while the files still sit on disk, so
+  CI builds an empty site and the failure looks unrelated. Runs as the first step of the build workflow.
+- **`node scripts/live-check.mjs`** exercises the risky paths against a real account; see `docs/live-test.md`.
+
+_Also published at [docs/wiki/behaviour-changes.md](../docs/wiki/behaviour-changes.md)_
+
+### Coming from upstream Baileys
+
+The API is a superset: if your code works against WhiskeySockets/Baileys it works here, with the differences listed in
+[Notable behaviour changes](#️-notable-behaviour-changes). A few mechanical steps when switching:
+
+#### 1. The package name
+
+```diff
+-import makeWASocket from '@whiskeysockets/baileys'
++import makeWASocket from '@teamolduser/baileys'
+```
+
+#### 2. Auth state — same call, more options
+
+```ts
+// unchanged
+const { state, saveCreds } = await useMultiFileAuthState('./auth')
+
+// or a database, with the same call shape
+const { state, saveCreds } = await usePostgresAuthState({ connectionString: process.env.DATABASE_URL })
+```
+
+`useMultiFileAuthState` still takes `(folder)`, so an existing call site needs no edit. Moving to a database later is a
+`migrateAuthState` call, not a re-pair.
+
+#### 3. Reading messages
+
+```diff
+-const text = msg.message?.conversation
++const text = extractMessageText(msg.message)
+```
+
+#### 4. `libsignal`
+
+This fork pins `libsignal` to its own build (`npm:@teamolduser/libsignal`). Do not override it with the upstream
+package — the wire format and the session store expectations differ.
+
+#### 5. Optional drivers
+
+`better-sqlite3`, `pg`, `mysql2`, `mongodb`, `ioredis`, `redis`, `@libsql/client` and `@seald-io/nedb` are regular
+dependencies, so a plain install is enough. They are loaded lazily — a bot that never touches Postgres never pays for
+it.
+
+#### 6. Where the extras live
+
+| You want | Import from |
+|---|---|
+| an auth backend | `use*AuthState` — package root |
+| a ported builder (`makeQuestionMessage`, `buildSplitPayment`, …) | package root (`src/Extras`) |
+| a small helper (`scheduleMessage`, `generateVCard`, `searchMessages`, …) | package root (`src/Addons`) |
+| the socket itself | package root (`makeWASocket`) |
+
+Everything is exported from the root; there are no deep import paths to remember.
+
+_Also published at [docs/wiki/migration.md](../docs/wiki/migration.md)_
+
+### Troubleshooting
+
+#### Connection
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `405` / `428` right after connect | the pinned WhatsApp Web version is stale | `node scripts/update-version.ts`, or wait for the daily `update-version` workflow |
+| `401` / `device_removed` | the session was logged out from the phone | delete the auth folder and pair again |
+| `Stream Errored (conflict)` | the same credentials are used by two processes | one auth folder per running bot, always |
+| `Connection Closed (515)` | expected right after pairing | reconnect once; do not treat it as an error |
+| QR keeps refreshing | the phone never completes the scan | check the clock on the phone; pairing codes expire quickly |
+| `ENOTFOUND` / proxy errors | egress blocked | allow `*.whatsapp.net`, `*.whatsapp.com`, `web.whatsapp.com` |
+
+#### Pairing
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `409` when requesting a code | a code was already requested and is still pending | wait for it to expire, then request again |
+| The phone never shows the prompt | the IQ fired before `pair-device` arrived | use `createPairingQueue` from `src/Addons/pairing-fix.ts` |
+| Code is not 8 characters | custom codes must be 8 uppercase letters/digits | `'ANYA1234'`, not `'anya'` |
+| `Socket is required` | a helper was called with `undefined` instead of the socket | pass `sock` — most extras take it as the first argument |
+
+#### Messages
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Messages arrive but never decrypt | pre-keys missing — the auth state was copied without `pre-key` records | migrate with `migrateAuthState`, never copy only `creds.json` |
+| `conversation` is empty | the message is wrapped (ephemeral, view-once, edited) | `extractMessageContent` / `extractMessageText` |
+| Sends hang on status updates | the `w:mex` status endpoint changed | see [Message content](../docs/wiki/message-content.md) |
+| Button or AIRich renders differently | the client validates payloads, not us | send one to a test number before shipping |
+| `Cannot read properties of undefined (reading 'undefined')` when replying | the quoted key came from a different message | quote `msg.key`, not a key you built |
+| The bot replies in every group except one | that group has `announcement` on and the bot is not an admin | check `groupMetadata(jid).announce`, then promote the bot |
+
+#### Identity
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| The id looks like a lid, not a phone number | newer accounts are addressed by lid | read `participantAlt` / `senderPn`, or use `splitJidsByType` |
+| A jid you built silently fails | the number is not on WhatsApp | `sock.onWhatsApp(number)` first |
+| Group members show different ids than before | lid migration in progress | map through `lid-mapping.update`, do not rewrite stored jids |
+
+#### Build and runtime
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Cannot find module 'better-sqlite3'` | Node < 22, or the native module was not rebuilt | `npm rebuild better-sqlite3` |
+| `ERR_MODULE_NOT_FOUND` after a local build | `tsc` ran without `tsc-esm-fix` | `npm run build` (it runs both) |
+| Tests fail with `createRequireEsmError` | jest ran without the ESM flag | `npm test` (the script sets `--experimental-vm-modules`) |
+| Not sure whether your build really works | — | `node scripts/live-check.mjs --check 1..4` on a paired number; see `docs/live-test.md` |
+| Migrated backends but the bot still asks for a QR | creds were copied but not saved | pass the adapter to `migrateAuthState`, or call `saveCreds()` |
+
+_Also published at [docs/wiki/troubleshooting.md](../docs/wiki/troubleshooting.md)_
+
+## 📘 Feature guides
+
+Longer walk-throughs, one per feature. The same guides are published under [`docs/en/`](../docs/en/) for the docs site.
+
+### account health
+
+### 🛡️ Account health signals
+
+WhatsApp tracks how an account reaches out to people it has never talked to, and tells its client where it stands. Reading those two signals is far more dependable than guessing a safe pause.
+
+Both are the same `w:mex` queries WA Web runs, so the answer comes from WhatsApp's server, not from a local count:
+
+| Function | Persisted query | When it can be called |
+| --- | --- | --- |
+| `fetchNewChatMessageCap()` | `WAWebMexFetchNewChatMessageCappingInfoJobQuery` (`27910975521856601`) | any time after connecting |
+| `fetchAccountReachoutTimelock()` | `WAWebMexFetchReachoutTimelockJobQuery` (`23983697327930364`) | any time after connecting |
+
+#### New-chat quota
+
+```js
+const cap = await sock.fetchNewChatMessageCap()
+```
+
+What comes back:
+
+| Field | Meaning |
+| --- | --- |
+| `status` | `NONE` → `FIRST_WARNING` → `SECOND_WARNING` → `CAPPED`, WhatsApp's own escalation ladder |
+| `capped` | `true` once `status` is `CAPPED`: sending to new chats is refused |
+| `warned` | `true` on both `FIRST_WARNING` and `SECOND_WARNING` |
+| `unlimited` | `true` when the server sent no quota (or a negative one), so there is nothing to count down |
+| `totalQuota` | the new-chat allowance for one cycle |
+| `usedQuota` | how much of it the cycle has used |
+| `remaining` | `totalQuota - usedQuota`, never negative; `null` when `unlimited` |
+| `cycleStart`, `cycleEnd` | start and end of the cycle, **unix seconds** — multiply by 1000 for `new Date` |
+| `serverTime` | the server clock when it answered, to compare `cycleEnd` without trusting your machine's clock |
+| `oteStatus`, `mvStatus`, `subscriptionStatus` | verification and subscription status that ride along in the answer |
+| `response` | the raw reply, if you want a field that is not mapped yet |
+
+Only **starting** a chat with a number you have never talked to uses the quota. Replying in a conversation someone else started does not count, and neither does sending again to an existing chat.
+
+Worth knowing: this query asks for one kind of quota, `INDIVIDUAL_NEW_CHAT_THREAD` — the new-chat **thread** quota, not a message count. Earlier Anya builds sent `INDIVIDUAL_NEW_CHAT_MSG`, a name no WhatsApp client has, which is why the call could come back with an error or empty numbers, and returned the raw reply without the fields above. The server also pushes this state on its own as the `message-capping.update` event (the raw payload, snake_case). A send that WhatsApp refuses because of the quota (ack error `475`) raises the same event with `capping_status: 'CAPPED'`, the `jid` and the `messageId` of the rejected message, and is never retried.
+
+#### Reachout timelock
+
+```js
+const lock = await sock.fetchAccountReachoutTimelock()
+```
+
+| Field | Meaning |
+| --- | --- |
+| `isActive` | the account is currently restricted from contacting new people |
+| `timeEnforcementEnds` | a `Date` for when the restriction lifts, `undefined` when the server sends `0` |
+| `enforcementType` | the reason — `BIZ_QUALITY` is quality-based, `BIZ_COMMERCE_VIOLATION_*` are policy categories |
+
+Calling it also emits `connection.update`, so one call informs the whole bot. The state also arrives unasked:
+
+```js
+sock.ev.on('connection.update', ({ reachoutTimeLock }) => {
+  if (reachoutTimeLock?.isActive) stopSending()
+})
+```
+
+#### Using it as a guard
+
+```js
+const guard = async () => {
+  const lock = await sock.fetchAccountReachoutTimelock()
+  if (lock.isActive) return { send: false, reason: 'reachout timelock until ' + lock.timeEnforcementEnds }
+
+  const cap = await sock.fetchNewChatMessageCap()
+  if (cap.capped) return { send: false, reason: 'new-chat quota used up until ' + new Date(cap.cycleEnd * 1000) }
+  if (cap.warned) return { send: false, reason: 'WhatsApp has already warned this account: ' + cap.status }
+  if (cap.remaining !== null && cap.remaining < 10) return { send: false, reason: 'only ' + cap.remaining + ' left in this cycle' }
+
+  return { send: true, remaining: cap.remaining }
+}
+```
+
+Check before a round and again every batch — `SECOND_WARNING` is the last state before the quota lands, so stopping there is the difference between a pause and a block.
+
+> [!NOTE]
+> Bulk sending through an unofficial client is outside WhatsApp's Terms of Service, whatever the recipients agreed to. The sanctioned route for opt-in bulk sending is the WhatsApp Business Platform. These signals reduce the chance of tripping an automatic limit; they do not make an account safe.
+
+---
+
+_Also published at [docs/en/account-health.md](../docs/en/account-health.md)_
+
+### auth state
+
+### Database auth states
+
+```ts
+import makeWASocket, { usePostgresAuthState, useMySQLAuthState, useRedisAuthState, useNekoDBAuth, useTursoAuthState } from '@teamolduser/baileys'
+
+// PostgreSQL (`pg` is installed with the package) - pass a connectionString / config, or your own Pool
+const { state, saveCreds, clearAuth, close } = await usePostgresAuthState({ connectionString: process.env.DATABASE_URL, session: 'bot-1' })
+// MySQL / MariaDB (`mysql2` is installed with the package)
+const mysql = await useMySQLAuthState({ uri: 'mysql://user:pass@host/db', table: 'baileys_auth', session: 'bot-1' })
+// Redis (`ioredis` is installed with the package) - one hash per key type: <prefix>:<session>:<type>
+const redis = await useRedisAuthState({ uri: 'redis://localhost:6379', session: 'bot-1' })
+// NekoDB - pass a connected NekoDB instance
+const neko = await useNekoDBAuth(db, 'baileys_auth')
+// Turso / libSQL - local file, or Turso cloud with a token
+const tursoLocal = await useTursoAuthState({ path: './auth.db', session: 'bot-1' })
+const tursoCloud = await useTursoAuthState({ url: 'libsql://my-db-myorg.turso.io', authToken: process.env.TURSO_TOKEN, session: 'bot-1' })
+
+const sock = makeWASocket({ auth: state })
+sock.ev.on('creds.update', saveCreds)
+```
+
+- The MongoDB (`mongodb`), MySQL/MariaDB (`mysql2`), PostgreSQL (`pg`), and Redis (`ioredis`) drivers are declared as runtime dependencies, so the package manager installs them automatically. They are loaded only when the corresponding adapter is used. NekoDB still expects you to pass an already connected database instance.
+- `session` lets several bots share one backend — a table, a Redis prefix, a folder or a file. Every adapter takes it
+  now, including the file-based ones (`useMultiFileAuthState(folder, { session })`, `useSingleFileAuthState(file, { session })`);
+  see sessions across the file-based adapters. `clearAuth()`
+  deletes only that session, `close()` closes a connection the helper created itself (a pool / client you passed in is
+  never closed).
+- Writes are transactional (PostgreSQL / MySQL) or `MULTI` (Redis). Table names must be plain identifiers.
+- `makeAuthStateFromStore(store)` builds the same thing on top of any key/value store that implements `AuthStore`.
+
+### MongoDB Auth State 2 (`useMongoAuthState2`)
+
+`useMongoAuthState2` is the Elaina-compatible MongoDB adapter added without changing the existing `useMongoAuthState` API. The `mongodb` driver is declared as a runtime dependency and is installed automatically with the package. Create a MongoDB-backed auth state from a URI:
+
+```ts
+import makeWASocket, { useMongoAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useMongoAuthState2({
+  uri: process.env.MONGODB_URI!,
+  dbName: 'whatsapp',
+  collectionName: 'baileys_auth',
+  session: 'bot-1'
+})
+
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// On an intentional logout/reset, this deletes only the selected session.
+// await auth.clearAuth()
+
+// Call only when this auth-state instance is no longer needed.
+// Since the adapter created the client from `uri`, close() closes that client.
+// await auth.close()
+```
+
+You can instead pass an existing MongoDB `client`, `db`, or `collection`; those resources remain caller-owned and `close()` will not close them. Use the same `session` string to resume a bot and a different string for each independent bot sharing the collection. `clearAuth()` is destructive for that session. The adapter creates a unique `{ session, type, id }` index and uses batched reads plus `bulkWrite` for key updates/removals.
+
+### SQLite Auth State 2 (`useSqliteAuthState2`)
+
+`useSqliteAuthState2` is a separate Elaina-compatible SQLite adapter. The existing `useSqliteAuthState` remains unchanged. This adapter adds `clearAuth()` and `close()` lifecycle methods.
+
+```ts
+import makeWASocket, { useSqliteAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useSqliteAuthState2({ dbPath: './auth.db' })
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// Destructive: clears auth rows from the `creds` and `signal_keys` tables.
+// await auth.clearAuth()
+
+// Closes the database only when the adapter opened it from dbPath.
+await auth.close()
+```
+
+To reuse an existing `better-sqlite3` connection, pass `{ database: db }`. The adapter will not close a caller-owned database handle. The adapter uses the Elaina-compatible `creds` and `signal_keys` schema. `better-sqlite3` is already a dependency of this package.
+
+---
+
+### Turso / libSQL Auth State (`useTursoAuthState`)
+
+One adapter for both shapes Turso offers, because `@libsql/client` speaks the same protocol for each:
+
+| Target | What to pass | Resulting URL |
+| --- | --- | --- |
+| Local file | `{ path: './auth.db' }` | `file:./auth.db` |
+| Turso cloud | `{ url: 'libsql://<db>-<org>.turso.io', authToken: '…' }` | used as given |
+| Explicit | `{ url: 'file:./auth.db' }` | used as given |
+
+```ts
+import makeWASocket, { useTursoAuthState } from '@teamolduser/baileys'
+
+// local database file — no account, no token
+const auth = await useTursoAuthState({ path: './auth.db', session: 'bot-1' })
+
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// Turso cloud
+const cloud = await useTursoAuthState({
+    url: 'libsql://my-db-myorg.turso.io',
+    authToken: process.env.TURSO_TOKEN,
+    session: 'bot-1'
+})
+
+// Destructive: removes every row of this session
+// await auth.clearAuth()
+
+// Closes the client only when the adapter created it
+await auth.close()
+```
+
+- A token is only sent when you supply one, so the local file needs neither an account nor a token.
+- `session` lets several bots share one database; `table` (default `baileys_auth`) names the table. Rows are
+  `(session, type, id, value)` with a composite primary key.
+- `apply()` runs through `client.batch(…, 'write')`, so an app-state patch lands in one transaction.
+- `@libsql/client` is a declared runtime dependency but is loaded lazily — a bot that never uses Turso does not touch it.
+- `toLibsqlUrl({ path })` is exported if you want to resolve the URL yourself before calling.
+
+---
+
+### Moving credentials to another backend
+
+`migrateAuthState` copies creds and every signal key record from one adapter to another, so the device stays paired.
+
+```ts
+import { migrateAuthState } from '@teamolduser/baileys'
+
+const from = await useMultiFileAuthState('./auth')
+const to = await usePostgresAuthState({ pool, session: 'prod' })
+
+const { creds, counts, verified } = await migrateAuthState({ from, to })
+// creds: { copied: true, saved: true }   counts: { 'pre-key': 32, … }   verified: true
+```
+
+- `from` and `to` take the adapter object or the bare `.state`. With the adapter, `saveCreds()` is called for you.
+- Records stream in batches (`batchSize`, default 100); re-running resumes because existing ids are skipped.
+- The source is never modified. Once `verified` is true, clear it yourself with `oldAuth.clearAuth()` — take a backup
+  first.
+- Every adapter implements `list(type)`, so any of them can be the source.
+
+_Also published at [docs/en/auth-state.md](../docs/en/auth-state.md)_
+
+### builder
+
+Anya includes the ported MessageBuilder module under `src/ported/MessageBuilder/`. The public entry point remains the existing `src/ported/index.ts` barrel, which is re-exported from the package root. The internal folder is not intended to be imported as a separate package entry point.
+
+### Imports
+
+```ts
+import {
+  MessageBuilder,
+  MB,
+  Button,
+  ButtonV2,
+  AIRich,
+  AIRichCarousel,
+  Toolkit,
+  MESSAGE_BUILDER_VERSION,
+  mapSection
+} from '@teamolduser/baileys'
+```
+
+`MB` is an alias of `MessageBuilder`. The builder classes are available as named exports and through the `MessageBuilder`/`MB` namespace object.
+
+### Build an interactive button message
+
+```ts
+const message = new Button(sock)
+  .setTitle('Anya Menu')
+  .setBody('Choose an action')
+  .setFooter('Powered by Anya')
+  .addReply('Say hello', 'hello')
+
+await message.send('14155550123@s.whatsapp.net')
+```
+
+Builder methods can differ by builder type. Consult the method declarations/source for the exact methods available in your installed revision. Use `.build(jid)` when the builder supports building a payload without sending it, and `.send(jid)` when you want it sent directly.
+
+### Static helper attachment
+
+Anya registers helper functions from the MessageBuilder extras, Meta AI, bot-signature, native-flow, and message-helper modules onto the relevant static containers at runtime. The registration is performed internally by `src/ported/MessageBuilder/attach-static-helpers.ts`; it does not require a second public import.
+
+For example, helpers such as `mapSection` can be called through the attached namespace:
+
+```ts
+const map = MB.mapSection({ items: [], queryStatus: 'FETCHED' })
+const sameMap = MessageBuilder.mapSection({ items: [], queryStatus: 'FETCHED' })
+```
+
+The helper is also available as a named package export where exported by the barrel. Prefer named imports for code that does not specifically need Elaina-style static access. Static registration preserves existing class members and does not overwrite an existing property with the same name.
+
+### Main builder families
+
+- `Button` and `ButtonV2` — interactive native-flow buttons.
+- `AIRichCarousel` — carousel-style AI-rich sections. The Elaina name `Carousel` is **`CarouselV2`** in this package (the bare name `Carousel` is not exported); `CarouselV2`, `AIRichCarouselV2` and `MB.Carousel` are the same class. See [Elaina-derived names and the V2 aliases](../elaina-interactive-apis-v2.md).
+- `AIRich` — AI-rich response payloads and sections. It also offers `addHtmlCard`, `addSelectableText`, `addQuiz`, `addComparisonTable` and `addSports` (from elaina commit `f025122`); see the README for the arguments.
+- `Toolkit` — helper utilities exposed by the ported builder module.
+- `MessageBuilder` / `MB` — namespace-style access to the builder classes and registered helpers.
+
+### Compatibility notes
+
+WhatsApp's interactive payloads are protocol-sensitive and some renderers are client-specific. A successfully built payload does not guarantee every button or AI-rich primitive will render on every WhatsApp client. Validate your target devices and keep regression tests around helper calls used by your application.
+
+### Access paths
+
+The global `MB` works as in elaina-baileys: `new MB.AIRich(sock)` / `new AIRich(sock)` take the socket as the first argument.
+
+The socket also carries bound versions, so no `sock` argument is needed there:
+
+- `new sock.AIRich()` / `sock.MB.AIRich` (also `Button`, `ButtonV2`, `Carousel`): bound to that socket.
+- `sock.MB.sendA2UI(jid, components, options)` and the other `send*` helpers: `sock.MB` adds the socket.
+
+_Also published at [docs/en/builder.md](../docs/en/builder.md)_
+
+### calls
+
+### 🎧 Call queues, screen sharing and group calls
+
+These options belong to the media-call methods of the unified `voip` client — `voip.call()`, `voip.callGroup()` and `voip.joinGroupCall()` (the Elaina-style engine). See the [unified VoIP API](#unified-voip-api) note about switching engines, and Voice calling for the basics.
+
+#### Audio queue
+
+```js
+const voip = await sock.makeVoipClient()
+
+const call = await voip.call('628123456789', {
+  playlist: ['intro.mp3', 'song.mp3'],
+  idleGraceMs: 30000,   // wait this long after the queue runs dry before hanging up
+  durationMs: 0         // 0 = no fixed length, the queue decides
+})
+
+call.enqueue('next-track.mp3')   // add a track while the call is running
+call.queued()                    // tracks still waiting
+call.nowPlaying()                // the track being played
+call.skip()                      // jump to the next track
+```
+
+By default the call ends once the queue is empty, after `idleGraceMs` (0 unless you set it); pass `endWhenQueueEmpty: false` to keep it open until you end it. Sources can be files, URLs or anything ffmpeg reads.
+
+#### Video queue
+
+One-to-one and group calls both accept video. Frames come from ffmpeg just like the audio does, so the video source can be a file, a URL, a still image or a `lavfi:` generator.
+
+```js
+const call = await voip.call('628123456789', {
+  video: true,
+  videoPlaylist: ['clip.mp4'],
+  playlist: ['song.mp3'],
+  durationMs: 0
+})
+
+call.on('videotrack', track => console.log('now showing', track))
+```
+
+```js
+const call = await voip.callGroup('12345-67890@g.us', {
+  video: true,
+  videoPlaylist: ['clip.mp4']
+})
+```
+
+Video has its own queue, separate from the audio queue: `playVideo`, `enqueueVideo`, `skipVideo`, `queuedVideo` and `nowPlayingVideo`, with the `videotrack` and `videotrackend` events. The rule for ending the call stays tied to the audio queue, so the call ends when the audio runs out, not when the pictures do.
+
+A still image is looped rather than shown for a single frame, which makes it an easy way to send a steady card:
+
+```js
+await voip.call('628123456789', { video: true, videoSource: './poster.jpg', playlist: ['song.mp3'] })
+```
+
+The engine picks the resolution and frame rate when the call connects, and the feeder scales to fit, padding so the aspect ratio is kept. Frames go to the WASM encoder as I420. When the queue runs dry the last frame is held instead of cutting to black, so a stall reads as a frozen picture, not a flicker.
+
+Audio and video are two ffmpeg processes with two different clocks. Playing the same file through both will drift apart; if you need the two locked together, give the file to `playlist` only and keep the picture a still image.
+
+#### Screen sharing
+
+The same video, sent as a screen share rather than as a camera. It is a separate WASM entry point, so the receiver sees it labelled as a shared screen instead of as if the bot turned its camera on.
+
+```js
+const call = await voip.call('628123456789', {
+  screenShare: true,
+  videoPlaylist: ['slide.png'],
+  playlist: ['narration.mp3']
+})
+```
+
+`screenShare: true` already implies `video: true`. Switch it on and off mid-call with `call.startScreenShare()` and `call.stopScreenShare()`; `call.isScreenShare()` reports which one is live.
+
+Which is better depends on what you send, and both are worth testing on a real call:
+
+- **Screen share** suits still content — slides, lyrics, a single card. The encoder favours sharpness over motion, and a 16:9 source is not forced into a portrait camera frame.
+- **The camera path** suits moving pictures and reaches everyone. Screen sharing is gated by `calling_screen_share_milestone_version`: a recipient on an older WhatsApp gets an "please update" dialog instead of your content. Groups also cap how many participants may share, and usually only one may share at a time.
+
+#### Group calls
+
+```js
+const call = await voip.callGroup('12345-67890@g.us', {
+  playlist: ['one.mp3', 'two.mp3'],
+  idleGraceMs: 30000,
+  durationMs: 0
+})
+```
+
+`callGroup` reads the member list from the group's metadata, resolves each member's LID and devices, then calls them all. Pass `participants` to call only some of them, or `metadata` if you already have it and want to skip the fetch.
+
+To join a call somebody else started, hand `joinGroupCall` what the incoming offer says:
+
+```js
+const call = await voip.joinGroupCall({
+  callId,
+  callCreatorJid,
+  groupJid,
+  playlist: ['one.mp3']
+})
+```
+
+The queue behaves the same in a group call as in a one-to-one call.
+
+Media is produced by ffmpeg: Anya uses the bundled `ffmpeg-static` binary when it exists and falls back to `ffmpeg` on the `PATH`; set `ffmpegPath` on the client to point at a specific binary. The VoIP resources (`whatsapp.wasm`, `loader.js`, `worker-modules.js`) are WhatsApp Web's own files, carried byte for byte; `npm run verify:assets` re-checks their checksums.
+
+---
+
+_Also published at [docs/en/calls.md](../docs/en/calls.md)_
+
+### elaina parity
+
+`src/Extras` is ported from [elaina-baileys](https://github.com/rexxzyid/elaina-baileys). This page records how
+close the port is, so "ported" does not have to mean "trust me".
+
+### What "parity" means here
+
+Each ported module is compared with its elaina source after **stripping types and minifying both sides** through
+esbuild. Formatting, comments, TypeScript annotations and `import type` lines therefore cannot hide a difference;
+anything that still differs is a real decision.
+
+```bash
+npm i -D esbuild
+node scripts/audit-elaina-parity.mjs /path/to/elaina-baileys-main
+```
+
+Current result against elaina-baileys **1.4.7**:
+
+```
+15 identical, 0 expected differences, 0 unexplained
+```
+
+A deliberate local change is not drift. Record it, with a reason, and the audit stays green:
+
+```bash
+node scripts/audit-elaina-parity.mjs ../elaina-baileys-main \
+  --update native-flow.ts --reason "raised the button cap after testing the current Web build"
+```
+
+That writes an entry into `parity-baseline.json` (module, a hash of the normalised code, the reason, the date).
+From then on the report says `intentional`, not `UNEXPLAINED`. The hash is what makes this safe: change that module
+again without recording it and the audit fails, with a note that the earlier reason no longer describes the code.
+
+```bash
+node scripts/audit-elaina-parity.mjs ../elaina-baileys-main --update --all-identical
+```
+
+drops entries for modules that match upstream again — useful after re-porting a module from a newer release.
+
+Unexplained differences exit non-zero, so this can be a CI gate.
+
+### All fifteen are identical
+
+`group-metadata-cache`, `html-app`, `html-multiplayer`, `link-preview-metadata`, `native-flow`, `optional-media`,
+`sender-key-memory`, `ttl-cache`, `voice-recognition`, `status-stickers`, `auth-store`, `modern-messages`,
+`scheduled-message`, `payment-messages`, `newsletter-status` — byte-for-byte the same code once types are stripped.
+
+Two pieces of machinery made that possible without changing behaviour:
+
+- **`src/Utils/proto-compat.ts`** aliases the proto types this WAProto build exposes flat
+  (`ConditionalRevealMessage`, `PollAddOptionMessage`, `EventInviteMessage`) under `proto.Message`, so the ported
+  modules keep upstream's exact expressions instead of hardcoding enum numbers or resolving paths at call time.
+- **`src/Extras/newsletter-status-socket.ts`** holds the one thing this fork adds on top of upstream's status
+  file: a factory that returns the five operations as an object, so `Extras/socket.ts` can merge them in a single
+  spread. Upstream attaches them to the socket individually. Keeping the composition out of
+  `newsletter-status.ts` is what lets that file stay identical.
+
+
+### What the stanza suite covers
+
+`test/extras-stanza.test.js` encodes and decodes every message this fork builds through the generated protobuf
+schema, including the relay payloads that go out as raw proto fields — `paymentReminderMessage`,
+`splitPaymentMessage`, `splitPaymentUpdateMessage` and `musicMessage` — driven through the real path
+(`preparePortedMessageContent` → raw mode → encode → decode).
+
+### Provenance
+
+`src/Extras/index.ts` exports `PORTED_FROM`, recording the release this layer came from, the release it was last
+checked against, when, and the measured parity (`byteIdenticalModules: '14/15'`). Update it when you re-run the
+audit.
+
+### What parity does not cover
+
+Byte equality proves the *code* matches. It does not prove the protocol works — that needs a paired account. See
+[Live verification](./live-verification.md).
+
+### Dependency trust
+
+`libsignal` used to be `npm:@teamolduser/libsignal@1.0.1`, a republished fork of the Signal protocol implementation
+— the most security-sensitive dependency in the tree, and one whose code cannot be reviewed as text. It is now
+upstream `libsignal@^6`, the same package elaina-baileys uses, and `test/signal-roundtrip.test.js` proves the swap
+by actually building a session and encrypting/decrypting a message.
+
+`ffmpeg-static` is a regular dependency: it downloads a binary in its install script, and `getFfmpegBin()` falls back to
+a system `ffmpeg` if that download ever fails, so a bad download degrades instead of breaking the install.
+
+`whatsapp-rust-bridge` remains. It is a native Rust crypto bridge with no install scripts, but it is compiled code;
+swapping it for elaina's bridge would be a port, not a dependency change.
+
+_Also published at [docs/en/elaina-parity.md](../docs/en/elaina-parity.md)_
+
+### examples
+
+The snippets below assume `@teamolduser/baileys` is installed in an ESM project and that you have a WhatsApp account you are authorized to link.
+
+### Text command bot skeleton
+
+```js
+import makeWASocket, { useMultiFileAuthState } from '@teamolduser/baileys'
+import pino from 'pino'
+
+const { state, saveCreds } = await useMultiFileAuthState('./session')
+const sock = makeWASocket({ auth: state, logger: pino({ level: 'silent' }) })
+sock.ev.on('creds.update', saveCreds)
+
+sock.ev.on('messages.upsert', async ({ messages, type }) => {
+  if (type !== 'notify') return
+  for (const message of messages) {
+    const content = message.message
+    const text = content?.conversation ?? content?.extendedTextMessage?.text ?? ''
+    if (!text || message.key.fromMe || !message.key.remoteJid) continue
+    if (text.trim().toLowerCase() === 'ping') {
+      await sock.sendMessage(message.key.remoteJid, { text: 'pong' })
+    }
+  }
+})
+```
+
+This is a minimal example, not a complete production bot. Add reconnect/backoff, error handling, shutdown handling, and message deduplication as required.
+
+### MongoDB auth with isolated sessions
+
+```js
+import makeWASocket, { useMongoAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useMongoAuthState2({
+  uri: process.env.MONGODB_URI,
+  dbName: 'whatsapp',
+  collectionName: 'baileys_auth',
+  session: process.env.BOT_SESSION ?? 'bot-1'
+})
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+```
+
+Use a unique `session` value for each independent bot. Keep it stable for that bot across restarts.
+
+### Store chats and messages in memory
+
+```ts
+import makeWASocket, { makeInMemoryStore } from '@teamolduser/baileys'
+
+const store = makeInMemoryStore({})
+const sock = makeWASocket({ /* auth: state, ... */ })
+store.bind(sock.ev)
+
+// The store provides read/write helpers; see the source API for exact methods.
+```
+
+The in-memory store is not a durable database. Persist it only if your application's requirements call for it, and remember that saved messages can contain private data.
+
+### AIRich widgets, A2UI and AIRichMessage
+
+`assets/examples/airich_widgets.js` sends an `AIRich` message with `addHtmlCard`, `addSelectableText`, `addQuiz`, `addComparisonTable` and `addSports`, an A2UI info card, and an `AIRichMessage`. These payloads are experimental; check them on your own account first.
+
+```bash
+node assets/examples/airich_widgets.js 6281234567890
+```
+
+### WAProto additions (offline check)
+
+`assets/examples/waproto_additions.js` encodes and decodes the new elaina-synced WAProto fields locally and prints the default WhatsApp Web version. It does not connect to WhatsApp.
+
+```bash
+node assets/examples/waproto_additions.js
+```
+
+_Also published at [docs/en/examples.md](../docs/en/examples.md)_
+
+### getting started
+
+### Requirements
+
+Use a Node.js version supported by this repository's `package.json` and `engine-requirements.js`. Check your installed version with:
+
+```bash
+node --version
+```
+
+### Install
+
+```bash
+npm install @teamolduser/baileys
+```
+
+The library is ESM-first. In an application that uses `.js` files with ESM syntax, set `"type": "module"` in your application's `package.json`, or use `.mjs` files.
+
+### Create a socket and persist credentials
+
+```js
+import makeWASocket, {
+  useMultiFileAuthState,
+  DisconnectReason
+} from '@teamolduser/baileys'
+import pino from 'pino'
+
+const { state, saveCreds } = await useMultiFileAuthState('./session')
+const sock = makeWASocket({
+  auth: state,
+  logger: pino({ level: 'silent' })
+})
+
+sock.ev.on('creds.update', saveCreds)
+sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+  if (connection === 'open') console.log('Connected')
+  if (connection === 'close') {
+    const code = lastDisconnect?.error?.output?.statusCode
+    console.log('Connection closed:', code)
+    if (code !== DisconnectReason.loggedOut) {
+      console.log('Reconnect by creating a new socket with your reconnect policy.')
+    }
+  }
+})
+```
+
+The snippet shows the basic lifecycle only. For production use, add a reconnect strategy with backoff, handle shutdown signals, and avoid creating multiple sockets for the same saved session.
+
+### Important session rule
+
+Always persist credential updates by registering `sock.ev.on('creds.update', saveCreds)`. Keep the session directory private: it contains credentials and Signal keys that can grant access to the linked account.
+
+_Also published at [docs/en/getting-started.md](../docs/en/getting-started.md)_
+
+### groups
+
+Group JIDs commonly end in `@g.us`. Participant identifiers may be phone-number JIDs or LIDs depending on the account and WhatsApp's current addressing behavior. Prefer identifiers received from socket events or metadata rather than constructing them from phone numbers without validation.
+
+### Create a group
+
+```js
+const group = await sock.groupCreate('Anya Community', [
+  '14155550123@s.whatsapp.net',
+  '14155550124@s.whatsapp.net'
+])
+
+console.log('Group JID:', group.id)
+```
+
+Replace the sample identifiers with valid participants. WhatsApp may reject group creation based on account permissions, privacy settings, or server policy.
+
+### Update participants
+
+```js
+await sock.groupParticipantsUpdate(groupJid, [participantJid], 'add')
+await sock.groupParticipantsUpdate(groupJid, [participantJid], 'remove')
+await sock.groupParticipantsUpdate(groupJid, [participantJid], 'promote')
+await sock.groupParticipantsUpdate(groupJid, [participantJid], 'demote')
+```
+
+The action is the third argument and the participant list is an array. Check the returned per-participant results; an `add` request can result in an invite rather than an immediate addition when privacy rules prevent direct adds.
+
+### Group metadata and admin operations
+
+Use the socket's group metadata and participant-update methods for the base group workflow. This fork also contains ported message/group helpers such as group metadata caching and sender-key reset/query helpers. Those are lower-level/protocol-sensitive features; inspect their TypeScript signatures and test against a non-production group before relying on them.
+
+_Also published at [docs/en/groups.md](../docs/en/groups.md)_
+
+### index
+
+Anya Baileys is a WhatsApp Multi-Device library for Node.js. It provides a WebSocket-based WhatsApp client, typed protocol definitions, socket methods, authentication-state adapters, and additional helpers.
+
+> **Important:** This is an unofficial library that interacts with WhatsApp's private protocol. Protocol behavior can change without notice. Use it responsibly and protect account credentials.
+
+### Start here
+
+- [Getting started](./getting-started.md) — install, connect, and persist credentials.
+- [Pairing code](./pairing.md) — link a device without scanning a QR code.
+- [Messages](./messages.md) — receive and send messages.
+- [MessageBuilder](./builder.md) — create interactive messages and use static helper functions.
+- [Groups](./groups.md) — create groups and manage participants.
+- [Newsletters](./newsletter.md) — work with WhatsApp channels.
+- [Session storage](./sessions.md) — choose a local or database-backed auth store.
+- [Examples](./examples.md) — small end-to-end examples.
+- [Porting and compatibility changes](./porting-changes.md) — recent additions made to Anya.
+
+### Package
+
+The package name in this repository is `@teamolduser/baileys`.
+
+```bash
+npm install @teamolduser/baileys
+```
+
+Use ESM imports. The exact runtime and optional peer-dependency requirements are listed in the root `package.json`.
+
+_Also published at [docs/en/index.md](../docs/en/index.md)_
+
+### interactive v2
+
+### Elaina-derived interactive APIs (V2 naming)
+
+Elaina-derived carousel, native-flow, section, list, card and rich-message helpers have explicit `V2` aliases exported from `src/Extras/v2.ts` and re-exported through `src/Extras/index.ts`. These aliases are a naming layer for the ported API, not a separate wire protocol. The Elaina general-purpose builder is also exported as `ElainaButtonV2`; do not infer that Anya had a pre-existing `ButtonV2` API.
+
+See the V2 naming guide for import guidance and the alias families.
+
+_Also published at [docs/en/interactive-v2.md](../docs/en/interactive-v2.md)_
+
+### live verification
+
+Everything in `test/` is local. It proves the crypto round-trips, the nodes have the right shape, the
+validators fire and the queues advance. None of it proves WhatsApp's servers accept what we send. That
+needs a real paired account, so it is a step you run, not something I can run for you.
+
+`scripts/verify-live.mjs` is the harness. It never creates a pairing and, unless you pass `--to`, it only
+ever messages your own account.
+
+### Before you start
+
+- A **spare number** you can afford to lose. This is an unofficial client; bans happen.
+- A **paired session directory** (the folder `useMultiFileAuthState` writes).
+- For the channel-status step only: a channel you **administer**, and an account with the
+  `CHANNEL_STATUS_PRODUCER` capability.
+- Nothing else — the script installs nothing and writes nothing except WhatsApp traffic.
+
+### Step 1 — build the library
+
+```bash
+npm install
+npm run build          # tsc + tsc-esm-fix, writes lib/
+```
+
+### Step 2 — pair once, if you have not already
+
+```bash
+node -e "
+import('./lib/index.js').then(async ({ default: makeWASocket, useMultiFileAuthState }) => {
+  const { state, saveCreds } = await useMultiFileAuthState('./session')
+  const sock = makeWASocket({ auth: state })
+  sock.ev.on('creds.update', saveCreds)
+  sock.ev.on('connection.update', u => {
+    if (u.qr) console.log('scan this:', u.qr)
+    if (u.connection === 'open') { console.log('paired'); process.exit(0) }
+  })
+})"
+```
+
+Or pair with a code instead of a QR: call `sock.requestPairingCode('<number>')` about three seconds after the
+socket exists — calling it immediately throws.
+
+### Step 3 — run the checks
+
+Start with the safe set:
+
+```bash
+node scripts/verify-live.mjs --session ./session
+```
+
+Then add the shapes you actually care about:
+
+```bash
+node scripts/verify-live.mjs --session ./session --interactive
+node scripts/verify-live.mjs --session ./session --scheduled
+node scripts/verify-live.mjs --session ./session --newsletter 1234567890@newsletter --post-status
+```
+
+| Flag | What it adds |
+|---|---|
+| (none) | connect + send a text to yourself and receive the echo |
+| `--interactive` | builds and relays an interactive button message |
+| `--scheduled` | schedules a message 15 minutes out, then unschedules it |
+| `--newsletter <jid> --post-status` | checks capabilities, posts a text status, confirms it is listed, revokes it |
+| `--to <jid>` | send somewhere other than yourself — only if you mean it |
+| `--timeout <ms>` | per-step timeout, default 45s |
+
+### Step 4 — read the result
+
+Each line is one step:
+
+```
+ok   connect (revision accepted)      socket open, creds intact
+ok   send text, receive echo          id 3EB0... echoed as 3EB0...
+skip send interactive buttons         pass --interactive to include it
+2 passed, 0 failed, 1 skipped
+```
+
+Exit code is 0 only when every step that ran passed. `skip` means you did not ask for it, not that it passed.
+
+What each step actually proves:
+
+- **connect** — the pinned `client_revision` in `src/Defaults/index.ts` is still accepted. A stale revision
+  is refused at the handshake, so this is the cheapest canary you have.
+- **send text, receive echo** — the send path and `messages.upsert` both work end to end.
+- **interactive buttons** — the `interactiveMessage` payload and the `biz` node it rides on are accepted.
+  If it is accepted but renders wrong, that is a rendering issue, not a protocol one.
+- **scheduled** — the `conditionalRevealMessage` envelope and its `<meta>` node are accepted, and the
+  unschedule protocol message is too.
+- **newsletter status** — capabilities first (most accounts lack `CHANNEL_STATUS_PRODUCER`; the step fails
+  with that reason instead of pretending), then the post is confirmed by reading it back from
+  `getNewsletterStatuses`, then revoked.
+
+### Step 5 — if something fails
+
+| Failing step | Likely cause | What to do |
+|---|---|---|
+| connect (closed before open, 405/415) | client revision too old | bump `version` in `src/Defaults/index.ts` to the current `client_revision` from `web.whatsapp.com/sw.js` |
+| connect (401/403/419) | session dead or logged out | delete the session dir and pair again |
+| interactive | `biz` node or button shape rejected | check `MessageBuilder` against a message your phone renders; the builders live in `src/Extras/MessageBuilder/` |
+| scheduled | outside the window, or the account lacks the capability | the window is 10 min – 14 days for chats, 10 min – 30 days for newsletters |
+| newsletter status | no `CHANNEL_STATUS_PRODUCER`, or not an admin | check with `newsletterAdminCapabilities`; this is an account capability, not a code bug |
+
+### What this does not cover
+
+- **Calls.** Audio/video need a second peer; `test/voip.test.js` covers the feeders and the state machine,
+  not a real call.
+- **Media upload.** Sending an image or video exercises the upload path, which the harness skips to keep it
+  cheap.
+- **Groups.** Every step targets a chat you own; group operations need a group you can post in.
+- **Long-run stability.** One pass proves acceptance, not that a reconnect storm or a long session holds up.
+
+### If you want the strongest signal
+
+Run the harness twice: once on the pinned revision, then again after bumping `version` to whatever
+`web.whatsapp.com/sw.js` currently reports. If both connect, the revision is not your bottleneck. If only
+the newer one connects, your pinned revision has gone stale and the constant needs a refresh — that is the
+single most common reason a working bot suddenly stops connecting.
+
+_Also published at [docs/en/live-verification.md](../docs/en/live-verification.md)_
+
+### message content
+
+### New message content keys
+
+`sock.sendMessage` understands these extra content keys (they are converted into raw proto content, see `src/Extras/modern-messages.ts`):
+
+| Key | Example |
+| --- | --- |
+| `question` | `{ question: { text: 'Favourite colour?' } }` |
+| `questionReply` / `questionResponse` | `{ questionResponse: { key, text: 'blue' } }` |
+| `statusQuestionAnswer` / `statusQuoted` / `statusStickerInteraction` / `statusNotification` | status related replies (`key`, `stickerKey`, ...) |
+| `comment` | `{ comment: { targetMessageKey: key, content: { text: 'nice' } } }` |
+| `statusMention` | `{ statusMention: { key } }` (`group: true` for group statuses) |
+| `groupStatusReaction` | `{ groupStatusReaction: { key, text: '🔥' } }` |
+| `newsletterAdminInvite` / `newsletterFollowerInvite` | `{ newsletterAdminInvite: { newsletterJid, newsletterName, caption } }` |
+| `scheduledCall` / `scheduledCallEdit` | `{ scheduledCall: { scheduledTimestampMs, callType, title } }` |
+| `music` | `{ music: { songId, title, author, songUri, artworkUri } }` (uris must be WhatsApp / Meta hosted) |
+| `splitPayment` / `splitPaymentUpdate` | `{ splitPayment: { splitId, total: 900, participants: [{ jid, amount: 300 }] } }` |
+| `paymentReminder` | `{ paymentReminder: { reminderId, amount: 499, payeeVpa: 'shop@upi' } }` |
+| `addYours` | `{ text: 'My turn!', addYours: statusKey }` (also `messageAssociation`) |
+| `statusAudience` | `{ text: 'hi', statusAudience: 'Close friends' }` |
+| `richLink` | `{ richLink: { url, title, description, image, text } }` - link card with your own title / description / picture |
+| `song` | `{ song: { audio, artwork, title, author, url } }` - audio with a music-style card |
+| `socialPreview` | `{ text: url, socialPreview: { ... } }` - social post metadata on a link preview (see `SocialMediaPostType`) |
+| `statusLinkPreview` | `{ text: url, statusLinkPreview: 1 }` - status link-preview style (non-negative integer) |
+| `groupMentions` | `{ text: 'hi', groupMentions: [{ groupJid, groupSubject }] }` |
+| `forwardedNewsletter` | `{ text, forwardedNewsletter: { newsletterJid, serverMessageId, newsletterName } }` - "Forwarded from channel" header |
+| `newsletterStatus` / `groupStatusAttribution` / `statusAttributions` | decorate a status with a channel / group reshare attribution |
+
+- Money is the **human amount** and the default currency is **INR** for message content (payment, request payment, order, product, catalog create; pass `currency: 'USD'` for another). The standalone `money(amount, currencyCode)` helper keeps upstream behaviour and requires an explicit code, e.g. `money(500, 'INR')`.
+- `pollAddOption` and `eventInvite` use `PollAddOptionMessage` / `EventInviteMessage` from this WAProto (found under `proto.Message` or as
+  flat `proto.*` classes). The channel-status attribution type 9 is sent as a number.
+- `addYours` / `statusAudience` cannot be combined with a key that builds its own message (`question`, `comment`, ...) - an error says so.
+- Builders and readers are exported as well: `buildSplitPayment`, `readSplitPayment`, `buildPaymentReminder`, `readPaymentReminder`, `money`,
+  `buildMusicMessage`, `readMusicMessage`, `locationSticker`, `channelSticker`, `linkSticker`, `musicSticker`, `messageSticker`,
+  `normalizeStickers`, `readStickers`, `encodeScheduledMessage`, `decodeScheduledMessage`, `buildScheduledMsgMetaNode`,
+  `buildUnscheduleProtocolMessage`, `isScheduledTimeValid`, `prepareModernMessageContent`.
+
+#### Example commands
+
+`assets/examples/example.js`: `!question`, `!comment`, `!addyours`, `!splitpay`, `!remind`, `!hd`, `!motion`, `!health <number>`, `!about <number>`,
+`!serverprops`, `!serverlink <url>`, `!nlinfo <channel jid>`, `!nldirectory <text>`, `!nlstatus <channel jid> <text>`, `!resetkey` (group).
+
+_Also published at [docs/en/message-content.md](../docs/en/message-content.md)_
+
+### messagebuilder
+
+### MessageBuilder / AIRich
+
+```ts
+import { MB, MessageBuilder, AIRich, Button, sendA2UI, sendHtmlApp, sendAIRichMessage, readRichMessage, verifyRichResponseSignature, forwardRichResponse } from '@teamolduser/baileys'
+
+await new Button(sock).setTitle('Menu').addReply('Ping', 'ping').send(jid)
+
+const rich = new AIRich(sock)
+rich.addText('*Report*')
+rich.addSection(MB.dividerSection())
+rich.addSection(MB.taskSection({ taskId: 'job-1', title: 'Rendering', status: MB.TaskStatus.RUNNING }))
+await rich.send(jid)
+
+await sendHtmlApp(sock, jid, '<h1>Hello</h1>', { title: 'Mini app' })
+
+// Elaina-compatible static helper attachment: helpers are available on MB/MessageBuilder.
+const map = MB.mapSection({ items: [], queryStatus: 'FETCHED' })
+const divider = MessageBuilder.dividerSection()
+
+// Inspect/verify a received signed AI rich response before forwarding it.
+const parsedRich = readRichMessage(incomingMessage)
+const signature = verifyRichResponseSignature(incomingMessage) // { status: 'passed' } or { status: 'failed', reason }
+if (parsedRich && signature.status === 'passed') {
+  await forwardRichResponse(sock, jid, incomingMessage)
+}
+```
+
+- The builder covers tables, code, A2UI cards, HTML mini apps, embedded screens and Meta AI sections (sports, places, quiz, search, ...).
+- The Elaina name `Carousel` is **`CarouselV2`** here (the bare name `Carousel` is already a message type, so it is not exported). `CarouselV2`, `AIRichCarousel`, `AIRichCarouselV2` and `MB.Carousel` are all the same class .
+- The builder is **licensed separately by its author** - keep the watermark in `src/Extras/MessageBuilder/index.ts` and keep the original watermark and license header in that file.
+
+#### AIRich widgets (`addHtmlCard`, `addSelectableText`, `addQuiz`, `addComparisonTable`, `addSports`)
+
+Added from elaina-baileys commit `f025122` ("tambah primitive baru 2.26.39.3 ke MessageBuilder"). Elaina dropped these five methods again in its 15-oct build; they are kept here. They live in `src/Extras/MessageBuilder` next to the other `add*` helpers, each returns the builder, and each also exists as an `...V2` alias (`addQuizV2`, ...). They are experimental, so check that your target clients draw them.
+
+```js
+import { AIRich } from '@teamolduser/baileys'
+import makeWASocket, { useMultiFileAuthState } from '@teamolduser/baileys'
+
+const { state, saveCreds } = await useMultiFileAuthState('./session')
+const sock = makeWASocket({ auth: state })
+sock.ev.on('creds.update', saveCreds)
+
+// Send once the connection is open (connection.update -> connection === 'open').
+const jid = '6281234567890@s.whatsapp.net'
+
+await new AIRich(sock)
+    .setTitle('Widgets')
+    .addHtmlCard('<h1>Hello</h1>', { width: 320, height: 160 })          // GenAIHtmlCardPrimitive
+    .addSelectableText('Select me', { selectionId: 'sel-1' })              // GenAISelectableTextPrimitive
+    .addQuiz('2 + 2?', ['3', { text: '4', correct: true }], { explanation: 'Basic maths' })
+    .addComparisonTable(['Feature', 'A', 'B'], [['Speed', 'fast', 'slow']], { highlightLabel: 'A' })
+    .addSports([{ home: 'A', away: 'B' }, { home: 'C', away: 'D' }], { league: 'NBA' })
+    .send(jid)
+```
+
+The global `MB` works exactly as in elaina-baileys: the builders take the socket as their first argument (`new MB.AIRich(sock)`). On top of that, the socket carries bound versions that add `sock` for you:
+
+```js
+import { AIRich, MB } from '@teamolduser/baileys'
+
+new MB.AIRich(sock)           // 1. as in elaina-baileys: socket as the first argument
+new AIRich(sock)              // 2. named import, same thing
+new sock.AIRich()             // 3. bound to this socket, no sock argument
+sock.MB.AIRich                // 4. same class through sock.MB; sock.MB.sendA2UI(jid, ...) etc. also take no sock
+```
+
+`sock.MB` is `MB` with the builder classes (`AIRich`, `Button`, `ButtonV2`, `Carousel`) and the `send*` helpers (`sendA2UI`, `sendA2UIBloks`, `sendAIRichMessage`, ...) bound to that socket; every other member is passed through unchanged. The global `MB.sendA2UI(sock, jid, ...)` keeps its `sock` argument.
+
+| Method | Arguments | Notes |
+|---|---|---|
+| `addHtmlCard(html, opts)` | `opts`: `mimeType` (`text/html`), `width` (300), `height` (200), `cardType`, `sandbox` | `html` must be a string |
+| `addSelectableText(text, opts)` | `opts`: `selectionId` | the text is also sent as the plain submessage |
+| `addQuiz(question, options, opts)` | `options`: non-empty array of strings or `{ text, correct }`; `opts`: `explanation` | a string option counts as a wrong answer |
+| `addComparisonTable(columns, rows, opts)` | `rows`: arrays (wrapped into `{ cells }`) or row objects; `opts`: `highlightLabel` | |
+| `addSports(games, opts)` | `games`: one game or an array; `opts`: `league` (default for each game) | one game uses the `Single` layout, several use `HScroll` |
+
+All five accept `{ id, replace, insertAt }` like the other `add*` methods, and throw a `TypeError` for invalid input. A runnable version is in `assets/examples/airich_widgets.js`.
+
+#### Elaina sync notes (30-sep to 21-oct)
+
+- Default WhatsApp Web version was `2.3000.1050764678` here (now `2.3000.1051456098`; `src/Defaults/index.ts`, `src/Utils/generics.ts`, `src/Defaults/baileys-version.json`, `WAProto/WAProto.proto` header).
+- Carousel biz node: `shouldIncludeBizBinaryNode` only returns `true` for a carousel when at least one card holds a native flow message, and `getBizBinaryNode` falls back to the mixed native-flow node when only a later card carries the buttons.
+- Interactive message headers (`generateWAMessageContent`) and `AIRich` headers no longer send an empty `title` / `subtitle` (`headerText` in `src/Utils/messages.ts`).
+- WAProto additions from the 21-oct build: `Conversation.acp2HistoryWithheld`, `DeviceCapabilities.hostWriteMutationSupport`, `HistorySync.favoriteStickers` / `omittedConversations` / `omittedConversationsProvided`, `Message.instantImageMessage`, `MsgOpaqueData.musicData`, `PollAdditionalMetadata.originalOptions`, `SyncActionValue.communityNestingStateAction` / `sharedDeviceSecretAction`, `WebMessageInfo.eventInviteAdditionalMetadata`, plus the types `RecoverableHistoryConversation`, `EventInviteAdditionalMetadata`, `HostWriteMutationSupport`, `MusicData`, `CommunityNestingStateAction` and `SharedDeviceSecretAction`. `Message.requestLocationMessage` (136) / `requestLocationUpdateMessage` (138) are included too, but elaina references their message types without ever defining them, so here `Message.RequestLocationMessage` and `Message.RequestLocationUpdateMessage` are empty placeholder messages: they encode and decode, and any real contents WhatsApp sends are kept as unknown fields until the real definitions are known. The generated `WAProto/index.js` / `index.d.ts` were patched by hand for these additions; `yarn gen:protobuf` regenerates them from `WAProto/WAProto.proto`.
+- `BotModeSelectionMetadata.BotUserSelectionMode` uses the latest names `DEFAULT_MODE` (0) and `THINK_HARD_MODE` (1) in `WAProto/index.js`, `index.d.ts`, `WAProto.proto` and the `BotMetadata` sub-proto (they were `UNKNOWN_MODE` / `REASONING_MODE`).
+- `assets/examples/waproto_additions.js` round-trips the new WAProto fields locally (no WhatsApp connection) and prints the default WhatsApp Web version, which is a quick check after `yarn build`.
+- `libsignal` stays on `@teamolduser/libsignal@1.0.1`; elaina's switch to the registry `libsignal@^6.0.0` was not adopted.
+- `.github/workflows/auto-update.yml` follows elaina's 21-oct flow (manual runs publish only with `publish: true`) but uses yarn, `yarn update:version`, and this package name; the proto refresh stays in `update-proto.yml`.
+- `sock.MB` and `sock.AIRich` are attached to the socket (`src/Extras/socket.ts`) and bound to it, so they need no `sock` argument. The global `MB` is unchanged from elaina-baileys (`new MB.AIRich(sock)`).
+- ffmpeg: VoIP audio/video feeders and media conversion now spawn the bundled `ffmpeg-static` binary when it exists (`src/Utils/ffmpeg-path.ts`), and fall back to `ffmpeg` on PATH. `package.json` allows only the `ffmpeg-static` install script to run (`dependenciesMeta`), so `yarn install` downloads its binary even when Yarn disables dependency build scripts by default. If it was installed before this change, run `yarn rebuild ffmpeg-static` once; no system ffmpeg or PATH change is needed.
+- Comparison against elaina-baileys 1.4.7 (exports, socket methods and behaviour): every socket method and export of elaina exists here (only `Carousel` is named `CarouselV2`, see above). Differences that were found and fixed: `sock.fetchNewChatMessageCap()` now sends the real query type `INDIVIDUAL_NEW_CHAT_THREAD` with id `27910975521856601` and returns the parsed object (`status`, `capped`, `warned`, `unlimited`, `remaining`, ...; see Account health signals); `normalizeMessageContent` unwraps all 32 `FUTURE_PROOF_MESSAGE_KEYS` instead of 11; a `quoted` message without readable content is sent without the quote (with a warning) instead of throwing; `requestPairingCode` validates the phone number format and strips punctuation; the `wa:update`, `wa:diff`, `audit:apk`, `verify:proto`, `verify:mex`, `fetch:bundle`, `check:proto`, `sync:proto`, `test:pairing` and `proto:update` npm scripts are wired and adapted to the TypeScript layout .
+- Also taken from elaina 1.4.7: the persisted-query ids and paths of the core newsletter operations in `src/Types/Mex.ts` (`CREATE`, `METADATA`, `SUBSCRIBERS`/`FOLLOWERS`, `SUBSCRIBED`, `ADMIN_COUNT`, `CHANGE_OWNER`, `DEMOTE` and the `xwa2_newsletter_admin_demote` path) together with their call shapes: `newsletterSubscribers()` now returns the follower list (the count is `subscribers` of `newsletterMetadata()`), `newsletterMetadata()` and `newsletterSubscribed()` take the optional switches, `newsletterMute()` / `newsletterUnmute()` go through the user setting, and `newsletterUpdate()` no longer overwrites an update's own `settings` with `null`. `requestPairingCode` rejects an answer that carries no `link_code_pairing_ref` ("accepted without registering it") instead of saving `creds.me`; the pairing tests' server replies now include that reference like the real server's. Ack error `475` raises `message-capping.update`; `NACK_REASONS` gained `StaleGroupAddressingMode` (421) and `NewChatMessagesCapped` (475); 1:1 messages that carry a message secret get the recipient `deviceListMetadata`; `executeWMexQuery` errors name the query and carry the variables that were sent; `isValidUsername` / `validateUsername` follow WhatsApp's real username rules (3-35 characters, `_` allowed at the edges, at least one letter, no leading/trailing/double `.`, no reserved words or domain endings).
+- Kept as Anya's own, because it is the better of the two: `fetchLatestBaileysVersion` (live version from wppconnect with a fallback, where elaina reads its own repository's `Defaults/index.js` by line number), `makeNewsletterStatus*` (thin aliases of one shared `makeNewsletterStatusExtras`), `useMongoAuthState` next to elaina's `useMongoAuthState2`, and `downloadMediaMessage`'s handling of Boom status codes. Whether the newsletter ids above are still served can be checked at any time with `npm run verify:mex`.
+- Tests: `src/__tests__/Extras/airich-widgets.test.ts` and the extra cases in `src/__tests__/binary/carousel-biz-node.test.ts`.
+
+#### A2UI cards and AIRichMessage
+
+Synced from the elaina-baileys 15-oct / 21-oct docs. The render notes below are elaina's findings from testing against real clients; they have not been re-verified for this package.
+
+There are two A2UI payload shapes, and the difference matters:
+
+| Shape | `data` content | Evidence |
+|---|---|---|
+| Ready-made element | `{"type":"info_card", ...}` and `{"type":"list_card", ...}` | Android knows exactly these two kinds, and WA Web's `a2ui_supported_elements` AB prop lists `"info_card, list_card"` |
+| `createSurface` tree | `{version, createSurface:{surfaceId, root, components}}` | WA Web debug fixture; the renderer is lazy-loaded, so it is not verified from the bundle |
+
+```js
+import { MB } from '@teamolduser/baileys'
+import makeWASocket, { useMultiFileAuthState } from '@teamolduser/baileys'
+
+const { state, saveCreds } = await useMultiFileAuthState('./session')
+const sock = makeWASocket({ auth: state })
+sock.ev.on('creds.update', saveCreds)
+
+// Send once the connection is open (connection.update -> connection === 'open').
+const jid = '6281234567890@s.whatsapp.net'
+
+// Ready-made element: the safest path, because Android only draws info_card and list_card.
+await MB.sendA2UI(sock, jid, [], {
+    type: 'im_a2ui',
+    uuid: crypto.randomUUID(),
+    fallback: 'MENU\nPick a category below.',
+    data: MB.a2uiInfoCard({ title: 'MENU', body: 'Pick a category below.' })
+})
+
+// Same components tree through a rich response (AIRich + bloksSection).
+await MB.sendA2UIBloks(sock, jid, [
+    MB.a2uiColumn('root', ['img', 't1']),
+    MB.a2uiImage('img', 'https://example.com/cover.jpg'),
+    MB.a2uiText('t1', 'Hello')
+], { uuid: crypto.randomUUID() })
+```
+
+- `a2uiInfoCard` / `a2uiListCard` build the element objects; `sendA2UI` and `sendA2UIBloks` both accept any element through `data`.
+- `sendA2UIBloks` takes the same `components` tree as `sendA2UI` (raw `data` objects included). `buildA2UISection(components, options)` returns just the section if you want to assemble an `AIRich` yourself.
+- `a2uiSurface` writes `root` and no longer adds `catalogId` / `sendDataModel` unless you pass them. When no `fallback` is given, `a2uiFallback` derives one from the card text.
+
+> [!WARNING]
+> Per elaina's testing, **a regular account cannot get an A2UI card drawn**, and this is not a payload bug. `sendA2UI` only shows the `fallback` text, and `sendA2UIBloks` shows an empty bubble. The WA Web client gates both: `bloksWidget` cards need `im_a2ui_require_bot_attribution` (default true) to be off or the message to be a 1P biz-bot message, and `WebMessageInfo.is1PBizBotMessage` is set by the server, so a sender cannot fill it. `FOABloksPrimitive` needs the `foABloksNodeRenderer`, which is only enabled behind a gatekeeper. Treat both helpers as tools to verify the payload shape, not as a way to get a rendered card out of a normal account.
+
+`AIRichMessage` builds a full rich response, including the submessages and forwarding context the official generator stamps (`WAWebGenerateRichResponseMessageProto`). `sendAIRichMessage(sock, jid, options)` accepts `sections`, `text`, `nativeFlow` and `submessages` together:
+
+```js
+await MB.sendAIRichMessage(sock, jid, {
+    text: 'Hello from AIRichMessage',
+    submessages: [
+        MB.AIRichMessage.inlineImage({ previewUrl: 'https://x/y.jpg', highResUrl: 'https://x/y-hi.jpg' }),
+        MB.AIRichMessage.table({ rows: [{ items: ['Price', '10'], isHeading: true }] })
+    ]
+})
+```
+
+- `AIRichMessage.text`, `inlineImage`, `table` and `contentItems` are submessage factories; `AIRichMessage.textSection` and `nativeFlowSection` are section factories. `AIRichMessage.submessage(kind, payload)` picks a factory from `AI_RICH_SUBMESSAGE_KINDS` (`text`, `inline_image`, `table`, `content_items`).
+- The forwarding context set by `AIRich.build` includes `botMessageSharingInfo` with `botEntryPointOrigin: 31` (`META_AI_FORWARD`) and a `forwardScore` equal to `forwardingScore`; both can be turned off with the `messageSharing` / `forwarded` options.
+- `AIRich.addSubmessage` works without a section, so a submessage can be attached to a message whose sections are empty.
+- `FOABloksPrimitive` now has a factory, `bloksSection`.
+
+#### Button label and payload forms
+
+All forms below produce the same wire payload. The display-text aliases `display_text`, `text`, `displayText`, `displaytext` and
+`buttonText` (string or `{ displayText }`) are accepted, and an already serialized `buttonParamsJson` string is kept byte-for-byte.
+
+```ts
+// Native flow button builder (interactiveMessage)
+new Button(sock)
+  .addButton('quick_reply', { text: 'Hi', id: '1' })                    // -> { text: 'Hi', id: '1', display_text: 'Hi' }
+  .addButton('cta_url', JSON.stringify({ display_text: 'Site', url: 'https://example.com' })) // kept as is
+  .addButton({ name: 'quick_reply', buttonParamsJson: { displayText: 'Yes', id: 'y' } })      // object form
+  .addReply('Direct', '2')
+
+// Legacy buttons builder (buttonsMessage)
+new ButtonV2(sock)
+  .addButton('Yes', 'y')                                    // addButton(label, id)
+  .addButton({ text: 'No', id: 'n' })                       // object form: text | display_text | displayText, id | buttonId | button_id
+  .addRawButton({ buttonId: 'm', text: 'Maybe', type: 1 })  // string buttonText / aliases become { displayText }
+```
+
+- `Button.addButton` throws a `TypeError` when no native flow button name is given.
+- `ButtonV2.addButton({ id })` without any label falls back to an empty label.
+
+_Also published at [docs/en/messagebuilder.md](../docs/en/messagebuilder.md)_
+
+### messages
+
+### Receive new messages
+
+Incoming messages are delivered through `messages.upsert`. Check `type` if the bot should respond only to newly received messages and not historical messages from a sync.
+
+```js
+sock.ev.on('messages.upsert', async ({ messages, type }) => {
+  if (type !== 'notify') return
+
+  for (const message of messages) {
+    if (!message.message) continue
+    console.log('Chat:', message.key.remoteJid)
+    console.log('Message ID:', message.key.id)
+  }
+})
+```
+
+### Extract simple text
+
+Different message types store text in different fields. This helper covers common text and caption types; it is not a complete parser for every WhatsApp message type.
+
+```js
+function getText(message) {
+  const content = message?.message
+  if (!content) return ''
+  return content.conversation
+    ?? content.extendedTextMessage?.text
+    ?? content.imageMessage?.caption
+    ?? content.videoMessage?.caption
+    ?? content.documentMessage?.caption
+    ?? ''
+}
+```
+
+### Send a text message
+
+```js
+await sock.sendMessage('14155550123@s.whatsapp.net', {
+  text: 'Hello from Anya Baileys'
+})
+```
+
+For groups, use the group's JID (usually ending in `@g.us`). User identifiers can also use newer LID addressing, so do not assume every participant ID is a phone-number JID. Prefer JIDs supplied by the library and message metadata.
+
+### Mark messages as read
+
+Use the message keys received from the event. Confirm the exact method signature against the generated API reference for the installed version before relying on advanced receipt behavior.
+
+### Interactive messages
+
+For button, carousel, and AI-rich payload construction, see [MessageBuilder](./builder.md). Interactive message behavior is client- and protocol-version-dependent; test against the WhatsApp clients you intend to support.
+
+_Also published at [docs/en/messages.md](../docs/en/messages.md)_
+
+### native flow
+
+### Direct Native Flow examples (without helper builders)
+
+These examples construct and send the payload directly. They do **not** call Anya's `generateCombinedButtons()` or Elaina's `new Button(sock)` builder. `jid` must be the destination JID and `sock` must be an authenticated, connected socket.
+
+#### Anya: direct native-flow payload
+
+Anya's `src/Addons/interactive-message.ts` defines the native-flow payload fields used below. The helper examples send the returned `interactiveMessage` object as the message content; this example constructs that same content shape inline:
+
+```ts
+await sock.sendMessage(jid, {
+  body: { text: 'Choose an option' },
+  footer: { text: 'Anya Bot' },
+  nativeFlowMessage: {
+    buttons: [
+      {
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({
+          display_text: 'Ping',
+          id: '.ping',
+        }),
+      },
+      {
+        name: 'cta_url',
+        buttonParamsJson: JSON.stringify({
+          display_text: 'Open Website',
+          url: 'https://example.com',
+          merchant_url: 'https://example.com',
+        }),
+      },
+      {
+        name: 'cta_copy',
+        buttonParamsJson: JSON.stringify({
+          display_text: 'Copy Code',
+          copy_code: 'ABC123',
+        }),
+      },
+    ],
+    messageParamsJson: '',
+  },
+})
+```
+
+This is the raw content shape used by the Anya helper. If your application is calling a different Baileys API/version, check that version's `sendMessage()` accepted content types before using this exact call.
+
+#### Elaina: direct native-flow payload and relay
+
+Elaina's `Button` builder creates a full WhatsApp message with `generateWAMessageFromContent()` and relays it with the `biz` / `native_flow` additional nodes. To do that directly, use the same lower-level steps without `new Button(sock)`:
+
+```js
+import { generateWAMessageFromContent } from '../../lib/index.js'
+
+const message = await generateWAMessageFromContent(
+  jid,
+  {
+    interactiveMessage: {
+      body: { text: 'Choose an option' },
+      footer: { text: 'Elaina native-flow demo' },
+      nativeFlowMessage: {
+        messageParamsJson: '{}',
+        buttons: [
+          {
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({
+              display_text: 'Ping',
+              id: '.ping',
+            }),
+          },
+          {
+            name: 'cta_url',
+            buttonParamsJson: JSON.stringify({
+              display_text: 'Open Website',
+              url: 'https://example.com',
+              merchant_url: 'https://example.com',
+            }),
+          },
+        ],
+      },
+    },
+  },
+  {},
+)
+
+await sock.relayMessage(message.key.remoteJid, message.message, {
+  messageId: message.key.id,
+  additionalNodes: [
+    {
+      tag: 'biz',
+      attrs: {},
+      content: [
+        {
+          tag: 'interactive',
+          attrs: { type: 'native_flow', v: '1' },
+          content: [
+            { tag: 'native_flow', attrs: { v: '9', name: 'mixed' } },
+          ],
+        },
+      ],
+    },
+  ],
+})
+```
+
+**Path note:** the import above matches the relative path from `assets/buttonsbuilder/MessageBuilder.js`. If this code lives in another directory, adjust the relative import to the project's exported `generateWAMessageFromContent` entry. Elaina's builder also adds context and payload options; include those explicitly if your use case needs them.
+
+#### Which one should I use?
+
+- Use Anya's inline payload when you want to construct the native-flow content directly with `sock.sendMessage()`.
+- Use Elaina's lower-level `generateWAMessageFromContent()` + `sock.relayMessage()` path when you need to reproduce the builder's native-flow relay metadata without instantiating `Button`.
+- These are direct-payload examples, not proof that WhatsApp renders every button type identically on every client. Test with the target WhatsApp clients.
+
+_Also published at [docs/en/native-flow.md](../docs/en/native-flow.md)_
+
+### newsletter
+
+A WhatsApp channel JID ends in `@newsletter`. Channel APIs are separate from group APIs, and some methods require a newsletter **server message ID** rather than a normal chat message key ID.
+
+### Create and update a channel
+
+```js
+const channel = await sock.newsletterCreate(
+  'Anya Updates',
+  'Product announcements and updates'
+)
+console.log(channel.id)
+
+await sock.newsletterUpdateName(channel.id, 'Anya News')
+await sock.newsletterUpdateDescription(channel.id, 'Official updates')
+```
+
+Use a channel JID returned by the library. Other base methods include follow/unfollow, mute/unmute, and fetching channel metadata/messages; see the generated API reference for exact signatures in this version.
+
+### Ported newsletter extras
+
+The `src/ported/newsletter-extras.ts` module adds methods for areas such as admin invites and capabilities, followers, insights, channel directory/search/categories, recommendations/similar channels, enforcement/reporting and appeals, poll voters, reaction senders, pin/unpin, labels, and question-response state. Newsletter status methods are in `src/ported/newsletter-status.ts`.
+
+These are WhatsApp private-protocol operations and can change server-side. Confirm the method's signature in the source/API reference and handle server errors instead of assuming every operation is available to every channel/account.
+
+### Server IDs versus message keys
+
+Do not pass `message.key.id` to a method that explicitly expects a newsletter server ID. Obtain the appropriate server ID from the newsletter message metadata or the return value of the corresponding newsletter API. Anya validates newsletter server IDs in its helper layer and rejects values outside the accepted range.
+
+_Also published at [docs/en/newsletter.md](../docs/en/newsletter.md)_
+
+### pairing
+
+A pairing code links the WhatsApp account without scanning a QR code. Create the socket with an auth state first, then request a code only when the saved credentials are not already registered.
+
+```js
+import makeWASocket, { useMultiFileAuthState } from '@teamolduser/baileys'
+
+const { state, saveCreds } = await useMultiFileAuthState('./session')
+const sock = makeWASocket({ auth: state })
+sock.ev.on('creds.update', saveCreds)
+
+if (!state.creds.registered) {
+  const code = await sock.requestPairingCode('14155550123')
+  console.log('Enter this pairing code in WhatsApp:', code)
+}
+```
+
+Pass the phone number in international format: country calling code followed by the national number, using digits only. Do not include a local trunk prefix or punctuation. Replace the example number with the account's actual number.
+
+Pairing requests can be rate-limited or rejected by WhatsApp. Handle errors and avoid repeatedly requesting new codes in a tight loop. Follow the current WhatsApp app flow shown on the device to complete linking.
+
+_Also published at [docs/en/pairing.md](../docs/en/pairing.md)_
+
+### porting changes
+
+This page documents the additions made during the Anya/Elaina comparison and follow-up fixes. It describes the repository state represented by this documentation update; it does not claim that a full build or runtime test suite has passed.
+
+### 1. MessageBuilder static helper attachment
+
+**Location:** `src/ported/MessageBuilder/`
+
+The helper modules are kept together in a dedicated folder. `attach-static-helpers.ts` is an internal side-effect module imported by the existing `src/ported/index.ts` barrel. The folder is not exported as a second public entry point.
+
+The attachment registers helpers from the MessageBuilder extras, Meta AI, bot-signature, native-flow, and message-helper modules on the supported static containers. The registration preserves existing properties instead of replacing them. `MessageBuilder` and `MB` refer to the same namespace object.
+
+Example:
+
+```ts
+import { MB, MessageBuilder } from '@teamolduser/baileys'
+
+const section = MB.mapSection({ items: [], queryStatus: 'FETCHED' })
+const sameSection = MessageBuilder.mapSection({ items: [], queryStatus: 'FETCHED' })
+```
+
+Use named exports when static namespace-style access is not needed. Since this is a ported interactive-message implementation, test payloads on target WhatsApp clients.
+
+### 2. Store root exports
+
+**Locations:** `src/ported/store-exports.ts`, `src/ported/index.ts`, `src/Store/index.ts`, `src/__tests__/store-exports.test.ts`
+
+The Store API is re-exported by `src/ported/store-exports.ts` and `src/ported/index.ts`; the existing package-root `src/index.ts` already exports the ported barrel, so Store helpers are available at the package root without a separate Store export path. Public Store exports include:
+
+- `makeInMemoryStore`
+- `makeOrderedDictionary`
+- `ObjectRepository`
+- `waChatKey`
+- `waMessageID`
+- `waLabelAssociationKey`
+- `BaileysInMemoryStoreConfig` (type)
+
+Example:
+
+```ts
+import {
+  makeInMemoryStore,
+  makeOrderedDictionary,
+  ObjectRepository
+} from '@teamolduser/baileys'
+```
+
+`makeInMemoryStore` binds to socket events and keeps an in-memory view of chats, contacts, messages, group metadata, presences, and labels. It is not a replacement for a durable database.
+
+### 3. MongoDB `useMongoAuthState2`
+
+**Location:** `src/ported/use-mongo-auth-state2.ts`
+
+This new function is intentionally separate from the existing `useMongoAuthState` implementation, so current callers are not forced onto a changed API. It is exported through `src/ported/index.ts` and the package root.
+
+It supports:
+
+- MongoDB URI/client creation when a URI is supplied;
+- caller-supplied `client`, `db`, or `collection`;
+- configurable database and collection names;
+- a `session` namespace for isolating bots in a shared collection;
+- batched key reads and `bulkWrite` updates/removals;
+- `clearAuth()` for the current session;
+- `close()` that only closes a client owned by the adapter.
+
+The MongoDB driver is declared as a runtime dependency and is installed automatically by the package manager. Keep the same `session` name to resume an existing bot and use distinct names for independent bots. `clearAuth()` is destructive for that session.
+
+### 4. SQLite `useSqliteAuthState2`
+
+**Location:** `src/ported/use-sqlite-auth-state2.ts`
+
+This separate Elaina-compatible SQLite adapter preserves the existing `useSqliteAuthState` API. It accepts either `dbPath` or an existing `better-sqlite3` `database` handle and returns `state`, `saveCreds()`, `clearAuth()`, and `close()`. A database opened from `dbPath` is owned by the adapter and closed by `close()`; a supplied database handle remains caller-owned. It uses the `creds` and `signal_keys` tables from the Elaina implementation.
+
+```ts
+import { useSqliteAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useSqliteAuthState2({ dbPath: './auth.db' })
+// Register auth.saveCreds on sock.ev's creds.update event.
+// await auth.clearAuth() // destructive: deletes auth rows in the two auth tables
+await auth.close()
+```
+
+### 5. Package metadata and compatibility tests
+
+The MongoDB, MySQL/MariaDB, PostgreSQL, and Redis drivers are listed as runtime dependencies so users do not need to install them separately. The repository also contains compatibility test scripts for selected inherited test files and a Store export regression test. Run the actual build and test commands in an environment where dependencies can be installed before treating these changes as fully verified:
+
+```bash
+yarn install
+yarn build
+yarn test --runInBand
+yarn test:compat
+```
+
+The static archive checks performed while preparing this update do not substitute for the full TypeScript build, Jest suite, integration tests, or a live WhatsApp session.
+
+### 6. Cumulative ZIP and ported-folder organization
+
+The current archive is cumulative across the earlier audit, static-verification, MessageBuilder, Store, MongoDB AuthState2, and English-documentation updates. The current code implementations introduced for these ports are organized under `src/ported/`, including `MessageBuilder/`, `use-mongo-auth-state2.ts`, `store-exports.ts`, the socket wrapper fix, and the other Elaina-derived feature modules.
+
+Tests remain under `src/__tests__/` and `test/`; dependency metadata and scripts remain in `package.json`; user-facing guides remain under `docs/en/`; and the root README / LICENSE / audit files remain at repository level. These are supporting files rather than runtime feature implementations, so they are intentionally not moved into `src/ported/`.
+
+### Elaina name compatibility
+
+**Locations:** `src/Extras/index.ts`, `src/Extras/v2.ts`, `src/Voip/index.ts`, `src/__tests__/elaina-name-compat.test.ts`
+
+- `src/Extras/index.ts` now re-exports `./v2`, so the 222 explicit `V2` aliases (for example `CarouselV2`, `TaskStatusV2`) are available from the package root. Before this change the file existed but was not exported.
+- The Elaina name `Carousel` is `CarouselV2` here (same class as `AIRichCarousel` and `MB.Carousel`); the bare name `Carousel` stays unexported because it is already a message type.
+- `src/Voip/index.ts` exports the Elaina VoIP names `ActiveCall`, `VoipClient`, `AudioFeeder`, `VideoFeeder` and `VIDEO_FORMAT_I420` next to `MergedVoipClient` / `makeVoipClient`. The old `createVoipClient({ authDir })` factory remains unexported.
+
+See [Elaina-derived names and the V2 aliases](../elaina-interactive-apis-v2.md) for the full list.
+
+### Elaina sync: commit f025122 to the 21-oct build
+
+**Locations:** `src/Extras/MessageBuilder/index.ts`, `src/Extras/v2.ts`, `src/WABinary/generic-utils.ts`, `WAProto/`, `src/Defaults/`, `src/Utils/generics.ts`, `.github/workflows/auto-update.yml`, `package.json`
+
+- Commit `f025122` only added five `AIRich` methods: `addHtmlCard`, `addSelectableText`, `addQuiz`, `addComparisonTable`, `addSports`. They are present here (plus `...V2` aliases) even though elaina removed them in its 15-oct build.
+- Carousel biz node and empty header title/subtitle (`headerText` in `src/Utils/messages.ts`, plus the builder header) follow elaina's 21-oct fixes.
+- WhatsApp Web version `2.3000.1050764678` and the WAProto additions from the 21-oct build are applied; see the README section "Elaina sync notes" for the field list. `Message.requestLocationMessage` / `requestLocationUpdateMessage` use empty placeholder types because elaina never defines them.
+- `BotModeSelectionMetadata.BotUserSelectionMode` now uses `DEFAULT_MODE` / `THINK_HARD_MODE` (previously `UNKNOWN_MODE` / `REASONING_MODE`) in the generated WAProto files and the `BotMetadata` sub-proto.
+- `libsignal` stays on `@teamolduser/libsignal@1.0.1`; elaina's move to the registry `libsignal@^6.0.0` was not adopted, so `yarn.lock` is unchanged.
+
+- `sock.MB` and `sock.AIRich` are attached to the socket in `src/Extras/socket.ts` and bound to it (no `sock` argument, `send*` helpers included). The global `MB` is unchanged from elaina-baileys: `new MB.AIRich(sock)`.
+
+- ffmpeg: VoIP audio/video feeders and media conversion now spawn the bundled `ffmpeg-static` binary when it exists (`src/Utils/ffmpeg-path.ts`), and fall back to `ffmpeg` on PATH. `package.json` allows only the `ffmpeg-static` install script to run (`dependenciesMeta`), so `yarn install` downloads its binary even when Yarn disables dependency build scripts by default. If it was installed before this change, run `yarn rebuild ffmpeg-static` once; no system ffmpeg or PATH change is needed.
+
+Usage examples: `assets/examples/airich_widgets.js` and `assets/examples/waproto_additions.js`. None of this has been built, linted or run against a live WhatsApp session in the environment where it was prepared.
+
+_Also published at [docs/en/porting-changes.md](../docs/en/porting-changes.md)_
+
+### sessions
+
+Auth state contains credentials and Signal keys. Losing it usually means linking the device again; leaking it can compromise the linked account. Keep session files, database access, and connection strings private.
+
+For every auth-state implementation that returns `saveCreds`, register it on the socket's `creds.update` event:
+
+```js
+sock.ev.on('creds.update', saveCreds)
+```
+
+### Multi-file auth state
+
+```js
+import { useMultiFileAuthState } from '@teamolduser/baileys'
+const { state, saveCreds } = await useMultiFileAuthState('./session')
+```
+
+This is convenient for development and a single bot instance. Do not delete or edit key files while the socket is running.
+
+### Database-backed auth states
+
+This repository includes database adapter functions in the ported modules. Check each function's options and lifecycle contract before using it:
+
+- `useMongoAuthState2` — MongoDB driver adapter with session namespacing and batch key operations.
+- `useSqliteAuthState` — Anya's existing SQLite auth-state adapter.
+- `useSqliteAuthState2` — separate Elaina-compatible SQLite adapter with `clearAuth()` and `close()` support.
+- `usePostgresAuthState` — PostgreSQL adapter.
+- `useMySQLAuthState` — MySQL adapter.
+- `useRedisAuthState` — Redis adapter.
+- `useNekoDBAuth` — adapter for a caller-provided NekoDB-like database instance.
+- `useTursoAuthState` — Turso / libSQL adapter. `{ path: './auth.db' }` for a local file, or
+  `{ url: 'libsql://<db>-<org>.turso.io', authToken }` for Turso cloud.
+
+The package declares `mongodb`, `mysql2`, `pg`, `ioredis` and `@libsql/client` as runtime dependencies, so npm/Yarn installs these database drivers automatically. The driver modules are loaded only when their corresponding adapter is used. `useNekoDBAuth` accepts an already connected NekoDB instance and does not import or install a NekoDB client package for you.
+
+### `useMongoAuthState2`
+
+The new adapter is deliberately separate from Anya's existing MongoDB auth-state API. It accepts a MongoDB URI, an existing client, a database, or a collection:
+
+```ts
+import makeWASocket, { useMongoAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useMongoAuthState2({
+  uri: process.env.MONGODB_URI,
+  dbName: 'whatsapp',
+  collectionName: 'baileys_auth',
+  session: 'bot-1'
+})
+
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+```
+
+Available options:
+
+| Option | Description |
+| --- | --- |
+| `uri` | MongoDB connection URI; creates a client owned by this adapter when used alone. |
+| `clientOptions` | Options passed to the MongoDB driver's `MongoClient` constructor. |
+| `client` | Existing `MongoClient`; this adapter does not close it. |
+| `db` | Existing MongoDB `Db` instance. |
+| `collection` | Existing collection; takes precedence over `db`/`client` resolution. |
+| `dbName` | Database name selected from the client. |
+| `collectionName` | Collection name; defaults to `baileys_auth`. |
+| `session` | Namespace for this bot's records; defaults to `default`. Use a unique value per independent bot/session. |
+
+The returned object contains `state`, `saveCreds`, `clearAuth()`, and `close()`.
+
+- `clearAuth()` deletes auth records for the configured `session` only.
+- `close()` closes the MongoDB client only when `useMongoAuthState2` created it from `uri`. Caller-supplied clients are not closed.
+- Keep `session` stable across restarts to resume the same session. Use different names to isolate separate bots sharing one collection.
+- Do not call `clearAuth()` unless you intend to remove that session's stored credentials and keys.
+
+### `useSqliteAuthState2`
+
+`useSqliteAuthState2` is the Elaina-compatible SQLite implementation, added separately so the existing `useSqliteAuthState` API remains unchanged. It uses `better-sqlite3`, which is already a package dependency in this repository.
+
+```ts
+import makeWASocket, { useSqliteAuthState2 } from '@teamolduser/baileys'
+
+const auth = await useSqliteAuthState2({ dbPath: './auth.db' })
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// Call only when intentionally clearing this auth database's Baileys auth rows.
+// await auth.clearAuth()
+
+// Close the database only when this adapter opened it from dbPath.
+await auth.close()
+```
+
+You can instead pass an existing `better-sqlite3` `Database` instance with `{ database: db }`; that connection remains caller-owned and `auth.close()` will not close it. The adapter uses the Elaina-compatible `creds` and `signal_keys` tables. `clearAuth()` deletes the auth rows in those tables, so do not use it if those tables contain auth state you want to preserve.
+
+### `useTursoAuthState`
+
+Turso / libSQL adapter. It covers both shapes Turso offers through one `@libsql/client` client:
+
+| Target | Options | URL used |
+| --- | --- | --- |
+| Local database file | `{ path: './auth.db' }` | `file:./auth.db` |
+| Turso cloud | `{ url: 'libsql://<db>-<org>.turso.io', authToken }` | as given |
+| Explicit | `{ url: 'file:./auth.db' }` | as given |
+
+```ts
+import makeWASocket, { useTursoAuthState } from '@teamolduser/baileys'
+
+// local file — no account, no token
+const auth = await useTursoAuthState({ path: './auth.db', session: 'bot-1' })
+
+// Turso cloud — a token is only sent when you supply one
+const cloud = await useTursoAuthState({
+    url: 'libsql://my-db-myorg.turso.io',
+    authToken: process.env.TURSO_TOKEN,
+    session: 'bot-1'
+})
+
+const sock = makeWASocket({ auth: auth.state })
+sock.ev.on('creds.update', auth.saveCreds)
+
+// await auth.clearAuth()   // removes every row of this session
+await auth.close()          // closes the client only when this adapter created it
+```
+
+Rows live in one table (`baileys_auth` by default, override with `table`) keyed by `(session, type, id)`, so several
+bots can share one database. `apply()` writes through `client.batch(…, 'write')`, so an app-state patch lands in a
+single transaction. `@libsql/client` is a runtime dependency and is imported lazily — a bot that does not use Turso
+never loads it. `toLibsqlUrl({ path, url })` is exported if you want to resolve the URL yourself.
+
+### Sessions across the file-based adapters
+
+Every auth adapter now takes a `session`, so several bots can share one backend — one database, one folder, or one
+file. Leaving it out keeps the previous layout exactly as it was.
+
+| Adapter | Backend | What `session` does | `clearAuth()` scope |
+| --- | --- | --- | --- |
+| `useMultiFileAuthState(folder, { session })` | folder | files go in `<folder>/<session>` | that session's files |
+| `useSingleFileAuthState(file, { session })` | one JSON file | keys are stored as `<session>:<key>` | that session's keys |
+| `useSqliteAuthState2({ dbPath, session })` | SQLite | keys are stored as `<session>:<key>` | that session's rows |
+| `useNekoDBAuth(db, collection, { session })` | NekoDB | keys are stored as `<session>:<key>` | that session's documents |
+| `useMongoAuthState2({ uri, session })` · `usePostgresAuthState` · `useMySQLAuthState` · `useRedisAuthState` · `useTursoAuthState` | database | namespaced rows / keys / hashes | that session's rows |
+
+```ts
+// two bots, one folder
+const a = await useMultiFileAuthState('./auth', { session: 'bot-a' })   // ./auth/bot-a/creds.json
+const b = await useMultiFileAuthState('./auth', { session: 'bot-b' })   // ./auth/bot-b/creds.json
+
+// two bots, one JSON file
+const c = await useSingleFileAuthState('./auth.json', { session: 'bot-c' })   // {"bot-c:creds": …}
+```
+
+Notes that apply to all of them:
+
+- `clearAuth()` removes **only that session** when a session is set; with no session it clears the whole store, which
+  is the old behaviour.
+- A session name is used as a path segment by the folder adapter, so `/` and `..` are replaced — a session cannot
+  escape its folder.
+- The single-file adapter writes with a 3-second debounce. Two adapters on one file merge on flush instead of
+  overwriting each other, and `flush()` forces an immediate write (call it before shutdown).
+
+### Store lifecycle
+
+When shutting down a bot, stop accepting new work, close the socket according to your application's lifecycle, and call `auth.close()` for adapters that return it. Do not close a shared database client from an auth adapter that does not own it.
+
+### Production guidance
+
+Use encrypted transport where supported, restrict database permissions, store secrets in environment/secret managers, back up the data securely, and never commit session files or connection strings to version control.
+
+_Also published at [docs/en/sessions.md](../docs/en/sessions.md)_
+
+### socket methods
+
+### Account and chat methods
+
+```ts
+await sock.getUsername()                         // { username, state, pin }   (built on tb2's username socket)
+await sock.checkUsernameAvailability('alice')    // { available, suggestions, response }
+await sock.getUsernames(jid1, jid2)              // [{ jid, username }]
+await sock.removeUsername()                      // same as deleteUsername()
+await sock.removeUsernamePin()
+await sock.fetchAbout('9199xxxxxxxx@s.whatsapp.net')      // { jid, status }
+await sock.updateTextStatus('busy', { emoji: '🔥' })      // text: '' clears it
+await sock.fetchUserNotices()                    // + updateUserNoticeStage(noticeId, stage)
+await sock.fetchOptOutList()                     // + updateOptOut({ jid, category, action })
+await sock.fetchPushSettings()
+await sock.fetchServerLinkPreview('https://example.com')
+await sock.reportSpam(jid, { flow: SPAM_FLOWS.OverflowMenuReport })   // SPAM_FLOWS is exported
+await sock.getServerProps({ refresh: true })     // + fetchProps({ full: true })
+await sock.checkAccountHealth('9199xxxxxxxx')    // { exists, isBusiness, about, hasProfilePhoto, self: { capped, warned, remaining }, notes }
+```
+
+### Message helpers
+
+```ts
+await sock.sendHD(jid, { image: { url: './photo.jpg' }, caption: 'HD' })        // SD message + linked HD child (image or video)
+await sock.sendImgVid(jid, { image: { url: './a.jpg' }, video: { url: './a.mp4' }, caption: 'motion photo' })
+await sock.removeMemberLabel(groupJid)                                           // = updateMemberLabel(groupJid, '')
+await sock.resetGroupSenderKey(groupJid)                                         // { jid, cleared, devices } - redistributes the sender key
+await sock.groupQuery(jid, 'get', [{ tag: 'query', attrs: { request: 'interactive' } }])   // raw w:g2 IQ, + communityQuery
+await sock.executeWMexQuery({ newsletter_id: jid }, queryId, 'xwa2_newsletter_admin')       // raw WMex query
+```
+
+_Also published at [docs/en/socket-methods.md](../docs/en/socket-methods.md)_
+
+### stability checklist
+
+Two of these steps need a paired WhatsApp account, so they are yours. Everything before them is already green and
+re-runnable.
+
+Each step says what it proves and what a failure means.
+
+---
+
+### Step 0 — build and run the local suite (5 minutes, no account)
+
+```bash
+npm install
+npm run build
+node --test test/*.test.js
+```
+
+Expect `103 tests, 103 pass, 0 fail, 0 skip`.
+
+Then check the port has not drifted from upstream:
+
+```bash
+npm i -D esbuild
+git clone --depth 1 https://github.com/rexxzyid/elaina-baileys.git /tmp/elaina
+node scripts/audit-elaina-parity.mjs /tmp/elaina
+```
+
+Expect `15 identical, 0 expected differences, 0 unexplained`. The script exits non-zero if any module drifts, so
+this is a CI gate rather than a report.
+
+**What it proves:** the code compiles, every unit and concurrency and soak test passes, and all fifteen ported
+modules are byte-identical to elaina-baileys after type-stripping.
+
+---
+
+### Step 1 — pair a spare number (10 minutes, needs a phone)
+
+Use a number you can afford to lose. This is an unofficial client.
+
+```bash
+node -e "
+import('./lib/index.js').then(async ({ default: makeWASocket, useMultiFileAuthState }) => {
+  const { state, saveCreds } = await useMultiFileAuthState('./session')
+  const sock = makeWASocket({ auth: state })
+  sock.ev.on('creds.update', saveCreds)
+  sock.ev.on('connection.update', u => {
+    if (u.qr) console.log('QR:', u.qr)
+    if (u.connection === 'open') { console.log('paired'); process.exit(0) }
+  })
+})"
+```
+
+Scan the QR string with WhatsApp → Linked devices. If you would rather use a code, call
+`sock.requestPairingCode('<number>')` about three seconds after the socket exists — calling it immediately throws.
+
+---
+
+### Step 2 — prove the stanzas are accepted (15 minutes, needs the paired session)
+
+Start with the safe set. It only ever messages your own account.
+
+```bash
+node scripts/verify-live.mjs --session ./session
+```
+
+Expect:
+
+```
+ok   connect (revision accepted)      socket open, creds intact
+ok   send text, receive echo          id 3EB0... echoed as 3EB0...
+skip send interactive buttons         pass --interactive to include it
+```
+
+Then add each shape you actually use, one at a time:
+
+```bash
+node scripts/verify-live.mjs --session ./session --interactive
+node scripts/verify-live.mjs --session ./session --scheduled
+node scripts/verify-live.mjs --session ./session --newsletter 1234567890@newsletter --post-status
+node scripts/verify-live.mjs --session ./session --payments --music-uri https://mmg.whatsapp.net/...
+```
+
+`--payments` sends a payment reminder and a music message as raw proto fields
+(`paymentReminderMessage` / `musicMessage`). The unit suite proves they encode and that raw mode accepts them; only
+the server can prove they render, which is what this step adds. Music URIs must come from a Meta catalog entry —
+the builder refuses anything not hosted on a WhatsApp/Meta CDN.
+
+| Step | What it proves | If it fails |
+|---|---|---|
+| connect | the pinned `client_revision` is still accepted | 405/415 → revision stale, run `node scripts/check-revision.mjs --fix` and rebuild. 401/403/419 → session dead, delete `./session` and re-pair |
+| send text, receive echo | send path and `messages.upsert` work end to end | check the session is still linked; look at the socket's own error |
+| interactive buttons | the `interactiveMessage` payload and its `biz` node are accepted | compare against a message your phone renders; builders live in `src/Extras/MessageBuilder/` |
+| scheduled | the `conditionalRevealMessage` envelope and its `<meta>` node are accepted, and unschedule too | the window is 10 min – 14 days for chats, 10 min – 30 days for newsletters |
+| newsletter status | capabilities, then the post is confirmed by reading it back, then revoked | almost always a missing `CHANNEL_STATUS_PRODUCER` capability or non-admin rights, not a code bug |
+
+**What it proves:** this is the only step that proves WhatsApp accepts what this fork sends. Everything else in
+the repo is local.
+
+---
+
+### Step 3 — reconnect storm (5 minutes, needs the paired session)
+
+```bash
+node scripts/verify-live.mjs --session ./session --storm 5
+```
+
+It force-closes the websocket five times and waits for the socket to come back each time. It fails if a reconnect
+times out, if `connection.update` listeners grow by more than 2 across cycles, or if the heap grows more than 60MB.
+
+Expect something like `reconnects 820/640/700/660/690ms, listeners 1/1/1/1/1, heap 58/58/59/59/60MB`.
+
+**What it proves:** the reconnect path works against the real server and does not leak listeners or memory. The
+local soak suite covers the same failure modes for the message path, but only a live socket can test reconnect.
+
+---
+
+### Step 4 — soak (24 hours, needs the paired session)
+
+Run your bot with the process watched, then look at the two numbers that matter:
+
+```bash
+node --expose-gc your-bot.js    # or however you start it
+### in another shell, every hour:
+ps -o rss= -p <pid>                     # RSS in KB
+node -e "console.log(process.listenerCount?.('x'))"   # or log it from inside your bot
+```
+
+Log from inside the bot, hourly:
+
+```js
+setInterval(() => {
+	const mb = Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+	const listeners = ['messages.upsert', 'connection.update', 'creds.update']
+		.map(event => `${event}=${sock.ev.listenerCount(event)}`).join(' ')
+	console.log(`[soak] heap=${mb}MB ${listeners}`)
+}, 60 * 60 * 1000).unref()
+```
+
+**Pass:** heap plateaus (small sawtooth is normal, a straight climb is not) and listener counts stay flat.
+**Fail:** listeners climbing means something adds a handler per message; heap climbing without retained data
+usually means the same.
+
+---
+
+### Step 5 — put it in CI (10 minutes)
+
+`.github/workflows/verify.yml` is in the repo. It runs on every push and PR, plus every Monday:
+
+- build + `node --test` on Node 24 and 26
+- the elaina parity audit against the pinned upstream release
+- `scripts/check-revision.mjs` on the weekly schedule, which fails when the pinned client revision falls behind
+
+Nothing to configure beyond pushing the file. If you fork, update the repo URL in the parity job.
+
+---
+
+### Step 6 — keep the revision fresh (ongoing)
+
+```bash
+node scripts/check-revision.mjs          # is the pin stale?
+node scripts/check-revision.mjs --fix    # update src/Defaults/index.ts in place
+npm run build
+node scripts/verify-live.mjs --session ./session    # confirm the new pin connects
+```
+
+The weekly CI job does the check for you; the `--fix` + rebuild + verify loop is what you do when it fires.
+
+---
+
+### What is still unprovable from here
+
+- **Load at your real message rate.** The suite proves correctness under concurrency, not throughput on your box.
+- **Media upload.** The harness deliberately skips it to keep runs cheap.
+- **Calls.** Audio/video need a second peer; `test/voip.test.js` covers the feeders and state machine only.
+- **Ban risk.** No test can prove your account is safe. Keep the number expendable and the volume human-shaped.
+
+_Also published at [docs/en/stability-checklist.md](../docs/en/stability-checklist.md)_
+
+### store
+
+### Store APIs at the package root
+
+The existing in-memory store is available from the package root. It subscribes to socket events when bound and keeps an in-memory view of chats, contacts, messages, groups, presences, and labels. It is not a durable database by itself.
+
+```ts
+import makeWASocket, {
+  makeInMemoryStore,
+  makeOrderedDictionary,
+  ObjectRepository,
+  useMultiFileAuthState
+} from '@teamolduser/baileys'
+
+const { state, saveCreds } = await useMultiFileAuthState('./auth')
+const sock = makeWASocket({ auth: state })
+const store = makeInMemoryStore({})
+store.readFromFile('./baileys-store.json')
+store.bind(sock.ev)
+
+sock.ev.on('creds.update', saveCreds)
+// Persist on your own chosen cadence or during graceful shutdown.
+store.writeToFile('./baileys-store.json')
+
+// Useful store lookups:
+const message = await store.loadMessage('12345@s.whatsapp.net', 'MESSAGE_ID')
+const latest = await store.mostRecentMessage('12345@s.whatsapp.net')
+const group = await store.fetchGroupMetadata('GROUP_ID@g.us', sock)
+
+// A small ordered dictionary keyed by an item's id:
+const recent = makeOrderedDictionary<{ id: string; text: string }>(item => item.id)
+recent.upsert({ id: 'm1', text: 'hello' }, 'append')
+console.log(recent.get('m1'), recent.array)
+
+// Generic in-memory repository for entities with string ids:
+const labels = new ObjectRepository<{ id: string; name: string }>()
+labels.upsertById('label-1', { id: 'label-1', name: 'Important' })
+console.log(labels.findById('label-1'), labels.findAll())
+```
+
+`store.readFromFile()` / `writeToFile()` are synchronous JSON helpers. Protect the file appropriately and prefer a database-backed store if you need durability, concurrent writers, or large histories.
+
+_Also published at [docs/en/store.md](../docs/en/store.md)_
+
+### voip
+
+### Unified VoIP API
+
+Anya and Elaina call features are exposed through **one `voip` client**. No engine-selection option is required: the method you invoke automatically selects the internal signaling engine. The merged implementation in `src/Voip/` is the only VoIP source in this tree.
+
+```ts
+import makeWASocket from '@teamolduser/baileys'
+
+const sock = makeWASocket({ auth: state })
+const voip = await sock.makeVoipClient()
+
+// Anya multi-call API
+const call = await voip.initiateCall('15551234567', {
+  audioSource: './audio.mp3',
+  durationMs: 60_000
+})
+const activeCalls = await voip.getActiveCalls()
+
+// Elaina media/group-call API is available on the same client.
+// First end the previous call before switching internal signaling engines.
+// const mediaCall = await voip.call('15551234567', { audioSource: './audio.mp3' })
+// mediaCall.enqueue('./next-track.mp3')
+
+// Alternative: import { makeVoipClient } and use the top-level factory:
+// const socketVoip = await makeVoipClient(sock)
+```
+
+The same client exposes `initiateCall()`, `initiateCalls()`, `callMany()`, `acceptCall()`, `rejectCall()`, `call()`, `callGroup()`, `joinGroupCall()`, `getActiveCalls()`, `getCall()`, `getActiveCallCount()`, `endCall()`, `endAllCalls()`, `setOptions()`, `resetCallState()`, and `disconnect()`. The call object includes methods appropriate to the call-creation API: Anya calls expose incoming-call lifecycle and video controls; Elaina calls expose audio/video playlists and screen-sharing controls.
+
+**Safety note:** Both original engines own WhatsApp signaling state, so they cannot safely manage active calls at the same time on one socket. The unified client switches automatically only when the previous engine has no active calls; it throws a clear error if a switch is attempted while a call is active. Do not start direct `sock.initiateCall()` calls while an Elaina media call is active. See the complete VoIP API guide.
+
+### VoIP diagnostics and call timelines
+
+Ported from innovatorssoft/baileys. One shared instance records a bounded per-call timeline and redacts anything that
+looks like key material before it reaches a log line.
+
+```ts
+import { voipDiagnostics, VoipDiagnostics, sanitizeJid, summarizeNode } from '@teamolduser/baileys'
+
+// one shared instance; pass your pino logger so lines go wherever the rest of your logs go
+voipDiagnostics.setLogger(logger)
+voipDiagnostics.setDiagnosticMode(true)   // elevates debug -> info in production
+
+voipDiagnostics.log({
+    component: 'Signaling',
+    event: 'offer_received',
+    callId,
+    jid: peerJid,
+    data: { retry: 2, enc: 'never logged' }   // enc comes out as [REDACTED]
+})
+
+// reconstruct a failed call
+console.log(voipDiagnostics.formatTimeline(callId))
+```
+
+| Export | What it does |
+| --- | --- |
+| `voipDiagnostics` | shared `VoipDiagnostics` instance (one per process, across module copies) |
+| `new VoipDiagnostics(logger, { diagnostic, logFile })` | your own instance; `logFile` is opt-in — nothing is written to disk unless you name a file |
+| `CallTimelineStore` | the bounded timeline on its own (`maxEntriesPerCall`, `maxCalls`, `ttlMs`) |
+| `sanitizeJid` / `summarizeAttrs` / `summarizeNode` | redaction helpers, usable in your own logging |
+
+`CallSession` is the innovatorssoft name for the call object this package exposes as `ActiveCall`; both names are
+exported from the package root.
+
+_Also published at [docs/en/voip.md](../docs/en/voip.md)_
+
+### webview
+
+### In-app HTML webview (`webView`)
+
+Hand it the jid and the HTML, it sends the page. Nothing else — no markup helpers, no validation layer, no height
+injection. The HTML goes out exactly as you wrote it.
+
+It is on the socket, under three names:
+
+```ts
+const { messageId } = await sock.webView(jid, {
+    html: page,                 // your full HTML document, sent byte-for-byte
+    title: 'Order status',      // optional: disclaimer text + notification preview
+    label: 'tap to open',       // optional: preview line on the card
+    forwarded: false            // optional: no "Forwarded" badge
+})
+
+await sock.web(jid, { html: page })             // same method
+await sock.sendHtmlWebview(jid, { html: page }) // the name it shipped under first
+```
+
+The standalone function still exists for code that already holds the socket:
+
+```ts
+import { webView } from '@teamolduser/baileys'
+
+const { messageId } = await webView(sock, jid, { html: page })
+```
+
+| Option | Meaning |
+| --- | --- |
+| `html` | the page — required, passed through untouched |
+| `title` | `messageDisclaimerText` + notification preview |
+| `label` | the submessage preview on the card |
+| `forwarded` | `true` (default) = Meta-AI forward styling, `false` = clean origin |
+| `quoted` | quote an existing message |
+| `messageId` | reuse a specific id instead of generating one |
+
+`web` and `sendHtmlWebview` are aliases of the same function — `web(sock, jid, { html })` works exactly the same, and
+code written against the earlier name keeps working.
+
+Two stanzas go out and both are needed: the `botForwardedMessage` rich response, then a `protocolMessage` **type-14
+edit** of that same message id. The second is what makes the client render the page — send only the first and the card
+never opens.
+
+Validation is not done here. If you want a page checked before sending, run your own check first — this function sends
+what you give it.
+
+_Also published at [docs/en/webview.md](../docs/en/webview.md)_
+
+## 🔎 API reference
+
+Every export from `src/Extras`, `src/Addons` and `src/Utils`, with the signature it is declared with. Kept in step with
+the source by hand — if you add an export, add a row.
+
+### Extras
+
+| Module | Export | Kind |
+| --- | --- | --- |
+| `auth-store` | `CREDS_KEY` | const |
+| `auth-store` | `AuthStoreEntry` | interface |
+| `auth-store` | `AuthStore` | interface |
+| `auth-store` | `DatabaseAuthState` | interface |
+| `auth-store` | `encodeAuthValue` | const |
+| `auth-store` | `decodeAuthValue` | const |
+| `auth-store` | `loadOptionalModule` | const |
+| `auth-store` | `makeAuthStateFromStore` | const |
+| `chats-extras` | `PortedChatQueryIds` | const |
+| `chats-extras` | `PortedChatPaths` | const |
+| `chats-extras` | `SPAM_FLOWS` | const |
+| `chats-extras` | `SpamReportOptions` | interface |
+| `chats-extras` | `buildSpamListNode` | const |
+| `chats-extras` | `readSpamReportResult` | const |
+| `chats-extras` | `AccountHealth` | interface |
+| `chats-extras` | `ChatsExtrasSocket` | interface |
+| `chats-extras` | `makeChatsExtras` | const |
+| `group-metadata-cache` | `GROUP_ADDRESSING_MODES` | const |
+| `group-metadata-cache` | `isUsableGroupMetadata` | const |
+| `group-metadata-cache` | `describeUnusableGroupMetadata` | const |
+| `html-app` | `HTML_APP_MESSAGE_CEILING` | const |
+| `html-app` | `HTML_APP_BYTE_BUDGET` | const |
+| `html-app` | `HTML_APP_BYTE_LIMIT` | const |
+| `html-app` | `wireBytes` | const |
+| `html-app` | `HtmlAppCheckOptions` | interface |
+| `html-app` | `checkHtmlApp` | const |
+| `html-multiplayer` | `HtmlMultiplayerOptions` | interface |
+| `html-multiplayer` | `htmlMultiplayerPrelude` | const |
+| `html-multiplayer` | `withHtmlMultiplayer` | const |
+| `link-preview-metadata` | `SocialMediaPostType` | const |
+| `link-preview-metadata` | `VideoEndCardInput` | interface |
+| `link-preview-metadata` | `videoEndCard` | const |
+| `link-preview-metadata` | `SocialPreviewInput` | interface |
+| `link-preview-metadata` | `SocialPreviewInput` | interface |
+| `link-preview-metadata` | `buildSocialPreview` | const |
+| `link-preview-metadata` | `readSocialPreview` | const |
+| `messages-extras` | `AssociationType` | const |
+| `messages-extras` | `senderKeyMemoryResetSummary` | const |
+| `messages-extras` | `MessagesExtrasSocket` | interface |
+| `messages-extras` | `MessagesExtrasConfig` | interface |
+| `messages-extras` | `makeMessagesExtras` | const |
+| `messages-helpers` | `trimEmptyValues` | const |
+| `messages-helpers` | `songThumbnail` | const |
+| `messages-helpers` | `prepareLinkThumbnail` | const |
+| `messages-helpers` | `prepareProductMessage` | const |
+| `messages-helpers` | `buttonLimitFor` | const |
+| `messages-helpers` | `nativeFlowButtonsViolateConstraints` | const |
+| `messages-helpers` | `warnOnNativeFlowConstraints` | const |
+| `modern-messages` | `STATUS_NOTIFICATION_TYPES` | const |
+| `modern-messages` | `makeQuestionMessage` | const |
+| `modern-messages` | `makeQuestionResponseMessage` | const |
+| `modern-messages` | `makeQuestionReplyMessage` | const |
+| `modern-messages` | `makeStatusQuestionAnswerMessage` | const |
+| `modern-messages` | `makeStatusQuotedMessage` | const |
+| `modern-messages` | `makeStatusStickerInteractionMessage` | const |
+| `modern-messages` | `makeStatusNotificationMessage` | const |
+| `modern-messages` | `makeNewsletterAdminInviteMessage` | const |
+| `modern-messages` | `makeNewsletterFollowerInviteMessage` | const |
+| `modern-messages` | `makePollAddOptionMessage` | const |
+| `modern-messages` | `makeCommentMessage` | const |
+| `modern-messages` | `makeEventInviteMessage` | const |
+| `modern-messages` | `makeScheduledCallCreationMessage` | const |
+| `modern-messages` | `makeScheduledCallEditMessage` | const |
+| `modern-messages` | `makeGroupStatusReactionMessage` | const |
+| `modern-messages` | `makeNewsletterStatusAttribution` | const |
+| `modern-messages` | `makeGroupStatusAttribution` | const |
+| `modern-messages` | `STATUS_AUDIENCE_DEFAULT_LIST_NAME` | const |
+| `modern-messages` | `STATUS_AUDIENCE_DEFAULT_EMOJI` | const |
+| `modern-messages` | `makeStatusAudienceMetadata` | const |
+| `modern-messages` | `makeMessageAssociation` | const |
+| `modern-messages` | `makeStatusAddYoursAssociation` | const |
+| `modern-messages` | `makeStatusMentionMessage` | const |
+| `modern-messages` | `prepareModernMessageContent` | const |
+| `native-flow` | `NATIVE_FLOW_NAMES` | const |
+| `native-flow` | `WEB_SUPPORTED_INTERACTIVE_FLOWS` | const |
+| `native-flow` | `NATIVE_FLOW_BUTTON_LIMIT` | const |
+| `native-flow` | `getNativeFlowNameByButtonName` | const |
+| `native-flow` | `isWebSupportedButtonName` | const |
+| `native-flow` | `checkNativeFlowButtons` | const |
+| `newsletter-extras` | `PortedNewsletterQueryIds` | const |
+| `newsletter-extras` | `PortedNewsletterPaths` | const |
+| `newsletter-extras` | `toNewsletterServerIds` | const |
+| `newsletter-extras` | `NewsletterUserSettingType` | type |
+| `newsletter-extras` | `toNewsletterUserSettingInput` | const |
+| `newsletter-extras` | `decodeNewsletterPlaintext` | const |
+| `newsletter-extras` | `decodeNewsletterMessageNodes` | const |
+| `newsletter-extras` | `NewsletterExtrasDeps` | interface |
+| `newsletter-extras` | `makeNewsletterExtras` | const |
+| `newsletter-status-socket` | `makeNewsletterStatusExtras` | const |
+| `newsletter-status` | `getNewsletterStatusMediaType` | const |
+| `newsletter-status` | `NEWSLETTER_SERVER_ID_MIN` | const |
+| `newsletter-status` | `NEWSLETTER_SERVER_ID_MAX` | const |
+| `newsletter-status` | `toNewsletterServerId` | const |
+| `newsletter-status` | `withNewsletterStatusAttribution` | const |
+| `newsletter-status` | `parseNewsletterStatusAck` | const |
+| `newsletter-status` | `NewsletterStatusConfig` | interface |
+| `newsletter-status` | `NewsletterStatusSocket` | interface |
+| `newsletter-status` | `waitForNewsletterStatusServerId` | const |
+| `newsletter-status` | `buildNewsletterAdminProfileStatusMessage` | const |
+| `newsletter-status` | `buildNewsletterStatusNode` | const |
+| `newsletter-status` | `buildNewsletterStatusReactionNode` | const |
+| `newsletter-status` | `buildNewsletterStatusRevokeNode` | const |
+| `newsletter-status` | `makeNewsletterStatusSender` | const |
+| `newsletter-status` | `makeNewsletterStatusReactionSender` | const |
+| `newsletter-status` | `makeNewsletterStatusRevokeSender` | const |
+| `newsletter-status` | `parseNewsletterStatusUpdatesResponse` | const |
+| `newsletter-status` | `makeNewsletterStatusUpdatesFetcher` | const |
+| `newsletter-status` | `parseNewsletterStatusesResponse` | const |
+| `newsletter-status` | `makeNewsletterStatusFetcher` | const |
+| `optional-media` | `loadSharp` | const |
+| `optional-media` | `loadFfmpeg` | const |
+| `optional-media` | `hasOptionalMedia` | const |
+| `payment-messages` | `SplitPaymentStatus` | const |
+| `payment-messages` | `ReminderFrequency` | const |
+| `payment-messages` | `ReminderStatus` | const |
+| `payment-messages` | `MONEY_OFFSET` | const |
+| `payment-messages` | `money` | const |
+| `payment-messages` | `readMoney` | const |
+| `payment-messages` | `SplitPaymentParticipant` | interface |
+| `payment-messages` | `SplitPaymentInput` | interface |
+| `payment-messages` | `buildSplitPayment` | const |
+| `payment-messages` | `buildSplitPaymentUpdate` | const |
+| `payment-messages` | `PaymentReminderInput` | interface |
+| `payment-messages` | `buildPaymentReminder` | const |
+| `payment-messages` | `readSplitPayment` | const |
+| `payment-messages` | `readPaymentReminder` | const |
+| `scheduled-message` | `SCHEDULED_MSG_META_TYPE` | const |
+| `scheduled-message` | `SCHEDULED_MSG_MAX_PER_CHAT` | const |
+| `scheduled-message` | `SCHEDULED_MSG_MAX_MEDIA` | const |
+| `scheduled-message` | `SCHEDULED_MSG_RESOURCE_LIMIT_NACK_CODE` | const |
+| `scheduled-message` | `SCHEDULED_MSG_REVEAL_KEY_BYTES` | const |
+| `scheduled-message` | `SCHEDULED_MSG_REVEAL_KEY_IV_BYTES` | const |
+| `scheduled-message` | `SCHEDULED_MSG_REVEAL_KEY_RETENTION_DAYS` | const |
+| `scheduled-message` | `SCHEDULED_MSG_TAG_BYTES` | const |
+| `scheduled-message` | `SCHEDULED_MSG_WINDOW` | const |
+| `scheduled-message` | `generateRevealKey` | const |
+| `scheduled-message` | `generateRevealKeyId` | const |
+| `scheduled-message` | `encryptWithRevealKey` | const |
+| `scheduled-message` | `decryptWithRevealKey` | const |
+| `scheduled-message` | `buildConditionalRevealMessage` | const |
+| `scheduled-message` | `encodeScheduledMessage` | const |
+| `scheduled-message` | `decodeScheduledMessage` | const |
+| `scheduled-message` | `buildScheduledMsgMetaNode` | const |
+| `scheduled-message` | `buildUnscheduleProtocolMessage` | const |
+| `scheduled-message` | `isScheduledTimeValid` | const |
+| `sender-key-memory` | `pickSenderKeyRecipients` | const |
+| `sender-key-memory` | `deliveredSenderKeyJids` | const |
+| `sender-key-memory` | `senderKeyResetSummary` | const |
+| `sender-key-memory` | `commitSenderKeyDelivery` | const |
+| `socket` | `bindMessageBuilder` | const |
+| `socket` | `preparePortedMessageContent` | const |
+| `socket` | `makePortedSocket` | const |
+| `status-stickers` | `StatusLinkType` | const |
+| `status-stickers` | `STICKER_DEFAULT_AREA` | const |
+| `status-stickers` | `StickerArea` | interface |
+| `status-stickers` | `stickerArea` | const |
+| `status-stickers` | `locationSticker` | const |
+| `status-stickers` | `channelSticker` | const |
+| `status-stickers` | `linkSticker` | const |
+| `status-stickers` | `MusicStickerOptions` | interface |
+| `status-stickers` | `musicSticker` | const |
+| `status-stickers` | `messageSticker` | const |
+| `status-stickers` | `normalizeStickers` | const |
+| `status-stickers` | `readStickers` | const |
+| `status-stickers` | `MusicMessageStyle` | const |
+| `status-stickers` | `MUSIC_ALLOWED_HOSTS` | const |
+| `status-stickers` | `isMusicHostAllowed` | const |
+| `status-stickers` | `buildMusicMessage` | const |
+| `status-stickers` | `readMusicMessage` | const |
+| `ttl-cache` | `TTLCache` | class |
+| `use-mongo-auth-state2` | `MongoAuthState2Options` | interface |
+| `use-mongo-auth-state2` | `useMongoAuthState2( /** `(uri)`, `(uri, collectionName, session)`, `({ uri, collectionName, session })`, `({ collection })`. */ a: string | MongoAuthState2Options = {}, b?: string | MongoAuthState2Options, c?: string )` | function |
+| `use-mongo-auth-state2` | `useMongoAuthState` | const |
+| `use-mysql-auth-state` | `MySQLAuthStateOptions` | interface |
+| `use-mysql-auth-state` | `useMySQLAuthState( /** `(uri)`, `(uri, table, session)`, `({ uri, table, session })`, `({ pool })`. */ a: string | MySQLAuthStateOptions = {}, b?: string | MySQLAuthStateOptions, c?: string )` | function |
+| `use-nedb-auth-state` | `NedbAuthState` | interface |
+| `use-nedb-auth-state` | `NedbAuthStateOptions` | interface |
+| `use-nedb-auth-state` | `useNedbAuthState( /** * Accepted shapes: `(datastore)`, `(filename)`, `({ filename })`, `(datastore, { session })`, * `({ filename, session })` — and the other mixes every adapter accepts. */ a: any, b?: string | NedbAuthStateOptions, c?: string | NedbAuthStateOptions )` | function |
+| `use-nekodb-auth-state` | `NekoDBAuthState` | interface |
+| `use-nekodb-auth-state` | `NekoDBAuthOptions` | interface |
+| `use-nekodb-auth-state` | `useNekoDBAuth( /** * Accepted shapes: `(db)`, `(db, collectionName, { session })`, `({ db, collectionName, session })`. */ a: any, b: string | (NekoDBAuthOptions & { db?: any; collectionName?: string }) = 'baileys_auth', c?: NekoDBAuthOptions )` | function |
+| `use-postgres-auth-state` | `PostgresAuthStateOptions` | interface |
+| `use-postgres-auth-state` | `usePostgresAuthState( /** `(connectionString)`, `(connectionString, table, session)`, `({ connectionString, table, session })`, `({ pool })`. */ a: string | PostgresAuthStateOptions = {}, b?: string | PostgresAuthStateOptions, c?: string )` | function |
+| `use-redis-auth-state` | `RedisAuthStateOptions` | interface |
+| `use-redis-auth-state` | `connectFromUri` | const |
+| `use-redis-auth-state` | `useRedisAuthState( /** `(uri)`, `(uri, session)`, `({ uri, session })`, `({ client })`. */ a: string | RedisAuthStateOptions = {}, b?: string | RedisAuthStateOptions, c?: string )` | function |
+| `use-redis-auth-state2` | `RedisAuthState2Options` | interface |
+| `use-redis-auth-state2` | `useRedisAuthState2( /** `(url)`, `(url, session)`, `({ url, session })`, `({ client })`. */ a: string | RedisAuthState2Options = {}, b?: string | RedisAuthState2Options, c?: string )` | function |
+| `use-sqlite-auth-state2` | `SqliteAuthState2Options` | type |
+| `use-sqlite-auth-state2` | `SqliteAuthState2Result` | type |
+| `use-sqlite-auth-state2` | `useSqliteAuthState2( /** * Options object, or positional arguments. Accepted shapes: * `(dbPath)`, `(dbPath, session)`, `({ dbPath })`, `({ dbPath, session })`, `({ database })`. */ a: string | SqliteAuthState2Options, b?: string | SqliteAuthState2Options, c?: string )` | function |
+| `use-sqlite-auth-state2` | `useSqliteAuthState` | const |
+| `use-turso-auth-state` | `TursoAuthStateOptions` | interface |
+| `use-turso-auth-state` | `toLibsqlUrl` | const |
+| `use-turso-auth-state` | `useTursoAuthState( /** `(url)`, `(url, token, session)`, `({ url, authToken, session })`, `({ path })`. */ a: string | TursoAuthStateOptions = {}, b?: string | TursoAuthStateOptions, c?: string )` | function |
+| `voice-recognition` | `normalizeVoiceText` | const |
+| `voice-recognition` | `matchVoiceWakePhrase` | const |
+| `voice-recognition` | `removeVoiceWakePhrase` | const |
+| `voice-recognition` | `bindVoiceRecognition` | const |
+
+### Addons
+
+| Module | Export | Kind |
+| --- | --- | --- |
+| `anti-delete` | `MessageStoreOptions` | interface |
+| `anti-delete` | `StoredMessage` | interface |
+| `anti-delete` | `DeletedMessageInfo` | interface |
+| `anti-delete` | `MessageStore` | class |
+| `anti-delete` | `isDeleteMessage` | const |
+| `anti-delete` | `getDeletedMessageKey` | const |
+| `anti-delete` | `createAntiDeleteHandler` | const |
+| `anti-delete` | `createMessageStoreHandler` | const |
+| `auto-reply` | `AutoReplyRule` | interface |
+| `auto-reply` | `AutoReplyOptions` | interface |
+| `auto-reply` | `AutoReplyHandler` | class |
+| `auto-reply` | `createAutoReply` | const |
+| `baileys-event-stream` | `captureEventStream` | const |
+| `baileys-event-stream` | `readAndEmitEventStream` | const |
+| `bot-forwarded-message` | `RichContent` | type |
+| `bot-forwarded-message` | `toUnified` | const |
+| `bot-forwarded-message` | `botMetadataSignature` | const |
+| `bot-forwarded-message` | `botMetadataCertificate` | const |
+| `bot-forwarded-message` | `wrapToBotForwardedMessage` | const |
+| `bot-forwarded-message` | `prepareRichResponseMessage` | const |
+| `browser-presets` | `androidBrowserPreset` | const |
+| `browser-presets` | `getPlatformDisplayName` | const |
+| `button-sender` | `NativeSendButton` | type |
+| `button-sender` | `LegacySendButton` | type |
+| `button-sender` | `OldBaileysSendButton` | type |
+| `button-sender` | `AnyRawButton` | type |
+| `button-sender` | `SendButtonsData` | interface |
+| `button-sender` | `SendInteractiveData` | interface |
+| `button-sender` | `ValidationResult` | interface |
+| `button-sender` | `ButtonSenderSocket` | interface |
+| `button-sender` | `InteractiveValidationError` | class |
+| `button-sender` | `buildInteractiveButtons(buttons: AnyRawButton[] = [])` | function |
+| `button-sender` | `validateAuthoringButtons(buttons: unknown)` | function |
+| `button-sender` | `validateSendButtonsPayload(data: unknown)` | function |
+| `button-sender` | `validateSendInteractiveMessagePayload(data: unknown)` | function |
+| `button-sender` | `validateInteractiveMessageContent(content: unknown)` | function |
+| `button-sender` | `convertToInteractiveMessage(content: Record<string, unknown>)` | function |
+| `button-sender` | `sendInteractiveMessage( sock: ButtonSenderSocket, jid: string, content: Record<string, unknown>, options: MessageRelayOptions = {} )` | function |
+| `button-sender` | `sendInteractiveMessageV2( sock: ButtonSenderSocket, jid: string, content: Record<string, unknown>, options: MessageRelayOptions = {} )` | function |
+| `button-sender` | `sendButtons( sock: ButtonSenderSocket, jid: string, data: SendButtonsData = { text: '', buttons: [] }, options: MessageRelayOptions = {} )` | function |
+| `call-handler` | `CallHandlerContext` | interface |
+| `call-handler` | `RelayEntry` | interface |
+| `call-handler` | `CallTransportCandidate` | interface |
+| `call-handler` | `makeCallHandlerAddon` | const |
+| `chat-control` | `DISAPPEARING_DURATIONS` | const |
+| `chat-control` | `DisappearingDuration` | type |
+| `chat-control` | `TypingIndicator` | class |
+| `chat-control` | `createTypingIndicator` | const |
+| `chat-control` | `PinnedMessage` | type |
+| `chat-control` | `PinnedMessagesManager` | class |
+| `chat-control` | `createPinnedMessagesManager` | const |
+| `chat-control` | `ReadReceiptConfig` | type |
+| `chat-control` | `ReadReceiptController` | type |
+| `chat-control` | `createReadReceiptController` | const |
+| `chat-history-helpers` | `getLastMessageInChat` | const |
+| `chat-history-helpers` | `getOldestMessageInChat` | const |
+| `chat-history-helpers` | `copyNForward` | const |
+| `chat-history-helpers` | `uploadMediaToWhatsApp` | const |
+| `disappearing` | `DISAPPEARING_SHORTHANDS` | const |
+| `disappearing` | `normalizeDisappearingDuration` | const |
+| `find-user-id` | `UserIdLookup` | type |
+| `find-user-id` | `findUserId` | const |
+| `from-chats` | `buildClearMessageModification(key: WAMessageKey, timeStamp: number | Long)` | function |
+| `from-chats` | `createChatHelpers(chatModify: (mod: ChatModification, jid: string) => Promise<any>)` | function |
+| `from-messages-recv` | `CallHandlerDeps` | type |
+| `from-messages-recv` | `makeCallHandlers(deps: CallHandlerDeps)` | function |
+| `from-messages-send` | `StatusMentionDeps` | interface |
+| `from-messages-send` | `normalizeStatusContent(content: AnyMessageContent)` | function |
+| `from-messages-send` | `buildStatusMentionNode(jids: string[])` | function |
+| `from-messages-send` | `execSendStatusMentions( content: AnyMessageContent, jids: string[], deps: StatusMentionDeps )` | function |
+| `from-messages` | `buildAdminInviteMessage( adminInvite: AdminInviteInfo, contextInfo: any, options: MessageContentGenerationOptions )` | function |
+| `from-messages` | `buildCallMessage(call: CallCreationInfo)` | function |
+| `from-messages` | `buildPaymentInviteMessage(paymentInvite: PaymentInviteInfo)` | function |
+| `from-messages` | `buildPaymentMessage(payment: PaymentMessageOptions)` | function |
+| `from-messages` | `isWebPBuffer(buffer: Buffer)` | function |
+| `from-messages` | `isAnimatedWebP(buffer: Buffer)` | function |
+| `from-messages` | `isLottieBuffer(buffer: Buffer)` | function |
+| `from-messages` | `resolveStickerPackConcurrency` | const |
+| `from-messages` | `StickerWebpOptions` | type |
+| `from-messages` | `resolveStickerPackMaxSize` | const |
+| `from-messages` | `resolveStickerQuality` | const |
+| `from-messages` | `sharpToStickerWebp` | const |
+| `from-messages` | `toStickerWebp` | const |
+| `from-messages` | `buildStickerPackMessage( stickerPack: StickerPack, options: MessageContentGenerationOptions )` | function |
+| `group-status-v2` | `GroupStatusV2( // eslint-disable-next-line @typescript-eslint/no-explicit-any sock: any, jid: string, content: AnyMessageContent, options: Partial<MessageGenerationOptions> = {} )` | function |
+| `group-status` | `GroupStatus( sock: any, groupJid: string, content: Record<string, any>, options: Record<string, any> = {} )` | function |
+| `image-processing` | `getImageProcessingLibrary` | const |
+| `image-processing` | `clearImageProcessingLibraryCache` | const |
+| `image-processing` | `getImageProcessingLibraryName` | const |
+| `in-memory-store` | `InMemoryStoreConfig` | type |
+| `in-memory-store` | `InMemoryStore` | type |
+| `in-memory-store` | `makeInMemoryStore` | const |
+| `interactive-message-basic` | `BasicButton` | type |
+| `interactive-message-basic` | `BasicButtonsContent` | type |
+| `interactive-message-basic` | `generateInteractiveButtonMessage` | const |
+| `interactive-message-basic` | `BasicListRow` | type |
+| `interactive-message-basic` | `BasicListSection` | type |
+| `interactive-message-basic` | `BasicListContent` | type |
+| `interactive-message-basic` | `generateInteractiveListMessage` | const |
+| `interactive-message-basic` | `BasicTemplateButton` | type |
+| `interactive-message-basic` | `BasicTemplateContent` | type |
+| `interactive-message-basic` | `generateTemplateMessage` | const |
+| `interactive-message-basic` | `BasicNativeFlowButton` | type |
+| `interactive-message-basic` | `BasicNativeFlowOptions` | type |
+| `interactive-message-basic` | `generateNativeFlowMessage` | const |
+| `interactive-message-basic` | `generateCopyCodeButton` | const |
+| `interactive-message-basic` | `BasicUrlButton` | type |
+| `interactive-message-basic` | `generateUrlButtonMessage` | const |
+| `interactive-message-basic` | `BasicQuickReplyButton` | type |
+| `interactive-message-basic` | `generateQuickReplyButtons` | const |
+| `interactive-message-basic` | `BasicCombinedButton` | type |
+| `interactive-message-basic` | `generateCombinedButtons` | const |
+| `interactive-message` | `InteractiveButton` | type |
+| `interactive-message` | `InteractiveButtonMessageContent` | type |
+| `interactive-message` | `ListRow` | type |
+| `interactive-message` | `ListSection` | type |
+| `interactive-message` | `InteractiveListMessageContent` | type |
+| `interactive-message` | `TemplateHydratedButton` | type |
+| `interactive-message` | `TemplateMessageContent` | type |
+| `interactive-message` | `NativeFlowButton` | type |
+| `interactive-message` | `NativeFlowOptions` | type |
+| `interactive-message` | `CopyCodeButtonOptions` | type |
+| `interactive-message` | `UrlButton` | type |
+| `interactive-message` | `UrlButtonOptions` | type |
+| `interactive-message` | `QuickReplyButton` | type |
+| `interactive-message` | `QuickReplyOptions` | type |
+| `interactive-message` | `CombinedButton` | type |
+| `interactive-message` | `CombinedButtonOptions` | type |
+| `interactive-message` | `generateInteractiveButtonMessage` | const |
+| `interactive-message` | `generateInteractiveListMessage` | const |
+| `interactive-message` | `generateTemplateMessage` | const |
+| `interactive-message` | `generateNativeFlowMessage` | const |
+| `interactive-message` | `generateCopyCodeButton` | const |
+| `interactive-message` | `generateUrlButtonMessage` | const |
+| `interactive-message` | `generateQuickReplyButtons` | const |
+| `interactive-message` | `generateCombinedButtons` | const |
+| `jid-plot` | `JidPlotEntry` | type |
+| `jid-plot` | `plotJidPair` | const |
+| `jid-plot` | `plotJidPairs` | const |
+| `jid-plot` | `resolvePnJid` | const |
+| `jid-plot` | `resolveLidJid` | const |
+| `jid-plot` | `hasLidMapping` | const |
+| `jid-plot` | `hasPnMapping` | const |
+| `jid-plot` | `getAllJidPlotEntries` | const |
+| `jid-plot` | `clearJidPlot` | const |
+| `jid-plot` | `normalizeJidForSend` | const |
+| `jid-plotting` | `JidInfo` | interface |
+| `jid-plotting` | `SenderPnInfo` | interface |
+| `jid-plotting` | `PlottedJid` | interface |
+| `jid-plotting` | `parseJid` | const |
+| `jid-plotting` | `getSenderPn` | const |
+| `jid-plotting` | `getCurrentSenderInfo` | const |
+| `jid-plotting` | `isSelf` | const |
+| `jid-plotting` | `plotJid` | const |
+| `jid-plotting` | `normalizePhoneToJid` | const |
+| `jid-plotting` | `extractPhoneNumber` | const |
+| `jid-plotting` | `formatJidDisplay` | const |
+| `jid-plotting` | `isSameUser` | const |
+| `jid-plotting` | `getJidVariants` | const |
+| `jid-plotting` | `constructJidWithDevice` | const |
+| `jid-plotting` | `getRemoteJidFromMessage` | const |
+| `jid-plotting` | `JidPlotterWithMapping` | interface |
+| `jid-plotting` | `createJidPlotter` | const |
+| `lid-support` | `OnWhatsAppResult` | type |
+| `lid-support` | `splitJidsByType` | const |
+| `lid-support` | `mergeLidAndPnResults` | const |
+| `link-preview-extras` | `applyLinkPreviewMetadata` | const |
+| `link-preview-extras` | `buildFaviconMMSMetadata` | const |
+| `mathjax` | `getMathJax` | const |
+| `mathjax` | `scaleMap` | const |
+| `mathjax` | `unsupportedCommands` | const |
+| `mathjax` | `convertLatexToSvg` | const |
+| `mathjax` | `LatexRenderOptions` | interface |
+| `mathjax` | `renderLatexToPng` | const |
+| `mathjax` | `renderLatexToPngg` | const |
+| `mathjax` | `convertLatexToPng` | const |
+| `media-messages` | `generateProfilePictureFull` | const |
+| `media-messages` | `changeprofileFull` | const |
+| `media-messages` | `generateProfilePictureFP` | const |
+| `media-messages` | `generatePP` | const |
+| `media-messages` | `generateProfilePicturee` | const |
+| `media-set` | `updateProfilePictureFull` | const |
+| `media-set` | `updateProfilePictureFull2` | const |
+| `media-set` | `groupStatus` | const |
+| `media-set` | `groupStatusV2` | const |
+| `media-set` | `groupSetMemberLabel` | const |
+| `media-set` | `groupLabel` | const |
+| `message-composer` | `CPP_KEYWORDS` | const |
+| `message-composer` | `CSS_KEYWORDS` | const |
+| `message-composer` | `GO_KEYWORDS` | const |
+| `message-composer` | `HTML_KEYWORDS` | const |
+| `message-composer` | `JS_KEYWORDS` | const |
+| `message-composer` | `PYTHON_KEYWORDS` | const |
+| `message-composer` | `RUST_KEYWORDS` | const |
+| `message-composer` | `C_KEYWORDS` | const |
+| `message-composer` | `CSHARP_KEYWORDS` | const |
+| `message-composer` | `BASH_KEYWORDS` | const |
+| `message-composer` | `CMD_KEYWORDS` | const |
+| `message-composer` | `POWERSHELL_KEYWORDS` | const |
+| `message-composer` | `LANGUAGE_KEYWORDS` | const |
+| `message-composer` | `CodeToken` | type |
+| `message-composer` | `LatexExpression` | type |
+| `message-composer` | `RichSubMessage` | type |
+| `message-composer` | `ExtractOptions` | type |
+| `message-composer` | `InlineEntityItem` | interface |
+| `message-composer` | `ExtractedIE` | interface |
+| `message-composer` | `RichMessageContent` | type |
+| `message-composer` | `CapturedUnifiedResponse` | type |
+| `message-composer` | `tokenizeCode` | const |
+| `message-composer` | `extractIE` | const |
+| `message-composer` | `buildRichContextInfo` | const |
+| `message-composer` | `buildBotForwardedMessage` | const |
+| `message-composer` | `generateTableContent` | const |
+| `message-composer` | `generateListContent` | const |
+| `message-composer` | `generateCodeBlockContent` | const |
+| `message-composer` | `generateLatexContent` | const |
+| `message-composer` | `generateLatexImageContent` | const |
+| `message-composer` | `generateLatexInlineImageContent` | const |
+| `message-composer` | `extractUnifiedResponse` | const |
+| `message-composer` | `generateUnifiedResponseContent` | const |
+| `message-composer` | `GenerateRichMessageOptions` | type |
+| `message-composer` | `generateRichMessageContent` | const |
+| `message-composer` | `GenerateRichHtmlOptions` | type |
+| `message-composer` | `generateRichHtmlContent` | const |
+| `message-composer` | `sendRichHtml` | const |
+| `message-composer` | `renderLatexToPng` | const |
+| `message-composer` | `uploadUnencryptedToWA` | const |
+| `message-composer` | `generateMarkdownContent` | const |
+| `message-scheduler` | `ScheduledMessageJob` | type |
+| `message-scheduler` | `attachSchedulerSendFn` | const |
+| `message-scheduler` | `scheduleMessage` | const |
+| `message-scheduler` | `scheduleMessageAfter` | const |
+| `message-scheduler` | `cancelScheduledMessage` | const |
+| `message-scheduler` | `getScheduledMessage` | const |
+| `message-scheduler` | `getAllScheduledMessages` | const |
+| `message-scheduler` | `getPendingScheduledMessages` | const |
+| `message-scheduler` | `cancelAllScheduledMessages` | const |
+| `message-search` | `SearchMessageType` | type |
+| `message-search` | `SearchOptions` | interface |
+| `message-search` | `SearchResult` | interface |
+| `message-search` | `RegexSearchOptions` | interface |
+| `message-search` | `extractMessageText` | const |
+| `message-search` | `calculateRelevance` | const |
+| `message-search` | `searchMessages` | const |
+| `message-search` | `searchMessagesRegex` | const |
+| `message-search` | `MessageSearchManager` | class |
+| `message-search` | `createMessageSearch` | const |
+| `message-utils` | `getMediaType(message: proto.IMessage)` | function |
+| `message-utils` | `getMessageType(message: proto.IMessage)` | function |
+| `message-utils` | `getButtonType(message: proto.IMessage)` | function |
+| `message-utils` | `getButtonArgs(message: proto.IMessage)` | function |
+| `message-utils` | `MentionContent` | interface |
+| `message-utils` | `AlbumMediaItem` | type |
+| `message-utils` | `AlbumOptions` | interface |
+| `message-utils` | `MessageExtrasContext` | interface |
+| `message-utils` | `buildMentionContextInfo` | const |
+| `message-utils` | `extractFromButtonsMessage` | const |
+| `message-utils` | `normalizeMediaInput` | const |
+| `message-utils` | `patchMessageForMdIfRequired` | const |
+| `message-utils` | `prepareAlbumMessageContent` | const |
+| `message-utils` | `makeMessageExtrasAddon` | const |
+| `native-flow-interactive` | `resolveButtonText` | const |
+| `native-flow-interactive` | `buildNativeFlowMessageParamsJson` | const |
+| `native-flow-interactive` | `convertNativeFlowButtons` | const |
+| `native-flow-interactive` | `prepareNativeFlowMessage` | const |
+| `native-flow-interactive` | `hasValidInteractiveHeader` | const |
+| `native-flow-interactive` | `pickInteractiveHeaderMedia` | const |
+| `native-flow-interactive` | `NativeFlowInteractiveDeps` | interface |
+| `native-flow-interactive` | `buildNativeFlowInteractiveMessage` | const |
+| `native-flow-interactive` | `hasRawInteractiveContent` | const |
+| `native-flow-interactive` | `prepareRawInteractiveContent` | const |
+| `newsletter-role-updates` | `NewsletterRoleUpdateAction` | type |
+| `newsletter-role-updates` | `emitNewsletterRoleUpdate` | const |
+| `outgoing-calls` | `WAInitiateCallOptions` | type |
+| `outgoing-calls` | `WAInitiateCallResult` | type |
+| `outgoing-calls` | `WACallUpdateType` | type |
+| `outgoing-calls` | `createCallLink` | const |
+| `outgoing-calls` | `initiateCall` | const |
+| `outgoing-calls` | `rejectCall` | const |
+| `outgoing-calls` | `endCall` | const |
+| `pairing-fix` | `SendPairingIQFn` | type |
+| `pairing-fix` | `PairingQueue` | type |
+| `pairing-fix` | `createPairingQueue` | const |
+| `past-participants` | `GroupPastParticipant` | type |
+| `past-participants` | `GroupPastParticipantsResult` | type |
+| `past-participants` | `processPastParticipants` | const |
+| `past-participants` | `hasPastParticipants` | const |
+| `presence-monitor` | `PresenceStatus` | type |
+| `presence-monitor` | `PresenceMonitorOptions` | interface |
+| `presence-monitor` | `PresenceOnlineEvent` | interface |
+| `presence-monitor` | `PresenceOfflineEvent` | interface |
+| `presence-monitor` | `PresenceSessionSummary` | interface |
+| `presence-monitor` | `PresenceStateView` | interface |
+| `presence-monitor` | `PresenceTrackerSession` | interface |
+| `presence-monitor` | `PresenceTrackerStatus` | interface |
+| `presence-monitor` | `PresenceMonitorEvents` | type |
+| `presence-monitor` | `MinimalSocket` | interface |
+| `presence-monitor` | `formatDuration` | const |
+| `presence-monitor` | `getDefaultTimezone` | const |
+| `presence-monitor` | `setDefaultTimezone` | const |
+| `presence-monitor` | `formatTime` | const |
+| `presence-monitor` | `formatDateTime` | const |
+| `presence-monitor` | `formatTimeAgo` | const |
+| `presence-monitor` | `normalizeContactJid` | const |
+| `presence-monitor` | `PresenceMonitor` | class |
+| `presence-monitor` | `monitorPresence` | const |
+| `presence-monitor` | `isOnlinePresence` | const |
+| `presence-monitor` | `isOfflinePresence` | const |
+| `presence-monitor` | `createPresenceTracker` | const |
+| `raw-message` | `RAW_MODE_HELPER_KEYS` | const |
+| `raw-message` | `buildRawMessageContent` | const |
+| `resize-image` | `resizeImage` | const |
+| `rich-message-utils` | `RichContent` | type |
+| `rich-message-utils` | `toUnified` | const |
+| `rich-message-utils` | `botMetadataSignature` | const |
+| `rich-message-utils` | `botMetadataCertificate` | const |
+| `rich-message-utils` | `wrapToBotForwardedMessage` | const |
+| `rich-message-utils` | `prepareRichResponseMessage` | const |
+| `rich-response` | `sendTable` | const |
+| `rich-response` | `sendList` | const |
+| `rich-response` | `sendCodeBlock` | const |
+| `rich-response` | `sendLatex` | const |
+| `rich-response` | `sendLatexImage` | const |
+| `rich-response` | `sendLatexInlineImage` | const |
+| `rich-response` | `SendRichMessageOptions` | type |
+| `rich-response` | `sendRichMessage` | const |
+| `rich-response` | `UnifiedResponseEntry` | type |
+| `rich-response` | `captureUnifiedResponse` | const |
+| `rich-response` | `sendUnifiedResponse` | const |
+| `rich-response` | `clearCapturedResponses` | const |
+| `rich-response` | `getCapturedResponses` | const |
+| `scheduling` | `SchedulerOptions` | interface |
+| `scheduling` | `ScheduledMessageStatus` | type |
+| `scheduling` | `ScheduledMessage` | interface |
+| `scheduling` | `MessageScheduler` | class |
+| `scheduling` | `createMessageScheduler` | const |
+| `send-group-status-v2` | `sendGroupStatusV2( // eslint-disable-next-line @typescript-eslint/no-explicit-any sock: any, jid: string, content: AnyMessageContent, options: Partial<MessageGenerationOptions> = {} )` | function |
+| `send-group-status` | `sendGroupStatus( sock: any, groupJid: string, content: Record<string, any>, options: Record<string, any> = {} )` | function |
+| `send-group-v4-invite` | `GroupParticipantUpdateResult` | interface |
+| `send-group-v4-invite` | `SendGroupV4InviteDeps` | interface |
+| `send-group-v4-invite` | `sendGroupV4Invite( deps: SendGroupV4InviteDeps, groupJid: string, participant: string, inviteCode: string, inviteExpiration?: number, groupName?: string, caption?: string, jpegThumbnail?: Buffer, options: MiscMessageGenerationOptions = {} )` | function |
+| `send-group-v4-invite` | `sendGroupInvite( deps: SendGroupV4InviteDeps, groupJid: string, user: string )` | function |
+| `status-helpers` | `STATUS_BROADCAST_JID` | const |
+| `status-helpers` | `STATUS_BACKGROUNDS` | const |
+| `status-helpers` | `STATUS_FONTS` | const |
+| `status-helpers` | `StatusFont` | type |
+| `status-helpers` | `generateStatusMessageId` | const |
+| `status-helpers` | `TextStatusOptions` | type |
+| `status-helpers` | `MediaStatusOptions` | type |
+| `status-helpers` | `createTextStatus` | const |
+| `status-helpers` | `createImageStatus` | const |
+| `status-helpers` | `createVideoStatus` | const |
+| `status-helpers` | `createAudioStatus` | const |
+| `status-helpers` | `getStatusJid` | const |
+| `status-helpers` | `StatusHelper` | const |
+| `status-posting` | `STATUS_BROADCAST_JID` | const |
+| `status-posting` | `STATUS_BACKGROUNDS` | const |
+| `status-posting` | `STATUS_FONTS` | const |
+| `status-posting` | `generateStatusMessageId` | const |
+| `status-posting` | `getStatusJid` | const |
+| `status-posting` | `TextStatusOptions` | interface |
+| `status-posting` | `MediaStatusOptions` | interface |
+| `status-posting` | `createTextStatus` | const |
+| `status-posting` | `createImageStatus` | const |
+| `status-posting` | `createVideoStatus` | const |
+| `status-posting` | `createAudioStatus` | const |
+| `status-posting` | `StatusHelper` | const |
+| `status-posting` | `StatusMentionContent` | interface |
+| `status-posting` | `StatusMentionsContext` | interface |
+| `status-posting` | `makeStatusMentionsAddon` | const |
+| `stickerpack` | `convertToWebP` | const |
+| `stickerpack` | `generateStickerPackId` | const |
+| `stickerpack` | `buildStickerPackProto` | const |
+| `stickerpack` | `STICKER_PACK_MESSAGE_TYPE` | const |
+| `stickerpack` | `StickerInput` | type |
+| `stickerpack` | `StickerPackInput` | type |
+| `stickerpack` | `StickerPackOptions` | type |
+| `stickerpack` | `prepareStickerPackMessage` | const |
+| `templates` | `TemplateVariable` | interface |
+| `templates` | `MessageTemplate` | interface |
+| `templates` | `TemplateData` | type |
+| `templates` | `TemplateManager` | class |
+| `templates` | `PRESET_TEMPLATES` | const |
+| `templates` | `createTemplateManager` | const |
+| `templates` | `renderTemplate` | const |
+| `use-cache-manager-auth-state` | `CacheManagerStore` | type |
+| `use-cache-manager-auth-state` | `useCacheManagerAuthState` | const |
+| `use-cache-manager-auth-state` | `makeCacheManagerAuthState` | const |
+| `use-sqlite-auth-state` | `SqliteAuthStateOptions` | type |
+| `use-sqlite-auth-state` | `SqliteAuthStateResult` | type |
+| `use-sqlite-auth-state` | `useSqliteAuthState( /** * Options object, or positional arguments. Accepted shapes: * `(dbPath)`, `(dbPath, session)`, `({ dbPath })`, `({ database })`. */ a: string | SqliteAuthStateOptions, b?: string | SqliteAuthStateOptions, c?: string )` | function |
+| `vcard` | `ContactPhone` | interface |
+| `vcard` | `ContactEmail` | interface |
+| `vcard` | `ContactUrl` | interface |
+| `vcard` | `ContactAddress` | interface |
+| `vcard` | `ContactData` | interface |
+| `vcard` | `escapeVCard` | const |
+| `vcard` | `formatPhone` | const |
+| `vcard` | `generateVCard` | const |
+| `vcard` | `generateVCards` | const |
+| `vcard` | `parseVCard` | const |
+| `vcard` | `createContactCard` | const |
+| `vcard` | `createContactCards` | const |
+| `vcard` | `quickContact` | const |
+| `webview` | `HTML_WEBVIEW_BOT_JID` | const |
+| `webview` | `FORWARD_ORIGIN_META_AI` | const |
+| `webview` | `BOT_ENTRY_POINT_META_AI_FORWARD` | const |
+| `webview` | `WebViewOptions` | interface |
+| `webview` | `WebViewResult` | interface |
+| `webview` | `HtmlWebviewSocket` | interface |
+| `webview` | `webView( sock: HtmlWebviewSocket, chatId: string, options: WebViewOptions )` | function |
+| `webview` | `web` | const |
+| `webview` | `sendHtmlWebview` | const |
+
+### Utils
+
+| Module | Export | Kind |
+| --- | --- | --- |
+| `auth-args` | `isOptionsObject` | const |
+| `auth-args` | `normalizeAuthArgs` | const |
+| `auth-args` | `pickAlias` | const |
+| `auth-args` | `promoteHandle` | const |
+| `auth-utils` | `makeCacheableSignalKeyStore( store: SignalKeyStore, logger?: ILogger, _cache?: CacheStore )` | function |
+| `auth-utils` | `addTransactionCapability` | const |
+| `auth-utils` | `assertMeId` | const |
+| `auth-utils` | `initAuthCreds` | const |
+| `browser-utils` | `Browsers` | const |
+| `browser-utils` | `isAndroidBrowser` | const |
+| `browser-utils` | `getPlatformId` | const |
+| `browser-utils` | `getPlatformDisplayName` | const |
+| `browser-utils` | `getPairingCodeOsDisplay` | const |
+| `business-mex` | `parseMexOrderDetails` | const |
+| `business` | `parseCatalogNode` | const |
+| `business` | `parseCollectionsNode` | const |
+| `business` | `parseOrderDetailsNode` | const |
+| `business` | `toProductNode` | const |
+| `business` | `parseProductNode` | const |
+| `business` | `uploadingNecessaryImagesOfProduct( product: T, waUploadToServer: WAMediaUploadFunction, timeoutMs = 30_000 )` | function |
+| `business` | `uploadingNecessaryImages` | const |
+| `chat-utils` | `ChatMutationMap` | type |
+| `chat-utils` | `makeLtHashGenerator` | const |
+| `chat-utils` | `newLTHashState` | const |
+| `chat-utils` | `ensureLTHashStateVersion` | const |
+| `chat-utils` | `MAX_SYNC_ATTEMPTS` | const |
+| `chat-utils` | `isMissingKeyError` | const |
+| `chat-utils` | `isAppStateSyncIrrecoverable` | const |
+| `chat-utils` | `encodeSyncdPatch` | const |
+| `chat-utils` | `decodeSyncdMutations` | const |
+| `chat-utils` | `decodeSyncdPatch` | const |
+| `chat-utils` | `extractSyncdPatches` | const |
+| `chat-utils` | `downloadExternalBlob` | const |
+| `chat-utils` | `downloadExternalPatch` | const |
+| `chat-utils` | `decodeSyncdSnapshot` | const |
+| `chat-utils` | `decodePatches` | const |
+| `chat-utils` | `chatModificationToAppPatch` | const |
+| `chat-utils` | `processSyncAction` | const |
+| `companion-reg-client-utils` | `CompanionWebClientType` | enum |
+| `companion-reg-client-utils` | `PairingCodePlatform` | type |
+| `companion-reg-client-utils` | `getCompanionWebClientType` | const |
+| `companion-reg-client-utils` | `getCompanionPlatformId` | const |
+| `companion-reg-client-utils` | `deriveCanonicalCompanionPlatformDisplay` | const |
+| `companion-reg-client-utils` | `getPairingCodePlatform` | const |
+| `companion-reg-client-utils` | `buildPairingQRData` | const |
+| `companion-reg-client-utils` | `PairingQRRenderer` | type |
+| `companion-reg-client-utils` | `makePairingQRRenderer` | const |
+| `companion-reg-client-utils` | `CompanionRegRefreshContext` | type |
+| `companion-reg-client-utils` | `CompanionRegRefreshOutcome` | type |
+| `companion-reg-client-utils` | `handleCompanionRegRefresh` | const |
+| `companion-reg-client-utils` | `buildCompanionRegNode` | const |
+| `companion-reg-client-utils` | `defaultCompanionPlatformDisplay` | const |
+| `crypto` | `generateSignalPubKey` | const |
+| `crypto` | `Curve` | const |
+| `crypto` | `signedKeyPair` | const |
+| `crypto` | `aesEncryptGCM(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array, additionalData: Uint8Array)` | function |
+| `crypto` | `aesDecryptGCM(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array, additionalData: Uint8Array)` | function |
+| `crypto` | `aesEncryptCTR(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array)` | function |
+| `crypto` | `aesDecryptCTR(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array)` | function |
+| `crypto` | `aesDecrypt(buffer: Uint8Array, key: Uint8Array)` | function |
+| `crypto` | `aesDecryptWithIV(buffer: Uint8Array, key: Uint8Array, IV: Uint8Array)` | function |
+| `crypto` | `aesEncrypt(buffer: Uint8Array, key: Uint8Array)` | function |
+| `crypto` | `aesEncrypWithIV(buffer: Buffer, key: Buffer, IV: Buffer)` | function |
+| `crypto` | `hmacSign( buffer: Buffer | Uint8Array, key: Buffer | Uint8Array, variant: 'sha256' | 'sha512' = 'sha256' )` | function |
+| `crypto` | `sha256(buffer: Buffer)` | function |
+| `crypto` | `derivePairingCodeKey(pairingCode: string, salt: Buffer)` | function |
+| `decode-wa-message` | `getDecryptionJid` | const |
+| `decode-wa-message` | `NO_MESSAGE_FOUND_ERROR_TEXT` | const |
+| `decode-wa-message` | `MISSING_KEYS_ERROR_TEXT` | const |
+| `decode-wa-message` | `ACCOUNT_RESTRICTED_TEXT` | const |
+| `decode-wa-message` | `DECRYPTION_RETRY_CONFIG` | const |
+| `decode-wa-message` | `NACK_REASONS` | const |
+| `decode-wa-message` | `SERVER_ERROR_CODES` | const |
+| `decode-wa-message` | `RETRYABLE_ACK_CODES` | const |
+| `decode-wa-message` | `extractAddressingContext` | const |
+| `decode-wa-message` | `decodeMessageNode(stanza: BinaryNode, meId: string, meLid: string)` | function |
+| `decode-wa-message` | `decryptMessageNode` | const |
+| `event-buffer` | `DEFAULT_MAX_EVENT_LISTENERS` | const |
+| `event-buffer` | `makeEventBuffer` | const |
+| `ffmpeg-path` | `getFfmpegBin` | const |
+| `generics` | `BufferJSON` | const |
+| `generics` | `getKeyAuthor` | const |
+| `generics` | `isStringNullOrEmpty` | const |
+| `generics` | `writeRandomPadMax16` | const |
+| `generics` | `unpadRandomMax16` | const |
+| `generics` | `generateParticipantHashV2` | const |
+| `generics` | `encodeWAMessage` | const |
+| `generics` | `generateRegistrationId` | const |
+| `generics` | `encodeBigEndian` | const |
+| `generics` | `toNumber` | const |
+| `generics` | `unixTimestampSeconds` | const |
+| `generics` | `DebouncedTimeout` | type |
+| `generics` | `debouncedTimeout` | const |
+| `generics` | `delay` | const |
+| `generics` | `delayCancellable` | const |
+| `generics` | `promiseTimeout( ms: number | undefined, promise: (resolve: (v: T) => void, reject: (error: any) => void) => void )` | function |
+| `generics` | `generateMessageIDV2` | const |
+| `generics` | `generateMessageID` | const |
+| `generics` | `bindWaitForEvent(ev: BaileysEventEmitter, event: T)` | function |
+| `generics` | `bindWaitForConnectionUpdate` | const |
+| `generics` | `generateKeyUuid` | const |
+| `generics` | `printQRIfNecessaryListener` | const |
+| `generics` | `fetchLatestBaileysVersion` | const |
+| `generics` | `fetchLatestBaileysVersion2` | const |
+| `generics` | `fetchAlphaWaWebVersion` | const |
+| `generics` | `fetchLatestWaWebVersion` | const |
+| `generics` | `generateMdTagPrefix` | const |
+| `generics` | `getStatusFromReceiptType` | const |
+| `generics` | `getErrorCodeFromStreamError` | const |
+| `generics` | `getCallStatusFromNode` | const |
+| `generics` | `getCodeFromWSError` | const |
+| `generics` | `isWABusinessPlatform` | const |
+| `generics` | `trimUndefined(obj: { [_: string]: any })` | function |
+| `generics` | `bytesToCrockford(buffer: Buffer)` | function |
+| `generics` | `encodeNewsletterMessage(message: proto.IMessage)` | function |
+| `generics` | `toUnicodeEscape(text: string)` | function |
+| `generics` | `fromUnicodeEscape(escapedText: string)` | function |
+| `generics` | `asciiEncode(text: string)` | function |
+| `generics` | `asciiDecode(...codes: number[] | [number[]])` | function |
+| `history` | `downloadHistory` | const |
+| `history` | `processHistoryMessage` | const |
+| `history` | `downloadAndProcessHistorySyncNotification` | const |
+| `history` | `getHistoryMsg` | const |
+| `identity-change-handler` | `IdentityChangeResult` | type |
+| `identity-change-handler` | `IdentityChangeContext` | type |
+| `identity-change-handler` | `handleIdentityChange( node: BinaryNode, ctx: IdentityChangeContext )` | function |
+| `interactive-message` | `InteractiveButton` | type |
+| `interactive-message` | `InteractiveButtonMessageContent` | type |
+| `interactive-message` | `ListRow` | type |
+| `interactive-message` | `ListSection` | type |
+| `interactive-message` | `InteractiveListMessageContent` | type |
+| `interactive-message` | `TemplateHydratedButton` | type |
+| `interactive-message` | `TemplateMessageContent` | type |
+| `interactive-message` | `NativeFlowButton` | type |
+| `interactive-message` | `NativeFlowOptions` | type |
+| `interactive-message` | `CopyCodeButtonOptions` | type |
+| `interactive-message` | `UrlButton` | type |
+| `interactive-message` | `UrlButtonOptions` | type |
+| `interactive-message` | `QuickReplyButton` | type |
+| `interactive-message` | `QuickReplyOptions` | type |
+| `interactive-message` | `CombinedButton` | type |
+| `interactive-message` | `CombinedButtonOptions` | type |
+| `interactive-message` | `generateInteractiveButtonMessage` | const |
+| `interactive-message` | `generateInteractiveListMessage` | const |
+| `interactive-message` | `generateTemplateMessage` | const |
+| `interactive-message` | `generateNativeFlowMessage` | const |
+| `interactive-message` | `generateCopyCodeButton` | const |
+| `interactive-message` | `generateUrlButtonMessage` | const |
+| `interactive-message` | `generateQuickReplyButtons` | const |
+| `interactive-message` | `generateCombinedButtons` | const |
+| `keep-alive` | `KeepAliveOptions` | type |
+| `keep-alive` | `makeKeepAlive` | const |
+| `link-preview` | `URLGenerationOptions` | type |
+| `link-preview` | `getUrlInfo` | const |
+| `link-preview` | `linkPreviewResponseToUrlInfo` | const |
+| `lock-manager` | `LockRef` | type |
+| `lock-manager` | `LockManager` | type |
+| `lock-manager` | `makeLockManager` | const |
+| `logger` | `ILogger` | interface |
+| `lt-hash` | `LT_HASH_ANTI_TAMPERING` | const |
+| `make-mutex` | `makeMutex` | const |
+| `make-mutex` | `Mutex` | type |
+| `make-mutex` | `makeKeyedMutex` | const |
+| `make-mutex` | `KeyedMutex` | type |
+| `message-retry-manager` | `DEFAULT_MAX_MSG_RETRY_COUNT` | const |
+| `message-retry-manager` | `RecentMessageKey` | interface |
+| `message-retry-manager` | `RecentMessage` | interface |
+| `message-retry-manager` | `SessionRecreateHistory` | interface |
+| `message-retry-manager` | `RetryCounter` | interface |
+| `message-retry-manager` | `PendingPhoneRequest` | type |
+| `message-retry-manager` | `RetryStatistics` | interface |
+| `message-retry-manager` | `RetryReason` | enum |
+| `message-retry-manager` | `MessageRetryManager` | class |
+| `messages-media` | `hkdfInfoKey` | const |
+| `messages-media` | `getRawMediaUploadData` | const |
+| `messages-media` | `getMediaKeys( buffer: Uint8Array | string | null | undefined, mediaType: MediaType )` | function |
+| `messages-media` | `extractVideoThumb` | const |
+| `messages-media` | `extractImageThumb` | const |
+| `messages-media` | `encodeBase64EncodedStringForUpload` | const |
+| `messages-media` | `generateProfilePicture` | const |
+| `messages-media` | `generatePanoramaProfilePicture` | const |
+| `messages-media` | `mediaMessageSHA256B64` | const |
+| `messages-media` | `getAudioDuration(buffer: Buffer | string | Readable)` | function |
+| `messages-media` | `getAudioWaveform(buffer: Buffer | string | Readable, logger?: ILogger)` | function |
+| `messages-media` | `toReadable` | const |
+| `messages-media` | `toBuffer` | const |
+| `messages-media` | `getStream` | const |
+| `messages-media` | `generateThumbnail( file: string, mediaType: 'video' | 'image', options: { logger?: ILogger hdMode?: boolean } )` | function |
+| `messages-media` | `getHttpStream` | const |
+| `messages-media` | `encryptedStream` | const |
+| `messages-media` | `DEF_MEDIA_HOST` | const |
+| `messages-media` | `MediaDownloadOptions` | type |
+| `messages-media` | `getUrlFromDirectPath` | const |
+| `messages-media` | `downloadContentFromMessage` | const |
+| `messages-media` | `downloadEncryptedContent` | const |
+| `messages-media` | `extensionForMediaMessage(message: WAMessageContent)` | function |
+| `messages-media` | `UploadParams` | type |
+| `messages-media` | `uploadWithNodeHttp` | const |
+| `messages-media` | `getWAUploadToServer` | const |
+| `messages-media` | `encryptMediaRetryRequest` | const |
+| `messages-media` | `decodeMediaRetryNode` | const |
+| `messages-media` | `decryptMediaRetryData` | const |
+| `messages-media` | `getStatusCodeForMediaRetry` | const |
+| `messages` | `extractUrlFromText` | const |
+| `messages` | `generateLinkPreviewIfRequired` | const |
+| `messages` | `getPollOptionHash` | const |
+| `messages` | `prepareWAMessageMedia` | const |
+| `messages` | `prepareDisappearingMessageSettingContent` | const |
+| `messages` | `generateForwardMessageContent` | const |
+| `messages` | `hasNonNullishProperty` | const |
+| `messages` | `hasOptionalProperty(obj: T, key: K)` | function |
+| `messages` | `generateWAMessageContent` | const |
+| `messages` | `generateWAMessageFromContent` | const |
+| `messages` | `generateWAMessage` | const |
+| `messages` | `getContentType` | const |
+| `messages` | `FUTURE_PROOF_MESSAGE_KEYS` | const |
+| `messages` | `normalizeMessageContent` | const |
+| `messages` | `getFutureProofMessagee` | const |
+| `messages` | `extractMessageContent` | const |
+| `messages` | `getDevice` | const |
+| `messages` | `updateMessageWithReceipt` | const |
+| `messages` | `updateMessageWithReaction` | const |
+| `messages` | `updateMessageWithPollUpdate` | const |
+| `messages` | `updateMessageWithEventResponse` | const |
+| `messages` | `getAggregateVotesInPollMessage( { message, pollUpdates }: Pick<WAMessage, 'pollUpdates' | 'message'>, meId?: string )` | function |
+| `messages` | `getAggregateResponsesInEventMessage( { eventResponses }: Pick<WAMessage, 'eventResponses'>, meId?: string )` | function |
+| `messages` | `aggregateMessageKeysNotFromMe` | const |
+| `messages` | `downloadMediaMessage` | const |
+| `messages` | `hasValidAlbumMedia` | const |
+| `messages` | `hasValidInteractiveHeader` | const |
+| `messages` | `hasValidCarouselHeader` | const |
+| `messages` | `assertMediaContent` | const |
+| `migrate-auth-state` | `MigrateAuthStateResult` | type |
+| `migrate-auth-state` | `AuthStateOrAdapter` | type |
+| `migrate-auth-state` | `MigrateAuthStateOptions` | type |
+| `migrate-auth-state` | `migrateAuthState({ from, to, batchSize = 100, skipExisting = true, logger, verify = true }: MigrateAuthStateOptions)` | function |
+| `new-chat-cap` | `parseNewChatMessageCap` | const |
+| `newsletter-meta` | `NewsletterMessageMeta` | interface |
+| `newsletter-meta` | `extractNewsletterMessageMeta` | const |
+| `noise-handler` | `makeNoiseHandler` | const |
+| `offline-node-processor` | `OfflineNodeType` | type |
+| `offline-node-processor` | `MessageType` | type |
+| `offline-node-processor` | `OfflineNodeProcessorDeps` | type |
+| `offline-node-processor` | `makeOfflineNodeProcessor( nodeProcessorMap: Map<OfflineNodeType, (node: BinaryNode) => Promise<void>>, deps: OfflineNodeProcessorDeps, batchSize = 10 )` | function |
+| `passkey` | `PasskeyNotificationType` | type |
+| `passkey` | `PasskeyRequestState` | type |
+| `passkey` | `getPasskeyRequestState` | const |
+| `pre-key-manager` | `PreKeyManager` | class |
+| `process-message` | `cleanMessage` | const |
+| `process-message` | `isRealMessage` | const |
+| `process-message` | `shouldIncrementChatUnread` | const |
+| `process-message` | `getChatId` | const |
+| `process-message` | `decryptPollVote( { encPayload, encIv }: proto.Message.IPollEncValue, { pollCreatorJid, pollMsgId, pollEncKey, voterJid }: PollContext )` | function |
+| `process-message` | `decryptEventResponse( { encPayload, encIv }: proto.Message.IPollEncValue, { eventCreatorJid, eventMsgId, eventEncKey, responderJid }: EventContext )` | function |
+| `process-message` | `decryptReaction(enc: proto.Message.IPollEncValue, ctx: EncActionContext)` | function |
+| `process-message` | `decryptComment(enc: proto.Message.IPollEncValue, ctx: EncActionContext)` | function |
+| `process-message` | `decryptMessageEdit( { encPayload, encIv }: proto.Message.IPollEncValue, { originalSenderJid, originalMsgId, editEncKey, editorJid }: EditContext )` | function |
+| `proto-compat` | `PROTO_COMPAT_APPLIED` | const |
+| `proto-compat` | `FIELD_ALIASES_APPLIED` | const |
+| `reporting-utils` | `ReportingField` | type |
+| `reporting-utils` | `shouldIncludeReportingToken` | const |
+| `reporting-utils` | `getMessageReportingToken` | const |
+| `shortcake-crypto` | `ShortcakeKeyPair` | type |
+| `shortcake-crypto` | `generateShortcakeKeyPair` | const |
+| `shortcake-crypto` | `shortcakeDH` | const |
+| `shortcake-crypto` | `shortcakeEncrypt` | const |
+| `shortcake-crypto` | `shortcakeDecrypt` | const |
+| `shortcake-crypto` | `shortcakeHKDF` | const |
+| `shortcake-crypto` | `shortcakeHMAC` | const |
+| `shortcake` | `ShortcakeSession` | type |
+| `shortcake` | `ShortcakeSignPasskeyAssertion` | type |
+| `shortcake` | `beginShortcakeHandshake` | const |
+| `shortcake` | `completeShortcakeHandshake` | const |
+| `shortcake` | `hasActiveShortcakeSession` | const |
+| `shortcake` | `abortShortcakeHandshake` | const |
+| `signal` | `createSignalIdentity` | const |
+| `signal` | `getPreKeys` | const |
+| `signal` | `generateOrGetPreKeys` | const |
+| `signal` | `xmppSignedPreKey` | const |
+| `signal` | `xmppPreKey` | const |
+| `signal` | `extractE2ESessionFromRetryReceipt` | const |
+| `signal` | `parseAndInjectE2ESessions` | const |
+| `signal` | `extractDeviceJids` | const |
+| `signal` | `getNextPreKeys` | const |
+| `signal` | `getNextPreKeysNode` | const |
+| `stanza-ack` | `buildAckStanza(node: BinaryNode, errorCode?: number, meId?: string)` | function |
+| `sync-action-utils` | `ContactsUpsertResult` | type |
+| `sync-action-utils` | `LidMappingUpdateResult` | type |
+| `sync-action-utils` | `SyncActionResult` | type |
+| `sync-action-utils` | `processContactAction` | const |
+| `sync-action-utils` | `emitSyncActionResults` | const |
+| `tc-token-utils` | `TC_TOKEN_INDEX_KEY` | const |
+| `tc-token-utils` | `readTcTokenIndex(keys: SignalKeyStoreWithTransaction)` | function |
+| `tc-token-utils` | `buildMergedTcTokenIndexWrite( keys: SignalKeyStoreWithTransaction, addedJids: Iterable<string> )` | function |
+| `tc-token-utils` | `isTcTokenExpired(timestamp: number | string | null | undefined)` | function |
+| `tc-token-utils` | `shouldSendNewTcToken(senderTimestamp: number | undefined)` | function |
+| `tc-token-utils` | `resolveTcTokenJid( jid: string, getLIDForPN: (pn: string) => Promise<string | null> )` | function |
+| `tc-token-utils` | `resolveIssuanceJid( jid: string, issueToLid: boolean, getLIDForPN: (pn: string) => Promise<string | null>, getPNForLID?: (lid: string) => Promise<string | null> )` | function |
+| `tc-token-utils` | `buildTcTokenFromJid({ authState, jid, baseContent = [], getLIDForPN }: TcTokenParams)` | function |
+| `tc-token-utils` | `storeTcTokensFromIqResult({ result, fallbackJid, keys, getLIDForPN, onNewJidStored }: StoreTcTokensParams)` | function |
+| `tc-token-utils` | `StoreTcTokenFromMessageParams` | type |
+| `tc-token-utils` | `storeTcTokenFromMessageNode({ node, keys, getLIDForPN, onNewJidStored, logger, fallbackJid }: StoreTcTokenFromMessageParams)` | function |
+| `use-mongo-file-auth-state` | `MongoFileAuthStateOptions` | interface |
+| `use-mongo-file-auth-state` | `useMongoFileAuthState` | const |
+| `use-mongo-file-auth-state` | `useMongoAuthState` | const |
+| `use-multi-file-auth-state` | `countAuthFileLocks` | const |
+| `use-multi-file-auth-state` | `MultiFileAuthStateOptions` | interface |
+| `use-multi-file-auth-state` | `useMultiFileAuthState` | const |
+| `use-single-file-auth-state-legacy` | `useSingleFileAuthStateLegacy` | const |
+| `use-single-file-auth-state` | `SingleFileAuthStateOptions` | interface |
+| `use-single-file-auth-state` | `useSingleFileAuthState` | const |
+| `username` | `UsernameKeyOptions` | type |
+| `username` | `RepeatedDigitUsernameKeyOptions` | type |
+| `username` | `isValidUsernameKey` | const |
+| `username` | `isRepeatedDigitUsernameKey` | const |
+| `username` | `makeRepeatedDigitUsernameKey` | const |
+| `username` | `makeRandomUsernameKey` | const |
+| `username` | `normalizeUsername` | const |
+| `username` | `isValidUsername` | const |
+| `username` | `validateUsername` | const |
+| `username` | `isUsernameTarget` | const |
+| `username` | `isJidTarget` | const |
+| `username` | `resolveMessageTarget` | const |
+| `username` | `USERNAME_MIN_LENGTH` | const |
+| `username` | `USERNAME_MAX_LENGTH` | const |
+| `username` | `USERNAME_PIN_LENGTH` | const |
+| `username` | `UsernameValidationError` | const |
+| `username` | `UsernameValidationErrorType` | type |
+| `username` | `stripUsernamePrefix` | const |
+| `username` | `displayUsername` | const |
+| `username` | `validateUsernameFormat` | const |
+| `username` | `assertUsername` | const |
+| `username` | `isUsernamePin` | const |
+| `validate-connection` | `generateLoginNode` | const |
+| `validate-connection` | `generateRegistrationNode` | const |
+| `validate-connection` | `configureSuccessfulPairing` | const |
+| `validate-connection` | `encodeSignedDeviceIdentity` | const |
+
+## 📄 License
+
+Copyright (c) 2026 Teamolduser
+Copyright (c) 2026 Rajeh Taher/WhiskeySockets
+Copyright (c) 2026 Elaina Baileys contributors
+
+Derived from [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys) and
+[@rexxhayanasi/elaina-baileys](https://github.com/rexxzyid/Elaina-baileys), both MIT. Their notices are preserved as the
+licence requires. See [LICENSE](../LICENSE).

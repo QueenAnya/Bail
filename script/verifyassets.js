@@ -1,10 +1,11 @@
-/* Elaina Baileys maintained distribution. Upstream notices and license are preserved in LICENSE and NOTICE.md. */
+/* Elaina Baileys maintained distribution. Upstream notices and license are preserved in LICENSE. */
 import { createHash } from 'node:crypto';
-import { readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const assetDir = join(root, 'src/assets/wasm');
+// Elaina keeps the wasm under src/assets, Anya keeps it in the root assets folder
+const assetDir = existsSync(join(root, 'src/assets/wasm')) ? join(root, 'src/assets/wasm') : join(root, 'assets/wasm');
 const readmePath = join(assetDir, 'README.md');
 const RISKY = [
     ['eval(', /\beval\s*\(/g],
@@ -18,7 +19,7 @@ for (const match of readme.matchAll(/\|\s*`([^`]+)`\s*\|[^|]*\|\s*`([0-9a-f]{64}
     documented.set(match[1], match[2]);
 }
 if (!documented.size) {
-    console.error('no checksum table found in src/assets/wasm/README.md');
+    console.error('no checksum table found in the wasm README');
     process.exit(1);
 }
 let failed = 0;
@@ -52,7 +53,7 @@ for (const name of ['loader.js', 'worker-modules.js']) {
     }
 }
 if (failed) {
-    console.error(`\n${failed} problem(s). The vendored assets no longer match what src/assets/wasm/README.md documents.`);
+    console.error(`\n${failed} problem(s). The vendored assets no longer match what the wasm README documents.`);
     process.exit(1);
 }
 console.log('\nthe vendored WhatsApp Web assets match their documented checksums and carry no eval, Function constructor, child process or env read.');

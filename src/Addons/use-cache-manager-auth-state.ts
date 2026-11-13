@@ -2,7 +2,8 @@
  * Cache-Manager Auth State (redis, memcached, in-memory, etc.)
  */
 import { proto } from '../../WAProto/index.js'
-import type { AuthenticationState } from '../Types/index.js'
+import type { AuthenticationStateWithListing, SignalDataTypeMap } from '../Types/index.js'
+import { normalizeAuthArgs, pickAlias } from '../Utils/auth-args.js'
 import { initAuthCreds } from '../Utils/auth-utils.js'
 import { BufferJSON } from '../Utils/generics.js'
 
@@ -15,13 +16,26 @@ export type CacheManagerStore = {
 }
 
 export const useCacheManagerAuthState = async (
-	store: CacheManagerStore,
-	sessionKey: string
+	/**
+	 * Accepted shapes: `(store, sessionKey)`, `({ store, sessionKey })`, `({ store, session })`.
+	 */
+	a: CacheManagerStore | { store?: CacheManagerStore; sessionKey?: string; session?: string },
+	b?: string | { sessionKey?: string; session?: string }
 ): Promise<{
-	state: AuthenticationState
+	state: AuthenticationStateWithListing
 	saveCreds: () => Promise<void>
 	clearState: () => Promise<void>
 }> => {
+	const opts = normalizeAuthArgs<{ store?: CacheManagerStore; sessionKey?: string; session?: string }>(
+		[a, b],
+		['store', 'sessionKey']
+	)
+	const store = pickAlias<CacheManagerStore>(opts, ['store', 'cache'])
+	const sessionKey = pickAlias<string>(opts, ['sessionKey', 'session', 'sessionName'])
+	if (!store || !sessionKey) {
+		throw new Error('useCacheManagerAuthState needs a store and a session key (or { store, sessionKey })')
+	}
+
 	const defaultKey = (file: string) => `${sessionKey}:${file}`
 
 	const writeData = async (file: string, data: unknown) => {
@@ -87,6 +101,23 @@ export const useCacheManagerAuthState = async (
 					}
 
 					await Promise.all(tasks)
+				},
+				/** keys live at `<sessionKey>:<type>-<id>`, so the id is what follows the type */
+				list: async function* (type) {
+					const all = await store.keys(`${sessionKey}:${type}-*`).catch(() => [] as string[])
+					for (const key of all.sort()) {
+						const id = key.slice(`${sessionKey}:${type}-`.length)
+						const value = await readData(`${type}-${id}`)
+						if (value !== null && value !== undefined) {
+							yield [id, value as SignalDataTypeMap[typeof type]] as const
+						}
+					}
+				},
+				listIds: async function* (type) {
+					const all = await store.keys(`${sessionKey}:${type}-*`).catch(() => [] as string[])
+					for (const key of all.sort()) {
+						yield key.slice(`${sessionKey}:${type}-`.length)
+					}
 				}
 			}
 		},

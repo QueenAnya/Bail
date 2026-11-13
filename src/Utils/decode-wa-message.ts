@@ -17,8 +17,8 @@ import {
 	//	transferDevice
 } from '../WABinary'
 import { unpadRandomMax16 } from './generics'
-import { extractNewsletterMessageMeta } from './newsletter-meta'
 import type { ILogger } from './logger'
+import { extractNewsletterMessageMeta } from './newsletter-meta'
 
 export const getDecryptionJid = async (sender: string, repository: SignalRepositoryWithLIDStore): Promise<string> => {
 	if (isLidUser(sender) || isHostedLidUser(sender)) {

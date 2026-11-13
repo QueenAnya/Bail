@@ -356,8 +356,8 @@ export const extractGroupMetadata = (result: BinaryNode) => {
 		notify: group.attrs.notify,
 		addressingMode: group.attrs.addressing_mode === 'lid' ? WAMessageAddressingMode.LID : WAMessageAddressingMode.PN,
 		subject: group.attrs.subject!,
-		subjectOwner: group.attrs.s_o,
-		subjectOwnerPn: group.attrs.s_o_pn,
+		subjectOwner: group.attrs.s_o ? jidNormalizedUser(group.attrs.s_o) : undefined,
+		subjectOwnerPn: group.attrs.s_o_pn ? jidNormalizedUser(group.attrs.s_o_pn) : undefined,
 		subjectOwnerUsername: group.attrs.s_o_username,
 		subjectTime: +group.attrs.s_t!,
 		size: group.attrs.size ? +group.attrs.size : getBinaryNodeChildren(group, 'participant').length,
@@ -381,11 +381,11 @@ export const extractGroupMetadata = (result: BinaryNode) => {
 		joinApprovalMode: !!getBinaryNodeChild(group, 'membership_approval_mode'),
 		memberAddMode,
 		participants: getBinaryNodeChildren(group, 'participant').map(({ attrs }) => {
-			// TODO: Store LID MAPPINGS
+			// both identities are exposed whichever one the group is addressed by
 			return {
 				id: attrs.jid!,
-				phoneNumber: isLidUser(attrs.jid) && isPnUser(attrs.phone_number) ? attrs.phone_number : undefined,
-				lid: isPnUser(attrs.jid) && isLidUser(attrs.lid) ? attrs.lid : undefined,
+				phoneNumber: isPnUser(attrs.jid) ? attrs.jid : isPnUser(attrs.phone_number) ? attrs.phone_number : undefined,
+				lid: isLidUser(attrs.jid) ? attrs.jid : isLidUser(attrs.lid) ? attrs.lid : undefined,
 				username: attrs.participant_username || attrs.username || undefined,
 				admin: (attrs.type || null) as GroupParticipant['admin']
 			}

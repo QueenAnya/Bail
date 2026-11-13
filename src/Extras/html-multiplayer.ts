@@ -1,12 +1,26 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/html-multiplayer.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/html-multiplayer.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 
-const escapeForScript = value => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')
+const escapeForScript = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')
 
-export const htmlMultiplayerPrelude = ({ url, room, seat, reconnectMs = 1500, maxReconnectMs = 15000 } = {}) => {
+export interface HtmlMultiplayerOptions {
+	url?: string
+	room?: string
+	seat?: string | number | null
+	reconnectMs?: number
+	maxReconnectMs?: number
+}
+
+export const htmlMultiplayerPrelude = ({
+	url,
+	room,
+	seat,
+	reconnectMs = 1500,
+	maxReconnectMs = 15000
+}: HtmlMultiplayerOptions = {}) => {
 	if (typeof url !== 'string' || !url.startsWith('wss://')) {
 		throw new TypeError('htmlMultiplayerPrelude requires a wss:// url, since the page is not a secure context')
 	}
@@ -92,7 +106,7 @@ export const htmlMultiplayerPrelude = ({ url, room, seat, reconnectMs = 1500, ma
 `
 }
 
-export const withHtmlMultiplayer = (html, options) => {
+export const withHtmlMultiplayer = (html: string, options?: HtmlMultiplayerOptions) => {
 	if (typeof html !== 'string' || html.trim() === '') {
 		throw new TypeError('withHtmlMultiplayer requires an HTML string')
 	}

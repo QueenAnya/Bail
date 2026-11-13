@@ -34,13 +34,14 @@ jobs:
           cache: true
 
       - name: Install Dependencies
+        # no pnpm lockfile in this repository — `--no-frozen-lockfile` keeps CI from demanding one
         run: |
           pnpm store prune
           rm -rf pnpm-lock.yaml
-          pnpm install
+          pnpm install --no-frozen-lockfile
           pnpm lint:fix
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Release
-        run: 'npx release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}'
+        run: 'pnpm exec release-it --increment --no-git.requireCleanWorkingDir ${{ github.event.inputs.increment }}'

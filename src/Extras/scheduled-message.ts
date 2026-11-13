@@ -18,10 +18,6 @@ export const SCHEDULED_MSG_REVEAL_KEY_IV_BYTES = 12
 export const SCHEDULED_MSG_REVEAL_KEY_RETENTION_DAYS = 30
 export const SCHEDULED_MSG_TAG_BYTES = 16
 
-/** `ConditionalRevealMessageType.SCHEDULED_MESSAGE` / `ProtocolMessage.Type.MESSAGE_UNSCHEDULE` (this WAProto has no named enum) */
-const CONDITIONAL_REVEAL_SCHEDULED_MESSAGE = 1
-const PROTOCOL_MESSAGE_UNSCHEDULE = 32
-
 export const SCHEDULED_MSG_WINDOW = Object.freeze({
 	chat: { minSeconds: 600, maxSeconds: 1209600 },
 	newsletter: { minSeconds: 600, maxSeconds: 2592000 }
@@ -68,7 +64,8 @@ export const buildConditionalRevealMessage = ({
 	revealKeyId: string
 }) => ({
 	conditionalRevealMessage: {
-		conditionalRevealMessageType: CONDITIONAL_REVEAL_SCHEDULED_MESSAGE,
+		// @ts-expect-error the generated d.ts does not nest this type; Utils/proto-compat.ts attaches it under Message
+		conditionalRevealMessageType: proto.Message.ConditionalRevealMessage.ConditionalRevealMessageType.SCHEDULED_MESSAGE,
 		encPayload: Buffer.from(encPayload),
 		encIv: Buffer.from(encIv),
 		revealKeyId
@@ -140,7 +137,7 @@ export const buildScheduledMsgMetaNode = ({
 }
 
 export const buildUnscheduleProtocolMessage = (key: Record<string, any>) => ({
-	protocolMessage: { key, type: PROTOCOL_MESSAGE_UNSCHEDULE }
+	protocolMessage: { key, type: proto.Message.ProtocolMessage.Type.MESSAGE_UNSCHEDULE }
 })
 
 export const isScheduledTimeValid = (

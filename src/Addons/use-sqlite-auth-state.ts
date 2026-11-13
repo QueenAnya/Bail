@@ -21,7 +21,8 @@
 
 import type BetterSqlite3 from 'better-sqlite3'
 import { proto } from '../../WAProto/index.js'
-import type { AuthenticationState } from '../Types/index'
+import type { AuthenticationState, AuthenticationStateWithListing } from '../Types/index'
+import { normalizeAuthArgs, promoteHandle } from '../Utils/auth-args'
 import { initAuthCreds } from '../Utils/auth-utils'
 import { BufferJSON } from '../Utils/generics'
 
@@ -40,7 +41,7 @@ export type SqliteAuthStateOptions =
 	  }
 
 export type SqliteAuthStateResult = {
-	state: AuthenticationState
+	state: AuthenticationStateWithListing
 	saveCreds: () => Promise<void>
 }
 
@@ -85,14 +86,38 @@ async function loadBetterSqlite3(): Promise<typeof BetterSqlite3> {
  * Create a SQLite-backed auth state.
  * WAL journal mode is enabled for reliable concurrent-read performance.
  */
-export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<SqliteAuthStateResult> {
+export async function useSqliteAuthState(
+	/**
+	 * Options object, or positional arguments. Accepted shapes:
+	 * `(dbPath)`, `(dbPath, session)`, `({ dbPath })`, `({ database })`.
+	 */
+	a: string | SqliteAuthStateOptions,
+	b?: string | SqliteAuthStateOptions,
+	c?: string
+): Promise<SqliteAuthStateResult> {
+	const opts = promoteHandle(
+		normalizeAuthArgs<SqliteAuthStateOptions & { session?: string }>(
+			[a, b, c],
+			['dbPath', 'session'],
+			['dbPath', 'database', 'session']
+		),
+		['dbPath'],
+		'database',
+		(v: any) => typeof v?.pragma === 'function' || typeof v?.prepare === 'function'
+	)
+
 	let db: BetterSqlite3.Database
 
 	if (opts.database) {
 		db = opts.database
 	} else {
+		const target = typeof opts.dbPath === 'string' ? opts.dbPath : undefined
+		if (!target) {
+			throw new Error('useSqliteAuthState needs a `dbPath` string (or an existing `database`)')
+		}
+
 		const Database = await loadBetterSqlite3()
-		db = new Database(opts.dbPath)
+		db = new Database(target)
 	}
 
 	// WAL mode — concurrent reads with sporadic writes (recommended by SQLite docs)
@@ -109,7 +134,8 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 		keyUpsert: db.prepare<[string, string, string]>(
 			'INSERT INTO signal_keys (type, id, value) VALUES (?, ?, ?) ON CONFLICT(type, id) DO UPDATE SET value = excluded.value'
 		),
-		keyDelete: db.prepare<[string, string]>('DELETE FROM signal_keys WHERE type = ? AND id = ?')
+		keyDelete: db.prepare<[string, string]>('DELETE FROM signal_keys WHERE type = ? AND id = ?'),
+		keyList: db.prepare<[string]>('SELECT id, value FROM signal_keys WHERE type = ? ORDER BY id')
 	} as const
 
 	const loadCreds = () => {
@@ -161,6 +187,16 @@ export async function useSqliteAuthState(opts: SqliteAuthStateOptions): Promise<
 						}
 					})
 					writeTx()
+				},
+				list: async function* (type) {
+					for (const row of stmts.keyList.all(type) as { id: string; value: string }[]) {
+						yield [row.id, JSON.parse(row.value, BufferJSON.reviver)] as const
+					}
+				},
+				listIds: async function* (type) {
+					for (const row of stmts.keyList.all(type) as { id: string }[]) {
+						yield row.id
+					}
 				}
 			}
 		},

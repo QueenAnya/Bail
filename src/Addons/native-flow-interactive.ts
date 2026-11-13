@@ -195,7 +195,8 @@ export const prepareNativeFlowMessage = (
 		source.optionTitle,
 		buttons.length
 	)
-	return { buttons, messageParamsJson: messageParamsJson ?? '{}' }
+	// messageVersion is mandatory: the client rejects a nativeFlowMessage without it
+	return { buttons, messageParamsJson: messageParamsJson ?? '{}', messageVersion: 1 }
 }
 
 /** True when `m` holds a media/location/product item usable as an interactive header. */
@@ -234,6 +235,14 @@ export const buildNativeFlowInteractiveMessage = async (
 ): Promise<{ interactiveMessage: proto.Message.IInteractiveMessage }> => {
 	const interactiveMessage: proto.Message.IInteractiveMessage = {
 		nativeFlowMessage: prepareNativeFlowMessage(message, rawButtons)
+	}
+
+	// `flowName` names the flow on the object (proto has no field for it, so it never reaches the wire)
+	;(interactiveMessage.nativeFlowMessage as AnyRecord).name = message.flowName || 'mixed'
+
+	// a bloks widget rides next to the native flow buttons
+	if (isSet(message.bloksWidget)) {
+		interactiveMessage.bloksWidget = message.bloksWidget
 	}
 
 	// native flow on top of a collection / shop storefront

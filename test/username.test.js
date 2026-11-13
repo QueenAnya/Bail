@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { USyncQuery } from '../src/WAUSync/USyncQuery.js';
-import { USyncUser } from '../src/WAUSync/USyncUser.js';
-import { USyncUsernameProtocol } from '../src/WAUSync/Protocols/USyncUsernameProtocol.js';
-import { validateUsername, isUsernamePin, displayUsername, stripUsernamePrefix } from '../src/Utils/username.js';
+import { USyncQuery } from '../lib/WAUSync/USyncQuery.js';
+import { USyncUser } from '../lib/WAUSync/USyncUser.js';
+import { USyncUsernameProtocol } from '../lib/WAUSync/Protocols/USyncUsernameProtocol.js';
+import { validateUsernameFormat as validateUsername, isUsernamePin, displayUsername, stripUsernamePrefix } from '../lib/Utils/username.js';
 
 test('usync-username-query-nodes', () => {
     const q = new USyncQuery().withUsernameProtocol();

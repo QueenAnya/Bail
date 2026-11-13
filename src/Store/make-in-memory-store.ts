@@ -15,13 +15,16 @@ import type {
 import type { Label } from '../Types/Label.js'
 import type { LabelAssociation } from '../Types/LabelAssociation.js'
 import { LabelAssociationType } from '../Types/LabelAssociation.js'
+import { md5 } from '../Utils/crypto.js'
 import { toNumber, updateMessageWithReaction, updateMessageWithReceipt } from '../Utils/index.js'
-import { jidNormalizedUser } from '../WABinary/index.js'
+import { jidDecode, jidNormalizedUser } from '../WABinary/index.js'
 import { makeOrderedDictionary } from './make-ordered-dictionary.js'
 import { ObjectRepository } from './object-repository.js'
 
 export type BaileysInMemoryStoreConfig = {
 	logger?: Logger
+	/** used to resolve `imgUrl: 'changed'` contact updates and by `fetchImageUrl` */
+	socket?: { profilePictureUrl(jid: string, type?: 'preview' | 'image'): Promise<string | undefined> }
 }
 
 export const waChatKey = (pin: boolean) => ({
@@ -103,10 +106,42 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 
 		ev.on('contacts.upsert', contactsUpsert)
 
-		ev.on('contacts.update', updates => {
+		ev.on('contacts.update', async updates => {
 			for (const update of updates) {
-				const id = update.id
-				if (id && contacts[id]) Object.assign(contacts[id], update)
+				const updateId = update.id
+				if (!updateId) continue
+				let contact: Contact | undefined = contacts[updateId]
+				if (!contact) {
+					// the server may send a 3 char hash of the number instead of the jid
+					for (const contactId of Object.keys(contacts)) {
+						const decoded = jidDecode(contactId)
+						if (!decoded) continue
+						const hash = Buffer.from(md5(Buffer.from(decoded.user + 'WA_ADD_NOTIF', 'utf8')))
+							.toString('base64')
+							.slice(0, 3)
+						if (hash === updateId) {
+							contact = contacts[contactId]
+							break
+						}
+					}
+				}
+
+				if (!contact) {
+					logger.debug({ update }, 'got update for non-existent contact')
+					continue
+				}
+
+				const { imgUrl, ...rest } = update
+				if (imgUrl === 'changed') {
+					contact.imgUrl = config.socket ? await config.socket.profilePictureUrl(contact.id) : undefined
+				} else if (imgUrl === 'removed') {
+					delete contact.imgUrl
+				} else if (imgUrl !== undefined) {
+					contact.imgUrl = imgUrl
+				}
+
+				const { id: _id, ...fields } = rest
+				Object.assign(contact, fields)
 			}
 		})
 
@@ -311,6 +346,26 @@ export const makeInMemoryStore = (config: BaileysInMemoryStoreConfig) => {
 			const remoteJid = key?.remoteJid
 			if (!remoteJid) return undefined
 			return messages[jidNormalizedUser(remoteJid)]?.get(key.id ?? '')?.message ?? undefined
+		},
+		fetchImageUrl: async (
+			jid: string,
+			sock?: { profilePictureUrl(jid: string): Promise<string | undefined> } | null
+		) => {
+			const contact = contacts[jid]
+			const resolver = sock ?? config.socket
+			if (!contact) {
+				return resolver?.profilePictureUrl(jid)
+			}
+
+			if (typeof contact.imgUrl === 'undefined') {
+				contact.imgUrl = await resolver?.profilePictureUrl(jid)
+			}
+
+			return contact.imgUrl
+		},
+		fetchMessageReceipts: async ({ remoteJid, id }: { remoteJid: string; id: string }) => {
+			const msg = messages[remoteJid]?.get(id)
+			return msg?.userReceipt
 		},
 		fetchGroupMetadata: async (jid: string, sock: { groupMetadata(jid: string): Promise<GroupMetadata> } | null) => {
 			if (!groupMetadata[jid] && sock) {

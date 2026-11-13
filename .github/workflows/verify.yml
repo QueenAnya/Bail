@@ -1,0 +1,30 @@
+name: Verify
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # the pinned client revision goes stale in weeks; check it every Monday
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  client-revision:
+    # only meaningful on a schedule: it asks WhatsApp for the live client_revision
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Is the pinned revision still accepted?
+        run: node scripts/check-revision.mjs
+
+# `build-and-test` (Node 24/26 matrix) and `elaina-parity` were removed on request.
+# Build and unit tests still run in `test.yml` (npm run test2), lint in `lint.yml`, and the parity audit can be run
+# by hand: node scripts/audit-elaina-parity.mjs /path/to/elaina-baileys

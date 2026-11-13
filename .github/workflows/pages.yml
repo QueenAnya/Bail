@@ -1,0 +1,50 @@
+name: Pages
+
+# Deploys the prebuilt site that `publish-selected-docs.yml` copies into `site/`.
+#
+# Nothing is installed or built here on purpose: this repository holds only the published docs, not the library
+# source, so `yarn install` / `tsc` / the site generator cannot run. The site is built once, in the source
+# repository, and the finished HTML arrives in `site/`.
+#
+# One-time setup: Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the site was published
+        run: |
+          test -f site/index.html || { echo "site/index.html is missing — the source repository did not publish a build"; exit 1; }
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

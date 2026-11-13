@@ -1,8 +1,8 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/link-preview-metadata.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/link-preview-metadata.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 
 export const SocialMediaPostType = Object.freeze({
 	NONE: 0,
@@ -13,7 +13,7 @@ export const SocialMediaPostType = Object.freeze({
 	CAROUSEL: 5
 })
 
-const drop = object => {
+const drop = (object: Record<string, any>) => {
 	for (const key of Object.keys(object)) {
 		if (object[key] === undefined || object[key] === null) {
 			delete object[key]
@@ -23,7 +23,14 @@ const drop = object => {
 	return object
 }
 
-export const videoEndCard = ({ username, caption, thumbnailUrl, profilePictureUrl } = {}) =>
+export interface VideoEndCardInput {
+	username?: string
+	caption?: string
+	thumbnailUrl?: string
+	profilePictureUrl?: string
+}
+
+export const videoEndCard = ({ username, caption, thumbnailUrl, profilePictureUrl }: VideoEndCardInput = {}) =>
 	drop({
 		username,
 		caption,
@@ -36,6 +43,28 @@ export const videoEndCard = ({ username, caption, thumbnailUrl, profilePictureUr
  * LinkPreviewMetadata and once directly on ExtendedTextMessage. Which one the
  * client reads is not visible from the client, so both carry the same value.
  */
+export interface SocialPreviewInput {
+	postType?: number
+	videoUrl?: string
+	videoCaption?: string
+	muted?: boolean
+	durationSeconds?: number
+	experimentId?: string
+	music?: any
+	endCards?: any[]
+}
+
+export interface SocialPreviewInput {
+	postType?: number
+	videoUrl?: string
+	videoCaption?: string
+	muted?: boolean
+	durationSeconds?: number
+	experimentId?: string
+	music?: any
+	endCards?: any[]
+}
+
 export const buildSocialPreview = ({
 	postType,
 	videoUrl,
@@ -45,8 +74,8 @@ export const buildSocialPreview = ({
 	experimentId,
 	music,
 	endCards
-} = {}) => {
-	if (postType !== undefined && !Object.values(SocialMediaPostType).includes(postType)) {
+}: SocialPreviewInput = {}) => {
+	if (postType !== undefined && !Object.values(SocialMediaPostType).includes(postType as any)) {
 		throw new TypeError(`postType ${postType} is not one of ${Object.keys(SocialMediaPostType).join(', ')}`)
 	}
 
@@ -72,7 +101,7 @@ export const buildSocialPreview = ({
 	})
 }
 
-export const readSocialPreview = msg => {
+export const readSocialPreview = (msg: any) => {
 	const message = msg?.message ?? msg
 	const text = message?.extendedTextMessage
 	if (!text) {

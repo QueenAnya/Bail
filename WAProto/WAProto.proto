@@ -1,7 +1,7 @@
 syntax = "proto3";
 package proto;
 
-/// WhatsApp Version: 2.3000.1050764678
+/// WhatsApp Version: 2.3000.1051456098
 
 message ADVDeviceIdentity {
     optional uint32 rawId = 1;
@@ -264,6 +264,7 @@ message Account {
     optional string username = 2;
     optional string countryCode = 3;
     optional bool isUsernameDeleted = 4;
+    optional int32 pnLearnState = 6;
 }
 
 message ActionLink {
@@ -296,6 +297,7 @@ message BizAccountLinkInfo {
         ON_PREMISE = 0;
         FACEBOOK = 1;
     }
+    optional string whatsappAcctEmail = 6;
 }
 
 message BizAccountPayload {
@@ -573,6 +575,7 @@ message BotMessageOrigin {
     enum BotMessageOriginType {
         BOT_MESSAGE_ORIGIN_TYPE_AI_INITIATED = 0;
     }
+    optional string proactiveMessageCampaignId = 2;
 }
 
 message BotMessageOriginMetadata {
@@ -582,6 +585,11 @@ message BotMessageOriginMetadata {
 message BotMessageSharingInfo {
     optional BotMetricsEntryPoint botEntryPointOrigin = 1;
     optional uint32 forwardScore = 2;
+}
+
+message BotInterjectionMetadata {
+    optional string targetPromptMessageId = 1;
+    repeated string foldedPromptMessageIds = 2;
 }
 
 message BotMetadata {
@@ -630,6 +638,7 @@ message BotMetadata {
     optional BotPttPromptMetadata pttPromptMetadata = 42;
     optional BotHistoryShareMetadata botHistoryShareMetadata = 43;
     optional bool responseStoppedByUser = 44;
+    optional BotInterjectionMetadata interjectionMetadata = 45;
 }
 
 enum BotMetricsEntryPoint {
@@ -1073,6 +1082,8 @@ message ClientPairingProps {
     optional bool isHsThumbnailSyncEnabled = 4;
     optional bytes subscriptionSyncPayload = 5;
     optional bool isBotJidDbMigrated = 6;
+    optional bytes companionAddPeerPayload = 7;
+    optional bool isCompanionRegistrationFgsEnabled = 8;
 }
 
 message ClientPayload {
@@ -1310,6 +1321,12 @@ message ClientPayload {
 
     repeated string pairedPeripherals = 47;
     optional bytes testIsolationId = 48;
+
+    message IntegrationAttestation {
+        optional string staticUnbound = 1;
+        optional string onlineSigned = 3;
+    }
+        optional IntegrationAttestation integrationAttestation = 50;
 }
 
 enum CollectionName {
@@ -1483,6 +1500,7 @@ message ContextInfo {
             IMAGE = 1;
             VIDEO = 2;
         }
+        optional string ctwaPromoAdgroupId = 41;
     }
 
     message FeatureEligibilities {
@@ -1551,6 +1569,7 @@ message ContextInfo {
             UNKNOWN = 0;
             CLOSE_FRIENDS = 1;
         }
+        optional string orgId = 4;
     }
 
     enum StatusSourceType {
@@ -1580,6 +1599,8 @@ message ContextInfo {
         CROSS_APP_SOURCE_INSTAGRAM = 1;
         CROSS_APP_SOURCE_FACEBOOK = 2;
     }
+    optional uint32 sourceExperienceId = 84;
+    repeated uint32 sourceExperienceIds = 85;
 }
 
 message Conversation {
@@ -1660,6 +1681,7 @@ message Conversation {
         APPEAL_REJECTED = 3;
     }
     optional bool acp2HistoryWithheld = 65;
+    repeated GroupRootKey groupRootKeys = 66;
 }
 
 message DeviceCapabilities {
@@ -1722,6 +1744,15 @@ message DeviceCapabilities {
     message HostWriteMutationSupport {
         repeated string mutationNames = 1;
     }
+    message BizAiWebOnboarding {
+        optional uint32 version = 1;
+    }
+    optional BizAiWebOnboarding bizAiWebOnboarding = 13;
+
+    message PhoneNumberSharing {
+        optional bool phoneSharingSupported = 1;
+    }
+        optional PhoneNumberSharing phoneNumberSharing = 14;
 }
 
 message DeviceConsistencyCodeMessage {
@@ -1781,6 +1812,8 @@ message DeviceProps {
         optional bool supportInlineContacts = 24;
         optional bool supportNewsletter = 25;
         optional bool supportUniversalReachChat = 26;
+        optional bool supportOmittedConversationIndex = 27;
+        optional bool supportOmittedConversationMetadata = 28;
     }
 
     enum PlatformType {
@@ -2053,6 +2086,8 @@ message HistorySync {
     repeated StickerMetadata favoriteStickers = 22;
     repeated RecoverableHistoryConversation omittedConversations = 23;
     optional bool omittedConversationsProvided = 24;
+    optional OmittedConversationMetadata omittedConversationMetadata = 25;
+    optional string omittedConversationMetadataSnapshotId = 26;
 }
 
 message HistorySyncMsg {
@@ -2259,6 +2294,7 @@ enum MediaVisibility {
 message MemberLabel {
     optional string label = 1;
     optional int64 labelTimestamp = 2;
+    optional bool showAdminBadge = 3;
 }
 
 message Message {
@@ -2727,6 +2763,7 @@ message Message {
         optional string requestId = 1;
         optional string businessProduct = 2;
         optional bytes opaqueClientData = 3;
+        optional CoexConnectionDescriptor connection = 4;
     }
 
     message FutureProofMessage {
@@ -3154,7 +3191,7 @@ message Message {
 
     message MessageHistoryMetadata {
         repeated string historyReceivers = 1;
-        optional int64 oldestMessageTimestamp = 2;
+        optional int64 oldestMessageTimestampInWindow = 2;
         optional int64 messageCount = 3;
         repeated string nonHistoryReceivers = 4;
         optional int64 oldestMessageTimestampInBundle = 5;
@@ -3303,6 +3340,7 @@ message Message {
             optional int64 oldestMsgTimestampMs = 5;
             optional string accountLid = 6;
             optional bool supportInlineResponse = 7;
+            optional int32 mode = 8;
         }
 
         message PlaceholderMessageResendRequest {
@@ -3323,6 +3361,11 @@ message Message {
             optional int64 timestamp = 2;
         }
 
+        message RecentConversationsOnDemandRequest {
+            optional uint32 conversationCount = 1;
+            optional uint32 messagesPerConversation = 2;
+        }
+        optional RecentConversationsOnDemandRequest recentConversationsOnDemandRequest = 13;
     }
 
     message PeerDataOperationRequestResponseMessage {
@@ -3487,7 +3530,7 @@ message Message {
         optional Message.PollType pollType = 7;
         optional Option correctAnswer = 8;
         optional int64 endTime = 9; // poll expiration timestamp
-        optional bool hideVoterNames = 10; // reverse-engineered: true when poll creator hid voter names (PR #2725)
+        optional bool hideParticipantName = 10; // reverse-engineered: true when poll creator hid voter names (PR #2725)
         optional bool allowAddOption = 11; // allow participants to add their own options
         message Option {
             optional string optionName = 1;
@@ -3629,7 +3672,11 @@ message Message {
             CHAT_THEME_SETTING = 34;
             AI_METADATA_OPERATION = 35;
         }
-    }
+        repeated string additionalPromptIds = 38;
+        optional GroupRootKeyRequest groupRootKeyRequest = 39;
+        optional MembershipFormKeyFingerprintVerification membershipFormKeyFingerprintVerification = 40;
+        optional GroupRootKeyShare groupRootKeyShare = 41;
+}
 
     message QuestionResponseMessage {
         optional MessageKey key = 1;
@@ -3958,6 +4005,22 @@ message Message {
         enum MusicMessageStyle {
             UNKNOWN = 0;
         }
+        message Lyrics {
+            message WordOffset {
+                optional int32 startIndex = 1;
+                optional int32 endIndex = 2;
+                optional int64 startOffsetMs = 3;
+                optional int64 endOffsetMs = 4;
+            }
+            message Line {
+                optional int64 startTimeInMs = 1;
+                optional int64 endTimeInMs = 2;
+                optional string text = 3;
+                repeated WordOffset wordOffsets = 4;
+            }
+            repeated Line lines = 1;
+        }
+        optional Lyrics lyrics = 6;
     }
     message StatusLinkPreviewMetadata {
         optional Style style = 1;
@@ -4004,6 +4067,15 @@ message Message {
 
     message RequestLocationUpdateMessage {
     }
+    message CoexConnectionDescriptor {
+        optional int64 providerId = 1;
+        optional string product = 2;
+    }
+    // Elaina 1.4.9 references this type but never defines it; kept as an opaque passthrough so the bytes of a
+    // vpcRequestMessage survive a decode/encode cycle instead of being dropped.
+    message VpcRequestMessage {
+    }
+    optional VpcRequestMessage vpcRequestMessage = 139;
 }
 
 message MessageAddOn {
@@ -4084,6 +4156,7 @@ message MessageContextInfo {
     optional bytes teeBotMetadata = 17;
     optional NonE2EEAttestation accountEncryptionAttestation = 18;
     optional bytes associatedPrimaryIdentityKey = 19;
+    optional bool lightE2Ee = 22;
 }
 
 message MessageKey {
@@ -4171,6 +4244,8 @@ message MsgOpaqueData {
         optional string name = 1;
         optional string hash = 2;
         optional string addOptionMsgKey = 3;
+        optional uint32 localId = 4;
+        optional uint32 addOptionMsgT = 5;
     }
 
     enum PollType {
@@ -4219,7 +4294,26 @@ message MsgOpaqueData {
         optional bytes artworkMediaKey = 16;
         optional int64 consumptionCheckedAtS = 17;
         optional bool isAvailableForConsumption = 18;
+                message WordOffset {
+                    optional int32 startIndex = 1;
+                    optional int32 endIndex = 2;
+                    optional int64 startOffsetMs = 3;
+                    optional int64 endOffsetMs = 4;
+                }
+                message LyricsLine {
+                    optional int64 startTimeMs = 1;
+                    optional int64 endTimeMs = 2;
+                    optional string text = 3;
+                    repeated WordOffset wordOffsets = 4;
+                }
+                repeated LyricsLine lyrics = 19;
+                optional int64 lyricsConfirmedAtS = 20;
     }
+    optional string pollAddedOptionName = 64;
+    optional string sharableEventInviteStatus = 65;
+    optional string sharableEventInviteLocationName = 66;
+    optional string sharableEventInviteCoverImageHandle = 67;
+    optional int64 sharableEventInviteLastUpdatedTsUsec = 68;
 }
 
 message MsgRowOpaqueData {
@@ -4852,6 +4946,13 @@ message StatusAttribution {
         STATUS_CLOSE_SHARING = 10;
         PAID_PARTNERSHIP = 11;
     }
+
+    message StatusTemplate {
+        optional string templateId = 1;
+        optional string templateName = 2;
+        optional string thumbnailUrl = 3;
+    }
+        optional StatusTemplate statusTemplate = 9;
 }
 
 message StatusMentionMessage {
@@ -4885,6 +4986,11 @@ message SyncActionData {
     optional SyncActionValue value = 2;
     optional bytes padding = 3;
     optional int32 version = 4;
+}
+
+message HatchCVMSecretAction {
+    optional bytes secret = 1;
+    optional int64 generation = 2;
 }
 
 message SyncActionValue {
@@ -4964,7 +5070,7 @@ message SyncActionValue {
     optional SyncActionValue.BBProPendingCustomerBaseAction bbProPendingCustomerBaseAction = 98;
     message AgentAction {
         optional string name = 1;
-        optional int32 deviceID = 2;
+        optional int32 deviceId = 2;
         optional bool isDeleted = 3;
     }
 
@@ -5018,7 +5124,7 @@ message SyncActionValue {
     }
 
     message ChatAssignmentAction {
-        optional string deviceAgentID = 1;
+        optional string deviceAgentId = 1;
     }
 
     message ChatAssignmentOpenedStatusAction {
@@ -5036,6 +5142,7 @@ message SyncActionValue {
         optional bool saveOnPrimaryAddressbook = 4;
         optional string pnJid = 5;
         optional string username = 6;
+            optional string birthday = 7;
     }
 
     message CtwaPerCustomerDataSharingAction {
@@ -5143,6 +5250,7 @@ message SyncActionValue {
         optional string fullName = 1;
         optional string firstName = 2;
         optional string username = 3;
+            optional string birthday = 4;
     }
 
     message LocaleSetting {
@@ -5469,6 +5577,7 @@ message SyncActionValue {
         optional bytes secret = 1;
         optional int64 ttlMs = 2;
     }
+    optional HatchCVMSecretAction hatchCvmSecretAction = 101;
 }
 
 message SyncdIndex {
@@ -6002,6 +6111,7 @@ message WebMessageInfo {
     optional string decisionId = 82;
     repeated string decisionSources = 83;
     optional EventInviteAdditionalMetadata eventInviteAdditionalMetadata = 84;
+    optional uint64 groupHistoryLastCountedMessageTimestamp = 85;
 }
 
 message WebNotificationsInfo {
@@ -6228,9 +6338,14 @@ message ChatDefaultWallpaper {
 }
 
 message ChatSolidColorWallpaper {
+    // Elaina 1.4.9 also sends fixed32 backgroundLightArgb on 1 and backgroundDarkArgb on 2 — the same numbers
+    // as colorLight / colorDark below. A .proto cannot repeat a number, so those two live only in index.js,
+    // where the decoder picks the field from the wire type. Re-add them by hand after any regeneration.
     optional string colorLight = 1;
     optional string colorDark = 2;
     optional bool isDoodleEnabled = 3;
+    optional fixed32 doodleLightArgb = 4;
+    optional fixed32 doodleDarkArgb = 5;
 }
 
 message ChatStockImageWallpaper {
@@ -6304,6 +6419,7 @@ message EventInviteMessage {
     optional string coverImageHandle = 10;
     optional string locationName = 11;
     optional int64 lastUpdatedTsUsec = 12;
+    optional BotProgressIndicatorMetadata.BotPlanningStepMetadata.PlanningStepStatus status = 13;
 }
 
 message FlowResponsesCsvBundle {
@@ -6534,6 +6650,7 @@ message SettingsSyncAction {
         MAC = 4;
     }
     optional string stockWallpaperImageId = 34;
+    optional int32 mediaAutoDownloadQuality = 35;
 }
 
 message SignedPayload {
@@ -6703,4 +6820,29 @@ message RecoverableHistoryConversation {
 
 message EventInviteAdditionalMetadata {
     optional bool isUpdated = 1;
+}
+
+message OmittedConversationMetadata {
+    optional string snapshotId = 1;
+    optional uint64 snapshotTimestampMs = 2;
+    optional uint32 batchIndex = 3;
+    optional uint32 batchCount = 4;
+    optional bool complete = 5;
+    repeated Conversation conversations = 6;
+
+    message MembershipFormKeyFingerprintVerification {
+        optional string requestId = 1;
+        optional string keyId = 2;
+        optional bytes keyFingerprint = 3;
+    }
+
+    message GroupRootKeyRequest {
+        optional string keyId = 1;
+    }
+
+    message GroupRootKey {
+        optional string keyId = 1;
+        optional bytes rootKey = 2;
+        optional bool isCurrent = 3;
+    }
 }

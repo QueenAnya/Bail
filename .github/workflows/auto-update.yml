@@ -8,7 +8,7 @@ name: Auto Update
 
 on:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '30 18 * * *'
   workflow_dispatch:
     inputs:
       bump:
@@ -39,6 +39,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: teamolduser-baileys-auto-release
@@ -64,17 +65,21 @@ jobs:
 
       - name: Enable Corepack and Set Yarn Version
         run: |
+          corepack cache clean
           corepack enable
           corepack prepare yarn@4.x --activate
-
       - name: Show environment
         run: |
           node --version
           yarn --version
 
-      - name: Install dependencies
-        run: yarn install
-
+      - name: Install Dependencies
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
       - name: Update WhatsApp version
         run: yarn update:version
 
@@ -138,23 +143,37 @@ jobs:
           console.log(`Version: ${current} -> ${next}`)
           NODE
 
-      - name: Commit and push
+      - name: Open a pull request
         if: steps.changes.outputs.changed == 'true' || github.event.inputs.force == 'true'
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
+          # This used to commit straight to `main`, which does not exist in this repository (the default branch is
+          # `master`), so the push silently did nothing. It now opens a pull request against the default branch, the
+          # same way the other update workflows do — nothing lands without review.
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           VERSION=$(node -p 'require("./package.json").version')
+          BRANCH="chore/auto-update-v${VERSION}"
+          BASE="${{ github.event.repository.default_branch }}"
+
+          git checkout -b "$BRANCH"
           git add -A
           git commit -m "chore: release v${VERSION} — WA update $(date -u +%Y-%m-%d)" || echo "No changes to commit"
-          git pull --rebase origin main || true
-          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
-            echo "Tag v${VERSION} already exists."
+
+          git push -f origin "$BRANCH"
+
+          if [ -z "$(gh pr list --head "$BRANCH" --json number --jq '.[0].number')" ]; then
+            gh pr create \
+              --base "$BASE" \
+              --head "$BRANCH" \
+              --title "chore: release v${VERSION} — WA update $(date -u +%Y-%m-%d)" \
+              --body "Automated WhatsApp version bump to \`v${VERSION}\`. Review the diff, then merge to release."
           else
-            git tag "v${VERSION}"
+            echo "A pull request for $BRANCH already exists."
           fi
-          git push origin main || true
-          git push origin "v${VERSION}" || true
 
       - name: Publish to NPM
         if: (steps.changes.outputs.changed == 'true' || github.event.inputs.force == 'true') && (github.event_name != 'workflow_dispatch' || github.event.inputs.publish == 'true')

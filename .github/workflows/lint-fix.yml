@@ -37,7 +37,6 @@ jobs:
           corepack cache clean
           corepack enable
           corepack prepare yarn@4.x --activate
-
       - name: Restore Yarn Cache
         uses: actions/cache@v6
         id: yarn-cache
@@ -47,14 +46,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Install packages
+      - name: Install Dependencies
         run: |
           yarn cache clean
           rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
           yarn install --no-immutable
-
       - name: Check linting
         run: yarn lint:fix
 

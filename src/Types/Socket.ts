@@ -58,6 +58,24 @@ export type WAUsernameInfo = {
 export type SocketConfig = {
 	/** the WS url to connect to WA */
 	waWebSocketUrl: string | URL
+	/**
+	 * Permit a `waWebSocketUrl` that is not a WhatsApp host.
+	 *
+	 * Off by default: the socket refuses any endpoint other than WhatsApp's own hosts (and localhost, for local
+	 * test servers). A library that will happily connect anywhere is indistinguishable from one that phones home,
+	 * so the exception has to be asked for explicitly. Turn it on only for a proxy or a mock server you control.
+	 */
+	allowCustomEndpoint?: boolean
+	/**
+	 * Send `passive: true` in the login node, as upstream WhiskeySockets does.
+	 *
+	 * Off by default: this package sends `passive: false` because real reconnect/import testing reported WhatsApp
+	 * terminating existing-companion logins with a 428 when they arrive as passive (upstream PR #2682, closed as
+	 * stale rather than merged). Registration always uses `false` in both designs.
+	 *
+	 * Flip it to `true` to reproduce upstream behaviour on your own account, e.g. while comparing the two.
+	 */
+	passiveLogin?: boolean
 	/** Fails the connection if the socket times out in this interval */
 	connectTimeoutMs: number
 	/** Default timeout for queries, undefined for no timeout */

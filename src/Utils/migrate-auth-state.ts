@@ -1,4 +1,4 @@
-import type { AuthenticationState, SignalDataSet, SignalDataTypeMap } from '../Types'
+import type { AuthenticationState, AuthenticationStateWithListing, SignalDataSet, SignalDataTypeMap } from '../Types'
 import type { ILogger } from './logger'
 
 /**
@@ -9,15 +9,26 @@ import type { ILogger } from './logger'
  * and destination.
  */
 export type MigrateAuthStateResult = {
-	creds: { copied: boolean }
+	creds: { copied: boolean; saved: boolean }
 	counts: Partial<Record<keyof SignalDataTypeMap, number>>
 	verified: boolean
 	warnings: string[]
 }
 
+/** A bare state, or an adapter result that wraps one (and can persist its creds). */
+export type AuthStateOrAdapter =
+	{ state: AuthenticationStateWithListing; saveCreds?: () => Promise<void> } | AuthenticationStateWithListing
+
 export type MigrateAuthStateOptions = {
-	from: AuthenticationState
-	to: AuthenticationState
+	/**
+	 * The state to read from, or the whole adapter object (`await useXAuthState(...)`) it came from.
+	 *
+	 * Typed against {@link AuthenticationStateWithListing}, so a store without `list` is a compile error rather than a
+	 * runtime throw.
+	 */
+	from: AuthStateOrAdapter
+	/** The destination state, or the destination adapter — in which case its `saveCreds` is called for you. */
+	to: AuthStateOrAdapter
 	/** Maximum records buffered between a `list` pull and a `set` push. Defaults to 100. */
 	batchSize?: number
 	/**
@@ -36,6 +47,12 @@ export type MigrateAuthStateOptions = {
 	 */
 	verify?: boolean
 }
+
+/** Normalises the two accepted shapes to a state plus an optional creds-persister. */
+const unwrapAuthState = (
+	value: AuthStateOrAdapter
+): { state: AuthenticationStateWithListing; saveCreds?: () => Promise<void> } =>
+	'state' in value ? value : { state: value }
 
 /** Every record type that `migrateAuthState` will iterate. */
 const ALL_TYPES: ReadonlyArray<keyof SignalDataTypeMap> = [
@@ -80,14 +97,19 @@ export async function migrateAuthState({
 	logger,
 	verify = true
 }: MigrateAuthStateOptions): Promise<MigrateAuthStateResult> {
-	if (!from.keys.list) {
+	// Accept either the bare state or the adapter object it came from.
+	const { state: source } = unwrapAuthState(from)
+	const { state: target, saveCreds: targetSaveCreds } = unwrapAuthState(to)
+
+	// TypeScript already rejects a source without `list`; this guard covers plain-JS callers and `any` casts.
+	if (typeof source.keys.list !== 'function') {
 		throw new Error(
 			'migrateAuthState: source store does not implement `list(type)`. Upgrade the source adapter or supply the records manually.'
 		)
 	}
 
 	const result: MigrateAuthStateResult = {
-		creds: { copied: false },
+		creds: { copied: false, saved: false },
 		counts: {},
 		verified: false,
 		warnings: []
@@ -98,13 +120,20 @@ export async function migrateAuthState({
 	//    `AuthenticationCreds` instead of routing every key through paired
 	//    `any` casts. Callers that use the destination's `saveCreds`-style API
 	//    are expected to persist.
-	Object.assign(to.creds, from.creds)
+	Object.assign(target.creds, source.creds)
+
+	// `Object.assign` only touches memory. When the caller passed the adapter object we can persist for them; a bare
+	// state leaves them to call `saveCreds()` themselves (the result says whether it happened).
+	if (targetSaveCreds) {
+		await targetSaveCreds()
+		result.creds.saved = true
+	}
 
 	result.creds.copied = true
 	logger?.info('migrateAuthState: creds copied')
 
 	/**
-	 * Build a single-type `SignalDataSet` payload for `to.keys.set`. The
+	 * Build a single-type `SignalDataSet` payload for `target.keys.set`. The
 	 * inputs (`type: T`, `batch: { [id]: SignalDataTypeMap[T] | null }`) are
 	 * strongly typed; the assignment to `payload[type]` requires one narrow
 	 * cast because `SignalDataSet` is a mapped type whose distributive
@@ -134,7 +163,7 @@ export async function migrateAuthState({
 		// "source enumeration" warning.
 		const flush = async () => {
 			if (batchCount === 0) return
-			await to.keys.set(buildSetPayload(type, batch))
+			await target.keys.set(buildSetPayload(type, batch))
 			total += batchCount
 			batch = {}
 			batchCount = 0
@@ -142,10 +171,10 @@ export async function migrateAuthState({
 
 		// Optional: pre-fetch destination ids so we skip records already there.
 		let existingIds: Set<string> | null = null
-		if (skipExisting && to.keys.listIds) {
+		if (skipExisting && target.keys.listIds) {
 			existingIds = new Set<string>()
 			try {
-				for await (const id of to.keys.listIds(type)) existingIds.add(id)
+				for await (const id of target.keys.listIds(type)) existingIds.add(id)
 			} catch (e) {
 				result.warnings.push(`failed to enumerate existing destination ids for ${type}: ${String(e)}`)
 				existingIds = null
@@ -158,7 +187,7 @@ export async function migrateAuthState({
 		// other type's records). Destination-side errors are NOT — they're
 		// surfaced by letting the `flush` outside this try propagate.
 		try {
-			for await (const [id, value] of from.keys.list(type)) {
+			for await (const [id, value] of source.keys.list(type)) {
 				if (existingIds?.has(id)) continue
 				batch[id] = value
 				batchCount++
@@ -177,7 +206,7 @@ export async function migrateAuthState({
 		}
 
 		// Final flush: outside the listing try/catch so a destination
-		// `to.keys.set` failure aborts the migration. The caller's `await`
+		// `target.keys.set` failure aborts the migration. The caller's `await`
 		// rejects with the underlying store error.
 		await flush()
 
@@ -187,7 +216,7 @@ export async function migrateAuthState({
 
 	// 3. Verify (best-effort).
 	if (verify) {
-		const verifyOk = await verifyMigration(from, to, logger, result.warnings)
+		const verifyOk = await verifyMigration(source, target, logger, result.warnings)
 		result.verified = verifyOk
 	}
 
@@ -199,8 +228,8 @@ export async function migrateAuthState({
 }
 
 async function verifyMigration(
-	from: AuthenticationState,
-	to: AuthenticationState,
+	from: AuthenticationStateWithListing,
+	to: AuthenticationStateWithListing,
 	logger: ILogger | undefined,
 	warnings: string[]
 ): Promise<boolean> {

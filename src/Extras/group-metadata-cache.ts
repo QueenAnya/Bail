@@ -1,12 +1,13 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/group-metadata-cache.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/group-metadata-cache.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
+export const GROUP_ADDRESSING_MODES: readonly string[] = Object.freeze(['pn', 'lid'])
 
-export const GROUP_ADDRESSING_MODES = Object.freeze(['pn', 'lid'])
+type GroupMetadataLike = { participants?: unknown; addressingMode?: string } | null | undefined
 
-export const isUsableGroupMetadata = metadata => {
+export const isUsableGroupMetadata = (metadata: GroupMetadataLike) => {
 	if (!metadata || typeof metadata !== 'object') {
 		return false
 	}
@@ -15,10 +16,10 @@ export const isUsableGroupMetadata = metadata => {
 		return false
 	}
 
-	return GROUP_ADDRESSING_MODES.includes(metadata.addressingMode)
+	return GROUP_ADDRESSING_MODES.includes(metadata.addressingMode as string)
 }
 
-export const describeUnusableGroupMetadata = metadata => {
+export const describeUnusableGroupMetadata = (metadata: GroupMetadataLike) => {
 	if (!metadata || typeof metadata !== 'object') {
 		return 'nothing cached'
 	}

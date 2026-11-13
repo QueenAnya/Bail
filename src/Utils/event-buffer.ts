@@ -64,6 +64,17 @@ type BaileysBufferableEventEmitter = BaileysEventEmitter & {
 	isBuffering(): boolean
 	/** destroy the event buffer, clearing all resources */
 	destroy(): void
+	once<T extends keyof BaileysEventMap>(event: T, listener: (arg: BaileysEventMap[T]) => void): void
+	addListener<T extends keyof BaileysEventMap>(event: T, listener: (arg: BaileysEventMap[T]) => void): void
+	removeListener<T extends keyof BaileysEventMap>(event: T, listener: (arg: BaileysEventMap[T]) => void): void
+	setMaxListeners(count: number): void
+	getMaxListeners(): number
+	listenerCount(event: BaileysEvent): number
+
+	listeners(event: BaileysEvent): Function[]
+
+	rawListeners(event: BaileysEvent): Function[]
+	eventNames(): (string | symbol)[]
 }
 
 /**
@@ -243,6 +254,15 @@ export const makeEventBuffer = (
 		on: (...args) => ev.on(...args),
 		off: (...args) => ev.off(...args),
 		removeAllListeners: (...args) => ev.removeAllListeners(...args),
+		once: (...args) => ev.once(...args),
+		addListener: (...args) => ev.addListener(...args),
+		removeListener: (...args) => ev.removeListener(...args),
+		setMaxListeners: (count: number) => ev.setMaxListeners(count),
+		getMaxListeners: () => ev.getMaxListeners(),
+		listenerCount: (...args) => ev.listenerCount(...args),
+		listeners: (...args) => ev.listeners(...args),
+		rawListeners: (...args) => ev.rawListeners(...args),
+		eventNames: () => ev.eventNames(),
 		destroy() {
 			// Clear buffer timeout
 			if (bufferTimeout) {

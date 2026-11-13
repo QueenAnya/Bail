@@ -12,12 +12,10 @@
  *   sock.sendMessage(jid, { question: { text: 'Favourite colour?' } })
  * just works.
  *
- * `PollAddOptionMessage` / `EventInviteMessage` are looked up under `proto.Message` first and then as flat `proto.*` classes
+ * `PollAddOptionMessage` / `EventInviteMessage` are attached under `proto.Message` by Utils/proto-compat.ts
  * (this WAProto keeps them flat); `pollAddOption` and `eventInvite` throw a clear error only if neither exists. `NEWSLETTER_STATUS` (attribution type 9) is sent as its number.
  */
 import { proto } from '../../WAProto/index.js'
-
-const P: any = proto
 
 const requireObject = (value: any, name: string) => {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -36,20 +34,9 @@ const requireKey = (value: any, name = 'key') => {
 	return value
 }
 
-const requireProto = (path: string, feature: string) => {
-	const parts = path.split('.')
-	// elaina nests these under `Message`; this WAProto keeps some of them flat (`proto.PollAddOptionMessage`)
-	const found = parts.reduce((object: any, key) => object?.[key], P) ?? P[parts[parts.length - 1]!]
-	if (found === undefined) {
-		throw new Error(`${feature} needs proto.${path}, which this WAProto does not have - update WAProto to use it`)
-	}
-
-	return found
-}
-
-const enumValue = (enumObject: Record<string, number> | undefined, value: any, fallback: number): number => {
+const enumValue = (enumObject: any, value: any, fallback: number | undefined): number | undefined => {
 	if (typeof value === 'number') return value
-	if (typeof value === 'string' && enumObject) {
+	if (typeof value === 'string') {
 		const key = value.trim().toUpperCase()
 		if (key in enumObject) return enumObject[key]!
 	}
@@ -58,10 +45,9 @@ const enumValue = (enumObject: Record<string, number> | undefined, value: any, f
 }
 
 /** `StatusAttribution.Type.NEWSLETTER_STATUS` (not named in this WAProto) */
-const STATUS_ATTRIBUTION_NEWSLETTER_STATUS = 9
 
 export const STATUS_NOTIFICATION_TYPES: Readonly<Record<string, number>> = Object.freeze({
-	...(P.Message.StatusNotificationMessage?.StatusNotificationType ?? {}),
+	...proto.Message.StatusNotificationMessage.StatusNotificationType,
 	STATUS_GROUP_STATUS_REPLY: 4
 })
 
@@ -73,7 +59,7 @@ const makeInnerCommentMessage = (content: any) => {
 	if (data.raw && typeof data.raw === 'object') return data.raw
 	if (typeof data.text === 'string') {
 		return {
-			extendedTextMessage: P.Message.ExtendedTextMessage.create({ text: data.text, contextInfo: data.contextInfo })
+			extendedTextMessage: proto.Message.ExtendedTextMessage.create({ text: data.text, contextInfo: data.contextInfo })
 		}
 	}
 
@@ -89,9 +75,9 @@ export const makeQuestionMessage = (input: any) => {
 	}
 
 	return {
-		questionMessage: P.Message.FutureProofMessage.create({
+		questionMessage: proto.Message.FutureProofMessage.create({
 			message: {
-				extendedTextMessage: P.Message.ExtendedTextMessage.create({
+				extendedTextMessage: proto.Message.ExtendedTextMessage.create({
 					text: data.text,
 					contextInfo: { ...(data.contextInfo || {}), isQuestion: true }
 				})
@@ -104,7 +90,7 @@ export const makeQuestionResponseMessage = (input: any) => {
 	const data = requireObject(input, 'questionResponse')
 	requireKey(data.key, 'questionResponse.key')
 	return {
-		questionResponseMessage: P.Message.QuestionResponseMessage.create({ key: data.key, text: data.text ?? '' })
+		questionResponseMessage: proto.Message.QuestionResponseMessage.create({ key: data.key, text: data.text ?? '' })
 	}
 }
 
@@ -122,9 +108,9 @@ export const makeQuestionReplyMessage = (input: any) => {
 	if (data.quotedQuestion) quoted.quotedQuestion = data.quotedQuestion
 	if (data.quotedResponse) quoted.quotedResponse = data.quotedResponse
 	return {
-		questionReplyMessage: P.Message.FutureProofMessage.create({
+		questionReplyMessage: proto.Message.FutureProofMessage.create({
 			message: {
-				extendedTextMessage: P.Message.ExtendedTextMessage.create({
+				extendedTextMessage: proto.Message.ExtendedTextMessage.create({
 					text: data.text,
 					contextInfo: { ...(data.contextInfo || {}), questionReplyQuotedMessage: quoted }
 				})
@@ -137,17 +123,23 @@ export const makeStatusQuestionAnswerMessage = (input: any) => {
 	const data = requireObject(input, 'statusQuestionAnswer')
 	requireKey(data.key, 'statusQuestionAnswer.key')
 	return {
-		statusQuestionAnswerMessage: P.Message.StatusQuestionAnswerMessage.create({ key: data.key, text: data.text ?? '' })
+		statusQuestionAnswerMessage: proto.Message.StatusQuestionAnswerMessage.create({
+			key: data.key,
+			text: data.text ?? ''
+		})
 	}
 }
 
 export const makeStatusQuotedMessage = (input: any) => {
 	const data = requireObject(input, 'statusQuoted')
 	requireKey(data.originalStatusId, 'statusQuoted.originalStatusId')
-	const types = P.Message.StatusQuotedMessage.StatusQuotedMessageType
-	const type = enumValue(types, data.type, types.QUESTION_ANSWER)
+	const type = enumValue(
+		proto.Message.StatusQuotedMessage.StatusQuotedMessageType,
+		data.type,
+		proto.Message.StatusQuotedMessage.StatusQuotedMessageType.QUESTION_ANSWER
+	)
 	return {
-		statusQuotedMessage: P.Message.StatusQuotedMessage.create({
+		statusQuotedMessage: proto.Message.StatusQuotedMessage.create({
 			type,
 			text: data.text,
 			thumbnail: data.thumbnail,
@@ -163,10 +155,13 @@ export const makeStatusStickerInteractionMessage = (input: any) => {
 		throw new TypeError('statusStickerInteraction.stickerKey is required')
 	}
 
-	const types = P.Message.StatusStickerInteractionMessage.StatusStickerType
-	const type = enumValue(types, data.type, types.REACTION)
+	const type = enumValue(
+		proto.Message.StatusStickerInteractionMessage.StatusStickerType,
+		data.type,
+		proto.Message.StatusStickerInteractionMessage.StatusStickerType.REACTION
+	)
 	return {
-		statusStickerInteractionMessage: P.Message.StatusStickerInteractionMessage.create({
+		statusStickerInteractionMessage: proto.Message.StatusStickerInteractionMessage.create({
 			key: data.key,
 			stickerKey: data.stickerKey,
 			type
@@ -178,9 +173,9 @@ export const makeStatusNotificationMessage = (input: any) => {
 	const data = requireObject(input, 'statusNotification')
 	requireKey(data.responseMessageKey, 'statusNotification.responseMessageKey')
 	requireKey(data.originalMessageKey, 'statusNotification.originalMessageKey')
-	const type = enumValue(STATUS_NOTIFICATION_TYPES, data.type, STATUS_NOTIFICATION_TYPES.UNKNOWN ?? 0)
+	const type = enumValue(STATUS_NOTIFICATION_TYPES, data.type, STATUS_NOTIFICATION_TYPES.UNKNOWN)
 	return {
-		statusNotificationMessage: P.Message.StatusNotificationMessage.create({
+		statusNotificationMessage: proto.Message.StatusNotificationMessage.create({
 			responseMessageKey: data.responseMessageKey,
 			originalMessageKey: data.originalMessageKey,
 			type
@@ -195,7 +190,7 @@ export const makeNewsletterAdminInviteMessage = (input: any) => {
 	}
 
 	return {
-		newsletterAdminInviteMessage: P.Message.NewsletterAdminInviteMessage.create({
+		newsletterAdminInviteMessage: proto.Message.NewsletterAdminInviteMessage.create({
 			newsletterJid: data.newsletterJid,
 			newsletterName: data.newsletterName,
 			jpegThumbnail: data.jpegThumbnail,
@@ -213,7 +208,7 @@ export const makeNewsletterFollowerInviteMessage = (input: any) => {
 	}
 
 	return {
-		newsletterFollowerInviteMessageV2: P.Message.NewsletterFollowerInviteMessage.create({
+		newsletterFollowerInviteMessageV2: proto.Message.NewsletterFollowerInviteMessage.create({
 			newsletterJid: data.newsletterJid,
 			newsletterName: data.newsletterName,
 			jpegThumbnail: data.jpegThumbnail,
@@ -226,14 +221,14 @@ export const makeNewsletterFollowerInviteMessage = (input: any) => {
 export const makePollAddOptionMessage = (input: any) => {
 	const data = requireObject(input, 'pollAddOption')
 	requireKey(data.pollCreationMessageKey, 'pollAddOption.pollCreationMessageKey')
-	const Message = requireProto('Message.PollAddOptionMessage', 'pollAddOption')
 	const addOption = typeof data.option === 'string' ? { optionName: data.option } : data.addOption || data.option
 	if (!addOption?.optionName) {
 		throw new TypeError('pollAddOption.option is required')
 	}
 
 	return {
-		pollAddOptionMessage: Message.create({
+		// @ts-expect-error the generated d.ts declares this flat; Utils/proto-compat.ts attaches it under Message
+		pollAddOptionMessage: proto.Message.PollAddOptionMessage.create({
 			pollCreationMessageKey: data.pollCreationMessageKey,
 			addOption,
 			metadata: data.metadata
@@ -247,7 +242,7 @@ export const makeCommentMessage = (input: any) => {
 	const message = data.message || (data.content ? makeInnerCommentMessage(data.content) : null)
 	requireObject(message, 'comment.message')
 	return {
-		commentMessage: P.Message.CommentMessage.create({ message, targetMessageKey: data.targetMessageKey })
+		commentMessage: proto.Message.CommentMessage.create({ message, targetMessageKey: data.targetMessageKey })
 	}
 }
 
@@ -257,9 +252,9 @@ export const makeEventInviteMessage = (input: any) => {
 		throw new TypeError('eventInvite.eventId is required')
 	}
 
-	const Message = requireProto('Message.EventInviteMessage', 'eventInvite')
 	return {
-		eventInviteMessage: Message.create({
+		// @ts-expect-error the generated d.ts declares this flat; Utils/proto-compat.ts attaches it under Message
+		eventInviteMessage: proto.Message.EventInviteMessage.create({
 			contextInfo: data.contextInfo,
 			eventId: data.eventId,
 			eventTitle: data.eventTitle,
@@ -279,10 +274,13 @@ export const makeScheduledCallCreationMessage = (input: any) => {
 		throw new TypeError('scheduledCall.scheduledTimestampMs is required')
 	}
 
-	const types = P.Message.ScheduledCallCreationMessage.CallType
-	const callType = enumValue(types, data.callType, types.UNKNOWN)
+	const callType = enumValue(
+		proto.Message.ScheduledCallCreationMessage.CallType,
+		data.callType,
+		proto.Message.ScheduledCallCreationMessage.CallType.UNKNOWN
+	)
 	return {
-		scheduledCallCreationMessage: P.Message.ScheduledCallCreationMessage.create({
+		scheduledCallCreationMessage: proto.Message.ScheduledCallCreationMessage.create({
 			scheduledTimestampMs: toMilliseconds(data.scheduledTimestampMs),
 			callType,
 			title: data.title
@@ -293,10 +291,13 @@ export const makeScheduledCallCreationMessage = (input: any) => {
 export const makeScheduledCallEditMessage = (input: any) => {
 	const data = requireObject(input, 'scheduledCallEdit')
 	requireKey(data.key, 'scheduledCallEdit.key')
-	const types = P.Message.ScheduledCallEditMessage.EditType
-	const editType = enumValue(types, data.editType, types.CANCEL)
+	const editType = enumValue(
+		proto.Message.ScheduledCallEditMessage.EditType,
+		data.editType,
+		proto.Message.ScheduledCallEditMessage.EditType.CANCEL
+	)
 	return {
-		scheduledCallEditMessage: P.Message.ScheduledCallEditMessage.create({ key: data.key, editType })
+		scheduledCallEditMessage: proto.Message.ScheduledCallEditMessage.create({ key: data.key, editType })
 	}
 }
 
@@ -304,9 +305,9 @@ export const makeGroupStatusReactionMessage = (input: any) => {
 	const data = requireObject(input, 'groupStatusReaction')
 	requireKey(data.key, 'groupStatusReaction.key')
 	return {
-		groupStatusMessageV2: P.Message.FutureProofMessage.create({
+		groupStatusMessageV2: proto.Message.FutureProofMessage.create({
 			message: {
-				reactionMessage: P.Message.ReactionMessage.create({
+				reactionMessage: proto.Message.ReactionMessage.create({
 					key: data.key,
 					text: data.text ?? '',
 					groupingKey: data.groupingKey,
@@ -327,11 +328,11 @@ export const makeNewsletterStatusAttribution = (input: any) => {
 		throw new TypeError('newsletterStatus.messageId is required')
 	}
 
-	return P.StatusAttribution.create({
-		type: STATUS_ATTRIBUTION_NEWSLETTER_STATUS,
+	return proto.StatusAttribution.create({
+		type: proto.StatusAttribution.Type.NEWSLETTER_STATUS,
 		actionUrl: data.actionUrl,
 		statusReshare: {
-			source: P.StatusAttribution.StatusReshare.Source.CHANNEL_RESHARE,
+			source: proto.StatusAttribution.StatusReshare.Source.CHANNEL_RESHARE,
 			metadata: {
 				duration: data.duration,
 				channelJid: data.newsletterJid,
@@ -348,8 +349,8 @@ export const makeGroupStatusAttribution = (input: any) => {
 		throw new TypeError('groupStatusAttribution.authorJid is required')
 	}
 
-	return P.StatusAttribution.create({
-		type: P.StatusAttribution.Type.GROUP_STATUS,
+	return proto.StatusAttribution.create({
+		type: proto.StatusAttribution.Type.GROUP_STATUS,
 		actionUrl: data.actionUrl,
 		groupStatus: { authorJid: data.authorJid }
 	})
@@ -360,20 +361,26 @@ export const STATUS_AUDIENCE_DEFAULT_EMOJI = '⭐'
 
 export const makeStatusAudienceMetadata = (input: any) => {
 	const data = typeof input === 'string' ? { listName: input } : requireObject(input, 'statusAudience')
-	const types = P.ContextInfo.StatusAudienceMetadata.AudienceType
-	const audienceType = enumValue(types, data.audienceType, types.CLOSE_FRIENDS)
+	const audienceType = enumValue(
+		proto.ContextInfo.StatusAudienceMetadata.AudienceType,
+		data.audienceType,
+		proto.ContextInfo.StatusAudienceMetadata.AudienceType.CLOSE_FRIENDS
+	)
 	const listName = data.listName === undefined ? STATUS_AUDIENCE_DEFAULT_LIST_NAME : String(data.listName)
 	const listEmoji = data.listEmoji === undefined ? STATUS_AUDIENCE_DEFAULT_EMOJI : String(data.listEmoji)
-	return P.ContextInfo.StatusAudienceMetadata.create({ audienceType, listName, listEmoji })
+	return proto.ContextInfo.StatusAudienceMetadata.create({ audienceType, listName, listEmoji })
 }
 
 export const makeMessageAssociation = (input: any) => {
 	const data = requireObject(input, 'messageAssociation')
 	const parentMessageKey = data.parentMessageKey ?? data.key
 	requireKey(parentMessageKey, 'messageAssociation.parentMessageKey')
-	const types = P.MessageAssociation.AssociationType
-	const associationType = enumValue(types, data.associationType ?? data.type, types.UNKNOWN)
-	return P.MessageAssociation.create({ associationType, parentMessageKey, messageIndex: data.messageIndex })
+	const associationType = enumValue(
+		proto.MessageAssociation.AssociationType,
+		data.associationType ?? data.type,
+		proto.MessageAssociation.AssociationType.UNKNOWN
+	)
+	return proto.MessageAssociation.create({ associationType, parentMessageKey, messageIndex: data.messageIndex })
 }
 
 export const makeStatusAddYoursAssociation = (input: any) => {
@@ -383,9 +390,12 @@ export const makeStatusAddYoursAssociation = (input: any) => {
 			: requireObject(input, 'addYours')
 	const parentMessageKey = data.key ?? data.parentMessageKey
 	requireKey(parentMessageKey, 'addYours.key')
-	const types = P.MessageAssociation.AssociationType
-	const associationType = enumValue(types, data.type ?? data.associationType, types.STATUS_ADD_YOURS)
-	return P.MessageAssociation.create({ associationType, parentMessageKey, messageIndex: data.messageIndex })
+	const associationType = enumValue(
+		proto.MessageAssociation.AssociationType,
+		data.type ?? data.associationType,
+		proto.MessageAssociation.AssociationType.STATUS_ADD_YOURS
+	)
+	return proto.MessageAssociation.create({ associationType, parentMessageKey, messageIndex: data.messageIndex })
 }
 
 export const makeStatusMentionMessage = (input: any) => {
@@ -393,11 +403,11 @@ export const makeStatusMentionMessage = (input: any) => {
 	requireKey(data.key, 'statusMention.key')
 	const field = data.group ? 'groupStatusMentionMessage' : 'statusMentionMessage'
 	return {
-		[field]: P.Message.FutureProofMessage.create({
+		[field]: proto.Message.FutureProofMessage.create({
 			message: {
-				protocolMessage: P.Message.ProtocolMessage.create({
+				protocolMessage: proto.Message.ProtocolMessage.create({
 					key: data.key,
-					type: P.Message.ProtocolMessage.Type.STATUS_MENTION_MESSAGE
+					type: proto.Message.ProtocolMessage.Type.STATUS_MENTION_MESSAGE
 				})
 			}
 		})
@@ -427,7 +437,7 @@ const modernBuilders: [string, (input: any) => Record<string, any>][] = [
 export const prepareModernMessageContent = (content: any): any => {
 	if (!content || typeof content !== 'object' || Array.isArray(content)) return content
 	const output: Record<string, any> = { ...content }
-	const attributions: any[] = Array.isArray(output.contextInfo?.statusAttributions)
+	const attributions = Array.isArray(output.contextInfo?.statusAttributions)
 		? [...output.contextInfo.statusAttributions]
 		: []
 	if (output.newsletterStatus) {

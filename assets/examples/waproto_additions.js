@@ -6,7 +6,7 @@
 // Run: node assets/examples/waproto_additions.js
 import { DEFAULT_CONNECTION_CONFIG, proto } from '@teamolduser/baileys'
 
-console.log('Default WhatsApp Web version:', DEFAULT_CONNECTION_CONFIG.version.join('.')) // 2.3000.1051456098
+console.log('Default WhatsApp Web version:', DEFAULT_CONNECTION_CONFIG.version.join('.')) // 2.3000.1053624037
 
 const roundTrip = (type, value) => type.decode(type.encode(type.fromObject(value)).finish())
 

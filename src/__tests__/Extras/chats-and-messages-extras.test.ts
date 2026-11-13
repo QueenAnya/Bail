@@ -509,7 +509,7 @@ describe('ported socket', () => {
 		expect(calls[1].content.raw).toBe(true)
 		expect(calls[1].content.questionMessage).toBeDefined()
 
-		await sock.sendMessage('1@s.whatsapp.net', { paymentReminder: { reminderId: 'r', amount: 10 } })
+		await sock.sendMessage('1@s.whatsapp.net', { paymentReminder: { reminderId: 'r', amount: 10, currency: 'INR' } })
 		expect(calls[2].content.paymentReminderMessage.amount.currencyCode).toBe('INR')
 	})
 })

@@ -51,7 +51,8 @@ export class VideoFeeder {
 
 	#running = false
 	#proc: ChildProcessByStdio<null, Readable, Readable> | null = null
-	#pending = Buffer.alloc(0)
+	#pendingParts: Buffer[] = []
+	#pendingBytes = 0
 	#stderr = ''
 
 	framesProduced = 0
@@ -105,7 +106,8 @@ export class VideoFeeder {
 		this.framesProduced = 0
 		this.framesEmitted = 0
 		this.bytesProduced = 0
-		this.#pending = Buffer.alloc(0)
+		this.#pendingParts = []
+		this.#pendingBytes = 0
 		this.#stderr = ''
 
 		const scaleFilter = `scale=${this.width}:${this.height}:force_original_aspect_ratio=decrease,pad=${this.width}:${this.height}:(ow-iw)/2:(oh-ih)/2`
@@ -164,11 +166,11 @@ export class VideoFeeder {
 
 	#handleData = (chunk: Buffer): void => {
 		this.bytesProduced += chunk.length
-		this.#pending = Buffer.concat([this.#pending, chunk])
+		this.#pendingParts.push(chunk)
+		this.#pendingBytes += chunk.length
 
-		while (this.#pending.length >= this.frameSizeBytes) {
-			const frameBuf = this.#pending.subarray(0, this.frameSizeBytes)
-			this.#pending = this.#pending.subarray(this.frameSizeBytes)
+		while (this.#pendingBytes >= this.frameSizeBytes) {
+			const frameBuf = this.#takeFrame()
 
 			this.framesProduced += 1
 			this.framesEmitted += 1
@@ -181,6 +183,30 @@ export class VideoFeeder {
 		}
 	}
 
+	#takeFrame = (): Buffer => {
+		const bytes = this.frameSizeBytes
+		this.#pendingBytes -= bytes
+		if (this.#pendingParts.length === 1 && this.#pendingParts[0]!.length === bytes) {
+			return this.#pendingParts.shift()!
+		}
+
+		const frame = Buffer.allocUnsafe(bytes)
+		let filled = 0
+		while (filled < bytes) {
+			const part = this.#pendingParts[0]!
+			const take = Math.min(part.length, bytes - filled)
+			part.copy(frame, filled, 0, take)
+			filled += take
+			if (take === part.length) {
+				this.#pendingParts.shift()
+			} else {
+				this.#pendingParts[0] = part.subarray(take)
+			}
+		}
+
+		return frame
+	}
+
 	stop = (): void => {
 		this.#running = false
 		if (this.#proc) {
@@ -191,6 +217,7 @@ export class VideoFeeder {
 			this.#proc = null
 		}
 
-		this.#pending = Buffer.alloc(0)
+		this.#pendingParts = []
+		this.#pendingBytes = 0
 	}
 }

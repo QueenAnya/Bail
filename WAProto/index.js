@@ -1260,7 +1260,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.capabilityOptions && m.capabilityOptions.length))
                             m.capabilityOptions = [];
-                        m.capabilityOptions.push($root.proto.AIHomeState.AIHomeOption.decode(r, r.uint32(), $undefined, q + 1));
+                        m.capabilityOptions.push($root.proto.AIHomeState.AIHomeOption.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -1268,7 +1268,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.conversationOptions && m.conversationOptions.length))
                             m.conversationOptions = [];
-                        m.conversationOptions.push($root.proto.AIHomeState.AIHomeOption.decode(r, r.uint32(), $undefined, q + 1));
+                        m.conversationOptions.push($root.proto.AIHomeState.AIHomeOption.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -1788,14 +1788,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.messageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.messageKey);
+                        m.messageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.messageKey);
                         m._messageKey = "messageKey";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.message = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                        m.message = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.message);
                         m._message = "message";
                         continue;
                     }
@@ -1971,7 +1971,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.messageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.messageKey);
+                        m.messageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.messageKey);
                         m._messageKey = "messageKey";
                         continue;
                     }
@@ -2145,7 +2145,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.codeBlocks && m.codeBlocks.length))
                             m.codeBlocks = [];
-                        m.codeBlocks.push($root.proto.AIRichResponseCodeMetadata.AIRichResponseCodeBlock.decode(r, r.uint32(), $undefined, q + 1));
+                        m.codeBlocks.push($root.proto.AIRichResponseCodeMetadata.AIRichResponseCodeBlock.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -2494,7 +2494,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.itemsMetadata && m.itemsMetadata.length))
                             m.itemsMetadata = [];
-                        m.itemsMetadata.push($root.proto.AIRichResponseContentItemsMetadata.AIRichResponseContentItemMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.itemsMetadata.push($root.proto.AIRichResponseContentItemsMetadata.AIRichResponseContentItemMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 2: {
@@ -2657,7 +2657,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.reelItem = $root.proto.AIRichResponseContentItemsMetadata.AIRichResponseReelItem.decode(r, r.uint32(), $undefined, q + 1, m.reelItem);
+                            m.reelItem = $root.proto.AIRichResponseContentItemsMetadata.AIRichResponseReelItem.decode(r, r.size(), $undefined, q + 1, m.reelItem);
                             m.aIRichResponseContentItem = "reelItem";
                             continue;
                         }
@@ -3239,7 +3239,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.gridImageUrl = $root.proto.AIRichResponseImageURL.decode(r, r.uint32(), $undefined, q + 1, m.gridImageUrl);
+                        m.gridImageUrl = $root.proto.AIRichResponseImageURL.decode(r, r.size(), $undefined, q + 1, m.gridImageUrl);
                         m._gridImageUrl = "gridImageUrl";
                         continue;
                     }
@@ -3248,7 +3248,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.imageUrls && m.imageUrls.length))
                             m.imageUrls = [];
-                        m.imageUrls.push($root.proto.AIRichResponseImageURL.decode(r, r.uint32(), $undefined, q + 1));
+                        m.imageUrls.push($root.proto.AIRichResponseImageURL.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -3603,7 +3603,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.imageUrl = $root.proto.AIRichResponseImageURL.decode(r, r.uint32(), $undefined, q + 1, m.imageUrl);
+                        m.imageUrl = $root.proto.AIRichResponseImageURL.decode(r, r.size(), $undefined, q + 1, m.imageUrl);
                         m._imageUrl = "imageUrl";
                         continue;
                     }
@@ -3813,7 +3813,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.expressions && m.expressions.length))
                             m.expressions = [];
-                        m.expressions.push($root.proto.AIRichResponseLatexMetadata.AIRichResponseLatexExpression.decode(r, r.uint32(), $undefined, q + 1));
+                        m.expressions.push($root.proto.AIRichResponseLatexMetadata.AIRichResponseLatexExpression.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -4343,7 +4343,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.annotations && m.annotations.length))
                             m.annotations = [];
-                        m.annotations.push($root.proto.AIRichResponseMapMetadata.AIRichResponseMapAnnotation.decode(r, r.uint32(), $undefined, q + 1));
+                        m.annotations.push($root.proto.AIRichResponseMapMetadata.AIRichResponseMapAnnotation.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 6: {
@@ -4786,27 +4786,27 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.submessages && m.submessages.length))
                             m.submessages = [];
-                        m.submessages.push($root.proto.AIRichResponseSubMessage.decode(r, r.uint32(), $undefined, q + 1));
+                        m.submessages.push($root.proto.AIRichResponseSubMessage.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.unifiedResponse = $root.proto.AIRichResponseUnifiedResponse.decode(r, r.uint32(), $undefined, q + 1, m.unifiedResponse);
+                        m.unifiedResponse = $root.proto.AIRichResponseUnifiedResponse.decode(r, r.size(), $undefined, q + 1, m.unifiedResponse);
                         m._unifiedResponse = "unifiedResponse";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                        m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                         m._contextInfo = "contextInfo";
                         continue;
                     }
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.originalRecipientMetadata = $root.proto.AIRichResponseUnifiedResponse.decode(r, r.uint32(), $undefined, q + 1, m.originalRecipientMetadata);
+                        m.originalRecipientMetadata = $root.proto.AIRichResponseUnifiedResponse.decode(r, r.size(), $undefined, q + 1, m.originalRecipientMetadata);
                         m._originalRecipientMetadata = "originalRecipientMetadata";
                         continue;
                     }
@@ -5086,7 +5086,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.gridImageMetadata = $root.proto.AIRichResponseGridImageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.gridImageMetadata);
+                        m.gridImageMetadata = $root.proto.AIRichResponseGridImageMetadata.decode(r, r.size(), $undefined, q + 1, m.gridImageMetadata);
                         m._gridImageMetadata = "gridImageMetadata";
                         continue;
                     }
@@ -5100,49 +5100,49 @@ export const proto = $root.proto = (() => {
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.imageMetadata = $root.proto.AIRichResponseInlineImageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.imageMetadata);
+                        m.imageMetadata = $root.proto.AIRichResponseInlineImageMetadata.decode(r, r.size(), $undefined, q + 1, m.imageMetadata);
                         m._imageMetadata = "imageMetadata";
                         continue;
                     }
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.codeMetadata = $root.proto.AIRichResponseCodeMetadata.decode(r, r.uint32(), $undefined, q + 1, m.codeMetadata);
+                        m.codeMetadata = $root.proto.AIRichResponseCodeMetadata.decode(r, r.size(), $undefined, q + 1, m.codeMetadata);
                         m._codeMetadata = "codeMetadata";
                         continue;
                     }
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.tableMetadata = $root.proto.AIRichResponseTableMetadata.decode(r, r.uint32(), $undefined, q + 1, m.tableMetadata);
+                        m.tableMetadata = $root.proto.AIRichResponseTableMetadata.decode(r, r.size(), $undefined, q + 1, m.tableMetadata);
                         m._tableMetadata = "tableMetadata";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.dynamicMetadata = $root.proto.AIRichResponseDynamicMetadata.decode(r, r.uint32(), $undefined, q + 1, m.dynamicMetadata);
+                        m.dynamicMetadata = $root.proto.AIRichResponseDynamicMetadata.decode(r, r.size(), $undefined, q + 1, m.dynamicMetadata);
                         m._dynamicMetadata = "dynamicMetadata";
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.latexMetadata = $root.proto.AIRichResponseLatexMetadata.decode(r, r.uint32(), $undefined, q + 1, m.latexMetadata);
+                        m.latexMetadata = $root.proto.AIRichResponseLatexMetadata.decode(r, r.size(), $undefined, q + 1, m.latexMetadata);
                         m._latexMetadata = "latexMetadata";
                         continue;
                     }
                 case 9: {
                         if (u !== 2)
                             break;
-                        m.mapMetadata = $root.proto.AIRichResponseMapMetadata.decode(r, r.uint32(), $undefined, q + 1, m.mapMetadata);
+                        m.mapMetadata = $root.proto.AIRichResponseMapMetadata.decode(r, r.size(), $undefined, q + 1, m.mapMetadata);
                         m._mapMetadata = "mapMetadata";
                         continue;
                     }
                 case 10: {
                         if (u !== 2)
                             break;
-                        m.contentItemsMetadata = $root.proto.AIRichResponseContentItemsMetadata.decode(r, r.uint32(), $undefined, q + 1, m.contentItemsMetadata);
+                        m.contentItemsMetadata = $root.proto.AIRichResponseContentItemsMetadata.decode(r, r.size(), $undefined, q + 1, m.contentItemsMetadata);
                         m._contentItemsMetadata = "contentItemsMetadata";
                         continue;
                     }
@@ -5409,7 +5409,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.rows && m.rows.length))
                             m.rows = [];
-                        m.rows.push($root.proto.AIRichResponseTableMetadata.AIRichResponseTableRow.decode(r, r.uint32(), $undefined, q + 1));
+                        m.rows.push($root.proto.AIRichResponseTableMetadata.AIRichResponseTableRow.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 2: {
@@ -5873,14 +5873,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.serverInfo = $root.proto.AIThreadInfo.AIThreadServerInfo.decode(r, r.uint32(), $undefined, q + 1, m.serverInfo);
+                        m.serverInfo = $root.proto.AIThreadInfo.AIThreadServerInfo.decode(r, r.size(), $undefined, q + 1, m.serverInfo);
                         m._serverInfo = "serverInfo";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.clientInfo = $root.proto.AIThreadInfo.AIThreadClientInfo.decode(r, r.uint32(), $undefined, q + 1, m.clientInfo);
+                        m.clientInfo = $root.proto.AIThreadInfo.AIThreadClientInfo.decode(r, r.size(), $undefined, q + 1, m.clientInfo);
                         m._clientInfo = "clientInfo";
                         continue;
                     }
@@ -6326,6 +6326,8 @@ export const proto = $root.proto = (() => {
                 w.uint32(26).string(m.countryCode);
             if (m.isUsernameDeleted != null && $Object.hasOwnProperty.call(m, "isUsernameDeleted"))
                 w.uint32(32).bool(m.isUsernameDeleted);
+            if (m.pnLearnState != null && $Object.hasOwnProperty.call(m, "pnLearnState"))
+                w.uint32(48).int32(m.pnLearnState);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -6387,6 +6389,13 @@ export const proto = $root.proto = (() => {
                         m._isUsernameDeleted = "isUsernameDeleted";
                         continue;
                     }
+                    case 6: {
+                            if (u !== 0)
+                                break;
+                            m.pnLearnState = r.int32();
+                            m._pnLearnState = "pnLearnState";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -6426,6 +6435,9 @@ export const proto = $root.proto = (() => {
             if (d.isUsernameDeleted != null) {
                 m.isUsernameDeleted = $Boolean(d.isUsernameDeleted);
             }
+            if (d.pnLearnState != null) {
+                m.pnLearnState = d.pnLearnState | 0;
+            }
             return m;
         };
 
@@ -6448,6 +6460,9 @@ export const proto = $root.proto = (() => {
             }
             if (m.isUsernameDeleted != null && $Object.hasOwnProperty.call(m, "isUsernameDeleted")) {
                 d.isUsernameDeleted = m.isUsernameDeleted;
+            }
+            if (m.pnLearnState != null && $Object.hasOwnProperty.call(m, "pnLearnState")) {
+                d.pnLearnState = m.pnLearnState;
             }
             return d;
         };
@@ -6985,6 +7000,7 @@ export const proto = $root.proto = (() => {
         BizAccountLinkInfo.prototype.issueTime = null;
         BizAccountLinkInfo.prototype.hostStorage = null;
         BizAccountLinkInfo.prototype.accountType = null;
+        BizAccountLinkInfo.prototype.whatsappAcctEmail = null;
 
         let $oneOfFields;
 
@@ -7018,6 +7034,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(BizAccountLinkInfo.prototype, "_whatsappAcctEmail", {
+            get: $util.oneOfGetter($oneOfFields = ["whatsappAcctEmail"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         BizAccountLinkInfo.create = function(properties) {
             return new BizAccountLinkInfo(properties);
         };
@@ -7039,6 +7061,8 @@ export const proto = $root.proto = (() => {
                 w.uint32(32).int32(m.hostStorage);
             if (m.accountType != null && $Object.hasOwnProperty.call(m, "accountType"))
                 w.uint32(40).int32(m.accountType);
+            if (m.whatsappAcctEmail != null && $Object.hasOwnProperty.call(m, "whatsappAcctEmail"))
+                w.uint32(50).string(m.whatsappAcctEmail);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -7105,6 +7129,13 @@ export const proto = $root.proto = (() => {
                             break;
                         m.accountType = r.int32();
                         m._accountType = "accountType";
+                        continue;
+                    }
+                case 6: {
+                        if (u !== 2)
+                            break;
+                        m.whatsappAcctEmail = r.stringVerify();
+                        m._whatsappAcctEmail = "whatsappAcctEmail";
                         continue;
                     }
                 }
@@ -7179,6 +7210,9 @@ export const proto = $root.proto = (() => {
                 if (typeof d.accountType === "number" && (d.accountType | 0) === d.accountType)
                     m.accountType = d.accountType;
             }
+            if (d.whatsappAcctEmail != null) {
+                m.whatsappAcctEmail = $String(d.whatsappAcctEmail);
+            }
             return m;
         };
 
@@ -7214,6 +7248,9 @@ export const proto = $root.proto = (() => {
             }
             if (m.accountType != null && $Object.hasOwnProperty.call(m, "accountType")) {
                 d.accountType = o.enums === $String ? $root.proto.BizAccountLinkInfo.AccountType[m.accountType] === $undefined ? m.accountType : $root.proto.BizAccountLinkInfo.AccountType[m.accountType] : m.accountType;
+            }
+            if (m.whatsappAcctEmail != null && $Object.hasOwnProperty.call(m, "whatsappAcctEmail")) {
+                d.whatsappAcctEmail = m.whatsappAcctEmail;
             }
             return d;
         };
@@ -7321,7 +7358,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.vnameCert = $root.proto.VerifiedNameCertificate.decode(r, r.uint32(), $undefined, q + 1, m.vnameCert);
+                        m.vnameCert = $root.proto.VerifiedNameCertificate.decode(r, r.size(), $undefined, q + 1, m.vnameCert);
                         m._vnameCert = "vnameCert";
                         continue;
                     }
@@ -7541,7 +7578,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.vnameCert = $root.proto.VerifiedNameCertificate.decode(r, r.uint32(), $undefined, q + 1, m.vnameCert);
+                        m.vnameCert = $root.proto.VerifiedNameCertificate.decode(r, r.size(), $undefined, q + 1, m.vnameCert);
                         m._vnameCert = "vnameCert";
                         continue;
                     }
@@ -8789,7 +8826,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.messageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.messageKey);
+                        m.messageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.messageKey);
                         m._messageKey = "messageKey";
                         continue;
                     }
@@ -8831,7 +8868,7 @@ export const proto = $root.proto = (() => {
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.sideBySideSurveyMetadata = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.decode(r, r.uint32(), $undefined, q + 1, m.sideBySideSurveyMetadata);
+                        m.sideBySideSurveyMetadata = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.decode(r, r.size(), $undefined, q + 1, m.sideBySideSurveyMetadata);
                         m._sideBySideSurveyMetadata = "sideBySideSurveyMetadata";
                         continue;
                     }
@@ -9264,14 +9301,14 @@ export const proto = $root.proto = (() => {
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.analyticsData = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SideBySideSurveyAnalyticsData.decode(r, r.uint32(), $undefined, q + 1, m.analyticsData);
+                            m.analyticsData = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SideBySideSurveyAnalyticsData.decode(r, r.size(), $undefined, q + 1, m.analyticsData);
                             m._analyticsData = "analyticsData";
                             continue;
                         }
                     case 9: {
                             if (u !== 2)
                                 break;
-                            m.metaAiAnalyticsData = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.decode(r, r.uint32(), $undefined, q + 1, m.metaAiAnalyticsData);
+                            m.metaAiAnalyticsData = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.decode(r, r.size(), $undefined, q + 1, m.metaAiAnalyticsData);
                             m._metaAiAnalyticsData = "metaAiAnalyticsData";
                             continue;
                         }
@@ -9728,35 +9765,35 @@ export const proto = $root.proto = (() => {
                         case 5: {
                                 if (u !== 2)
                                     break;
-                                m.ctaImpressionEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyCTAImpressionEventData.decode(r, r.uint32(), $undefined, q + 1, m.ctaImpressionEvent);
+                                m.ctaImpressionEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyCTAImpressionEventData.decode(r, r.size(), $undefined, q + 1, m.ctaImpressionEvent);
                                 m._ctaImpressionEvent = "ctaImpressionEvent";
                                 continue;
                             }
                         case 6: {
                                 if (u !== 2)
                                     break;
-                                m.ctaClickEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyCTAClickEventData.decode(r, r.uint32(), $undefined, q + 1, m.ctaClickEvent);
+                                m.ctaClickEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyCTAClickEventData.decode(r, r.size(), $undefined, q + 1, m.ctaClickEvent);
                                 m._ctaClickEvent = "ctaClickEvent";
                                 continue;
                             }
                         case 7: {
                                 if (u !== 2)
                                     break;
-                                m.cardImpressionEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyCardImpressionEventData.decode(r, r.uint32(), $undefined, q + 1, m.cardImpressionEvent);
+                                m.cardImpressionEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyCardImpressionEventData.decode(r, r.size(), $undefined, q + 1, m.cardImpressionEvent);
                                 m._cardImpressionEvent = "cardImpressionEvent";
                                 continue;
                             }
                         case 8: {
                                 if (u !== 2)
                                     break;
-                                m.responseEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyResponseEventData.decode(r, r.uint32(), $undefined, q + 1, m.responseEvent);
+                                m.responseEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyResponseEventData.decode(r, r.size(), $undefined, q + 1, m.responseEvent);
                                 m._responseEvent = "responseEvent";
                                 continue;
                             }
                         case 9: {
                                 if (u !== 2)
                                     break;
-                                m.abandonEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyAbandonEventData.decode(r, r.uint32(), $undefined, q + 1, m.abandonEvent);
+                                m.abandonEvent = $root.proto.BotFeedbackMessage.SideBySideSurveyMetadata.SidebySideSurveyMetaAiAnalyticsData.SideBySideSurveyAbandonEventData.decode(r, r.size(), $undefined, q + 1, m.abandonEvent);
                                 m._abandonEvent = "abandonEvent";
                                 continue;
                             }
@@ -10967,7 +11004,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.accounts && m.accounts.length))
                             m.accounts = [];
-                        m.accounts.push($root.proto.BotLinkedAccount.decode(r, r.uint32(), $undefined, q + 1));
+                        m.accounts.push($root.proto.BotLinkedAccount.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 2: {
@@ -11606,7 +11643,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.addedFacts && m.addedFacts.length))
                             m.addedFacts = [];
-                        m.addedFacts.push($root.proto.BotMemoryFact.decode(r, r.uint32(), $undefined, q + 1));
+                        m.addedFacts.push($root.proto.BotMemoryFact.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 2: {
@@ -11614,7 +11651,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.removedFacts && m.removedFacts.length))
                             m.removedFacts = [];
-                        m.removedFacts.push($root.proto.BotMemoryFact.decode(r, r.uint32(), $undefined, q + 1));
+                        m.removedFacts.push($root.proto.BotMemoryFact.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -11785,7 +11822,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.faceImages && m.faceImages.length))
                             m.faceImages = [];
-                        m.faceImages.push($root.proto.BotMediaMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.faceImages.push($root.proto.BotMediaMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -11871,12 +11908,19 @@ export const proto = $root.proto = (() => {
         };
 
         BotMessageOrigin.prototype.type = null;
+        BotMessageOrigin.prototype.proactiveMessageCampaignId = null;
 
         let $oneOfFields;
 
         // Virtual OneOf for proto3 optional field
         $Object.defineProperty(BotMessageOrigin.prototype, "_type", {
             get: $util.oneOfGetter($oneOfFields = ["type"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(BotMessageOrigin.prototype, "_proactiveMessageCampaignId", {
+            get: $util.oneOfGetter($oneOfFields = ["proactiveMessageCampaignId"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -11893,6 +11937,8 @@ export const proto = $root.proto = (() => {
                 throw $Error("max depth exceeded");
             if (m.type != null && $Object.hasOwnProperty.call(m, "type"))
                 w.uint32(8).int32(m.type);
+            if (m.proactiveMessageCampaignId != null && $Object.hasOwnProperty.call(m, "proactiveMessageCampaignId"))
+                w.uint32(18).string(m.proactiveMessageCampaignId);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -11933,6 +11979,13 @@ export const proto = $root.proto = (() => {
                         m._type = "type";
                         continue;
                     }
+                case 2: {
+                        if (u !== 2)
+                            break;
+                        m.proactiveMessageCampaignId = r.stringVerify();
+                        m._proactiveMessageCampaignId = "proactiveMessageCampaignId";
+                        continue;
+                    }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -11969,6 +12022,9 @@ export const proto = $root.proto = (() => {
                 if (typeof d.type === "number" && (d.type | 0) === d.type)
                     m.type = d.type;
             }
+            if (d.proactiveMessageCampaignId != null) {
+                m.proactiveMessageCampaignId = $String(d.proactiveMessageCampaignId);
+            }
             return m;
         };
 
@@ -11982,6 +12038,9 @@ export const proto = $root.proto = (() => {
             var d = {};
             if (m.type != null && $Object.hasOwnProperty.call(m, "type")) {
                 d.type = o.enums === $String ? $root.proto.BotMessageOrigin.BotMessageOriginType[m.type] === $undefined ? m.type : $root.proto.BotMessageOrigin.BotMessageOriginType[m.type] : m.type;
+            }
+            if (m.proactiveMessageCampaignId != null && $Object.hasOwnProperty.call(m, "proactiveMessageCampaignId")) {
+                d.proactiveMessageCampaignId = m.proactiveMessageCampaignId;
             }
             return d;
         };
@@ -12070,7 +12129,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.origins && m.origins.length))
                             m.origins = [];
-                        m.origins.push($root.proto.BotMessageOrigin.decode(r, r.uint32(), $undefined, q + 1));
+                        m.origins.push($root.proto.BotMessageOrigin.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -12498,6 +12557,169 @@ export const proto = $root.proto = (() => {
         return BotMessageSharingInfo;
     })();
 
+    proto.BotInterjectionMetadata = (function() {
+
+        const BotInterjectionMetadata = function (p) {
+            this.foldedPromptMessageIds = [];
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        BotInterjectionMetadata.prototype.targetPromptMessageId = null;
+        BotInterjectionMetadata.prototype.foldedPromptMessageIds = $util.emptyArray;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(BotInterjectionMetadata.prototype, "_targetPromptMessageId", {
+            get: $util.oneOfGetter($oneOfFields = ["targetPromptMessageId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        BotInterjectionMetadata.create = function(properties) {
+            return new BotInterjectionMetadata(properties);
+        };
+
+        BotInterjectionMetadata.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.targetPromptMessageId != null && $Object.hasOwnProperty.call(m, "targetPromptMessageId"))
+                w.uint32(10).string(m.targetPromptMessageId);
+            if (m.foldedPromptMessageIds != null && m.foldedPromptMessageIds.length) {
+                for (var i = 0; i < m.foldedPromptMessageIds.length; ++i)
+                    w.uint32(18).string(m.foldedPromptMessageIds[i]);
+            }
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        BotInterjectionMetadata.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.BotInterjectionMetadata();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 2)
+                            break;
+                        m.targetPromptMessageId = r.stringVerify();
+                        m._targetPromptMessageId = "targetPromptMessageId";
+                        continue;
+                    }
+                case 2: {
+                        if (u !== 2)
+                            break;
+                        if (!(m.foldedPromptMessageIds && m.foldedPromptMessageIds.length))
+                            m.foldedPromptMessageIds = [];
+                        m.foldedPromptMessageIds.push(r.stringVerify());
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        BotInterjectionMetadata.fromObject = function (d, q) {
+            if (d instanceof $root.proto.BotInterjectionMetadata)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.BotInterjectionMetadata: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.BotInterjectionMetadata();
+            if (d.targetPromptMessageId != null) {
+                m.targetPromptMessageId = $String(d.targetPromptMessageId);
+            }
+            if (d.foldedPromptMessageIds) {
+                if (!$Array.isArray(d.foldedPromptMessageIds))
+                    throw $TypeError(".proto.BotInterjectionMetadata.foldedPromptMessageIds: array expected");
+                m.foldedPromptMessageIds = $Array(d.foldedPromptMessageIds.length);
+                for (var i = 0; i < d.foldedPromptMessageIds.length; ++i) {
+                    m.foldedPromptMessageIds[i] = $String(d.foldedPromptMessageIds[i]);
+                }
+            }
+            return m;
+        };
+
+        BotInterjectionMetadata.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (o.arrays || o.defaults) {
+                d.foldedPromptMessageIds = [];
+            }
+            if (m.targetPromptMessageId != null && $Object.hasOwnProperty.call(m, "targetPromptMessageId")) {
+                d.targetPromptMessageId = m.targetPromptMessageId;
+            }
+            if (m.foldedPromptMessageIds && m.foldedPromptMessageIds.length) {
+                d.foldedPromptMessageIds = $Array(m.foldedPromptMessageIds.length);
+                for (var j = 0; j < m.foldedPromptMessageIds.length; ++j) {
+                    d.foldedPromptMessageIds[j] = m.foldedPromptMessageIds[j];
+                }
+            }
+            return d;
+        };
+
+        BotInterjectionMetadata.prototype.toJSON = function() {
+            return BotInterjectionMetadata.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        BotInterjectionMetadata.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.BotInterjectionMetadata";
+        };
+
+        return BotInterjectionMetadata;
+    })();
+
     proto.BotMetadata = (function() {
 
         const BotMetadata = function (p) {
@@ -12552,6 +12774,7 @@ export const proto = $root.proto = (() => {
         BotMetadata.prototype.pttPromptMetadata = null;
         BotMetadata.prototype.botHistoryShareMetadata = null;
         BotMetadata.prototype.responseStoppedByUser = null;
+        BotMetadata.prototype.interjectionMetadata = null;
 
         let $oneOfFields;
 
@@ -12825,6 +13048,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(BotMetadata.prototype, "_interjectionMetadata", {
+            get: $util.oneOfGetter($oneOfFields = ["interjectionMetadata"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         BotMetadata.create = function(properties) {
             return new BotMetadata(properties);
         };
@@ -12924,6 +13153,8 @@ export const proto = $root.proto = (() => {
                 $root.proto.BotHistoryShareMetadata.encode(m.botHistoryShareMetadata, w.uint32(346).fork(), q + 1).ldelim();
             if (m.responseStoppedByUser != null && $Object.hasOwnProperty.call(m, "responseStoppedByUser"))
                 w.uint32(352).bool(m.responseStoppedByUser);
+            if (m.interjectionMetadata != null && $Object.hasOwnProperty.call(m, "interjectionMetadata"))
+                $root.proto.BotInterjectionMetadata.encode(m.interjectionMetadata, w.uint32(362).fork(), q + 1).ldelim();
             if (m.internalMetadata != null && $Object.hasOwnProperty.call(m, "internalMetadata"))
                 w.uint32(7994).bytes(m.internalMetadata);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
@@ -12962,7 +13193,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.avatarMetadata = $root.proto.BotAvatarMetadata.decode(r, r.uint32(), $undefined, q + 1, m.avatarMetadata);
+                        m.avatarMetadata = $root.proto.BotAvatarMetadata.decode(r, r.size(), $undefined, q + 1, m.avatarMetadata);
                         m._avatarMetadata = "avatarMetadata";
                         continue;
                     }
@@ -12976,14 +13207,14 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.pluginMetadata = $root.proto.BotPluginMetadata.decode(r, r.uint32(), $undefined, q + 1, m.pluginMetadata);
+                        m.pluginMetadata = $root.proto.BotPluginMetadata.decode(r, r.size(), $undefined, q + 1, m.pluginMetadata);
                         m._pluginMetadata = "pluginMetadata";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.suggestedPromptMetadata = $root.proto.BotSuggestedPromptMetadata.decode(r, r.uint32(), $undefined, q + 1, m.suggestedPromptMetadata);
+                        m.suggestedPromptMetadata = $root.proto.BotSuggestedPromptMetadata.decode(r, r.size(), $undefined, q + 1, m.suggestedPromptMetadata);
                         m._suggestedPromptMetadata = "suggestedPromptMetadata";
                         continue;
                     }
@@ -12997,14 +13228,14 @@ export const proto = $root.proto = (() => {
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.sessionMetadata = $root.proto.BotSessionMetadata.decode(r, r.uint32(), $undefined, q + 1, m.sessionMetadata);
+                        m.sessionMetadata = $root.proto.BotSessionMetadata.decode(r, r.size(), $undefined, q + 1, m.sessionMetadata);
                         m._sessionMetadata = "sessionMetadata";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.memuMetadata = $root.proto.BotMemuMetadata.decode(r, r.uint32(), $undefined, q + 1, m.memuMetadata);
+                        m.memuMetadata = $root.proto.BotMemuMetadata.decode(r, r.size(), $undefined, q + 1, m.memuMetadata);
                         m._memuMetadata = "memuMetadata";
                         continue;
                     }
@@ -13018,14 +13249,14 @@ export const proto = $root.proto = (() => {
                 case 9: {
                         if (u !== 2)
                             break;
-                        m.reminderMetadata = $root.proto.BotReminderMetadata.decode(r, r.uint32(), $undefined, q + 1, m.reminderMetadata);
+                        m.reminderMetadata = $root.proto.BotReminderMetadata.decode(r, r.size(), $undefined, q + 1, m.reminderMetadata);
                         m._reminderMetadata = "reminderMetadata";
                         continue;
                     }
                 case 10: {
                         if (u !== 2)
                             break;
-                        m.modelMetadata = $root.proto.BotModelMetadata.decode(r, r.uint32(), $undefined, q + 1, m.modelMetadata);
+                        m.modelMetadata = $root.proto.BotModelMetadata.decode(r, r.size(), $undefined, q + 1, m.modelMetadata);
                         m._modelMetadata = "modelMetadata";
                         continue;
                     }
@@ -13039,56 +13270,56 @@ export const proto = $root.proto = (() => {
                 case 12: {
                         if (u !== 2)
                             break;
-                        m.progressIndicatorMetadata = $root.proto.BotProgressIndicatorMetadata.decode(r, r.uint32(), $undefined, q + 1, m.progressIndicatorMetadata);
+                        m.progressIndicatorMetadata = $root.proto.BotProgressIndicatorMetadata.decode(r, r.size(), $undefined, q + 1, m.progressIndicatorMetadata);
                         m._progressIndicatorMetadata = "progressIndicatorMetadata";
                         continue;
                     }
                 case 13: {
                         if (u !== 2)
                             break;
-                        m.capabilityMetadata = $root.proto.BotCapabilityMetadata.decode(r, r.uint32(), $undefined, q + 1, m.capabilityMetadata);
+                        m.capabilityMetadata = $root.proto.BotCapabilityMetadata.decode(r, r.size(), $undefined, q + 1, m.capabilityMetadata);
                         m._capabilityMetadata = "capabilityMetadata";
                         continue;
                     }
                 case 14: {
                         if (u !== 2)
                             break;
-                        m.imagineMetadata = $root.proto.BotImagineMetadata.decode(r, r.uint32(), $undefined, q + 1, m.imagineMetadata);
+                        m.imagineMetadata = $root.proto.BotImagineMetadata.decode(r, r.size(), $undefined, q + 1, m.imagineMetadata);
                         m._imagineMetadata = "imagineMetadata";
                         continue;
                     }
                 case 15: {
                         if (u !== 2)
                             break;
-                        m.memoryMetadata = $root.proto.BotMemoryMetadata.decode(r, r.uint32(), $undefined, q + 1, m.memoryMetadata);
+                        m.memoryMetadata = $root.proto.BotMemoryMetadata.decode(r, r.size(), $undefined, q + 1, m.memoryMetadata);
                         m._memoryMetadata = "memoryMetadata";
                         continue;
                     }
                 case 16: {
                         if (u !== 2)
                             break;
-                        m.renderingMetadata = $root.proto.BotRenderingMetadata.decode(r, r.uint32(), $undefined, q + 1, m.renderingMetadata);
+                        m.renderingMetadata = $root.proto.BotRenderingMetadata.decode(r, r.size(), $undefined, q + 1, m.renderingMetadata);
                         m._renderingMetadata = "renderingMetadata";
                         continue;
                     }
                 case 17: {
                         if (u !== 2)
                             break;
-                        m.botMetricsMetadata = $root.proto.BotMetricsMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botMetricsMetadata);
+                        m.botMetricsMetadata = $root.proto.BotMetricsMetadata.decode(r, r.size(), $undefined, q + 1, m.botMetricsMetadata);
                         m._botMetricsMetadata = "botMetricsMetadata";
                         continue;
                     }
                 case 18: {
                         if (u !== 2)
                             break;
-                        m.botLinkedAccountsMetadata = $root.proto.BotLinkedAccountsMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botLinkedAccountsMetadata);
+                        m.botLinkedAccountsMetadata = $root.proto.BotLinkedAccountsMetadata.decode(r, r.size(), $undefined, q + 1, m.botLinkedAccountsMetadata);
                         m._botLinkedAccountsMetadata = "botLinkedAccountsMetadata";
                         continue;
                     }
                 case 19: {
                         if (u !== 2)
                             break;
-                        m.richResponseSourcesMetadata = $root.proto.BotSourcesMetadata.decode(r, r.uint32(), $undefined, q + 1, m.richResponseSourcesMetadata);
+                        m.richResponseSourcesMetadata = $root.proto.BotSourcesMetadata.decode(r, r.size(), $undefined, q + 1, m.richResponseSourcesMetadata);
                         m._richResponseSourcesMetadata = "richResponseSourcesMetadata";
                         continue;
                     }
@@ -13102,28 +13333,28 @@ export const proto = $root.proto = (() => {
                 case 21: {
                         if (u !== 2)
                             break;
-                        m.botPromotionMessageMetadata = $root.proto.BotPromotionMessageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botPromotionMessageMetadata);
+                        m.botPromotionMessageMetadata = $root.proto.BotPromotionMessageMetadata.decode(r, r.size(), $undefined, q + 1, m.botPromotionMessageMetadata);
                         m._botPromotionMessageMetadata = "botPromotionMessageMetadata";
                         continue;
                     }
                 case 22: {
                         if (u !== 2)
                             break;
-                        m.botModeSelectionMetadata = $root.proto.BotModeSelectionMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botModeSelectionMetadata);
+                        m.botModeSelectionMetadata = $root.proto.BotModeSelectionMetadata.decode(r, r.size(), $undefined, q + 1, m.botModeSelectionMetadata);
                         m._botModeSelectionMetadata = "botModeSelectionMetadata";
                         continue;
                     }
                 case 23: {
                         if (u !== 2)
                             break;
-                        m.botQuotaMetadata = $root.proto.BotQuotaMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botQuotaMetadata);
+                        m.botQuotaMetadata = $root.proto.BotQuotaMetadata.decode(r, r.size(), $undefined, q + 1, m.botQuotaMetadata);
                         m._botQuotaMetadata = "botQuotaMetadata";
                         continue;
                     }
                 case 24: {
                         if (u !== 2)
                             break;
-                        m.botAgeCollectionMetadata = $root.proto.BotAgeCollectionMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botAgeCollectionMetadata);
+                        m.botAgeCollectionMetadata = $root.proto.BotAgeCollectionMetadata.decode(r, r.size(), $undefined, q + 1, m.botAgeCollectionMetadata);
                         m._botAgeCollectionMetadata = "botAgeCollectionMetadata";
                         continue;
                     }
@@ -13144,49 +13375,49 @@ export const proto = $root.proto = (() => {
                 case 27: {
                         if (u !== 2)
                             break;
-                        m.verificationMetadata = $root.proto.BotSignatureVerificationMetadata.decode(r, r.uint32(), $undefined, q + 1, m.verificationMetadata);
+                        m.verificationMetadata = $root.proto.BotSignatureVerificationMetadata.decode(r, r.size(), $undefined, q + 1, m.verificationMetadata);
                         m._verificationMetadata = "verificationMetadata";
                         continue;
                     }
                 case 28: {
                         if (u !== 2)
                             break;
-                        m.unifiedResponseMutation = $root.proto.BotUnifiedResponseMutation.decode(r, r.uint32(), $undefined, q + 1, m.unifiedResponseMutation);
+                        m.unifiedResponseMutation = $root.proto.BotUnifiedResponseMutation.decode(r, r.size(), $undefined, q + 1, m.unifiedResponseMutation);
                         m._unifiedResponseMutation = "unifiedResponseMutation";
                         continue;
                     }
                 case 29: {
                         if (u !== 2)
                             break;
-                        m.botMessageOriginMetadata = $root.proto.BotMessageOriginMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botMessageOriginMetadata);
+                        m.botMessageOriginMetadata = $root.proto.BotMessageOriginMetadata.decode(r, r.size(), $undefined, q + 1, m.botMessageOriginMetadata);
                         m._botMessageOriginMetadata = "botMessageOriginMetadata";
                         continue;
                     }
                 case 30: {
                         if (u !== 2)
                             break;
-                        m.inThreadSurveyMetadata = $root.proto.InThreadSurveyMetadata.decode(r, r.uint32(), $undefined, q + 1, m.inThreadSurveyMetadata);
+                        m.inThreadSurveyMetadata = $root.proto.InThreadSurveyMetadata.decode(r, r.size(), $undefined, q + 1, m.inThreadSurveyMetadata);
                         m._inThreadSurveyMetadata = "inThreadSurveyMetadata";
                         continue;
                     }
                 case 31: {
                         if (u !== 2)
                             break;
-                        m.botThreadInfo = $root.proto.AIThreadInfo.decode(r, r.uint32(), $undefined, q + 1, m.botThreadInfo);
+                        m.botThreadInfo = $root.proto.AIThreadInfo.decode(r, r.size(), $undefined, q + 1, m.botThreadInfo);
                         m._botThreadInfo = "botThreadInfo";
                         continue;
                     }
                 case 32: {
                         if (u !== 2)
                             break;
-                        m.regenerateMetadata = $root.proto.AIRegenerateMetadata.decode(r, r.uint32(), $undefined, q + 1, m.regenerateMetadata);
+                        m.regenerateMetadata = $root.proto.AIRegenerateMetadata.decode(r, r.size(), $undefined, q + 1, m.regenerateMetadata);
                         m._regenerateMetadata = "regenerateMetadata";
                         continue;
                     }
                 case 33: {
                         if (u !== 2)
                             break;
-                        m.sessionTransparencyMetadata = $root.proto.SessionTransparencyMetadata.decode(r, r.uint32(), $undefined, q + 1, m.sessionTransparencyMetadata);
+                        m.sessionTransparencyMetadata = $root.proto.SessionTransparencyMetadata.decode(r, r.size(), $undefined, q + 1, m.sessionTransparencyMetadata);
                         m._sessionTransparencyMetadata = "sessionTransparencyMetadata";
                         continue;
                     }
@@ -13200,70 +13431,70 @@ export const proto = $root.proto = (() => {
                 case 34: {
                         if (u !== 2)
                             break;
-                        m.botDocumentMessageMetadata = $root.proto.BotDocumentMessageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botDocumentMessageMetadata);
+                        m.botDocumentMessageMetadata = $root.proto.BotDocumentMessageMetadata.decode(r, r.size(), $undefined, q + 1, m.botDocumentMessageMetadata);
                         m._botDocumentMessageMetadata = "botDocumentMessageMetadata";
                         continue;
                     }
                 case 35: {
                         if (u !== 2)
                             break;
-                        m.botGroupMetadata = $root.proto.BotGroupMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botGroupMetadata);
+                        m.botGroupMetadata = $root.proto.BotGroupMetadata.decode(r, r.size(), $undefined, q + 1, m.botGroupMetadata);
                         m._botGroupMetadata = "botGroupMetadata";
                         continue;
                     }
                 case 36: {
                         if (u !== 2)
                             break;
-                        m.botRenderingConfigMetadata = $root.proto.BotRenderingConfigMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botRenderingConfigMetadata);
+                        m.botRenderingConfigMetadata = $root.proto.BotRenderingConfigMetadata.decode(r, r.size(), $undefined, q + 1, m.botRenderingConfigMetadata);
                         m._botRenderingConfigMetadata = "botRenderingConfigMetadata";
                         continue;
                     }
                 case 37: {
                         if (u !== 2)
                             break;
-                        m.botInfrastructureDiagnostics = $root.proto.BotInfrastructureDiagnostics.decode(r, r.uint32(), $undefined, q + 1, m.botInfrastructureDiagnostics);
+                        m.botInfrastructureDiagnostics = $root.proto.BotInfrastructureDiagnostics.decode(r, r.size(), $undefined, q + 1, m.botInfrastructureDiagnostics);
                         m._botInfrastructureDiagnostics = "botInfrastructureDiagnostics";
                         continue;
                     }
                 case 38: {
                         if (u !== 2)
                             break;
-                        m.aiMediaCollectionMetadata = $root.proto.AIMediaCollectionMetadata.decode(r, r.uint32(), $undefined, q + 1, m.aiMediaCollectionMetadata);
+                        m.aiMediaCollectionMetadata = $root.proto.AIMediaCollectionMetadata.decode(r, r.size(), $undefined, q + 1, m.aiMediaCollectionMetadata);
                         m._aiMediaCollectionMetadata = "aiMediaCollectionMetadata";
                         continue;
                     }
                 case 39: {
                         if (u !== 2)
                             break;
-                        m.commandMetadata = $root.proto.BotCommandMetadata.decode(r, r.uint32(), $undefined, q + 1, m.commandMetadata);
+                        m.commandMetadata = $root.proto.BotCommandMetadata.decode(r, r.size(), $undefined, q + 1, m.commandMetadata);
                         m._commandMetadata = "commandMetadata";
                         continue;
                     }
                 case 40: {
                         if (u !== 2)
                             break;
-                        m.resolvedToolCallMetadata = $root.proto.BotResolvedToolCallMetadata.decode(r, r.uint32(), $undefined, q + 1, m.resolvedToolCallMetadata);
+                        m.resolvedToolCallMetadata = $root.proto.BotResolvedToolCallMetadata.decode(r, r.size(), $undefined, q + 1, m.resolvedToolCallMetadata);
                         m._resolvedToolCallMetadata = "resolvedToolCallMetadata";
                         continue;
                     }
                 case 41: {
                         if (u !== 2)
                             break;
-                        m.subscriptionUpsellMetadata = $root.proto.AISubscriptionUpsellMetadata.decode(r, r.uint32(), $undefined, q + 1, m.subscriptionUpsellMetadata);
+                        m.subscriptionUpsellMetadata = $root.proto.AISubscriptionUpsellMetadata.decode(r, r.size(), $undefined, q + 1, m.subscriptionUpsellMetadata);
                         m._subscriptionUpsellMetadata = "subscriptionUpsellMetadata";
                         continue;
                     }
                 case 42: {
                         if (u !== 2)
                             break;
-                        m.pttPromptMetadata = $root.proto.BotPttPromptMetadata.decode(r, r.uint32(), $undefined, q + 1, m.pttPromptMetadata);
+                        m.pttPromptMetadata = $root.proto.BotPttPromptMetadata.decode(r, r.size(), $undefined, q + 1, m.pttPromptMetadata);
                         m._pttPromptMetadata = "pttPromptMetadata";
                         continue;
                     }
                 case 43: {
                         if (u !== 2)
                             break;
-                        m.botHistoryShareMetadata = $root.proto.BotHistoryShareMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botHistoryShareMetadata);
+                        m.botHistoryShareMetadata = $root.proto.BotHistoryShareMetadata.decode(r, r.size(), $undefined, q + 1, m.botHistoryShareMetadata);
                         m._botHistoryShareMetadata = "botHistoryShareMetadata";
                         continue;
                     }
@@ -13272,6 +13503,13 @@ export const proto = $root.proto = (() => {
                             break;
                         m.responseStoppedByUser = r.bool();
                         m._responseStoppedByUser = "responseStoppedByUser";
+                        continue;
+                    }
+                case 45: {
+                        if (u !== 2)
+                            break;
+                        m.interjectionMetadata = $root.proto.BotInterjectionMetadata.decode(r, r.size(), $undefined, q + 1, m.interjectionMetadata);
+                        m._interjectionMetadata = "interjectionMetadata";
                         continue;
                     }
                 }
@@ -13514,6 +13752,11 @@ export const proto = $root.proto = (() => {
             if (d.responseStoppedByUser != null) {
                 m.responseStoppedByUser = $Boolean(d.responseStoppedByUser);
             }
+            if (d.interjectionMetadata != null) {
+                if (!$util.isObject(d.interjectionMetadata))
+                    throw $TypeError(".proto.BotMetadata.interjectionMetadata: object expected");
+                m.interjectionMetadata = $root.proto.BotInterjectionMetadata.fromObject(d.interjectionMetadata, q + 1);
+            }
             return m;
         };
 
@@ -13656,6 +13899,9 @@ export const proto = $root.proto = (() => {
             }
             if (m.responseStoppedByUser != null && $Object.hasOwnProperty.call(m, "responseStoppedByUser")) {
                 d.responseStoppedByUser = m.responseStoppedByUser;
+            }
+            if (m.interjectionMetadata != null && $Object.hasOwnProperty.call(m, "interjectionMetadata")) {
+                d.interjectionMetadata = $root.proto.BotInterjectionMetadata.toObject(m.interjectionMetadata, o, q + 1);
             }
             if (m.internalMetadata != null && $Object.hasOwnProperty.call(m, "internalMetadata")) {
                 d.internalMetadata = o.bytes === $String ? $util.base64.encode(m.internalMetadata, 0, m.internalMetadata.length) : o.bytes === $Array ? $Array.prototype.slice.call(m.internalMetadata) : m.internalMetadata;
@@ -14785,7 +15031,7 @@ export const proto = $root.proto = (() => {
                 case 10: {
                         if (u !== 2)
                             break;
-                        m.parentPluginMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.parentPluginMessageKey);
+                        m.parentPluginMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.parentPluginMessageKey);
                         m._parentPluginMessageKey = "parentPluginMessageKey";
                         continue;
                     }
@@ -15120,7 +15366,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.stepsMetadata && m.stepsMetadata.length))
                             m.stepsMetadata = [];
-                        m.stepsMetadata.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.stepsMetadata.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -15356,7 +15602,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.sourcesMetadata && m.sourcesMetadata.length))
                                 m.sourcesMetadata = [];
-                            m.sourcesMetadata.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.BotPlanningSearchSourcesMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                            m.sourcesMetadata.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.BotPlanningSearchSourcesMetadata.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 4: {
@@ -15385,7 +15631,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.sections && m.sections.length))
                                 m.sections = [];
-                            m.sections.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.BotPlanningStepSectionMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                            m.sections.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.BotPlanningStepSectionMetadata.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -16041,7 +16287,7 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.sourcesMetadata && m.sourcesMetadata.length))
                                     m.sourcesMetadata = [];
-                                m.sourcesMetadata.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.BotPlanningSearchSourceMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                                m.sourcesMetadata.push($root.proto.BotProgressIndicatorMetadata.BotPlanningStepMetadata.BotPlanningSearchSourceMetadata.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         }
@@ -16548,7 +16794,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.suggestions && m.suggestions.length))
                             m.suggestions = [];
-                        m.suggestions.push($root.proto.BotPromptSuggestion.decode(r, r.uint32(), $undefined, q + 1));
+                        m.suggestions.push($root.proto.BotPromptSuggestion.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -16689,7 +16935,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.botFeatureQuotaMetadata && m.botFeatureQuotaMetadata.length))
                             m.botFeatureQuotaMetadata = [];
-                        m.botFeatureQuotaMetadata.push($root.proto.BotQuotaMetadata.BotFeatureQuotaMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.botFeatureQuotaMetadata.push($root.proto.BotQuotaMetadata.BotFeatureQuotaMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -17074,7 +17320,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.requestMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.requestMessageKey);
+                        m.requestMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.requestMessageKey);
                         m._requestMessageKey = "requestMessageKey";
                         continue;
                     }
@@ -17328,7 +17574,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.keywords && m.keywords.length))
                             m.keywords = [];
-                        m.keywords.push($root.proto.BotRenderingMetadata.Keyword.decode(r, r.uint32(), $undefined, q + 1));
+                        m.keywords.push($root.proto.BotRenderingMetadata.Keyword.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -17833,7 +18079,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.proofs && m.proofs.length))
                             m.proofs = [];
-                        m.proofs.push($root.proto.BotSignatureVerificationUseCaseProof.decode(r, r.uint32(), $undefined, q + 1));
+                        m.proofs.push($root.proto.BotSignatureVerificationUseCaseProof.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -18038,7 +18284,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.certificateChainSki && m.certificateChainSki.length))
                             m.certificateChainSki = [];
-                        m.certificateChainSki.push($root.proto.BotSignatureVerificationUseCaseProof.CertificateSKI.decode(r, r.uint32(), $undefined, q + 1));
+                        m.certificateChainSki.push($root.proto.BotSignatureVerificationUseCaseProof.CertificateSKI.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -18420,7 +18666,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.sources && m.sources.length))
                             m.sources = [];
-                        m.sources.push($root.proto.BotSourcesMetadata.BotSourceItem.decode(r, r.uint32(), $undefined, q + 1));
+                        m.sources.push($root.proto.BotSourcesMetadata.BotSourceItem.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -18899,7 +19145,7 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.promptSuggestions = $root.proto.BotPromptSuggestions.decode(r, r.uint32(), $undefined, q + 1, m.promptSuggestions);
+                        m.promptSuggestions = $root.proto.BotPromptSuggestions.decode(r, r.size(), $undefined, q + 1, m.promptSuggestions);
                         m._promptSuggestions = "promptSuggestions";
                         continue;
                     }
@@ -19075,7 +19321,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.sbsMetadata = $root.proto.BotUnifiedResponseMutation.SideBySideMetadata.decode(r, r.uint32(), $undefined, q + 1, m.sbsMetadata);
+                        m.sbsMetadata = $root.proto.BotUnifiedResponseMutation.SideBySideMetadata.decode(r, r.size(), $undefined, q + 1, m.sbsMetadata);
                         m._sbsMetadata = "sbsMetadata";
                         continue;
                     }
@@ -19084,7 +19330,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.mediaDetailsMetadataList && m.mediaDetailsMetadataList.length))
                             m.mediaDetailsMetadataList = [];
-                        m.mediaDetailsMetadataList.push($root.proto.BotUnifiedResponseMutation.MediaDetailsMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.mediaDetailsMetadataList.push($root.proto.BotUnifiedResponseMutation.MediaDetailsMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -19258,14 +19504,14 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.highResMedia = $root.proto.BotMediaMetadata.decode(r, r.uint32(), $undefined, q + 1, m.highResMedia);
+                            m.highResMedia = $root.proto.BotMediaMetadata.decode(r, r.size(), $undefined, q + 1, m.highResMedia);
                             m._highResMedia = "highResMedia";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.previewMedia = $root.proto.BotMediaMetadata.decode(r, r.uint32(), $undefined, q + 1, m.previewMedia);
+                            m.previewMedia = $root.proto.BotMediaMetadata.decode(r, r.size(), $undefined, q + 1, m.previewMedia);
                             m._previewMedia = "previewMedia";
                             continue;
                         }
@@ -19786,7 +20032,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.participants && m.participants.length))
                             m.participants = [];
-                        m.participants.push($root.proto.CallLogRecord.ParticipantInfo.decode(r, r.uint32(), $undefined, q + 1));
+                        m.participants.push($root.proto.CallLogRecord.ParticipantInfo.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 15: {
@@ -20176,7 +20422,7 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.guestInfo = $root.proto.CallLogRecord.GuestInfo.decode(r, r.uint32(), $undefined, q + 1, m.guestInfo);
+                            m.guestInfo = $root.proto.CallLogRecord.GuestInfo.decode(r, r.size(), $undefined, q + 1, m.guestInfo);
                             m._guestInfo = "guestInfo";
                             continue;
                         }
@@ -20521,14 +20767,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.leaf = $root.proto.CertChain.NoiseCertificate.decode(r, r.uint32(), $undefined, q + 1, m.leaf);
+                        m.leaf = $root.proto.CertChain.NoiseCertificate.decode(r, r.size(), $undefined, q + 1, m.leaf);
                         m._leaf = "leaf";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.intermediate = $root.proto.CertChain.NoiseCertificate.decode(r, r.uint32(), $undefined, q + 1, m.intermediate);
+                        m.intermediate = $root.proto.CertChain.NoiseCertificate.decode(r, r.size(), $undefined, q + 1, m.intermediate);
                         m._intermediate = "intermediate";
                         continue;
                     }
@@ -21093,7 +21339,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.secretCode = $root.proto.UserPassword.decode(r, r.uint32(), $undefined, q + 1, m.secretCode);
+                        m.secretCode = $root.proto.UserPassword.decode(r, r.size(), $undefined, q + 1, m.secretCode);
                         m._secretCode = "secretCode";
                         continue;
                     }
@@ -21233,7 +21479,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.draftMessage = $root.proto.ChatRowOpaqueData.DraftMessage.decode(r, r.uint32(), $undefined, q + 1, m.draftMessage);
+                        m.draftMessage = $root.proto.ChatRowOpaqueData.DraftMessage.decode(r, r.size(), $undefined, q + 1, m.draftMessage);
                         m._draftMessage = "draftMessage";
                         continue;
                     }
@@ -21414,14 +21660,14 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.ctwaContextLinkData = $root.proto.ChatRowOpaqueData.DraftMessage.CtwaContextLinkData.decode(r, r.uint32(), $undefined, q + 1, m.ctwaContextLinkData);
+                            m.ctwaContextLinkData = $root.proto.ChatRowOpaqueData.DraftMessage.CtwaContextLinkData.decode(r, r.size(), $undefined, q + 1, m.ctwaContextLinkData);
                             m._ctwaContextLinkData = "ctwaContextLinkData";
                             continue;
                         }
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.ctwaContext = $root.proto.ChatRowOpaqueData.DraftMessage.CtwaContextData.decode(r, r.uint32(), $undefined, q + 1, m.ctwaContext);
+                            m.ctwaContext = $root.proto.ChatRowOpaqueData.DraftMessage.CtwaContextData.decode(r, r.size(), $undefined, q + 1, m.ctwaContext);
                             m._ctwaContext = "ctwaContext";
                             continue;
                         }
@@ -22341,6 +22587,7 @@ export const proto = $root.proto = (() => {
         ClientPairingProps.prototype.isHsThumbnailSyncEnabled = null;
         ClientPairingProps.prototype.subscriptionSyncPayload = null;
         ClientPairingProps.prototype.isBotJidDbMigrated = null;
+        ClientPairingProps.prototype.companionAddPeerPayload = null;
 
         let $oneOfFields;
 
@@ -22380,6 +22627,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(ClientPairingProps.prototype, "_companionAddPeerPayload", {
+            get: $util.oneOfGetter($oneOfFields = ["companionAddPeerPayload"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         ClientPairingProps.create = function(properties) {
             return new ClientPairingProps(properties);
         };
@@ -22403,6 +22656,10 @@ export const proto = $root.proto = (() => {
                 w.uint32(42).bytes(m.subscriptionSyncPayload);
             if (m.isBotJidDbMigrated != null && $Object.hasOwnProperty.call(m, "isBotJidDbMigrated"))
                 w.uint32(48).bool(m.isBotJidDbMigrated);
+            if (m.companionAddPeerPayload != null && $Object.hasOwnProperty.call(m, "companionAddPeerPayload"))
+                w.uint32(58).bytes(m.companionAddPeerPayload);
+            if (m.isCompanionRegistrationFgsEnabled != null && $Object.hasOwnProperty.call(m, "isCompanionRegistrationFgsEnabled"))
+                w.uint32(64).bool(m.isCompanionRegistrationFgsEnabled);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -22478,6 +22735,20 @@ export const proto = $root.proto = (() => {
                         m._isBotJidDbMigrated = "isBotJidDbMigrated";
                         continue;
                     }
+                case 7: {
+                        if (u !== 2)
+                            break;
+                        m.companionAddPeerPayload = r.bytes();
+                        m._companionAddPeerPayload = "companionAddPeerPayload";
+                        continue;
+                    }
+                    case 8: {
+                            if (u !== 0)
+                                break;
+                            m.isCompanionRegistrationFgsEnabled = r.bool();
+                            m._isCompanionRegistrationFgsEnabled = "isCompanionRegistrationFgsEnabled";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -22526,6 +22797,15 @@ export const proto = $root.proto = (() => {
             if (d.isBotJidDbMigrated != null) {
                 m.isBotJidDbMigrated = $Boolean(d.isBotJidDbMigrated);
             }
+            if (d.companionAddPeerPayload != null) {
+                if (typeof d.companionAddPeerPayload === "string")
+                    $util.base64.decode(d.companionAddPeerPayload, m.companionAddPeerPayload = $util.newBuffer($util.base64.length(d.companionAddPeerPayload)), 0);
+                else if (d.companionAddPeerPayload.length >= 0)
+                    m.companionAddPeerPayload = d.companionAddPeerPayload;
+            }
+            if (d.isCompanionRegistrationFgsEnabled != null) {
+                m.isCompanionRegistrationFgsEnabled = $Boolean(d.isCompanionRegistrationFgsEnabled);
+            }
             return m;
         };
 
@@ -22554,6 +22834,12 @@ export const proto = $root.proto = (() => {
             }
             if (m.isBotJidDbMigrated != null && $Object.hasOwnProperty.call(m, "isBotJidDbMigrated")) {
                 d.isBotJidDbMigrated = m.isBotJidDbMigrated;
+            }
+            if (m.companionAddPeerPayload != null && $Object.hasOwnProperty.call(m, "companionAddPeerPayload")) {
+                d.companionAddPeerPayload = o.bytes === $String ? $util.base64.encode(m.companionAddPeerPayload, 0, m.companionAddPeerPayload.length) : o.bytes === $Array ? $Array.prototype.slice.call(m.companionAddPeerPayload) : m.companionAddPeerPayload;
+            }
+            if (m.isCompanionRegistrationFgsEnabled != null && $Object.hasOwnProperty.call(m, "isCompanionRegistrationFgsEnabled")) {
+                d.isCompanionRegistrationFgsEnabled = m.isCompanionRegistrationFgsEnabled;
             }
             return d;
         };
@@ -22920,6 +23206,8 @@ export const proto = $root.proto = (() => {
                 w.uint32(386).bytes(m.testIsolationId);
             if (m.messageSts != null && $Object.hasOwnProperty.call(m, "messageSts"))
                 w.uint32(392).int64(m.messageSts);
+            if (m.integrationAttestation != null && $Object.hasOwnProperty.call(m, "integrationAttestation"))
+                $root.proto.ClientPayload.IntegrationAttestation.encode(m.integrationAttestation, w.uint32(402).fork()).ldelim();
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -22970,14 +23258,14 @@ export const proto = $root.proto = (() => {
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.userAgent = $root.proto.ClientPayload.UserAgent.decode(r, r.uint32(), $undefined, q + 1, m.userAgent);
+                        m.userAgent = $root.proto.ClientPayload.UserAgent.decode(r, r.size(), $undefined, q + 1, m.userAgent);
                         m._userAgent = "userAgent";
                         continue;
                     }
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.webInfo = $root.proto.ClientPayload.WebInfo.decode(r, r.uint32(), $undefined, q + 1, m.webInfo);
+                        m.webInfo = $root.proto.ClientPayload.WebInfo.decode(r, r.size(), $undefined, q + 1, m.webInfo);
                         m._webInfo = "webInfo";
                         continue;
                     }
@@ -23033,7 +23321,7 @@ export const proto = $root.proto = (() => {
                 case 15: {
                         if (u !== 2)
                             break;
-                        m.dnsSource = $root.proto.ClientPayload.DNSSource.decode(r, r.uint32(), $undefined, q + 1, m.dnsSource);
+                        m.dnsSource = $root.proto.ClientPayload.DNSSource.decode(r, r.size(), $undefined, q + 1, m.dnsSource);
                         m._dnsSource = "dnsSource";
                         continue;
                     }
@@ -23054,7 +23342,7 @@ export const proto = $root.proto = (() => {
                 case 19: {
                         if (u !== 2)
                             break;
-                        m.devicePairingData = $root.proto.ClientPayload.DevicePairingRegistrationData.decode(r, r.uint32(), $undefined, q + 1, m.devicePairingData);
+                        m.devicePairingData = $root.proto.ClientPayload.DevicePairingRegistrationData.decode(r, r.size(), $undefined, q + 1, m.devicePairingData);
                         m._devicePairingData = "devicePairingData";
                         continue;
                     }
@@ -23145,7 +23433,7 @@ export const proto = $root.proto = (() => {
                 case 38: {
                         if (u !== 2)
                             break;
-                        m.interopData = $root.proto.ClientPayload.InteropData.decode(r, r.uint32(), $undefined, q + 1, m.interopData);
+                        m.interopData = $root.proto.ClientPayload.InteropData.decode(r, r.size(), $undefined, q + 1, m.interopData);
                         m._interopData = "interopData";
                         continue;
                     }
@@ -23220,6 +23508,13 @@ export const proto = $root.proto = (() => {
                         m._testIsolationId = "testIsolationId";
                         continue;
                     }
+                    case 50: {
+                            if (u !== 2)
+                                break;
+                            m.integrationAttestation = $root.proto.ClientPayload.IntegrationAttestation.decode(r, r.uint32());
+                            m._integrationAttestation = "integrationAttestation";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -23562,6 +23857,11 @@ export const proto = $root.proto = (() => {
                 else if (d.testIsolationId.length >= 0)
                     m.testIsolationId = d.testIsolationId;
             }
+            if (d.integrationAttestation != null) {
+                if (typeof d.integrationAttestation !== "object")
+                    throw $TypeError(".proto.ClientPayload.integrationAttestation: object expected");
+                m.integrationAttestation = $root.proto.ClientPayload.IntegrationAttestation.fromObject(d.integrationAttestation, q + 1);
+            }
             return m;
         };
 
@@ -23708,6 +24008,9 @@ export const proto = $root.proto = (() => {
                     d.messageSts = o.longs === $String ? $String(m.messageSts) : m.messageSts;
                 else
                     d.messageSts = o.longs === String ? longToString(m.messageSts) : o.longs === Number ? longToNumber(m.messageSts) : m.messageSts;
+            }
+            if (m.integrationAttestation != null && $Object.hasOwnProperty.call(m, "integrationAttestation")) {
+                d.integrationAttestation = $root.proto.ClientPayload.IntegrationAttestation.toObject(m.integrationAttestation, o);
             }
             return d;
         };
@@ -24707,7 +25010,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.appVersion = $root.proto.ClientPayload.UserAgent.AppVersion.decode(r, r.uint32(), $undefined, q + 1, m.appVersion);
+                            m.appVersion = $root.proto.ClientPayload.UserAgent.AppVersion.decode(r, r.size(), $undefined, q + 1, m.appVersion);
                             m._appVersion = "appVersion";
                             continue;
                         }
@@ -25604,7 +25907,7 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.webdPayload = $root.proto.ClientPayload.WebInfo.WebdPayload.decode(r, r.uint32(), $undefined, q + 1, m.webdPayload);
+                            m.webdPayload = $root.proto.ClientPayload.WebInfo.WebdPayload.decode(r, r.size(), $undefined, q + 1, m.webdPayload);
                             m._webdPayload = "webdPayload";
                             continue;
                         }
@@ -26113,6 +26416,159 @@ export const proto = $root.proto = (() => {
             return WebInfo;
         })();
 
+        ClientPayload.IntegrationAttestation = (function() {
+
+            const IntegrationAttestation = function (p) {
+                if (p)
+                    for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                        if (p[ks[i]] != null && ks[i] !== "__proto__")
+                            this[ks[i]] = p[ks[i]];
+            };
+
+            IntegrationAttestation.prototype.staticUnbound = null;
+            IntegrationAttestation.prototype.onlineSigned = null;
+
+            let $oneOfFields;
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(IntegrationAttestation.prototype, "_staticUnbound", {
+                get: $util.oneOfGetter($oneOfFields = ["staticUnbound"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(IntegrationAttestation.prototype, "_onlineSigned", {
+                get: $util.oneOfGetter($oneOfFields = ["onlineSigned"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            IntegrationAttestation.create = function(properties) {
+                return new IntegrationAttestation(properties);
+            };
+
+            IntegrationAttestation.encode = function (m, w, q) {
+                if (!w)
+                    w = $Writer.create();
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                if (m.staticUnbound != null && $Object.hasOwnProperty.call(m, "staticUnbound"))
+                    w.uint32(10).string(m.staticUnbound);
+                if (m.onlineSigned != null && $Object.hasOwnProperty.call(m, "onlineSigned"))
+                    w.uint32(26).string(m.onlineSigned);
+                if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                    for (var i = 0; i < m.$unknowns.length; ++i)
+                        w.raw(m.$unknowns[i]);
+                return w;
+            };
+
+            IntegrationAttestation.decode = function (r, l, z, q, g) {
+                if (!(r instanceof $Reader))
+                    r = $Reader.create(r);
+                if (q === $undefined)
+                    q = 0;
+                if (q > $Reader.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var c, m, v;
+                if (l === $undefined)
+                    c = r.len;
+                else {
+                    c = r.pos + l;
+                    if (c > r.len)
+                        throw $RangeError("index out of range");
+                    l = r.len;
+                    r.len = c;
+                }
+                m = g || new $root.proto.ClientPayload.IntegrationAttestation();
+                while (r.pos < c) {
+                    var s = r.pos;
+                    var t = r.tag();
+                    if (t === z) {
+                        z = $undefined;
+                        break;
+                    }
+                    var u = t & 7;
+                    switch (t >>>= 3) {
+                    case 1: {
+                            if (u !== 2)
+                                break;
+                            m.staticUnbound = r.string();
+                            m._staticUnbound = "staticUnbound";
+                            continue;
+                        }
+                    case 3: {
+                            if (u !== 2)
+                                break;
+                            m.onlineSigned = r.string();
+                            m._onlineSigned = "onlineSigned";
+                            continue;
+                        }
+                    }
+                    r.skipType(u, q, t);
+                    if (!r.discardUnknown) {
+                        $util.makeProp(m, "$unknowns", false);
+                        (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                    }
+                }
+                if (l !== $undefined) {
+                    if (r.pos !== c)
+                        throw $RangeError("index out of range");
+                    r.len = l;
+                }
+                if (z !== $undefined)
+                    throw $Error("missing end group");
+                return m;
+            };
+
+            IntegrationAttestation.fromObject = function (d, q) {
+                if (d instanceof $root.proto.ClientPayload.IntegrationAttestation)
+                    return d;
+                if (!$util.isObject(d))
+                    throw $TypeError(".proto.ClientPayload.IntegrationAttestation: object expected");
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var m = new $root.proto.ClientPayload.IntegrationAttestation();
+                if (d.staticUnbound != null) {
+                    m.staticUnbound = $String(d.staticUnbound);
+                }
+                if (d.onlineSigned != null) {
+                    m.onlineSigned = $String(d.onlineSigned);
+                }
+                return m;
+            };
+
+            IntegrationAttestation.toObject = function (m, o, q) {
+                if (!o)
+                    o = {};
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var d = {};
+                if (m.staticUnbound != null && $Object.hasOwnProperty.call(m, "staticUnbound")) {
+                    d.staticUnbound = m.staticUnbound;
+                }
+                if (m.onlineSigned != null && $Object.hasOwnProperty.call(m, "onlineSigned")) {
+                    d.onlineSigned = m.onlineSigned;
+                }
+                return d;
+            };
+
+            IntegrationAttestation.prototype.toJSON = function() {
+                return IntegrationAttestation.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            IntegrationAttestation.getTypeUrl = function(prefix) {
+                if (prefix === $undefined)
+                    prefix = "type.googleapis.com";
+                return prefix + "/proto.ClientPayload.IntegrationAttestation";
+            };
+
+            return IntegrationAttestation;
+        })();
         return ClientPayload;
     })();
 
@@ -26204,7 +26660,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.commentParentKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.commentParentKey);
+                        m.commentParentKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.commentParentKey);
                         m._commentParentKey = "commentParentKey";
                         continue;
                     }
@@ -26777,7 +27233,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (m.field === $util.emptyObject)
                             m.field = {};
-                        var c2 = r.uint32() + r.pos;
+                        var c2 = r.size() + r.pos;
                         if (c2 > r.len)
                             throw $RangeError("index out of range");
                         r.len = c2;
@@ -26795,7 +27251,7 @@ export const proto = $root.proto = (() => {
                             case 2:
                                 if (u !== 2)
                                     break;
-                                v = $root.proto.Field.decode(r, r.uint32(), $undefined, q + 1, v);
+                                v = $root.proto.Field.decode(r, r.size(), $undefined, q + 1, v);
                                 continue;
                             }
                             r.skipType(u, q, t2);
@@ -26904,6 +27360,7 @@ export const proto = $root.proto = (() => {
             this.groupMentions = [];
             this.statusAttributions = [];
             this.experienceIds = [];
+            this.sourceExperienceIds = [];
             if (p)
                 for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
                     if (p[ks[i]] != null && ks[i] !== "__proto__")
@@ -26976,6 +27433,8 @@ export const proto = $root.proto = (() => {
         ContextInfo.prototype.posterStatusId = null;
         ContextInfo.prototype.instagramThreadLink = null;
         ContextInfo.prototype.aiProvenance = null;
+        ContextInfo.prototype.sourceExperienceId = null;
+        ContextInfo.prototype.sourceExperienceIds = $util.emptyArray;
 
         let $oneOfFields;
 
@@ -27351,6 +27810,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(ContextInfo.prototype, "_sourceExperienceId", {
+            get: $util.oneOfGetter($oneOfFields = ["sourceExperienceId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         ContextInfo.create = function(properties) {
             return new ContextInfo(properties);
         };
@@ -27501,6 +27966,11 @@ export const proto = $root.proto = (() => {
             }
             if (m.partnerDeepLinkToken != null && $Object.hasOwnProperty.call(m, "partnerDeepLinkToken"))
                 w.uint32(666).string(m.partnerDeepLinkToken);
+            if (m.sourceExperienceId != null && $Object.hasOwnProperty.call(m, "sourceExperienceId"))
+                w.uint32(672).uint32(m.sourceExperienceId);
+            if (m.sourceExperienceIds != null && m.sourceExperienceIds.length) {
+                w.uint32(682).uint32s(m.sourceExperienceIds);
+            }
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -27551,7 +28021,7 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.quotedMessage = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.quotedMessage);
+                        m.quotedMessage = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.quotedMessage);
                         m._quotedMessage = "quotedMessage";
                         continue;
                     }
@@ -27608,14 +28078,14 @@ export const proto = $root.proto = (() => {
                 case 23: {
                         if (u !== 2)
                             break;
-                        m.quotedAd = $root.proto.ContextInfo.AdReplyInfo.decode(r, r.uint32(), $undefined, q + 1, m.quotedAd);
+                        m.quotedAd = $root.proto.ContextInfo.AdReplyInfo.decode(r, r.size(), $undefined, q + 1, m.quotedAd);
                         m._quotedAd = "quotedAd";
                         continue;
                     }
                 case 24: {
                         if (u !== 2)
                             break;
-                        m.placeholderKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.placeholderKey);
+                        m.placeholderKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.placeholderKey);
                         m._placeholderKey = "placeholderKey";
                         continue;
                     }
@@ -27643,7 +28113,7 @@ export const proto = $root.proto = (() => {
                 case 28: {
                         if (u !== 2)
                             break;
-                        m.externalAdReply = $root.proto.ContextInfo.ExternalAdReplyInfo.decode(r, r.uint32(), $undefined, q + 1, m.externalAdReply);
+                        m.externalAdReply = $root.proto.ContextInfo.ExternalAdReplyInfo.decode(r, r.size(), $undefined, q + 1, m.externalAdReply);
                         m._externalAdReply = "externalAdReply";
                         continue;
                     }
@@ -27671,14 +28141,14 @@ export const proto = $root.proto = (() => {
                 case 32: {
                         if (u !== 2)
                             break;
-                        m.disappearingMode = $root.proto.DisappearingMode.decode(r, r.uint32(), $undefined, q + 1, m.disappearingMode);
+                        m.disappearingMode = $root.proto.DisappearingMode.decode(r, r.size(), $undefined, q + 1, m.disappearingMode);
                         m._disappearingMode = "disappearingMode";
                         continue;
                     }
                 case 33: {
                         if (u !== 2)
                             break;
-                        m.actionLink = $root.proto.ActionLink.decode(r, r.uint32(), $undefined, q + 1, m.actionLink);
+                        m.actionLink = $root.proto.ActionLink.decode(r, r.size(), $undefined, q + 1, m.actionLink);
                         m._actionLink = "actionLink";
                         continue;
                     }
@@ -27722,27 +28192,27 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.groupMentions && m.groupMentions.length))
                             m.groupMentions = [];
-                        m.groupMentions.push($root.proto.GroupMention.decode(r, r.uint32(), $undefined, q + 1));
+                        m.groupMentions.push($root.proto.GroupMention.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 41: {
                         if (u !== 2)
                             break;
-                        m.utm = $root.proto.ContextInfo.UTMInfo.decode(r, r.uint32(), $undefined, q + 1, m.utm);
+                        m.utm = $root.proto.ContextInfo.UTMInfo.decode(r, r.size(), $undefined, q + 1, m.utm);
                         m._utm = "utm";
                         continue;
                     }
                 case 43: {
                         if (u !== 2)
                             break;
-                        m.forwardedNewsletterMessageInfo = $root.proto.ContextInfo.ForwardedNewsletterMessageInfo.decode(r, r.uint32(), $undefined, q + 1, m.forwardedNewsletterMessageInfo);
+                        m.forwardedNewsletterMessageInfo = $root.proto.ContextInfo.ForwardedNewsletterMessageInfo.decode(r, r.size(), $undefined, q + 1, m.forwardedNewsletterMessageInfo);
                         m._forwardedNewsletterMessageInfo = "forwardedNewsletterMessageInfo";
                         continue;
                     }
                 case 44: {
                         if (u !== 2)
                             break;
-                        m.businessMessageForwardInfo = $root.proto.ContextInfo.BusinessMessageForwardInfo.decode(r, r.uint32(), $undefined, q + 1, m.businessMessageForwardInfo);
+                        m.businessMessageForwardInfo = $root.proto.ContextInfo.BusinessMessageForwardInfo.decode(r, r.size(), $undefined, q + 1, m.businessMessageForwardInfo);
                         m._businessMessageForwardInfo = "businessMessageForwardInfo";
                         continue;
                     }
@@ -27763,7 +28233,7 @@ export const proto = $root.proto = (() => {
                 case 47: {
                         if (u !== 2)
                             break;
-                        m.dataSharingContext = $root.proto.ContextInfo.DataSharingContext.decode(r, r.uint32(), $undefined, q + 1, m.dataSharingContext);
+                        m.dataSharingContext = $root.proto.ContextInfo.DataSharingContext.decode(r, r.size(), $undefined, q + 1, m.dataSharingContext);
                         m._dataSharingContext = "dataSharingContext";
                         continue;
                     }
@@ -27777,7 +28247,7 @@ export const proto = $root.proto = (() => {
                 case 49: {
                         if (u !== 2)
                             break;
-                        m.featureEligibilities = $root.proto.ContextInfo.FeatureEligibilities.decode(r, r.uint32(), $undefined, q + 1, m.featureEligibilities);
+                        m.featureEligibilities = $root.proto.ContextInfo.FeatureEligibilities.decode(r, r.size(), $undefined, q + 1, m.featureEligibilities);
                         m._featureEligibilities = "featureEligibilities";
                         continue;
                     }
@@ -27812,7 +28282,7 @@ export const proto = $root.proto = (() => {
                 case 56: {
                         if (u !== 2)
                             break;
-                        m.forwardedAiBotMessageInfo = $root.proto.ForwardedAIBotMessageInfo.decode(r, r.uint32(), $undefined, q + 1, m.forwardedAiBotMessageInfo);
+                        m.forwardedAiBotMessageInfo = $root.proto.ForwardedAIBotMessageInfo.decode(r, r.size(), $undefined, q + 1, m.forwardedAiBotMessageInfo);
                         m._forwardedAiBotMessageInfo = "forwardedAiBotMessageInfo";
                         continue;
                     }
@@ -27826,7 +28296,7 @@ export const proto = $root.proto = (() => {
                 case 58: {
                         if (u !== 2)
                             break;
-                        m.urlTrackingMap = $root.proto.UrlTrackingMap.decode(r, r.uint32(), $undefined, q + 1, m.urlTrackingMap);
+                        m.urlTrackingMap = $root.proto.UrlTrackingMap.decode(r, r.size(), $undefined, q + 1, m.urlTrackingMap);
                         m._urlTrackingMap = "urlTrackingMap";
                         continue;
                     }
@@ -27847,7 +28317,7 @@ export const proto = $root.proto = (() => {
                 case 62: {
                         if (u !== 2)
                             break;
-                        m.memberLabel = $root.proto.MemberLabel.decode(r, r.uint32(), $undefined, q + 1, m.memberLabel);
+                        m.memberLabel = $root.proto.MemberLabel.decode(r, r.size(), $undefined, q + 1, m.memberLabel);
                         m._memberLabel = "memberLabel";
                         continue;
                     }
@@ -27870,7 +28340,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.statusAttributions && m.statusAttributions.length))
                             m.statusAttributions = [];
-                        m.statusAttributions.push($root.proto.StatusAttribution.decode(r, r.uint32(), $undefined, q + 1));
+                        m.statusAttributions.push($root.proto.StatusAttribution.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 66: {
@@ -27890,14 +28360,14 @@ export const proto = $root.proto = (() => {
                 case 68: {
                         if (u !== 2)
                             break;
-                        m.questionReplyQuotedMessage = $root.proto.ContextInfo.QuestionReplyQuotedMessage.decode(r, r.uint32(), $undefined, q + 1, m.questionReplyQuotedMessage);
+                        m.questionReplyQuotedMessage = $root.proto.ContextInfo.QuestionReplyQuotedMessage.decode(r, r.size(), $undefined, q + 1, m.questionReplyQuotedMessage);
                         m._questionReplyQuotedMessage = "questionReplyQuotedMessage";
                         continue;
                     }
                 case 69: {
                         if (u !== 2)
                             break;
-                        m.statusAudienceMetadata = $root.proto.ContextInfo.StatusAudienceMetadata.decode(r, r.uint32(), $undefined, q + 1, m.statusAudienceMetadata);
+                        m.statusAudienceMetadata = $root.proto.ContextInfo.StatusAudienceMetadata.decode(r, r.size(), $undefined, q + 1, m.statusAudienceMetadata);
                         m._statusAudienceMetadata = "statusAudienceMetadata";
                         continue;
                     }
@@ -27918,7 +28388,7 @@ export const proto = $root.proto = (() => {
                 case 72: {
                         if (u !== 2)
                             break;
-                        m.botMessageSharingInfo = $root.proto.BotMessageSharingInfo.decode(r, r.uint32(), $undefined, q + 1, m.botMessageSharingInfo);
+                        m.botMessageSharingInfo = $root.proto.BotMessageSharingInfo.decode(r, r.size(), $undefined, q + 1, m.botMessageSharingInfo);
                         m._botMessageSharingInfo = "botMessageSharingInfo";
                         continue;
                     }
@@ -27953,14 +28423,14 @@ export const proto = $root.proto = (() => {
                 case 74: {
                         if (u !== 2)
                             break;
-                        m.mediaDomainInfo = $root.proto.MediaDomainInfo.decode(r, r.uint32(), $undefined, q + 1, m.mediaDomainInfo);
+                        m.mediaDomainInfo = $root.proto.MediaDomainInfo.decode(r, r.size(), $undefined, q + 1, m.mediaDomainInfo);
                         m._mediaDomainInfo = "mediaDomainInfo";
                         continue;
                     }
                 case 75: {
                         if (u !== 2)
                             break;
-                        m.partiallySelectedContent = $root.proto.PartiallySelectedContent.decode(r, r.uint32(), $undefined, q + 1, m.partiallySelectedContent);
+                        m.partiallySelectedContent = $root.proto.PartiallySelectedContent.decode(r, r.size(), $undefined, q + 1, m.partiallySelectedContent);
                         m._partiallySelectedContent = "partiallySelectedContent";
                         continue;
                     }
@@ -27981,7 +28451,7 @@ export const proto = $root.proto = (() => {
                 case 78: {
                         if (u !== 2)
                             break;
-                        m.businessInteractionPills = $root.proto.BusinessInteractionPills.decode(r, r.uint32(), $undefined, q + 1, m.businessInteractionPills);
+                        m.businessInteractionPills = $root.proto.BusinessInteractionPills.decode(r, r.size(), $undefined, q + 1, m.businessInteractionPills);
                         m._businessInteractionPills = "businessInteractionPills";
                         continue;
                     }
@@ -27995,15 +28465,36 @@ export const proto = $root.proto = (() => {
                 case 80: {
                         if (u !== 2)
                             break;
-                        m.instagramThreadLink = $root.proto.InstagramThreadLink.decode(r, r.uint32(), $undefined, q + 1, m.instagramThreadLink);
+                        m.instagramThreadLink = $root.proto.InstagramThreadLink.decode(r, r.size(), $undefined, q + 1, m.instagramThreadLink);
                         m._instagramThreadLink = "instagramThreadLink";
                         continue;
                     }
                 case 81: {
                         if (u !== 2)
                             break;
-                        m.aiProvenance = $root.proto.AIProvenance.decode(r, r.uint32(), $undefined, q + 1, m.aiProvenance);
+                        m.aiProvenance = $root.proto.AIProvenance.decode(r, r.size(), $undefined, q + 1, m.aiProvenance);
                         m._aiProvenance = "aiProvenance";
+                        continue;
+                    }
+                case 84: {
+                        if (u !== 0)
+                            break;
+                        m.sourceExperienceId = r.uint32();
+                        m._sourceExperienceId = "sourceExperienceId";
+                        continue;
+                    }
+                case 85: {
+                        if (u === 2) {
+                            if (!(m.sourceExperienceIds && m.sourceExperienceIds.length))
+                                m.sourceExperienceIds = [];
+                            r.uint32s(m.sourceExperienceIds);
+                            continue;
+                        }
+                        if (u !== 0)
+                            break;
+                        if (!(m.sourceExperienceIds && m.sourceExperienceIds.length))
+                            m.sourceExperienceIds = [];
+                        m.sourceExperienceIds.push(r.uint32());
                         continue;
                     }
                 }
@@ -28451,6 +28942,17 @@ export const proto = $root.proto = (() => {
                     throw $TypeError(".proto.ContextInfo.aiProvenance: object expected");
                 m.aiProvenance = $root.proto.AIProvenance.fromObject(d.aiProvenance, q + 1);
             }
+            if (d.sourceExperienceId != null) {
+                m.sourceExperienceId = d.sourceExperienceId >>> 0;
+            }
+            if (d.sourceExperienceIds) {
+                if (!$Array.isArray(d.sourceExperienceIds))
+                    throw $TypeError(".proto.ContextInfo.sourceExperienceIds: array expected");
+                m.sourceExperienceIds = $Array(d.sourceExperienceIds.length);
+                for (var i = 0; i < d.sourceExperienceIds.length; ++i) {
+                    m.sourceExperienceIds[i] = d.sourceExperienceIds[i] >>> 0;
+                }
+            }
             return m;
         };
 
@@ -28467,6 +28969,7 @@ export const proto = $root.proto = (() => {
                 d.groupMentions = [];
                 d.statusAttributions = [];
                 d.experienceIds = [];
+                d.sourceExperienceIds = [];
             }
             if (m.stanzaId != null && $Object.hasOwnProperty.call(m, "stanzaId")) {
                 d.stanzaId = m.stanzaId;
@@ -28682,6 +29185,15 @@ export const proto = $root.proto = (() => {
             }
             if (m.partnerDeepLinkToken != null && $Object.hasOwnProperty.call(m, "partnerDeepLinkToken")) {
                 d.partnerDeepLinkToken = m.partnerDeepLinkToken;
+            }
+            if (m.sourceExperienceId != null && $Object.hasOwnProperty.call(m, "sourceExperienceId")) {
+                d.sourceExperienceId = m.sourceExperienceId;
+            }
+            if (m.sourceExperienceIds && m.sourceExperienceIds.length) {
+                d.sourceExperienceIds = $Array(m.sourceExperienceIds.length);
+                for (var j = 0; j < m.sourceExperienceIds.length; ++j) {
+                    d.sourceExperienceIds[j] = m.sourceExperienceIds[j];
+                }
             }
             return d;
         };
@@ -29159,7 +29671,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.parameters && m.parameters.length))
                                 m.parameters = [];
-                            m.parameters.push($root.proto.ContextInfo.DataSharingContext.Parameters.decode(r, r.uint32(), $undefined, q + 1));
+                            m.parameters.push($root.proto.ContextInfo.DataSharingContext.Parameters.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 4: {
@@ -29396,7 +29908,7 @@ export const proto = $root.proto = (() => {
                         case 5: {
                                 if (u !== 2)
                                     break;
-                                m.contents = $root.proto.ContextInfo.DataSharingContext.Parameters.decode(r, r.uint32(), $undefined, q + 1, m.contents);
+                                m.contents = $root.proto.ContextInfo.DataSharingContext.Parameters.decode(r, r.size(), $undefined, q + 1, m.contents);
                                 m._contents = "contents";
                                 continue;
                             }
@@ -29550,6 +30062,7 @@ export const proto = $root.proto = (() => {
             ExternalAdReplyInfo.prototype.ctwaPromoAdEntryId = null;
             ExternalAdReplyInfo.prototype.ctwaPromoResponseExpiresAtSeconds = null;
             ExternalAdReplyInfo.prototype.ctwaPromoSchemaVersion = null;
+            ExternalAdReplyInfo.prototype.ctwaPromoAdgroupId = null;
 
             let $oneOfFields;
 
@@ -29793,6 +30306,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(ExternalAdReplyInfo.prototype, "_ctwaPromoAdgroupId", {
+                get: $util.oneOfGetter($oneOfFields = ["ctwaPromoAdgroupId"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             ExternalAdReplyInfo.create = function(properties) {
                 return new ExternalAdReplyInfo(properties);
             };
@@ -29884,6 +30403,8 @@ export const proto = $root.proto = (() => {
                     w.uint32(312).int64(m.ctwaPromoResponseExpiresAtSeconds);
                 if (m.ctwaPromoSchemaVersion != null && $Object.hasOwnProperty.call(m, "ctwaPromoSchemaVersion"))
                     w.uint32(320).int32(m.ctwaPromoSchemaVersion);
+                if (m.ctwaPromoAdgroupId != null && $Object.hasOwnProperty.call(m, "ctwaPromoAdgroupId"))
+                    w.uint32(330).string(m.ctwaPromoAdgroupId);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -30197,6 +30718,13 @@ export const proto = $root.proto = (() => {
                             m._ctwaPromoSchemaVersion = "ctwaPromoSchemaVersion";
                             continue;
                         }
+                    case 41: {
+                            if (u !== 2)
+                                break;
+                            m.ctwaPromoAdgroupId = r.stringVerify();
+                            m._ctwaPromoAdgroupId = "ctwaPromoAdgroupId";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -30378,6 +30906,9 @@ export const proto = $root.proto = (() => {
                 if (d.ctwaPromoSchemaVersion != null) {
                     m.ctwaPromoSchemaVersion = d.ctwaPromoSchemaVersion | 0;
                 }
+                if (d.ctwaPromoAdgroupId != null) {
+                    m.ctwaPromoAdgroupId = $String(d.ctwaPromoAdgroupId);
+                }
                 return m;
             };
 
@@ -30513,6 +31044,9 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.ctwaPromoSchemaVersion != null && $Object.hasOwnProperty.call(m, "ctwaPromoSchemaVersion")) {
                     d.ctwaPromoSchemaVersion = m.ctwaPromoSchemaVersion;
+                }
+                if (m.ctwaPromoAdgroupId != null && $Object.hasOwnProperty.call(m, "ctwaPromoAdgroupId")) {
+                    d.ctwaPromoAdgroupId = m.ctwaPromoAdgroupId;
                 }
                 return d;
             };
@@ -31147,14 +31681,14 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.quotedQuestion = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.quotedQuestion);
+                            m.quotedQuestion = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.quotedQuestion);
                             m._quotedQuestion = "quotedQuestion";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.quotedResponse = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.quotedResponse);
+                            m.quotedResponse = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.quotedResponse);
                             m._quotedResponse = "quotedResponse";
                             continue;
                         }
@@ -31263,6 +31797,7 @@ export const proto = $root.proto = (() => {
             StatusAudienceMetadata.prototype.audienceType = null;
             StatusAudienceMetadata.prototype.listName = null;
             StatusAudienceMetadata.prototype.listEmoji = null;
+            StatusAudienceMetadata.prototype.orgId = null;
 
             let $oneOfFields;
 
@@ -31284,6 +31819,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(StatusAudienceMetadata.prototype, "_orgId", {
+                get: $util.oneOfGetter($oneOfFields = ["orgId"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             StatusAudienceMetadata.create = function(properties) {
                 return new StatusAudienceMetadata(properties);
             };
@@ -31301,6 +31842,8 @@ export const proto = $root.proto = (() => {
                     w.uint32(18).string(m.listName);
                 if (m.listEmoji != null && $Object.hasOwnProperty.call(m, "listEmoji"))
                     w.uint32(26).string(m.listEmoji);
+                if (m.orgId != null && $Object.hasOwnProperty.call(m, "orgId"))
+                    w.uint32(34).string(m.orgId);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -31355,6 +31898,13 @@ export const proto = $root.proto = (() => {
                             m._listEmoji = "listEmoji";
                             continue;
                         }
+                    case 4: {
+                            if (u !== 2)
+                                break;
+                            m.orgId = r.stringVerify();
+                            m._orgId = "orgId";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -31401,6 +31951,9 @@ export const proto = $root.proto = (() => {
                 if (d.listEmoji != null) {
                     m.listEmoji = $String(d.listEmoji);
                 }
+                if (d.orgId != null) {
+                    m.orgId = $String(d.orgId);
+                }
                 return m;
             };
 
@@ -31420,6 +31973,9 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.listEmoji != null && $Object.hasOwnProperty.call(m, "listEmoji")) {
                     d.listEmoji = m.listEmoji;
+                }
+                if (m.orgId != null && $Object.hasOwnProperty.call(m, "orgId")) {
+                    d.orgId = m.orgId;
                 }
                 return d;
             };
@@ -32216,6 +32772,10 @@ export const proto = $root.proto = (() => {
                 $root.proto.ACP2Setting.encode(m.acp2Setting, w.uint32(514).fork(), q + 1).ldelim();
             if (m.acp2HistoryWithheld != null && $Object.hasOwnProperty.call(m, "acp2HistoryWithheld"))
                 w.uint32(520).bool(m.acp2HistoryWithheld);
+            if (m.groupRootKeys != null && m.groupRootKeys.length) {
+                for (var i = 0; i < m.groupRootKeys.length; ++i)
+                    $root.proto.GroupRootKey.encode(m.groupRootKeys[i], w.uint32(530).fork()).ldelim();
+            }
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -32263,7 +32823,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.messages && m.messages.length))
                             m.messages = [];
-                        m.messages.push($root.proto.HistorySyncMsg.decode(r, r.uint32(), $undefined, q + 1));
+                        m.messages.push($root.proto.HistorySyncMsg.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -32367,7 +32927,7 @@ export const proto = $root.proto = (() => {
                 case 17: {
                         if (u !== 2)
                             break;
-                        m.disappearingMode = $root.proto.DisappearingMode.decode(r, r.uint32(), $undefined, q + 1, m.disappearingMode);
+                        m.disappearingMode = $root.proto.DisappearingMode.decode(r, r.size(), $undefined, q + 1, m.disappearingMode);
                         m._disappearingMode = "disappearingMode";
                         continue;
                     }
@@ -32390,7 +32950,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.participant && m.participant.length))
                             m.participant = [];
-                        m.participant.push($root.proto.GroupParticipant.decode(r, r.uint32(), $undefined, q + 1));
+                        m.participant.push($root.proto.GroupParticipant.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 21: {
@@ -32431,7 +32991,7 @@ export const proto = $root.proto = (() => {
                 case 26: {
                         if (u !== 2)
                             break;
-                        m.wallpaper = $root.proto.WallpaperSettings.decode(r, r.uint32(), $undefined, q + 1, m.wallpaper);
+                        m.wallpaper = $root.proto.WallpaperSettings.decode(r, r.size(), $undefined, q + 1, m.wallpaper);
                         m._wallpaper = "wallpaper";
                         continue;
                     }
@@ -32634,7 +33194,7 @@ export const proto = $root.proto = (() => {
                 case 64: {
                         if (u !== 2)
                             break;
-                        m.acp2Setting = $root.proto.ACP2Setting.decode(r, r.uint32(), $undefined, q + 1, m.acp2Setting);
+                        m.acp2Setting = $root.proto.ACP2Setting.decode(r, r.size(), $undefined, q + 1, m.acp2Setting);
                         m._acp2Setting = "acp2Setting";
                         continue;
                     }
@@ -32697,7 +33257,7 @@ export const proto = $root.proto = (() => {
                 case 63: {
                         if (u !== 2)
                             break;
-                        m.identityVerification = $root.proto.IdentityVerificationState.decode(r, r.uint32(), $undefined, q + 1, m.identityVerification);
+                        m.identityVerification = $root.proto.IdentityVerificationState.decode(r, r.size(), $undefined, q + 1, m.identityVerification);
                         m._identityVerification = "identityVerification";
                         continue;
                     }
@@ -32708,6 +33268,14 @@ export const proto = $root.proto = (() => {
                         m._acp2HistoryWithheld = "acp2HistoryWithheld";
                         continue;
                     }
+                    case 66: {
+                            if (u !== 2)
+                                break;
+                            if (!(m.groupRootKeys && m.groupRootKeys.length))
+                                m.groupRootKeys = [];
+                            m.groupRootKeys.push($root.proto.GroupRootKey.decode(r, r.uint32()));
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -33105,6 +33673,16 @@ export const proto = $root.proto = (() => {
             if (d.acp2HistoryWithheld != null) {
                 m.acp2HistoryWithheld = $Boolean(d.acp2HistoryWithheld);
             }
+            if (d.groupRootKeys) {
+                if (!$Array.isArray(d.groupRootKeys))
+                    throw $TypeError(".proto.Conversation.groupRootKeys: array expected");
+                m.groupRootKeys = $Array(d.groupRootKeys.length);
+                for (var i = 0; i < d.groupRootKeys.length; ++i) {
+                    if (typeof d.groupRootKeys[i] !== "object")
+                        throw $TypeError(".proto.Conversation.groupRootKeys: array of objects expected");
+                    m.groupRootKeys[i] = $root.proto.GroupRootKey.fromObject(d.groupRootKeys[i], q + 1);
+                }
+            }
             return m;
         };
 
@@ -33369,6 +33947,12 @@ export const proto = $root.proto = (() => {
             if (m.acp2HistoryWithheld != null && $Object.hasOwnProperty.call(m, "acp2HistoryWithheld")) {
                 d.acp2HistoryWithheld = m.acp2HistoryWithheld;
             }
+            if (m.groupRootKeys && m.groupRootKeys.length) {
+                d.groupRootKeys = $Array(m.groupRootKeys.length);
+                for (var j = 0; j < m.groupRootKeys.length; ++j) {
+                    d.groupRootKeys[j] = $root.proto.GroupRootKey.toObject(m.groupRootKeys[j], o);
+                }
+            }
             return d;
         };
 
@@ -33424,6 +34008,7 @@ export const proto = $root.proto = (() => {
         DeviceCapabilities.prototype.bizAiSettingsSync = null;
         DeviceCapabilities.prototype.contactRefresh = null;
         DeviceCapabilities.prototype.hostWriteMutationSupport = null;
+        DeviceCapabilities.prototype.bizAiWebOnboarding = null;
 
         let $oneOfFields;
 
@@ -33499,6 +34084,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(DeviceCapabilities.prototype, "_bizAiWebOnboarding", {
+            get: $util.oneOfGetter($oneOfFields = ["bizAiWebOnboarding"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         DeviceCapabilities.create = function(properties) {
             return new DeviceCapabilities(properties);
         };
@@ -33534,6 +34125,10 @@ export const proto = $root.proto = (() => {
                 $root.proto.DeviceCapabilities.NewsletterChatsMigration.encode(m.newsletterChatsMigration, w.uint32(90).fork(), q + 1).ldelim();
             if (m.hostWriteMutationSupport != null && $Object.hasOwnProperty.call(m, "hostWriteMutationSupport"))
                 $root.proto.DeviceCapabilities.HostWriteMutationSupport.encode(m.hostWriteMutationSupport, w.uint32(98).fork(), q + 1).ldelim();
+            if (m.bizAiWebOnboarding != null && $Object.hasOwnProperty.call(m, "bizAiWebOnboarding"))
+                $root.proto.DeviceCapabilities.BizAiWebOnboarding.encode(m.bizAiWebOnboarding, w.uint32(106).fork(), q + 1).ldelim();
+            if (m.phoneNumberSharing != null && $Object.hasOwnProperty.call(m, "phoneNumberSharing"))
+                $root.proto.DeviceCapabilities.PhoneNumberSharing.encode(m.phoneNumberSharing, w.uint32(114).fork()).ldelim();
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -33577,21 +34172,21 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.lidMigration = $root.proto.DeviceCapabilities.LIDMigration.decode(r, r.uint32(), $undefined, q + 1, m.lidMigration);
+                        m.lidMigration = $root.proto.DeviceCapabilities.LIDMigration.decode(r, r.size(), $undefined, q + 1, m.lidMigration);
                         m._lidMigration = "lidMigration";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.businessBroadcast = $root.proto.DeviceCapabilities.BusinessBroadcast.decode(r, r.uint32(), $undefined, q + 1, m.businessBroadcast);
+                        m.businessBroadcast = $root.proto.DeviceCapabilities.BusinessBroadcast.decode(r, r.size(), $undefined, q + 1, m.businessBroadcast);
                         m._businessBroadcast = "businessBroadcast";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.userHasAvatar = $root.proto.DeviceCapabilities.UserHasAvatar.decode(r, r.uint32(), $undefined, q + 1, m.userHasAvatar);
+                        m.userHasAvatar = $root.proto.DeviceCapabilities.UserHasAvatar.decode(r, r.size(), $undefined, q + 1, m.userHasAvatar);
                         m._userHasAvatar = "userHasAvatar";
                         continue;
                     }
@@ -33605,52 +34200,66 @@ export const proto = $root.proto = (() => {
                 case 10: {
                         if (u !== 2)
                             break;
-                        m.reverseHistorySync = $root.proto.DeviceCapabilities.ReverseHistorySync.decode(r, r.uint32(), $undefined, q + 1, m.reverseHistorySync);
+                        m.reverseHistorySync = $root.proto.DeviceCapabilities.ReverseHistorySync.decode(r, r.size(), $undefined, q + 1, m.reverseHistorySync);
                         m._reverseHistorySync = "reverseHistorySync";
                         continue;
                     }
                 case 11: {
                         if (u !== 2)
                             break;
-                        m.newsletterChatsMigration = $root.proto.DeviceCapabilities.NewsletterChatsMigration.decode(r, r.uint32(), $undefined, q + 1, m.newsletterChatsMigration);
+                        m.newsletterChatsMigration = $root.proto.DeviceCapabilities.NewsletterChatsMigration.decode(r, r.size(), $undefined, q + 1, m.newsletterChatsMigration);
                         m._newsletterChatsMigration = "newsletterChatsMigration";
                         continue;
                     }
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.aiThread = $root.proto.AiThread.decode(r, r.uint32(), $undefined, q + 1, m.aiThread);
+                        m.aiThread = $root.proto.AiThread.decode(r, r.size(), $undefined, q + 1, m.aiThread);
                         m._aiThread = "aiThread";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.aiFbidMigration = $root.proto.AiFbidMigration.decode(r, r.uint32(), $undefined, q + 1, m.aiFbidMigration);
+                        m.aiFbidMigration = $root.proto.AiFbidMigration.decode(r, r.size(), $undefined, q + 1, m.aiFbidMigration);
                         m._aiFbidMigration = "aiFbidMigration";
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.bizAiSettingsSync = $root.proto.DeviceCapabilities.BizAiSettingsSync.decode(r, r.uint32(), $undefined, q + 1, m.bizAiSettingsSync);
+                        m.bizAiSettingsSync = $root.proto.DeviceCapabilities.BizAiSettingsSync.decode(r, r.size(), $undefined, q + 1, m.bizAiSettingsSync);
                         m._bizAiSettingsSync = "bizAiSettingsSync";
                         continue;
                     }
                 case 9: {
                         if (u !== 2)
                             break;
-                        m.contactRefresh = $root.proto.DeviceCapabilities.ContactRefresh.decode(r, r.uint32(), $undefined, q + 1, m.contactRefresh);
+                        m.contactRefresh = $root.proto.DeviceCapabilities.ContactRefresh.decode(r, r.size(), $undefined, q + 1, m.contactRefresh);
                         m._contactRefresh = "contactRefresh";
                         continue;
                     }
                 case 12: {
                         if (u !== 2)
                             break;
-                        m.hostWriteMutationSupport = $root.proto.DeviceCapabilities.HostWriteMutationSupport.decode(r, r.uint32(), $undefined, q + 1, m.hostWriteMutationSupport);
+                        m.hostWriteMutationSupport = $root.proto.DeviceCapabilities.HostWriteMutationSupport.decode(r, r.size(), $undefined, q + 1, m.hostWriteMutationSupport);
                         m._hostWriteMutationSupport = "hostWriteMutationSupport";
                         continue;
                     }
+                case 13: {
+                        if (u !== 2)
+                            break;
+                        m.bizAiWebOnboarding = $root.proto.DeviceCapabilities.BizAiWebOnboarding.decode(r, r.size(), $undefined, q + 1, m.bizAiWebOnboarding);
+                        m._bizAiWebOnboarding = "bizAiWebOnboarding";
+                        continue;
+                    }
+                    case 14: {
+                            if (u !== 2)
+                                break;
+                            m.phoneNumberSharing = $root.proto.DeviceCapabilities.PhoneNumberSharing.decode(r, r.uint32());
+                            m._phoneNumberSharing = "phoneNumberSharing";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -33762,6 +34371,16 @@ export const proto = $root.proto = (() => {
                     throw $TypeError(".proto.DeviceCapabilities.hostWriteMutationSupport: object expected");
                 m.hostWriteMutationSupport = $root.proto.DeviceCapabilities.HostWriteMutationSupport.fromObject(d.hostWriteMutationSupport, q + 1);
             }
+            if (d.bizAiWebOnboarding != null) {
+                if (!$util.isObject(d.bizAiWebOnboarding))
+                    throw $TypeError(".proto.DeviceCapabilities.bizAiWebOnboarding: object expected");
+                m.bizAiWebOnboarding = $root.proto.DeviceCapabilities.BizAiWebOnboarding.fromObject(d.bizAiWebOnboarding, q + 1);
+            }
+            if (d.phoneNumberSharing != null) {
+                if (typeof d.phoneNumberSharing !== "object")
+                    throw $TypeError(".proto.DeviceCapabilities.phoneNumberSharing: object expected");
+                m.phoneNumberSharing = $root.proto.DeviceCapabilities.PhoneNumberSharing.fromObject(d.phoneNumberSharing, q + 1);
+            }
             return m;
         };
 
@@ -33808,6 +34427,12 @@ export const proto = $root.proto = (() => {
             }
             if (m.hostWriteMutationSupport != null && $Object.hasOwnProperty.call(m, "hostWriteMutationSupport")) {
                 d.hostWriteMutationSupport = $root.proto.DeviceCapabilities.HostWriteMutationSupport.toObject(m.hostWriteMutationSupport, o, q + 1);
+            }
+            if (m.bizAiWebOnboarding != null && $Object.hasOwnProperty.call(m, "bizAiWebOnboarding")) {
+                d.bizAiWebOnboarding = $root.proto.DeviceCapabilities.BizAiWebOnboarding.toObject(m.bizAiWebOnboarding, o, q + 1);
+            }
+            if (m.phoneNumberSharing != null && $Object.hasOwnProperty.call(m, "phoneNumberSharing")) {
+                d.phoneNumberSharing = $root.proto.DeviceCapabilities.PhoneNumberSharing.toObject(m.phoneNumberSharing, o);
             }
             return d;
         };
@@ -34955,6 +35580,7 @@ export const proto = $root.proto = (() => {
         DeviceCapabilities.HostWriteMutationSupport = (function() {
 
             const HostWriteMutationSupport = function (p) {
+                this.mutationNames = [];
                 if (p)
                     for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
                         if (p[ks[i]] != null && ks[i] !== "__proto__")
@@ -34962,8 +35588,6 @@ export const proto = $root.proto = (() => {
             };
 
             HostWriteMutationSupport.prototype.mutationNames = $util.emptyArray;
-
-            let $oneOfFields;
 
             HostWriteMutationSupport.create = function(properties) {
                 return new HostWriteMutationSupport(properties);
@@ -35092,6 +35716,269 @@ export const proto = $root.proto = (() => {
             return HostWriteMutationSupport;
         })();
 
+        DeviceCapabilities.BizAiWebOnboarding = (function() {
+
+            const BizAiWebOnboarding = function (p) {
+                if (p)
+                    for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                        if (p[ks[i]] != null && ks[i] !== "__proto__")
+                            this[ks[i]] = p[ks[i]];
+            };
+
+            BizAiWebOnboarding.prototype.version = null;
+
+            let $oneOfFields;
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(BizAiWebOnboarding.prototype, "_version", {
+                get: $util.oneOfGetter($oneOfFields = ["version"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            BizAiWebOnboarding.create = function(properties) {
+                return new BizAiWebOnboarding(properties);
+            };
+
+            BizAiWebOnboarding.encode = function (m, w, q) {
+                if (!w)
+                    w = $Writer.create();
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                if (m.version != null && $Object.hasOwnProperty.call(m, "version"))
+                    w.uint32(8).uint32(m.version);
+                if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                    for (var i = 0; i < m.$unknowns.length; ++i)
+                        w.raw(m.$unknowns[i]);
+                return w;
+            };
+
+            BizAiWebOnboarding.decode = function (r, l, z, q, g) {
+                if (!(r instanceof $Reader))
+                    r = $Reader.create(r);
+                if (q === $undefined)
+                    q = 0;
+                if (q > $Reader.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var c, m;
+                if (l === $undefined)
+                    c = r.len;
+                else {
+                    c = r.pos + l;
+                    if (c > r.len)
+                        throw $RangeError("index out of range");
+                    l = r.len;
+                    r.len = c;
+                }
+                m = g || new $root.proto.DeviceCapabilities.BizAiWebOnboarding();
+                while (r.pos < c) {
+                    var s = r.pos;
+                    var t = r.tag();
+                    if (t === z) {
+                        z = $undefined;
+                        break;
+                    }
+                    var u = t & 7;
+                    switch (t >>>= 3) {
+                    case 1: {
+                            if (u !== 0)
+                                break;
+                            m.version = r.uint32();
+                            m._version = "version";
+                            continue;
+                        }
+                    }
+                    r.skipType(u, q, t);
+                    if (!r.discardUnknown) {
+                        $util.makeProp(m, "$unknowns", false);
+                        (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                    }
+                }
+                if (l !== $undefined) {
+                    if (r.pos !== c)
+                        throw $RangeError("index out of range");
+                    r.len = l;
+                }
+                if (z !== $undefined)
+                    throw $Error("missing end group");
+                return m;
+            };
+
+            BizAiWebOnboarding.fromObject = function (d, q) {
+                if (d instanceof $root.proto.DeviceCapabilities.BizAiWebOnboarding)
+                    return d;
+                if (!$util.isObject(d))
+                    throw $TypeError(".proto.DeviceCapabilities.BizAiWebOnboarding: object expected");
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var m = new $root.proto.DeviceCapabilities.BizAiWebOnboarding();
+                if (d.version != null) {
+                    m.version = d.version >>> 0;
+                }
+                return m;
+            };
+
+            BizAiWebOnboarding.toObject = function (m, o, q) {
+                if (!o)
+                    o = {};
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var d = {};
+                if (m.version != null && $Object.hasOwnProperty.call(m, "version")) {
+                    d.version = m.version;
+                }
+                return d;
+            };
+
+            BizAiWebOnboarding.prototype.toJSON = function() {
+                return BizAiWebOnboarding.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            BizAiWebOnboarding.getTypeUrl = function(prefix) {
+                if (prefix === $undefined)
+                    prefix = "type.googleapis.com";
+                return prefix + "/proto.DeviceCapabilities.BizAiWebOnboarding";
+            };
+
+            return BizAiWebOnboarding;
+        })();
+
+        DeviceCapabilities.PhoneNumberSharing = (function() {
+
+            const PhoneNumberSharing = function (p) {
+                if (p)
+                    for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                        if (p[ks[i]] != null && ks[i] !== "__proto__")
+                            this[ks[i]] = p[ks[i]];
+            };
+
+            PhoneNumberSharing.prototype.phoneSharingSupported = null;
+
+            let $oneOfFields;
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PhoneNumberSharing.prototype, "_phoneSharingSupported", {
+                get: $util.oneOfGetter($oneOfFields = ["phoneSharingSupported"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            PhoneNumberSharing.create = function(properties) {
+                return new PhoneNumberSharing(properties);
+            };
+
+            PhoneNumberSharing.encode = function (m, w, q) {
+                if (!w)
+                    w = $Writer.create();
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                if (m.phoneSharingSupported != null && $Object.hasOwnProperty.call(m, "phoneSharingSupported"))
+                    w.uint32(8).bool(m.phoneSharingSupported);
+                if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                    for (var i = 0; i < m.$unknowns.length; ++i)
+                        w.raw(m.$unknowns[i]);
+                return w;
+            };
+
+            PhoneNumberSharing.decode = function (r, l, z, q, g) {
+                if (!(r instanceof $Reader))
+                    r = $Reader.create(r);
+                if (q === $undefined)
+                    q = 0;
+                if (q > $Reader.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var c, m, v;
+                if (l === $undefined)
+                    c = r.len;
+                else {
+                    c = r.pos + l;
+                    if (c > r.len)
+                        throw $RangeError("index out of range");
+                    l = r.len;
+                    r.len = c;
+                }
+                m = g || new $root.proto.DeviceCapabilities.PhoneNumberSharing();
+                while (r.pos < c) {
+                    var s = r.pos;
+                    var t = r.tag();
+                    if (t === z) {
+                        z = $undefined;
+                        break;
+                    }
+                    var u = t & 7;
+                    switch (t >>>= 3) {
+                    case 1: {
+                            if (u !== 0)
+                                break;
+                            m.phoneSharingSupported = r.bool();
+                            m._phoneSharingSupported = "phoneSharingSupported";
+                            continue;
+                        }
+                    }
+                    r.skipType(u, q, t);
+                    if (!r.discardUnknown) {
+                        $util.makeProp(m, "$unknowns", false);
+                        (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                    }
+                }
+                if (l !== $undefined) {
+                    if (r.pos !== c)
+                        throw $RangeError("index out of range");
+                    r.len = l;
+                }
+                if (z !== $undefined)
+                    throw $Error("missing end group");
+                return m;
+            };
+
+            PhoneNumberSharing.fromObject = function (d, q) {
+                if (d instanceof $root.proto.DeviceCapabilities.PhoneNumberSharing)
+                    return d;
+                if (!$util.isObject(d))
+                    throw $TypeError(".proto.DeviceCapabilities.PhoneNumberSharing: object expected");
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var m = new $root.proto.DeviceCapabilities.PhoneNumberSharing();
+                if (d.phoneSharingSupported != null) {
+                    m.phoneSharingSupported = $Boolean(d.phoneSharingSupported);
+                }
+                return m;
+            };
+
+            PhoneNumberSharing.toObject = function (m, o, q) {
+                if (!o)
+                    o = {};
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var d = {};
+                if (m.phoneSharingSupported != null && $Object.hasOwnProperty.call(m, "phoneSharingSupported")) {
+                    d.phoneSharingSupported = m.phoneSharingSupported;
+                }
+                return d;
+            };
+
+            PhoneNumberSharing.prototype.toJSON = function() {
+                return PhoneNumberSharing.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            PhoneNumberSharing.getTypeUrl = function(prefix) {
+                if (prefix === $undefined)
+                    prefix = "type.googleapis.com";
+                return prefix + "/proto.DeviceCapabilities.PhoneNumberSharing";
+            };
+
+            return PhoneNumberSharing;
+        })();
         return DeviceCapabilities;
     })();
 
@@ -35733,7 +36620,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.version = $root.proto.DeviceProps.AppVersion.decode(r, r.uint32(), $undefined, q + 1, m.version);
+                        m.version = $root.proto.DeviceProps.AppVersion.decode(r, r.size(), $undefined, q + 1, m.version);
                         m._version = "version";
                         continue;
                     }
@@ -35754,7 +36641,7 @@ export const proto = $root.proto = (() => {
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.historySyncConfig = $root.proto.DeviceProps.HistorySyncConfig.decode(r, r.uint32(), $undefined, q + 1, m.historySyncConfig);
+                        m.historySyncConfig = $root.proto.DeviceProps.HistorySyncConfig.decode(r, r.size(), $undefined, q + 1, m.historySyncConfig);
                         m._historySyncConfig = "historySyncConfig";
                         continue;
                     }
@@ -36201,6 +37088,8 @@ export const proto = $root.proto = (() => {
             HistorySyncConfig.prototype.supportInlineContacts = null;
             HistorySyncConfig.prototype.supportNewsletter = null;
             HistorySyncConfig.prototype.supportUniversalReachChat = null;
+            HistorySyncConfig.prototype.supportOmittedConversationIndex = null;
+            HistorySyncConfig.prototype.supportOmittedConversationMetadata = null;
 
             let $oneOfFields;
 
@@ -36354,6 +37243,18 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(HistorySyncConfig.prototype, "_supportOmittedConversationIndex", {
+                get: $util.oneOfGetter($oneOfFields = ["supportOmittedConversationIndex"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(HistorySyncConfig.prototype, "_supportOmittedConversationMetadata", {
+                get: $util.oneOfGetter($oneOfFields = ["supportOmittedConversationMetadata"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             HistorySyncConfig.create = function(properties) {
                 return new HistorySyncConfig(properties);
             };
@@ -36419,6 +37320,10 @@ export const proto = $root.proto = (() => {
                     w.uint32(200).bool(m.supportNewsletter);
                 if (m.supportUniversalReachChat != null && $Object.hasOwnProperty.call(m, "supportUniversalReachChat"))
                     w.uint32(208).bool(m.supportUniversalReachChat);
+                if (m.supportOmittedConversationIndex != null && $Object.hasOwnProperty.call(m, "supportOmittedConversationIndex"))
+                    w.uint32(216).bool(m.supportOmittedConversationIndex);
+                if (m.supportOmittedConversationMetadata != null && $Object.hasOwnProperty.call(m, "supportOmittedConversationMetadata"))
+                    w.uint32(224).bool(m.supportOmittedConversationMetadata);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -36635,6 +37540,20 @@ export const proto = $root.proto = (() => {
                             m._supportUniversalReachChat = "supportUniversalReachChat";
                             continue;
                         }
+                    case 27: {
+                            if (u !== 0)
+                                break;
+                            m.supportOmittedConversationIndex = r.bool();
+                            m._supportOmittedConversationIndex = "supportOmittedConversationIndex";
+                            continue;
+                        }
+                    case 28: {
+                            if (u !== 0)
+                                break;
+                            m.supportOmittedConversationMetadata = r.bool();
+                            m._supportOmittedConversationMetadata = "supportOmittedConversationMetadata";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -36745,6 +37664,12 @@ export const proto = $root.proto = (() => {
                 if (d.supportUniversalReachChat != null) {
                     m.supportUniversalReachChat = $Boolean(d.supportUniversalReachChat);
                 }
+                if (d.supportOmittedConversationIndex != null) {
+                    m.supportOmittedConversationIndex = $Boolean(d.supportOmittedConversationIndex);
+                }
+                if (d.supportOmittedConversationMetadata != null) {
+                    m.supportOmittedConversationMetadata = $Boolean(d.supportOmittedConversationMetadata);
+                }
                 return m;
             };
 
@@ -36839,6 +37764,12 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.supportUniversalReachChat != null && $Object.hasOwnProperty.call(m, "supportUniversalReachChat")) {
                     d.supportUniversalReachChat = m.supportUniversalReachChat;
+                }
+                if (m.supportOmittedConversationIndex != null && $Object.hasOwnProperty.call(m, "supportOmittedConversationIndex")) {
+                    d.supportOmittedConversationIndex = m.supportOmittedConversationIndex;
+                }
+                if (m.supportOmittedConversationMetadata != null && $Object.hasOwnProperty.call(m, "supportOmittedConversationMetadata")) {
+                    d.supportOmittedConversationMetadata = m.supportOmittedConversationMetadata;
                 }
                 return d;
             };
@@ -37221,14 +38152,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.embeddedMessage = $root.proto.EmbeddedMessage.decode(r, r.uint32(), $undefined, q + 1, m.embeddedMessage);
+                        m.embeddedMessage = $root.proto.EmbeddedMessage.decode(r, r.size(), $undefined, q + 1, m.embeddedMessage);
                         m.content = "embeddedMessage";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.embeddedMusic = $root.proto.EmbeddedMusic.decode(r, r.uint32(), $undefined, q + 1, m.embeddedMusic);
+                        m.embeddedMusic = $root.proto.EmbeddedMusic.decode(r, r.size(), $undefined, q + 1, m.embeddedMusic);
                         m.content = "embeddedMusic";
                         continue;
                     }
@@ -37390,7 +38321,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.message = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                        m.message = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.message);
                         m._message = "message";
                         continue;
                     }
@@ -38481,7 +39412,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.eventResponseMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.eventResponseMessageKey);
+                        m.eventResponseMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.eventResponseMessageKey);
                         m._eventResponseMessageKey = "eventResponseMessageKey";
                         continue;
                     }
@@ -38495,7 +39426,7 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.eventResponseMessage = $root.proto.Message.EventResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.eventResponseMessage);
+                        m.eventResponseMessage = $root.proto.Message.EventResponseMessage.decode(r, r.size(), $undefined, q + 1, m.eventResponseMessage);
                         m._eventResponseMessage = "eventResponseMessage";
                         continue;
                     }
@@ -39162,7 +40093,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (m.subfield === $util.emptyObject)
                             m.subfield = {};
-                        var c2 = r.uint32() + r.pos;
+                        var c2 = r.size() + r.pos;
                         if (c2 > r.len)
                             throw $RangeError("index out of range");
                         r.len = c2;
@@ -39180,7 +40111,7 @@ export const proto = $root.proto = (() => {
                             case 2:
                                 if (u !== 2)
                                     break;
-                                v = $root.proto.Field.decode(r, r.uint32(), $undefined, q + 1, v);
+                                v = $root.proto.Field.decode(r, r.size(), $undefined, q + 1, v);
                                 continue;
                             }
                             r.skipType(u, q, t2);
@@ -39708,7 +40639,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.lightThemeWallpaper = $root.proto.WallpaperSettings.decode(r, r.uint32(), $undefined, q + 1, m.lightThemeWallpaper);
+                        m.lightThemeWallpaper = $root.proto.WallpaperSettings.decode(r, r.size(), $undefined, q + 1, m.lightThemeWallpaper);
                         m._lightThemeWallpaper = "lightThemeWallpaper";
                         continue;
                     }
@@ -39722,28 +40653,28 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.darkThemeWallpaper = $root.proto.WallpaperSettings.decode(r, r.uint32(), $undefined, q + 1, m.darkThemeWallpaper);
+                        m.darkThemeWallpaper = $root.proto.WallpaperSettings.decode(r, r.size(), $undefined, q + 1, m.darkThemeWallpaper);
                         m._darkThemeWallpaper = "darkThemeWallpaper";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.autoDownloadWiFi = $root.proto.AutoDownloadSettings.decode(r, r.uint32(), $undefined, q + 1, m.autoDownloadWiFi);
+                        m.autoDownloadWiFi = $root.proto.AutoDownloadSettings.decode(r, r.size(), $undefined, q + 1, m.autoDownloadWiFi);
                         m._autoDownloadWiFi = "autoDownloadWiFi";
                         continue;
                     }
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.autoDownloadCellular = $root.proto.AutoDownloadSettings.decode(r, r.uint32(), $undefined, q + 1, m.autoDownloadCellular);
+                        m.autoDownloadCellular = $root.proto.AutoDownloadSettings.decode(r, r.size(), $undefined, q + 1, m.autoDownloadCellular);
                         m._autoDownloadCellular = "autoDownloadCellular";
                         continue;
                     }
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.autoDownloadRoaming = $root.proto.AutoDownloadSettings.decode(r, r.uint32(), $undefined, q + 1, m.autoDownloadRoaming);
+                        m.autoDownloadRoaming = $root.proto.AutoDownloadSettings.decode(r, r.size(), $undefined, q + 1, m.autoDownloadRoaming);
                         m._autoDownloadRoaming = "autoDownloadRoaming";
                         continue;
                     }
@@ -39778,7 +40709,7 @@ export const proto = $root.proto = (() => {
                 case 11: {
                         if (u !== 2)
                             break;
-                        m.avatarUserSettings = $root.proto.AvatarUserSettings.decode(r, r.uint32(), $undefined, q + 1, m.avatarUserSettings);
+                        m.avatarUserSettings = $root.proto.AvatarUserSettings.decode(r, r.size(), $undefined, q + 1, m.avatarUserSettings);
                         m._avatarUserSettings = "avatarUserSettings";
                         continue;
                     }
@@ -39820,21 +40751,21 @@ export const proto = $root.proto = (() => {
                 case 17: {
                         if (u !== 2)
                             break;
-                        m.individualNotificationSettings = $root.proto.NotificationSettings.decode(r, r.uint32(), $undefined, q + 1, m.individualNotificationSettings);
+                        m.individualNotificationSettings = $root.proto.NotificationSettings.decode(r, r.size(), $undefined, q + 1, m.individualNotificationSettings);
                         m._individualNotificationSettings = "individualNotificationSettings";
                         continue;
                     }
                 case 18: {
                         if (u !== 2)
                             break;
-                        m.groupNotificationSettings = $root.proto.NotificationSettings.decode(r, r.uint32(), $undefined, q + 1, m.groupNotificationSettings);
+                        m.groupNotificationSettings = $root.proto.NotificationSettings.decode(r, r.size(), $undefined, q + 1, m.groupNotificationSettings);
                         m._groupNotificationSettings = "groupNotificationSettings";
                         continue;
                     }
                 case 19: {
                         if (u !== 2)
                             break;
-                        m.chatLockSettings = $root.proto.ChatLockSettings.decode(r, r.uint32(), $undefined, q + 1, m.chatLockSettings);
+                        m.chatLockSettings = $root.proto.ChatLockSettings.decode(r, r.size(), $undefined, q + 1, m.chatLockSettings);
                         m._chatLockSettings = "chatLockSettings";
                         continue;
                     }
@@ -40152,7 +41083,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.deprecatedMessageHistoryBundle = $root.proto.Message.MessageHistoryBundle.decode(r, r.uint32(), $undefined, q + 1, m.deprecatedMessageHistoryBundle);
+                        m.deprecatedMessageHistoryBundle = $root.proto.Message.MessageHistoryBundle.decode(r, r.size(), $undefined, q + 1, m.deprecatedMessageHistoryBundle);
                         m._deprecatedMessageHistoryBundle = "deprecatedMessageHistoryBundle";
                         continue;
                     }
@@ -40345,7 +41276,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.bundleMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.bundleMessageKey);
+                        m.bundleMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.bundleMessageKey);
                         m._bundleMessageKey = "bundleMessageKey";
                         continue;
                     }
@@ -40674,7 +41605,7 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.memberLabel = $root.proto.MemberLabel.decode(r, r.uint32(), $undefined, q + 1, m.memberLabel);
+                        m.memberLabel = $root.proto.MemberLabel.decode(r, r.size(), $undefined, q + 1, m.memberLabel);
                         m._memberLabel = "memberLabel";
                         continue;
                     }
@@ -40865,21 +41796,21 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.clientHello = $root.proto.HandshakeMessage.ClientHello.decode(r, r.uint32(), $undefined, q + 1, m.clientHello);
+                        m.clientHello = $root.proto.HandshakeMessage.ClientHello.decode(r, r.size(), $undefined, q + 1, m.clientHello);
                         m._clientHello = "clientHello";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.serverHello = $root.proto.HandshakeMessage.ServerHello.decode(r, r.uint32(), $undefined, q + 1, m.serverHello);
+                        m.serverHello = $root.proto.HandshakeMessage.ServerHello.decode(r, r.size(), $undefined, q + 1, m.serverHello);
                         m._serverHello = "serverHello";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.clientFinish = $root.proto.HandshakeMessage.ClientFinish.decode(r, r.uint32(), $undefined, q + 1, m.clientFinish);
+                        m.clientFinish = $root.proto.HandshakeMessage.ClientFinish.decode(r, r.size(), $undefined, q + 1, m.clientFinish);
                         m._clientFinish = "clientFinish";
                         continue;
                     }
@@ -41865,6 +42796,8 @@ export const proto = $root.proto = (() => {
             this.phoneNumberToLidMappings = [];
             this.accounts = [];
             this.inlineContacts = [];
+            this.favoriteStickers = [];
+            this.omittedConversations = [];
             if (p)
                 for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
                     if (p[ks[i]] != null && ks[i] !== "__proto__")
@@ -41894,6 +42827,8 @@ export const proto = $root.proto = (() => {
         HistorySync.prototype.favoriteStickers = $util.emptyArray;
         HistorySync.prototype.omittedConversations = $util.emptyArray;
         HistorySync.prototype.omittedConversationsProvided = null;
+        HistorySync.prototype.omittedConversationMetadata = null;
+        HistorySync.prototype.omittedConversationMetadataSnapshotId = null;
 
         let $oneOfFields;
 
@@ -41960,6 +42895,18 @@ export const proto = $root.proto = (() => {
         // Virtual OneOf for proto3 optional field
         $Object.defineProperty(HistorySync.prototype, "_omittedConversationsProvided", {
             get: $util.oneOfGetter($oneOfFields = ["omittedConversationsProvided"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(HistorySync.prototype, "_omittedConversationMetadata", {
+            get: $util.oneOfGetter($oneOfFields = ["omittedConversationMetadata"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(HistorySync.prototype, "_omittedConversationMetadataSnapshotId", {
+            get: $util.oneOfGetter($oneOfFields = ["omittedConversationMetadataSnapshotId"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -42042,6 +42989,10 @@ export const proto = $root.proto = (() => {
             }
             if (m.omittedConversationsProvided != null && $Object.hasOwnProperty.call(m, "omittedConversationsProvided"))
                 w.uint32(192).bool(m.omittedConversationsProvided);
+            if (m.omittedConversationMetadata != null && $Object.hasOwnProperty.call(m, "omittedConversationMetadata"))
+                $root.proto.OmittedConversationMetadata.encode(m.omittedConversationMetadata, w.uint32(202).fork(), q + 1).ldelim();
+            if (m.omittedConversationMetadataSnapshotId != null && $Object.hasOwnProperty.call(m, "omittedConversationMetadataSnapshotId"))
+                w.uint32(210).string(m.omittedConversationMetadataSnapshotId);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -42089,7 +43040,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.conversations && m.conversations.length))
                             m.conversations = [];
-                        m.conversations.push($root.proto.Conversation.decode(r, r.uint32(), $undefined, q + 1));
+                        m.conversations.push($root.proto.Conversation.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -42097,7 +43048,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.statusV3Messages && m.statusV3Messages.length))
                             m.statusV3Messages = [];
-                        m.statusV3Messages.push($root.proto.WebMessageInfo.decode(r, r.uint32(), $undefined, q + 1));
+                        m.statusV3Messages.push($root.proto.WebMessageInfo.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 5: {
@@ -42119,13 +43070,13 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pushnames && m.pushnames.length))
                             m.pushnames = [];
-                        m.pushnames.push($root.proto.Pushname.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pushnames.push($root.proto.Pushname.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.globalSettings = $root.proto.GlobalSettings.decode(r, r.uint32(), $undefined, q + 1, m.globalSettings);
+                        m.globalSettings = $root.proto.GlobalSettings.decode(r, r.size(), $undefined, q + 1, m.globalSettings);
                         m._globalSettings = "globalSettings";
                         continue;
                     }
@@ -42148,7 +43099,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.recentStickers && m.recentStickers.length))
                             m.recentStickers = [];
-                        m.recentStickers.push($root.proto.StickerMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.recentStickers.push($root.proto.StickerMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 12: {
@@ -42156,7 +43107,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pastParticipants && m.pastParticipants.length))
                             m.pastParticipants = [];
-                        m.pastParticipants.push($root.proto.PastParticipants.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pastParticipants.push($root.proto.PastParticipants.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 13: {
@@ -42164,7 +43115,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.callLogRecords && m.callLogRecords.length))
                             m.callLogRecords = [];
-                        m.callLogRecords.push($root.proto.CallLogRecord.decode(r, r.uint32(), $undefined, q + 1));
+                        m.callLogRecords.push($root.proto.CallLogRecord.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 14: {
@@ -42179,7 +43130,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.phoneNumberToLidMappings && m.phoneNumberToLidMappings.length))
                             m.phoneNumberToLidMappings = [];
-                        m.phoneNumberToLidMappings.push($root.proto.PhoneNumberToLIDMapping.decode(r, r.uint32(), $undefined, q + 1));
+                        m.phoneNumberToLidMappings.push($root.proto.PhoneNumberToLIDMapping.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 16: {
@@ -42201,7 +43152,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.accounts && m.accounts.length))
                             m.accounts = [];
-                        m.accounts.push($root.proto.Account.decode(r, r.uint32(), $undefined, q + 1));
+                        m.accounts.push($root.proto.Account.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 19: {
@@ -42216,7 +43167,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.inlineContacts && m.inlineContacts.length))
                             m.inlineContacts = [];
-                        m.inlineContacts.push($root.proto.InlineContact.decode(r, r.uint32(), $undefined, q + 1));
+                        m.inlineContacts.push($root.proto.InlineContact.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 21: {
@@ -42231,7 +43182,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.favoriteStickers && m.favoriteStickers.length))
                             m.favoriteStickers = [];
-                        m.favoriteStickers.push($root.proto.StickerMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.favoriteStickers.push($root.proto.StickerMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 23: {
@@ -42239,7 +43190,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.omittedConversations && m.omittedConversations.length))
                             m.omittedConversations = [];
-                        m.omittedConversations.push($root.proto.RecoverableHistoryConversation.decode(r, r.uint32(), $undefined, q + 1));
+                        m.omittedConversations.push($root.proto.RecoverableHistoryConversation.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 24: {
@@ -42247,6 +43198,20 @@ export const proto = $root.proto = (() => {
                             break;
                         m.omittedConversationsProvided = r.bool();
                         m._omittedConversationsProvided = "omittedConversationsProvided";
+                        continue;
+                    }
+                case 25: {
+                        if (u !== 2)
+                            break;
+                        m.omittedConversationMetadata = $root.proto.OmittedConversationMetadata.decode(r, r.size(), $undefined, q + 1, m.omittedConversationMetadata);
+                        m._omittedConversationMetadata = "omittedConversationMetadata";
+                        continue;
+                    }
+                case 26: {
+                        if (u !== 2)
+                            break;
+                        m.omittedConversationMetadataSnapshotId = r.stringVerify();
+                        m._omittedConversationMetadataSnapshotId = "omittedConversationMetadataSnapshotId";
                         continue;
                     }
                 }
@@ -42475,6 +43440,14 @@ export const proto = $root.proto = (() => {
             if (d.omittedConversationsProvided != null) {
                 m.omittedConversationsProvided = $Boolean(d.omittedConversationsProvided);
             }
+            if (d.omittedConversationMetadata != null) {
+                if (!$util.isObject(d.omittedConversationMetadata))
+                    throw $TypeError(".proto.HistorySync.omittedConversationMetadata: object expected");
+                m.omittedConversationMetadata = $root.proto.OmittedConversationMetadata.fromObject(d.omittedConversationMetadata, q + 1);
+            }
+            if (d.omittedConversationMetadataSnapshotId != null) {
+                m.omittedConversationMetadataSnapshotId = $String(d.omittedConversationMetadataSnapshotId);
+            }
             return m;
         };
 
@@ -42604,6 +43577,12 @@ export const proto = $root.proto = (() => {
             if (m.omittedConversationsProvided != null && $Object.hasOwnProperty.call(m, "omittedConversationsProvided")) {
                 d.omittedConversationsProvided = m.omittedConversationsProvided;
             }
+            if (m.omittedConversationMetadata != null && $Object.hasOwnProperty.call(m, "omittedConversationMetadata")) {
+                d.omittedConversationMetadata = $root.proto.OmittedConversationMetadata.toObject(m.omittedConversationMetadata, o, q + 1);
+            }
+            if (m.omittedConversationMetadataSnapshotId != null && $Object.hasOwnProperty.call(m, "omittedConversationMetadataSnapshotId")) {
+                d.omittedConversationMetadataSnapshotId = m.omittedConversationMetadataSnapshotId;
+            }
             return d;
         };
 
@@ -42716,7 +43695,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.message = $root.proto.WebMessageInfo.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                        m.message = $root.proto.WebMessageInfo.decode(r, r.size(), $undefined, q + 1, m.message);
                         m._message = "message";
                         continue;
                     }
@@ -42896,21 +43875,21 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.quickReplyButton = $root.proto.HydratedTemplateButton.HydratedQuickReplyButton.decode(r, r.uint32(), $undefined, q + 1, m.quickReplyButton);
+                        m.quickReplyButton = $root.proto.HydratedTemplateButton.HydratedQuickReplyButton.decode(r, r.size(), $undefined, q + 1, m.quickReplyButton);
                         m.hydratedButton = "quickReplyButton";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.urlButton = $root.proto.HydratedTemplateButton.HydratedURLButton.decode(r, r.uint32(), $undefined, q + 1, m.urlButton);
+                        m.urlButton = $root.proto.HydratedTemplateButton.HydratedURLButton.decode(r, r.size(), $undefined, q + 1, m.urlButton);
                         m.hydratedButton = "urlButton";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.callButton = $root.proto.HydratedTemplateButton.HydratedCallButton.decode(r, r.uint32(), $undefined, q + 1, m.callButton);
+                        m.callButton = $root.proto.HydratedTemplateButton.HydratedCallButton.decode(r, r.size(), $undefined, q + 1, m.callButton);
                         m.hydratedButton = "callButton";
                         continue;
                     }
@@ -44008,7 +44987,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.questions && m.questions.length))
                             m.questions = [];
-                        m.questions.push($root.proto.InThreadSurveyMetadata.InThreadSurveyQuestion.decode(r, r.uint32(), $undefined, q + 1));
+                        m.questions.push($root.proto.InThreadSurveyMetadata.InThreadSurveyQuestion.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 13: {
@@ -44037,7 +45016,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.privacyStatementParts && m.privacyStatementParts.length))
                             m.privacyStatementParts = [];
-                        m.privacyStatementParts.push($root.proto.InThreadSurveyMetadata.InThreadSurveyPrivacyStatementPart.decode(r, r.uint32(), $undefined, q + 1));
+                        m.privacyStatementParts.push($root.proto.InThreadSurveyMetadata.InThreadSurveyPrivacyStatementPart.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 17: {
@@ -44666,7 +45645,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.questionOptions && m.questionOptions.length))
                                 m.questionOptions = [];
-                            m.questionOptions.push($root.proto.InThreadSurveyMetadata.InThreadSurveyOption.decode(r, r.uint32(), $undefined, q + 1));
+                            m.questionOptions.push($root.proto.InThreadSurveyMetadata.InThreadSurveyOption.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -44868,7 +45847,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.polygonVertices && m.polygonVertices.length))
                             m.polygonVertices = [];
-                        m.polygonVertices.push($root.proto.Point.decode(r, r.uint32(), $undefined, q + 1));
+                        m.polygonVertices.push($root.proto.Point.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 4: {
@@ -44881,7 +45860,7 @@ export const proto = $root.proto = (() => {
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.embeddedContent = $root.proto.EmbeddedContent.decode(r, r.uint32(), $undefined, q + 1, m.embeddedContent);
+                        m.embeddedContent = $root.proto.EmbeddedContent.decode(r, r.size(), $undefined, q + 1, m.embeddedContent);
                         m._embeddedContent = "embeddedContent";
                         continue;
                     }
@@ -44895,14 +45874,14 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.location = $root.proto.Location.decode(r, r.uint32(), $undefined, q + 1, m.location);
+                        m.location = $root.proto.Location.decode(r, r.size(), $undefined, q + 1, m.location);
                         m.action = "location";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.newsletter = $root.proto.ContextInfo.ForwardedNewsletterMessageInfo.decode(r, r.uint32(), $undefined, q + 1, m.newsletter);
+                        m.newsletter = $root.proto.ContextInfo.ForwardedNewsletterMessageInfo.decode(r, r.size(), $undefined, q + 1, m.newsletter);
                         m.action = "newsletter";
                         continue;
                     }
@@ -44916,7 +45895,7 @@ export const proto = $root.proto = (() => {
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.tapAction = $root.proto.TapLinkAction.decode(r, r.uint32(), $undefined, q + 1, m.tapAction);
+                        m.tapAction = $root.proto.TapLinkAction.decode(r, r.size(), $undefined, q + 1, m.tapAction);
                         m.action = "tapAction";
                         continue;
                     }
@@ -45332,7 +46311,7 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                        m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                         m._key = "key";
                         continue;
                     }
@@ -46305,7 +47284,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pnToLidMappings && m.pnToLidMappings.length))
                             m.pnToLidMappings = [];
-                        m.pnToLidMappings.push($root.proto.LIDMigrationMapping.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pnToLidMappings.push($root.proto.LIDMigrationMapping.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 2: {
@@ -46483,14 +47462,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.eventResponseMessage = $root.proto.Message.EventResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.eventResponseMessage);
+                        m.eventResponseMessage = $root.proto.Message.EventResponseMessage.decode(r, r.size(), $undefined, q + 1, m.eventResponseMessage);
                         m._eventResponseMessage = "eventResponseMessage";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.pollVote = $root.proto.Message.PollVoteMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollVote);
+                        m.pollVote = $root.proto.Message.PollVoteMessage.decode(r, r.size(), $undefined, q + 1, m.pollVote);
                         m._pollVote = "pollVote";
                         continue;
                     }
@@ -47753,6 +48732,8 @@ export const proto = $root.proto = (() => {
                 w.uint32(10).string(m.label);
             if (m.labelTimestamp != null && $Object.hasOwnProperty.call(m, "labelTimestamp"))
                 w.uint32(16).int64(m.labelTimestamp);
+            if (m.showAdminBadge != null && $Object.hasOwnProperty.call(m, "showAdminBadge"))
+                w.uint32(24).bool(m.showAdminBadge);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -47800,6 +48781,13 @@ export const proto = $root.proto = (() => {
                         m._labelTimestamp = "labelTimestamp";
                         continue;
                     }
+                    case 3: {
+                            if (u !== 0)
+                                break;
+                            m.showAdminBadge = r.bool();
+                            m._showAdminBadge = "showAdminBadge";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -47840,6 +48828,9 @@ export const proto = $root.proto = (() => {
                 else if (typeof d.labelTimestamp === "object")
                     m.labelTimestamp = new $util.LongBits(d.labelTimestamp.low >>> 0, d.labelTimestamp.high >>> 0).toNumber();
             }
+            if (d.showAdminBadge != null) {
+                m.showAdminBadge = $Boolean(d.showAdminBadge);
+            }
             return m;
         };
 
@@ -47861,6 +48852,9 @@ export const proto = $root.proto = (() => {
                     d.labelTimestamp = o.longs === $String ? $String(m.labelTimestamp) : m.labelTimestamp;
                 else
                     d.labelTimestamp = o.longs === String ? longToString(m.labelTimestamp) : o.longs === Number ? longToNumber(m.labelTimestamp) : m.labelTimestamp;
+            }
+            if (m.showAdminBadge != null && $Object.hasOwnProperty.call(m, "showAdminBadge")) {
+                d.showAdminBadge = m.showAdminBadge;
             }
             return d;
         };
@@ -48964,14 +49958,16 @@ export const proto = $root.proto = (() => {
                 $root.proto.Message.FutureProofMessage.encode(m.acp2SettingMessage, w.uint32(1066).fork(), q + 1).ldelim();
             if (m.audioStickerMessage != null && $Object.hasOwnProperty.call(m, "audioStickerMessage"))
                 $root.proto.Message.FutureProofMessage.encode(m.audioStickerMessage, w.uint32(1074).fork(), q + 1).ldelim();
-            if (m.botGroupParticipantMessage != null && $Object.hasOwnProperty.call(m, "botGroupParticipantMessage"))
-                $root.proto.Message.FutureProofMessage.encode(m.botGroupParticipantMessage, w.uint32(1098).fork(), q + 1).ldelim();
             if (m.instantImageMessage != null && $Object.hasOwnProperty.call(m, "instantImageMessage"))
                 $root.proto.Message.ImageMessage.encode(m.instantImageMessage, w.uint32(1082).fork(), q + 1).ldelim();
             if (m.requestLocationMessage != null && $Object.hasOwnProperty.call(m, "requestLocationMessage"))
                 $root.proto.Message.RequestLocationMessage.encode(m.requestLocationMessage, w.uint32(1090).fork(), q + 1).ldelim();
+            if (m.botGroupParticipantMessage != null && $Object.hasOwnProperty.call(m, "botGroupParticipantMessage"))
+                $root.proto.Message.FutureProofMessage.encode(m.botGroupParticipantMessage, w.uint32(1098).fork(), q + 1).ldelim();
             if (m.requestLocationUpdateMessage != null && $Object.hasOwnProperty.call(m, "requestLocationUpdateMessage"))
                 $root.proto.Message.RequestLocationUpdateMessage.encode(m.requestLocationUpdateMessage, w.uint32(1106).fork(), q + 1).ldelim();
+            if (m.vpcRequestMessage != null && $Object.hasOwnProperty.call(m, "vpcRequestMessage"))
+                $root.proto.Message.VpcRequestMessage.encode(m.vpcRequestMessage, w.uint32(1114).fork()).ldelim();
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -49015,829 +50011,836 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.senderKeyDistributionMessage = $root.proto.Message.SenderKeyDistributionMessage.decode(r, r.uint32(), $undefined, q + 1, m.senderKeyDistributionMessage);
+                        m.senderKeyDistributionMessage = $root.proto.Message.SenderKeyDistributionMessage.decode(r, r.size(), $undefined, q + 1, m.senderKeyDistributionMessage);
                         m._senderKeyDistributionMessage = "senderKeyDistributionMessage";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.imageMessage);
+                        m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.imageMessage);
                         m._imageMessage = "imageMessage";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.contactMessage = $root.proto.Message.ContactMessage.decode(r, r.uint32(), $undefined, q + 1, m.contactMessage);
+                        m.contactMessage = $root.proto.Message.ContactMessage.decode(r, r.size(), $undefined, q + 1, m.contactMessage);
                         m._contactMessage = "contactMessage";
                         continue;
                     }
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.locationMessage);
+                        m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.size(), $undefined, q + 1, m.locationMessage);
                         m._locationMessage = "locationMessage";
                         continue;
                     }
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.extendedTextMessage = $root.proto.Message.ExtendedTextMessage.decode(r, r.uint32(), $undefined, q + 1, m.extendedTextMessage);
+                        m.extendedTextMessage = $root.proto.Message.ExtendedTextMessage.decode(r, r.size(), $undefined, q + 1, m.extendedTextMessage);
                         m._extendedTextMessage = "extendedTextMessage";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.uint32(), $undefined, q + 1, m.documentMessage);
+                        m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.size(), $undefined, q + 1, m.documentMessage);
                         m._documentMessage = "documentMessage";
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.audioMessage = $root.proto.Message.AudioMessage.decode(r, r.uint32(), $undefined, q + 1, m.audioMessage);
+                        m.audioMessage = $root.proto.Message.AudioMessage.decode(r, r.size(), $undefined, q + 1, m.audioMessage);
                         m._audioMessage = "audioMessage";
                         continue;
                     }
                 case 9: {
                         if (u !== 2)
                             break;
-                        m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.uint32(), $undefined, q + 1, m.videoMessage);
+                        m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.size(), $undefined, q + 1, m.videoMessage);
                         m._videoMessage = "videoMessage";
                         continue;
                     }
                 case 10: {
                         if (u !== 2)
                             break;
-                        m.call = $root.proto.Message.Call.decode(r, r.uint32(), $undefined, q + 1, m.call);
+                        m.call = $root.proto.Message.Call.decode(r, r.size(), $undefined, q + 1, m.call);
                         m._call = "call";
                         continue;
                     }
                 case 11: {
                         if (u !== 2)
                             break;
-                        m.chat = $root.proto.Message.Chat.decode(r, r.uint32(), $undefined, q + 1, m.chat);
+                        m.chat = $root.proto.Message.Chat.decode(r, r.size(), $undefined, q + 1, m.chat);
                         m._chat = "chat";
                         continue;
                     }
                 case 12: {
                         if (u !== 2)
                             break;
-                        m.protocolMessage = $root.proto.Message.ProtocolMessage.decode(r, r.uint32(), $undefined, q + 1, m.protocolMessage);
+                        m.protocolMessage = $root.proto.Message.ProtocolMessage.decode(r, r.size(), $undefined, q + 1, m.protocolMessage);
                         m._protocolMessage = "protocolMessage";
                         continue;
                     }
                 case 13: {
                         if (u !== 2)
                             break;
-                        m.contactsArrayMessage = $root.proto.Message.ContactsArrayMessage.decode(r, r.uint32(), $undefined, q + 1, m.contactsArrayMessage);
+                        m.contactsArrayMessage = $root.proto.Message.ContactsArrayMessage.decode(r, r.size(), $undefined, q + 1, m.contactsArrayMessage);
                         m._contactsArrayMessage = "contactsArrayMessage";
                         continue;
                     }
                 case 14: {
                         if (u !== 2)
                             break;
-                        m.highlyStructuredMessage = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.highlyStructuredMessage);
+                        m.highlyStructuredMessage = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.highlyStructuredMessage);
                         m._highlyStructuredMessage = "highlyStructuredMessage";
                         continue;
                     }
                 case 15: {
                         if (u !== 2)
                             break;
-                        m.fastRatchetKeySenderKeyDistributionMessage = $root.proto.Message.SenderKeyDistributionMessage.decode(r, r.uint32(), $undefined, q + 1, m.fastRatchetKeySenderKeyDistributionMessage);
+                        m.fastRatchetKeySenderKeyDistributionMessage = $root.proto.Message.SenderKeyDistributionMessage.decode(r, r.size(), $undefined, q + 1, m.fastRatchetKeySenderKeyDistributionMessage);
                         m._fastRatchetKeySenderKeyDistributionMessage = "fastRatchetKeySenderKeyDistributionMessage";
                         continue;
                     }
                 case 16: {
                         if (u !== 2)
                             break;
-                        m.sendPaymentMessage = $root.proto.Message.SendPaymentMessage.decode(r, r.uint32(), $undefined, q + 1, m.sendPaymentMessage);
+                        m.sendPaymentMessage = $root.proto.Message.SendPaymentMessage.decode(r, r.size(), $undefined, q + 1, m.sendPaymentMessage);
                         m._sendPaymentMessage = "sendPaymentMessage";
                         continue;
                     }
                 case 18: {
                         if (u !== 2)
                             break;
-                        m.liveLocationMessage = $root.proto.Message.LiveLocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.liveLocationMessage);
+                        m.liveLocationMessage = $root.proto.Message.LiveLocationMessage.decode(r, r.size(), $undefined, q + 1, m.liveLocationMessage);
                         m._liveLocationMessage = "liveLocationMessage";
                         continue;
                     }
                 case 22: {
                         if (u !== 2)
                             break;
-                        m.requestPaymentMessage = $root.proto.Message.RequestPaymentMessage.decode(r, r.uint32(), $undefined, q + 1, m.requestPaymentMessage);
+                        m.requestPaymentMessage = $root.proto.Message.RequestPaymentMessage.decode(r, r.size(), $undefined, q + 1, m.requestPaymentMessage);
                         m._requestPaymentMessage = "requestPaymentMessage";
                         continue;
                     }
                 case 23: {
                         if (u !== 2)
                             break;
-                        m.declinePaymentRequestMessage = $root.proto.Message.DeclinePaymentRequestMessage.decode(r, r.uint32(), $undefined, q + 1, m.declinePaymentRequestMessage);
+                        m.declinePaymentRequestMessage = $root.proto.Message.DeclinePaymentRequestMessage.decode(r, r.size(), $undefined, q + 1, m.declinePaymentRequestMessage);
                         m._declinePaymentRequestMessage = "declinePaymentRequestMessage";
                         continue;
                     }
                 case 24: {
                         if (u !== 2)
                             break;
-                        m.cancelPaymentRequestMessage = $root.proto.Message.CancelPaymentRequestMessage.decode(r, r.uint32(), $undefined, q + 1, m.cancelPaymentRequestMessage);
+                        m.cancelPaymentRequestMessage = $root.proto.Message.CancelPaymentRequestMessage.decode(r, r.size(), $undefined, q + 1, m.cancelPaymentRequestMessage);
                         m._cancelPaymentRequestMessage = "cancelPaymentRequestMessage";
                         continue;
                     }
                 case 25: {
                         if (u !== 2)
                             break;
-                        m.templateMessage = $root.proto.Message.TemplateMessage.decode(r, r.uint32(), $undefined, q + 1, m.templateMessage);
+                        m.templateMessage = $root.proto.Message.TemplateMessage.decode(r, r.size(), $undefined, q + 1, m.templateMessage);
                         m._templateMessage = "templateMessage";
                         continue;
                     }
                 case 26: {
                         if (u !== 2)
                             break;
-                        m.stickerMessage = $root.proto.Message.StickerMessage.decode(r, r.uint32(), $undefined, q + 1, m.stickerMessage);
+                        m.stickerMessage = $root.proto.Message.StickerMessage.decode(r, r.size(), $undefined, q + 1, m.stickerMessage);
                         m._stickerMessage = "stickerMessage";
                         continue;
                     }
                 case 28: {
                         if (u !== 2)
                             break;
-                        m.groupInviteMessage = $root.proto.Message.GroupInviteMessage.decode(r, r.uint32(), $undefined, q + 1, m.groupInviteMessage);
+                        m.groupInviteMessage = $root.proto.Message.GroupInviteMessage.decode(r, r.size(), $undefined, q + 1, m.groupInviteMessage);
                         m._groupInviteMessage = "groupInviteMessage";
                         continue;
                     }
                 case 29: {
                         if (u !== 2)
                             break;
-                        m.templateButtonReplyMessage = $root.proto.Message.TemplateButtonReplyMessage.decode(r, r.uint32(), $undefined, q + 1, m.templateButtonReplyMessage);
+                        m.templateButtonReplyMessage = $root.proto.Message.TemplateButtonReplyMessage.decode(r, r.size(), $undefined, q + 1, m.templateButtonReplyMessage);
                         m._templateButtonReplyMessage = "templateButtonReplyMessage";
                         continue;
                     }
                 case 30: {
                         if (u !== 2)
                             break;
-                        m.productMessage = $root.proto.Message.ProductMessage.decode(r, r.uint32(), $undefined, q + 1, m.productMessage);
+                        m.productMessage = $root.proto.Message.ProductMessage.decode(r, r.size(), $undefined, q + 1, m.productMessage);
                         m._productMessage = "productMessage";
                         continue;
                     }
                 case 31: {
                         if (u !== 2)
                             break;
-                        m.deviceSentMessage = $root.proto.Message.DeviceSentMessage.decode(r, r.uint32(), $undefined, q + 1, m.deviceSentMessage);
+                        m.deviceSentMessage = $root.proto.Message.DeviceSentMessage.decode(r, r.size(), $undefined, q + 1, m.deviceSentMessage);
                         m._deviceSentMessage = "deviceSentMessage";
                         continue;
                     }
                 case 35: {
                         if (u !== 2)
                             break;
-                        m.messageContextInfo = $root.proto.MessageContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.messageContextInfo);
+                        m.messageContextInfo = $root.proto.MessageContextInfo.decode(r, r.size(), $undefined, q + 1, m.messageContextInfo);
                         m._messageContextInfo = "messageContextInfo";
                         continue;
                     }
                 case 36: {
                         if (u !== 2)
                             break;
-                        m.listMessage = $root.proto.Message.ListMessage.decode(r, r.uint32(), $undefined, q + 1, m.listMessage);
+                        m.listMessage = $root.proto.Message.ListMessage.decode(r, r.size(), $undefined, q + 1, m.listMessage);
                         m._listMessage = "listMessage";
                         continue;
                     }
                 case 37: {
                         if (u !== 2)
                             break;
-                        m.viewOnceMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.viewOnceMessage);
+                        m.viewOnceMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.viewOnceMessage);
                         m._viewOnceMessage = "viewOnceMessage";
                         continue;
                     }
                 case 38: {
                         if (u !== 2)
                             break;
-                        m.orderMessage = $root.proto.Message.OrderMessage.decode(r, r.uint32(), $undefined, q + 1, m.orderMessage);
+                        m.orderMessage = $root.proto.Message.OrderMessage.decode(r, r.size(), $undefined, q + 1, m.orderMessage);
                         m._orderMessage = "orderMessage";
                         continue;
                     }
                 case 39: {
                         if (u !== 2)
                             break;
-                        m.listResponseMessage = $root.proto.Message.ListResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.listResponseMessage);
+                        m.listResponseMessage = $root.proto.Message.ListResponseMessage.decode(r, r.size(), $undefined, q + 1, m.listResponseMessage);
                         m._listResponseMessage = "listResponseMessage";
                         continue;
                     }
                 case 40: {
                         if (u !== 2)
                             break;
-                        m.ephemeralMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.ephemeralMessage);
+                        m.ephemeralMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.ephemeralMessage);
                         m._ephemeralMessage = "ephemeralMessage";
                         continue;
                     }
                 case 41: {
                         if (u !== 2)
                             break;
-                        m.invoiceMessage = $root.proto.Message.InvoiceMessage.decode(r, r.uint32(), $undefined, q + 1, m.invoiceMessage);
+                        m.invoiceMessage = $root.proto.Message.InvoiceMessage.decode(r, r.size(), $undefined, q + 1, m.invoiceMessage);
                         m._invoiceMessage = "invoiceMessage";
                         continue;
                     }
                 case 42: {
                         if (u !== 2)
                             break;
-                        m.buttonsMessage = $root.proto.Message.ButtonsMessage.decode(r, r.uint32(), $undefined, q + 1, m.buttonsMessage);
+                        m.buttonsMessage = $root.proto.Message.ButtonsMessage.decode(r, r.size(), $undefined, q + 1, m.buttonsMessage);
                         m._buttonsMessage = "buttonsMessage";
                         continue;
                     }
                 case 43: {
                         if (u !== 2)
                             break;
-                        m.buttonsResponseMessage = $root.proto.Message.ButtonsResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.buttonsResponseMessage);
+                        m.buttonsResponseMessage = $root.proto.Message.ButtonsResponseMessage.decode(r, r.size(), $undefined, q + 1, m.buttonsResponseMessage);
                         m._buttonsResponseMessage = "buttonsResponseMessage";
                         continue;
                     }
                 case 44: {
                         if (u !== 2)
                             break;
-                        m.paymentInviteMessage = $root.proto.Message.PaymentInviteMessage.decode(r, r.uint32(), $undefined, q + 1, m.paymentInviteMessage);
+                        m.paymentInviteMessage = $root.proto.Message.PaymentInviteMessage.decode(r, r.size(), $undefined, q + 1, m.paymentInviteMessage);
                         m._paymentInviteMessage = "paymentInviteMessage";
                         continue;
                     }
                 case 45: {
                         if (u !== 2)
                             break;
-                        m.interactiveMessage = $root.proto.Message.InteractiveMessage.decode(r, r.uint32(), $undefined, q + 1, m.interactiveMessage);
+                        m.interactiveMessage = $root.proto.Message.InteractiveMessage.decode(r, r.size(), $undefined, q + 1, m.interactiveMessage);
                         m._interactiveMessage = "interactiveMessage";
                         continue;
                     }
                 case 46: {
                         if (u !== 2)
                             break;
-                        m.reactionMessage = $root.proto.Message.ReactionMessage.decode(r, r.uint32(), $undefined, q + 1, m.reactionMessage);
+                        m.reactionMessage = $root.proto.Message.ReactionMessage.decode(r, r.size(), $undefined, q + 1, m.reactionMessage);
                         m._reactionMessage = "reactionMessage";
                         continue;
                     }
                 case 47: {
                         if (u !== 2)
                             break;
-                        m.stickerSyncRmrMessage = $root.proto.Message.StickerSyncRMRMessage.decode(r, r.uint32(), $undefined, q + 1, m.stickerSyncRmrMessage);
+                        m.stickerSyncRmrMessage = $root.proto.Message.StickerSyncRMRMessage.decode(r, r.size(), $undefined, q + 1, m.stickerSyncRmrMessage);
                         m._stickerSyncRmrMessage = "stickerSyncRmrMessage";
                         continue;
                     }
                 case 48: {
                         if (u !== 2)
                             break;
-                        m.interactiveResponseMessage = $root.proto.Message.InteractiveResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.interactiveResponseMessage);
+                        m.interactiveResponseMessage = $root.proto.Message.InteractiveResponseMessage.decode(r, r.size(), $undefined, q + 1, m.interactiveResponseMessage);
                         m._interactiveResponseMessage = "interactiveResponseMessage";
                         continue;
                     }
                 case 49: {
                         if (u !== 2)
                             break;
-                        m.pollCreationMessage = $root.proto.Message.PollCreationMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessage);
+                        m.pollCreationMessage = $root.proto.Message.PollCreationMessage.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessage);
                         m._pollCreationMessage = "pollCreationMessage";
                         continue;
                     }
                 case 50: {
                         if (u !== 2)
                             break;
-                        m.pollUpdateMessage = $root.proto.Message.PollUpdateMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollUpdateMessage);
+                        m.pollUpdateMessage = $root.proto.Message.PollUpdateMessage.decode(r, r.size(), $undefined, q + 1, m.pollUpdateMessage);
                         m._pollUpdateMessage = "pollUpdateMessage";
                         continue;
                     }
                 case 51: {
                         if (u !== 2)
                             break;
-                        m.keepInChatMessage = $root.proto.Message.KeepInChatMessage.decode(r, r.uint32(), $undefined, q + 1, m.keepInChatMessage);
+                        m.keepInChatMessage = $root.proto.Message.KeepInChatMessage.decode(r, r.size(), $undefined, q + 1, m.keepInChatMessage);
                         m._keepInChatMessage = "keepInChatMessage";
                         continue;
                     }
                 case 53: {
                         if (u !== 2)
                             break;
-                        m.documentWithCaptionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.documentWithCaptionMessage);
+                        m.documentWithCaptionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.documentWithCaptionMessage);
                         m._documentWithCaptionMessage = "documentWithCaptionMessage";
                         continue;
                     }
                 case 54: {
                         if (u !== 2)
                             break;
-                        m.requestPhoneNumberMessage = $root.proto.Message.RequestPhoneNumberMessage.decode(r, r.uint32(), $undefined, q + 1, m.requestPhoneNumberMessage);
+                        m.requestPhoneNumberMessage = $root.proto.Message.RequestPhoneNumberMessage.decode(r, r.size(), $undefined, q + 1, m.requestPhoneNumberMessage);
                         m._requestPhoneNumberMessage = "requestPhoneNumberMessage";
                         continue;
                     }
                 case 55: {
                         if (u !== 2)
                             break;
-                        m.viewOnceMessageV2 = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.viewOnceMessageV2);
+                        m.viewOnceMessageV2 = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.viewOnceMessageV2);
                         m._viewOnceMessageV2 = "viewOnceMessageV2";
                         continue;
                     }
                 case 56: {
                         if (u !== 2)
                             break;
-                        m.encReactionMessage = $root.proto.Message.EncReactionMessage.decode(r, r.uint32(), $undefined, q + 1, m.encReactionMessage);
+                        m.encReactionMessage = $root.proto.Message.EncReactionMessage.decode(r, r.size(), $undefined, q + 1, m.encReactionMessage);
                         m._encReactionMessage = "encReactionMessage";
                         continue;
                     }
                 case 58: {
                         if (u !== 2)
                             break;
-                        m.editedMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.editedMessage);
+                        m.editedMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.editedMessage);
                         m._editedMessage = "editedMessage";
                         continue;
                     }
                 case 59: {
                         if (u !== 2)
                             break;
-                        m.viewOnceMessageV2Extension = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.viewOnceMessageV2Extension);
+                        m.viewOnceMessageV2Extension = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.viewOnceMessageV2Extension);
                         m._viewOnceMessageV2Extension = "viewOnceMessageV2Extension";
                         continue;
                     }
                 case 60: {
                         if (u !== 2)
                             break;
-                        m.pollCreationMessageV2 = $root.proto.Message.PollCreationMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessageV2);
+                        m.pollCreationMessageV2 = $root.proto.Message.PollCreationMessage.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessageV2);
                         m._pollCreationMessageV2 = "pollCreationMessageV2";
                         continue;
                     }
                 case 61: {
                         if (u !== 2)
                             break;
-                        m.scheduledCallCreationMessage = $root.proto.Message.ScheduledCallCreationMessage.decode(r, r.uint32(), $undefined, q + 1, m.scheduledCallCreationMessage);
+                        m.scheduledCallCreationMessage = $root.proto.Message.ScheduledCallCreationMessage.decode(r, r.size(), $undefined, q + 1, m.scheduledCallCreationMessage);
                         m._scheduledCallCreationMessage = "scheduledCallCreationMessage";
                         continue;
                     }
                 case 62: {
                         if (u !== 2)
                             break;
-                        m.groupMentionedMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.groupMentionedMessage);
+                        m.groupMentionedMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.groupMentionedMessage);
                         m._groupMentionedMessage = "groupMentionedMessage";
                         continue;
                     }
                 case 63: {
                         if (u !== 2)
                             break;
-                        m.pinInChatMessage = $root.proto.Message.PinInChatMessage.decode(r, r.uint32(), $undefined, q + 1, m.pinInChatMessage);
+                        m.pinInChatMessage = $root.proto.Message.PinInChatMessage.decode(r, r.size(), $undefined, q + 1, m.pinInChatMessage);
                         m._pinInChatMessage = "pinInChatMessage";
                         continue;
                     }
                 case 64: {
                         if (u !== 2)
                             break;
-                        m.pollCreationMessageV3 = $root.proto.Message.PollCreationMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessageV3);
+                        m.pollCreationMessageV3 = $root.proto.Message.PollCreationMessage.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessageV3);
                         m._pollCreationMessageV3 = "pollCreationMessageV3";
                         continue;
                     }
                 case 65: {
                         if (u !== 2)
                             break;
-                        m.scheduledCallEditMessage = $root.proto.Message.ScheduledCallEditMessage.decode(r, r.uint32(), $undefined, q + 1, m.scheduledCallEditMessage);
+                        m.scheduledCallEditMessage = $root.proto.Message.ScheduledCallEditMessage.decode(r, r.size(), $undefined, q + 1, m.scheduledCallEditMessage);
                         m._scheduledCallEditMessage = "scheduledCallEditMessage";
                         continue;
                     }
                 case 66: {
                         if (u !== 2)
                             break;
-                        m.ptvMessage = $root.proto.Message.VideoMessage.decode(r, r.uint32(), $undefined, q + 1, m.ptvMessage);
+                        m.ptvMessage = $root.proto.Message.VideoMessage.decode(r, r.size(), $undefined, q + 1, m.ptvMessage);
                         m._ptvMessage = "ptvMessage";
                         continue;
                     }
                 case 67: {
                         if (u !== 2)
                             break;
-                        m.botInvokeMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.botInvokeMessage);
+                        m.botInvokeMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.botInvokeMessage);
                         m._botInvokeMessage = "botInvokeMessage";
                         continue;
                     }
                 case 69: {
                         if (u !== 2)
                             break;
-                        m.callLogMesssage = $root.proto.Message.CallLogMessage.decode(r, r.uint32(), $undefined, q + 1, m.callLogMesssage);
+                        m.callLogMesssage = $root.proto.Message.CallLogMessage.decode(r, r.size(), $undefined, q + 1, m.callLogMesssage);
                         m._callLogMesssage = "callLogMesssage";
                         continue;
                     }
                 case 70: {
                         if (u !== 2)
                             break;
-                        m.messageHistoryBundle = $root.proto.Message.MessageHistoryBundle.decode(r, r.uint32(), $undefined, q + 1, m.messageHistoryBundle);
+                        m.messageHistoryBundle = $root.proto.Message.MessageHistoryBundle.decode(r, r.size(), $undefined, q + 1, m.messageHistoryBundle);
                         m._messageHistoryBundle = "messageHistoryBundle";
                         continue;
                     }
                 case 71: {
                         if (u !== 2)
                             break;
-                        m.encCommentMessage = $root.proto.Message.EncCommentMessage.decode(r, r.uint32(), $undefined, q + 1, m.encCommentMessage);
+                        m.encCommentMessage = $root.proto.Message.EncCommentMessage.decode(r, r.size(), $undefined, q + 1, m.encCommentMessage);
                         m._encCommentMessage = "encCommentMessage";
                         continue;
                     }
                 case 72: {
                         if (u !== 2)
                             break;
-                        m.bcallMessage = $root.proto.Message.BCallMessage.decode(r, r.uint32(), $undefined, q + 1, m.bcallMessage);
+                        m.bcallMessage = $root.proto.Message.BCallMessage.decode(r, r.size(), $undefined, q + 1, m.bcallMessage);
                         m._bcallMessage = "bcallMessage";
                         continue;
                     }
                 case 74: {
                         if (u !== 2)
                             break;
-                        m.lottieStickerMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.lottieStickerMessage);
+                        m.lottieStickerMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.lottieStickerMessage);
                         m._lottieStickerMessage = "lottieStickerMessage";
                         continue;
                     }
                 case 75: {
                         if (u !== 2)
                             break;
-                        m.eventMessage = $root.proto.Message.EventMessage.decode(r, r.uint32(), $undefined, q + 1, m.eventMessage);
+                        m.eventMessage = $root.proto.Message.EventMessage.decode(r, r.size(), $undefined, q + 1, m.eventMessage);
                         m._eventMessage = "eventMessage";
                         continue;
                     }
                 case 76: {
                         if (u !== 2)
                             break;
-                        m.encEventResponseMessage = $root.proto.Message.EncEventResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.encEventResponseMessage);
+                        m.encEventResponseMessage = $root.proto.Message.EncEventResponseMessage.decode(r, r.size(), $undefined, q + 1, m.encEventResponseMessage);
                         m._encEventResponseMessage = "encEventResponseMessage";
                         continue;
                     }
                 case 77: {
                         if (u !== 2)
                             break;
-                        m.commentMessage = $root.proto.Message.CommentMessage.decode(r, r.uint32(), $undefined, q + 1, m.commentMessage);
+                        m.commentMessage = $root.proto.Message.CommentMessage.decode(r, r.size(), $undefined, q + 1, m.commentMessage);
                         m._commentMessage = "commentMessage";
                         continue;
                     }
                 case 78: {
                         if (u !== 2)
                             break;
-                        m.newsletterAdminInviteMessage = $root.proto.Message.NewsletterAdminInviteMessage.decode(r, r.uint32(), $undefined, q + 1, m.newsletterAdminInviteMessage);
+                        m.newsletterAdminInviteMessage = $root.proto.Message.NewsletterAdminInviteMessage.decode(r, r.size(), $undefined, q + 1, m.newsletterAdminInviteMessage);
                         m._newsletterAdminInviteMessage = "newsletterAdminInviteMessage";
                         continue;
                     }
                 case 80: {
                         if (u !== 2)
                             break;
-                        m.placeholderMessage = $root.proto.Message.PlaceholderMessage.decode(r, r.uint32(), $undefined, q + 1, m.placeholderMessage);
+                        m.placeholderMessage = $root.proto.Message.PlaceholderMessage.decode(r, r.size(), $undefined, q + 1, m.placeholderMessage);
                         m._placeholderMessage = "placeholderMessage";
                         continue;
                     }
                 case 82: {
                         if (u !== 2)
                             break;
-                        m.secretEncryptedMessage = $root.proto.Message.SecretEncryptedMessage.decode(r, r.uint32(), $undefined, q + 1, m.secretEncryptedMessage);
+                        m.secretEncryptedMessage = $root.proto.Message.SecretEncryptedMessage.decode(r, r.size(), $undefined, q + 1, m.secretEncryptedMessage);
                         m._secretEncryptedMessage = "secretEncryptedMessage";
                         continue;
                     }
                 case 83: {
                         if (u !== 2)
                             break;
-                        m.albumMessage = $root.proto.Message.AlbumMessage.decode(r, r.uint32(), $undefined, q + 1, m.albumMessage);
+                        m.albumMessage = $root.proto.Message.AlbumMessage.decode(r, r.size(), $undefined, q + 1, m.albumMessage);
                         m._albumMessage = "albumMessage";
                         continue;
                     }
                 case 85: {
                         if (u !== 2)
                             break;
-                        m.eventCoverImage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.eventCoverImage);
+                        m.eventCoverImage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.eventCoverImage);
                         m._eventCoverImage = "eventCoverImage";
                         continue;
                     }
                 case 86: {
                         if (u !== 2)
                             break;
-                        m.stickerPackMessage = $root.proto.Message.StickerPackMessage.decode(r, r.uint32(), $undefined, q + 1, m.stickerPackMessage);
+                        m.stickerPackMessage = $root.proto.Message.StickerPackMessage.decode(r, r.size(), $undefined, q + 1, m.stickerPackMessage);
                         m._stickerPackMessage = "stickerPackMessage";
                         continue;
                     }
                 case 87: {
                         if (u !== 2)
                             break;
-                        m.statusMentionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.statusMentionMessage);
+                        m.statusMentionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.statusMentionMessage);
                         m._statusMentionMessage = "statusMentionMessage";
                         continue;
                     }
                 case 88: {
                         if (u !== 2)
                             break;
-                        m.pollResultSnapshotMessage = $root.proto.Message.PollResultSnapshotMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollResultSnapshotMessage);
+                        m.pollResultSnapshotMessage = $root.proto.Message.PollResultSnapshotMessage.decode(r, r.size(), $undefined, q + 1, m.pollResultSnapshotMessage);
                         m._pollResultSnapshotMessage = "pollResultSnapshotMessage";
                         continue;
                     }
                 case 90: {
                         if (u !== 2)
                             break;
-                        m.pollCreationOptionImageMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationOptionImageMessage);
+                        m.pollCreationOptionImageMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.pollCreationOptionImageMessage);
                         m._pollCreationOptionImageMessage = "pollCreationOptionImageMessage";
                         continue;
                     }
                 case 91: {
                         if (u !== 2)
                             break;
-                        m.associatedChildMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.associatedChildMessage);
+                        m.associatedChildMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.associatedChildMessage);
                         m._associatedChildMessage = "associatedChildMessage";
                         continue;
                     }
                 case 92: {
                         if (u !== 2)
                             break;
-                        m.groupStatusMentionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.groupStatusMentionMessage);
+                        m.groupStatusMentionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.groupStatusMentionMessage);
                         m._groupStatusMentionMessage = "groupStatusMentionMessage";
                         continue;
                     }
                 case 93: {
                         if (u !== 2)
                             break;
-                        m.pollCreationMessageV4 = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessageV4);
+                        m.pollCreationMessageV4 = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessageV4);
                         m._pollCreationMessageV4 = "pollCreationMessageV4";
                         continue;
                     }
                 case 95: {
                         if (u !== 2)
                             break;
-                        m.statusAddYours = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.statusAddYours);
+                        m.statusAddYours = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.statusAddYours);
                         m._statusAddYours = "statusAddYours";
                         continue;
                     }
                 case 96: {
                         if (u !== 2)
                             break;
-                        m.groupStatusMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.groupStatusMessage);
+                        m.groupStatusMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.groupStatusMessage);
                         m._groupStatusMessage = "groupStatusMessage";
                         continue;
                     }
                 case 97: {
                         if (u !== 2)
                             break;
-                        m.richResponseMessage = $root.proto.AIRichResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.richResponseMessage);
+                        m.richResponseMessage = $root.proto.AIRichResponseMessage.decode(r, r.size(), $undefined, q + 1, m.richResponseMessage);
                         m._richResponseMessage = "richResponseMessage";
                         continue;
                     }
                 case 98: {
                         if (u !== 2)
                             break;
-                        m.statusNotificationMessage = $root.proto.Message.StatusNotificationMessage.decode(r, r.uint32(), $undefined, q + 1, m.statusNotificationMessage);
+                        m.statusNotificationMessage = $root.proto.Message.StatusNotificationMessage.decode(r, r.size(), $undefined, q + 1, m.statusNotificationMessage);
                         m._statusNotificationMessage = "statusNotificationMessage";
                         continue;
                     }
                 case 99: {
                         if (u !== 2)
                             break;
-                        m.limitSharingMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.limitSharingMessage);
+                        m.limitSharingMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.limitSharingMessage);
                         m._limitSharingMessage = "limitSharingMessage";
                         continue;
                     }
                 case 100: {
                         if (u !== 2)
                             break;
-                        m.botTaskMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.botTaskMessage);
+                        m.botTaskMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.botTaskMessage);
                         m._botTaskMessage = "botTaskMessage";
                         continue;
                     }
                 case 101: {
                         if (u !== 2)
                             break;
-                        m.questionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.questionMessage);
+                        m.questionMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.questionMessage);
                         m._questionMessage = "questionMessage";
                         continue;
                     }
                 case 102: {
                         if (u !== 2)
                             break;
-                        m.messageHistoryNotice = $root.proto.Message.MessageHistoryNotice.decode(r, r.uint32(), $undefined, q + 1, m.messageHistoryNotice);
+                        m.messageHistoryNotice = $root.proto.Message.MessageHistoryNotice.decode(r, r.size(), $undefined, q + 1, m.messageHistoryNotice);
                         m._messageHistoryNotice = "messageHistoryNotice";
                         continue;
                     }
                 case 103: {
                         if (u !== 2)
                             break;
-                        m.groupStatusMessageV2 = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.groupStatusMessageV2);
+                        m.groupStatusMessageV2 = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.groupStatusMessageV2);
                         m._groupStatusMessageV2 = "groupStatusMessageV2";
                         continue;
                     }
                 case 104: {
                         if (u !== 2)
                             break;
-                        m.botForwardedMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.botForwardedMessage);
+                        m.botForwardedMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.botForwardedMessage);
                         m._botForwardedMessage = "botForwardedMessage";
                         continue;
                     }
                 case 105: {
                         if (u !== 2)
                             break;
-                        m.statusQuestionAnswerMessage = $root.proto.Message.StatusQuestionAnswerMessage.decode(r, r.uint32(), $undefined, q + 1, m.statusQuestionAnswerMessage);
+                        m.statusQuestionAnswerMessage = $root.proto.Message.StatusQuestionAnswerMessage.decode(r, r.size(), $undefined, q + 1, m.statusQuestionAnswerMessage);
                         m._statusQuestionAnswerMessage = "statusQuestionAnswerMessage";
                         continue;
                     }
                 case 106: {
                         if (u !== 2)
                             break;
-                        m.questionReplyMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.questionReplyMessage);
+                        m.questionReplyMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.questionReplyMessage);
                         m._questionReplyMessage = "questionReplyMessage";
                         continue;
                     }
                 case 107: {
                         if (u !== 2)
                             break;
-                        m.questionResponseMessage = $root.proto.Message.QuestionResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.questionResponseMessage);
+                        m.questionResponseMessage = $root.proto.Message.QuestionResponseMessage.decode(r, r.size(), $undefined, q + 1, m.questionResponseMessage);
                         m._questionResponseMessage = "questionResponseMessage";
                         continue;
                     }
                 case 109: {
                         if (u !== 2)
                             break;
-                        m.statusQuotedMessage = $root.proto.Message.StatusQuotedMessage.decode(r, r.uint32(), $undefined, q + 1, m.statusQuotedMessage);
+                        m.statusQuotedMessage = $root.proto.Message.StatusQuotedMessage.decode(r, r.size(), $undefined, q + 1, m.statusQuotedMessage);
                         m._statusQuotedMessage = "statusQuotedMessage";
                         continue;
                     }
                 case 110: {
                         if (u !== 2)
                             break;
-                        m.statusStickerInteractionMessage = $root.proto.Message.StatusStickerInteractionMessage.decode(r, r.uint32(), $undefined, q + 1, m.statusStickerInteractionMessage);
+                        m.statusStickerInteractionMessage = $root.proto.Message.StatusStickerInteractionMessage.decode(r, r.size(), $undefined, q + 1, m.statusStickerInteractionMessage);
                         m._statusStickerInteractionMessage = "statusStickerInteractionMessage";
                         continue;
                     }
                 case 111: {
                         if (u !== 2)
                             break;
-                        m.pollCreationMessageV5 = $root.proto.Message.PollCreationMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessageV5);
+                        m.pollCreationMessageV5 = $root.proto.Message.PollCreationMessage.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessageV5);
                         m._pollCreationMessageV5 = "pollCreationMessageV5";
                         continue;
                     }
                 case 113: {
                         if (u !== 2)
                             break;
-                        m.newsletterFollowerInviteMessageV2 = $root.proto.Message.NewsletterFollowerInviteMessage.decode(r, r.uint32(), $undefined, q + 1, m.newsletterFollowerInviteMessageV2);
+                        m.newsletterFollowerInviteMessageV2 = $root.proto.Message.NewsletterFollowerInviteMessage.decode(r, r.size(), $undefined, q + 1, m.newsletterFollowerInviteMessageV2);
                         m._newsletterFollowerInviteMessageV2 = "newsletterFollowerInviteMessageV2";
                         continue;
                     }
                 case 114: {
                         if (u !== 2)
                             break;
-                        m.pollResultSnapshotMessageV3 = $root.proto.Message.PollResultSnapshotMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollResultSnapshotMessageV3);
+                        m.pollResultSnapshotMessageV3 = $root.proto.Message.PollResultSnapshotMessage.decode(r, r.size(), $undefined, q + 1, m.pollResultSnapshotMessageV3);
                         m._pollResultSnapshotMessageV3 = "pollResultSnapshotMessageV3";
                         continue;
                     }
                 case 119: {
                         if (u !== 2)
                             break;
-                        m.pollCreationMessageV6 = $root.proto.Message.PollCreationMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessageV6);
+                        m.pollCreationMessageV6 = $root.proto.Message.PollCreationMessage.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessageV6);
                         m._pollCreationMessageV6 = "pollCreationMessageV6";
                         continue;
                     }
                 case 108: {
                         if (u !== 2)
                             break;
-                        m.newsletterFollowerInviteMessage = $root.proto.Message.NewsletterFollowerInviteMessage.decode(r, r.uint32(), $undefined, q + 1, m.newsletterFollowerInviteMessage);
+                        m.newsletterFollowerInviteMessage = $root.proto.Message.NewsletterFollowerInviteMessage.decode(r, r.size(), $undefined, q + 1, m.newsletterFollowerInviteMessage);
                         m._newsletterFollowerInviteMessage = "newsletterFollowerInviteMessage";
                         continue;
                     }
                 case 132: {
                         if (u !== 2)
                             break;
-                        m.newsletterScheduledMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.newsletterScheduledMessage);
+                        m.newsletterScheduledMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.newsletterScheduledMessage);
                         m._newsletterScheduledMessage = "newsletterScheduledMessage";
                         continue;
                     }
                 case 133: {
                         if (u !== 2)
                             break;
-                        m.acp2SettingMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.acp2SettingMessage);
+                        m.acp2SettingMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.acp2SettingMessage);
                         m._acp2SettingMessage = "acp2SettingMessage";
                         continue;
                     }
                 case 134: {
                         if (u !== 2)
                             break;
-                        m.audioStickerMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.audioStickerMessage);
+                        m.audioStickerMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.audioStickerMessage);
                         m._audioStickerMessage = "audioStickerMessage";
                         continue;
                     }
                 case 137: {
                         if (u !== 2)
                             break;
-                        m.botGroupParticipantMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.botGroupParticipantMessage);
+                        m.botGroupParticipantMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.botGroupParticipantMessage);
                         m._botGroupParticipantMessage = "botGroupParticipantMessage";
                         continue;
                     }
                 case 116: {
                         if (u !== 2)
                             break;
-                        m.newsletterAdminProfileMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.newsletterAdminProfileMessage);
+                        m.newsletterAdminProfileMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.newsletterAdminProfileMessage);
                         m._newsletterAdminProfileMessage = "newsletterAdminProfileMessage";
                         continue;
                     }
                 case 117: {
                         if (u !== 2)
                             break;
-                        m.newsletterAdminProfileMessageV2 = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.newsletterAdminProfileMessageV2);
+                        m.newsletterAdminProfileMessageV2 = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.newsletterAdminProfileMessageV2);
                         m._newsletterAdminProfileMessageV2 = "newsletterAdminProfileMessageV2";
                         continue;
                     }
                 case 118: {
                         if (u !== 2)
                             break;
-                        m.spoilerMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.spoilerMessage);
+                        m.spoilerMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.spoilerMessage);
                         m._spoilerMessage = "spoilerMessage";
                         continue;
                     }
                 case 120: {
                         if (u !== 2)
                             break;
-                        m.conditionalRevealMessage = $root.proto.ConditionalRevealMessage.decode(r, r.uint32(), $undefined, q + 1, m.conditionalRevealMessage);
+                        m.conditionalRevealMessage = $root.proto.ConditionalRevealMessage.decode(r, r.size(), $undefined, q + 1, m.conditionalRevealMessage);
                         m._conditionalRevealMessage = "conditionalRevealMessage";
                         continue;
                     }
                 case 121: {
                         if (u !== 2)
                             break;
-                        m.pollAddOptionMessage = $root.proto.PollAddOptionMessage.decode(r, r.uint32(), $undefined, q + 1, m.pollAddOptionMessage);
+                        m.pollAddOptionMessage = $root.proto.PollAddOptionMessage.decode(r, r.size(), $undefined, q + 1, m.pollAddOptionMessage);
                         m._pollAddOptionMessage = "pollAddOptionMessage";
                         continue;
                     }
                 case 122: {
                         if (u !== 2)
                             break;
-                        m.eventInviteMessage = $root.proto.EventInviteMessage.decode(r, r.uint32(), $undefined, q + 1, m.eventInviteMessage);
+                        m.eventInviteMessage = $root.proto.EventInviteMessage.decode(r, r.size(), $undefined, q + 1, m.eventInviteMessage);
                         m._eventInviteMessage = "eventInviteMessage";
                         continue;
                     }
                 case 123: {
                         if (u !== 2)
                             break;
-                        m.groupRootKeyShare = $root.proto.GroupRootKeyShare.decode(r, r.uint32(), $undefined, q + 1, m.groupRootKeyShare);
+                        m.groupRootKeyShare = $root.proto.GroupRootKeyShare.decode(r, r.size(), $undefined, q + 1, m.groupRootKeyShare);
                         m._groupRootKeyShare = "groupRootKeyShare";
                         continue;
                     }
                 case 124: {
                         if (u !== 2)
                             break;
-                        m.paymentReminderMessage = $root.proto.PaymentReminderMessage.decode(r, r.uint32(), $undefined, q + 1, m.paymentReminderMessage);
+                        m.paymentReminderMessage = $root.proto.PaymentReminderMessage.decode(r, r.size(), $undefined, q + 1, m.paymentReminderMessage);
                         m._paymentReminderMessage = "paymentReminderMessage";
                         continue;
                     }
                 case 125: {
                         if (u !== 2)
                             break;
-                        m.splitPaymentMessage = $root.proto.SplitPaymentMessage.decode(r, r.uint32(), $undefined, q + 1, m.splitPaymentMessage);
+                        m.splitPaymentMessage = $root.proto.SplitPaymentMessage.decode(r, r.size(), $undefined, q + 1, m.splitPaymentMessage);
                         m._splitPaymentMessage = "splitPaymentMessage";
                         continue;
                     }
                 case 126: {
                         if (u !== 2)
                             break;
-                        m.newsletterAdminProfileStatusMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.newsletterAdminProfileStatusMessage);
+                        m.newsletterAdminProfileStatusMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.newsletterAdminProfileStatusMessage);
                         m._newsletterAdminProfileStatusMessage = "newsletterAdminProfileStatusMessage";
                         continue;
                     }
                 case 127: {
                         if (u !== 2)
                             break;
-                        m.rootSecretDistributeMessage = $root.proto.RootSecretDistributeMessage.decode(r, r.uint32(), $undefined, q + 1, m.rootSecretDistributeMessage);
+                        m.rootSecretDistributeMessage = $root.proto.RootSecretDistributeMessage.decode(r, r.size(), $undefined, q + 1, m.rootSecretDistributeMessage);
                         m._rootSecretDistributeMessage = "rootSecretDistributeMessage";
                         continue;
                     }
                 case 128: {
                         if (u !== 2)
                             break;
-                        m.splitPaymentUpdateMessage = $root.proto.SplitPaymentUpdateMessage.decode(r, r.uint32(), $undefined, q + 1, m.splitPaymentUpdateMessage);
+                        m.splitPaymentUpdateMessage = $root.proto.SplitPaymentUpdateMessage.decode(r, r.size(), $undefined, q + 1, m.splitPaymentUpdateMessage);
                         m._splitPaymentUpdateMessage = "splitPaymentUpdateMessage";
                         continue;
                     }
                 case 129: {
                         if (u !== 2)
                             break;
-                        m.musicMessage = $root.proto.Message.MusicMessage.decode(r, r.uint32(), $undefined, q + 1, m.musicMessage);
+                        m.musicMessage = $root.proto.Message.MusicMessage.decode(r, r.size(), $undefined, q + 1, m.musicMessage);
                         m._musicMessage = "musicMessage";
                         continue;
                     }
                 case 130: {
                         if (u !== 2)
                             break;
-                        m.statusLinkPreviewMetadata = $root.proto.Message.StatusLinkPreviewMetadata.decode(r, r.uint32(), $undefined, q + 1, m.statusLinkPreviewMetadata);
+                        m.statusLinkPreviewMetadata = $root.proto.Message.StatusLinkPreviewMetadata.decode(r, r.size(), $undefined, q + 1, m.statusLinkPreviewMetadata);
                         m._statusLinkPreviewMetadata = "statusLinkPreviewMetadata";
                         continue;
                     }
                 case 131: {
                         if (u !== 2)
                             break;
-                        m.botPlatformRegistrationSuccessMessage = $root.proto.Message.FutureProofMessage.decode(r, r.uint32(), $undefined, q + 1, m.botPlatformRegistrationSuccessMessage);
+                        m.botPlatformRegistrationSuccessMessage = $root.proto.Message.FutureProofMessage.decode(r, r.size(), $undefined, q + 1, m.botPlatformRegistrationSuccessMessage);
                         m._botPlatformRegistrationSuccessMessage = "botPlatformRegistrationSuccessMessage";
                         continue;
                     }
                 case 135: {
                         if (u !== 2)
                             break;
-                        m.instantImageMessage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.instantImageMessage);
+                        m.instantImageMessage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.instantImageMessage);
                         m._instantImageMessage = "instantImageMessage";
                         continue;
                     }
                 case 136: {
                         if (u !== 2)
                             break;
-                        m.requestLocationMessage = $root.proto.Message.RequestLocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.requestLocationMessage);
+                        m.requestLocationMessage = $root.proto.Message.RequestLocationMessage.decode(r, r.size(), $undefined, q + 1, m.requestLocationMessage);
                         m._requestLocationMessage = "requestLocationMessage";
                         continue;
                     }
                 case 138: {
                         if (u !== 2)
                             break;
-                        m.requestLocationUpdateMessage = $root.proto.Message.RequestLocationUpdateMessage.decode(r, r.uint32(), $undefined, q + 1, m.requestLocationUpdateMessage);
+                        m.requestLocationUpdateMessage = $root.proto.Message.RequestLocationUpdateMessage.decode(r, r.size(), $undefined, q + 1, m.requestLocationUpdateMessage);
                         m._requestLocationUpdateMessage = "requestLocationUpdateMessage";
                         continue;
                     }
+                    case 139: {
+                            if (u !== 2)
+                                break;
+                            m.vpcRequestMessage = $root.proto.Message.VpcRequestMessage.decode(r, r.uint32());
+                            m._vpcRequestMessage = "vpcRequestMessage";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -50458,6 +51461,11 @@ export const proto = $root.proto = (() => {
                     throw $TypeError(".proto.Message.requestLocationUpdateMessage: object expected");
                 m.requestLocationUpdateMessage = $root.proto.Message.RequestLocationUpdateMessage.fromObject(d.requestLocationUpdateMessage, q + 1);
             }
+            if (d.vpcRequestMessage != null) {
+                if (typeof d.vpcRequestMessage !== "object")
+                    throw $TypeError(".proto.Message.vpcRequestMessage: object expected");
+                m.vpcRequestMessage = $root.proto.Message.VpcRequestMessage.fromObject(d.vpcRequestMessage, q + 1);
+            }
             return m;
         };
 
@@ -50814,17 +51822,20 @@ export const proto = $root.proto = (() => {
             if (m.audioStickerMessage != null && $Object.hasOwnProperty.call(m, "audioStickerMessage")) {
                 d.audioStickerMessage = $root.proto.Message.FutureProofMessage.toObject(m.audioStickerMessage, o, q + 1);
             }
-            if (m.botGroupParticipantMessage != null && $Object.hasOwnProperty.call(m, "botGroupParticipantMessage")) {
-                d.botGroupParticipantMessage = $root.proto.Message.FutureProofMessage.toObject(m.botGroupParticipantMessage, o, q + 1);
-            }
             if (m.instantImageMessage != null && $Object.hasOwnProperty.call(m, "instantImageMessage")) {
                 d.instantImageMessage = $root.proto.Message.ImageMessage.toObject(m.instantImageMessage, o, q + 1);
             }
             if (m.requestLocationMessage != null && $Object.hasOwnProperty.call(m, "requestLocationMessage")) {
                 d.requestLocationMessage = $root.proto.Message.RequestLocationMessage.toObject(m.requestLocationMessage, o, q + 1);
             }
+            if (m.botGroupParticipantMessage != null && $Object.hasOwnProperty.call(m, "botGroupParticipantMessage")) {
+                d.botGroupParticipantMessage = $root.proto.Message.FutureProofMessage.toObject(m.botGroupParticipantMessage, o, q + 1);
+            }
             if (m.requestLocationUpdateMessage != null && $Object.hasOwnProperty.call(m, "requestLocationUpdateMessage")) {
                 d.requestLocationUpdateMessage = $root.proto.Message.RequestLocationUpdateMessage.toObject(m.requestLocationUpdateMessage, o, q + 1);
+            }
+            if (m.vpcRequestMessage != null && $Object.hasOwnProperty.call(m, "vpcRequestMessage")) {
+                d.vpcRequestMessage = $root.proto.Message.VpcRequestMessage.toObject(m.vpcRequestMessage, o);
             }
             return d;
         };
@@ -50948,7 +51959,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -51291,14 +52302,14 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.keyId = $root.proto.Message.AppStateSyncKeyId.decode(r, r.uint32(), $undefined, q + 1, m.keyId);
+                            m.keyId = $root.proto.Message.AppStateSyncKeyId.decode(r, r.size(), $undefined, q + 1, m.keyId);
                             m._keyId = "keyId";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.keyData = $root.proto.Message.AppStateSyncKeyData.decode(r, r.uint32(), $undefined, q + 1, m.keyData);
+                            m.keyData = $root.proto.Message.AppStateSyncKeyData.decode(r, r.size(), $undefined, q + 1, m.keyData);
                             m._keyData = "keyData";
                             continue;
                         }
@@ -51465,7 +52476,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.fingerprint = $root.proto.Message.AppStateSyncKeyFingerprint.decode(r, r.uint32(), $undefined, q + 1, m.fingerprint);
+                            m.fingerprint = $root.proto.Message.AppStateSyncKeyFingerprint.decode(r, r.size(), $undefined, q + 1, m.fingerprint);
                             m._fingerprint = "fingerprint";
                             continue;
                         }
@@ -51955,7 +52966,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.keyIds && m.keyIds.length))
                                 m.keyIds = [];
-                            m.keyIds.push($root.proto.Message.AppStateSyncKeyId.decode(r, r.uint32(), $undefined, q + 1));
+                            m.keyIds.push($root.proto.Message.AppStateSyncKeyId.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -52096,7 +53107,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.keys && m.keys.length))
                                 m.keys = [];
-                            m.keys.push($root.proto.Message.AppStateSyncKey.decode(r, r.uint32(), $undefined, q + 1));
+                            m.keys.push($root.proto.Message.AppStateSyncKey.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -52454,7 +53465,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -53077,7 +54088,7 @@ export const proto = $root.proto = (() => {
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -53086,7 +54097,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.buttons && m.buttons.length))
                                 m.buttons = [];
-                            m.buttons.push($root.proto.Message.ButtonsMessage.Button.decode(r, r.uint32(), $undefined, q + 1));
+                            m.buttons.push($root.proto.Message.ButtonsMessage.Button.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 10: {
@@ -53106,28 +54117,28 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.uint32(), $undefined, q + 1, m.documentMessage);
+                            m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.size(), $undefined, q + 1, m.documentMessage);
                             m.header = "documentMessage";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.imageMessage);
+                            m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.imageMessage);
                             m.header = "imageMessage";
                             continue;
                         }
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.uint32(), $undefined, q + 1, m.videoMessage);
+                            m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.size(), $undefined, q + 1, m.videoMessage);
                             m.header = "videoMessage";
                             continue;
                         }
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.locationMessage);
+                            m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.size(), $undefined, q + 1, m.locationMessage);
                             m.header = "locationMessage";
                             continue;
                         }
@@ -53407,7 +54418,7 @@ export const proto = $root.proto = (() => {
                         case 2: {
                                 if (u !== 2)
                                     break;
-                                m.buttonText = $root.proto.Message.ButtonsMessage.Button.ButtonText.decode(r, r.uint32(), $undefined, q + 1, m.buttonText);
+                                m.buttonText = $root.proto.Message.ButtonsMessage.Button.ButtonText.decode(r, r.size(), $undefined, q + 1, m.buttonText);
                                 m._buttonText = "buttonText";
                                 continue;
                             }
@@ -53421,7 +54432,7 @@ export const proto = $root.proto = (() => {
                         case 4: {
                                 if (u !== 2)
                                     break;
-                                m.nativeFlowInfo = $root.proto.Message.ButtonsMessage.Button.NativeFlowInfo.decode(r, r.uint32(), $undefined, q + 1, m.nativeFlowInfo);
+                                m.nativeFlowInfo = $root.proto.Message.ButtonsMessage.Button.NativeFlowInfo.decode(r, r.size(), $undefined, q + 1, m.nativeFlowInfo);
                                 m._nativeFlowInfo = "nativeFlowInfo";
                                 continue;
                             }
@@ -53931,7 +54942,7 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -54257,7 +55268,7 @@ export const proto = $root.proto = (() => {
                     case 7: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -54278,7 +55289,7 @@ export const proto = $root.proto = (() => {
                     case 10: {
                             if (u !== 2)
                                 break;
-                            m.messageContextInfo = $root.proto.MessageContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.messageContextInfo);
+                            m.messageContextInfo = $root.proto.MessageContextInfo.decode(r, r.size(), $undefined, q + 1, m.messageContextInfo);
                             m._messageContextInfo = "messageContextInfo";
                             continue;
                         }
@@ -54566,7 +55577,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.participants && m.participants.length))
                                 m.participants = [];
-                            m.participants.push($root.proto.Message.CallLogMessage.CallParticipant.decode(r, r.uint32(), $undefined, q + 1));
+                            m.participants.push($root.proto.Message.CallLogMessage.CallParticipant.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -55003,7 +56014,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -55364,7 +56375,7 @@ export const proto = $root.proto = (() => {
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.notificationContent = $root.proto.Message.CloudAPIThreadControlNotification.CloudAPIThreadControlNotificationContent.decode(r, r.uint32(), $undefined, q + 1, m.notificationContent);
+                            m.notificationContent = $root.proto.Message.CloudAPIThreadControlNotification.CloudAPIThreadControlNotificationContent.decode(r, r.size(), $undefined, q + 1, m.notificationContent);
                             m._notificationContent = "notificationContent";
                             continue;
                         }
@@ -55737,14 +56748,14 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.message = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                            m.message = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.message);
                             m._message = "message";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.targetMessageKey);
+                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.targetMessageKey);
                             m._targetMessageKey = "targetMessageKey";
                             continue;
                         }
@@ -55927,7 +56938,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -56110,13 +57121,13 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.contacts && m.contacts.length))
                                 m.contacts = [];
-                            m.contacts.push($root.proto.Message.ContactMessage.decode(r, r.uint32(), $undefined, q + 1));
+                            m.contacts.push($root.proto.Message.ContactMessage.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -56275,7 +57286,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -56434,7 +57445,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.message = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                            m.message = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.message);
                             m._message = "message";
                             continue;
                         }
@@ -56888,7 +57899,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -57265,7 +58276,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.targetMessageKey);
+                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.targetMessageKey);
                             m._targetMessageKey = "targetMessageKey";
                             continue;
                         }
@@ -57449,7 +58460,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.eventCreationMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.eventCreationMessageKey);
+                            m.eventCreationMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.eventCreationMessageKey);
                             m._eventCreationMessageKey = "eventCreationMessageKey";
                             continue;
                         }
@@ -57633,7 +58644,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.targetMessageKey);
+                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.targetMessageKey);
                             m._targetMessageKey = "targetMessageKey";
                             continue;
                         }
@@ -57898,7 +58909,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -57926,7 +58937,7 @@ export const proto = $root.proto = (() => {
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.location = $root.proto.Message.LocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.location);
+                            m.location = $root.proto.Message.LocationMessage.decode(r, r.size(), $undefined, q + 1, m.location);
                             m._location = "location";
                             continue;
                         }
@@ -58767,7 +59778,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -58879,21 +59890,21 @@ export const proto = $root.proto = (() => {
                     case 33: {
                             if (u !== 2)
                                 break;
-                            m.faviconMMSMetadata = $root.proto.Message.MMSThumbnailMetadata.decode(r, r.uint32(), $undefined, q + 1, m.faviconMMSMetadata);
+                            m.faviconMMSMetadata = $root.proto.Message.MMSThumbnailMetadata.decode(r, r.size(), $undefined, q + 1, m.faviconMMSMetadata);
                             m._faviconMMSMetadata = "faviconMMSMetadata";
                             continue;
                         }
                     case 34: {
                             if (u !== 2)
                                 break;
-                            m.linkPreviewMetadata = $root.proto.Message.LinkPreviewMetadata.decode(r, r.uint32(), $undefined, q + 1, m.linkPreviewMetadata);
+                            m.linkPreviewMetadata = $root.proto.Message.LinkPreviewMetadata.decode(r, r.size(), $undefined, q + 1, m.linkPreviewMetadata);
                             m._linkPreviewMetadata = "linkPreviewMetadata";
                             continue;
                         }
                     case 35: {
                             if (u !== 2)
                                 break;
-                            m.paymentLinkMetadata = $root.proto.Message.PaymentLinkMetadata.decode(r, r.uint32(), $undefined, q + 1, m.paymentLinkMetadata);
+                            m.paymentLinkMetadata = $root.proto.Message.PaymentLinkMetadata.decode(r, r.size(), $undefined, q + 1, m.paymentLinkMetadata);
                             m._paymentLinkMetadata = "paymentLinkMetadata";
                             continue;
                         }
@@ -58902,7 +59913,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.endCardTiles && m.endCardTiles.length))
                                 m.endCardTiles = [];
-                            m.endCardTiles.push($root.proto.Message.VideoEndCard.decode(r, r.uint32(), $undefined, q + 1));
+                            m.endCardTiles.push($root.proto.Message.VideoEndCard.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 37: {
@@ -58915,14 +59926,14 @@ export const proto = $root.proto = (() => {
                     case 38: {
                             if (u !== 2)
                                 break;
-                            m.musicMetadata = $root.proto.EmbeddedMusic.decode(r, r.uint32(), $undefined, q + 1, m.musicMetadata);
+                            m.musicMetadata = $root.proto.EmbeddedMusic.decode(r, r.size(), $undefined, q + 1, m.musicMetadata);
                             m._musicMetadata = "musicMetadata";
                             continue;
                         }
                     case 39: {
                             if (u !== 2)
                                 break;
-                            m.paymentExtendedMetadata = $root.proto.Message.PaymentExtendedMetadata.decode(r, r.uint32(), $undefined, q + 1, m.paymentExtendedMetadata);
+                            m.paymentExtendedMetadata = $root.proto.Message.PaymentExtendedMetadata.decode(r, r.size(), $undefined, q + 1, m.paymentExtendedMetadata);
                             m._paymentExtendedMetadata = "paymentExtendedMetadata";
                             continue;
                         }
@@ -59365,6 +60376,7 @@ export const proto = $root.proto = (() => {
             FullHistorySyncOnDemandRequestMetadata.prototype.requestId = null;
             FullHistorySyncOnDemandRequestMetadata.prototype.businessProduct = null;
             FullHistorySyncOnDemandRequestMetadata.prototype.opaqueClientData = null;
+            FullHistorySyncOnDemandRequestMetadata.prototype.connection = null;
 
             let $oneOfFields;
 
@@ -59386,6 +60398,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(FullHistorySyncOnDemandRequestMetadata.prototype, "_connection", {
+                get: $util.oneOfGetter($oneOfFields = ["connection"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             FullHistorySyncOnDemandRequestMetadata.create = function(properties) {
                 return new FullHistorySyncOnDemandRequestMetadata(properties);
             };
@@ -59403,6 +60421,8 @@ export const proto = $root.proto = (() => {
                     w.uint32(18).string(m.businessProduct);
                 if (m.opaqueClientData != null && $Object.hasOwnProperty.call(m, "opaqueClientData"))
                     w.uint32(26).bytes(m.opaqueClientData);
+                if (m.connection != null && $Object.hasOwnProperty.call(m, "connection"))
+                    $root.proto.Message.CoexConnectionDescriptor.encode(m.connection, w.uint32(34).fork(), q + 1).ldelim();
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -59457,6 +60477,13 @@ export const proto = $root.proto = (() => {
                             m._opaqueClientData = "opaqueClientData";
                             continue;
                         }
+                    case 4: {
+                            if (u !== 2)
+                                break;
+                            m.connection = $root.proto.Message.CoexConnectionDescriptor.decode(r, r.size(), $undefined, q + 1, m.connection);
+                            m._connection = "connection";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -59496,6 +60523,11 @@ export const proto = $root.proto = (() => {
                     else if (d.opaqueClientData.length >= 0)
                         m.opaqueClientData = d.opaqueClientData;
                 }
+                if (d.connection != null) {
+                    if (!$util.isObject(d.connection))
+                        throw $TypeError(".proto.Message.FullHistorySyncOnDemandRequestMetadata.connection: object expected");
+                    m.connection = $root.proto.Message.CoexConnectionDescriptor.fromObject(d.connection, q + 1);
+                }
                 return m;
             };
 
@@ -59515,6 +60547,9 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.opaqueClientData != null && $Object.hasOwnProperty.call(m, "opaqueClientData")) {
                     d.opaqueClientData = o.bytes === $String ? $util.base64.encode(m.opaqueClientData, 0, m.opaqueClientData.length) : o.bytes === $Array ? $Array.prototype.slice.call(m.opaqueClientData) : m.opaqueClientData;
+                }
+                if (m.connection != null && $Object.hasOwnProperty.call(m, "connection")) {
+                    d.connection = $root.proto.Message.CoexConnectionDescriptor.toObject(m.connection, o, q + 1);
                 }
                 return d;
             };
@@ -59600,7 +60635,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.message = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                            m.message = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.message);
                             m._message = "message";
                             continue;
                         }
@@ -59839,7 +60874,7 @@ export const proto = $root.proto = (() => {
                     case 7: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -60158,7 +61193,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.localizableParams && m.localizableParams.length))
                                 m.localizableParams = [];
-                            m.localizableParams.push($root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.decode(r, r.uint32(), $undefined, q + 1));
+                            m.localizableParams.push($root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 7: {
@@ -60178,7 +61213,7 @@ export const proto = $root.proto = (() => {
                     case 9: {
                             if (u !== 2)
                                 break;
-                            m.hydratedHsm = $root.proto.Message.TemplateMessage.decode(r, r.uint32(), $undefined, q + 1, m.hydratedHsm);
+                            m.hydratedHsm = $root.proto.Message.TemplateMessage.decode(r, r.size(), $undefined, q + 1, m.hydratedHsm);
                             m._hydratedHsm = "hydratedHsm";
                             continue;
                         }
@@ -60397,14 +61432,14 @@ export const proto = $root.proto = (() => {
                         case 2: {
                                 if (u !== 2)
                                     break;
-                                m.currency = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMCurrency.decode(r, r.uint32(), $undefined, q + 1, m.currency);
+                                m.currency = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMCurrency.decode(r, r.size(), $undefined, q + 1, m.currency);
                                 m.paramOneof = "currency";
                                 continue;
                             }
                         case 3: {
                                 if (u !== 2)
                                     break;
-                                m.dateTime = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.decode(r, r.uint32(), $undefined, q + 1, m.dateTime);
+                                m.dateTime = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.decode(r, r.size(), $undefined, q + 1, m.dateTime);
                                 m.paramOneof = "dateTime";
                                 continue;
                             }
@@ -60721,14 +61756,14 @@ export const proto = $root.proto = (() => {
                             case 1: {
                                     if (u !== 2)
                                         break;
-                                    m.component = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.HSMDateTimeComponent.decode(r, r.uint32(), $undefined, q + 1, m.component);
+                                    m.component = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.HSMDateTimeComponent.decode(r, r.size(), $undefined, q + 1, m.component);
                                     m.datetimeOneof = "component";
                                     continue;
                                 }
                             case 2: {
                                     if (u !== 2)
                                         break;
-                                    m.unixEpoch = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.HSMDateTimeUnixEpoch.decode(r, r.uint32(), $undefined, q + 1, m.unixEpoch);
+                                    m.unixEpoch = $root.proto.Message.HighlyStructuredMessage.HSMLocalizableParameter.HSMDateTime.HSMDateTimeUnixEpoch.decode(r, r.size(), $undefined, q + 1, m.unixEpoch);
                                     m.datetimeOneof = "unixEpoch";
                                     continue;
                                 }
@@ -61689,7 +62724,7 @@ export const proto = $root.proto = (() => {
                     case 13: {
                             if (u !== 2)
                                 break;
-                            m.fullHistorySyncOnDemandRequestMetadata = $root.proto.Message.FullHistorySyncOnDemandRequestMetadata.decode(r, r.uint32(), $undefined, q + 1, m.fullHistorySyncOnDemandRequestMetadata);
+                            m.fullHistorySyncOnDemandRequestMetadata = $root.proto.Message.FullHistorySyncOnDemandRequestMetadata.decode(r, r.size(), $undefined, q + 1, m.fullHistorySyncOnDemandRequestMetadata);
                             m._fullHistorySyncOnDemandRequestMetadata = "fullHistorySyncOnDemandRequestMetadata";
                             continue;
                         }
@@ -61703,7 +62738,7 @@ export const proto = $root.proto = (() => {
                     case 15: {
                             if (u !== 2)
                                 break;
-                            m.messageAccessStatus = $root.proto.Message.HistorySyncMessageAccessStatus.decode(r, r.uint32(), $undefined, q + 1, m.messageAccessStatus);
+                            m.messageAccessStatus = $root.proto.Message.HistorySyncMessageAccessStatus.decode(r, r.size(), $undefined, q + 1, m.messageAccessStatus);
                             m._messageAccessStatus = "messageAccessStatus";
                             continue;
                         }
@@ -62336,7 +63371,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.interactiveAnnotations && m.interactiveAnnotations.length))
                                 m.interactiveAnnotations = [];
-                            m.interactiveAnnotations.push($root.proto.InteractiveAnnotation.decode(r, r.uint32(), $undefined, q + 1));
+                            m.interactiveAnnotations.push($root.proto.InteractiveAnnotation.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 11: {
@@ -62363,7 +63398,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -62463,7 +63498,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.annotations && m.annotations.length))
                                 m.annotations = [];
-                            m.annotations.push($root.proto.InteractiveAnnotation.decode(r, r.uint32(), $undefined, q + 1));
+                            m.annotations.push($root.proto.InteractiveAnnotation.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 31: {
@@ -63134,70 +64169,70 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.header = $root.proto.Message.InteractiveMessage.Header.decode(r, r.uint32(), $undefined, q + 1, m.header);
+                            m.header = $root.proto.Message.InteractiveMessage.Header.decode(r, r.size(), $undefined, q + 1, m.header);
                             m._header = "header";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.body = $root.proto.Message.InteractiveMessage.Body.decode(r, r.uint32(), $undefined, q + 1, m.body);
+                            m.body = $root.proto.Message.InteractiveMessage.Body.decode(r, r.size(), $undefined, q + 1, m.body);
                             m._body = "body";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.footer = $root.proto.Message.InteractiveMessage.Footer.decode(r, r.uint32(), $undefined, q + 1, m.footer);
+                            m.footer = $root.proto.Message.InteractiveMessage.Footer.decode(r, r.size(), $undefined, q + 1, m.footer);
                             m._footer = "footer";
                             continue;
                         }
                     case 15: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
                     case 16: {
                             if (u !== 2)
                                 break;
-                            m.urlTrackingMap = $root.proto.UrlTrackingMap.decode(r, r.uint32(), $undefined, q + 1, m.urlTrackingMap);
+                            m.urlTrackingMap = $root.proto.UrlTrackingMap.decode(r, r.size(), $undefined, q + 1, m.urlTrackingMap);
                             m._urlTrackingMap = "urlTrackingMap";
                             continue;
                         }
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.shopStorefrontMessage = $root.proto.Message.InteractiveMessage.ShopMessage.decode(r, r.uint32(), $undefined, q + 1, m.shopStorefrontMessage);
+                            m.shopStorefrontMessage = $root.proto.Message.InteractiveMessage.ShopMessage.decode(r, r.size(), $undefined, q + 1, m.shopStorefrontMessage);
                             m.interactiveMessage = "shopStorefrontMessage";
                             continue;
                         }
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.collectionMessage = $root.proto.Message.InteractiveMessage.CollectionMessage.decode(r, r.uint32(), $undefined, q + 1, m.collectionMessage);
+                            m.collectionMessage = $root.proto.Message.InteractiveMessage.CollectionMessage.decode(r, r.size(), $undefined, q + 1, m.collectionMessage);
                             m.interactiveMessage = "collectionMessage";
                             continue;
                         }
                     case 6: {
                             if (u !== 2)
                                 break;
-                            m.nativeFlowMessage = $root.proto.Message.InteractiveMessage.NativeFlowMessage.decode(r, r.uint32(), $undefined, q + 1, m.nativeFlowMessage);
+                            m.nativeFlowMessage = $root.proto.Message.InteractiveMessage.NativeFlowMessage.decode(r, r.size(), $undefined, q + 1, m.nativeFlowMessage);
                             m.interactiveMessage = "nativeFlowMessage";
                             continue;
                         }
                     case 7: {
                             if (u !== 2)
                                 break;
-                            m.carouselMessage = $root.proto.Message.InteractiveMessage.CarouselMessage.decode(r, r.uint32(), $undefined, q + 1, m.carouselMessage);
+                            m.carouselMessage = $root.proto.Message.InteractiveMessage.CarouselMessage.decode(r, r.size(), $undefined, q + 1, m.carouselMessage);
                             m.interactiveMessage = "carouselMessage";
                             continue;
                         }
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.bloksWidget = $root.proto.BloksWidget.decode(r, r.uint32(), $undefined, q + 1, m.bloksWidget);
+                            m.bloksWidget = $root.proto.BloksWidget.decode(r, r.size(), $undefined, q + 1, m.bloksWidget);
                             m._bloksWidget = "bloksWidget";
                             continue;
                         }
@@ -63557,7 +64592,7 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.cards && m.cards.length))
                                     m.cards = [];
-                                m.cards.push($root.proto.Message.InteractiveMessage.decode(r, r.uint32(), $undefined, q + 1));
+                                m.cards.push($root.proto.Message.InteractiveMessage.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         case 2: {
@@ -63956,7 +64991,7 @@ export const proto = $root.proto = (() => {
                         case 2: {
                                 if (u !== 2)
                                     break;
-                                m.audioMessage = $root.proto.Message.AudioMessage.decode(r, r.uint32(), $undefined, q + 1, m.audioMessage);
+                                m.audioMessage = $root.proto.Message.AudioMessage.decode(r, r.size(), $undefined, q + 1, m.audioMessage);
                                 m.media = "audioMessage";
                                 continue;
                             }
@@ -64175,14 +65210,14 @@ export const proto = $root.proto = (() => {
                         case 3: {
                                 if (u !== 2)
                                     break;
-                                m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.uint32(), $undefined, q + 1, m.documentMessage);
+                                m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.size(), $undefined, q + 1, m.documentMessage);
                                 m.media = "documentMessage";
                                 continue;
                             }
                         case 4: {
                                 if (u !== 2)
                                     break;
-                                m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.imageMessage);
+                                m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.imageMessage);
                                 m.media = "imageMessage";
                                 continue;
                             }
@@ -64196,28 +65231,28 @@ export const proto = $root.proto = (() => {
                         case 7: {
                                 if (u !== 2)
                                     break;
-                                m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.uint32(), $undefined, q + 1, m.videoMessage);
+                                m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.size(), $undefined, q + 1, m.videoMessage);
                                 m.media = "videoMessage";
                                 continue;
                             }
                         case 8: {
                                 if (u !== 2)
                                     break;
-                                m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.locationMessage);
+                                m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.size(), $undefined, q + 1, m.locationMessage);
                                 m.media = "locationMessage";
                                 continue;
                             }
                         case 9: {
                                 if (u !== 2)
                                     break;
-                                m.productMessage = $root.proto.Message.ProductMessage.decode(r, r.uint32(), $undefined, q + 1, m.productMessage);
+                                m.productMessage = $root.proto.Message.ProductMessage.decode(r, r.size(), $undefined, q + 1, m.productMessage);
                                 m.media = "productMessage";
                                 continue;
                             }
                         case 10: {
                                 if (u !== 2)
                                     break;
-                                m.bloksWidget = $root.proto.BloksWidget.decode(r, r.uint32(), $undefined, q + 1, m.bloksWidget);
+                                m.bloksWidget = $root.proto.BloksWidget.decode(r, r.size(), $undefined, q + 1, m.bloksWidget);
                                 m._bloksWidget = "bloksWidget";
                                 continue;
                             }
@@ -64447,7 +65482,7 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.buttons && m.buttons.length))
                                     m.buttons = [];
-                                m.buttons.push($root.proto.Message.InteractiveMessage.NativeFlowMessage.NativeFlowButton.decode(r, r.uint32(), $undefined, q + 1));
+                                m.buttons.push($root.proto.Message.InteractiveMessage.NativeFlowMessage.NativeFlowButton.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         case 2: {
@@ -64994,21 +66029,21 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.body = $root.proto.Message.InteractiveResponseMessage.Body.decode(r, r.uint32(), $undefined, q + 1, m.body);
+                            m.body = $root.proto.Message.InteractiveResponseMessage.Body.decode(r, r.size(), $undefined, q + 1, m.body);
                             m._body = "body";
                             continue;
                         }
                     case 15: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.nativeFlowResponseMessage = $root.proto.Message.InteractiveResponseMessage.NativeFlowResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.nativeFlowResponseMessage);
+                            m.nativeFlowResponseMessage = $root.proto.Message.InteractiveResponseMessage.NativeFlowResponseMessage.decode(r, r.size(), $undefined, q + 1, m.nativeFlowResponseMessage);
                             m.interactiveResponseMessage = "nativeFlowResponseMessage";
                             continue;
                         }
@@ -65896,7 +66931,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -66154,14 +67189,14 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.paymentLinkMetadata = $root.proto.Message.PaymentLinkMetadata.decode(r, r.uint32(), $undefined, q + 1, m.paymentLinkMetadata);
+                            m.paymentLinkMetadata = $root.proto.Message.PaymentLinkMetadata.decode(r, r.size(), $undefined, q + 1, m.paymentLinkMetadata);
                             m._paymentLinkMetadata = "paymentLinkMetadata";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.urlMetadata = $root.proto.Message.URLMetadata.decode(r, r.uint32(), $undefined, q + 1, m.urlMetadata);
+                            m.urlMetadata = $root.proto.Message.URLMetadata.decode(r, r.size(), $undefined, q + 1, m.urlMetadata);
                             m._urlMetadata = "urlMetadata";
                             continue;
                         }
@@ -66203,7 +67238,7 @@ export const proto = $root.proto = (() => {
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.musicMetadata = $root.proto.EmbeddedMusic.decode(r, r.uint32(), $undefined, q + 1, m.musicMetadata);
+                            m.musicMetadata = $root.proto.EmbeddedMusic.decode(r, r.size(), $undefined, q + 1, m.musicMetadata);
                             m._musicMetadata = "musicMetadata";
                             continue;
                         }
@@ -66523,13 +67558,13 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.sections && m.sections.length))
                                 m.sections = [];
-                            m.sections.push($root.proto.Message.ListMessage.Section.decode(r, r.uint32(), $undefined, q + 1));
+                            m.sections.push($root.proto.Message.ListMessage.Section.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 6: {
                             if (u !== 2)
                                 break;
-                            m.productListInfo = $root.proto.Message.ListMessage.ProductListInfo.decode(r, r.uint32(), $undefined, q + 1, m.productListInfo);
+                            m.productListInfo = $root.proto.Message.ListMessage.ProductListInfo.decode(r, r.size(), $undefined, q + 1, m.productListInfo);
                             m._productListInfo = "productListInfo";
                             continue;
                         }
@@ -66543,7 +67578,7 @@ export const proto = $root.proto = (() => {
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -67059,13 +68094,13 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.productSections && m.productSections.length))
                                     m.productSections = [];
-                                m.productSections.push($root.proto.Message.ListMessage.ProductSection.decode(r, r.uint32(), $undefined, q + 1));
+                                m.productSections.push($root.proto.Message.ListMessage.ProductSection.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         case 2: {
                                 if (u !== 2)
                                     break;
-                                m.headerImage = $root.proto.Message.ListMessage.ProductListHeaderImage.decode(r, r.uint32(), $undefined, q + 1, m.headerImage);
+                                m.headerImage = $root.proto.Message.ListMessage.ProductListHeaderImage.decode(r, r.size(), $undefined, q + 1, m.headerImage);
                                 m._headerImage = "headerImage";
                                 continue;
                             }
@@ -67246,7 +68281,7 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.products && m.products.length))
                                     m.products = [];
-                                m.products.push($root.proto.Message.ListMessage.Product.decode(r, r.uint32(), $undefined, q + 1));
+                                m.products.push($root.proto.Message.ListMessage.Product.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         }
@@ -67587,7 +68622,7 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.rows && m.rows.length))
                                     m.rows = [];
-                                m.rows.push($root.proto.Message.ListMessage.Row.decode(r, r.uint32(), $undefined, q + 1));
+                                m.rows.push($root.proto.Message.ListMessage.Row.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         }
@@ -67790,14 +68825,14 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.singleSelectReply = $root.proto.Message.ListResponseMessage.SingleSelectReply.decode(r, r.uint32(), $undefined, q + 1, m.singleSelectReply);
+                            m.singleSelectReply = $root.proto.Message.ListResponseMessage.SingleSelectReply.decode(r, r.size(), $undefined, q + 1, m.singleSelectReply);
                             m._singleSelectReply = "singleSelectReply";
                             continue;
                         }
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -68257,7 +69292,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -68636,7 +69671,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -69283,14 +70318,14 @@ export const proto = $root.proto = (() => {
                     case 7: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.messageHistoryMetadata = $root.proto.Message.MessageHistoryMetadata.decode(r, r.uint32(), $undefined, q + 1, m.messageHistoryMetadata);
+                            m.messageHistoryMetadata = $root.proto.Message.MessageHistoryMetadata.decode(r, r.size(), $undefined, q + 1, m.messageHistoryMetadata);
                             m._messageHistoryMetadata = "messageHistoryMetadata";
                             continue;
                         }
@@ -69433,7 +70468,7 @@ export const proto = $root.proto = (() => {
             };
 
             MessageHistoryMetadata.prototype.historyReceivers = $util.emptyArray;
-            MessageHistoryMetadata.prototype.oldestMessageTimestamp = null;
+            MessageHistoryMetadata.prototype.oldestMessageTimestampInWindow = null;
             MessageHistoryMetadata.prototype.messageCount = null;
             MessageHistoryMetadata.prototype.nonHistoryReceivers = $util.emptyArray;
             MessageHistoryMetadata.prototype.oldestMessageTimestampInBundle = null;
@@ -69442,8 +70477,8 @@ export const proto = $root.proto = (() => {
             let $oneOfFields;
 
             // Virtual OneOf for proto3 optional field
-            $Object.defineProperty(MessageHistoryMetadata.prototype, "_oldestMessageTimestamp", {
-                get: $util.oneOfGetter($oneOfFields = ["oldestMessageTimestamp"]),
+            $Object.defineProperty(MessageHistoryMetadata.prototype, "_oldestMessageTimestampInWindow", {
+                get: $util.oneOfGetter($oneOfFields = ["oldestMessageTimestampInWindow"]),
                 set: $util.oneOfSetter($oneOfFields)
             });
 
@@ -69480,8 +70515,8 @@ export const proto = $root.proto = (() => {
                     for (var i = 0; i < m.historyReceivers.length; ++i)
                         w.uint32(10).string(m.historyReceivers[i]);
                 }
-                if (m.oldestMessageTimestamp != null && $Object.hasOwnProperty.call(m, "oldestMessageTimestamp"))
-                    w.uint32(16).int64(m.oldestMessageTimestamp);
+                if (m.oldestMessageTimestampInWindow != null && $Object.hasOwnProperty.call(m, "oldestMessageTimestampInWindow"))
+                    w.uint32(16).int64(m.oldestMessageTimestampInWindow);
                 if (m.messageCount != null && $Object.hasOwnProperty.call(m, "messageCount"))
                     w.uint32(24).int64(m.messageCount);
                 if (m.nonHistoryReceivers != null && m.nonHistoryReceivers.length) {
@@ -69536,8 +70571,8 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 0)
                                 break;
-                            m.oldestMessageTimestamp = r.int64();
-                            m._oldestMessageTimestamp = "oldestMessageTimestamp";
+                            m.oldestMessageTimestampInWindow = r.int64();
+                            m._oldestMessageTimestampInWindow = "oldestMessageTimestampInWindow";
                             continue;
                         }
                     case 3: {
@@ -69604,15 +70639,15 @@ export const proto = $root.proto = (() => {
                         m.historyReceivers[i] = $String(d.historyReceivers[i]);
                     }
                 }
-                if (d.oldestMessageTimestamp != null) {
+                if (d.oldestMessageTimestampInWindow != null) {
                     if ($util.Long)
-                        m.oldestMessageTimestamp = $util.Long.fromValue(d.oldestMessageTimestamp, false);
-                    else if (typeof d.oldestMessageTimestamp === "string")
-                        m.oldestMessageTimestamp = $parseInt(d.oldestMessageTimestamp, 10);
-                    else if (typeof d.oldestMessageTimestamp === "number")
-                        m.oldestMessageTimestamp = d.oldestMessageTimestamp;
-                    else if (typeof d.oldestMessageTimestamp === "object")
-                        m.oldestMessageTimestamp = new $util.LongBits(d.oldestMessageTimestamp.low >>> 0, d.oldestMessageTimestamp.high >>> 0).toNumber();
+                        m.oldestMessageTimestampInWindow = $util.Long.fromValue(d.oldestMessageTimestampInWindow, false);
+                    else if (typeof d.oldestMessageTimestampInWindow === "string")
+                        m.oldestMessageTimestampInWindow = $parseInt(d.oldestMessageTimestampInWindow, 10);
+                    else if (typeof d.oldestMessageTimestampInWindow === "number")
+                        m.oldestMessageTimestampInWindow = d.oldestMessageTimestampInWindow;
+                    else if (typeof d.oldestMessageTimestampInWindow === "object")
+                        m.oldestMessageTimestampInWindow = new $util.LongBits(d.oldestMessageTimestampInWindow.low >>> 0, d.oldestMessageTimestampInWindow.high >>> 0).toNumber();
                 }
                 if (d.messageCount != null) {
                     if ($util.Long)
@@ -69666,13 +70701,13 @@ export const proto = $root.proto = (() => {
                         d.historyReceivers[j] = m.historyReceivers[j];
                     }
                 }
-                if (m.oldestMessageTimestamp != null && $Object.hasOwnProperty.call(m, "oldestMessageTimestamp")) {
+                if (m.oldestMessageTimestampInWindow != null && $Object.hasOwnProperty.call(m, "oldestMessageTimestampInWindow")) {
                     if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
-                        d.oldestMessageTimestamp = typeof m.oldestMessageTimestamp === "number" ? $BigInt(m.oldestMessageTimestamp) : $util.Long.fromBits(m.oldestMessageTimestamp.low >>> 0, m.oldestMessageTimestamp.high >>> 0, false).toBigInt();
-                    else if (typeof m.oldestMessageTimestamp === "number")
-                        d.oldestMessageTimestamp = o.longs === $String ? $String(m.oldestMessageTimestamp) : m.oldestMessageTimestamp;
+                        d.oldestMessageTimestampInWindow = typeof m.oldestMessageTimestampInWindow === "number" ? $BigInt(m.oldestMessageTimestampInWindow) : $util.Long.fromBits(m.oldestMessageTimestampInWindow.low >>> 0, m.oldestMessageTimestampInWindow.high >>> 0, false).toBigInt();
+                    else if (typeof m.oldestMessageTimestampInWindow === "number")
+                        d.oldestMessageTimestampInWindow = o.longs === $String ? $String(m.oldestMessageTimestampInWindow) : m.oldestMessageTimestampInWindow;
                     else
-                        d.oldestMessageTimestamp = o.longs === String ? longToString(m.oldestMessageTimestamp) : o.longs === Number ? longToNumber(m.oldestMessageTimestamp) : m.oldestMessageTimestamp;
+                        d.oldestMessageTimestampInWindow = o.longs === String ? longToString(m.oldestMessageTimestampInWindow) : o.longs === Number ? longToNumber(m.oldestMessageTimestampInWindow) : m.oldestMessageTimestampInWindow;
                 }
                 if (m.messageCount != null && $Object.hasOwnProperty.call(m, "messageCount")) {
                     if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
@@ -69801,21 +70836,21 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.messageHistoryMetadata = $root.proto.Message.MessageHistoryMetadata.decode(r, r.uint32(), $undefined, q + 1, m.messageHistoryMetadata);
+                            m.messageHistoryMetadata = $root.proto.Message.MessageHistoryMetadata.decode(r, r.size(), $undefined, q + 1, m.messageHistoryMetadata);
                             m._messageHistoryMetadata = "messageHistoryMetadata";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.botHistoryShareSyncMetadata = $root.proto.BotHistoryShareSyncMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botHistoryShareSyncMetadata);
+                            m.botHistoryShareSyncMetadata = $root.proto.BotHistoryShareSyncMetadata.decode(r, r.size(), $undefined, q + 1, m.botHistoryShareSyncMetadata);
                             m._botHistoryShareSyncMetadata = "botHistoryShareSyncMetadata";
                             continue;
                         }
@@ -70045,7 +71080,7 @@ export const proto = $root.proto = (() => {
                     case 6: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -70288,7 +71323,7 @@ export const proto = $root.proto = (() => {
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -70652,7 +71687,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -70666,7 +71701,7 @@ export const proto = $root.proto = (() => {
                     case 13: {
                             if (u !== 2)
                                 break;
-                            m.orderRequestMessageId = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.orderRequestMessageId);
+                            m.orderRequestMessageId = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.orderRequestMessageId);
                             m._orderRequestMessageId = "orderRequestMessageId";
                             continue;
                         }
@@ -71412,21 +72447,21 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.button = $root.proto.Message.PaymentLinkMetadata.PaymentLinkButton.decode(r, r.uint32(), $undefined, q + 1, m.button);
+                            m.button = $root.proto.Message.PaymentLinkMetadata.PaymentLinkButton.decode(r, r.size(), $undefined, q + 1, m.button);
                             m._button = "button";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.header = $root.proto.Message.PaymentLinkMetadata.PaymentLinkHeader.decode(r, r.uint32(), $undefined, q + 1, m.header);
+                            m.header = $root.proto.Message.PaymentLinkMetadata.PaymentLinkHeader.decode(r, r.size(), $undefined, q + 1, m.header);
                             m._header = "header";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.provider = $root.proto.Message.PaymentLinkMetadata.PaymentLinkProvider.decode(r, r.uint32(), $undefined, q + 1, m.provider);
+                            m.provider = $root.proto.Message.PaymentLinkMetadata.PaymentLinkProvider.decode(r, r.size(), $undefined, q + 1, m.provider);
                             m._provider = "provider";
                             continue;
                         }
@@ -71945,6 +72980,7 @@ export const proto = $root.proto = (() => {
             PeerDataOperationRequestMessage.prototype.companionCanonicalUserNonceFetchRequest = null;
             PeerDataOperationRequestMessage.prototype.bizBroadcastInsightsContactListRequest = null;
             PeerDataOperationRequestMessage.prototype.bizBroadcastInsightsRefreshRequest = null;
+            PeerDataOperationRequestMessage.prototype.recentConversationsOnDemandRequest = null;
 
             let $oneOfFields;
 
@@ -72002,6 +73038,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PeerDataOperationRequestMessage.prototype, "_recentConversationsOnDemandRequest", {
+                get: $util.oneOfGetter($oneOfFields = ["recentConversationsOnDemandRequest"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             PeerDataOperationRequestMessage.create = function(properties) {
                 return new PeerDataOperationRequestMessage(properties);
             };
@@ -72043,6 +73085,8 @@ export const proto = $root.proto = (() => {
                     $root.proto.BizBroadcastInsightsContactListRequest.encode(m.bizBroadcastInsightsContactListRequest, w.uint32(90).fork(), q + 1).ldelim();
                 if (m.bizBroadcastInsightsRefreshRequest != null && $Object.hasOwnProperty.call(m, "bizBroadcastInsightsRefreshRequest"))
                     $root.proto.BizBroadcastInsightsRefreshRequest.encode(m.bizBroadcastInsightsRefreshRequest, w.uint32(98).fork(), q + 1).ldelim();
+                if (m.recentConversationsOnDemandRequest != null && $Object.hasOwnProperty.call(m, "recentConversationsOnDemandRequest"))
+                    $root.proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest.encode(m.recentConversationsOnDemandRequest, w.uint32(106).fork(), q + 1).ldelim();
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -72088,7 +73132,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.requestStickerReupload && m.requestStickerReupload.length))
                                 m.requestStickerReupload = [];
-                            m.requestStickerReupload.push($root.proto.Message.PeerDataOperationRequestMessage.RequestStickerReupload.decode(r, r.uint32(), $undefined, q + 1));
+                            m.requestStickerReupload.push($root.proto.Message.PeerDataOperationRequestMessage.RequestStickerReupload.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 3: {
@@ -72096,13 +73140,13 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.requestUrlPreview && m.requestUrlPreview.length))
                                 m.requestUrlPreview = [];
-                            m.requestUrlPreview.push($root.proto.Message.PeerDataOperationRequestMessage.RequestUrlPreview.decode(r, r.uint32(), $undefined, q + 1));
+                            m.requestUrlPreview.push($root.proto.Message.PeerDataOperationRequestMessage.RequestUrlPreview.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.historySyncOnDemandRequest = $root.proto.Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest.decode(r, r.uint32(), $undefined, q + 1, m.historySyncOnDemandRequest);
+                            m.historySyncOnDemandRequest = $root.proto.Message.PeerDataOperationRequestMessage.HistorySyncOnDemandRequest.decode(r, r.size(), $undefined, q + 1, m.historySyncOnDemandRequest);
                             m._historySyncOnDemandRequest = "historySyncOnDemandRequest";
                             continue;
                         }
@@ -72111,56 +73155,63 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.placeholderMessageResendRequest && m.placeholderMessageResendRequest.length))
                                 m.placeholderMessageResendRequest = [];
-                            m.placeholderMessageResendRequest.push($root.proto.Message.PeerDataOperationRequestMessage.PlaceholderMessageResendRequest.decode(r, r.uint32(), $undefined, q + 1));
+                            m.placeholderMessageResendRequest.push($root.proto.Message.PeerDataOperationRequestMessage.PlaceholderMessageResendRequest.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 6: {
                             if (u !== 2)
                                 break;
-                            m.fullHistorySyncOnDemandRequest = $root.proto.Message.PeerDataOperationRequestMessage.FullHistorySyncOnDemandRequest.decode(r, r.uint32(), $undefined, q + 1, m.fullHistorySyncOnDemandRequest);
+                            m.fullHistorySyncOnDemandRequest = $root.proto.Message.PeerDataOperationRequestMessage.FullHistorySyncOnDemandRequest.decode(r, r.size(), $undefined, q + 1, m.fullHistorySyncOnDemandRequest);
                             m._fullHistorySyncOnDemandRequest = "fullHistorySyncOnDemandRequest";
                             continue;
                         }
                     case 7: {
                             if (u !== 2)
                                 break;
-                            m.syncdCollectionFatalRecoveryRequest = $root.proto.Message.PeerDataOperationRequestMessage.SyncDCollectionFatalRecoveryRequest.decode(r, r.uint32(), $undefined, q + 1, m.syncdCollectionFatalRecoveryRequest);
+                            m.syncdCollectionFatalRecoveryRequest = $root.proto.Message.PeerDataOperationRequestMessage.SyncDCollectionFatalRecoveryRequest.decode(r, r.size(), $undefined, q + 1, m.syncdCollectionFatalRecoveryRequest);
                             m._syncdCollectionFatalRecoveryRequest = "syncdCollectionFatalRecoveryRequest";
                             continue;
                         }
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.historySyncChunkRetryRequest = $root.proto.Message.PeerDataOperationRequestMessage.HistorySyncChunkRetryRequest.decode(r, r.uint32(), $undefined, q + 1, m.historySyncChunkRetryRequest);
+                            m.historySyncChunkRetryRequest = $root.proto.Message.PeerDataOperationRequestMessage.HistorySyncChunkRetryRequest.decode(r, r.size(), $undefined, q + 1, m.historySyncChunkRetryRequest);
                             m._historySyncChunkRetryRequest = "historySyncChunkRetryRequest";
                             continue;
                         }
                     case 9: {
                             if (u !== 2)
                                 break;
-                            m.galaxyFlowAction = $root.proto.Message.PeerDataOperationRequestMessage.GalaxyFlowAction.decode(r, r.uint32(), $undefined, q + 1, m.galaxyFlowAction);
+                            m.galaxyFlowAction = $root.proto.Message.PeerDataOperationRequestMessage.GalaxyFlowAction.decode(r, r.size(), $undefined, q + 1, m.galaxyFlowAction);
                             m._galaxyFlowAction = "galaxyFlowAction";
                             continue;
                         }
                     case 10: {
                             if (u !== 2)
                                 break;
-                            m.companionCanonicalUserNonceFetchRequest = $root.proto.CompanionCanonicalUserNonceFetchRequest.decode(r, r.uint32(), $undefined, q + 1, m.companionCanonicalUserNonceFetchRequest);
+                            m.companionCanonicalUserNonceFetchRequest = $root.proto.CompanionCanonicalUserNonceFetchRequest.decode(r, r.size(), $undefined, q + 1, m.companionCanonicalUserNonceFetchRequest);
                             m._companionCanonicalUserNonceFetchRequest = "companionCanonicalUserNonceFetchRequest";
                             continue;
                         }
                     case 11: {
                             if (u !== 2)
                                 break;
-                            m.bizBroadcastInsightsContactListRequest = $root.proto.BizBroadcastInsightsContactListRequest.decode(r, r.uint32(), $undefined, q + 1, m.bizBroadcastInsightsContactListRequest);
+                            m.bizBroadcastInsightsContactListRequest = $root.proto.BizBroadcastInsightsContactListRequest.decode(r, r.size(), $undefined, q + 1, m.bizBroadcastInsightsContactListRequest);
                             m._bizBroadcastInsightsContactListRequest = "bizBroadcastInsightsContactListRequest";
                             continue;
                         }
                     case 12: {
                             if (u !== 2)
                                 break;
-                            m.bizBroadcastInsightsRefreshRequest = $root.proto.BizBroadcastInsightsRefreshRequest.decode(r, r.uint32(), $undefined, q + 1, m.bizBroadcastInsightsRefreshRequest);
+                            m.bizBroadcastInsightsRefreshRequest = $root.proto.BizBroadcastInsightsRefreshRequest.decode(r, r.size(), $undefined, q + 1, m.bizBroadcastInsightsRefreshRequest);
                             m._bizBroadcastInsightsRefreshRequest = "bizBroadcastInsightsRefreshRequest";
+                            continue;
+                        }
+                    case 13: {
+                            if (u !== 2)
+                                break;
+                            m.recentConversationsOnDemandRequest = $root.proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest.decode(r, r.size(), $undefined, q + 1, m.recentConversationsOnDemandRequest);
+                            m._recentConversationsOnDemandRequest = "recentConversationsOnDemandRequest";
                             continue;
                         }
                     }
@@ -72321,6 +73372,11 @@ export const proto = $root.proto = (() => {
                         throw $TypeError(".proto.Message.PeerDataOperationRequestMessage.bizBroadcastInsightsRefreshRequest: object expected");
                     m.bizBroadcastInsightsRefreshRequest = $root.proto.BizBroadcastInsightsRefreshRequest.fromObject(d.bizBroadcastInsightsRefreshRequest, q + 1);
                 }
+                if (d.recentConversationsOnDemandRequest != null) {
+                    if (!$util.isObject(d.recentConversationsOnDemandRequest))
+                        throw $TypeError(".proto.Message.PeerDataOperationRequestMessage.recentConversationsOnDemandRequest: object expected");
+                    m.recentConversationsOnDemandRequest = $root.proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest.fromObject(d.recentConversationsOnDemandRequest, q + 1);
+                }
                 return m;
             };
 
@@ -72381,6 +73437,9 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.bizBroadcastInsightsRefreshRequest != null && $Object.hasOwnProperty.call(m, "bizBroadcastInsightsRefreshRequest")) {
                     d.bizBroadcastInsightsRefreshRequest = $root.proto.BizBroadcastInsightsRefreshRequest.toObject(m.bizBroadcastInsightsRefreshRequest, o, q + 1);
+                }
+                if (m.recentConversationsOnDemandRequest != null && $Object.hasOwnProperty.call(m, "recentConversationsOnDemandRequest")) {
+                    d.recentConversationsOnDemandRequest = $root.proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest.toObject(m.recentConversationsOnDemandRequest, o, q + 1);
                 }
                 return d;
             };
@@ -72481,21 +73540,21 @@ export const proto = $root.proto = (() => {
                         case 1: {
                                 if (u !== 2)
                                     break;
-                                m.requestMetadata = $root.proto.Message.FullHistorySyncOnDemandRequestMetadata.decode(r, r.uint32(), $undefined, q + 1, m.requestMetadata);
+                                m.requestMetadata = $root.proto.Message.FullHistorySyncOnDemandRequestMetadata.decode(r, r.size(), $undefined, q + 1, m.requestMetadata);
                                 m._requestMetadata = "requestMetadata";
                                 continue;
                             }
                         case 2: {
                                 if (u !== 2)
                                     break;
-                                m.historySyncConfig = $root.proto.DeviceProps.HistorySyncConfig.decode(r, r.uint32(), $undefined, q + 1, m.historySyncConfig);
+                                m.historySyncConfig = $root.proto.DeviceProps.HistorySyncConfig.decode(r, r.size(), $undefined, q + 1, m.historySyncConfig);
                                 m._historySyncConfig = "historySyncConfig";
                                 continue;
                             }
                         case 3: {
                                 if (u !== 2)
                                     break;
-                                m.fullHistorySyncOnDemandConfig = $root.proto.FullHistorySyncOnDemandConfig.decode(r, r.uint32(), $undefined, q + 1, m.fullHistorySyncOnDemandConfig);
+                                m.fullHistorySyncOnDemandConfig = $root.proto.FullHistorySyncOnDemandConfig.decode(r, r.size(), $undefined, q + 1, m.fullHistorySyncOnDemandConfig);
                                 m._fullHistorySyncOnDemandConfig = "fullHistorySyncOnDemandConfig";
                                 continue;
                             }
@@ -73066,6 +74125,7 @@ export const proto = $root.proto = (() => {
                 HistorySyncOnDemandRequest.prototype.oldestMsgTimestampMs = null;
                 HistorySyncOnDemandRequest.prototype.accountLid = null;
                 HistorySyncOnDemandRequest.prototype.supportInlineResponse = null;
+                HistorySyncOnDemandRequest.prototype.mode = null;
 
                 let $oneOfFields;
 
@@ -73111,6 +74171,12 @@ export const proto = $root.proto = (() => {
                     set: $util.oneOfSetter($oneOfFields)
                 });
 
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(HistorySyncOnDemandRequest.prototype, "_mode", {
+                    get: $util.oneOfGetter($oneOfFields = ["mode"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
                 HistorySyncOnDemandRequest.create = function(properties) {
                     return new HistorySyncOnDemandRequest(properties);
                 };
@@ -73136,6 +74202,8 @@ export const proto = $root.proto = (() => {
                         w.uint32(50).string(m.accountLid);
                     if (m.supportInlineResponse != null && $Object.hasOwnProperty.call(m, "supportInlineResponse"))
                         w.uint32(56).bool(m.supportInlineResponse);
+                    if (m.mode != null && $Object.hasOwnProperty.call(m, "mode"))
+                        w.uint32(64).int32(m.mode);
                     if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                         for (var i = 0; i < m.$unknowns.length; ++i)
                             w.raw(m.$unknowns[i]);
@@ -73218,6 +74286,13 @@ export const proto = $root.proto = (() => {
                                 m._supportInlineResponse = "supportInlineResponse";
                                 continue;
                             }
+                        case 8: {
+                                if (u !== 0)
+                                    break;
+                                m.mode = r.int32();
+                                m._mode = "mode";
+                                continue;
+                            }
                         }
                         r.skipType(u, q, t);
                         if (!r.discardUnknown) {
@@ -73273,6 +74348,9 @@ export const proto = $root.proto = (() => {
                     if (d.supportInlineResponse != null) {
                         m.supportInlineResponse = $Boolean(d.supportInlineResponse);
                     }
+                    if (d.mode != null) {
+                        m.mode = d.mode | 0;
+                    }
                     return m;
                 };
 
@@ -73309,6 +74387,9 @@ export const proto = $root.proto = (() => {
                     }
                     if (m.supportInlineResponse != null && $Object.hasOwnProperty.call(m, "supportInlineResponse")) {
                         d.supportInlineResponse = m.supportInlineResponse;
+                    }
+                    if (m.mode != null && $Object.hasOwnProperty.call(m, "mode")) {
+                        d.mode = m.mode;
                     }
                     return d;
                 };
@@ -73394,7 +74475,7 @@ export const proto = $root.proto = (() => {
                         case 1: {
                                 if (u !== 2)
                                     break;
-                                m.messageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.messageKey);
+                                m.messageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.messageKey);
                                 m._messageKey = "messageKey";
                                 continue;
                             }
@@ -73912,6 +74993,160 @@ export const proto = $root.proto = (() => {
                 return SyncDCollectionFatalRecoveryRequest;
             })();
 
+            PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest = (function() {
+
+                const RecentConversationsOnDemandRequest = function (p) {
+                    if (p)
+                        for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                            if (p[ks[i]] != null && ks[i] !== "__proto__")
+                                this[ks[i]] = p[ks[i]];
+                };
+
+                RecentConversationsOnDemandRequest.prototype.conversationCount = null;
+                RecentConversationsOnDemandRequest.prototype.messagesPerConversation = null;
+
+                let $oneOfFields;
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(RecentConversationsOnDemandRequest.prototype, "_conversationCount", {
+                    get: $util.oneOfGetter($oneOfFields = ["conversationCount"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(RecentConversationsOnDemandRequest.prototype, "_messagesPerConversation", {
+                    get: $util.oneOfGetter($oneOfFields = ["messagesPerConversation"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                RecentConversationsOnDemandRequest.create = function(properties) {
+                    return new RecentConversationsOnDemandRequest(properties);
+                };
+
+                RecentConversationsOnDemandRequest.encode = function (m, w, q) {
+                    if (!w)
+                        w = $Writer.create();
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (m.conversationCount != null && $Object.hasOwnProperty.call(m, "conversationCount"))
+                        w.uint32(8).uint32(m.conversationCount);
+                    if (m.messagesPerConversation != null && $Object.hasOwnProperty.call(m, "messagesPerConversation"))
+                        w.uint32(16).uint32(m.messagesPerConversation);
+                    if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                        for (var i = 0; i < m.$unknowns.length; ++i)
+                            w.raw(m.$unknowns[i]);
+                    return w;
+                };
+
+                RecentConversationsOnDemandRequest.decode = function (r, l, z, q, g) {
+                    if (!(r instanceof $Reader))
+                        r = $Reader.create(r);
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var c, m;
+                    if (l === $undefined)
+                        c = r.len;
+                    else {
+                        c = r.pos + l;
+                        if (c > r.len)
+                            throw $RangeError("index out of range");
+                        l = r.len;
+                        r.len = c;
+                    }
+                    m = g || new $root.proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest();
+                    while (r.pos < c) {
+                        var s = r.pos;
+                        var t = r.tag();
+                        if (t === z) {
+                            z = $undefined;
+                            break;
+                        }
+                        var u = t & 7;
+                        switch (t >>>= 3) {
+                        case 1: {
+                                if (u !== 0)
+                                    break;
+                                m.conversationCount = r.uint32();
+                                m._conversationCount = "conversationCount";
+                                continue;
+                            }
+                        case 2: {
+                                if (u !== 0)
+                                    break;
+                                m.messagesPerConversation = r.uint32();
+                                m._messagesPerConversation = "messagesPerConversation";
+                                continue;
+                            }
+                        }
+                        r.skipType(u, q, t);
+                        if (!r.discardUnknown) {
+                            $util.makeProp(m, "$unknowns", false);
+                            (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                        }
+                    }
+                    if (l !== $undefined) {
+                        if (r.pos !== c)
+                            throw $RangeError("index out of range");
+                        r.len = l;
+                    }
+                    if (z !== $undefined)
+                        throw $Error("missing end group");
+                    return m;
+                };
+
+                RecentConversationsOnDemandRequest.fromObject = function (d, q) {
+                    if (d instanceof $root.proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest)
+                        return d;
+                    if (!$util.isObject(d))
+                        throw $TypeError(".proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest: object expected");
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var m = new $root.proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest();
+                    if (d.conversationCount != null) {
+                        m.conversationCount = d.conversationCount >>> 0;
+                    }
+                    if (d.messagesPerConversation != null) {
+                        m.messagesPerConversation = d.messagesPerConversation >>> 0;
+                    }
+                    return m;
+                };
+
+                RecentConversationsOnDemandRequest.toObject = function (m, o, q) {
+                    if (!o)
+                        o = {};
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var d = {};
+                    if (m.conversationCount != null && $Object.hasOwnProperty.call(m, "conversationCount")) {
+                        d.conversationCount = m.conversationCount;
+                    }
+                    if (m.messagesPerConversation != null && $Object.hasOwnProperty.call(m, "messagesPerConversation")) {
+                        d.messagesPerConversation = m.messagesPerConversation;
+                    }
+                    return d;
+                };
+
+                RecentConversationsOnDemandRequest.prototype.toJSON = function() {
+                    return RecentConversationsOnDemandRequest.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                RecentConversationsOnDemandRequest.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/proto.Message.PeerDataOperationRequestMessage.RecentConversationsOnDemandRequest";
+                };
+
+                return RecentConversationsOnDemandRequest;
+            })();
+
             return PeerDataOperationRequestMessage;
         })();
 
@@ -74014,7 +75249,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.peerDataOperationResult && m.peerDataOperationResult.length))
                                 m.peerDataOperationResult = [];
-                            m.peerDataOperationResult.push($root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.decode(r, r.uint32(), $undefined, q + 1));
+                            m.peerDataOperationResult.push($root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -74340,84 +75575,84 @@ export const proto = $root.proto = (() => {
                         case 2: {
                                 if (u !== 2)
                                     break;
-                                m.stickerMessage = $root.proto.Message.StickerMessage.decode(r, r.uint32(), $undefined, q + 1, m.stickerMessage);
+                                m.stickerMessage = $root.proto.Message.StickerMessage.decode(r, r.size(), $undefined, q + 1, m.stickerMessage);
                                 m._stickerMessage = "stickerMessage";
                                 continue;
                             }
                         case 3: {
                                 if (u !== 2)
                                     break;
-                                m.linkPreviewResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.LinkPreviewResponse.decode(r, r.uint32(), $undefined, q + 1, m.linkPreviewResponse);
+                                m.linkPreviewResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.LinkPreviewResponse.decode(r, r.size(), $undefined, q + 1, m.linkPreviewResponse);
                                 m._linkPreviewResponse = "linkPreviewResponse";
                                 continue;
                             }
                         case 4: {
                                 if (u !== 2)
                                     break;
-                                m.placeholderMessageResendResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.PlaceholderMessageResendResponse.decode(r, r.uint32(), $undefined, q + 1, m.placeholderMessageResendResponse);
+                                m.placeholderMessageResendResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.PlaceholderMessageResendResponse.decode(r, r.size(), $undefined, q + 1, m.placeholderMessageResendResponse);
                                 m._placeholderMessageResendResponse = "placeholderMessageResendResponse";
                                 continue;
                             }
                         case 5: {
                                 if (u !== 2)
                                     break;
-                                m.waffleNonceFetchRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.WaffleNonceFetchResponse.decode(r, r.uint32(), $undefined, q + 1, m.waffleNonceFetchRequestResponse);
+                                m.waffleNonceFetchRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.WaffleNonceFetchResponse.decode(r, r.size(), $undefined, q + 1, m.waffleNonceFetchRequestResponse);
                                 m._waffleNonceFetchRequestResponse = "waffleNonceFetchRequestResponse";
                                 continue;
                             }
                         case 6: {
                                 if (u !== 2)
                                     break;
-                                m.fullHistorySyncOnDemandRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.FullHistorySyncOnDemandRequestResponse.decode(r, r.uint32(), $undefined, q + 1, m.fullHistorySyncOnDemandRequestResponse);
+                                m.fullHistorySyncOnDemandRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.FullHistorySyncOnDemandRequestResponse.decode(r, r.size(), $undefined, q + 1, m.fullHistorySyncOnDemandRequestResponse);
                                 m._fullHistorySyncOnDemandRequestResponse = "fullHistorySyncOnDemandRequestResponse";
                                 continue;
                             }
                         case 7: {
                                 if (u !== 2)
                                     break;
-                                m.companionMetaNonceFetchRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.CompanionMetaNonceFetchResponse.decode(r, r.uint32(), $undefined, q + 1, m.companionMetaNonceFetchRequestResponse);
+                                m.companionMetaNonceFetchRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.CompanionMetaNonceFetchResponse.decode(r, r.size(), $undefined, q + 1, m.companionMetaNonceFetchRequestResponse);
                                 m._companionMetaNonceFetchRequestResponse = "companionMetaNonceFetchRequestResponse";
                                 continue;
                             }
                         case 8: {
                                 if (u !== 2)
                                     break;
-                                m.syncdSnapshotFatalRecoveryResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.SyncDSnapshotFatalRecoveryResponse.decode(r, r.uint32(), $undefined, q + 1, m.syncdSnapshotFatalRecoveryResponse);
+                                m.syncdSnapshotFatalRecoveryResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.SyncDSnapshotFatalRecoveryResponse.decode(r, r.size(), $undefined, q + 1, m.syncdSnapshotFatalRecoveryResponse);
                                 m._syncdSnapshotFatalRecoveryResponse = "syncdSnapshotFatalRecoveryResponse";
                                 continue;
                             }
                         case 9: {
                                 if (u !== 2)
                                     break;
-                                m.companionCanonicalUserNonceFetchRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.CompanionCanonicalUserNonceFetchResponse.decode(r, r.uint32(), $undefined, q + 1, m.companionCanonicalUserNonceFetchRequestResponse);
+                                m.companionCanonicalUserNonceFetchRequestResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.CompanionCanonicalUserNonceFetchResponse.decode(r, r.size(), $undefined, q + 1, m.companionCanonicalUserNonceFetchRequestResponse);
                                 m._companionCanonicalUserNonceFetchRequestResponse = "companionCanonicalUserNonceFetchRequestResponse";
                                 continue;
                             }
                         case 10: {
                                 if (u !== 2)
                                     break;
-                                m.historySyncChunkRetryResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.HistorySyncChunkRetryResponse.decode(r, r.uint32(), $undefined, q + 1, m.historySyncChunkRetryResponse);
+                                m.historySyncChunkRetryResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.HistorySyncChunkRetryResponse.decode(r, r.size(), $undefined, q + 1, m.historySyncChunkRetryResponse);
                                 m._historySyncChunkRetryResponse = "historySyncChunkRetryResponse";
                                 continue;
                             }
                         case 11: {
                                 if (u !== 2)
                                     break;
-                                m.flowResponsesCsvBundle = $root.proto.FlowResponsesCsvBundle.decode(r, r.uint32(), $undefined, q + 1, m.flowResponsesCsvBundle);
+                                m.flowResponsesCsvBundle = $root.proto.FlowResponsesCsvBundle.decode(r, r.size(), $undefined, q + 1, m.flowResponsesCsvBundle);
                                 m._flowResponsesCsvBundle = "flowResponsesCsvBundle";
                                 continue;
                             }
                         case 12: {
                                 if (u !== 2)
                                     break;
-                                m.bizBroadcastInsightsContactListResponse = $root.proto.BizBroadcastInsightsContactListResponse.decode(r, r.uint32(), $undefined, q + 1, m.bizBroadcastInsightsContactListResponse);
+                                m.bizBroadcastInsightsContactListResponse = $root.proto.BizBroadcastInsightsContactListResponse.decode(r, r.size(), $undefined, q + 1, m.bizBroadcastInsightsContactListResponse);
                                 m._bizBroadcastInsightsContactListResponse = "bizBroadcastInsightsContactListResponse";
                                 continue;
                             }
                         case 13: {
                                 if (u !== 2)
                                     break;
-                                m.contactRefreshResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.ContactRefreshResponse.decode(r, r.uint32(), $undefined, q + 1, m.contactRefreshResponse);
+                                m.contactRefreshResponse = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.ContactRefreshResponse.decode(r, r.size(), $undefined, q + 1, m.contactRefreshResponse);
                                 m._contactRefreshResponse = "contactRefreshResponse";
                                 continue;
                             }
@@ -74977,7 +76212,7 @@ export const proto = $root.proto = (() => {
                             case 1: {
                                     if (u !== 2)
                                         break;
-                                    m.requestMetadata = $root.proto.Message.FullHistorySyncOnDemandRequestMetadata.decode(r, r.uint32(), $undefined, q + 1, m.requestMetadata);
+                                    m.requestMetadata = $root.proto.Message.FullHistorySyncOnDemandRequestMetadata.decode(r, r.size(), $undefined, q + 1, m.requestMetadata);
                                     m._requestMetadata = "requestMetadata";
                                     continue;
                                 }
@@ -75571,14 +76806,14 @@ export const proto = $root.proto = (() => {
                             case 8: {
                                     if (u !== 2)
                                         break;
-                                    m.hqThumbnail = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.LinkPreviewResponse.LinkPreviewHighQualityThumbnail.decode(r, r.uint32(), $undefined, q + 1, m.hqThumbnail);
+                                    m.hqThumbnail = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.LinkPreviewResponse.LinkPreviewHighQualityThumbnail.decode(r, r.size(), $undefined, q + 1, m.hqThumbnail);
                                     m._hqThumbnail = "hqThumbnail";
                                     continue;
                                 }
                             case 9: {
                                     if (u !== 2)
                                         break;
-                                    m.previewMetadata = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.LinkPreviewResponse.PaymentLinkPreviewMetadata.decode(r, r.uint32(), $undefined, q + 1, m.previewMetadata);
+                                    m.previewMetadata = $root.proto.Message.PeerDataOperationRequestResponseMessage.PeerDataOperationResult.LinkPreviewResponse.PaymentLinkPreviewMetadata.decode(r, r.size(), $undefined, q + 1, m.previewMetadata);
                                     m._previewMetadata = "previewMetadata";
                                     continue;
                                 }
@@ -76978,7 +78213,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -77275,7 +78510,7 @@ export const proto = $root.proto = (() => {
             PollCreationMessage.prototype.pollType = null;
             PollCreationMessage.prototype.correctAnswer = null;
             PollCreationMessage.prototype.endTime = null;
-            PollCreationMessage.prototype.hideVoterNames = null;
+            PollCreationMessage.prototype.hideParticipantName = null;
             PollCreationMessage.prototype.allowAddOption = null;
 
             let $oneOfFields;
@@ -77329,8 +78564,8 @@ export const proto = $root.proto = (() => {
             });
 
             // Virtual OneOf for proto3 optional field
-            $Object.defineProperty(PollCreationMessage.prototype, "_hideVoterNames", {
-                get: $util.oneOfGetter($oneOfFields = ["hideVoterNames"]),
+            $Object.defineProperty(PollCreationMessage.prototype, "_hideParticipantName", {
+                get: $util.oneOfGetter($oneOfFields = ["hideParticipantName"]),
                 set: $util.oneOfSetter($oneOfFields)
             });
 
@@ -77371,8 +78606,8 @@ export const proto = $root.proto = (() => {
                     $root.proto.Message.PollCreationMessage.Option.encode(m.correctAnswer, w.uint32(66).fork(), q + 1).ldelim();
                 if (m.endTime != null && $Object.hasOwnProperty.call(m, "endTime"))
                     w.uint32(72).int64(m.endTime);
-                if (m.hideVoterNames != null && $Object.hasOwnProperty.call(m, "hideVoterNames"))
-                    w.uint32(80).bool(m.hideVoterNames);
+                if (m.hideParticipantName != null && $Object.hasOwnProperty.call(m, "hideParticipantName"))
+                    w.uint32(80).bool(m.hideParticipantName);
                 if (m.allowAddOption != null && $Object.hasOwnProperty.call(m, "allowAddOption"))
                     w.uint32(88).bool(m.allowAddOption);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
@@ -77427,7 +78662,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.options && m.options.length))
                                 m.options = [];
-                            m.options.push($root.proto.Message.PollCreationMessage.Option.decode(r, r.uint32(), $undefined, q + 1));
+                            m.options.push($root.proto.Message.PollCreationMessage.Option.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 4: {
@@ -77440,7 +78675,7 @@ export const proto = $root.proto = (() => {
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -77461,7 +78696,7 @@ export const proto = $root.proto = (() => {
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.correctAnswer = $root.proto.Message.PollCreationMessage.Option.decode(r, r.uint32(), $undefined, q + 1, m.correctAnswer);
+                            m.correctAnswer = $root.proto.Message.PollCreationMessage.Option.decode(r, r.size(), $undefined, q + 1, m.correctAnswer);
                             m._correctAnswer = "correctAnswer";
                             continue;
                         }
@@ -77475,8 +78710,8 @@ export const proto = $root.proto = (() => {
                     case 10: {
                             if (u !== 0)
                                 break;
-                            m.hideVoterNames = r.bool();
-                            m._hideVoterNames = "hideVoterNames";
+                            m.hideParticipantName = r.bool();
+                            m._hideParticipantName = "hideParticipantName";
                             continue;
                         }
                     case 11: {
@@ -77585,8 +78820,8 @@ export const proto = $root.proto = (() => {
                     else if (typeof d.endTime === "object")
                         m.endTime = new $util.LongBits(d.endTime.low >>> 0, d.endTime.high >>> 0).toNumber();
                 }
-                if (d.hideVoterNames != null) {
-                    m.hideVoterNames = $Boolean(d.hideVoterNames);
+                if (d.hideParticipantName != null) {
+                    m.hideParticipantName = $Boolean(d.hideParticipantName);
                 }
                 if (d.allowAddOption != null) {
                     m.allowAddOption = $Boolean(d.allowAddOption);
@@ -77640,8 +78875,8 @@ export const proto = $root.proto = (() => {
                     else
                         d.endTime = o.longs === String ? longToString(m.endTime) : o.longs === Number ? longToNumber(m.endTime) : m.endTime;
                 }
-                if (m.hideVoterNames != null && $Object.hasOwnProperty.call(m, "hideVoterNames")) {
-                    d.hideVoterNames = m.hideVoterNames;
+                if (m.hideParticipantName != null && $Object.hasOwnProperty.call(m, "hideParticipantName")) {
+                    d.hideParticipantName = m.hideParticipantName;
                 }
                 if (m.allowAddOption != null && $Object.hasOwnProperty.call(m, "allowAddOption")) {
                     d.allowAddOption = m.allowAddOption;
@@ -78077,13 +79312,13 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.pollVotes && m.pollVotes.length))
                                 m.pollVotes = [];
-                            m.pollVotes.push($root.proto.Message.PollResultSnapshotMessage.PollVote.decode(r, r.uint32(), $undefined, q + 1));
+                            m.pollVotes.push($root.proto.Message.PollResultSnapshotMessage.PollVote.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -78465,21 +79700,21 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.pollCreationMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessageKey);
+                            m.pollCreationMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessageKey);
                             m._pollCreationMessageKey = "pollCreationMessageKey";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.vote = $root.proto.Message.PollEncValue.decode(r, r.uint32(), $undefined, q + 1, m.vote);
+                            m.vote = $root.proto.Message.PollEncValue.decode(r, r.size(), $undefined, q + 1, m.vote);
                             m._vote = "vote";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.metadata = $root.proto.Message.PollUpdateMessageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.metadata);
+                            m.metadata = $root.proto.Message.PollUpdateMessageMetadata.decode(r, r.size(), $undefined, q + 1, m.metadata);
                             m._metadata = "metadata";
                             continue;
                         }
@@ -78998,7 +80233,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.product = $root.proto.Message.ProductMessage.ProductSnapshot.decode(r, r.uint32(), $undefined, q + 1, m.product);
+                            m.product = $root.proto.Message.ProductMessage.ProductSnapshot.decode(r, r.size(), $undefined, q + 1, m.product);
                             m._product = "product";
                             continue;
                         }
@@ -79012,7 +80247,7 @@ export const proto = $root.proto = (() => {
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.catalog = $root.proto.Message.ProductMessage.CatalogSnapshot.decode(r, r.uint32(), $undefined, q + 1, m.catalog);
+                            m.catalog = $root.proto.Message.ProductMessage.CatalogSnapshot.decode(r, r.size(), $undefined, q + 1, m.catalog);
                             m._catalog = "catalog";
                             continue;
                         }
@@ -79033,7 +80268,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -79216,7 +80451,7 @@ export const proto = $root.proto = (() => {
                         case 1: {
                                 if (u !== 2)
                                     break;
-                                m.catalogImage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.catalogImage);
+                                m.catalogImage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.catalogImage);
                                 m._catalogImage = "catalogImage";
                                 continue;
                             }
@@ -79475,7 +80710,7 @@ export const proto = $root.proto = (() => {
                         case 1: {
                                 if (u !== 2)
                                     break;
-                                m.productImage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.productImage);
+                                m.productImage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.productImage);
                                 m._productImage = "productImage";
                                 continue;
                             }
@@ -79714,6 +80949,7 @@ export const proto = $root.proto = (() => {
         Message.ProtocolMessage = (function() {
 
             const ProtocolMessage = function (p) {
+                this.additionalPromptIds = [];
                 if (p)
                     for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
                         if (p[ks[i]] != null && ks[i] !== "__proto__")
@@ -79753,6 +80989,7 @@ export const proto = $root.proto = (() => {
             ProtocolMessage.prototype.acp2Setting = null;
             ProtocolMessage.prototype.sharedDeviceContactHashKeyShare = null;
             ProtocolMessage.prototype.sharedDeviceContactHashKeyRequest = null;
+            ProtocolMessage.prototype.additionalPromptIds = $util.emptyArray;
 
             let $oneOfFields;
 
@@ -80031,6 +81268,16 @@ export const proto = $root.proto = (() => {
                     $root.proto.Message.SharedDeviceContactHashKeyShare.encode(m.sharedDeviceContactHashKeyShare, w.uint32(290).fork(), q + 1).ldelim();
                 if (m.sharedDeviceContactHashKeyRequest != null && $Object.hasOwnProperty.call(m, "sharedDeviceContactHashKeyRequest"))
                     $root.proto.Message.SharedDeviceContactHashKeyRequest.encode(m.sharedDeviceContactHashKeyRequest, w.uint32(298).fork(), q + 1).ldelim();
+                if (m.additionalPromptIds != null && m.additionalPromptIds.length) {
+                    for (var i = 0; i < m.additionalPromptIds.length; ++i)
+                        w.uint32(306).string(m.additionalPromptIds[i]);
+                }
+                if (m.groupRootKeyRequest != null && $Object.hasOwnProperty.call(m, "groupRootKeyRequest"))
+                    $root.proto.GroupRootKeyRequest.encode(m.groupRootKeyRequest, w.uint32(314).fork()).ldelim();
+                if (m.membershipFormKeyFingerprintVerification != null && $Object.hasOwnProperty.call(m, "membershipFormKeyFingerprintVerification"))
+                    $root.proto.MembershipFormKeyFingerprintVerification.encode(m.membershipFormKeyFingerprintVerification, w.uint32(322).fork()).ldelim();
+                if (m.groupRootKeyShare != null && $Object.hasOwnProperty.call(m, "groupRootKeyShare"))
+                    $root.proto.GroupRootKeyShare.encode(m.groupRootKeyShare, w.uint32(330).fork()).ldelim();
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -80067,7 +81314,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -80095,49 +81342,49 @@ export const proto = $root.proto = (() => {
                     case 6: {
                             if (u !== 2)
                                 break;
-                            m.historySyncNotification = $root.proto.Message.HistorySyncNotification.decode(r, r.uint32(), $undefined, q + 1, m.historySyncNotification);
+                            m.historySyncNotification = $root.proto.Message.HistorySyncNotification.decode(r, r.size(), $undefined, q + 1, m.historySyncNotification);
                             m._historySyncNotification = "historySyncNotification";
                             continue;
                         }
                     case 7: {
                             if (u !== 2)
                                 break;
-                            m.appStateSyncKeyShare = $root.proto.Message.AppStateSyncKeyShare.decode(r, r.uint32(), $undefined, q + 1, m.appStateSyncKeyShare);
+                            m.appStateSyncKeyShare = $root.proto.Message.AppStateSyncKeyShare.decode(r, r.size(), $undefined, q + 1, m.appStateSyncKeyShare);
                             m._appStateSyncKeyShare = "appStateSyncKeyShare";
                             continue;
                         }
                     case 8: {
                             if (u !== 2)
                                 break;
-                            m.appStateSyncKeyRequest = $root.proto.Message.AppStateSyncKeyRequest.decode(r, r.uint32(), $undefined, q + 1, m.appStateSyncKeyRequest);
+                            m.appStateSyncKeyRequest = $root.proto.Message.AppStateSyncKeyRequest.decode(r, r.size(), $undefined, q + 1, m.appStateSyncKeyRequest);
                             m._appStateSyncKeyRequest = "appStateSyncKeyRequest";
                             continue;
                         }
                     case 9: {
                             if (u !== 2)
                                 break;
-                            m.initialSecurityNotificationSettingSync = $root.proto.Message.InitialSecurityNotificationSettingSync.decode(r, r.uint32(), $undefined, q + 1, m.initialSecurityNotificationSettingSync);
+                            m.initialSecurityNotificationSettingSync = $root.proto.Message.InitialSecurityNotificationSettingSync.decode(r, r.size(), $undefined, q + 1, m.initialSecurityNotificationSettingSync);
                             m._initialSecurityNotificationSettingSync = "initialSecurityNotificationSettingSync";
                             continue;
                         }
                     case 10: {
                             if (u !== 2)
                                 break;
-                            m.appStateFatalExceptionNotification = $root.proto.Message.AppStateFatalExceptionNotification.decode(r, r.uint32(), $undefined, q + 1, m.appStateFatalExceptionNotification);
+                            m.appStateFatalExceptionNotification = $root.proto.Message.AppStateFatalExceptionNotification.decode(r, r.size(), $undefined, q + 1, m.appStateFatalExceptionNotification);
                             m._appStateFatalExceptionNotification = "appStateFatalExceptionNotification";
                             continue;
                         }
                     case 11: {
                             if (u !== 2)
                                 break;
-                            m.disappearingMode = $root.proto.DisappearingMode.decode(r, r.uint32(), $undefined, q + 1, m.disappearingMode);
+                            m.disappearingMode = $root.proto.DisappearingMode.decode(r, r.size(), $undefined, q + 1, m.disappearingMode);
                             m._disappearingMode = "disappearingMode";
                             continue;
                         }
                     case 14: {
                             if (u !== 2)
                                 break;
-                            m.editedMessage = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.editedMessage);
+                            m.editedMessage = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.editedMessage);
                             m._editedMessage = "editedMessage";
                             continue;
                         }
@@ -80151,21 +81398,21 @@ export const proto = $root.proto = (() => {
                     case 16: {
                             if (u !== 2)
                                 break;
-                            m.peerDataOperationRequestMessage = $root.proto.Message.PeerDataOperationRequestMessage.decode(r, r.uint32(), $undefined, q + 1, m.peerDataOperationRequestMessage);
+                            m.peerDataOperationRequestMessage = $root.proto.Message.PeerDataOperationRequestMessage.decode(r, r.size(), $undefined, q + 1, m.peerDataOperationRequestMessage);
                             m._peerDataOperationRequestMessage = "peerDataOperationRequestMessage";
                             continue;
                         }
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.peerDataOperationRequestResponseMessage = $root.proto.Message.PeerDataOperationRequestResponseMessage.decode(r, r.uint32(), $undefined, q + 1, m.peerDataOperationRequestResponseMessage);
+                            m.peerDataOperationRequestResponseMessage = $root.proto.Message.PeerDataOperationRequestResponseMessage.decode(r, r.size(), $undefined, q + 1, m.peerDataOperationRequestResponseMessage);
                             m._peerDataOperationRequestResponseMessage = "peerDataOperationRequestResponseMessage";
                             continue;
                         }
                     case 18: {
                             if (u !== 2)
                                 break;
-                            m.botFeedbackMessage = $root.proto.BotFeedbackMessage.decode(r, r.uint32(), $undefined, q + 1, m.botFeedbackMessage);
+                            m.botFeedbackMessage = $root.proto.BotFeedbackMessage.decode(r, r.size(), $undefined, q + 1, m.botFeedbackMessage);
                             m._botFeedbackMessage = "botFeedbackMessage";
                             continue;
                         }
@@ -80179,35 +81426,35 @@ export const proto = $root.proto = (() => {
                     case 20: {
                             if (u !== 2)
                                 break;
-                            m.requestWelcomeMessageMetadata = $root.proto.Message.RequestWelcomeMessageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.requestWelcomeMessageMetadata);
+                            m.requestWelcomeMessageMetadata = $root.proto.Message.RequestWelcomeMessageMetadata.decode(r, r.size(), $undefined, q + 1, m.requestWelcomeMessageMetadata);
                             m._requestWelcomeMessageMetadata = "requestWelcomeMessageMetadata";
                             continue;
                         }
                     case 21: {
                             if (u !== 2)
                                 break;
-                            m.mediaNotifyMessage = $root.proto.MediaNotifyMessage.decode(r, r.uint32(), $undefined, q + 1, m.mediaNotifyMessage);
+                            m.mediaNotifyMessage = $root.proto.MediaNotifyMessage.decode(r, r.size(), $undefined, q + 1, m.mediaNotifyMessage);
                             m._mediaNotifyMessage = "mediaNotifyMessage";
                             continue;
                         }
                     case 22: {
                             if (u !== 2)
                                 break;
-                            m.cloudApiThreadControlNotification = $root.proto.Message.CloudAPIThreadControlNotification.decode(r, r.uint32(), $undefined, q + 1, m.cloudApiThreadControlNotification);
+                            m.cloudApiThreadControlNotification = $root.proto.Message.CloudAPIThreadControlNotification.decode(r, r.size(), $undefined, q + 1, m.cloudApiThreadControlNotification);
                             m._cloudApiThreadControlNotification = "cloudApiThreadControlNotification";
                             continue;
                         }
                     case 23: {
                             if (u !== 2)
                                 break;
-                            m.lidMigrationMappingSyncMessage = $root.proto.LIDMigrationMappingSyncMessage.decode(r, r.uint32(), $undefined, q + 1, m.lidMigrationMappingSyncMessage);
+                            m.lidMigrationMappingSyncMessage = $root.proto.LIDMigrationMappingSyncMessage.decode(r, r.size(), $undefined, q + 1, m.lidMigrationMappingSyncMessage);
                             m._lidMigrationMappingSyncMessage = "lidMigrationMappingSyncMessage";
                             continue;
                         }
                     case 24: {
                             if (u !== 2)
                                 break;
-                            m.limitSharing = $root.proto.LimitSharing.decode(r, r.uint32(), $undefined, q + 1, m.limitSharing);
+                            m.limitSharing = $root.proto.LimitSharing.decode(r, r.size(), $undefined, q + 1, m.limitSharing);
                             m._limitSharing = "limitSharing";
                             continue;
                         }
@@ -80221,21 +81468,21 @@ export const proto = $root.proto = (() => {
                     case 26: {
                             if (u !== 2)
                                 break;
-                            m.aiQueryFanout = $root.proto.AIQueryFanout.decode(r, r.uint32(), $undefined, q + 1, m.aiQueryFanout);
+                            m.aiQueryFanout = $root.proto.AIQueryFanout.decode(r, r.size(), $undefined, q + 1, m.aiQueryFanout);
                             m._aiQueryFanout = "aiQueryFanout";
                             continue;
                         }
                     case 27: {
                             if (u !== 2)
                                 break;
-                            m.memberLabel = $root.proto.MemberLabel.decode(r, r.uint32(), $undefined, q + 1, m.memberLabel);
+                            m.memberLabel = $root.proto.MemberLabel.decode(r, r.size(), $undefined, q + 1, m.memberLabel);
                             m._memberLabel = "memberLabel";
                             continue;
                         }
                     case 28: {
                             if (u !== 2)
                                 break;
-                            m.aiMediaCollectionMessage = $root.proto.AIMediaCollectionMessage.decode(r, r.uint32(), $undefined, q + 1, m.aiMediaCollectionMessage);
+                            m.aiMediaCollectionMessage = $root.proto.AIMediaCollectionMessage.decode(r, r.size(), $undefined, q + 1, m.aiMediaCollectionMessage);
                             m._aiMediaCollectionMessage = "aiMediaCollectionMessage";
                             continue;
                         }
@@ -80249,52 +81496,81 @@ export const proto = $root.proto = (() => {
                     case 30: {
                             if (u !== 2)
                                 break;
-                            m.chatThemeSetting = $root.proto.ChatThemeSetting.decode(r, r.uint32(), $undefined, q + 1, m.chatThemeSetting);
+                            m.chatThemeSetting = $root.proto.ChatThemeSetting.decode(r, r.size(), $undefined, q + 1, m.chatThemeSetting);
                             m._chatThemeSetting = "chatThemeSetting";
                             continue;
                         }
                     case 31: {
                             if (u !== 2)
                                 break;
-                            m.aiMetadataOperation = $root.proto.AIMetadataOperation.decode(r, r.uint32(), $undefined, q + 1, m.aiMetadataOperation);
+                            m.aiMetadataOperation = $root.proto.AIMetadataOperation.decode(r, r.size(), $undefined, q + 1, m.aiMetadataOperation);
                             m._aiMetadataOperation = "aiMetadataOperation";
                             continue;
                         }
                     case 32: {
                             if (u !== 2)
                                 break;
-                            m.markAsVerifiedAction = $root.proto.MarkAsVerifiedAction.decode(r, r.uint32(), $undefined, q + 1, m.markAsVerifiedAction);
+                            m.markAsVerifiedAction = $root.proto.MarkAsVerifiedAction.decode(r, r.size(), $undefined, q + 1, m.markAsVerifiedAction);
                             m._markAsVerifiedAction = "markAsVerifiedAction";
                             continue;
                         }
                     case 33: {
                             if (u !== 2)
                                 break;
-                            m.coexStateSync = $root.proto.CoexStateSync.decode(r, r.uint32(), $undefined, q + 1, m.coexStateSync);
+                            m.coexStateSync = $root.proto.CoexStateSync.decode(r, r.size(), $undefined, q + 1, m.coexStateSync);
                             m._coexStateSync = "coexStateSync";
                             continue;
                         }
                     case 35: {
                             if (u !== 2)
                                 break;
-                            m.acp2Setting = $root.proto.ACP2Setting.decode(r, r.uint32(), $undefined, q + 1, m.acp2Setting);
+                            m.acp2Setting = $root.proto.ACP2Setting.decode(r, r.size(), $undefined, q + 1, m.acp2Setting);
                             m._acp2Setting = "acp2Setting";
                             continue;
                         }
                     case 36: {
                             if (u !== 2)
                                 break;
-                            m.sharedDeviceContactHashKeyShare = $root.proto.Message.SharedDeviceContactHashKeyShare.decode(r, r.uint32(), $undefined, q + 1, m.sharedDeviceContactHashKeyShare);
+                            m.sharedDeviceContactHashKeyShare = $root.proto.Message.SharedDeviceContactHashKeyShare.decode(r, r.size(), $undefined, q + 1, m.sharedDeviceContactHashKeyShare);
                             m._sharedDeviceContactHashKeyShare = "sharedDeviceContactHashKeyShare";
                             continue;
                         }
                     case 37: {
                             if (u !== 2)
                                 break;
-                            m.sharedDeviceContactHashKeyRequest = $root.proto.Message.SharedDeviceContactHashKeyRequest.decode(r, r.uint32(), $undefined, q + 1, m.sharedDeviceContactHashKeyRequest);
+                            m.sharedDeviceContactHashKeyRequest = $root.proto.Message.SharedDeviceContactHashKeyRequest.decode(r, r.size(), $undefined, q + 1, m.sharedDeviceContactHashKeyRequest);
                             m._sharedDeviceContactHashKeyRequest = "sharedDeviceContactHashKeyRequest";
                             continue;
                         }
+                    case 38: {
+                            if (u !== 2)
+                                break;
+                            if (!(m.additionalPromptIds && m.additionalPromptIds.length))
+                                m.additionalPromptIds = [];
+                            m.additionalPromptIds.push(r.stringVerify());
+                            continue;
+                        }
+                        case 39: {
+                                if (u !== 2)
+                                    break;
+                                m.groupRootKeyRequest = $root.proto.GroupRootKeyRequest.decode(r, r.uint32());
+                                m._groupRootKeyRequest = "groupRootKeyRequest";
+                                continue;
+                            }
+                        case 40: {
+                                if (u !== 2)
+                                    break;
+                                m.membershipFormKeyFingerprintVerification = $root.proto.MembershipFormKeyFingerprintVerification.decode(r, r.uint32());
+                                m._membershipFormKeyFingerprintVerification = "membershipFormKeyFingerprintVerification";
+                                continue;
+                            }
+                        case 41: {
+                                if (u !== 2)
+                                    break;
+                                m.groupRootKeyShare = $root.proto.GroupRootKeyShare.decode(r, r.uint32());
+                                m._groupRootKeyShare = "groupRootKeyShare";
+                                continue;
+                            }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -80612,6 +81888,29 @@ export const proto = $root.proto = (() => {
                         throw $TypeError(".proto.Message.ProtocolMessage.sharedDeviceContactHashKeyRequest: object expected");
                     m.sharedDeviceContactHashKeyRequest = $root.proto.Message.SharedDeviceContactHashKeyRequest.fromObject(d.sharedDeviceContactHashKeyRequest, q + 1);
                 }
+                if (d.additionalPromptIds) {
+                    if (!$Array.isArray(d.additionalPromptIds))
+                        throw $TypeError(".proto.Message.ProtocolMessage.additionalPromptIds: array expected");
+                    m.additionalPromptIds = $Array(d.additionalPromptIds.length);
+                    for (var i = 0; i < d.additionalPromptIds.length; ++i) {
+                        m.additionalPromptIds[i] = $String(d.additionalPromptIds[i]);
+                    }
+                }
+                if (d.groupRootKeyRequest != null) {
+                    if (typeof d.groupRootKeyRequest !== "object")
+                        throw $TypeError(".proto.ProtocolMessage.groupRootKeyRequest: object expected");
+                    m.groupRootKeyRequest = $root.proto.GroupRootKeyRequest.fromObject(d.groupRootKeyRequest, q + 1);
+                }
+                if (d.membershipFormKeyFingerprintVerification != null) {
+                    if (typeof d.membershipFormKeyFingerprintVerification !== "object")
+                        throw $TypeError(".proto.ProtocolMessage.membershipFormKeyFingerprintVerification: object expected");
+                    m.membershipFormKeyFingerprintVerification = $root.proto.MembershipFormKeyFingerprintVerification.fromObject(d.membershipFormKeyFingerprintVerification, q + 1);
+                }
+                if (d.groupRootKeyShare != null) {
+                    if (typeof d.groupRootKeyShare !== "object")
+                        throw $TypeError(".proto.ProtocolMessage.groupRootKeyShare: object expected");
+                    m.groupRootKeyShare = $root.proto.GroupRootKeyShare.fromObject(d.groupRootKeyShare, q + 1);
+                }
                 return m;
             };
 
@@ -80623,6 +81922,9 @@ export const proto = $root.proto = (() => {
                 if (q > $util.recursionLimit)
                     throw $Error("max depth exceeded");
                 var d = {};
+                if (o.arrays || o.defaults) {
+                    d.additionalPromptIds = [];
+                }
                 if (m.key != null && $Object.hasOwnProperty.call(m, "key")) {
                     d.key = $root.proto.MessageKey.toObject(m.key, o, q + 1);
                 }
@@ -80731,6 +82033,21 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.sharedDeviceContactHashKeyRequest != null && $Object.hasOwnProperty.call(m, "sharedDeviceContactHashKeyRequest")) {
                     d.sharedDeviceContactHashKeyRequest = $root.proto.Message.SharedDeviceContactHashKeyRequest.toObject(m.sharedDeviceContactHashKeyRequest, o, q + 1);
+                }
+                if (m.additionalPromptIds && m.additionalPromptIds.length) {
+                    d.additionalPromptIds = $Array(m.additionalPromptIds.length);
+                    for (var j = 0; j < m.additionalPromptIds.length; ++j) {
+                        d.additionalPromptIds[j] = m.additionalPromptIds[j];
+                    }
+                }
+                if (m.groupRootKeyRequest != null && $Object.hasOwnProperty.call(m, "groupRootKeyRequest")) {
+                    d.groupRootKeyRequest = $root.proto.GroupRootKeyRequest.toObject(m.groupRootKeyRequest, o);
+                }
+                if (m.membershipFormKeyFingerprintVerification != null && $Object.hasOwnProperty.call(m, "membershipFormKeyFingerprintVerification")) {
+                    d.membershipFormKeyFingerprintVerification = $root.proto.MembershipFormKeyFingerprintVerification.toObject(m.membershipFormKeyFingerprintVerification, o);
+                }
+                if (m.groupRootKeyShare != null && $Object.hasOwnProperty.call(m, "groupRootKeyShare")) {
+                    d.groupRootKeyShare = $root.proto.GroupRootKeyShare.toObject(m.groupRootKeyShare, o);
                 }
                 return d;
             };
@@ -80860,7 +82177,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -81034,7 +82351,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -81273,7 +82590,7 @@ export const proto = $root.proto = (() => {
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.noteMessage = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.noteMessage);
+                            m.noteMessage = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.noteMessage);
                             m._noteMessage = "noteMessage";
                             continue;
                         }
@@ -81308,14 +82625,14 @@ export const proto = $root.proto = (() => {
                     case 6: {
                             if (u !== 2)
                                 break;
-                            m.amount = $root.proto.Money.decode(r, r.uint32(), $undefined, q + 1, m.amount);
+                            m.amount = $root.proto.Money.decode(r, r.size(), $undefined, q + 1, m.amount);
                             m._amount = "amount";
                             continue;
                         }
                     case 7: {
                             if (u !== 2)
                                 break;
-                            m.background = $root.proto.PaymentBackground.decode(r, r.uint32(), $undefined, q + 1, m.background);
+                            m.background = $root.proto.PaymentBackground.decode(r, r.size(), $undefined, q + 1, m.background);
                             m._background = "background";
                             continue;
                         }
@@ -81513,7 +82830,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -81679,7 +82996,7 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.botAgentMetadata = $root.proto.BotAgentMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botAgentMetadata);
+                            m.botAgentMetadata = $root.proto.BotAgentMetadata.decode(r, r.size(), $undefined, q + 1, m.botAgentMetadata);
                             m._botAgentMetadata = "botAgentMetadata";
                             continue;
                         }
@@ -82078,7 +83395,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -82278,7 +83595,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.targetMessageKey);
+                            m.targetMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.targetMessageKey);
                             m._targetMessageKey = "targetMessageKey";
                             continue;
                         }
@@ -82534,21 +83851,21 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.noteMessage = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.noteMessage);
+                            m.noteMessage = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.noteMessage);
                             m._noteMessage = "noteMessage";
                             continue;
                         }
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.requestMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.requestMessageKey);
+                            m.requestMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.requestMessageKey);
                             m._requestMessageKey = "requestMessageKey";
                             continue;
                         }
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.background = $root.proto.PaymentBackground.decode(r, r.uint32(), $undefined, q + 1, m.background);
+                            m.background = $root.proto.PaymentBackground.decode(r, r.size(), $undefined, q + 1, m.background);
                             m._background = "background";
                             continue;
                         }
@@ -82886,14 +84203,14 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.responseMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.responseMessageKey);
+                            m.responseMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.responseMessageKey);
                             m._responseMessageKey = "responseMessageKey";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.originalMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.originalMessageKey);
+                            m.originalMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.originalMessageKey);
                             m._originalMessageKey = "originalMessageKey";
                             continue;
                         }
@@ -83084,7 +84401,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -83279,7 +84596,7 @@ export const proto = $root.proto = (() => {
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.originalStatusId = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.originalStatusId);
+                            m.originalStatusId = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.originalStatusId);
                             m._originalStatusId = "originalStatusId";
                             continue;
                         }
@@ -83464,7 +84781,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -83946,7 +85263,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -84009,7 +85326,7 @@ export const proto = $root.proto = (() => {
                     case 26: {
                             if (u !== 2)
                                 break;
-                            m.audioMessage = $root.proto.Message.AudioMessage.decode(r, r.uint32(), $undefined, q + 1, m.audioMessage);
+                            m.audioMessage = $root.proto.Message.AudioMessage.decode(r, r.size(), $undefined, q + 1, m.audioMessage);
                             m._audioMessage = "audioMessage";
                             continue;
                         }
@@ -84565,7 +85882,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.stickers && m.stickers.length))
                                 m.stickers = [];
-                            m.stickers.push($root.proto.Message.StickerPackMessage.Sticker.decode(r, r.uint32(), $undefined, q + 1));
+                            m.stickers.push($root.proto.Message.StickerPackMessage.Sticker.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 5: {
@@ -84613,7 +85930,7 @@ export const proto = $root.proto = (() => {
                     case 11: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -85556,7 +86873,7 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -85760,14 +87077,14 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
                     case 4: {
                             if (u !== 2)
                                 break;
-                            m.hydratedTemplate = $root.proto.Message.TemplateMessage.HydratedFourRowTemplate.decode(r, r.uint32(), $undefined, q + 1, m.hydratedTemplate);
+                            m.hydratedTemplate = $root.proto.Message.TemplateMessage.HydratedFourRowTemplate.decode(r, r.size(), $undefined, q + 1, m.hydratedTemplate);
                             m._hydratedTemplate = "hydratedTemplate";
                             continue;
                         }
@@ -85781,21 +87098,21 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.fourRowTemplate = $root.proto.Message.TemplateMessage.FourRowTemplate.decode(r, r.uint32(), $undefined, q + 1, m.fourRowTemplate);
+                            m.fourRowTemplate = $root.proto.Message.TemplateMessage.FourRowTemplate.decode(r, r.size(), $undefined, q + 1, m.fourRowTemplate);
                             m.format = "fourRowTemplate";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.hydratedFourRowTemplate = $root.proto.Message.TemplateMessage.HydratedFourRowTemplate.decode(r, r.uint32(), $undefined, q + 1, m.hydratedFourRowTemplate);
+                            m.hydratedFourRowTemplate = $root.proto.Message.TemplateMessage.HydratedFourRowTemplate.decode(r, r.size(), $undefined, q + 1, m.hydratedFourRowTemplate);
                             m.format = "hydratedFourRowTemplate";
                             continue;
                         }
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.interactiveMessageTemplate = $root.proto.Message.InteractiveMessage.decode(r, r.uint32(), $undefined, q + 1, m.interactiveMessageTemplate);
+                            m.interactiveMessageTemplate = $root.proto.Message.InteractiveMessage.decode(r, r.size(), $undefined, q + 1, m.interactiveMessageTemplate);
                             m.format = "interactiveMessageTemplate";
                             continue;
                         }
@@ -86005,14 +87322,14 @@ export const proto = $root.proto = (() => {
                         case 6: {
                                 if (u !== 2)
                                     break;
-                                m.content = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.content);
+                                m.content = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.content);
                                 m._content = "content";
                                 continue;
                             }
                         case 7: {
                                 if (u !== 2)
                                     break;
-                                m.footer = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.footer);
+                                m.footer = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.footer);
                                 m._footer = "footer";
                                 continue;
                             }
@@ -86021,41 +87338,41 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.buttons && m.buttons.length))
                                     m.buttons = [];
-                                m.buttons.push($root.proto.TemplateButton.decode(r, r.uint32(), $undefined, q + 1));
+                                m.buttons.push($root.proto.TemplateButton.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         case 1: {
                                 if (u !== 2)
                                     break;
-                                m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.uint32(), $undefined, q + 1, m.documentMessage);
+                                m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.size(), $undefined, q + 1, m.documentMessage);
                                 m.title = "documentMessage";
                                 continue;
                             }
                         case 2: {
                                 if (u !== 2)
                                     break;
-                                m.highlyStructuredMessage = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.highlyStructuredMessage);
+                                m.highlyStructuredMessage = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.highlyStructuredMessage);
                                 m.title = "highlyStructuredMessage";
                                 continue;
                             }
                         case 3: {
                                 if (u !== 2)
                                     break;
-                                m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.imageMessage);
+                                m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.imageMessage);
                                 m.title = "imageMessage";
                                 continue;
                             }
                         case 4: {
                                 if (u !== 2)
                                     break;
-                                m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.uint32(), $undefined, q + 1, m.videoMessage);
+                                m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.size(), $undefined, q + 1, m.videoMessage);
                                 m.title = "videoMessage";
                                 continue;
                             }
                         case 5: {
                                 if (u !== 2)
                                     break;
-                                m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.locationMessage);
+                                m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.size(), $undefined, q + 1, m.locationMessage);
                                 m.title = "locationMessage";
                                 continue;
                             }
@@ -86335,7 +87652,7 @@ export const proto = $root.proto = (() => {
                                     break;
                                 if (!(m.hydratedButtons && m.hydratedButtons.length))
                                     m.hydratedButtons = [];
-                                m.hydratedButtons.push($root.proto.HydratedTemplateButton.decode(r, r.uint32(), $undefined, q + 1));
+                                m.hydratedButtons.push($root.proto.HydratedTemplateButton.decode(r, r.size(), $undefined, q + 1));
                                 continue;
                             }
                         case 9: {
@@ -86355,7 +87672,7 @@ export const proto = $root.proto = (() => {
                         case 1: {
                                 if (u !== 2)
                                     break;
-                                m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.uint32(), $undefined, q + 1, m.documentMessage);
+                                m.documentMessage = $root.proto.Message.DocumentMessage.decode(r, r.size(), $undefined, q + 1, m.documentMessage);
                                 m.title = "documentMessage";
                                 continue;
                             }
@@ -86369,21 +87686,21 @@ export const proto = $root.proto = (() => {
                         case 3: {
                                 if (u !== 2)
                                     break;
-                                m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.uint32(), $undefined, q + 1, m.imageMessage);
+                                m.imageMessage = $root.proto.Message.ImageMessage.decode(r, r.size(), $undefined, q + 1, m.imageMessage);
                                 m.title = "imageMessage";
                                 continue;
                             }
                         case 4: {
                                 if (u !== 2)
                                     break;
-                                m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.uint32(), $undefined, q + 1, m.videoMessage);
+                                m.videoMessage = $root.proto.Message.VideoMessage.decode(r, r.size(), $undefined, q + 1, m.videoMessage);
                                 m.title = "videoMessage";
                                 continue;
                             }
                         case 5: {
                                 if (u !== 2)
                                     break;
-                                m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.locationMessage);
+                                m.locationMessage = $root.proto.Message.LocationMessage.decode(r, r.size(), $undefined, q + 1, m.locationMessage);
                                 m.title = "locationMessage";
                                 continue;
                             }
@@ -87287,7 +88604,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.interactiveAnnotations && m.interactiveAnnotations.length))
                                 m.interactiveAnnotations = [];
-                            m.interactiveAnnotations.push($root.proto.InteractiveAnnotation.decode(r, r.uint32(), $undefined, q + 1));
+                            m.interactiveAnnotations.push($root.proto.InteractiveAnnotation.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 13: {
@@ -87314,7 +88631,7 @@ export const proto = $root.proto = (() => {
                     case 17: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
                             continue;
                         }
@@ -87372,7 +88689,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.annotations && m.annotations.length))
                                 m.annotations = [];
-                            m.annotations.push($root.proto.InteractiveAnnotation.decode(r, r.uint32(), $undefined, q + 1));
+                            m.annotations.push($root.proto.InteractiveAnnotation.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 26: {
@@ -87387,7 +88704,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.processedVideos && m.processedVideos.length))
                                 m.processedVideos = [];
-                            m.processedVideos.push($root.proto.ProcessedVideo.decode(r, r.uint32(), $undefined, q + 1));
+                            m.processedVideos.push($root.proto.ProcessedVideo.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 28: {
@@ -87877,6 +89194,7 @@ export const proto = $root.proto = (() => {
             MusicMessage.prototype.artworkUri = null;
             MusicMessage.prototype.style = null;
             MusicMessage.prototype.contextInfo = null;
+            MusicMessage.prototype.lyrics = null;
 
             let $oneOfFields;
 
@@ -87910,6 +89228,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(MusicMessage.prototype, "_lyrics", {
+                get: $util.oneOfGetter($oneOfFields = ["lyrics"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             MusicMessage.create = function(properties) {
                 return new MusicMessage(properties);
             };
@@ -87931,6 +89255,8 @@ export const proto = $root.proto = (() => {
                     w.uint32(32).int32(m.style);
                 if (m.contextInfo != null && $Object.hasOwnProperty.call(m, "contextInfo"))
                     $root.proto.ContextInfo.encode(m.contextInfo, w.uint32(42).fork(), q + 1).ldelim();
+                if (m.lyrics != null && $Object.hasOwnProperty.call(m, "lyrics"))
+                    $root.proto.Message.MusicMessage.Lyrics.encode(m.lyrics, w.uint32(50).fork(), q + 1).ldelim();
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -87967,7 +89293,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.embeddedMusic = $root.proto.EmbeddedMusic.decode(r, r.uint32(), $undefined, q + 1, m.embeddedMusic);
+                            m.embeddedMusic = $root.proto.EmbeddedMusic.decode(r, r.size(), $undefined, q + 1, m.embeddedMusic);
                             m._embeddedMusic = "embeddedMusic";
                             continue;
                         }
@@ -87995,8 +89321,15 @@ export const proto = $root.proto = (() => {
                     case 5: {
                             if (u !== 2)
                                 break;
-                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                            m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                             m._contextInfo = "contextInfo";
+                            continue;
+                        }
+                    case 6: {
+                            if (u !== 2)
+                                break;
+                            m.lyrics = $root.proto.Message.MusicMessage.Lyrics.decode(r, r.size(), $undefined, q + 1, m.lyrics);
+                            m._lyrics = "lyrics";
                             continue;
                         }
                     }
@@ -88045,6 +89378,11 @@ export const proto = $root.proto = (() => {
                         throw $TypeError(".proto.Message.MusicMessage.contextInfo: object expected");
                     m.contextInfo = $root.proto.ContextInfo.fromObject(d.contextInfo, q + 1);
                 }
+                if (d.lyrics != null) {
+                    if (!$util.isObject(d.lyrics))
+                        throw $TypeError(".proto.Message.MusicMessage.lyrics: object expected");
+                    m.lyrics = $root.proto.Message.MusicMessage.Lyrics.fromObject(d.lyrics, q + 1);
+                }
                 return m;
             };
 
@@ -88071,6 +89409,9 @@ export const proto = $root.proto = (() => {
                 if (m.contextInfo != null && $Object.hasOwnProperty.call(m, "contextInfo")) {
                     d.contextInfo = $root.proto.ContextInfo.toObject(m.contextInfo, o, q + 1);
                 }
+                if (m.lyrics != null && $Object.hasOwnProperty.call(m, "lyrics")) {
+                    d.lyrics = $root.proto.Message.MusicMessage.Lyrics.toObject(m.lyrics, o, q + 1);
+                }
                 return d;
             };
 
@@ -88088,6 +89429,602 @@ export const proto = $root.proto = (() => {
                 const valuesById = $Object.create(null), values = $Object.create(valuesById);
                 values[valuesById[0] = "UNKNOWN"] = 0;
                 return values;
+            })();
+
+            MusicMessage.Lyrics = (function() {
+
+                const Lyrics = function (p) {
+                    this.lines = [];
+                    if (p)
+                        for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                            if (p[ks[i]] != null && ks[i] !== "__proto__")
+                                this[ks[i]] = p[ks[i]];
+                };
+
+                Lyrics.prototype.lines = $util.emptyArray;
+
+                Lyrics.create = function(properties) {
+                    return new Lyrics(properties);
+                };
+
+                Lyrics.encode = function (m, w, q) {
+                    if (!w)
+                        w = $Writer.create();
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (m.lines != null && m.lines.length) {
+                        for (var i = 0; i < m.lines.length; ++i)
+                            $root.proto.Message.MusicMessage.Lyrics.Line.encode(m.lines[i], w.uint32(10).fork(), q + 1).ldelim();
+                    }
+                    if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                        for (var i = 0; i < m.$unknowns.length; ++i)
+                            w.raw(m.$unknowns[i]);
+                    return w;
+                };
+
+                Lyrics.decode = function (r, l, z, q, g) {
+                    if (!(r instanceof $Reader))
+                        r = $Reader.create(r);
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var c, m;
+                    if (l === $undefined)
+                        c = r.len;
+                    else {
+                        c = r.pos + l;
+                        if (c > r.len)
+                            throw $RangeError("index out of range");
+                        l = r.len;
+                        r.len = c;
+                    }
+                    m = g || new $root.proto.Message.MusicMessage.Lyrics();
+                    while (r.pos < c) {
+                        var s = r.pos;
+                        var t = r.tag();
+                        if (t === z) {
+                            z = $undefined;
+                            break;
+                        }
+                        var u = t & 7;
+                        switch (t >>>= 3) {
+                        case 1: {
+                                if (u !== 2)
+                                    break;
+                                if (!(m.lines && m.lines.length))
+                                    m.lines = [];
+                                m.lines.push($root.proto.Message.MusicMessage.Lyrics.Line.decode(r, r.size(), $undefined, q + 1));
+                                continue;
+                            }
+                        }
+                        r.skipType(u, q, t);
+                        if (!r.discardUnknown) {
+                            $util.makeProp(m, "$unknowns", false);
+                            (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                        }
+                    }
+                    if (l !== $undefined) {
+                        if (r.pos !== c)
+                            throw $RangeError("index out of range");
+                        r.len = l;
+                    }
+                    if (z !== $undefined)
+                        throw $Error("missing end group");
+                    return m;
+                };
+
+                Lyrics.fromObject = function (d, q) {
+                    if (d instanceof $root.proto.Message.MusicMessage.Lyrics)
+                        return d;
+                    if (!$util.isObject(d))
+                        throw $TypeError(".proto.Message.MusicMessage.Lyrics: object expected");
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var m = new $root.proto.Message.MusicMessage.Lyrics();
+                    if (d.lines) {
+                        if (!$Array.isArray(d.lines))
+                            throw $TypeError(".proto.Message.MusicMessage.Lyrics.lines: array expected");
+                        m.lines = $Array(d.lines.length);
+                        for (var i = 0; i < d.lines.length; ++i) {
+                            if (!$util.isObject(d.lines[i]))
+                                throw $TypeError(".proto.Message.MusicMessage.Lyrics.lines: object expected");
+                            m.lines[i] = $root.proto.Message.MusicMessage.Lyrics.Line.fromObject(d.lines[i], q + 1);
+                        }
+                    }
+                    return m;
+                };
+
+                Lyrics.toObject = function (m, o, q) {
+                    if (!o)
+                        o = {};
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var d = {};
+                    if (o.arrays || o.defaults) {
+                        d.lines = [];
+                    }
+                    if (m.lines && m.lines.length) {
+                        d.lines = $Array(m.lines.length);
+                        for (var j = 0; j < m.lines.length; ++j) {
+                            d.lines[j] = $root.proto.Message.MusicMessage.Lyrics.Line.toObject(m.lines[j], o, q + 1);
+                        }
+                    }
+                    return d;
+                };
+
+                Lyrics.prototype.toJSON = function() {
+                    return Lyrics.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                Lyrics.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/proto.Message.MusicMessage.Lyrics";
+                };
+
+                Lyrics.WordOffset = (function() {
+
+                    const WordOffset = function (p) {
+                        if (p)
+                            for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                                if (p[ks[i]] != null && ks[i] !== "__proto__")
+                                    this[ks[i]] = p[ks[i]];
+                    };
+
+                    WordOffset.prototype.startIndex = null;
+                    WordOffset.prototype.endIndex = null;
+                    WordOffset.prototype.startOffsetMs = null;
+                    WordOffset.prototype.endOffsetMs = null;
+
+                    let $oneOfFields;
+
+                    // Virtual OneOf for proto3 optional field
+                    $Object.defineProperty(WordOffset.prototype, "_startIndex", {
+                        get: $util.oneOfGetter($oneOfFields = ["startIndex"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    $Object.defineProperty(WordOffset.prototype, "_endIndex", {
+                        get: $util.oneOfGetter($oneOfFields = ["endIndex"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    $Object.defineProperty(WordOffset.prototype, "_startOffsetMs", {
+                        get: $util.oneOfGetter($oneOfFields = ["startOffsetMs"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    $Object.defineProperty(WordOffset.prototype, "_endOffsetMs", {
+                        get: $util.oneOfGetter($oneOfFields = ["endOffsetMs"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    WordOffset.create = function(properties) {
+                        return new WordOffset(properties);
+                    };
+
+                    WordOffset.encode = function (m, w, q) {
+                        if (!w)
+                            w = $Writer.create();
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        if (m.startIndex != null && $Object.hasOwnProperty.call(m, "startIndex"))
+                            w.uint32(8).int32(m.startIndex);
+                        if (m.endIndex != null && $Object.hasOwnProperty.call(m, "endIndex"))
+                            w.uint32(16).int32(m.endIndex);
+                        if (m.startOffsetMs != null && $Object.hasOwnProperty.call(m, "startOffsetMs"))
+                            w.uint32(24).int64(m.startOffsetMs);
+                        if (m.endOffsetMs != null && $Object.hasOwnProperty.call(m, "endOffsetMs"))
+                            w.uint32(32).int64(m.endOffsetMs);
+                        if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                            for (var i = 0; i < m.$unknowns.length; ++i)
+                                w.raw(m.$unknowns[i]);
+                        return w;
+                    };
+
+                    WordOffset.decode = function (r, l, z, q, g) {
+                        if (!(r instanceof $Reader))
+                            r = $Reader.create(r);
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $Reader.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        var c, m;
+                        if (l === $undefined)
+                            c = r.len;
+                        else {
+                            c = r.pos + l;
+                            if (c > r.len)
+                                throw $RangeError("index out of range");
+                            l = r.len;
+                            r.len = c;
+                        }
+                        m = g || new $root.proto.Message.MusicMessage.Lyrics.WordOffset();
+                        while (r.pos < c) {
+                            var s = r.pos;
+                            var t = r.tag();
+                            if (t === z) {
+                                z = $undefined;
+                                break;
+                            }
+                            var u = t & 7;
+                            switch (t >>>= 3) {
+                            case 1: {
+                                    if (u !== 0)
+                                        break;
+                                    m.startIndex = r.int32();
+                                    m._startIndex = "startIndex";
+                                    continue;
+                                }
+                            case 2: {
+                                    if (u !== 0)
+                                        break;
+                                    m.endIndex = r.int32();
+                                    m._endIndex = "endIndex";
+                                    continue;
+                                }
+                            case 3: {
+                                    if (u !== 0)
+                                        break;
+                                    m.startOffsetMs = r.int64();
+                                    m._startOffsetMs = "startOffsetMs";
+                                    continue;
+                                }
+                            case 4: {
+                                    if (u !== 0)
+                                        break;
+                                    m.endOffsetMs = r.int64();
+                                    m._endOffsetMs = "endOffsetMs";
+                                    continue;
+                                }
+                            }
+                            r.skipType(u, q, t);
+                            if (!r.discardUnknown) {
+                                $util.makeProp(m, "$unknowns", false);
+                                (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                            }
+                        }
+                        if (l !== $undefined) {
+                            if (r.pos !== c)
+                                throw $RangeError("index out of range");
+                            r.len = l;
+                        }
+                        if (z !== $undefined)
+                            throw $Error("missing end group");
+                        return m;
+                    };
+
+                    WordOffset.fromObject = function (d, q) {
+                        if (d instanceof $root.proto.Message.MusicMessage.Lyrics.WordOffset)
+                            return d;
+                        if (!$util.isObject(d))
+                            throw $TypeError(".proto.Message.MusicMessage.Lyrics.WordOffset: object expected");
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        var m = new $root.proto.Message.MusicMessage.Lyrics.WordOffset();
+                        if (d.startIndex != null) {
+                            m.startIndex = d.startIndex | 0;
+                        }
+                        if (d.endIndex != null) {
+                            m.endIndex = d.endIndex | 0;
+                        }
+                        if (d.startOffsetMs != null) {
+                            if ($util.Long)
+                                m.startOffsetMs = $util.Long.fromValue(d.startOffsetMs, false);
+                            else if (typeof d.startOffsetMs === "string")
+                                m.startOffsetMs = $parseInt(d.startOffsetMs, 10);
+                            else if (typeof d.startOffsetMs === "number")
+                                m.startOffsetMs = d.startOffsetMs;
+                            else if (typeof d.startOffsetMs === "object")
+                                m.startOffsetMs = new $util.LongBits(d.startOffsetMs.low >>> 0, d.startOffsetMs.high >>> 0).toNumber();
+                        }
+                        if (d.endOffsetMs != null) {
+                            if ($util.Long)
+                                m.endOffsetMs = $util.Long.fromValue(d.endOffsetMs, false);
+                            else if (typeof d.endOffsetMs === "string")
+                                m.endOffsetMs = $parseInt(d.endOffsetMs, 10);
+                            else if (typeof d.endOffsetMs === "number")
+                                m.endOffsetMs = d.endOffsetMs;
+                            else if (typeof d.endOffsetMs === "object")
+                                m.endOffsetMs = new $util.LongBits(d.endOffsetMs.low >>> 0, d.endOffsetMs.high >>> 0).toNumber();
+                        }
+                        return m;
+                    };
+
+                    WordOffset.toObject = function (m, o, q) {
+                        if (!o)
+                            o = {};
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        var d = {};
+                        if (m.startIndex != null && $Object.hasOwnProperty.call(m, "startIndex")) {
+                            d.startIndex = m.startIndex;
+                        }
+                        if (m.endIndex != null && $Object.hasOwnProperty.call(m, "endIndex")) {
+                            d.endIndex = m.endIndex;
+                        }
+                        if (m.startOffsetMs != null && $Object.hasOwnProperty.call(m, "startOffsetMs")) {
+                            if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                                d.startOffsetMs = typeof m.startOffsetMs === "number" ? $BigInt(m.startOffsetMs) : $util.Long.fromBits(m.startOffsetMs.low >>> 0, m.startOffsetMs.high >>> 0, false).toBigInt();
+                            else if (typeof m.startOffsetMs === "number")
+                                d.startOffsetMs = o.longs === $String ? $String(m.startOffsetMs) : m.startOffsetMs;
+                            else
+                                d.startOffsetMs = o.longs === String ? longToString(m.startOffsetMs) : o.longs === Number ? longToNumber(m.startOffsetMs) : m.startOffsetMs;
+                        }
+                        if (m.endOffsetMs != null && $Object.hasOwnProperty.call(m, "endOffsetMs")) {
+                            if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                                d.endOffsetMs = typeof m.endOffsetMs === "number" ? $BigInt(m.endOffsetMs) : $util.Long.fromBits(m.endOffsetMs.low >>> 0, m.endOffsetMs.high >>> 0, false).toBigInt();
+                            else if (typeof m.endOffsetMs === "number")
+                                d.endOffsetMs = o.longs === $String ? $String(m.endOffsetMs) : m.endOffsetMs;
+                            else
+                                d.endOffsetMs = o.longs === String ? longToString(m.endOffsetMs) : o.longs === Number ? longToNumber(m.endOffsetMs) : m.endOffsetMs;
+                        }
+                        return d;
+                    };
+
+                    WordOffset.prototype.toJSON = function() {
+                        return WordOffset.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    WordOffset.getTypeUrl = function(prefix) {
+                        if (prefix === $undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/proto.Message.MusicMessage.Lyrics.WordOffset";
+                    };
+
+                    return WordOffset;
+                })();
+
+                Lyrics.Line = (function() {
+
+                    const Line = function (p) {
+                        this.wordOffsets = [];
+                        if (p)
+                            for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                                if (p[ks[i]] != null && ks[i] !== "__proto__")
+                                    this[ks[i]] = p[ks[i]];
+                    };
+
+                    Line.prototype.startTimeInMs = null;
+                    Line.prototype.endTimeInMs = null;
+                    Line.prototype.text = null;
+                    Line.prototype.wordOffsets = $util.emptyArray;
+
+                    let $oneOfFields;
+
+                    // Virtual OneOf for proto3 optional field
+                    $Object.defineProperty(Line.prototype, "_startTimeInMs", {
+                        get: $util.oneOfGetter($oneOfFields = ["startTimeInMs"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    $Object.defineProperty(Line.prototype, "_endTimeInMs", {
+                        get: $util.oneOfGetter($oneOfFields = ["endTimeInMs"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    $Object.defineProperty(Line.prototype, "_text", {
+                        get: $util.oneOfGetter($oneOfFields = ["text"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    Line.create = function(properties) {
+                        return new Line(properties);
+                    };
+
+                    Line.encode = function (m, w, q) {
+                        if (!w)
+                            w = $Writer.create();
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        if (m.startTimeInMs != null && $Object.hasOwnProperty.call(m, "startTimeInMs"))
+                            w.uint32(8).int64(m.startTimeInMs);
+                        if (m.endTimeInMs != null && $Object.hasOwnProperty.call(m, "endTimeInMs"))
+                            w.uint32(16).int64(m.endTimeInMs);
+                        if (m.text != null && $Object.hasOwnProperty.call(m, "text"))
+                            w.uint32(26).string(m.text);
+                        if (m.wordOffsets != null && m.wordOffsets.length) {
+                            for (var i = 0; i < m.wordOffsets.length; ++i)
+                                $root.proto.Message.MusicMessage.Lyrics.WordOffset.encode(m.wordOffsets[i], w.uint32(34).fork(), q + 1).ldelim();
+                        }
+                        if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                            for (var i = 0; i < m.$unknowns.length; ++i)
+                                w.raw(m.$unknowns[i]);
+                        return w;
+                    };
+
+                    Line.decode = function (r, l, z, q, g) {
+                        if (!(r instanceof $Reader))
+                            r = $Reader.create(r);
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $Reader.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        var c, m;
+                        if (l === $undefined)
+                            c = r.len;
+                        else {
+                            c = r.pos + l;
+                            if (c > r.len)
+                                throw $RangeError("index out of range");
+                            l = r.len;
+                            r.len = c;
+                        }
+                        m = g || new $root.proto.Message.MusicMessage.Lyrics.Line();
+                        while (r.pos < c) {
+                            var s = r.pos;
+                            var t = r.tag();
+                            if (t === z) {
+                                z = $undefined;
+                                break;
+                            }
+                            var u = t & 7;
+                            switch (t >>>= 3) {
+                            case 1: {
+                                    if (u !== 0)
+                                        break;
+                                    m.startTimeInMs = r.int64();
+                                    m._startTimeInMs = "startTimeInMs";
+                                    continue;
+                                }
+                            case 2: {
+                                    if (u !== 0)
+                                        break;
+                                    m.endTimeInMs = r.int64();
+                                    m._endTimeInMs = "endTimeInMs";
+                                    continue;
+                                }
+                            case 3: {
+                                    if (u !== 2)
+                                        break;
+                                    m.text = r.stringVerify();
+                                    m._text = "text";
+                                    continue;
+                                }
+                            case 4: {
+                                    if (u !== 2)
+                                        break;
+                                    if (!(m.wordOffsets && m.wordOffsets.length))
+                                        m.wordOffsets = [];
+                                    m.wordOffsets.push($root.proto.Message.MusicMessage.Lyrics.WordOffset.decode(r, r.size(), $undefined, q + 1));
+                                    continue;
+                                }
+                            }
+                            r.skipType(u, q, t);
+                            if (!r.discardUnknown) {
+                                $util.makeProp(m, "$unknowns", false);
+                                (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                            }
+                        }
+                        if (l !== $undefined) {
+                            if (r.pos !== c)
+                                throw $RangeError("index out of range");
+                            r.len = l;
+                        }
+                        if (z !== $undefined)
+                            throw $Error("missing end group");
+                        return m;
+                    };
+
+                    Line.fromObject = function (d, q) {
+                        if (d instanceof $root.proto.Message.MusicMessage.Lyrics.Line)
+                            return d;
+                        if (!$util.isObject(d))
+                            throw $TypeError(".proto.Message.MusicMessage.Lyrics.Line: object expected");
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        var m = new $root.proto.Message.MusicMessage.Lyrics.Line();
+                        if (d.startTimeInMs != null) {
+                            if ($util.Long)
+                                m.startTimeInMs = $util.Long.fromValue(d.startTimeInMs, false);
+                            else if (typeof d.startTimeInMs === "string")
+                                m.startTimeInMs = $parseInt(d.startTimeInMs, 10);
+                            else if (typeof d.startTimeInMs === "number")
+                                m.startTimeInMs = d.startTimeInMs;
+                            else if (typeof d.startTimeInMs === "object")
+                                m.startTimeInMs = new $util.LongBits(d.startTimeInMs.low >>> 0, d.startTimeInMs.high >>> 0).toNumber();
+                        }
+                        if (d.endTimeInMs != null) {
+                            if ($util.Long)
+                                m.endTimeInMs = $util.Long.fromValue(d.endTimeInMs, false);
+                            else if (typeof d.endTimeInMs === "string")
+                                m.endTimeInMs = $parseInt(d.endTimeInMs, 10);
+                            else if (typeof d.endTimeInMs === "number")
+                                m.endTimeInMs = d.endTimeInMs;
+                            else if (typeof d.endTimeInMs === "object")
+                                m.endTimeInMs = new $util.LongBits(d.endTimeInMs.low >>> 0, d.endTimeInMs.high >>> 0).toNumber();
+                        }
+                        if (d.text != null) {
+                            m.text = $String(d.text);
+                        }
+                        if (d.wordOffsets) {
+                            if (!$Array.isArray(d.wordOffsets))
+                                throw $TypeError(".proto.Message.MusicMessage.Lyrics.Line.wordOffsets: array expected");
+                            m.wordOffsets = $Array(d.wordOffsets.length);
+                            for (var i = 0; i < d.wordOffsets.length; ++i) {
+                                if (!$util.isObject(d.wordOffsets[i]))
+                                    throw $TypeError(".proto.Message.MusicMessage.Lyrics.Line.wordOffsets: object expected");
+                                m.wordOffsets[i] = $root.proto.Message.MusicMessage.Lyrics.WordOffset.fromObject(d.wordOffsets[i], q + 1);
+                            }
+                        }
+                        return m;
+                    };
+
+                    Line.toObject = function (m, o, q) {
+                        if (!o)
+                            o = {};
+                        if (q === $undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw $Error("max depth exceeded");
+                        var d = {};
+                        if (o.arrays || o.defaults) {
+                            d.wordOffsets = [];
+                        }
+                        if (m.startTimeInMs != null && $Object.hasOwnProperty.call(m, "startTimeInMs")) {
+                            if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                                d.startTimeInMs = typeof m.startTimeInMs === "number" ? $BigInt(m.startTimeInMs) : $util.Long.fromBits(m.startTimeInMs.low >>> 0, m.startTimeInMs.high >>> 0, false).toBigInt();
+                            else if (typeof m.startTimeInMs === "number")
+                                d.startTimeInMs = o.longs === $String ? $String(m.startTimeInMs) : m.startTimeInMs;
+                            else
+                                d.startTimeInMs = o.longs === String ? longToString(m.startTimeInMs) : o.longs === Number ? longToNumber(m.startTimeInMs) : m.startTimeInMs;
+                        }
+                        if (m.endTimeInMs != null && $Object.hasOwnProperty.call(m, "endTimeInMs")) {
+                            if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                                d.endTimeInMs = typeof m.endTimeInMs === "number" ? $BigInt(m.endTimeInMs) : $util.Long.fromBits(m.endTimeInMs.low >>> 0, m.endTimeInMs.high >>> 0, false).toBigInt();
+                            else if (typeof m.endTimeInMs === "number")
+                                d.endTimeInMs = o.longs === $String ? $String(m.endTimeInMs) : m.endTimeInMs;
+                            else
+                                d.endTimeInMs = o.longs === String ? longToString(m.endTimeInMs) : o.longs === Number ? longToNumber(m.endTimeInMs) : m.endTimeInMs;
+                        }
+                        if (m.text != null && $Object.hasOwnProperty.call(m, "text")) {
+                            d.text = m.text;
+                        }
+                        if (m.wordOffsets && m.wordOffsets.length) {
+                            d.wordOffsets = $Array(m.wordOffsets.length);
+                            for (var j = 0; j < m.wordOffsets.length; ++j) {
+                                d.wordOffsets[j] = $root.proto.Message.MusicMessage.Lyrics.WordOffset.toObject(m.wordOffsets[j], o, q + 1);
+                            }
+                        }
+                        return d;
+                    };
+
+                    Line.prototype.toJSON = function() {
+                        return Line.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    Line.getTypeUrl = function(prefix) {
+                        if (prefix === $undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/proto.Message.MusicMessage.Lyrics.Line";
+                    };
+
+                    return Line;
+                })();
+
+                return Lyrics;
             })();
 
             return MusicMessage;
@@ -88481,7 +90418,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.keys && m.keys.length))
                                 m.keys = [];
-                            m.keys.push($root.proto.Message.SharedDeviceContactHashKey.decode(r, r.uint32(), $undefined, q + 1));
+                            m.keys.push($root.proto.Message.SharedDeviceContactHashKey.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -88877,9 +90814,6 @@ export const proto = $root.proto = (() => {
                             this[ks[i]] = p[ks[i]];
             };
 
-
-            let $oneOfFields;
-
             RequestLocationMessage.create = function(properties) {
                 return new RequestLocationMessage(properties);
             };
@@ -88922,10 +90856,7 @@ export const proto = $root.proto = (() => {
                         z = $undefined;
                         break;
                     }
-                    var u = t & 7;
-                    switch (t >>>= 3) {
-                    }
-                    r.skipType(u, q, t);
+                    r.skipType(t & 7, q, t);
                     if (!r.discardUnknown) {
                         $util.makeProp(m, "$unknowns", false);
                         (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
@@ -88950,19 +90881,11 @@ export const proto = $root.proto = (() => {
                     q = 0;
                 if (q > $util.recursionLimit)
                     throw $Error("max depth exceeded");
-                var m = new $root.proto.Message.RequestLocationMessage();
-                return m;
+                return new $root.proto.Message.RequestLocationMessage();
             };
 
-            RequestLocationMessage.toObject = function (m, o, q) {
-                if (!o)
-                    o = {};
-                if (q === $undefined)
-                    q = 0;
-                if (q > $util.recursionLimit)
-                    throw $Error("max depth exceeded");
-                var d = {};
-                return d;
+            RequestLocationMessage.toObject = function () {
+                return {};
             };
 
             RequestLocationMessage.prototype.toJSON = function() {
@@ -88986,9 +90909,6 @@ export const proto = $root.proto = (() => {
                         if (p[ks[i]] != null && ks[i] !== "__proto__")
                             this[ks[i]] = p[ks[i]];
             };
-
-
-            let $oneOfFields;
 
             RequestLocationUpdateMessage.create = function(properties) {
                 return new RequestLocationUpdateMessage(properties);
@@ -89032,10 +90952,7 @@ export const proto = $root.proto = (() => {
                         z = $undefined;
                         break;
                     }
-                    var u = t & 7;
-                    switch (t >>>= 3) {
-                    }
-                    r.skipType(u, q, t);
+                    r.skipType(t & 7, q, t);
                     if (!r.discardUnknown) {
                         $util.makeProp(m, "$unknowns", false);
                         (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
@@ -89060,19 +90977,11 @@ export const proto = $root.proto = (() => {
                     q = 0;
                 if (q > $util.recursionLimit)
                     throw $Error("max depth exceeded");
-                var m = new $root.proto.Message.RequestLocationUpdateMessage();
-                return m;
+                return new $root.proto.Message.RequestLocationUpdateMessage();
             };
 
-            RequestLocationUpdateMessage.toObject = function (m, o, q) {
-                if (!o)
-                    o = {};
-                if (q === $undefined)
-                    q = 0;
-                if (q > $util.recursionLimit)
-                    throw $Error("max depth exceeded");
-                var d = {};
-                return d;
+            RequestLocationUpdateMessage.toObject = function () {
+                return {};
             };
 
             RequestLocationUpdateMessage.prototype.toJSON = function() {
@@ -89086,6 +90995,274 @@ export const proto = $root.proto = (() => {
             };
 
             return RequestLocationUpdateMessage;
+        })();
+
+        Message.CoexConnectionDescriptor = (function() {
+
+            const CoexConnectionDescriptor = function (p) {
+                if (p)
+                    for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                        if (p[ks[i]] != null && ks[i] !== "__proto__")
+                            this[ks[i]] = p[ks[i]];
+            };
+
+            CoexConnectionDescriptor.prototype.providerId = null;
+            CoexConnectionDescriptor.prototype.product = null;
+
+            let $oneOfFields;
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(CoexConnectionDescriptor.prototype, "_providerId", {
+                get: $util.oneOfGetter($oneOfFields = ["providerId"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(CoexConnectionDescriptor.prototype, "_product", {
+                get: $util.oneOfGetter($oneOfFields = ["product"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            CoexConnectionDescriptor.create = function(properties) {
+                return new CoexConnectionDescriptor(properties);
+            };
+
+            CoexConnectionDescriptor.encode = function (m, w, q) {
+                if (!w)
+                    w = $Writer.create();
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                if (m.providerId != null && $Object.hasOwnProperty.call(m, "providerId"))
+                    w.uint32(8).int64(m.providerId);
+                if (m.product != null && $Object.hasOwnProperty.call(m, "product"))
+                    w.uint32(18).string(m.product);
+                if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                    for (var i = 0; i < m.$unknowns.length; ++i)
+                        w.raw(m.$unknowns[i]);
+                return w;
+            };
+
+            CoexConnectionDescriptor.decode = function (r, l, z, q, g) {
+                if (!(r instanceof $Reader))
+                    r = $Reader.create(r);
+                if (q === $undefined)
+                    q = 0;
+                if (q > $Reader.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var c, m;
+                if (l === $undefined)
+                    c = r.len;
+                else {
+                    c = r.pos + l;
+                    if (c > r.len)
+                        throw $RangeError("index out of range");
+                    l = r.len;
+                    r.len = c;
+                }
+                m = g || new $root.proto.Message.CoexConnectionDescriptor();
+                while (r.pos < c) {
+                    var s = r.pos;
+                    var t = r.tag();
+                    if (t === z) {
+                        z = $undefined;
+                        break;
+                    }
+                    var u = t & 7;
+                    switch (t >>>= 3) {
+                    case 1: {
+                            if (u !== 0)
+                                break;
+                            m.providerId = r.int64();
+                            m._providerId = "providerId";
+                            continue;
+                        }
+                    case 2: {
+                            if (u !== 2)
+                                break;
+                            m.product = r.stringVerify();
+                            m._product = "product";
+                            continue;
+                        }
+                    }
+                    r.skipType(u, q, t);
+                    if (!r.discardUnknown) {
+                        $util.makeProp(m, "$unknowns", false);
+                        (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                    }
+                }
+                if (l !== $undefined) {
+                    if (r.pos !== c)
+                        throw $RangeError("index out of range");
+                    r.len = l;
+                }
+                if (z !== $undefined)
+                    throw $Error("missing end group");
+                return m;
+            };
+
+            CoexConnectionDescriptor.fromObject = function (d, q) {
+                if (d instanceof $root.proto.Message.CoexConnectionDescriptor)
+                    return d;
+                if (!$util.isObject(d))
+                    throw $TypeError(".proto.Message.CoexConnectionDescriptor: object expected");
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var m = new $root.proto.Message.CoexConnectionDescriptor();
+                if (d.providerId != null) {
+                    if ($util.Long)
+                        m.providerId = $util.Long.fromValue(d.providerId, false);
+                    else if (typeof d.providerId === "string")
+                        m.providerId = $parseInt(d.providerId, 10);
+                    else if (typeof d.providerId === "number")
+                        m.providerId = d.providerId;
+                    else if (typeof d.providerId === "object")
+                        m.providerId = new $util.LongBits(d.providerId.low >>> 0, d.providerId.high >>> 0).toNumber();
+                }
+                if (d.product != null) {
+                    m.product = $String(d.product);
+                }
+                return m;
+            };
+
+            CoexConnectionDescriptor.toObject = function (m, o, q) {
+                if (!o)
+                    o = {};
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var d = {};
+                if (m.providerId != null && $Object.hasOwnProperty.call(m, "providerId")) {
+                    if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                        d.providerId = typeof m.providerId === "number" ? $BigInt(m.providerId) : $util.Long.fromBits(m.providerId.low >>> 0, m.providerId.high >>> 0, false).toBigInt();
+                    else if (typeof m.providerId === "number")
+                        d.providerId = o.longs === $String ? $String(m.providerId) : m.providerId;
+                    else
+                        d.providerId = o.longs === String ? longToString(m.providerId) : o.longs === Number ? longToNumber(m.providerId) : m.providerId;
+                }
+                if (m.product != null && $Object.hasOwnProperty.call(m, "product")) {
+                    d.product = m.product;
+                }
+                return d;
+            };
+
+            CoexConnectionDescriptor.prototype.toJSON = function() {
+                return CoexConnectionDescriptor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            CoexConnectionDescriptor.getTypeUrl = function(prefix) {
+                if (prefix === $undefined)
+                    prefix = "type.googleapis.com";
+                return prefix + "/proto.Message.CoexConnectionDescriptor";
+            };
+
+            return CoexConnectionDescriptor;
+        })();
+
+
+        Message.VpcRequestMessage = (function() {
+
+            const VpcRequestMessage = function (p) {
+                if (p)
+                    for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                        if (p[ks[i]] != null && ks[i] !== "__proto__")
+                            this[ks[i]] = p[ks[i]];
+            };
+
+            VpcRequestMessage.create = function(properties) {
+                return new VpcRequestMessage(properties);
+            };
+
+            VpcRequestMessage.encode = function (m, w, q) {
+                if (!w)
+                    w = $Writer.create();
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                    for (var i = 0; i < m.$unknowns.length; ++i)
+                        w.raw(m.$unknowns[i]);
+                return w;
+            };
+
+            VpcRequestMessage.decode = function (r, l, z, q, g) {
+                if (!(r instanceof $Reader))
+                    r = $Reader.create(r);
+                if (q === $undefined)
+                    q = 0;
+                if (q > $Reader.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var c;
+                if (l === $undefined)
+                    c = r.len;
+                else {
+                    c = r.pos + l;
+                    if (c > r.len)
+                        throw $RangeError("index out of range");
+                }
+                // the field layout of this message is not published anywhere, so the payload is kept verbatim:
+                // encode() writes $unknowns back, which makes a decode/encode cycle byte-identical
+                var m = g || new $root.proto.Message.VpcRequestMessage();
+                var raw = r.raw(r.pos, c);
+                r.pos = c;
+                $util.makeProp(m, "$unknowns", false);
+                (m.$unknowns || (m.$unknowns = [])).push(raw);
+                return m;
+            };
+
+
+            VpcRequestMessage.fromObject = function (d, q) {
+                if (d instanceof $root.proto.Message.VpcRequestMessage)
+                    return d;
+                if (!$util.isObject(d))
+                    throw $TypeError(".proto.Message.VpcRequestMessage: object expected");
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var m = new $root.proto.Message.VpcRequestMessage();
+                if (d.$unknowns != null) {
+                    if (!$Array.isArray(d.$unknowns))
+                        throw $TypeError(".proto.Message.VpcRequestMessage.$unknowns: array expected");
+                    m.$unknowns = $Array(d.$unknowns.length);
+                    for (var i = 0; i < d.$unknowns.length; ++i)
+                        m.$unknowns[i] = d.$unknowns[i];
+                }
+                return m;
+            };
+
+            VpcRequestMessage.toObject = function (m, o, q) {
+                if (!o)
+                    o = {};
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var d = {};
+                if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns")) {
+                    d.$unknowns = $Array(m.$unknowns.length);
+                    for (var j = 0; j < m.$unknowns.length; ++j)
+                        d.$unknowns[j] = m.$unknowns[j];
+                }
+                return d;
+            };
+
+            VpcRequestMessage.prototype.toJSON = function() {
+                return VpcRequestMessage.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            VpcRequestMessage.getTypeUrl = function(prefix) {
+                if (prefix === $undefined)
+                    prefix = "type.googleapis.com";
+                return prefix + "/proto.Message.VpcRequestMessage";
+            };
+
+            return VpcRequestMessage;
         })();
 
         return Message;
@@ -89229,7 +91406,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.messageAddOn = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.messageAddOn);
+                        m.messageAddOn = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.messageAddOn);
                         m._messageAddOn = "messageAddOn";
                         continue;
                     }
@@ -89257,21 +91434,21 @@ export const proto = $root.proto = (() => {
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.addOnContextInfo = $root.proto.MessageAddOnContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.addOnContextInfo);
+                        m.addOnContextInfo = $root.proto.MessageAddOnContextInfo.decode(r, r.size(), $undefined, q + 1, m.addOnContextInfo);
                         m._addOnContextInfo = "addOnContextInfo";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.messageAddOnKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.messageAddOnKey);
+                        m.messageAddOnKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.messageAddOnKey);
                         m._messageAddOnKey = "messageAddOnKey";
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.legacyMessage = $root.proto.LegacyMessage.decode(r, r.uint32(), $undefined, q + 1, m.legacyMessage);
+                        m.legacyMessage = $root.proto.LegacyMessage.decode(r, r.size(), $undefined, q + 1, m.legacyMessage);
                         m._legacyMessage = "legacyMessage";
                         continue;
                     }
@@ -89724,7 +91901,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.parentMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.parentMessageKey);
+                        m.parentMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.parentMessageKey);
                         m._parentMessageKey = "parentMessageKey";
                         continue;
                     }
@@ -89952,6 +92129,7 @@ export const proto = $root.proto = (() => {
         MessageContextInfo.prototype.teeBotMetadata = null;
         MessageContextInfo.prototype.accountEncryptionAttestation = null;
         MessageContextInfo.prototype.associatedPrimaryIdentityKey = null;
+        MessageContextInfo.prototype.lightE2Ee = null;
 
         let $oneOfFields;
 
@@ -90075,6 +92253,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(MessageContextInfo.prototype, "_lightE2Ee", {
+            get: $util.oneOfGetter($oneOfFields = ["lightE2Ee"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         MessageContextInfo.create = function(properties) {
             return new MessageContextInfo(properties);
         };
@@ -90130,6 +92314,8 @@ export const proto = $root.proto = (() => {
                 w.uint32(162).string(m.teeContextAnchorMessageId);
             if (m.acp2Setting != null && $Object.hasOwnProperty.call(m, "acp2Setting"))
                 $root.proto.ACP2Setting.encode(m.acp2Setting, w.uint32(170).fork(), q + 1).ldelim();
+            if (m.lightE2Ee != null && $Object.hasOwnProperty.call(m, "lightE2Ee"))
+                w.uint32(176).bool(m.lightE2Ee);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -90166,7 +92352,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.deviceListMetadata = $root.proto.DeviceListMetadata.decode(r, r.uint32(), $undefined, q + 1, m.deviceListMetadata);
+                        m.deviceListMetadata = $root.proto.DeviceListMetadata.decode(r, r.size(), $undefined, q + 1, m.deviceListMetadata);
                         m._deviceListMetadata = "deviceListMetadata";
                         continue;
                     }
@@ -90208,7 +92394,7 @@ export const proto = $root.proto = (() => {
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.botMetadata = $root.proto.BotMetadata.decode(r, r.uint32(), $undefined, q + 1, m.botMetadata);
+                        m.botMetadata = $root.proto.BotMetadata.decode(r, r.size(), $undefined, q + 1, m.botMetadata);
                         m._botMetadata = "botMetadata";
                         continue;
                     }
@@ -90229,7 +92415,7 @@ export const proto = $root.proto = (() => {
                 case 10: {
                         if (u !== 2)
                             break;
-                        m.messageAssociation = $root.proto.MessageAssociation.decode(r, r.uint32(), $undefined, q + 1, m.messageAssociation);
+                        m.messageAssociation = $root.proto.MessageAssociation.decode(r, r.size(), $undefined, q + 1, m.messageAssociation);
                         m._messageAssociation = "messageAssociation";
                         continue;
                     }
@@ -90250,14 +92436,14 @@ export const proto = $root.proto = (() => {
                 case 13: {
                         if (u !== 2)
                             break;
-                        m.limitSharing = $root.proto.LimitSharing.decode(r, r.uint32(), $undefined, q + 1, m.limitSharing);
+                        m.limitSharing = $root.proto.LimitSharing.decode(r, r.size(), $undefined, q + 1, m.limitSharing);
                         m._limitSharing = "limitSharing";
                         continue;
                     }
                 case 14: {
                         if (u !== 2)
                             break;
-                        m.limitSharingV2 = $root.proto.LimitSharing.decode(r, r.uint32(), $undefined, q + 1, m.limitSharingV2);
+                        m.limitSharingV2 = $root.proto.LimitSharing.decode(r, r.size(), $undefined, q + 1, m.limitSharingV2);
                         m._limitSharingV2 = "limitSharingV2";
                         continue;
                     }
@@ -90266,7 +92452,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.threadId && m.threadId.length))
                             m.threadId = [];
-                        m.threadId.push($root.proto.ThreadID.decode(r, r.uint32(), $undefined, q + 1));
+                        m.threadId.push($root.proto.ThreadID.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 16: {
@@ -90286,7 +92472,7 @@ export const proto = $root.proto = (() => {
                 case 21: {
                         if (u !== 2)
                             break;
-                        m.acp2Setting = $root.proto.ACP2Setting.decode(r, r.uint32(), $undefined, q + 1, m.acp2Setting);
+                        m.acp2Setting = $root.proto.ACP2Setting.decode(r, r.size(), $undefined, q + 1, m.acp2Setting);
                         m._acp2Setting = "acp2Setting";
                         continue;
                     }
@@ -90300,7 +92486,7 @@ export const proto = $root.proto = (() => {
                 case 18: {
                         if (u !== 2)
                             break;
-                        m.accountEncryptionAttestation = $root.proto.NonE2EEAttestation.decode(r, r.uint32(), $undefined, q + 1, m.accountEncryptionAttestation);
+                        m.accountEncryptionAttestation = $root.proto.NonE2EEAttestation.decode(r, r.size(), $undefined, q + 1, m.accountEncryptionAttestation);
                         m._accountEncryptionAttestation = "accountEncryptionAttestation";
                         continue;
                     }
@@ -90309,6 +92495,13 @@ export const proto = $root.proto = (() => {
                             break;
                         m.associatedPrimaryIdentityKey = r.bytes();
                         m._associatedPrimaryIdentityKey = "associatedPrimaryIdentityKey";
+                        continue;
+                    }
+                case 22: {
+                        if (u !== 0)
+                            break;
+                        m.lightE2Ee = r.bool();
+                        m._lightE2Ee = "lightE2Ee";
                         continue;
                     }
                 }
@@ -90457,6 +92650,9 @@ export const proto = $root.proto = (() => {
                 else if (d.associatedPrimaryIdentityKey.length >= 0)
                     m.associatedPrimaryIdentityKey = d.associatedPrimaryIdentityKey;
             }
+            if (d.lightE2Ee != null) {
+                m.lightE2Ee = $Boolean(d.lightE2Ee);
+            }
             return m;
         };
 
@@ -90536,6 +92732,9 @@ export const proto = $root.proto = (() => {
             }
             if (m.acp2Setting != null && $Object.hasOwnProperty.call(m, "acp2Setting")) {
                 d.acp2Setting = $root.proto.ACP2Setting.toObject(m.acp2Setting, o, q + 1);
+            }
+            if (m.lightE2Ee != null && $Object.hasOwnProperty.call(m, "lightE2Ee")) {
+                d.lightE2Ee = m.lightE2Ee;
             }
             return d;
         };
@@ -91218,6 +93417,7 @@ export const proto = $root.proto = (() => {
         MsgOpaqueData.prototype.sharableEventInviteJpegThumbnail = null;
         MsgOpaqueData.prototype.sharableEventInviteCallLink = null;
         MsgOpaqueData.prototype.musicData = null;
+        MsgOpaqueData.prototype.pollAddedOptionName = null;
 
         let $oneOfFields;
 
@@ -91563,6 +93763,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(MsgOpaqueData.prototype, "_pollAddedOptionName", {
+            get: $util.oneOfGetter($oneOfFields = ["pollAddedOptionName"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         MsgOpaqueData.create = function(properties) {
             return new MsgOpaqueData(properties);
         };
@@ -91692,6 +93898,16 @@ export const proto = $root.proto = (() => {
                 w.uint32(498).string(m.qrUrl);
             if (m.musicData != null && $Object.hasOwnProperty.call(m, "musicData"))
                 $root.proto.MsgOpaqueData.MusicData.encode(m.musicData, w.uint32(506).fork(), q + 1).ldelim();
+            if (m.pollAddedOptionName != null && $Object.hasOwnProperty.call(m, "pollAddedOptionName"))
+                w.uint32(514).string(m.pollAddedOptionName);
+            if (m.sharableEventInviteStatus != null && $Object.hasOwnProperty.call(m, "sharableEventInviteStatus"))
+                w.uint32(522).string(m.sharableEventInviteStatus);
+            if (m.sharableEventInviteLocationName != null && $Object.hasOwnProperty.call(m, "sharableEventInviteLocationName"))
+                w.uint32(530).string(m.sharableEventInviteLocationName);
+            if (m.sharableEventInviteCoverImageHandle != null && $Object.hasOwnProperty.call(m, "sharableEventInviteCoverImageHandle"))
+                w.uint32(538).string(m.sharableEventInviteCoverImageHandle);
+            if (m.sharableEventInviteLastUpdatedTsUsec != null && $Object.hasOwnProperty.call(m, "sharableEventInviteLastUpdatedTsUsec"))
+                w.uint32(544).int64(m.sharableEventInviteLastUpdatedTsUsec);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -91828,7 +94044,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pollOptions && m.pollOptions.length))
                             m.pollOptions = [];
-                        m.pollOptions.push($root.proto.MsgOpaqueData.PollOption.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pollOptions.push($root.proto.MsgOpaqueData.PollOption.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 20: {
@@ -91869,7 +94085,7 @@ export const proto = $root.proto = (() => {
                 case 24: {
                         if (u !== 2)
                             break;
-                        m.encPollVote = $root.proto.PollEncValue.decode(r, r.uint32(), $undefined, q + 1, m.encPollVote);
+                        m.encPollVote = $root.proto.PollEncValue.decode(r, r.size(), $undefined, q + 1, m.encPollVote);
                         m._encPollVote = "encPollVote";
                         continue;
                     }
@@ -91904,7 +94120,7 @@ export const proto = $root.proto = (() => {
                 case 41: {
                         if (u !== 2)
                             break;
-                        m.pollVotesSnapshot = $root.proto.MsgOpaqueData.PollVotesSnapshot.decode(r, r.uint32(), $undefined, q + 1, m.pollVotesSnapshot);
+                        m.pollVotesSnapshot = $root.proto.MsgOpaqueData.PollVotesSnapshot.decode(r, r.size(), $undefined, q + 1, m.pollVotesSnapshot);
                         m._pollVotesSnapshot = "pollVotesSnapshot";
                         continue;
                     }
@@ -91995,7 +94211,7 @@ export const proto = $root.proto = (() => {
                 case 38: {
                         if (u !== 2)
                             break;
-                        m.eventLocation = $root.proto.MsgOpaqueData.EventLocation.decode(r, r.uint32(), $undefined, q + 1, m.eventLocation);
+                        m.eventLocation = $root.proto.MsgOpaqueData.EventLocation.decode(r, r.size(), $undefined, q + 1, m.eventLocation);
                         m._eventLocation = "eventLocation";
                         continue;
                     }
@@ -92128,10 +94344,45 @@ export const proto = $root.proto = (() => {
                 case 63: {
                         if (u !== 2)
                             break;
-                        m.musicData = $root.proto.MsgOpaqueData.MusicData.decode(r, r.uint32(), $undefined, q + 1, m.musicData);
+                        m.musicData = $root.proto.MsgOpaqueData.MusicData.decode(r, r.size(), $undefined, q + 1, m.musicData);
                         m._musicData = "musicData";
                         continue;
                     }
+                case 64: {
+                        if (u !== 2)
+                            break;
+                        m.pollAddedOptionName = r.stringVerify();
+                        m._pollAddedOptionName = "pollAddedOptionName";
+                        continue;
+                    }
+                    case 65: {
+                            if (u !== 2)
+                                break;
+                            m.sharableEventInviteStatus = r.string();
+                            m._sharableEventInviteStatus = "sharableEventInviteStatus";
+                            continue;
+                        }
+                    case 66: {
+                            if (u !== 2)
+                                break;
+                            m.sharableEventInviteLocationName = r.string();
+                            m._sharableEventInviteLocationName = "sharableEventInviteLocationName";
+                            continue;
+                        }
+                    case 67: {
+                            if (u !== 2)
+                                break;
+                            m.sharableEventInviteCoverImageHandle = r.string();
+                            m._sharableEventInviteCoverImageHandle = "sharableEventInviteCoverImageHandle";
+                            continue;
+                        }
+                    case 68: {
+                            if (u !== 0)
+                                break;
+                            m.sharableEventInviteLastUpdatedTsUsec = r.int64();
+                            m._sharableEventInviteLastUpdatedTsUsec = "sharableEventInviteLastUpdatedTsUsec";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -92441,6 +94692,28 @@ export const proto = $root.proto = (() => {
                     throw $TypeError(".proto.MsgOpaqueData.musicData: object expected");
                 m.musicData = $root.proto.MsgOpaqueData.MusicData.fromObject(d.musicData, q + 1);
             }
+            if (d.pollAddedOptionName != null) {
+                m.pollAddedOptionName = $String(d.pollAddedOptionName);
+            }
+            if (d.sharableEventInviteStatus != null) {
+                m.sharableEventInviteStatus = $String(d.sharableEventInviteStatus);
+            }
+            if (d.sharableEventInviteLocationName != null) {
+                m.sharableEventInviteLocationName = $String(d.sharableEventInviteLocationName);
+            }
+            if (d.sharableEventInviteCoverImageHandle != null) {
+                m.sharableEventInviteCoverImageHandle = $String(d.sharableEventInviteCoverImageHandle);
+            }
+            if (d.sharableEventInviteLastUpdatedTsUsec != null) {
+                if ($util.Long)
+                    m.sharableEventInviteLastUpdatedTsUsec = $util.Long.fromValue(d.sharableEventInviteLastUpdatedTsUsec, false);
+                else if (typeof d.sharableEventInviteLastUpdatedTsUsec === "string")
+                    m.sharableEventInviteLastUpdatedTsUsec = $parseInt(d.sharableEventInviteLastUpdatedTsUsec, 10);
+                else if (typeof d.sharableEventInviteLastUpdatedTsUsec === "number")
+                    m.sharableEventInviteLastUpdatedTsUsec = d.sharableEventInviteLastUpdatedTsUsec;
+                else if (typeof d.sharableEventInviteLastUpdatedTsUsec === "object")
+                    m.sharableEventInviteLastUpdatedTsUsec = new $util.LongBits(d.sharableEventInviteLastUpdatedTsUsec.low >>> 0, d.sharableEventInviteLastUpdatedTsUsec.high >>> 0).toNumber(false);
+            }
             return m;
         };
 
@@ -92661,6 +94934,24 @@ export const proto = $root.proto = (() => {
             }
             if (m.musicData != null && $Object.hasOwnProperty.call(m, "musicData")) {
                 d.musicData = $root.proto.MsgOpaqueData.MusicData.toObject(m.musicData, o, q + 1);
+            }
+            if (m.pollAddedOptionName != null && $Object.hasOwnProperty.call(m, "pollAddedOptionName")) {
+                d.pollAddedOptionName = m.pollAddedOptionName;
+            }
+            if (m.sharableEventInviteStatus != null && $Object.hasOwnProperty.call(m, "sharableEventInviteStatus")) {
+                d.sharableEventInviteStatus = m.sharableEventInviteStatus;
+            }
+            if (m.sharableEventInviteLocationName != null && $Object.hasOwnProperty.call(m, "sharableEventInviteLocationName")) {
+                d.sharableEventInviteLocationName = m.sharableEventInviteLocationName;
+            }
+            if (m.sharableEventInviteCoverImageHandle != null && $Object.hasOwnProperty.call(m, "sharableEventInviteCoverImageHandle")) {
+                d.sharableEventInviteCoverImageHandle = m.sharableEventInviteCoverImageHandle;
+            }
+            if (m.sharableEventInviteLastUpdatedTsUsec != null && $Object.hasOwnProperty.call(m, "sharableEventInviteLastUpdatedTsUsec")) {
+                if (typeof m.sharableEventInviteLastUpdatedTsUsec === "number")
+                    d.sharableEventInviteLastUpdatedTsUsec = o.longs === $String ? $String(m.sharableEventInviteLastUpdatedTsUsec) : m.sharableEventInviteLastUpdatedTsUsec;
+                else
+                    d.sharableEventInviteLastUpdatedTsUsec = o.longs === $String ? m.sharableEventInviteLastUpdatedTsUsec : m.sharableEventInviteLastUpdatedTsUsec.low | m.sharableEventInviteLastUpdatedTsUsec.high * 4294967296;
             }
             return d;
         };
@@ -92940,6 +95231,8 @@ export const proto = $root.proto = (() => {
             PollOption.prototype.name = null;
             PollOption.prototype.hash = null;
             PollOption.prototype.addOptionMsgKey = null;
+            PollOption.prototype.localId = null;
+            PollOption.prototype.addOptionMsgT = null;
 
             let $oneOfFields;
 
@@ -92961,6 +95254,18 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PollOption.prototype, "_localId", {
+                get: $util.oneOfGetter($oneOfFields = ["localId"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(PollOption.prototype, "_addOptionMsgT", {
+                get: $util.oneOfGetter($oneOfFields = ["addOptionMsgT"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             PollOption.create = function(properties) {
                 return new PollOption(properties);
             };
@@ -92978,6 +95283,10 @@ export const proto = $root.proto = (() => {
                     w.uint32(18).string(m.hash);
                 if (m.addOptionMsgKey != null && $Object.hasOwnProperty.call(m, "addOptionMsgKey"))
                     w.uint32(26).string(m.addOptionMsgKey);
+                if (m.localId != null && $Object.hasOwnProperty.call(m, "localId"))
+                    w.uint32(32).uint32(m.localId);
+                if (m.addOptionMsgT != null && $Object.hasOwnProperty.call(m, "addOptionMsgT"))
+                    w.uint32(40).uint32(m.addOptionMsgT);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -93032,6 +95341,20 @@ export const proto = $root.proto = (() => {
                             m._addOptionMsgKey = "addOptionMsgKey";
                             continue;
                         }
+                    case 4: {
+                            if (u !== 0)
+                                break;
+                            m.localId = r.uint32();
+                            m._localId = "localId";
+                            continue;
+                        }
+                    case 5: {
+                            if (u !== 0)
+                                break;
+                            m.addOptionMsgT = r.uint32();
+                            m._addOptionMsgT = "addOptionMsgT";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -93068,6 +95391,12 @@ export const proto = $root.proto = (() => {
                 if (d.addOptionMsgKey != null) {
                     m.addOptionMsgKey = $String(d.addOptionMsgKey);
                 }
+                if (d.localId != null) {
+                    m.localId = d.localId >>> 0;
+                }
+                if (d.addOptionMsgT != null) {
+                    m.addOptionMsgT = d.addOptionMsgT >>> 0;
+                }
                 return m;
             };
 
@@ -93087,6 +95416,12 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.addOptionMsgKey != null && $Object.hasOwnProperty.call(m, "addOptionMsgKey")) {
                     d.addOptionMsgKey = m.addOptionMsgKey;
+                }
+                if (m.localId != null && $Object.hasOwnProperty.call(m, "localId")) {
+                    d.localId = m.localId;
+                }
+                if (m.addOptionMsgT != null && $Object.hasOwnProperty.call(m, "addOptionMsgT")) {
+                    d.addOptionMsgT = m.addOptionMsgT;
                 }
                 return d;
             };
@@ -93188,7 +95523,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.option = $root.proto.MsgOpaqueData.PollOption.decode(r, r.uint32(), $undefined, q + 1, m.option);
+                            m.option = $root.proto.MsgOpaqueData.PollOption.decode(r, r.size(), $undefined, q + 1, m.option);
                             m._option = "option";
                             continue;
                         }
@@ -93332,7 +95667,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.pollVotes && m.pollVotes.length))
                                 m.pollVotes = [];
-                            m.pollVotes.push($root.proto.MsgOpaqueData.PollVoteSnapshot.decode(r, r.uint32(), $undefined, q + 1));
+                            m.pollVotes.push($root.proto.MsgOpaqueData.PollVoteSnapshot.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -93411,6 +95746,7 @@ export const proto = $root.proto = (() => {
         MsgOpaqueData.MusicData = (function() {
 
             const MusicData = function (p) {
+                this.lyrics = [];
                 if (p)
                     for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
                         if (p[ks[i]] != null && ks[i] !== "__proto__")
@@ -93435,6 +95771,8 @@ export const proto = $root.proto = (() => {
             MusicData.prototype.artworkMediaKey = null;
             MusicData.prototype.consumptionCheckedAtS = null;
             MusicData.prototype.isAvailableForConsumption = null;
+            MusicData.prototype.lyrics = $util.emptyArray;
+            MusicData.prototype.lyricsConfirmedAtS = null;
 
             let $oneOfFields;
 
@@ -93546,6 +95884,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(MusicData.prototype, "_lyricsConfirmedAtS", {
+                get: $util.oneOfGetter($oneOfFields = ["lyricsConfirmedAtS"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             MusicData.create = function(properties) {
                 return new MusicData(properties);
             };
@@ -93593,6 +95937,12 @@ export const proto = $root.proto = (() => {
                     w.uint32(136).int64(m.consumptionCheckedAtS);
                 if (m.isAvailableForConsumption != null && $Object.hasOwnProperty.call(m, "isAvailableForConsumption"))
                     w.uint32(144).bool(m.isAvailableForConsumption);
+                if (m.lyrics != null && m.lyrics.length) {
+                    for (var i = 0; i < m.lyrics.length; ++i)
+                        $root.proto.MsgOpaqueData.MusicData.LyricsLine.encode(m.lyrics[i], w.uint32(154).fork(), q + 1).ldelim();
+                }
+                if (m.lyricsConfirmedAtS != null && $Object.hasOwnProperty.call(m, "lyricsConfirmedAtS"))
+                    w.uint32(160).int64(m.lyricsConfirmedAtS);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -93752,6 +96102,21 @@ export const proto = $root.proto = (() => {
                             m._isAvailableForConsumption = "isAvailableForConsumption";
                             continue;
                         }
+                    case 19: {
+                            if (u !== 2)
+                                break;
+                            if (!(m.lyrics && m.lyrics.length))
+                                m.lyrics = [];
+                            m.lyrics.push($root.proto.MsgOpaqueData.MusicData.LyricsLine.decode(r, r.size(), $undefined, q + 1));
+                            continue;
+                        }
+                    case 20: {
+                            if (u !== 0)
+                                break;
+                            m.lyricsConfirmedAtS = r.int64();
+                            m._lyricsConfirmedAtS = "lyricsConfirmedAtS";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -93852,6 +96217,26 @@ export const proto = $root.proto = (() => {
                 if (d.isAvailableForConsumption != null) {
                     m.isAvailableForConsumption = $Boolean(d.isAvailableForConsumption);
                 }
+                if (d.lyrics) {
+                    if (!$Array.isArray(d.lyrics))
+                        throw $TypeError(".proto.MsgOpaqueData.MusicData.lyrics: array expected");
+                    m.lyrics = $Array(d.lyrics.length);
+                    for (var i = 0; i < d.lyrics.length; ++i) {
+                        if (!$util.isObject(d.lyrics[i]))
+                            throw $TypeError(".proto.MsgOpaqueData.MusicData.lyrics: object expected");
+                        m.lyrics[i] = $root.proto.MsgOpaqueData.MusicData.LyricsLine.fromObject(d.lyrics[i], q + 1);
+                    }
+                }
+                if (d.lyricsConfirmedAtS != null) {
+                    if ($util.Long)
+                        m.lyricsConfirmedAtS = $util.Long.fromValue(d.lyricsConfirmedAtS, false);
+                    else if (typeof d.lyricsConfirmedAtS === "string")
+                        m.lyricsConfirmedAtS = $parseInt(d.lyricsConfirmedAtS, 10);
+                    else if (typeof d.lyricsConfirmedAtS === "number")
+                        m.lyricsConfirmedAtS = d.lyricsConfirmedAtS;
+                    else if (typeof d.lyricsConfirmedAtS === "object")
+                        m.lyricsConfirmedAtS = new $util.LongBits(d.lyricsConfirmedAtS.low >>> 0, d.lyricsConfirmedAtS.high >>> 0).toNumber();
+                }
                 return m;
             };
 
@@ -93863,6 +96248,9 @@ export const proto = $root.proto = (() => {
                 if (q > $util.recursionLimit)
                     throw $Error("max depth exceeded");
                 var d = {};
+                if (o.arrays || o.defaults) {
+                    d.lyrics = [];
+                }
                 if (m.musicContentMediaId != null && $Object.hasOwnProperty.call(m, "musicContentMediaId")) {
                     d.musicContentMediaId = m.musicContentMediaId;
                 }
@@ -93922,6 +96310,20 @@ export const proto = $root.proto = (() => {
                 if (m.isAvailableForConsumption != null && $Object.hasOwnProperty.call(m, "isAvailableForConsumption")) {
                     d.isAvailableForConsumption = m.isAvailableForConsumption;
                 }
+                if (m.lyrics && m.lyrics.length) {
+                    d.lyrics = $Array(m.lyrics.length);
+                    for (var j = 0; j < m.lyrics.length; ++j) {
+                        d.lyrics[j] = $root.proto.MsgOpaqueData.MusicData.LyricsLine.toObject(m.lyrics[j], o, q + 1);
+                    }
+                }
+                if (m.lyricsConfirmedAtS != null && $Object.hasOwnProperty.call(m, "lyricsConfirmedAtS")) {
+                    if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                        d.lyricsConfirmedAtS = typeof m.lyricsConfirmedAtS === "number" ? $BigInt(m.lyricsConfirmedAtS) : $util.Long.fromBits(m.lyricsConfirmedAtS.low >>> 0, m.lyricsConfirmedAtS.high >>> 0, false).toBigInt();
+                    else if (typeof m.lyricsConfirmedAtS === "number")
+                        d.lyricsConfirmedAtS = o.longs === $String ? $String(m.lyricsConfirmedAtS) : m.lyricsConfirmedAtS;
+                    else
+                        d.lyricsConfirmedAtS = o.longs === String ? longToString(m.lyricsConfirmedAtS) : o.longs === Number ? longToNumber(m.lyricsConfirmedAtS) : m.lyricsConfirmedAtS;
+                }
                 return d;
             };
 
@@ -93934,6 +96336,461 @@ export const proto = $root.proto = (() => {
                     prefix = "type.googleapis.com";
                 return prefix + "/proto.MsgOpaqueData.MusicData";
             };
+
+            MusicData.WordOffset = (function() {
+
+                const WordOffset = function (p) {
+                    if (p)
+                        for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                            if (p[ks[i]] != null && ks[i] !== "__proto__")
+                                this[ks[i]] = p[ks[i]];
+                };
+
+                WordOffset.prototype.startIndex = null;
+                WordOffset.prototype.endIndex = null;
+                WordOffset.prototype.startOffsetMs = null;
+                WordOffset.prototype.endOffsetMs = null;
+
+                let $oneOfFields;
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(WordOffset.prototype, "_startIndex", {
+                    get: $util.oneOfGetter($oneOfFields = ["startIndex"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(WordOffset.prototype, "_endIndex", {
+                    get: $util.oneOfGetter($oneOfFields = ["endIndex"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(WordOffset.prototype, "_startOffsetMs", {
+                    get: $util.oneOfGetter($oneOfFields = ["startOffsetMs"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(WordOffset.prototype, "_endOffsetMs", {
+                    get: $util.oneOfGetter($oneOfFields = ["endOffsetMs"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                WordOffset.create = function(properties) {
+                    return new WordOffset(properties);
+                };
+
+                WordOffset.encode = function (m, w, q) {
+                    if (!w)
+                        w = $Writer.create();
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (m.startIndex != null && $Object.hasOwnProperty.call(m, "startIndex"))
+                        w.uint32(8).int32(m.startIndex);
+                    if (m.endIndex != null && $Object.hasOwnProperty.call(m, "endIndex"))
+                        w.uint32(16).int32(m.endIndex);
+                    if (m.startOffsetMs != null && $Object.hasOwnProperty.call(m, "startOffsetMs"))
+                        w.uint32(24).int64(m.startOffsetMs);
+                    if (m.endOffsetMs != null && $Object.hasOwnProperty.call(m, "endOffsetMs"))
+                        w.uint32(32).int64(m.endOffsetMs);
+                    if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                        for (var i = 0; i < m.$unknowns.length; ++i)
+                            w.raw(m.$unknowns[i]);
+                    return w;
+                };
+
+                WordOffset.decode = function (r, l, z, q, g) {
+                    if (!(r instanceof $Reader))
+                        r = $Reader.create(r);
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var c, m;
+                    if (l === $undefined)
+                        c = r.len;
+                    else {
+                        c = r.pos + l;
+                        if (c > r.len)
+                            throw $RangeError("index out of range");
+                        l = r.len;
+                        r.len = c;
+                    }
+                    m = g || new $root.proto.MsgOpaqueData.MusicData.WordOffset();
+                    while (r.pos < c) {
+                        var s = r.pos;
+                        var t = r.tag();
+                        if (t === z) {
+                            z = $undefined;
+                            break;
+                        }
+                        var u = t & 7;
+                        switch (t >>>= 3) {
+                        case 1: {
+                                if (u !== 0)
+                                    break;
+                                m.startIndex = r.int32();
+                                m._startIndex = "startIndex";
+                                continue;
+                            }
+                        case 2: {
+                                if (u !== 0)
+                                    break;
+                                m.endIndex = r.int32();
+                                m._endIndex = "endIndex";
+                                continue;
+                            }
+                        case 3: {
+                                if (u !== 0)
+                                    break;
+                                m.startOffsetMs = r.int64();
+                                m._startOffsetMs = "startOffsetMs";
+                                continue;
+                            }
+                        case 4: {
+                                if (u !== 0)
+                                    break;
+                                m.endOffsetMs = r.int64();
+                                m._endOffsetMs = "endOffsetMs";
+                                continue;
+                            }
+                        }
+                        r.skipType(u, q, t);
+                        if (!r.discardUnknown) {
+                            $util.makeProp(m, "$unknowns", false);
+                            (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                        }
+                    }
+                    if (l !== $undefined) {
+                        if (r.pos !== c)
+                            throw $RangeError("index out of range");
+                        r.len = l;
+                    }
+                    if (z !== $undefined)
+                        throw $Error("missing end group");
+                    return m;
+                };
+
+                WordOffset.fromObject = function (d, q) {
+                    if (d instanceof $root.proto.MsgOpaqueData.MusicData.WordOffset)
+                        return d;
+                    if (!$util.isObject(d))
+                        throw $TypeError(".proto.MsgOpaqueData.MusicData.WordOffset: object expected");
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var m = new $root.proto.MsgOpaqueData.MusicData.WordOffset();
+                    if (d.startIndex != null) {
+                        m.startIndex = d.startIndex | 0;
+                    }
+                    if (d.endIndex != null) {
+                        m.endIndex = d.endIndex | 0;
+                    }
+                    if (d.startOffsetMs != null) {
+                        if ($util.Long)
+                            m.startOffsetMs = $util.Long.fromValue(d.startOffsetMs, false);
+                        else if (typeof d.startOffsetMs === "string")
+                            m.startOffsetMs = $parseInt(d.startOffsetMs, 10);
+                        else if (typeof d.startOffsetMs === "number")
+                            m.startOffsetMs = d.startOffsetMs;
+                        else if (typeof d.startOffsetMs === "object")
+                            m.startOffsetMs = new $util.LongBits(d.startOffsetMs.low >>> 0, d.startOffsetMs.high >>> 0).toNumber();
+                    }
+                    if (d.endOffsetMs != null) {
+                        if ($util.Long)
+                            m.endOffsetMs = $util.Long.fromValue(d.endOffsetMs, false);
+                        else if (typeof d.endOffsetMs === "string")
+                            m.endOffsetMs = $parseInt(d.endOffsetMs, 10);
+                        else if (typeof d.endOffsetMs === "number")
+                            m.endOffsetMs = d.endOffsetMs;
+                        else if (typeof d.endOffsetMs === "object")
+                            m.endOffsetMs = new $util.LongBits(d.endOffsetMs.low >>> 0, d.endOffsetMs.high >>> 0).toNumber();
+                    }
+                    return m;
+                };
+
+                WordOffset.toObject = function (m, o, q) {
+                    if (!o)
+                        o = {};
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var d = {};
+                    if (m.startIndex != null && $Object.hasOwnProperty.call(m, "startIndex")) {
+                        d.startIndex = m.startIndex;
+                    }
+                    if (m.endIndex != null && $Object.hasOwnProperty.call(m, "endIndex")) {
+                        d.endIndex = m.endIndex;
+                    }
+                    if (m.startOffsetMs != null && $Object.hasOwnProperty.call(m, "startOffsetMs")) {
+                        if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                            d.startOffsetMs = typeof m.startOffsetMs === "number" ? $BigInt(m.startOffsetMs) : $util.Long.fromBits(m.startOffsetMs.low >>> 0, m.startOffsetMs.high >>> 0, false).toBigInt();
+                        else if (typeof m.startOffsetMs === "number")
+                            d.startOffsetMs = o.longs === $String ? $String(m.startOffsetMs) : m.startOffsetMs;
+                        else
+                            d.startOffsetMs = o.longs === String ? longToString(m.startOffsetMs) : o.longs === Number ? longToNumber(m.startOffsetMs) : m.startOffsetMs;
+                    }
+                    if (m.endOffsetMs != null && $Object.hasOwnProperty.call(m, "endOffsetMs")) {
+                        if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                            d.endOffsetMs = typeof m.endOffsetMs === "number" ? $BigInt(m.endOffsetMs) : $util.Long.fromBits(m.endOffsetMs.low >>> 0, m.endOffsetMs.high >>> 0, false).toBigInt();
+                        else if (typeof m.endOffsetMs === "number")
+                            d.endOffsetMs = o.longs === $String ? $String(m.endOffsetMs) : m.endOffsetMs;
+                        else
+                            d.endOffsetMs = o.longs === String ? longToString(m.endOffsetMs) : o.longs === Number ? longToNumber(m.endOffsetMs) : m.endOffsetMs;
+                    }
+                    return d;
+                };
+
+                WordOffset.prototype.toJSON = function() {
+                    return WordOffset.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                WordOffset.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/proto.MsgOpaqueData.MusicData.WordOffset";
+                };
+
+                return WordOffset;
+            })();
+
+            MusicData.LyricsLine = (function() {
+
+                const LyricsLine = function (p) {
+                    this.wordOffsets = [];
+                    if (p)
+                        for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                            if (p[ks[i]] != null && ks[i] !== "__proto__")
+                                this[ks[i]] = p[ks[i]];
+                };
+
+                LyricsLine.prototype.startTimeMs = null;
+                LyricsLine.prototype.endTimeMs = null;
+                LyricsLine.prototype.text = null;
+                LyricsLine.prototype.wordOffsets = $util.emptyArray;
+
+                let $oneOfFields;
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(LyricsLine.prototype, "_startTimeMs", {
+                    get: $util.oneOfGetter($oneOfFields = ["startTimeMs"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(LyricsLine.prototype, "_endTimeMs", {
+                    get: $util.oneOfGetter($oneOfFields = ["endTimeMs"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                // Virtual OneOf for proto3 optional field
+                $Object.defineProperty(LyricsLine.prototype, "_text", {
+                    get: $util.oneOfGetter($oneOfFields = ["text"]),
+                    set: $util.oneOfSetter($oneOfFields)
+                });
+
+                LyricsLine.create = function(properties) {
+                    return new LyricsLine(properties);
+                };
+
+                LyricsLine.encode = function (m, w, q) {
+                    if (!w)
+                        w = $Writer.create();
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    if (m.startTimeMs != null && $Object.hasOwnProperty.call(m, "startTimeMs"))
+                        w.uint32(8).int64(m.startTimeMs);
+                    if (m.endTimeMs != null && $Object.hasOwnProperty.call(m, "endTimeMs"))
+                        w.uint32(16).int64(m.endTimeMs);
+                    if (m.text != null && $Object.hasOwnProperty.call(m, "text"))
+                        w.uint32(26).string(m.text);
+                    if (m.wordOffsets != null && m.wordOffsets.length) {
+                        for (var i = 0; i < m.wordOffsets.length; ++i)
+                            $root.proto.MsgOpaqueData.MusicData.WordOffset.encode(m.wordOffsets[i], w.uint32(34).fork(), q + 1).ldelim();
+                    }
+                    if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                        for (var i = 0; i < m.$unknowns.length; ++i)
+                            w.raw(m.$unknowns[i]);
+                    return w;
+                };
+
+                LyricsLine.decode = function (r, l, z, q, g) {
+                    if (!(r instanceof $Reader))
+                        r = $Reader.create(r);
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $Reader.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var c, m;
+                    if (l === $undefined)
+                        c = r.len;
+                    else {
+                        c = r.pos + l;
+                        if (c > r.len)
+                            throw $RangeError("index out of range");
+                        l = r.len;
+                        r.len = c;
+                    }
+                    m = g || new $root.proto.MsgOpaqueData.MusicData.LyricsLine();
+                    while (r.pos < c) {
+                        var s = r.pos;
+                        var t = r.tag();
+                        if (t === z) {
+                            z = $undefined;
+                            break;
+                        }
+                        var u = t & 7;
+                        switch (t >>>= 3) {
+                        case 1: {
+                                if (u !== 0)
+                                    break;
+                                m.startTimeMs = r.int64();
+                                m._startTimeMs = "startTimeMs";
+                                continue;
+                            }
+                        case 2: {
+                                if (u !== 0)
+                                    break;
+                                m.endTimeMs = r.int64();
+                                m._endTimeMs = "endTimeMs";
+                                continue;
+                            }
+                        case 3: {
+                                if (u !== 2)
+                                    break;
+                                m.text = r.stringVerify();
+                                m._text = "text";
+                                continue;
+                            }
+                        case 4: {
+                                if (u !== 2)
+                                    break;
+                                if (!(m.wordOffsets && m.wordOffsets.length))
+                                    m.wordOffsets = [];
+                                m.wordOffsets.push($root.proto.MsgOpaqueData.MusicData.WordOffset.decode(r, r.size(), $undefined, q + 1));
+                                continue;
+                            }
+                        }
+                        r.skipType(u, q, t);
+                        if (!r.discardUnknown) {
+                            $util.makeProp(m, "$unknowns", false);
+                            (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                        }
+                    }
+                    if (l !== $undefined) {
+                        if (r.pos !== c)
+                            throw $RangeError("index out of range");
+                        r.len = l;
+                    }
+                    if (z !== $undefined)
+                        throw $Error("missing end group");
+                    return m;
+                };
+
+                LyricsLine.fromObject = function (d, q) {
+                    if (d instanceof $root.proto.MsgOpaqueData.MusicData.LyricsLine)
+                        return d;
+                    if (!$util.isObject(d))
+                        throw $TypeError(".proto.MsgOpaqueData.MusicData.LyricsLine: object expected");
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var m = new $root.proto.MsgOpaqueData.MusicData.LyricsLine();
+                    if (d.startTimeMs != null) {
+                        if ($util.Long)
+                            m.startTimeMs = $util.Long.fromValue(d.startTimeMs, false);
+                        else if (typeof d.startTimeMs === "string")
+                            m.startTimeMs = $parseInt(d.startTimeMs, 10);
+                        else if (typeof d.startTimeMs === "number")
+                            m.startTimeMs = d.startTimeMs;
+                        else if (typeof d.startTimeMs === "object")
+                            m.startTimeMs = new $util.LongBits(d.startTimeMs.low >>> 0, d.startTimeMs.high >>> 0).toNumber();
+                    }
+                    if (d.endTimeMs != null) {
+                        if ($util.Long)
+                            m.endTimeMs = $util.Long.fromValue(d.endTimeMs, false);
+                        else if (typeof d.endTimeMs === "string")
+                            m.endTimeMs = $parseInt(d.endTimeMs, 10);
+                        else if (typeof d.endTimeMs === "number")
+                            m.endTimeMs = d.endTimeMs;
+                        else if (typeof d.endTimeMs === "object")
+                            m.endTimeMs = new $util.LongBits(d.endTimeMs.low >>> 0, d.endTimeMs.high >>> 0).toNumber();
+                    }
+                    if (d.text != null) {
+                        m.text = $String(d.text);
+                    }
+                    if (d.wordOffsets) {
+                        if (!$Array.isArray(d.wordOffsets))
+                            throw $TypeError(".proto.MsgOpaqueData.MusicData.LyricsLine.wordOffsets: array expected");
+                        m.wordOffsets = $Array(d.wordOffsets.length);
+                        for (var i = 0; i < d.wordOffsets.length; ++i) {
+                            if (!$util.isObject(d.wordOffsets[i]))
+                                throw $TypeError(".proto.MsgOpaqueData.MusicData.LyricsLine.wordOffsets: object expected");
+                            m.wordOffsets[i] = $root.proto.MsgOpaqueData.MusicData.WordOffset.fromObject(d.wordOffsets[i], q + 1);
+                        }
+                    }
+                    return m;
+                };
+
+                LyricsLine.toObject = function (m, o, q) {
+                    if (!o)
+                        o = {};
+                    if (q === $undefined)
+                        q = 0;
+                    if (q > $util.recursionLimit)
+                        throw $Error("max depth exceeded");
+                    var d = {};
+                    if (o.arrays || o.defaults) {
+                        d.wordOffsets = [];
+                    }
+                    if (m.startTimeMs != null && $Object.hasOwnProperty.call(m, "startTimeMs")) {
+                        if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                            d.startTimeMs = typeof m.startTimeMs === "number" ? $BigInt(m.startTimeMs) : $util.Long.fromBits(m.startTimeMs.low >>> 0, m.startTimeMs.high >>> 0, false).toBigInt();
+                        else if (typeof m.startTimeMs === "number")
+                            d.startTimeMs = o.longs === $String ? $String(m.startTimeMs) : m.startTimeMs;
+                        else
+                            d.startTimeMs = o.longs === String ? longToString(m.startTimeMs) : o.longs === Number ? longToNumber(m.startTimeMs) : m.startTimeMs;
+                    }
+                    if (m.endTimeMs != null && $Object.hasOwnProperty.call(m, "endTimeMs")) {
+                        if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                            d.endTimeMs = typeof m.endTimeMs === "number" ? $BigInt(m.endTimeMs) : $util.Long.fromBits(m.endTimeMs.low >>> 0, m.endTimeMs.high >>> 0, false).toBigInt();
+                        else if (typeof m.endTimeMs === "number")
+                            d.endTimeMs = o.longs === $String ? $String(m.endTimeMs) : m.endTimeMs;
+                        else
+                            d.endTimeMs = o.longs === String ? longToString(m.endTimeMs) : o.longs === Number ? longToNumber(m.endTimeMs) : m.endTimeMs;
+                    }
+                    if (m.text != null && $Object.hasOwnProperty.call(m, "text")) {
+                        d.text = m.text;
+                    }
+                    if (m.wordOffsets && m.wordOffsets.length) {
+                        d.wordOffsets = $Array(m.wordOffsets.length);
+                        for (var j = 0; j < m.wordOffsets.length; ++j) {
+                            d.wordOffsets[j] = $root.proto.MsgOpaqueData.MusicData.WordOffset.toObject(m.wordOffsets[j], o, q + 1);
+                        }
+                    }
+                    return d;
+                };
+
+                LyricsLine.prototype.toJSON = function() {
+                    return LyricsLine.toObject(this, $protobuf.util.toJSONOptions);
+                };
+
+                LyricsLine.getTypeUrl = function(prefix) {
+                    if (prefix === $undefined)
+                        prefix = "type.googleapis.com";
+                    return prefix + "/proto.MsgOpaqueData.MusicData.LyricsLine";
+                };
+
+                return LyricsLine;
+            })();
 
             return MusicData;
         })();
@@ -94018,14 +96875,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.currentMsg = $root.proto.MsgOpaqueData.decode(r, r.uint32(), $undefined, q + 1, m.currentMsg);
+                        m.currentMsg = $root.proto.MsgOpaqueData.decode(r, r.size(), $undefined, q + 1, m.currentMsg);
                         m._currentMsg = "currentMsg";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.quotedMsg = $root.proto.MsgOpaqueData.decode(r, r.uint32(), $undefined, q + 1, m.quotedMsg);
+                        m.quotedMsg = $root.proto.MsgOpaqueData.decode(r, r.size(), $undefined, q + 1, m.quotedMsg);
                         m._quotedMsg = "quotedMsg";
                         continue;
                     }
@@ -94684,14 +97541,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                        m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                         m._key = "key";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.message = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                        m.message = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.message);
                         m._message = "message";
                         continue;
                     }
@@ -95518,7 +98375,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pastParticipants && m.pastParticipants.length))
                             m.pastParticipants = [];
-                        m.pastParticipants.push($root.proto.PastParticipant.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pastParticipants.push($root.proto.PastParticipant.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -96242,7 +99099,7 @@ export const proto = $root.proto = (() => {
                 case 9: {
                         if (u !== 2)
                             break;
-                        m.mediaData = $root.proto.PaymentBackground.MediaData.decode(r, r.uint32(), $undefined, q + 1, m.mediaData);
+                        m.mediaData = $root.proto.PaymentBackground.MediaData.decode(r, r.size(), $undefined, q + 1, m.mediaData);
                         m._mediaData = "mediaData";
                         continue;
                     }
@@ -96850,7 +99707,7 @@ export const proto = $root.proto = (() => {
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.requestMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.requestMessageKey);
+                        m.requestMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.requestMessageKey);
                         m._requestMessageKey = "requestMessageKey";
                         continue;
                     }
@@ -96892,14 +99749,14 @@ export const proto = $root.proto = (() => {
                 case 12: {
                         if (u !== 2)
                             break;
-                        m.primaryAmount = $root.proto.Money.decode(r, r.uint32(), $undefined, q + 1, m.primaryAmount);
+                        m.primaryAmount = $root.proto.Money.decode(r, r.size(), $undefined, q + 1, m.primaryAmount);
                         m._primaryAmount = "primaryAmount";
                         continue;
                     }
                 case 13: {
                         if (u !== 2)
                             break;
-                        m.exchangeAmount = $root.proto.Money.decode(r, r.uint32(), $undefined, q + 1, m.exchangeAmount);
+                        m.exchangeAmount = $root.proto.Money.decode(r, r.size(), $undefined, q + 1, m.exchangeAmount);
                         m._exchangeAmount = "exchangeAmount";
                         continue;
                     }
@@ -97775,7 +100632,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                        m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                         m._key = "key";
                         continue;
                     }
@@ -97796,7 +100653,7 @@ export const proto = $root.proto = (() => {
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.messageAddOnContextInfo = $root.proto.MessageAddOnContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.messageAddOnContextInfo);
+                        m.messageAddOnContextInfo = $root.proto.MessageAddOnContextInfo.decode(r, r.size(), $undefined, q + 1, m.messageAddOnContextInfo);
                         m._messageAddOnContextInfo = "messageAddOnContextInfo";
                         continue;
                     }
@@ -98136,6 +100993,7 @@ export const proto = $root.proto = (() => {
 
         const PollAdditionalMetadata = function (p) {
             this.pollNameHashHistory = [];
+            this.originalOptions = [];
             if (p)
                 for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
                     if (p[ks[i]] != null && ks[i] !== "__proto__")
@@ -98220,7 +101078,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pollNameHashHistory && m.pollNameHashHistory.length))
                             m.pollNameHashHistory = [];
-                        m.pollNameHashHistory.push($root.proto.PollNameHashHistoryEntry.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pollNameHashHistory.push($root.proto.PollNameHashHistoryEntry.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -98228,7 +101086,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.originalOptions && m.originalOptions.length))
                             m.originalOptions = [];
-                        m.originalOptions.push($root.proto.Message.PollCreationMessage.Option.decode(r, r.uint32(), $undefined, q + 1));
+                        m.originalOptions.push($root.proto.Message.PollCreationMessage.Option.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -98600,14 +101458,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.pollUpdateMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.pollUpdateMessageKey);
+                        m.pollUpdateMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.pollUpdateMessageKey);
                         m._pollUpdateMessageKey = "pollUpdateMessageKey";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.vote = $root.proto.Message.PollVoteMessage.decode(r, r.uint32(), $undefined, q + 1, m.vote);
+                        m.vote = $root.proto.Message.PollVoteMessage.decode(r, r.size(), $undefined, q + 1, m.vote);
                         m._vote = "vote";
                         continue;
                     }
@@ -98635,7 +101493,7 @@ export const proto = $root.proto = (() => {
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.metadata = $root.proto.Message.PollUpdateMessageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.metadata);
+                        m.metadata = $root.proto.Message.PollUpdateMessageMetadata.decode(r, r.size(), $undefined, q + 1, m.metadata);
                         m._metadata = "metadata";
                         continue;
                     }
@@ -99960,7 +102818,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.commitment = $root.proto.CompanionCommitment.decode(r, r.uint32(), $undefined, q + 1, m.commitment);
+                        m.commitment = $root.proto.CompanionCommitment.decode(r, r.size(), $undefined, q + 1, m.commitment);
                         m._commitment = "commitment";
                         continue;
                     }
@@ -100450,7 +103308,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                        m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                         m._key = "key";
                         continue;
                     }
@@ -100808,7 +103666,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.currentSession = $root.proto.SessionStructure.decode(r, r.uint32(), $undefined, q + 1, m.currentSession);
+                        m.currentSession = $root.proto.SessionStructure.decode(r, r.size(), $undefined, q + 1, m.currentSession);
                         m._currentSession = "currentSession";
                         continue;
                     }
@@ -100817,7 +103675,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.previousSessions && m.previousSessions.length))
                             m.previousSessions = [];
-                        m.previousSessions.push($root.proto.SessionStructure.decode(r, r.uint32(), $undefined, q + 1));
+                        m.previousSessions.push($root.proto.SessionStructure.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -101716,7 +104574,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.senderKeyStates && m.senderKeyStates.length))
                             m.senderKeyStates = [];
-                        m.senderKeyStates.push($root.proto.SenderKeyStateStructure.decode(r, r.uint32(), $undefined, q + 1));
+                        m.senderKeyStates.push($root.proto.SenderKeyStateStructure.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -101891,14 +104749,14 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.senderChainKey = $root.proto.SenderKeyStateStructure.SenderChainKey.decode(r, r.uint32(), $undefined, q + 1, m.senderChainKey);
+                        m.senderChainKey = $root.proto.SenderKeyStateStructure.SenderChainKey.decode(r, r.size(), $undefined, q + 1, m.senderChainKey);
                         m._senderChainKey = "senderChainKey";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.senderSigningKey = $root.proto.SenderKeyStateStructure.SenderSigningKey.decode(r, r.uint32(), $undefined, q + 1, m.senderSigningKey);
+                        m.senderSigningKey = $root.proto.SenderKeyStateStructure.SenderSigningKey.decode(r, r.size(), $undefined, q + 1, m.senderSigningKey);
                         m._senderSigningKey = "senderSigningKey";
                         continue;
                     }
@@ -101907,7 +104765,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.senderMessageKeys && m.senderMessageKeys.length))
                             m.senderMessageKeys = [];
-                        m.senderMessageKeys.push($root.proto.SenderKeyStateStructure.SenderMessageKey.decode(r, r.uint32(), $undefined, q + 1));
+                        m.senderMessageKeys.push($root.proto.SenderKeyStateStructure.SenderMessageKey.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -102819,7 +105677,7 @@ export const proto = $root.proto = (() => {
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.senderChain = $root.proto.SessionStructure.Chain.decode(r, r.uint32(), $undefined, q + 1, m.senderChain);
+                        m.senderChain = $root.proto.SessionStructure.Chain.decode(r, r.size(), $undefined, q + 1, m.senderChain);
                         m._senderChain = "senderChain";
                         continue;
                     }
@@ -102828,20 +105686,20 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.receiverChains && m.receiverChains.length))
                             m.receiverChains = [];
-                        m.receiverChains.push($root.proto.SessionStructure.Chain.decode(r, r.uint32(), $undefined, q + 1));
+                        m.receiverChains.push($root.proto.SessionStructure.Chain.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.pendingKeyExchange = $root.proto.SessionStructure.PendingKeyExchange.decode(r, r.uint32(), $undefined, q + 1, m.pendingKeyExchange);
+                        m.pendingKeyExchange = $root.proto.SessionStructure.PendingKeyExchange.decode(r, r.size(), $undefined, q + 1, m.pendingKeyExchange);
                         m._pendingKeyExchange = "pendingKeyExchange";
                         continue;
                     }
                 case 9: {
                         if (u !== 2)
                             break;
-                        m.pendingPreKey = $root.proto.SessionStructure.PendingPreKey.decode(r, r.uint32(), $undefined, q + 1, m.pendingPreKey);
+                        m.pendingPreKey = $root.proto.SessionStructure.PendingPreKey.decode(r, r.size(), $undefined, q + 1, m.pendingPreKey);
                         m._pendingPreKey = "pendingPreKey";
                         continue;
                     }
@@ -103139,7 +105997,7 @@ export const proto = $root.proto = (() => {
                     case 3: {
                             if (u !== 2)
                                 break;
-                            m.chainKey = $root.proto.SessionStructure.Chain.ChainKey.decode(r, r.uint32(), $undefined, q + 1, m.chainKey);
+                            m.chainKey = $root.proto.SessionStructure.Chain.ChainKey.decode(r, r.size(), $undefined, q + 1, m.chainKey);
                             m._chainKey = "chainKey";
                             continue;
                         }
@@ -103148,7 +106006,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.messageKeys && m.messageKeys.length))
                                 m.messageKeys = [];
-                            m.messageKeys.push($root.proto.SessionStructure.Chain.MessageKey.decode(r, r.uint32(), $undefined, q + 1));
+                            m.messageKeys.push($root.proto.SessionStructure.Chain.MessageKey.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -104827,6 +107685,8 @@ export const proto = $root.proto = (() => {
                 $root.proto.StatusAttribution.RLAttribution.encode(m.rlAttribution, w.uint32(58).fork(), q + 1).ldelim();
             if (m.aiCreatedAttribution != null && $Object.hasOwnProperty.call(m, "aiCreatedAttribution"))
                 $root.proto.StatusAttribution.AiCreatedAttribution.encode(m.aiCreatedAttribution, w.uint32(66).fork(), q + 1).ldelim();
+            if (m.statusTemplate != null && $Object.hasOwnProperty.call(m, "statusTemplate"))
+                $root.proto.StatusAttribution.StatusTemplate.encode(m.statusTemplate, w.uint32(74).fork()).ldelim();
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -104877,45 +107737,52 @@ export const proto = $root.proto = (() => {
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.statusReshare = $root.proto.StatusAttribution.StatusReshare.decode(r, r.uint32(), $undefined, q + 1, m.statusReshare);
+                        m.statusReshare = $root.proto.StatusAttribution.StatusReshare.decode(r, r.size(), $undefined, q + 1, m.statusReshare);
                         m.attributionData = "statusReshare";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.externalShare = $root.proto.StatusAttribution.ExternalShare.decode(r, r.uint32(), $undefined, q + 1, m.externalShare);
+                        m.externalShare = $root.proto.StatusAttribution.ExternalShare.decode(r, r.size(), $undefined, q + 1, m.externalShare);
                         m.attributionData = "externalShare";
                         continue;
                     }
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.music = $root.proto.StatusAttribution.Music.decode(r, r.uint32(), $undefined, q + 1, m.music);
+                        m.music = $root.proto.StatusAttribution.Music.decode(r, r.size(), $undefined, q + 1, m.music);
                         m.attributionData = "music";
                         continue;
                     }
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.groupStatus = $root.proto.StatusAttribution.GroupStatus.decode(r, r.uint32(), $undefined, q + 1, m.groupStatus);
+                        m.groupStatus = $root.proto.StatusAttribution.GroupStatus.decode(r, r.size(), $undefined, q + 1, m.groupStatus);
                         m.attributionData = "groupStatus";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.rlAttribution = $root.proto.StatusAttribution.RLAttribution.decode(r, r.uint32(), $undefined, q + 1, m.rlAttribution);
+                        m.rlAttribution = $root.proto.StatusAttribution.RLAttribution.decode(r, r.size(), $undefined, q + 1, m.rlAttribution);
                         m.attributionData = "rlAttribution";
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.aiCreatedAttribution = $root.proto.StatusAttribution.AiCreatedAttribution.decode(r, r.uint32(), $undefined, q + 1, m.aiCreatedAttribution);
+                        m.aiCreatedAttribution = $root.proto.StatusAttribution.AiCreatedAttribution.decode(r, r.size(), $undefined, q + 1, m.aiCreatedAttribution);
                         m.attributionData = "aiCreatedAttribution";
                         continue;
                     }
+                    case 9: {
+                            if (u !== 2)
+                                break;
+                            m.statusTemplate = $root.proto.StatusAttribution.StatusTemplate.decode(r, r.uint32());
+                            m._statusTemplate = "statusTemplate";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -105029,6 +107896,11 @@ export const proto = $root.proto = (() => {
                     throw $TypeError(".proto.StatusAttribution.aiCreatedAttribution: object expected");
                 m.aiCreatedAttribution = $root.proto.StatusAttribution.AiCreatedAttribution.fromObject(d.aiCreatedAttribution, q + 1);
             }
+            if (d.statusTemplate != null) {
+                if (typeof d.statusTemplate !== "object")
+                    throw $TypeError(".proto.StatusAttribution.statusTemplate: object expected");
+                m.statusTemplate = $root.proto.StatusAttribution.StatusTemplate.fromObject(d.statusTemplate, q + 1);
+            }
             return m;
         };
 
@@ -105075,6 +107947,9 @@ export const proto = $root.proto = (() => {
                 d.aiCreatedAttribution = $root.proto.StatusAttribution.AiCreatedAttribution.toObject(m.aiCreatedAttribution, o, q + 1);
                 if (o.oneofs)
                     d.attributionData = "aiCreatedAttribution";
+            }
+            if (m.statusTemplate != null && $Object.hasOwnProperty.call(m, "statusTemplate")) {
+                d.statusTemplate = $root.proto.StatusAttribution.StatusTemplate.toObject(m.statusTemplate, o);
             }
             return d;
         };
@@ -106125,7 +109000,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.metadata = $root.proto.StatusAttribution.StatusReshare.Metadata.decode(r, r.uint32(), $undefined, q + 1, m.metadata);
+                            m.metadata = $root.proto.StatusAttribution.StatusReshare.Metadata.decode(r, r.size(), $undefined, q + 1, m.metadata);
                             m._metadata = "metadata";
                             continue;
                         }
@@ -106444,6 +109319,181 @@ export const proto = $root.proto = (() => {
             return values;
         })();
 
+        StatusAttribution.StatusTemplate = (function() {
+
+            const StatusTemplate = function (p) {
+                if (p)
+                    for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                        if (p[ks[i]] != null && ks[i] !== "__proto__")
+                            this[ks[i]] = p[ks[i]];
+            };
+
+            StatusTemplate.prototype.templateId = null;
+            StatusTemplate.prototype.templateName = null;
+            StatusTemplate.prototype.thumbnailUrl = null;
+
+            let $oneOfFields;
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(StatusTemplate.prototype, "_templateId", {
+                get: $util.oneOfGetter($oneOfFields = ["templateId"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(StatusTemplate.prototype, "_templateName", {
+                get: $util.oneOfGetter($oneOfFields = ["templateName"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(StatusTemplate.prototype, "_thumbnailUrl", {
+                get: $util.oneOfGetter($oneOfFields = ["thumbnailUrl"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            StatusTemplate.create = function(properties) {
+                return new StatusTemplate(properties);
+            };
+
+            StatusTemplate.encode = function (m, w, q) {
+                if (!w)
+                    w = $Writer.create();
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                if (m.templateId != null && $Object.hasOwnProperty.call(m, "templateId"))
+                    w.uint32(10).string(m.templateId);
+                if (m.templateName != null && $Object.hasOwnProperty.call(m, "templateName"))
+                    w.uint32(18).string(m.templateName);
+                if (m.thumbnailUrl != null && $Object.hasOwnProperty.call(m, "thumbnailUrl"))
+                    w.uint32(26).string(m.thumbnailUrl);
+                if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                    for (var i = 0; i < m.$unknowns.length; ++i)
+                        w.raw(m.$unknowns[i]);
+                return w;
+            };
+
+            StatusTemplate.decode = function (r, l, z, q, g) {
+                if (!(r instanceof $Reader))
+                    r = $Reader.create(r);
+                if (q === $undefined)
+                    q = 0;
+                if (q > $Reader.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var c, m, v;
+                if (l === $undefined)
+                    c = r.len;
+                else {
+                    c = r.pos + l;
+                    if (c > r.len)
+                        throw $RangeError("index out of range");
+                    l = r.len;
+                    r.len = c;
+                }
+                m = g || new $root.proto.StatusAttribution.StatusTemplate();
+                while (r.pos < c) {
+                    var s = r.pos;
+                    var t = r.tag();
+                    if (t === z) {
+                        z = $undefined;
+                        break;
+                    }
+                    var u = t & 7;
+                    switch (t >>>= 3) {
+                    case 1: {
+                            if (u !== 2)
+                                break;
+                            m.templateId = r.string();
+                            m._templateId = "templateId";
+                            continue;
+                        }
+                    case 2: {
+                            if (u !== 2)
+                                break;
+                            m.templateName = r.string();
+                            m._templateName = "templateName";
+                            continue;
+                        }
+                    case 3: {
+                            if (u !== 2)
+                                break;
+                            m.thumbnailUrl = r.string();
+                            m._thumbnailUrl = "thumbnailUrl";
+                            continue;
+                        }
+                    }
+                    r.skipType(u, q, t);
+                    if (!r.discardUnknown) {
+                        $util.makeProp(m, "$unknowns", false);
+                        (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                    }
+                }
+                if (l !== $undefined) {
+                    if (r.pos !== c)
+                        throw $RangeError("index out of range");
+                    r.len = l;
+                }
+                if (z !== $undefined)
+                    throw $Error("missing end group");
+                return m;
+            };
+
+            StatusTemplate.fromObject = function (d, q) {
+                if (d instanceof $root.proto.StatusAttribution.StatusTemplate)
+                    return d;
+                if (!$util.isObject(d))
+                    throw $TypeError(".proto.StatusAttribution.StatusTemplate: object expected");
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var m = new $root.proto.StatusAttribution.StatusTemplate();
+                if (d.templateId != null) {
+                    m.templateId = $String(d.templateId);
+                }
+                if (d.templateName != null) {
+                    m.templateName = $String(d.templateName);
+                }
+                if (d.thumbnailUrl != null) {
+                    m.thumbnailUrl = $String(d.thumbnailUrl);
+                }
+                return m;
+            };
+
+            StatusTemplate.toObject = function (m, o, q) {
+                if (!o)
+                    o = {};
+                if (q === $undefined)
+                    q = 0;
+                if (q > $util.recursionLimit)
+                    throw $Error("max depth exceeded");
+                var d = {};
+                if (m.templateId != null && $Object.hasOwnProperty.call(m, "templateId")) {
+                    d.templateId = m.templateId;
+                }
+                if (m.templateName != null && $Object.hasOwnProperty.call(m, "templateName")) {
+                    d.templateName = m.templateName;
+                }
+                if (m.thumbnailUrl != null && $Object.hasOwnProperty.call(m, "thumbnailUrl")) {
+                    d.thumbnailUrl = m.thumbnailUrl;
+                }
+                return d;
+            };
+
+            StatusTemplate.prototype.toJSON = function() {
+                return StatusTemplate.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            StatusTemplate.getTypeUrl = function(prefix) {
+                if (prefix === $undefined)
+                    prefix = "type.googleapis.com";
+                return prefix + "/proto.StatusAttribution.StatusTemplate";
+            };
+
+            return StatusTemplate;
+        })();
         return StatusAttribution;
     })();
 
@@ -106515,7 +109565,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.quotedStatus = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.quotedStatus);
+                        m.quotedStatus = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.quotedStatus);
                         m._quotedStatus = "quotedStatus";
                         continue;
                     }
@@ -106762,292 +109812,6 @@ export const proto = $root.proto = (() => {
         };
 
         return StatusPSA;
-    })();
-
-    proto.RecoverableHistoryConversation = (function() {
-
-        const RecoverableHistoryConversation = function (p) {
-            if (p)
-                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
-                    if (p[ks[i]] != null && ks[i] !== "__proto__")
-                        this[ks[i]] = p[ks[i]];
-        };
-
-        RecoverableHistoryConversation.prototype.historyChatId = null;
-        RecoverableHistoryConversation.prototype.accountLid = null;
-
-        let $oneOfFields;
-
-        // Virtual OneOf for proto3 optional field
-        $Object.defineProperty(RecoverableHistoryConversation.prototype, "_historyChatId", {
-            get: $util.oneOfGetter($oneOfFields = ["historyChatId"]),
-            set: $util.oneOfSetter($oneOfFields)
-        });
-
-        // Virtual OneOf for proto3 optional field
-        $Object.defineProperty(RecoverableHistoryConversation.prototype, "_accountLid", {
-            get: $util.oneOfGetter($oneOfFields = ["accountLid"]),
-            set: $util.oneOfSetter($oneOfFields)
-        });
-
-        RecoverableHistoryConversation.create = function(properties) {
-            return new RecoverableHistoryConversation(properties);
-        };
-
-        RecoverableHistoryConversation.encode = function (m, w, q) {
-            if (!w)
-                w = $Writer.create();
-            if (q === $undefined)
-                q = 0;
-            if (q > $util.recursionLimit)
-                throw $Error("max depth exceeded");
-            if (m.historyChatId != null && $Object.hasOwnProperty.call(m, "historyChatId"))
-                w.uint32(10).string(m.historyChatId);
-            if (m.accountLid != null && $Object.hasOwnProperty.call(m, "accountLid"))
-                w.uint32(18).string(m.accountLid);
-            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
-                for (var i = 0; i < m.$unknowns.length; ++i)
-                    w.raw(m.$unknowns[i]);
-            return w;
-        };
-
-        RecoverableHistoryConversation.decode = function (r, l, z, q, g) {
-            if (!(r instanceof $Reader))
-                r = $Reader.create(r);
-            if (q === $undefined)
-                q = 0;
-            if (q > $Reader.recursionLimit)
-                throw $Error("max depth exceeded");
-            var c, m;
-            if (l === $undefined)
-                c = r.len;
-            else {
-                c = r.pos + l;
-                if (c > r.len)
-                    throw $RangeError("index out of range");
-                l = r.len;
-                r.len = c;
-            }
-            m = g || new $root.proto.RecoverableHistoryConversation();
-            while (r.pos < c) {
-                var s = r.pos;
-                var t = r.tag();
-                if (t === z) {
-                    z = $undefined;
-                    break;
-                }
-                var u = t & 7;
-                switch (t >>>= 3) {
-                case 1: {
-                        if (u !== 2)
-                            break;
-                        m.historyChatId = r.stringVerify();
-                        m._historyChatId = "historyChatId";
-                        continue;
-                    }
-                case 2: {
-                        if (u !== 2)
-                            break;
-                        m.accountLid = r.stringVerify();
-                        m._accountLid = "accountLid";
-                        continue;
-                    }
-                }
-                r.skipType(u, q, t);
-                if (!r.discardUnknown) {
-                    $util.makeProp(m, "$unknowns", false);
-                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
-                }
-            }
-            if (l !== $undefined) {
-                if (r.pos !== c)
-                    throw $RangeError("index out of range");
-                r.len = l;
-            }
-            if (z !== $undefined)
-                throw $Error("missing end group");
-            return m;
-        };
-
-        RecoverableHistoryConversation.fromObject = function (d, q) {
-            if (d instanceof $root.proto.RecoverableHistoryConversation)
-                return d;
-            if (!$util.isObject(d))
-                throw $TypeError(".proto.RecoverableHistoryConversation: object expected");
-            if (q === $undefined)
-                q = 0;
-            if (q > $util.recursionLimit)
-                throw $Error("max depth exceeded");
-            var m = new $root.proto.RecoverableHistoryConversation();
-            if (d.historyChatId != null) {
-                m.historyChatId = $String(d.historyChatId);
-            }
-            if (d.accountLid != null) {
-                m.accountLid = $String(d.accountLid);
-            }
-            return m;
-        };
-
-        RecoverableHistoryConversation.toObject = function (m, o, q) {
-            if (!o)
-                o = {};
-            if (q === $undefined)
-                q = 0;
-            if (q > $util.recursionLimit)
-                throw $Error("max depth exceeded");
-            var d = {};
-            if (m.historyChatId != null && $Object.hasOwnProperty.call(m, "historyChatId")) {
-                d.historyChatId = m.historyChatId;
-            }
-            if (m.accountLid != null && $Object.hasOwnProperty.call(m, "accountLid")) {
-                d.accountLid = m.accountLid;
-            }
-            return d;
-        };
-
-        RecoverableHistoryConversation.prototype.toJSON = function() {
-            return RecoverableHistoryConversation.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        RecoverableHistoryConversation.getTypeUrl = function(prefix) {
-            if (prefix === $undefined)
-                prefix = "type.googleapis.com";
-            return prefix + "/proto.RecoverableHistoryConversation";
-        };
-
-        return RecoverableHistoryConversation;
-    })();
-
-    proto.EventInviteAdditionalMetadata = (function() {
-
-        const EventInviteAdditionalMetadata = function (p) {
-            if (p)
-                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
-                    if (p[ks[i]] != null && ks[i] !== "__proto__")
-                        this[ks[i]] = p[ks[i]];
-        };
-
-        EventInviteAdditionalMetadata.prototype.isUpdated = null;
-
-        let $oneOfFields;
-
-        // Virtual OneOf for proto3 optional field
-        $Object.defineProperty(EventInviteAdditionalMetadata.prototype, "_isUpdated", {
-            get: $util.oneOfGetter($oneOfFields = ["isUpdated"]),
-            set: $util.oneOfSetter($oneOfFields)
-        });
-
-        EventInviteAdditionalMetadata.create = function(properties) {
-            return new EventInviteAdditionalMetadata(properties);
-        };
-
-        EventInviteAdditionalMetadata.encode = function (m, w, q) {
-            if (!w)
-                w = $Writer.create();
-            if (q === $undefined)
-                q = 0;
-            if (q > $util.recursionLimit)
-                throw $Error("max depth exceeded");
-            if (m.isUpdated != null && $Object.hasOwnProperty.call(m, "isUpdated"))
-                w.uint32(8).bool(m.isUpdated);
-            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
-                for (var i = 0; i < m.$unknowns.length; ++i)
-                    w.raw(m.$unknowns[i]);
-            return w;
-        };
-
-        EventInviteAdditionalMetadata.decode = function (r, l, z, q, g) {
-            if (!(r instanceof $Reader))
-                r = $Reader.create(r);
-            if (q === $undefined)
-                q = 0;
-            if (q > $Reader.recursionLimit)
-                throw $Error("max depth exceeded");
-            var c, m;
-            if (l === $undefined)
-                c = r.len;
-            else {
-                c = r.pos + l;
-                if (c > r.len)
-                    throw $RangeError("index out of range");
-                l = r.len;
-                r.len = c;
-            }
-            m = g || new $root.proto.EventInviteAdditionalMetadata();
-            while (r.pos < c) {
-                var s = r.pos;
-                var t = r.tag();
-                if (t === z) {
-                    z = $undefined;
-                    break;
-                }
-                var u = t & 7;
-                switch (t >>>= 3) {
-                case 1: {
-                        if (u !== 0)
-                            break;
-                        m.isUpdated = r.bool();
-                        m._isUpdated = "isUpdated";
-                        continue;
-                    }
-                }
-                r.skipType(u, q, t);
-                if (!r.discardUnknown) {
-                    $util.makeProp(m, "$unknowns", false);
-                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
-                }
-            }
-            if (l !== $undefined) {
-                if (r.pos !== c)
-                    throw $RangeError("index out of range");
-                r.len = l;
-            }
-            if (z !== $undefined)
-                throw $Error("missing end group");
-            return m;
-        };
-
-        EventInviteAdditionalMetadata.fromObject = function (d, q) {
-            if (d instanceof $root.proto.EventInviteAdditionalMetadata)
-                return d;
-            if (!$util.isObject(d))
-                throw $TypeError(".proto.EventInviteAdditionalMetadata: object expected");
-            if (q === $undefined)
-                q = 0;
-            if (q > $util.recursionLimit)
-                throw $Error("max depth exceeded");
-            var m = new $root.proto.EventInviteAdditionalMetadata();
-            if (d.isUpdated != null) {
-                m.isUpdated = $Boolean(d.isUpdated);
-            }
-            return m;
-        };
-
-        EventInviteAdditionalMetadata.toObject = function (m, o, q) {
-            if (!o)
-                o = {};
-            if (q === $undefined)
-                q = 0;
-            if (q > $util.recursionLimit)
-                throw $Error("max depth exceeded");
-            var d = {};
-            if (m.isUpdated != null && $Object.hasOwnProperty.call(m, "isUpdated")) {
-                d.isUpdated = m.isUpdated;
-            }
-            return d;
-        };
-
-        EventInviteAdditionalMetadata.prototype.toJSON = function() {
-            return EventInviteAdditionalMetadata.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        EventInviteAdditionalMetadata.getTypeUrl = function(prefix) {
-            if (prefix === $undefined)
-                prefix = "type.googleapis.com";
-            return prefix + "/proto.EventInviteAdditionalMetadata";
-        };
-
-        return EventInviteAdditionalMetadata;
     })();
 
     proto.StickerMetadata = (function() {
@@ -107603,7 +110367,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.value = $root.proto.SyncActionValue.decode(r, r.uint32(), $undefined, q + 1, m.value);
+                        m.value = $root.proto.SyncActionValue.decode(r, r.size(), $undefined, q + 1, m.value);
                         m._value = "value";
                         continue;
                     }
@@ -107707,6 +110471,175 @@ export const proto = $root.proto = (() => {
         return SyncActionData;
     })();
 
+    proto.HatchCVMSecretAction = (function() {
+
+        const HatchCVMSecretAction = function (p) {
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        HatchCVMSecretAction.prototype.secret = null;
+        HatchCVMSecretAction.prototype.generation = null;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(HatchCVMSecretAction.prototype, "_secret", {
+            get: $util.oneOfGetter($oneOfFields = ["secret"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(HatchCVMSecretAction.prototype, "_generation", {
+            get: $util.oneOfGetter($oneOfFields = ["generation"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        HatchCVMSecretAction.create = function(properties) {
+            return new HatchCVMSecretAction(properties);
+        };
+
+        HatchCVMSecretAction.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.secret != null && $Object.hasOwnProperty.call(m, "secret"))
+                w.uint32(10).bytes(m.secret);
+            if (m.generation != null && $Object.hasOwnProperty.call(m, "generation"))
+                w.uint32(16).int64(m.generation);
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        HatchCVMSecretAction.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.HatchCVMSecretAction();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 2)
+                            break;
+                        m.secret = r.bytes();
+                        m._secret = "secret";
+                        continue;
+                    }
+                case 2: {
+                        if (u !== 0)
+                            break;
+                        m.generation = r.int64();
+                        m._generation = "generation";
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        HatchCVMSecretAction.fromObject = function (d, q) {
+            if (d instanceof $root.proto.HatchCVMSecretAction)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.HatchCVMSecretAction: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.HatchCVMSecretAction();
+            if (d.secret != null) {
+                if (typeof d.secret === "string")
+                    $util.base64.decode(d.secret, m.secret = $util.newBuffer($util.base64.length(d.secret)), 0);
+                else if (d.secret.length >= 0)
+                    m.secret = d.secret;
+            }
+            if (d.generation != null) {
+                if ($util.Long)
+                    m.generation = $util.Long.fromValue(d.generation, false);
+                else if (typeof d.generation === "string")
+                    m.generation = $parseInt(d.generation, 10);
+                else if (typeof d.generation === "number")
+                    m.generation = d.generation;
+                else if (typeof d.generation === "object")
+                    m.generation = new $util.LongBits(d.generation.low >>> 0, d.generation.high >>> 0).toNumber();
+            }
+            return m;
+        };
+
+        HatchCVMSecretAction.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (m.secret != null && $Object.hasOwnProperty.call(m, "secret")) {
+                d.secret = o.bytes === $String ? $util.base64.encode(m.secret, 0, m.secret.length) : o.bytes === $Array ? $Array.prototype.slice.call(m.secret) : m.secret;
+            }
+            if (m.generation != null && $Object.hasOwnProperty.call(m, "generation")) {
+                if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                    d.generation = typeof m.generation === "number" ? $BigInt(m.generation) : $util.Long.fromBits(m.generation.low >>> 0, m.generation.high >>> 0, false).toBigInt();
+                else if (typeof m.generation === "number")
+                    d.generation = o.longs === $String ? $String(m.generation) : m.generation;
+                else
+                    d.generation = o.longs === String ? longToString(m.generation) : o.longs === Number ? longToNumber(m.generation) : m.generation;
+            }
+            return d;
+        };
+
+        HatchCVMSecretAction.prototype.toJSON = function() {
+            return HatchCVMSecretAction.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        HatchCVMSecretAction.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.HatchCVMSecretAction";
+        };
+
+        return HatchCVMSecretAction;
+    })();
+
     proto.SyncActionValue = (function() {
 
         const SyncActionValue = function (p) {
@@ -107808,6 +110741,7 @@ export const proto = $root.proto = (() => {
         SyncActionValue.prototype.ctwaMessageReceivedAction = null;
         SyncActionValue.prototype.communityNestingStateAction = null;
         SyncActionValue.prototype.sharedDeviceSecretAction = null;
+        SyncActionValue.prototype.hatchCvmSecretAction = null;
 
         let $oneOfFields;
 
@@ -108363,6 +111297,12 @@ export const proto = $root.proto = (() => {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(SyncActionValue.prototype, "_hatchCvmSecretAction", {
+            get: $util.oneOfGetter($oneOfFields = ["hatchCvmSecretAction"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         SyncActionValue.create = function(properties) {
             return new SyncActionValue(properties);
         };
@@ -108558,6 +111498,8 @@ export const proto = $root.proto = (() => {
                 $root.proto.SyncActionValue.CommunityNestingStateAction.encode(m.communityNestingStateAction, w.uint32(794).fork(), q + 1).ldelim();
             if (m.sharedDeviceSecretAction != null && $Object.hasOwnProperty.call(m, "sharedDeviceSecretAction"))
                 $root.proto.SyncActionValue.SharedDeviceSecretAction.encode(m.sharedDeviceSecretAction, w.uint32(802).fork(), q + 1).ldelim();
+            if (m.hatchCvmSecretAction != null && $Object.hasOwnProperty.call(m, "hatchCvmSecretAction"))
+                $root.proto.HatchCVMSecretAction.encode(m.hatchCvmSecretAction, w.uint32(810).fork(), q + 1).ldelim();
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -108601,638 +111543,645 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.starAction = $root.proto.SyncActionValue.StarAction.decode(r, r.uint32(), $undefined, q + 1, m.starAction);
+                        m.starAction = $root.proto.SyncActionValue.StarAction.decode(r, r.size(), $undefined, q + 1, m.starAction);
                         m._starAction = "starAction";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.contactAction = $root.proto.SyncActionValue.ContactAction.decode(r, r.uint32(), $undefined, q + 1, m.contactAction);
+                        m.contactAction = $root.proto.SyncActionValue.ContactAction.decode(r, r.size(), $undefined, q + 1, m.contactAction);
                         m._contactAction = "contactAction";
                         continue;
                     }
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.muteAction = $root.proto.SyncActionValue.MuteAction.decode(r, r.uint32(), $undefined, q + 1, m.muteAction);
+                        m.muteAction = $root.proto.SyncActionValue.MuteAction.decode(r, r.size(), $undefined, q + 1, m.muteAction);
                         m._muteAction = "muteAction";
                         continue;
                     }
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.pinAction = $root.proto.SyncActionValue.PinAction.decode(r, r.uint32(), $undefined, q + 1, m.pinAction);
+                        m.pinAction = $root.proto.SyncActionValue.PinAction.decode(r, r.size(), $undefined, q + 1, m.pinAction);
                         m._pinAction = "pinAction";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.pushNameSetting = $root.proto.SyncActionValue.PushNameSetting.decode(r, r.uint32(), $undefined, q + 1, m.pushNameSetting);
+                        m.pushNameSetting = $root.proto.SyncActionValue.PushNameSetting.decode(r, r.size(), $undefined, q + 1, m.pushNameSetting);
                         m._pushNameSetting = "pushNameSetting";
                         continue;
                     }
                 case 8: {
                         if (u !== 2)
                             break;
-                        m.quickReplyAction = $root.proto.SyncActionValue.QuickReplyAction.decode(r, r.uint32(), $undefined, q + 1, m.quickReplyAction);
+                        m.quickReplyAction = $root.proto.SyncActionValue.QuickReplyAction.decode(r, r.size(), $undefined, q + 1, m.quickReplyAction);
                         m._quickReplyAction = "quickReplyAction";
                         continue;
                     }
                 case 11: {
                         if (u !== 2)
                             break;
-                        m.recentEmojiWeightsAction = $root.proto.SyncActionValue.RecentEmojiWeightsAction.decode(r, r.uint32(), $undefined, q + 1, m.recentEmojiWeightsAction);
+                        m.recentEmojiWeightsAction = $root.proto.SyncActionValue.RecentEmojiWeightsAction.decode(r, r.size(), $undefined, q + 1, m.recentEmojiWeightsAction);
                         m._recentEmojiWeightsAction = "recentEmojiWeightsAction";
                         continue;
                     }
                 case 14: {
                         if (u !== 2)
                             break;
-                        m.labelEditAction = $root.proto.SyncActionValue.LabelEditAction.decode(r, r.uint32(), $undefined, q + 1, m.labelEditAction);
+                        m.labelEditAction = $root.proto.SyncActionValue.LabelEditAction.decode(r, r.size(), $undefined, q + 1, m.labelEditAction);
                         m._labelEditAction = "labelEditAction";
                         continue;
                     }
                 case 15: {
                         if (u !== 2)
                             break;
-                        m.labelAssociationAction = $root.proto.SyncActionValue.LabelAssociationAction.decode(r, r.uint32(), $undefined, q + 1, m.labelAssociationAction);
+                        m.labelAssociationAction = $root.proto.SyncActionValue.LabelAssociationAction.decode(r, r.size(), $undefined, q + 1, m.labelAssociationAction);
                         m._labelAssociationAction = "labelAssociationAction";
                         continue;
                     }
                 case 16: {
                         if (u !== 2)
                             break;
-                        m.localeSetting = $root.proto.SyncActionValue.LocaleSetting.decode(r, r.uint32(), $undefined, q + 1, m.localeSetting);
+                        m.localeSetting = $root.proto.SyncActionValue.LocaleSetting.decode(r, r.size(), $undefined, q + 1, m.localeSetting);
                         m._localeSetting = "localeSetting";
                         continue;
                     }
                 case 17: {
                         if (u !== 2)
                             break;
-                        m.archiveChatAction = $root.proto.SyncActionValue.ArchiveChatAction.decode(r, r.uint32(), $undefined, q + 1, m.archiveChatAction);
+                        m.archiveChatAction = $root.proto.SyncActionValue.ArchiveChatAction.decode(r, r.size(), $undefined, q + 1, m.archiveChatAction);
                         m._archiveChatAction = "archiveChatAction";
                         continue;
                     }
                 case 18: {
                         if (u !== 2)
                             break;
-                        m.deleteMessageForMeAction = $root.proto.SyncActionValue.DeleteMessageForMeAction.decode(r, r.uint32(), $undefined, q + 1, m.deleteMessageForMeAction);
+                        m.deleteMessageForMeAction = $root.proto.SyncActionValue.DeleteMessageForMeAction.decode(r, r.size(), $undefined, q + 1, m.deleteMessageForMeAction);
                         m._deleteMessageForMeAction = "deleteMessageForMeAction";
                         continue;
                     }
                 case 19: {
                         if (u !== 2)
                             break;
-                        m.keyExpiration = $root.proto.SyncActionValue.KeyExpiration.decode(r, r.uint32(), $undefined, q + 1, m.keyExpiration);
+                        m.keyExpiration = $root.proto.SyncActionValue.KeyExpiration.decode(r, r.size(), $undefined, q + 1, m.keyExpiration);
                         m._keyExpiration = "keyExpiration";
                         continue;
                     }
                 case 20: {
                         if (u !== 2)
                             break;
-                        m.markChatAsReadAction = $root.proto.SyncActionValue.MarkChatAsReadAction.decode(r, r.uint32(), $undefined, q + 1, m.markChatAsReadAction);
+                        m.markChatAsReadAction = $root.proto.SyncActionValue.MarkChatAsReadAction.decode(r, r.size(), $undefined, q + 1, m.markChatAsReadAction);
                         m._markChatAsReadAction = "markChatAsReadAction";
                         continue;
                     }
                 case 21: {
                         if (u !== 2)
                             break;
-                        m.clearChatAction = $root.proto.SyncActionValue.ClearChatAction.decode(r, r.uint32(), $undefined, q + 1, m.clearChatAction);
+                        m.clearChatAction = $root.proto.SyncActionValue.ClearChatAction.decode(r, r.size(), $undefined, q + 1, m.clearChatAction);
                         m._clearChatAction = "clearChatAction";
                         continue;
                     }
                 case 22: {
                         if (u !== 2)
                             break;
-                        m.deleteChatAction = $root.proto.SyncActionValue.DeleteChatAction.decode(r, r.uint32(), $undefined, q + 1, m.deleteChatAction);
+                        m.deleteChatAction = $root.proto.SyncActionValue.DeleteChatAction.decode(r, r.size(), $undefined, q + 1, m.deleteChatAction);
                         m._deleteChatAction = "deleteChatAction";
                         continue;
                     }
                 case 23: {
                         if (u !== 2)
                             break;
-                        m.unarchiveChatsSetting = $root.proto.SyncActionValue.UnarchiveChatsSetting.decode(r, r.uint32(), $undefined, q + 1, m.unarchiveChatsSetting);
+                        m.unarchiveChatsSetting = $root.proto.SyncActionValue.UnarchiveChatsSetting.decode(r, r.size(), $undefined, q + 1, m.unarchiveChatsSetting);
                         m._unarchiveChatsSetting = "unarchiveChatsSetting";
                         continue;
                     }
                 case 24: {
                         if (u !== 2)
                             break;
-                        m.primaryFeature = $root.proto.SyncActionValue.PrimaryFeature.decode(r, r.uint32(), $undefined, q + 1, m.primaryFeature);
+                        m.primaryFeature = $root.proto.SyncActionValue.PrimaryFeature.decode(r, r.size(), $undefined, q + 1, m.primaryFeature);
                         m._primaryFeature = "primaryFeature";
                         continue;
                     }
                 case 26: {
                         if (u !== 2)
                             break;
-                        m.androidUnsupportedActions = $root.proto.SyncActionValue.AndroidUnsupportedActions.decode(r, r.uint32(), $undefined, q + 1, m.androidUnsupportedActions);
+                        m.androidUnsupportedActions = $root.proto.SyncActionValue.AndroidUnsupportedActions.decode(r, r.size(), $undefined, q + 1, m.androidUnsupportedActions);
                         m._androidUnsupportedActions = "androidUnsupportedActions";
                         continue;
                     }
                 case 27: {
                         if (u !== 2)
                             break;
-                        m.agentAction = $root.proto.SyncActionValue.AgentAction.decode(r, r.uint32(), $undefined, q + 1, m.agentAction);
+                        m.agentAction = $root.proto.SyncActionValue.AgentAction.decode(r, r.size(), $undefined, q + 1, m.agentAction);
                         m._agentAction = "agentAction";
                         continue;
                     }
                 case 28: {
                         if (u !== 2)
                             break;
-                        m.subscriptionAction = $root.proto.SyncActionValue.SubscriptionAction.decode(r, r.uint32(), $undefined, q + 1, m.subscriptionAction);
+                        m.subscriptionAction = $root.proto.SyncActionValue.SubscriptionAction.decode(r, r.size(), $undefined, q + 1, m.subscriptionAction);
                         m._subscriptionAction = "subscriptionAction";
                         continue;
                     }
                 case 29: {
                         if (u !== 2)
                             break;
-                        m.userStatusMuteAction = $root.proto.SyncActionValue.UserStatusMuteAction.decode(r, r.uint32(), $undefined, q + 1, m.userStatusMuteAction);
+                        m.userStatusMuteAction = $root.proto.SyncActionValue.UserStatusMuteAction.decode(r, r.size(), $undefined, q + 1, m.userStatusMuteAction);
                         m._userStatusMuteAction = "userStatusMuteAction";
                         continue;
                     }
                 case 30: {
                         if (u !== 2)
                             break;
-                        m.timeFormatAction = $root.proto.SyncActionValue.TimeFormatAction.decode(r, r.uint32(), $undefined, q + 1, m.timeFormatAction);
+                        m.timeFormatAction = $root.proto.SyncActionValue.TimeFormatAction.decode(r, r.size(), $undefined, q + 1, m.timeFormatAction);
                         m._timeFormatAction = "timeFormatAction";
                         continue;
                     }
                 case 31: {
                         if (u !== 2)
                             break;
-                        m.nuxAction = $root.proto.SyncActionValue.NuxAction.decode(r, r.uint32(), $undefined, q + 1, m.nuxAction);
+                        m.nuxAction = $root.proto.SyncActionValue.NuxAction.decode(r, r.size(), $undefined, q + 1, m.nuxAction);
                         m._nuxAction = "nuxAction";
                         continue;
                     }
                 case 32: {
                         if (u !== 2)
                             break;
-                        m.primaryVersionAction = $root.proto.SyncActionValue.PrimaryVersionAction.decode(r, r.uint32(), $undefined, q + 1, m.primaryVersionAction);
+                        m.primaryVersionAction = $root.proto.SyncActionValue.PrimaryVersionAction.decode(r, r.size(), $undefined, q + 1, m.primaryVersionAction);
                         m._primaryVersionAction = "primaryVersionAction";
                         continue;
                     }
                 case 33: {
                         if (u !== 2)
                             break;
-                        m.stickerAction = $root.proto.SyncActionValue.StickerAction.decode(r, r.uint32(), $undefined, q + 1, m.stickerAction);
+                        m.stickerAction = $root.proto.SyncActionValue.StickerAction.decode(r, r.size(), $undefined, q + 1, m.stickerAction);
                         m._stickerAction = "stickerAction";
                         continue;
                     }
                 case 34: {
                         if (u !== 2)
                             break;
-                        m.removeRecentStickerAction = $root.proto.SyncActionValue.RemoveRecentStickerAction.decode(r, r.uint32(), $undefined, q + 1, m.removeRecentStickerAction);
+                        m.removeRecentStickerAction = $root.proto.SyncActionValue.RemoveRecentStickerAction.decode(r, r.size(), $undefined, q + 1, m.removeRecentStickerAction);
                         m._removeRecentStickerAction = "removeRecentStickerAction";
                         continue;
                     }
                 case 35: {
                         if (u !== 2)
                             break;
-                        m.chatAssignment = $root.proto.SyncActionValue.ChatAssignmentAction.decode(r, r.uint32(), $undefined, q + 1, m.chatAssignment);
+                        m.chatAssignment = $root.proto.SyncActionValue.ChatAssignmentAction.decode(r, r.size(), $undefined, q + 1, m.chatAssignment);
                         m._chatAssignment = "chatAssignment";
                         continue;
                     }
                 case 36: {
                         if (u !== 2)
                             break;
-                        m.chatAssignmentOpenedStatus = $root.proto.SyncActionValue.ChatAssignmentOpenedStatusAction.decode(r, r.uint32(), $undefined, q + 1, m.chatAssignmentOpenedStatus);
+                        m.chatAssignmentOpenedStatus = $root.proto.SyncActionValue.ChatAssignmentOpenedStatusAction.decode(r, r.size(), $undefined, q + 1, m.chatAssignmentOpenedStatus);
                         m._chatAssignmentOpenedStatus = "chatAssignmentOpenedStatus";
                         continue;
                     }
                 case 37: {
                         if (u !== 2)
                             break;
-                        m.pnForLidChatAction = $root.proto.SyncActionValue.PnForLidChatAction.decode(r, r.uint32(), $undefined, q + 1, m.pnForLidChatAction);
+                        m.pnForLidChatAction = $root.proto.SyncActionValue.PnForLidChatAction.decode(r, r.size(), $undefined, q + 1, m.pnForLidChatAction);
                         m._pnForLidChatAction = "pnForLidChatAction";
                         continue;
                     }
                 case 38: {
                         if (u !== 2)
                             break;
-                        m.marketingMessageAction = $root.proto.SyncActionValue.MarketingMessageAction.decode(r, r.uint32(), $undefined, q + 1, m.marketingMessageAction);
+                        m.marketingMessageAction = $root.proto.SyncActionValue.MarketingMessageAction.decode(r, r.size(), $undefined, q + 1, m.marketingMessageAction);
                         m._marketingMessageAction = "marketingMessageAction";
                         continue;
                     }
                 case 39: {
                         if (u !== 2)
                             break;
-                        m.marketingMessageBroadcastAction = $root.proto.SyncActionValue.MarketingMessageBroadcastAction.decode(r, r.uint32(), $undefined, q + 1, m.marketingMessageBroadcastAction);
+                        m.marketingMessageBroadcastAction = $root.proto.SyncActionValue.MarketingMessageBroadcastAction.decode(r, r.size(), $undefined, q + 1, m.marketingMessageBroadcastAction);
                         m._marketingMessageBroadcastAction = "marketingMessageBroadcastAction";
                         continue;
                     }
                 case 40: {
                         if (u !== 2)
                             break;
-                        m.externalWebBetaAction = $root.proto.SyncActionValue.ExternalWebBetaAction.decode(r, r.uint32(), $undefined, q + 1, m.externalWebBetaAction);
+                        m.externalWebBetaAction = $root.proto.SyncActionValue.ExternalWebBetaAction.decode(r, r.size(), $undefined, q + 1, m.externalWebBetaAction);
                         m._externalWebBetaAction = "externalWebBetaAction";
                         continue;
                     }
                 case 41: {
                         if (u !== 2)
                             break;
-                        m.privacySettingRelayAllCalls = $root.proto.SyncActionValue.PrivacySettingRelayAllCalls.decode(r, r.uint32(), $undefined, q + 1, m.privacySettingRelayAllCalls);
+                        m.privacySettingRelayAllCalls = $root.proto.SyncActionValue.PrivacySettingRelayAllCalls.decode(r, r.size(), $undefined, q + 1, m.privacySettingRelayAllCalls);
                         m._privacySettingRelayAllCalls = "privacySettingRelayAllCalls";
                         continue;
                     }
                 case 42: {
                         if (u !== 2)
                             break;
-                        m.callLogAction = $root.proto.SyncActionValue.CallLogAction.decode(r, r.uint32(), $undefined, q + 1, m.callLogAction);
+                        m.callLogAction = $root.proto.SyncActionValue.CallLogAction.decode(r, r.size(), $undefined, q + 1, m.callLogAction);
                         m._callLogAction = "callLogAction";
                         continue;
                     }
                 case 43: {
                         if (u !== 2)
                             break;
-                        m.ugcBot = $root.proto.SyncActionValue.UGCBot.decode(r, r.uint32(), $undefined, q + 1, m.ugcBot);
+                        m.ugcBot = $root.proto.SyncActionValue.UGCBot.decode(r, r.size(), $undefined, q + 1, m.ugcBot);
                         m._ugcBot = "ugcBot";
                         continue;
                     }
                 case 44: {
                         if (u !== 2)
                             break;
-                        m.statusPrivacy = $root.proto.SyncActionValue.StatusPrivacyAction.decode(r, r.uint32(), $undefined, q + 1, m.statusPrivacy);
+                        m.statusPrivacy = $root.proto.SyncActionValue.StatusPrivacyAction.decode(r, r.size(), $undefined, q + 1, m.statusPrivacy);
                         m._statusPrivacy = "statusPrivacy";
                         continue;
                     }
                 case 45: {
                         if (u !== 2)
                             break;
-                        m.botWelcomeRequestAction = $root.proto.SyncActionValue.BotWelcomeRequestAction.decode(r, r.uint32(), $undefined, q + 1, m.botWelcomeRequestAction);
+                        m.botWelcomeRequestAction = $root.proto.SyncActionValue.BotWelcomeRequestAction.decode(r, r.size(), $undefined, q + 1, m.botWelcomeRequestAction);
                         m._botWelcomeRequestAction = "botWelcomeRequestAction";
                         continue;
                     }
                 case 46: {
                         if (u !== 2)
                             break;
-                        m.deleteIndividualCallLog = $root.proto.SyncActionValue.DeleteIndividualCallLogAction.decode(r, r.uint32(), $undefined, q + 1, m.deleteIndividualCallLog);
+                        m.deleteIndividualCallLog = $root.proto.SyncActionValue.DeleteIndividualCallLogAction.decode(r, r.size(), $undefined, q + 1, m.deleteIndividualCallLog);
                         m._deleteIndividualCallLog = "deleteIndividualCallLog";
                         continue;
                     }
                 case 47: {
                         if (u !== 2)
                             break;
-                        m.labelReorderingAction = $root.proto.SyncActionValue.LabelReorderingAction.decode(r, r.uint32(), $undefined, q + 1, m.labelReorderingAction);
+                        m.labelReorderingAction = $root.proto.SyncActionValue.LabelReorderingAction.decode(r, r.size(), $undefined, q + 1, m.labelReorderingAction);
                         m._labelReorderingAction = "labelReorderingAction";
                         continue;
                     }
                 case 48: {
                         if (u !== 2)
                             break;
-                        m.paymentInfoAction = $root.proto.SyncActionValue.PaymentInfoAction.decode(r, r.uint32(), $undefined, q + 1, m.paymentInfoAction);
+                        m.paymentInfoAction = $root.proto.SyncActionValue.PaymentInfoAction.decode(r, r.size(), $undefined, q + 1, m.paymentInfoAction);
                         m._paymentInfoAction = "paymentInfoAction";
                         continue;
                     }
                 case 49: {
                         if (u !== 2)
                             break;
-                        m.customPaymentMethodsAction = $root.proto.SyncActionValue.CustomPaymentMethodsAction.decode(r, r.uint32(), $undefined, q + 1, m.customPaymentMethodsAction);
+                        m.customPaymentMethodsAction = $root.proto.SyncActionValue.CustomPaymentMethodsAction.decode(r, r.size(), $undefined, q + 1, m.customPaymentMethodsAction);
                         m._customPaymentMethodsAction = "customPaymentMethodsAction";
                         continue;
                     }
                 case 50: {
                         if (u !== 2)
                             break;
-                        m.lockChatAction = $root.proto.SyncActionValue.LockChatAction.decode(r, r.uint32(), $undefined, q + 1, m.lockChatAction);
+                        m.lockChatAction = $root.proto.SyncActionValue.LockChatAction.decode(r, r.size(), $undefined, q + 1, m.lockChatAction);
                         m._lockChatAction = "lockChatAction";
                         continue;
                     }
                 case 51: {
                         if (u !== 2)
                             break;
-                        m.chatLockSettings = $root.proto.ChatLockSettings.decode(r, r.uint32(), $undefined, q + 1, m.chatLockSettings);
+                        m.chatLockSettings = $root.proto.ChatLockSettings.decode(r, r.size(), $undefined, q + 1, m.chatLockSettings);
                         m._chatLockSettings = "chatLockSettings";
                         continue;
                     }
                 case 52: {
                         if (u !== 2)
                             break;
-                        m.wamoUserIdentifierAction = $root.proto.SyncActionValue.WamoUserIdentifierAction.decode(r, r.uint32(), $undefined, q + 1, m.wamoUserIdentifierAction);
+                        m.wamoUserIdentifierAction = $root.proto.SyncActionValue.WamoUserIdentifierAction.decode(r, r.size(), $undefined, q + 1, m.wamoUserIdentifierAction);
                         m._wamoUserIdentifierAction = "wamoUserIdentifierAction";
                         continue;
                     }
                 case 53: {
                         if (u !== 2)
                             break;
-                        m.privacySettingDisableLinkPreviewsAction = $root.proto.SyncActionValue.PrivacySettingDisableLinkPreviewsAction.decode(r, r.uint32(), $undefined, q + 1, m.privacySettingDisableLinkPreviewsAction);
+                        m.privacySettingDisableLinkPreviewsAction = $root.proto.SyncActionValue.PrivacySettingDisableLinkPreviewsAction.decode(r, r.size(), $undefined, q + 1, m.privacySettingDisableLinkPreviewsAction);
                         m._privacySettingDisableLinkPreviewsAction = "privacySettingDisableLinkPreviewsAction";
                         continue;
                     }
                 case 54: {
                         if (u !== 2)
                             break;
-                        m.deviceCapabilities = $root.proto.DeviceCapabilities.decode(r, r.uint32(), $undefined, q + 1, m.deviceCapabilities);
+                        m.deviceCapabilities = $root.proto.DeviceCapabilities.decode(r, r.size(), $undefined, q + 1, m.deviceCapabilities);
                         m._deviceCapabilities = "deviceCapabilities";
                         continue;
                     }
                 case 55: {
                         if (u !== 2)
                             break;
-                        m.noteEditAction = $root.proto.SyncActionValue.NoteEditAction.decode(r, r.uint32(), $undefined, q + 1, m.noteEditAction);
+                        m.noteEditAction = $root.proto.SyncActionValue.NoteEditAction.decode(r, r.size(), $undefined, q + 1, m.noteEditAction);
                         m._noteEditAction = "noteEditAction";
                         continue;
                     }
                 case 56: {
                         if (u !== 2)
                             break;
-                        m.favoritesAction = $root.proto.SyncActionValue.FavoritesAction.decode(r, r.uint32(), $undefined, q + 1, m.favoritesAction);
+                        m.favoritesAction = $root.proto.SyncActionValue.FavoritesAction.decode(r, r.size(), $undefined, q + 1, m.favoritesAction);
                         m._favoritesAction = "favoritesAction";
                         continue;
                     }
                 case 57: {
                         if (u !== 2)
                             break;
-                        m.merchantPaymentPartnerAction = $root.proto.SyncActionValue.MerchantPaymentPartnerAction.decode(r, r.uint32(), $undefined, q + 1, m.merchantPaymentPartnerAction);
+                        m.merchantPaymentPartnerAction = $root.proto.SyncActionValue.MerchantPaymentPartnerAction.decode(r, r.size(), $undefined, q + 1, m.merchantPaymentPartnerAction);
                         m._merchantPaymentPartnerAction = "merchantPaymentPartnerAction";
                         continue;
                     }
                 case 58: {
                         if (u !== 2)
                             break;
-                        m.waffleAccountLinkStateAction = $root.proto.SyncActionValue.WaffleAccountLinkStateAction.decode(r, r.uint32(), $undefined, q + 1, m.waffleAccountLinkStateAction);
+                        m.waffleAccountLinkStateAction = $root.proto.SyncActionValue.WaffleAccountLinkStateAction.decode(r, r.size(), $undefined, q + 1, m.waffleAccountLinkStateAction);
                         m._waffleAccountLinkStateAction = "waffleAccountLinkStateAction";
                         continue;
                     }
                 case 59: {
                         if (u !== 2)
                             break;
-                        m.usernameChatStartMode = $root.proto.SyncActionValue.UsernameChatStartModeAction.decode(r, r.uint32(), $undefined, q + 1, m.usernameChatStartMode);
+                        m.usernameChatStartMode = $root.proto.SyncActionValue.UsernameChatStartModeAction.decode(r, r.size(), $undefined, q + 1, m.usernameChatStartMode);
                         m._usernameChatStartMode = "usernameChatStartMode";
                         continue;
                     }
                 case 60: {
                         if (u !== 2)
                             break;
-                        m.notificationActivitySettingAction = $root.proto.SyncActionValue.NotificationActivitySettingAction.decode(r, r.uint32(), $undefined, q + 1, m.notificationActivitySettingAction);
+                        m.notificationActivitySettingAction = $root.proto.SyncActionValue.NotificationActivitySettingAction.decode(r, r.size(), $undefined, q + 1, m.notificationActivitySettingAction);
                         m._notificationActivitySettingAction = "notificationActivitySettingAction";
                         continue;
                     }
                 case 61: {
                         if (u !== 2)
                             break;
-                        m.lidContactAction = $root.proto.SyncActionValue.LidContactAction.decode(r, r.uint32(), $undefined, q + 1, m.lidContactAction);
+                        m.lidContactAction = $root.proto.SyncActionValue.LidContactAction.decode(r, r.size(), $undefined, q + 1, m.lidContactAction);
                         m._lidContactAction = "lidContactAction";
                         continue;
                     }
                 case 62: {
                         if (u !== 2)
                             break;
-                        m.ctwaPerCustomerDataSharingAction = $root.proto.SyncActionValue.CtwaPerCustomerDataSharingAction.decode(r, r.uint32(), $undefined, q + 1, m.ctwaPerCustomerDataSharingAction);
+                        m.ctwaPerCustomerDataSharingAction = $root.proto.SyncActionValue.CtwaPerCustomerDataSharingAction.decode(r, r.size(), $undefined, q + 1, m.ctwaPerCustomerDataSharingAction);
                         m._ctwaPerCustomerDataSharingAction = "ctwaPerCustomerDataSharingAction";
                         continue;
                     }
                 case 63: {
                         if (u !== 2)
                             break;
-                        m.paymentTosAction = $root.proto.SyncActionValue.PaymentTosAction.decode(r, r.uint32(), $undefined, q + 1, m.paymentTosAction);
+                        m.paymentTosAction = $root.proto.SyncActionValue.PaymentTosAction.decode(r, r.size(), $undefined, q + 1, m.paymentTosAction);
                         m._paymentTosAction = "paymentTosAction";
                         continue;
                     }
                 case 64: {
                         if (u !== 2)
                             break;
-                        m.privacySettingChannelsPersonalisedRecommendationAction = $root.proto.SyncActionValue.PrivacySettingChannelsPersonalisedRecommendationAction.decode(r, r.uint32(), $undefined, q + 1, m.privacySettingChannelsPersonalisedRecommendationAction);
+                        m.privacySettingChannelsPersonalisedRecommendationAction = $root.proto.SyncActionValue.PrivacySettingChannelsPersonalisedRecommendationAction.decode(r, r.size(), $undefined, q + 1, m.privacySettingChannelsPersonalisedRecommendationAction);
                         m._privacySettingChannelsPersonalisedRecommendationAction = "privacySettingChannelsPersonalisedRecommendationAction";
                         continue;
                     }
                 case 65: {
                         if (u !== 2)
                             break;
-                        m.businessBroadcastAssociationAction = $root.proto.SyncActionValue.BusinessBroadcastAssociationAction.decode(r, r.uint32(), $undefined, q + 1, m.businessBroadcastAssociationAction);
+                        m.businessBroadcastAssociationAction = $root.proto.SyncActionValue.BusinessBroadcastAssociationAction.decode(r, r.size(), $undefined, q + 1, m.businessBroadcastAssociationAction);
                         m._businessBroadcastAssociationAction = "businessBroadcastAssociationAction";
                         continue;
                     }
                 case 66: {
                         if (u !== 2)
                             break;
-                        m.detectedOutcomesStatusAction = $root.proto.SyncActionValue.DetectedOutcomesStatusAction.decode(r, r.uint32(), $undefined, q + 1, m.detectedOutcomesStatusAction);
+                        m.detectedOutcomesStatusAction = $root.proto.SyncActionValue.DetectedOutcomesStatusAction.decode(r, r.size(), $undefined, q + 1, m.detectedOutcomesStatusAction);
                         m._detectedOutcomesStatusAction = "detectedOutcomesStatusAction";
                         continue;
                     }
                 case 68: {
                         if (u !== 2)
                             break;
-                        m.maibaAiFeaturesControlAction = $root.proto.SyncActionValue.MaibaAIFeaturesControlAction.decode(r, r.uint32(), $undefined, q + 1, m.maibaAiFeaturesControlAction);
+                        m.maibaAiFeaturesControlAction = $root.proto.SyncActionValue.MaibaAIFeaturesControlAction.decode(r, r.size(), $undefined, q + 1, m.maibaAiFeaturesControlAction);
                         m._maibaAiFeaturesControlAction = "maibaAiFeaturesControlAction";
                         continue;
                     }
                 case 69: {
                         if (u !== 2)
                             break;
-                        m.businessBroadcastListAction = $root.proto.SyncActionValue.BusinessBroadcastListAction.decode(r, r.uint32(), $undefined, q + 1, m.businessBroadcastListAction);
+                        m.businessBroadcastListAction = $root.proto.SyncActionValue.BusinessBroadcastListAction.decode(r, r.size(), $undefined, q + 1, m.businessBroadcastListAction);
                         m._businessBroadcastListAction = "businessBroadcastListAction";
                         continue;
                     }
                 case 70: {
                         if (u !== 2)
                             break;
-                        m.musicUserIdAction = $root.proto.SyncActionValue.MusicUserIdAction.decode(r, r.uint32(), $undefined, q + 1, m.musicUserIdAction);
+                        m.musicUserIdAction = $root.proto.SyncActionValue.MusicUserIdAction.decode(r, r.size(), $undefined, q + 1, m.musicUserIdAction);
                         m._musicUserIdAction = "musicUserIdAction";
                         continue;
                     }
                 case 71: {
                         if (u !== 2)
                             break;
-                        m.statusPostOptInNotificationPreferencesAction = $root.proto.SyncActionValue.StatusPostOptInNotificationPreferencesAction.decode(r, r.uint32(), $undefined, q + 1, m.statusPostOptInNotificationPreferencesAction);
+                        m.statusPostOptInNotificationPreferencesAction = $root.proto.SyncActionValue.StatusPostOptInNotificationPreferencesAction.decode(r, r.size(), $undefined, q + 1, m.statusPostOptInNotificationPreferencesAction);
                         m._statusPostOptInNotificationPreferencesAction = "statusPostOptInNotificationPreferencesAction";
                         continue;
                     }
                 case 72: {
                         if (u !== 2)
                             break;
-                        m.avatarUpdatedAction = $root.proto.SyncActionValue.AvatarUpdatedAction.decode(r, r.uint32(), $undefined, q + 1, m.avatarUpdatedAction);
+                        m.avatarUpdatedAction = $root.proto.SyncActionValue.AvatarUpdatedAction.decode(r, r.size(), $undefined, q + 1, m.avatarUpdatedAction);
                         m._avatarUpdatedAction = "avatarUpdatedAction";
                         continue;
                     }
                 case 74: {
                         if (u !== 2)
                             break;
-                        m.privateProcessingSettingAction = $root.proto.SyncActionValue.PrivateProcessingSettingAction.decode(r, r.uint32(), $undefined, q + 1, m.privateProcessingSettingAction);
+                        m.privateProcessingSettingAction = $root.proto.SyncActionValue.PrivateProcessingSettingAction.decode(r, r.size(), $undefined, q + 1, m.privateProcessingSettingAction);
                         m._privateProcessingSettingAction = "privateProcessingSettingAction";
                         continue;
                     }
                 case 75: {
                         if (u !== 2)
                             break;
-                        m.newsletterSavedInterestsAction = $root.proto.SyncActionValue.NewsletterSavedInterestsAction.decode(r, r.uint32(), $undefined, q + 1, m.newsletterSavedInterestsAction);
+                        m.newsletterSavedInterestsAction = $root.proto.SyncActionValue.NewsletterSavedInterestsAction.decode(r, r.size(), $undefined, q + 1, m.newsletterSavedInterestsAction);
                         m._newsletterSavedInterestsAction = "newsletterSavedInterestsAction";
                         continue;
                     }
                 case 76: {
                         if (u !== 2)
                             break;
-                        m.aiThreadRenameAction = $root.proto.SyncActionValue.AiThreadRenameAction.decode(r, r.uint32(), $undefined, q + 1, m.aiThreadRenameAction);
+                        m.aiThreadRenameAction = $root.proto.SyncActionValue.AiThreadRenameAction.decode(r, r.size(), $undefined, q + 1, m.aiThreadRenameAction);
                         m._aiThreadRenameAction = "aiThreadRenameAction";
                         continue;
                     }
                 case 77: {
                         if (u !== 2)
                             break;
-                        m.interactiveMessageAction = $root.proto.SyncActionValue.InteractiveMessageAction.decode(r, r.uint32(), $undefined, q + 1, m.interactiveMessageAction);
+                        m.interactiveMessageAction = $root.proto.SyncActionValue.InteractiveMessageAction.decode(r, r.size(), $undefined, q + 1, m.interactiveMessageAction);
                         m._interactiveMessageAction = "interactiveMessageAction";
                         continue;
                     }
                 case 94: {
                         if (u !== 2)
                             break;
-                        m.sharedDeviceAllowlistAction = $root.proto.SyncActionValue.SharedDeviceAllowlistAction.decode(r, r.uint32(), $undefined, q + 1, m.sharedDeviceAllowlistAction);
+                        m.sharedDeviceAllowlistAction = $root.proto.SyncActionValue.SharedDeviceAllowlistAction.decode(r, r.size(), $undefined, q + 1, m.sharedDeviceAllowlistAction);
                         m._sharedDeviceAllowlistAction = "sharedDeviceAllowlistAction";
                         continue;
                     }
                 case 95: {
                         if (u !== 2)
                             break;
-                        m.contactManagerMetadataAction = $root.proto.SyncActionValue.ContactManagerMetadataAction.decode(r, r.uint32(), $undefined, q + 1, m.contactManagerMetadataAction);
+                        m.contactManagerMetadataAction = $root.proto.SyncActionValue.ContactManagerMetadataAction.decode(r, r.size(), $undefined, q + 1, m.contactManagerMetadataAction);
                         m._contactManagerMetadataAction = "contactManagerMetadataAction";
                         continue;
                     }
                 case 96: {
                         if (u !== 2)
                             break;
-                        m.businessFolderActivationAction = $root.proto.SyncActionValue.BusinessFolderActivationAction.decode(r, r.uint32(), $undefined, q + 1, m.businessFolderActivationAction);
+                        m.businessFolderActivationAction = $root.proto.SyncActionValue.BusinessFolderActivationAction.decode(r, r.size(), $undefined, q + 1, m.businessFolderActivationAction);
                         m._businessFolderActivationAction = "businessFolderActivationAction";
                         continue;
                     }
                 case 97: {
                         if (u !== 2)
                             break;
-                        m.groupHistoryToggleAction = $root.proto.SyncActionValue.GroupHistoryToggleAction.decode(r, r.uint32(), $undefined, q + 1, m.groupHistoryToggleAction);
+                        m.groupHistoryToggleAction = $root.proto.SyncActionValue.GroupHistoryToggleAction.decode(r, r.size(), $undefined, q + 1, m.groupHistoryToggleAction);
                         m._groupHistoryToggleAction = "groupHistoryToggleAction";
                         continue;
                     }
                 case 98: {
                         if (u !== 2)
                             break;
-                        m.bbProPendingCustomerBaseAction = $root.proto.SyncActionValue.BBProPendingCustomerBaseAction.decode(r, r.uint32(), $undefined, q + 1, m.bbProPendingCustomerBaseAction);
+                        m.bbProPendingCustomerBaseAction = $root.proto.SyncActionValue.BBProPendingCustomerBaseAction.decode(r, r.size(), $undefined, q + 1, m.bbProPendingCustomerBaseAction);
                         m._bbProPendingCustomerBaseAction = "bbProPendingCustomerBaseAction";
                         continue;
                     }
                 case 78: {
                         if (u !== 2)
                             break;
-                        m.settingsSyncAction = $root.proto.SettingsSyncAction.decode(r, r.uint32(), $undefined, q + 1, m.settingsSyncAction);
+                        m.settingsSyncAction = $root.proto.SettingsSyncAction.decode(r, r.size(), $undefined, q + 1, m.settingsSyncAction);
                         m._settingsSyncAction = "settingsSyncAction";
                         continue;
                     }
                 case 79: {
                         if (u !== 2)
                             break;
-                        m.outContactAction = $root.proto.OutContactAction.decode(r, r.uint32(), $undefined, q + 1, m.outContactAction);
+                        m.outContactAction = $root.proto.OutContactAction.decode(r, r.size(), $undefined, q + 1, m.outContactAction);
                         m._outContactAction = "outContactAction";
                         continue;
                     }
                 case 80: {
                         if (u !== 2)
                             break;
-                        m.nctSaltSyncAction = $root.proto.NctSaltSyncAction.decode(r, r.uint32(), $undefined, q + 1, m.nctSaltSyncAction);
+                        m.nctSaltSyncAction = $root.proto.NctSaltSyncAction.decode(r, r.size(), $undefined, q + 1, m.nctSaltSyncAction);
                         m._nctSaltSyncAction = "nctSaltSyncAction";
                         continue;
                     }
                 case 81: {
                         if (u !== 2)
                             break;
-                        m.businessBroadcastCampaignAction = $root.proto.BusinessBroadcastCampaignAction.decode(r, r.uint32(), $undefined, q + 1, m.businessBroadcastCampaignAction);
+                        m.businessBroadcastCampaignAction = $root.proto.BusinessBroadcastCampaignAction.decode(r, r.size(), $undefined, q + 1, m.businessBroadcastCampaignAction);
                         m._businessBroadcastCampaignAction = "businessBroadcastCampaignAction";
                         continue;
                     }
                 case 82: {
                         if (u !== 2)
                             break;
-                        m.businessBroadcastInsightsAction = $root.proto.BusinessBroadcastInsightsAction.decode(r, r.uint32(), $undefined, q + 1, m.businessBroadcastInsightsAction);
+                        m.businessBroadcastInsightsAction = $root.proto.BusinessBroadcastInsightsAction.decode(r, r.size(), $undefined, q + 1, m.businessBroadcastInsightsAction);
                         m._businessBroadcastInsightsAction = "businessBroadcastInsightsAction";
                         continue;
                     }
                 case 83: {
                         if (u !== 2)
                             break;
-                        m.customerDataAction = $root.proto.CustomerDataAction.decode(r, r.uint32(), $undefined, q + 1, m.customerDataAction);
+                        m.customerDataAction = $root.proto.CustomerDataAction.decode(r, r.size(), $undefined, q + 1, m.customerDataAction);
                         m._customerDataAction = "customerDataAction";
                         continue;
                     }
                 case 84: {
                         if (u !== 2)
                             break;
-                        m.subscriptionsSyncV2Action = $root.proto.SubscriptionsSyncV2Action.decode(r, r.uint32(), $undefined, q + 1, m.subscriptionsSyncV2Action);
+                        m.subscriptionsSyncV2Action = $root.proto.SubscriptionsSyncV2Action.decode(r, r.size(), $undefined, q + 1, m.subscriptionsSyncV2Action);
                         m._subscriptionsSyncV2Action = "subscriptionsSyncV2Action";
                         continue;
                     }
                 case 85: {
                         if (u !== 2)
                             break;
-                        m.threadPinAction = $root.proto.ThreadPinAction.decode(r, r.uint32(), $undefined, q + 1, m.threadPinAction);
+                        m.threadPinAction = $root.proto.ThreadPinAction.decode(r, r.size(), $undefined, q + 1, m.threadPinAction);
                         m._threadPinAction = "threadPinAction";
                         continue;
                     }
                 case 86: {
                         if (u !== 2)
                             break;
-                        m.autoOrganizeBusinessChatSetting = $root.proto.AutoOrganizeBusinessChatSetting.decode(r, r.uint32(), $undefined, q + 1, m.autoOrganizeBusinessChatSetting);
+                        m.autoOrganizeBusinessChatSetting = $root.proto.AutoOrganizeBusinessChatSetting.decode(r, r.size(), $undefined, q + 1, m.autoOrganizeBusinessChatSetting);
                         m._autoOrganizeBusinessChatSetting = "autoOrganizeBusinessChatSetting";
                         continue;
                     }
                 case 87: {
                         if (u !== 2)
                             break;
-                        m.bizAiSettingsNudgeAction = $root.proto.BizAISettingsNudgeAction.decode(r, r.uint32(), $undefined, q + 1, m.bizAiSettingsNudgeAction);
+                        m.bizAiSettingsNudgeAction = $root.proto.BizAISettingsNudgeAction.decode(r, r.size(), $undefined, q + 1, m.bizAiSettingsNudgeAction);
                         m._bizAiSettingsNudgeAction = "bizAiSettingsNudgeAction";
                         continue;
                     }
                 case 88: {
                         if (u !== 2)
                             break;
-                        m.coexV2VersionAction = $root.proto.CoexV2VersionAction.decode(r, r.uint32(), $undefined, q + 1, m.coexV2VersionAction);
+                        m.coexV2VersionAction = $root.proto.CoexV2VersionAction.decode(r, r.size(), $undefined, q + 1, m.coexV2VersionAction);
                         m._coexV2VersionAction = "coexV2VersionAction";
                         continue;
                     }
                 case 89: {
                         if (u !== 2)
                             break;
-                        m.wasaRootSecretAction = $root.proto.WASARootSecretAction.decode(r, r.uint32(), $undefined, q + 1, m.wasaRootSecretAction);
+                        m.wasaRootSecretAction = $root.proto.WASARootSecretAction.decode(r, r.size(), $undefined, q + 1, m.wasaRootSecretAction);
                         m._wasaRootSecretAction = "wasaRootSecretAction";
                         continue;
                     }
                 case 90: {
                         if (u !== 2)
                             break;
-                        m.bubbleLockMessageAction = $root.proto.BubbleLockMessageAction.decode(r, r.uint32(), $undefined, q + 1, m.bubbleLockMessageAction);
+                        m.bubbleLockMessageAction = $root.proto.BubbleLockMessageAction.decode(r, r.size(), $undefined, q + 1, m.bubbleLockMessageAction);
                         m._bubbleLockMessageAction = "bubbleLockMessageAction";
                         continue;
                     }
                 case 91: {
                         if (u !== 2)
                             break;
-                        m.labelSublistAction = $root.proto.SyncActionValue.LabelSublistAction.decode(r, r.uint32(), $undefined, q + 1, m.labelSublistAction);
+                        m.labelSublistAction = $root.proto.SyncActionValue.LabelSublistAction.decode(r, r.size(), $undefined, q + 1, m.labelSublistAction);
                         m._labelSublistAction = "labelSublistAction";
                         continue;
                     }
                 case 92: {
                         if (u !== 2)
                             break;
-                        m.deviceCapabilitiesV2 = $root.proto.DeviceCapabilities.decode(r, r.uint32(), $undefined, q + 1, m.deviceCapabilitiesV2);
+                        m.deviceCapabilitiesV2 = $root.proto.DeviceCapabilities.decode(r, r.size(), $undefined, q + 1, m.deviceCapabilitiesV2);
                         m._deviceCapabilitiesV2 = "deviceCapabilitiesV2";
                         continue;
                     }
                 case 93: {
                         if (u !== 2)
                             break;
-                        m.ctwaMessageReceivedAction = $root.proto.SyncActionValue.CtwaMessageReceivedAction.decode(r, r.uint32(), $undefined, q + 1, m.ctwaMessageReceivedAction);
+                        m.ctwaMessageReceivedAction = $root.proto.SyncActionValue.CtwaMessageReceivedAction.decode(r, r.size(), $undefined, q + 1, m.ctwaMessageReceivedAction);
                         m._ctwaMessageReceivedAction = "ctwaMessageReceivedAction";
                         continue;
                     }
                 case 99: {
                         if (u !== 2)
                             break;
-                        m.communityNestingStateAction = $root.proto.SyncActionValue.CommunityNestingStateAction.decode(r, r.uint32(), $undefined, q + 1, m.communityNestingStateAction);
+                        m.communityNestingStateAction = $root.proto.SyncActionValue.CommunityNestingStateAction.decode(r, r.size(), $undefined, q + 1, m.communityNestingStateAction);
                         m._communityNestingStateAction = "communityNestingStateAction";
                         continue;
                     }
                 case 100: {
                         if (u !== 2)
                             break;
-                        m.sharedDeviceSecretAction = $root.proto.SyncActionValue.SharedDeviceSecretAction.decode(r, r.uint32(), $undefined, q + 1, m.sharedDeviceSecretAction);
+                        m.sharedDeviceSecretAction = $root.proto.SyncActionValue.SharedDeviceSecretAction.decode(r, r.size(), $undefined, q + 1, m.sharedDeviceSecretAction);
                         m._sharedDeviceSecretAction = "sharedDeviceSecretAction";
+                        continue;
+                    }
+                case 101: {
+                        if (u !== 2)
+                            break;
+                        m.hatchCvmSecretAction = $root.proto.HatchCVMSecretAction.decode(r, r.size(), $undefined, q + 1, m.hatchCvmSecretAction);
+                        m._hatchCvmSecretAction = "hatchCvmSecretAction";
                         continue;
                     }
                 }
@@ -109727,6 +112676,11 @@ export const proto = $root.proto = (() => {
                     throw $TypeError(".proto.SyncActionValue.sharedDeviceSecretAction: object expected");
                 m.sharedDeviceSecretAction = $root.proto.SyncActionValue.SharedDeviceSecretAction.fromObject(d.sharedDeviceSecretAction, q + 1);
             }
+            if (d.hatchCvmSecretAction != null) {
+                if (!$util.isObject(d.hatchCvmSecretAction))
+                    throw $TypeError(".proto.SyncActionValue.hatchCvmSecretAction: object expected");
+                m.hatchCvmSecretAction = $root.proto.HatchCVMSecretAction.fromObject(d.hatchCvmSecretAction, q + 1);
+            }
             return m;
         };
 
@@ -110019,6 +112973,9 @@ export const proto = $root.proto = (() => {
             if (m.sharedDeviceSecretAction != null && $Object.hasOwnProperty.call(m, "sharedDeviceSecretAction")) {
                 d.sharedDeviceSecretAction = $root.proto.SyncActionValue.SharedDeviceSecretAction.toObject(m.sharedDeviceSecretAction, o, q + 1);
             }
+            if (m.hatchCvmSecretAction != null && $Object.hasOwnProperty.call(m, "hatchCvmSecretAction")) {
+                d.hatchCvmSecretAction = $root.proto.HatchCVMSecretAction.toObject(m.hatchCvmSecretAction, o, q + 1);
+            }
             return d;
         };
 
@@ -110042,7 +112999,7 @@ export const proto = $root.proto = (() => {
             };
 
             AgentAction.prototype.name = null;
-            AgentAction.prototype.deviceID = null;
+            AgentAction.prototype.deviceId = null;
             AgentAction.prototype.isDeleted = null;
 
             let $oneOfFields;
@@ -110054,8 +113011,8 @@ export const proto = $root.proto = (() => {
             });
 
             // Virtual OneOf for proto3 optional field
-            $Object.defineProperty(AgentAction.prototype, "_deviceID", {
-                get: $util.oneOfGetter($oneOfFields = ["deviceID"]),
+            $Object.defineProperty(AgentAction.prototype, "_deviceId", {
+                get: $util.oneOfGetter($oneOfFields = ["deviceId"]),
                 set: $util.oneOfSetter($oneOfFields)
             });
 
@@ -110078,8 +113035,8 @@ export const proto = $root.proto = (() => {
                     throw $Error("max depth exceeded");
                 if (m.name != null && $Object.hasOwnProperty.call(m, "name"))
                     w.uint32(10).string(m.name);
-                if (m.deviceID != null && $Object.hasOwnProperty.call(m, "deviceID"))
-                    w.uint32(16).int32(m.deviceID);
+                if (m.deviceId != null && $Object.hasOwnProperty.call(m, "deviceId"))
+                    w.uint32(16).int32(m.deviceId);
                 if (m.isDeleted != null && $Object.hasOwnProperty.call(m, "isDeleted"))
                     w.uint32(24).bool(m.isDeleted);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
@@ -110125,8 +113082,8 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 0)
                                 break;
-                            m.deviceID = r.int32();
-                            m._deviceID = "deviceID";
+                            m.deviceId = r.int32();
+                            m._deviceId = "deviceId";
                             continue;
                         }
                     case 3: {
@@ -110166,8 +113123,8 @@ export const proto = $root.proto = (() => {
                 if (d.name != null) {
                     m.name = $String(d.name);
                 }
-                if (d.deviceID != null) {
-                    m.deviceID = d.deviceID | 0;
+                if (d.deviceId != null) {
+                    m.deviceId = d.deviceId | 0;
                 }
                 if (d.isDeleted != null) {
                     m.isDeleted = $Boolean(d.isDeleted);
@@ -110186,8 +113143,8 @@ export const proto = $root.proto = (() => {
                 if (m.name != null && $Object.hasOwnProperty.call(m, "name")) {
                     d.name = m.name;
                 }
-                if (m.deviceID != null && $Object.hasOwnProperty.call(m, "deviceID")) {
-                    d.deviceID = m.deviceID;
+                if (m.deviceId != null && $Object.hasOwnProperty.call(m, "deviceId")) {
+                    d.deviceId = m.deviceId;
                 }
                 if (m.isDeleted != null && $Object.hasOwnProperty.call(m, "isDeleted")) {
                     d.isDeleted = m.isDeleted;
@@ -110556,7 +113513,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.uint32(), $undefined, q + 1, m.messageRange);
+                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.size(), $undefined, q + 1, m.messageRange);
                             m._messageRange = "messageRange";
                             continue;
                         }
@@ -110711,7 +113668,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.recentAvatarStickers && m.recentAvatarStickers.length))
                                 m.recentAvatarStickers = [];
-                            m.recentAvatarStickers.push($root.proto.SyncActionValue.StickerAction.decode(r, r.uint32(), $undefined, q + 1));
+                            m.recentAvatarStickers.push($root.proto.SyncActionValue.StickerAction.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -111350,7 +114307,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.participants && m.participants.length))
                                 m.participants = [];
-                            m.participants.push($root.proto.SyncActionValue.BroadcastListParticipant.decode(r, r.uint32(), $undefined, q + 1));
+                            m.participants.push($root.proto.SyncActionValue.BroadcastListParticipant.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 3: {
@@ -111562,7 +114519,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.callLogRecord = $root.proto.CallLogRecord.decode(r, r.uint32(), $undefined, q + 1, m.callLogRecord);
+                            m.callLogRecord = $root.proto.CallLogRecord.decode(r, r.size(), $undefined, q + 1, m.callLogRecord);
                             m._callLogRecord = "callLogRecord";
                             continue;
                         }
@@ -111637,13 +114594,13 @@ export const proto = $root.proto = (() => {
                             this[ks[i]] = p[ks[i]];
             };
 
-            ChatAssignmentAction.prototype.deviceAgentID = null;
+            ChatAssignmentAction.prototype.deviceAgentId = null;
 
             let $oneOfFields;
 
             // Virtual OneOf for proto3 optional field
-            $Object.defineProperty(ChatAssignmentAction.prototype, "_deviceAgentID", {
-                get: $util.oneOfGetter($oneOfFields = ["deviceAgentID"]),
+            $Object.defineProperty(ChatAssignmentAction.prototype, "_deviceAgentId", {
+                get: $util.oneOfGetter($oneOfFields = ["deviceAgentId"]),
                 set: $util.oneOfSetter($oneOfFields)
             });
 
@@ -111658,8 +114615,8 @@ export const proto = $root.proto = (() => {
                     q = 0;
                 if (q > $util.recursionLimit)
                     throw $Error("max depth exceeded");
-                if (m.deviceAgentID != null && $Object.hasOwnProperty.call(m, "deviceAgentID"))
-                    w.uint32(10).string(m.deviceAgentID);
+                if (m.deviceAgentId != null && $Object.hasOwnProperty.call(m, "deviceAgentId"))
+                    w.uint32(10).string(m.deviceAgentId);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -111696,8 +114653,8 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.deviceAgentID = r.stringVerify();
-                            m._deviceAgentID = "deviceAgentID";
+                            m.deviceAgentId = r.stringVerify();
+                            m._deviceAgentId = "deviceAgentId";
                             continue;
                         }
                     }
@@ -111727,8 +114684,8 @@ export const proto = $root.proto = (() => {
                 if (q > $util.recursionLimit)
                     throw $Error("max depth exceeded");
                 var m = new $root.proto.SyncActionValue.ChatAssignmentAction();
-                if (d.deviceAgentID != null) {
-                    m.deviceAgentID = $String(d.deviceAgentID);
+                if (d.deviceAgentId != null) {
+                    m.deviceAgentId = $String(d.deviceAgentId);
                 }
                 return m;
             };
@@ -111741,8 +114698,8 @@ export const proto = $root.proto = (() => {
                 if (q > $util.recursionLimit)
                     throw $Error("max depth exceeded");
                 var d = {};
-                if (m.deviceAgentID != null && $Object.hasOwnProperty.call(m, "deviceAgentID")) {
-                    d.deviceAgentID = m.deviceAgentID;
+                if (m.deviceAgentId != null && $Object.hasOwnProperty.call(m, "deviceAgentId")) {
+                    d.deviceAgentId = m.deviceAgentId;
                 }
                 return d;
             };
@@ -111960,7 +114917,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.uint32(), $undefined, q + 1, m.messageRange);
+                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.size(), $undefined, q + 1, m.messageRange);
                             m._messageRange = "messageRange";
                             continue;
                         }
@@ -112041,6 +114998,7 @@ export const proto = $root.proto = (() => {
             ContactAction.prototype.saveOnPrimaryAddressbook = null;
             ContactAction.prototype.pnJid = null;
             ContactAction.prototype.username = null;
+            ContactAction.prototype.birthday = null;
 
             let $oneOfFields;
 
@@ -112080,6 +115038,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(ContactAction.prototype, "_birthday", {
+                get: $util.oneOfGetter($oneOfFields = ["birthday"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             ContactAction.create = function(properties) {
                 return new ContactAction(properties);
             };
@@ -112103,6 +115067,8 @@ export const proto = $root.proto = (() => {
                     w.uint32(42).string(m.pnJid);
                 if (m.username != null && $Object.hasOwnProperty.call(m, "username"))
                     w.uint32(50).string(m.username);
+                if (m.birthday != null && $Object.hasOwnProperty.call(m, "birthday"))
+                    w.uint32(58).string(m.birthday);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -112178,6 +115144,13 @@ export const proto = $root.proto = (() => {
                             m._username = "username";
                             continue;
                         }
+                    case 7: {
+                            if (u !== 2)
+                                break;
+                            m.birthday = r.stringVerify();
+                            m._birthday = "birthday";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -112223,6 +115196,9 @@ export const proto = $root.proto = (() => {
                 if (d.username != null) {
                     m.username = $String(d.username);
                 }
+                if (d.birthday != null) {
+                    m.birthday = $String(d.birthday);
+                }
                 return m;
             };
 
@@ -112251,6 +115227,9 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.username != null && $Object.hasOwnProperty.call(m, "username")) {
                     d.username = m.username;
+                }
+                if (m.birthday != null && $Object.hasOwnProperty.call(m, "birthday")) {
+                    d.birthday = m.birthday;
                 }
                 return d;
             };
@@ -112501,7 +115480,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.metadata && m.metadata.length))
                                 m.metadata = [];
-                            m.metadata.push($root.proto.SyncActionValue.CustomPaymentMethodMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                            m.metadata.push($root.proto.SyncActionValue.CustomPaymentMethodMetadata.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -112823,7 +115802,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.customPaymentMethods && m.customPaymentMethods.length))
                                 m.customPaymentMethods = [];
-                            m.customPaymentMethods.push($root.proto.SyncActionValue.CustomPaymentMethod.decode(r, r.uint32(), $undefined, q + 1));
+                            m.customPaymentMethods.push($root.proto.SyncActionValue.CustomPaymentMethod.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -112967,7 +115946,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.uint32(), $undefined, q + 1, m.messageRange);
+                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.size(), $undefined, q + 1, m.messageRange);
                             m._messageRange = "messageRange";
                             continue;
                         }
@@ -113682,7 +116661,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.favorites && m.favorites.length))
                                 m.favorites = [];
-                            m.favorites.push($root.proto.SyncActionValue.FavoritesAction.Favorite.decode(r, r.uint32(), $undefined, q + 1));
+                            m.favorites.push($root.proto.SyncActionValue.FavoritesAction.Favorite.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -114906,6 +117885,7 @@ export const proto = $root.proto = (() => {
             LidContactAction.prototype.fullName = null;
             LidContactAction.prototype.firstName = null;
             LidContactAction.prototype.username = null;
+            LidContactAction.prototype.birthday = null;
 
             let $oneOfFields;
 
@@ -114927,6 +117907,12 @@ export const proto = $root.proto = (() => {
                 set: $util.oneOfSetter($oneOfFields)
             });
 
+            // Virtual OneOf for proto3 optional field
+            $Object.defineProperty(LidContactAction.prototype, "_birthday", {
+                get: $util.oneOfGetter($oneOfFields = ["birthday"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
             LidContactAction.create = function(properties) {
                 return new LidContactAction(properties);
             };
@@ -114944,6 +117930,8 @@ export const proto = $root.proto = (() => {
                     w.uint32(18).string(m.firstName);
                 if (m.username != null && $Object.hasOwnProperty.call(m, "username"))
                     w.uint32(26).string(m.username);
+                if (m.birthday != null && $Object.hasOwnProperty.call(m, "birthday"))
+                    w.uint32(34).string(m.birthday);
                 if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                     for (var i = 0; i < m.$unknowns.length; ++i)
                         w.raw(m.$unknowns[i]);
@@ -114998,6 +117986,13 @@ export const proto = $root.proto = (() => {
                             m._username = "username";
                             continue;
                         }
+                    case 4: {
+                            if (u !== 2)
+                                break;
+                            m.birthday = r.stringVerify();
+                            m._birthday = "birthday";
+                            continue;
+                        }
                     }
                     r.skipType(u, q, t);
                     if (!r.discardUnknown) {
@@ -115034,6 +118029,9 @@ export const proto = $root.proto = (() => {
                 if (d.username != null) {
                     m.username = $String(d.username);
                 }
+                if (d.birthday != null) {
+                    m.birthday = $String(d.birthday);
+                }
                 return m;
             };
 
@@ -115053,6 +118051,9 @@ export const proto = $root.proto = (() => {
                 }
                 if (m.username != null && $Object.hasOwnProperty.call(m, "username")) {
                     d.username = m.username;
+                }
+                if (m.birthday != null && $Object.hasOwnProperty.call(m, "birthday")) {
+                    d.birthday = m.birthday;
                 }
                 return d;
             };
@@ -115616,7 +118617,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.uint32(), $undefined, q + 1, m.messageRange);
+                            m.messageRange = $root.proto.SyncActionValue.SyncActionMessageRange.decode(r, r.size(), $undefined, q + 1, m.messageRange);
                             m._messageRange = "messageRange";
                             continue;
                         }
@@ -116419,7 +119420,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (m.musicUserIdMap === $util.emptyObject)
                                 m.musicUserIdMap = {};
-                            var c2 = r.uint32() + r.pos;
+                            var c2 = r.size() + r.pos;
                             if (c2 > r.len)
                                 throw $RangeError("index out of range");
                             r.len = c2;
@@ -119262,7 +122263,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.weights && m.weights.length))
                                 m.weights = [];
-                            m.weights.push($root.proto.RecentEmojiWeight.decode(r, r.uint32(), $undefined, q + 1));
+                            m.weights.push($root.proto.RecentEmojiWeight.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -119880,7 +122881,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.customLists && m.customLists.length))
                                 m.customLists = [];
-                            m.customLists.push($root.proto.CustomList.decode(r, r.uint32(), $undefined, q + 1));
+                            m.customLists.push($root.proto.CustomList.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 6: {
@@ -120753,7 +123754,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                            m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                             m._key = "key";
                             continue;
                         }
@@ -120943,7 +123944,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.messages && m.messages.length))
                                 m.messages = [];
-                            m.messages.push($root.proto.SyncActionValue.SyncActionMessage.decode(r, r.uint32(), $undefined, q + 1));
+                            m.messages.push($root.proto.SyncActionValue.SyncActionMessage.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     }
@@ -123478,7 +126479,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.record = $root.proto.SyncdRecord.decode(r, r.uint32(), $undefined, q + 1, m.record);
+                        m.record = $root.proto.SyncdRecord.decode(r, r.size(), $undefined, q + 1, m.record);
                         m._record = "record";
                         continue;
                     }
@@ -123632,7 +126633,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.mutations && m.mutations.length))
                             m.mutations = [];
-                        m.mutations.push($root.proto.SyncdMutation.decode(r, r.uint32(), $undefined, q + 1));
+                        m.mutations.push($root.proto.SyncdMutation.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -123845,7 +126846,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.version = $root.proto.SyncdVersion.decode(r, r.uint32(), $undefined, q + 1, m.version);
+                        m.version = $root.proto.SyncdVersion.decode(r, r.size(), $undefined, q + 1, m.version);
                         m._version = "version";
                         continue;
                     }
@@ -123854,13 +126855,13 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.mutations && m.mutations.length))
                             m.mutations = [];
-                        m.mutations.push($root.proto.SyncdMutation.decode(r, r.uint32(), $undefined, q + 1));
+                        m.mutations.push($root.proto.SyncdMutation.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.externalMutations = $root.proto.ExternalBlobReference.decode(r, r.uint32(), $undefined, q + 1, m.externalMutations);
+                        m.externalMutations = $root.proto.ExternalBlobReference.decode(r, r.size(), $undefined, q + 1, m.externalMutations);
                         m._externalMutations = "externalMutations";
                         continue;
                     }
@@ -123881,14 +126882,14 @@ export const proto = $root.proto = (() => {
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.keyId = $root.proto.KeyId.decode(r, r.uint32(), $undefined, q + 1, m.keyId);
+                        m.keyId = $root.proto.KeyId.decode(r, r.size(), $undefined, q + 1, m.keyId);
                         m._keyId = "keyId";
                         continue;
                     }
                 case 7: {
                         if (u !== 2)
                             break;
-                        m.exitCode = $root.proto.ExitCode.decode(r, r.uint32(), $undefined, q + 1, m.exitCode);
+                        m.exitCode = $root.proto.ExitCode.decode(r, r.size(), $undefined, q + 1, m.exitCode);
                         m._exitCode = "exitCode";
                         continue;
                     }
@@ -124130,21 +127131,21 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.index = $root.proto.SyncdIndex.decode(r, r.uint32(), $undefined, q + 1, m.index);
+                        m.index = $root.proto.SyncdIndex.decode(r, r.size(), $undefined, q + 1, m.index);
                         m._index = "index";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.value = $root.proto.SyncdValue.decode(r, r.uint32(), $undefined, q + 1, m.value);
+                        m.value = $root.proto.SyncdValue.decode(r, r.size(), $undefined, q + 1, m.value);
                         m._value = "value";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.keyId = $root.proto.KeyId.decode(r, r.uint32(), $undefined, q + 1, m.keyId);
+                        m.keyId = $root.proto.KeyId.decode(r, r.size(), $undefined, q + 1, m.keyId);
                         m._keyId = "keyId";
                         continue;
                     }
@@ -124318,7 +127319,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.version = $root.proto.SyncdVersion.decode(r, r.uint32(), $undefined, q + 1, m.version);
+                        m.version = $root.proto.SyncdVersion.decode(r, r.size(), $undefined, q + 1, m.version);
                         m._version = "version";
                         continue;
                     }
@@ -124327,7 +127328,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.records && m.records.length))
                             m.records = [];
-                        m.records.push($root.proto.SyncdRecord.decode(r, r.uint32(), $undefined, q + 1));
+                        m.records.push($root.proto.SyncdRecord.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -124340,7 +127341,7 @@ export const proto = $root.proto = (() => {
                 case 4: {
                         if (u !== 2)
                             break;
-                        m.keyId = $root.proto.KeyId.decode(r, r.uint32(), $undefined, q + 1, m.keyId);
+                        m.keyId = $root.proto.KeyId.decode(r, r.size(), $undefined, q + 1, m.keyId);
                         m._keyId = "keyId";
                         continue;
                     }
@@ -124964,21 +127965,21 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.quickReplyButton = $root.proto.TemplateButton.QuickReplyButton.decode(r, r.uint32(), $undefined, q + 1, m.quickReplyButton);
+                        m.quickReplyButton = $root.proto.TemplateButton.QuickReplyButton.decode(r, r.size(), $undefined, q + 1, m.quickReplyButton);
                         m.button = "quickReplyButton";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.urlButton = $root.proto.TemplateButton.URLButton.decode(r, r.uint32(), $undefined, q + 1, m.urlButton);
+                        m.urlButton = $root.proto.TemplateButton.URLButton.decode(r, r.size(), $undefined, q + 1, m.urlButton);
                         m.button = "urlButton";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.callButton = $root.proto.TemplateButton.CallButton.decode(r, r.uint32(), $undefined, q + 1, m.callButton);
+                        m.callButton = $root.proto.TemplateButton.CallButton.decode(r, r.size(), $undefined, q + 1, m.callButton);
                         m.button = "callButton";
                         continue;
                     }
@@ -125146,14 +128147,14 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.displayText = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.displayText);
+                            m.displayText = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.displayText);
                             m._displayText = "displayText";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.phoneNumber = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.phoneNumber);
+                            m.phoneNumber = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.phoneNumber);
                             m._phoneNumber = "phoneNumber";
                             continue;
                         }
@@ -125304,7 +128305,7 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.displayText = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.displayText);
+                            m.displayText = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.displayText);
                             m._displayText = "displayText";
                             continue;
                         }
@@ -125460,14 +128461,14 @@ export const proto = $root.proto = (() => {
                     case 1: {
                             if (u !== 2)
                                 break;
-                            m.displayText = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.displayText);
+                            m.displayText = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.displayText);
                             m._displayText = "displayText";
                             continue;
                         }
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.url = $root.proto.Message.HighlyStructuredMessage.decode(r, r.uint32(), $undefined, q + 1, m.url);
+                            m.url = $root.proto.Message.HighlyStructuredMessage.decode(r, r.size(), $undefined, q + 1, m.url);
                             m._url = "url";
                             continue;
                         }
@@ -125628,7 +128629,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.threadKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.threadKey);
+                        m.threadKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.threadKey);
                         m._threadKey = "threadKey";
                         continue;
                     }
@@ -125787,7 +128788,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.urlTrackingMapElements && m.urlTrackingMapElements.length))
                             m.urlTrackingMapElements = [];
-                        m.urlTrackingMapElements.push($root.proto.UrlTrackingMap.UrlTrackingMapElement.decode(r, r.uint32(), $undefined, q + 1));
+                        m.urlTrackingMapElements.push($root.proto.UrlTrackingMap.UrlTrackingMapElement.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -126169,7 +129170,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.transformerArg && m.transformerArg.length))
                             m.transformerArg = [];
-                        m.transformerArg.push($root.proto.UserPassword.TransformerArg.decode(r, r.uint32(), $undefined, q + 1));
+                        m.transformerArg.push($root.proto.UserPassword.TransformerArg.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 4: {
@@ -126393,7 +129394,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.value = $root.proto.UserPassword.TransformerArg.Value.decode(r, r.uint32(), $undefined, q + 1, m.value);
+                            m.value = $root.proto.UserPassword.TransformerArg.Value.decode(r, r.size(), $undefined, q + 1, m.value);
                             m._value = "value";
                             continue;
                         }
@@ -127223,7 +130224,7 @@ export const proto = $root.proto = (() => {
                                 break;
                             if (!(m.localizedNames && m.localizedNames.length))
                                 m.localizedNames = [];
-                            m.localizedNames.push($root.proto.LocalizedName.decode(r, r.uint32(), $undefined, q + 1));
+                            m.localizedNames.push($root.proto.LocalizedName.decode(r, r.size(), $undefined, q + 1));
                             continue;
                         }
                     case 10: {
@@ -130100,6 +133101,8 @@ export const proto = $root.proto = (() => {
             }
             if (m.eventInviteAdditionalMetadata != null && $Object.hasOwnProperty.call(m, "eventInviteAdditionalMetadata"))
                 $root.proto.EventInviteAdditionalMetadata.encode(m.eventInviteAdditionalMetadata, w.uint32(674).fork(), q + 1).ldelim();
+            if (m.groupHistoryLastCountedMessageTimestamp != null && $Object.hasOwnProperty.call(m, "groupHistoryLastCountedMessageTimestamp"))
+                w.uint32(680).uint64(m.groupHistoryLastCountedMessageTimestamp);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -130136,13 +133139,13 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.key = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.key);
+                        m.key = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.key);
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.message = $root.proto.Message.decode(r, r.uint32(), $undefined, q + 1, m.message);
+                        m.message = $root.proto.Message.decode(r, r.size(), $undefined, q + 1, m.message);
                         m._message = "message";
                         continue;
                     }
@@ -130270,21 +133273,21 @@ export const proto = $root.proto = (() => {
                 case 29: {
                         if (u !== 2)
                             break;
-                        m.paymentInfo = $root.proto.PaymentInfo.decode(r, r.uint32(), $undefined, q + 1, m.paymentInfo);
+                        m.paymentInfo = $root.proto.PaymentInfo.decode(r, r.size(), $undefined, q + 1, m.paymentInfo);
                         m._paymentInfo = "paymentInfo";
                         continue;
                     }
                 case 30: {
                         if (u !== 2)
                             break;
-                        m.finalLiveLocation = $root.proto.Message.LiveLocationMessage.decode(r, r.uint32(), $undefined, q + 1, m.finalLiveLocation);
+                        m.finalLiveLocation = $root.proto.Message.LiveLocationMessage.decode(r, r.size(), $undefined, q + 1, m.finalLiveLocation);
                         m._finalLiveLocation = "finalLiveLocation";
                         continue;
                     }
                 case 31: {
                         if (u !== 2)
                             break;
-                        m.quotedPaymentInfo = $root.proto.PaymentInfo.decode(r, r.uint32(), $undefined, q + 1, m.quotedPaymentInfo);
+                        m.quotedPaymentInfo = $root.proto.PaymentInfo.decode(r, r.size(), $undefined, q + 1, m.quotedPaymentInfo);
                         m._quotedPaymentInfo = "quotedPaymentInfo";
                         continue;
                     }
@@ -130333,14 +133336,14 @@ export const proto = $root.proto = (() => {
                 case 38: {
                         if (u !== 2)
                             break;
-                        m.mediaData = $root.proto.MediaData.decode(r, r.uint32(), $undefined, q + 1, m.mediaData);
+                        m.mediaData = $root.proto.MediaData.decode(r, r.size(), $undefined, q + 1, m.mediaData);
                         m._mediaData = "mediaData";
                         continue;
                     }
                 case 39: {
                         if (u !== 2)
                             break;
-                        m.photoChange = $root.proto.PhotoChange.decode(r, r.uint32(), $undefined, q + 1, m.photoChange);
+                        m.photoChange = $root.proto.PhotoChange.decode(r, r.size(), $undefined, q + 1, m.photoChange);
                         m._photoChange = "photoChange";
                         continue;
                     }
@@ -130349,7 +133352,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.userReceipt && m.userReceipt.length))
                             m.userReceipt = [];
-                        m.userReceipt.push($root.proto.UserReceipt.decode(r, r.uint32(), $undefined, q + 1));
+                        m.userReceipt.push($root.proto.UserReceipt.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 41: {
@@ -130357,13 +133360,13 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.reactions && m.reactions.length))
                             m.reactions = [];
-                        m.reactions.push($root.proto.Reaction.decode(r, r.uint32(), $undefined, q + 1));
+                        m.reactions.push($root.proto.Reaction.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 42: {
                         if (u !== 2)
                             break;
-                        m.quotedStickerData = $root.proto.MediaData.decode(r, r.uint32(), $undefined, q + 1, m.quotedStickerData);
+                        m.quotedStickerData = $root.proto.MediaData.decode(r, r.size(), $undefined, q + 1, m.quotedStickerData);
                         m._quotedStickerData = "quotedStickerData";
                         continue;
                     }
@@ -130377,7 +133380,7 @@ export const proto = $root.proto = (() => {
                 case 44: {
                         if (u !== 2)
                             break;
-                        m.statusPsa = $root.proto.StatusPSA.decode(r, r.uint32(), $undefined, q + 1, m.statusPsa);
+                        m.statusPsa = $root.proto.StatusPSA.decode(r, r.size(), $undefined, q + 1, m.statusPsa);
                         m._statusPsa = "statusPsa";
                         continue;
                     }
@@ -130386,13 +133389,13 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pollUpdates && m.pollUpdates.length))
                             m.pollUpdates = [];
-                        m.pollUpdates.push($root.proto.PollUpdate.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pollUpdates.push($root.proto.PollUpdate.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 46: {
                         if (u !== 2)
                             break;
-                        m.pollAdditionalMetadata = $root.proto.PollAdditionalMetadata.decode(r, r.uint32(), $undefined, q + 1, m.pollAdditionalMetadata);
+                        m.pollAdditionalMetadata = $root.proto.PollAdditionalMetadata.decode(r, r.size(), $undefined, q + 1, m.pollAdditionalMetadata);
                         m._pollAdditionalMetadata = "pollAdditionalMetadata";
                         continue;
                     }
@@ -130420,7 +133423,7 @@ export const proto = $root.proto = (() => {
                 case 50: {
                         if (u !== 2)
                             break;
-                        m.keepInChat = $root.proto.KeepInChat.decode(r, r.uint32(), $undefined, q + 1, m.keepInChat);
+                        m.keepInChat = $root.proto.KeepInChat.decode(r, r.size(), $undefined, q + 1, m.keepInChat);
                         m._keepInChat = "keepInChat";
                         continue;
                     }
@@ -130441,14 +133444,14 @@ export const proto = $root.proto = (() => {
                 case 54: {
                         if (u !== 2)
                             break;
-                        m.pinInChat = $root.proto.PinInChat.decode(r, r.uint32(), $undefined, q + 1, m.pinInChat);
+                        m.pinInChat = $root.proto.PinInChat.decode(r, r.size(), $undefined, q + 1, m.pinInChat);
                         m._pinInChat = "pinInChat";
                         continue;
                     }
                 case 55: {
                         if (u !== 2)
                             break;
-                        m.premiumMessageInfo = $root.proto.PremiumMessageInfo.decode(r, r.uint32(), $undefined, q + 1, m.premiumMessageInfo);
+                        m.premiumMessageInfo = $root.proto.PremiumMessageInfo.decode(r, r.size(), $undefined, q + 1, m.premiumMessageInfo);
                         m._premiumMessageInfo = "premiumMessageInfo";
                         continue;
                     }
@@ -130476,7 +133479,7 @@ export const proto = $root.proto = (() => {
                 case 59: {
                         if (u !== 2)
                             break;
-                        m.commentMetadata = $root.proto.CommentMetadata.decode(r, r.uint32(), $undefined, q + 1, m.commentMetadata);
+                        m.commentMetadata = $root.proto.CommentMetadata.decode(r, r.size(), $undefined, q + 1, m.commentMetadata);
                         m._commentMetadata = "commentMetadata";
                         continue;
                     }
@@ -130485,13 +133488,13 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.eventResponses && m.eventResponses.length))
                             m.eventResponses = [];
-                        m.eventResponses.push($root.proto.EventResponse.decode(r, r.uint32(), $undefined, q + 1));
+                        m.eventResponses.push($root.proto.EventResponse.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 62: {
                         if (u !== 2)
                             break;
-                        m.reportingTokenInfo = $root.proto.ReportingTokenInfo.decode(r, r.uint32(), $undefined, q + 1, m.reportingTokenInfo);
+                        m.reportingTokenInfo = $root.proto.ReportingTokenInfo.decode(r, r.size(), $undefined, q + 1, m.reportingTokenInfo);
                         m._reportingTokenInfo = "reportingTokenInfo";
                         continue;
                     }
@@ -130505,7 +133508,7 @@ export const proto = $root.proto = (() => {
                 case 64: {
                         if (u !== 2)
                             break;
-                        m.eventAdditionalMetadata = $root.proto.EventAdditionalMetadata.decode(r, r.uint32(), $undefined, q + 1, m.eventAdditionalMetadata);
+                        m.eventAdditionalMetadata = $root.proto.EventAdditionalMetadata.decode(r, r.size(), $undefined, q + 1, m.eventAdditionalMetadata);
                         m._eventAdditionalMetadata = "eventAdditionalMetadata";
                         continue;
                     }
@@ -130527,7 +133530,7 @@ export const proto = $root.proto = (() => {
                 case 67: {
                         if (u !== 2)
                             break;
-                        m.targetMessageId = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.targetMessageId);
+                        m.targetMessageId = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.targetMessageId);
                         m._targetMessageId = "targetMessageId";
                         continue;
                     }
@@ -130536,13 +133539,13 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.messageAddOns && m.messageAddOns.length))
                             m.messageAddOns = [];
-                        m.messageAddOns.push($root.proto.MessageAddOn.decode(r, r.uint32(), $undefined, q + 1));
+                        m.messageAddOns.push($root.proto.MessageAddOn.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 69: {
                         if (u !== 2)
                             break;
-                        m.statusMentionMessageInfo = $root.proto.StatusMentionMessage.decode(r, r.uint32(), $undefined, q + 1, m.statusMentionMessageInfo);
+                        m.statusMentionMessageInfo = $root.proto.StatusMentionMessage.decode(r, r.size(), $undefined, q + 1, m.statusMentionMessageInfo);
                         m._statusMentionMessageInfo = "statusMentionMessageInfo";
                         continue;
                     }
@@ -130566,7 +133569,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.supportAiCitations && m.supportAiCitations.length))
                             m.supportAiCitations = [];
-                        m.supportAiCitations.push($root.proto.Citation.decode(r, r.uint32(), $undefined, q + 1));
+                        m.supportAiCitations.push($root.proto.Citation.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 73: {
@@ -130579,28 +133582,28 @@ export const proto = $root.proto = (() => {
                 case 74: {
                         if (u !== 2)
                             break;
-                        m.groupHistoryIndividualMessageInfo = $root.proto.GroupHistoryIndividualMessageInfo.decode(r, r.uint32(), $undefined, q + 1, m.groupHistoryIndividualMessageInfo);
+                        m.groupHistoryIndividualMessageInfo = $root.proto.GroupHistoryIndividualMessageInfo.decode(r, r.size(), $undefined, q + 1, m.groupHistoryIndividualMessageInfo);
                         m._groupHistoryIndividualMessageInfo = "groupHistoryIndividualMessageInfo";
                         continue;
                     }
                 case 75: {
                         if (u !== 2)
                             break;
-                        m.groupHistoryBundleInfo = $root.proto.GroupHistoryBundleInfo.decode(r, r.uint32(), $undefined, q + 1, m.groupHistoryBundleInfo);
+                        m.groupHistoryBundleInfo = $root.proto.GroupHistoryBundleInfo.decode(r, r.size(), $undefined, q + 1, m.groupHistoryBundleInfo);
                         m._groupHistoryBundleInfo = "groupHistoryBundleInfo";
                         continue;
                     }
                 case 76: {
                         if (u !== 2)
                             break;
-                        m.interactiveMessageAdditionalMetadata = $root.proto.InteractiveMessageAdditionalMetadata.decode(r, r.uint32(), $undefined, q + 1, m.interactiveMessageAdditionalMetadata);
+                        m.interactiveMessageAdditionalMetadata = $root.proto.InteractiveMessageAdditionalMetadata.decode(r, r.size(), $undefined, q + 1, m.interactiveMessageAdditionalMetadata);
                         m._interactiveMessageAdditionalMetadata = "interactiveMessageAdditionalMetadata";
                         continue;
                     }
                 case 77: {
                         if (u !== 2)
                             break;
-                        m.quarantinedMessage = $root.proto.QuarantinedMessage.decode(r, r.uint32(), $undefined, q + 1, m.quarantinedMessage);
+                        m.quarantinedMessage = $root.proto.QuarantinedMessage.decode(r, r.size(), $undefined, q + 1, m.quarantinedMessage);
                         m._quarantinedMessage = "quarantinedMessage";
                         continue;
                     }
@@ -130628,7 +133631,7 @@ export const proto = $root.proto = (() => {
                 case 81: {
                         if (u !== 2)
                             break;
-                        m.scheduledMessageMetadata = $root.proto.ScheduledMessageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.scheduledMessageMetadata);
+                        m.scheduledMessageMetadata = $root.proto.ScheduledMessageMetadata.decode(r, r.size(), $undefined, q + 1, m.scheduledMessageMetadata);
                         m._scheduledMessageMetadata = "scheduledMessageMetadata";
                         continue;
                     }
@@ -130650,10 +133653,17 @@ export const proto = $root.proto = (() => {
                 case 84: {
                         if (u !== 2)
                             break;
-                        m.eventInviteAdditionalMetadata = $root.proto.EventInviteAdditionalMetadata.decode(r, r.uint32(), $undefined, q + 1, m.eventInviteAdditionalMetadata);
+                        m.eventInviteAdditionalMetadata = $root.proto.EventInviteAdditionalMetadata.decode(r, r.size(), $undefined, q + 1, m.eventInviteAdditionalMetadata);
                         m._eventInviteAdditionalMetadata = "eventInviteAdditionalMetadata";
                         continue;
                     }
+                    case 85: {
+                            if (u !== 0)
+                                break;
+                            m.groupHistoryLastCountedMessageTimestamp = r.uint64();
+                            m._groupHistoryLastCountedMessageTimestamp = "groupHistoryLastCountedMessageTimestamp";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -132016,6 +135026,16 @@ export const proto = $root.proto = (() => {
                     throw $TypeError(".proto.WebMessageInfo.eventInviteAdditionalMetadata: object expected");
                 m.eventInviteAdditionalMetadata = $root.proto.EventInviteAdditionalMetadata.fromObject(d.eventInviteAdditionalMetadata, q + 1);
             }
+            if (d.groupHistoryLastCountedMessageTimestamp != null) {
+                if ($util.Long)
+                    m.groupHistoryLastCountedMessageTimestamp = $util.Long.fromValue(d.groupHistoryLastCountedMessageTimestamp, true);
+                else if (typeof d.groupHistoryLastCountedMessageTimestamp === "string")
+                    m.groupHistoryLastCountedMessageTimestamp = $parseInt(d.groupHistoryLastCountedMessageTimestamp, 10);
+                else if (typeof d.groupHistoryLastCountedMessageTimestamp === "number")
+                    m.groupHistoryLastCountedMessageTimestamp = d.groupHistoryLastCountedMessageTimestamp;
+                else if (typeof d.groupHistoryLastCountedMessageTimestamp === "object")
+                    m.groupHistoryLastCountedMessageTimestamp = new $util.LongBits(d.groupHistoryLastCountedMessageTimestamp.low >>> 0, d.groupHistoryLastCountedMessageTimestamp.high >>> 0).toNumber(true);
+            }
             return m;
         };
 
@@ -132324,6 +135344,12 @@ export const proto = $root.proto = (() => {
             }
             if (m.eventInviteAdditionalMetadata != null && $Object.hasOwnProperty.call(m, "eventInviteAdditionalMetadata")) {
                 d.eventInviteAdditionalMetadata = $root.proto.EventInviteAdditionalMetadata.toObject(m.eventInviteAdditionalMetadata, o, q + 1);
+            }
+            if (m.groupHistoryLastCountedMessageTimestamp != null && $Object.hasOwnProperty.call(m, "groupHistoryLastCountedMessageTimestamp")) {
+                if (typeof m.groupHistoryLastCountedMessageTimestamp === "number")
+                    d.groupHistoryLastCountedMessageTimestamp = o.longs === $String ? $String(m.groupHistoryLastCountedMessageTimestamp) : m.groupHistoryLastCountedMessageTimestamp;
+                else
+                    d.groupHistoryLastCountedMessageTimestamp = o.longs === $String ? m.groupHistoryLastCountedMessageTimestamp : m.groupHistoryLastCountedMessageTimestamp.low | m.groupHistoryLastCountedMessageTimestamp.high * 4294967296;
             }
             return d;
         };
@@ -132707,7 +135733,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.notifyMessages && m.notifyMessages.length))
                             m.notifyMessages = [];
-                        m.notifyMessages.push($root.proto.WebMessageInfo.decode(r, r.uint32(), $undefined, q + 1));
+                        m.notifyMessages.push($root.proto.WebMessageInfo.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -133220,14 +136246,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.hatchMetadataSync = $root.proto.HatchMetadataSync.decode(r, r.uint32(), $undefined, q + 1, m.hatchMetadataSync);
+                        m.hatchMetadataSync = $root.proto.HatchMetadataSync.decode(r, r.size(), $undefined, q + 1, m.hatchMetadataSync);
                         m._hatchMetadataSync = "hatchMetadataSync";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.bizAiMetadataSync = $root.proto.BizAIMetadataSync.decode(r, r.uint32(), $undefined, q + 1, m.bizAiMetadataSync);
+                        m.bizAiMetadataSync = $root.proto.BizAIMetadataSync.decode(r, r.size(), $undefined, q + 1, m.bizAiMetadataSync);
                         m._bizAiMetadataSync = "bizAiMetadataSync";
                         continue;
                     }
@@ -134174,7 +137200,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.contacts && m.contacts.length))
                             m.contacts = [];
-                        m.contacts.push($root.proto.BizBroadcastInsightsContactState.decode(r, r.uint32(), $undefined, q + 1));
+                        m.contacts.push($root.proto.BizBroadcastInsightsContactState.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -134983,7 +138009,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.deepLinkMetadata = $root.proto.BotAgentDeepLinkMetadata.decode(r, r.uint32(), $undefined, q + 1, m.deepLinkMetadata);
+                        m.deepLinkMetadata = $root.proto.BotAgentDeepLinkMetadata.decode(r, r.size(), $undefined, q + 1, m.deepLinkMetadata);
                         m._deepLinkMetadata = "deepLinkMetadata";
                         continue;
                     }
@@ -135429,7 +138455,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.participantsMetadata && m.participantsMetadata.length))
                             m.participantsMetadata = [];
-                        m.participantsMetadata.push($root.proto.BotGroupParticipantMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.participantsMetadata.push($root.proto.BotGroupParticipantMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -136984,7 +140010,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pills && m.pills.length))
                             m.pills = [];
-                        m.pills.push($root.proto.Pill.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pills.push($root.proto.Pill.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 3: {
@@ -137004,14 +140030,14 @@ export const proto = $root.proto = (() => {
                 case 5: {
                         if (u !== 2)
                             break;
-                        m.signatureEnvelope = $root.proto.BotSignatureVerificationMetadata.decode(r, r.uint32(), $undefined, q + 1, m.signatureEnvelope);
+                        m.signatureEnvelope = $root.proto.BotSignatureVerificationMetadata.decode(r, r.size(), $undefined, q + 1, m.signatureEnvelope);
                         m._signatureEnvelope = "signatureEnvelope";
                         continue;
                     }
                 case 6: {
                         if (u !== 2)
                             break;
-                        m.unauthenticatedBusinessMetadata = $root.proto.UnauthenticatedBusinessMetadata.decode(r, r.uint32(), $undefined, q + 1, m.unauthenticatedBusinessMetadata);
+                        m.unauthenticatedBusinessMetadata = $root.proto.UnauthenticatedBusinessMetadata.decode(r, r.size(), $undefined, q + 1, m.unauthenticatedBusinessMetadata);
                         m._unauthenticatedBusinessMetadata = "unauthenticatedBusinessMetadata";
                         continue;
                     }
@@ -137565,6 +140591,14 @@ export const proto = $root.proto = (() => {
                 w.uint32(18).string(m.colorDark);
             if (m.isDoodleEnabled != null && $Object.hasOwnProperty.call(m, "isDoodleEnabled"))
                 w.uint32(24).bool(m.isDoodleEnabled);
+            if (m.doodleLightArgb != null && $Object.hasOwnProperty.call(m, "doodleLightArgb"))
+                w.uint32(37).fixed32(m.doodleLightArgb);
+            if (m.doodleDarkArgb != null && $Object.hasOwnProperty.call(m, "doodleDarkArgb"))
+                w.uint32(45).fixed32(m.doodleDarkArgb);
+            if (m.backgroundLightArgb != null && $Object.hasOwnProperty.call(m, "backgroundLightArgb"))
+                w.uint32(13).fixed32(m.backgroundLightArgb);
+            if (m.backgroundDarkArgb != null && $Object.hasOwnProperty.call(m, "backgroundDarkArgb"))
+                w.uint32(21).fixed32(m.backgroundDarkArgb);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -137599,6 +140633,12 @@ export const proto = $root.proto = (() => {
                 var u = t & 7;
                 switch (t >>>= 3) {
                 case 1: {
+                        // Elaina 1.4.9 reuses this number for a fixed32 colour, so the wire type decides which field it is
+                        if (u === 5) {
+                            m.backgroundLightArgb = r.fixed32();
+                            m._backgroundLightArgb = "backgroundLightArgb";
+                            continue;
+                        }
                         if (u !== 2)
                             break;
                         m.colorLight = r.stringVerify();
@@ -137606,6 +140646,11 @@ export const proto = $root.proto = (() => {
                         continue;
                     }
                 case 2: {
+                        if (u === 5) {
+                            m.backgroundDarkArgb = r.fixed32();
+                            m._backgroundDarkArgb = "backgroundDarkArgb";
+                            continue;
+                        }
                         if (u !== 2)
                             break;
                         m.colorDark = r.stringVerify();
@@ -137619,6 +140664,20 @@ export const proto = $root.proto = (() => {
                         m._isDoodleEnabled = "isDoodleEnabled";
                         continue;
                     }
+                    case 4: {
+                            if (u !== 5)
+                                break;
+                            m.doodleLightArgb = r.fixed32();
+                            m._doodleLightArgb = "doodleLightArgb";
+                            continue;
+                        }
+                    case 5: {
+                            if (u !== 5)
+                                break;
+                            m.doodleDarkArgb = r.fixed32();
+                            m._doodleDarkArgb = "doodleDarkArgb";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -137655,6 +140714,18 @@ export const proto = $root.proto = (() => {
             if (d.isDoodleEnabled != null) {
                 m.isDoodleEnabled = $Boolean(d.isDoodleEnabled);
             }
+            if (d.doodleLightArgb != null) {
+                m.doodleLightArgb = d.doodleLightArgb >>> 0;
+            }
+            if (d.doodleDarkArgb != null) {
+                m.doodleDarkArgb = d.doodleDarkArgb >>> 0;
+            }
+            if (d.backgroundLightArgb != null) {
+                m.backgroundLightArgb = d.backgroundLightArgb >>> 0;
+            }
+            if (d.backgroundDarkArgb != null) {
+                m.backgroundDarkArgb = d.backgroundDarkArgb >>> 0;
+            }
             return m;
         };
 
@@ -137674,6 +140745,18 @@ export const proto = $root.proto = (() => {
             }
             if (m.isDoodleEnabled != null && $Object.hasOwnProperty.call(m, "isDoodleEnabled")) {
                 d.isDoodleEnabled = m.isDoodleEnabled;
+            }
+            if (m.doodleLightArgb != null && $Object.hasOwnProperty.call(m, "doodleLightArgb")) {
+                d.doodleLightArgb = m.doodleLightArgb;
+            }
+            if (m.doodleDarkArgb != null && $Object.hasOwnProperty.call(m, "doodleDarkArgb")) {
+                d.doodleDarkArgb = m.doodleDarkArgb;
+            }
+            if (m.backgroundLightArgb != null && $Object.hasOwnProperty.call(m, "backgroundLightArgb")) {
+                d.backgroundLightArgb = m.backgroundLightArgb;
+            }
+            if (m.backgroundDarkArgb != null && $Object.hasOwnProperty.call(m, "backgroundDarkArgb")) {
+                d.backgroundDarkArgb = m.backgroundDarkArgb;
             }
             return d;
         };
@@ -137997,35 +141080,35 @@ export const proto = $root.proto = (() => {
                 case 10: {
                         if (u !== 2)
                             break;
-                        m.defaultWallpaper = $root.proto.ChatDefaultWallpaper.decode(r, r.uint32(), $undefined, q + 1, m.defaultWallpaper);
+                        m.defaultWallpaper = $root.proto.ChatDefaultWallpaper.decode(r, r.size(), $undefined, q + 1, m.defaultWallpaper);
                         m._defaultWallpaper = "defaultWallpaper";
                         continue;
                     }
                 case 11: {
                         if (u !== 2)
                             break;
-                        m.solidColor = $root.proto.ChatSolidColorWallpaper.decode(r, r.uint32(), $undefined, q + 1, m.solidColor);
+                        m.solidColor = $root.proto.ChatSolidColorWallpaper.decode(r, r.size(), $undefined, q + 1, m.solidColor);
                         m._solidColor = "solidColor";
                         continue;
                     }
                 case 12: {
                         if (u !== 2)
                             break;
-                        m.stockImage = $root.proto.ChatStockImageWallpaper.decode(r, r.uint32(), $undefined, q + 1, m.stockImage);
+                        m.stockImage = $root.proto.ChatStockImageWallpaper.decode(r, r.size(), $undefined, q + 1, m.stockImage);
                         m._stockImage = "stockImage";
                         continue;
                     }
                 case 13: {
                         if (u !== 2)
                             break;
-                        m.customImage = $root.proto.ChatCustomImageWallpaper.decode(r, r.uint32(), $undefined, q + 1, m.customImage);
+                        m.customImage = $root.proto.ChatCustomImageWallpaper.decode(r, r.size(), $undefined, q + 1, m.customImage);
                         m._customImage = "customImage";
                         continue;
                     }
                 case 14: {
                         if (u !== 2)
                             break;
-                        m.animatedWallpaper = $root.proto.Message.ChatAnimatedWallpaper.decode(r, r.uint32(), $undefined, q + 1, m.animatedWallpaper);
+                        m.animatedWallpaper = $root.proto.Message.ChatAnimatedWallpaper.decode(r, r.size(), $undefined, q + 1, m.animatedWallpaper);
                         m._animatedWallpaper = "animatedWallpaper";
                         continue;
                     }
@@ -139400,6 +142483,8 @@ export const proto = $root.proto = (() => {
                 w.uint32(90).string(m.locationName);
             if (m.lastUpdatedTsUsec != null && $Object.hasOwnProperty.call(m, "lastUpdatedTsUsec"))
                 w.uint32(96).int64(m.lastUpdatedTsUsec);
+            if (m.status != null && $Object.hasOwnProperty.call(m, "status"))
+                w.uint32(104).int32(m.status);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -139436,7 +142521,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                        m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                         m._contextInfo = "contextInfo";
                         continue;
                     }
@@ -139517,6 +142602,13 @@ export const proto = $root.proto = (() => {
                         m._lastUpdatedTsUsec = "lastUpdatedTsUsec";
                         continue;
                     }
+                    case 13: {
+                            if (u !== 0)
+                                break;
+                            m.status = r.int32();
+                            m._status = "status";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -139606,6 +142698,9 @@ export const proto = $root.proto = (() => {
                 else if (typeof d.lastUpdatedTsUsec === "object")
                     m.lastUpdatedTsUsec = new $util.LongBits(d.lastUpdatedTsUsec.low >>> 0, d.lastUpdatedTsUsec.high >>> 0).toNumber();
             }
+            if (d.status != null) {
+                m.status = d.status | 0;
+            }
             return m;
         };
 
@@ -139667,6 +142762,9 @@ export const proto = $root.proto = (() => {
                     d.lastUpdatedTsUsec = o.longs === $String ? $String(m.lastUpdatedTsUsec) : m.lastUpdatedTsUsec;
                 else
                     d.lastUpdatedTsUsec = o.longs === String ? longToString(m.lastUpdatedTsUsec) : o.longs === Number ? longToNumber(m.lastUpdatedTsUsec) : m.lastUpdatedTsUsec;
+            }
+            if (m.status != null && $Object.hasOwnProperty.call(m, "status")) {
+                d.status = m.status;
             }
             return d;
         };
@@ -140278,7 +143376,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.keys && m.keys.length))
                             m.keys = [];
-                        m.keys.push($root.proto.GroupRootKeyShareEntry.decode(r, r.uint32(), $undefined, q + 1));
+                        m.keys.push($root.proto.GroupRootKeyShareEntry.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -141996,7 +145094,7 @@ export const proto = $root.proto = (() => {
                 case 9: {
                         if (u !== 2)
                             break;
-                        m.amount = $root.proto.Money.decode(r, r.uint32(), $undefined, q + 1, m.amount);
+                        m.amount = $root.proto.Money.decode(r, r.size(), $undefined, q + 1, m.amount);
                         m._amount = "amount";
                         continue;
                     }
@@ -142371,21 +145469,21 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.pollCreationMessageKey = $root.proto.MessageKey.decode(r, r.uint32(), $undefined, q + 1, m.pollCreationMessageKey);
+                        m.pollCreationMessageKey = $root.proto.MessageKey.decode(r, r.size(), $undefined, q + 1, m.pollCreationMessageKey);
                         m._pollCreationMessageKey = "pollCreationMessageKey";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.addOption = $root.proto.Message.PollCreationMessage.Option.decode(r, r.uint32(), $undefined, q + 1, m.addOption);
+                        m.addOption = $root.proto.Message.PollCreationMessage.Option.decode(r, r.size(), $undefined, q + 1, m.addOption);
                         m._addOption = "addOption";
                         continue;
                     }
                 case 3: {
                         if (u !== 2)
                             break;
-                        m.metadata = $root.proto.Message.PollUpdateMessageMetadata.decode(r, r.uint32(), $undefined, q + 1, m.metadata);
+                        m.metadata = $root.proto.Message.PollUpdateMessageMetadata.decode(r, r.size(), $undefined, q + 1, m.metadata);
                         m._metadata = "metadata";
                         continue;
                     }
@@ -143489,6 +146587,8 @@ export const proto = $root.proto = (() => {
                 w.uint32(266).string(m.colorSchemeId);
             if (m.stockWallpaperImageId != null && $Object.hasOwnProperty.call(m, "stockWallpaperImageId"))
                 w.uint32(274).string(m.stockWallpaperImageId);
+            if (m.mediaAutoDownloadQuality != null && $Object.hasOwnProperty.call(m, "mediaAutoDownloadQuality"))
+                w.uint32(280).int32(m.mediaAutoDownloadQuality);
             if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
                 for (var i = 0; i < m.$unknowns.length; ++i)
                     w.raw(m.$unknowns[i]);
@@ -143760,6 +146860,13 @@ export const proto = $root.proto = (() => {
                         m._stockWallpaperImageId = "stockWallpaperImageId";
                         continue;
                     }
+                    case 35: {
+                            if (u !== 0)
+                                break;
+                            m.mediaAutoDownloadQuality = r.int32();
+                            m._mediaAutoDownloadQuality = "mediaAutoDownloadQuality";
+                            continue;
+                        }
                 }
                 r.skipType(u, q, t);
                 if (!r.discardUnknown) {
@@ -143889,6 +146996,9 @@ export const proto = $root.proto = (() => {
             if (d.stockWallpaperImageId != null) {
                 m.stockWallpaperImageId = $String(d.stockWallpaperImageId);
             }
+            if (d.mediaAutoDownloadQuality != null) {
+                m.mediaAutoDownloadQuality = d.mediaAutoDownloadQuality | 0;
+            }
             return m;
         };
 
@@ -144001,6 +147111,9 @@ export const proto = $root.proto = (() => {
             }
             if (m.stockWallpaperImageId != null && $Object.hasOwnProperty.call(m, "stockWallpaperImageId")) {
                 d.stockWallpaperImageId = m.stockWallpaperImageId;
+            }
+            if (m.mediaAutoDownloadQuality != null && $Object.hasOwnProperty.call(m, "mediaAutoDownloadQuality")) {
+                d.mediaAutoDownloadQuality = m.mediaAutoDownloadQuality;
             }
             return d;
         };
@@ -144167,7 +147280,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.pills && m.pills.length))
                             m.pills = [];
-                        m.pills.push($root.proto.Pill.decode(r, r.uint32(), $undefined, q + 1));
+                        m.pills.push($root.proto.Pill.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -144375,7 +147488,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.totalAmount = $root.proto.Money.decode(r, r.uint32(), $undefined, q + 1, m.totalAmount);
+                        m.totalAmount = $root.proto.Money.decode(r, r.size(), $undefined, q + 1, m.totalAmount);
                         m._totalAmount = "totalAmount";
                         continue;
                     }
@@ -144398,7 +147511,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.participants && m.participants.length))
                             m.participants = [];
-                        m.participants.push($root.proto.SplitPaymentParticipant.decode(r, r.uint32(), $undefined, q + 1));
+                        m.participants.push($root.proto.SplitPaymentParticipant.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 6: {
@@ -144411,7 +147524,7 @@ export const proto = $root.proto = (() => {
                 case 17: {
                         if (u !== 2)
                             break;
-                        m.contextInfo = $root.proto.ContextInfo.decode(r, r.uint32(), $undefined, q + 1, m.contextInfo);
+                        m.contextInfo = $root.proto.ContextInfo.decode(r, r.size(), $undefined, q + 1, m.contextInfo);
                         m._contextInfo = "contextInfo";
                         continue;
                     }
@@ -144633,7 +147746,7 @@ export const proto = $root.proto = (() => {
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.amount = $root.proto.Money.decode(r, r.uint32(), $undefined, q + 1, m.amount);
+                        m.amount = $root.proto.Money.decode(r, r.size(), $undefined, q + 1, m.amount);
                         m._amount = "amount";
                         continue;
                     }
@@ -145118,7 +148231,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.subscriptions && m.subscriptions.length))
                             m.subscriptions = [];
-                        m.subscriptions.push($root.proto.SubscriptionInfo.decode(r, r.uint32(), $undefined, q + 1));
+                        m.subscriptions.push($root.proto.SubscriptionInfo.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 case 2: {
@@ -145126,7 +148239,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.paidFeature && m.paidFeature.length))
                             m.paidFeature = [];
-                        m.paidFeature.push($root.proto.PaidFeature.decode(r, r.uint32(), $undefined, q + 1));
+                        m.paidFeature.push($root.proto.PaidFeature.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -145416,7 +148529,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.secrets && m.secrets.length))
                             m.secrets = [];
-                        m.secrets.push($root.proto.RootSecretEntry.decode(r, r.uint32(), $undefined, q + 1));
+                        m.secrets.push($root.proto.RootSecretEntry.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -145569,14 +148682,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.c2PaMetadata = $root.proto.AIProvenanceMetadata.decode(r, r.uint32(), $undefined, q + 1, m.c2PaMetadata);
+                        m.c2PaMetadata = $root.proto.AIProvenanceMetadata.decode(r, r.size(), $undefined, q + 1, m.c2PaMetadata);
                         m._c2PaMetadata = "c2PaMetadata";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.iptcMetadata = $root.proto.AIProvenanceMetadata.decode(r, r.uint32(), $undefined, q + 1, m.iptcMetadata);
+                        m.iptcMetadata = $root.proto.AIProvenanceMetadata.decode(r, r.size(), $undefined, q + 1, m.iptcMetadata);
                         m._iptcMetadata = "iptcMetadata";
                         continue;
                     }
@@ -146035,7 +149148,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.participantsMetadata && m.participantsMetadata.length))
                             m.participantsMetadata = [];
-                        m.participantsMetadata.push($root.proto.BotGroupParticipantMetadata.decode(r, r.uint32(), $undefined, q + 1));
+                        m.participantsMetadata.push($root.proto.BotGroupParticipantMetadata.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -146210,7 +149323,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.historyShareMessages && m.historyShareMessages.length))
                             m.historyShareMessages = [];
-                        m.historyShareMessages.push($root.proto.HistoryShareMessageEntry.decode(r, r.uint32(), $undefined, q + 1));
+                        m.historyShareMessages.push($root.proto.HistoryShareMessageEntry.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -146537,14 +149650,14 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.index = $root.proto.SyncdIndex.decode(r, r.uint32(), $undefined, q + 1, m.index);
+                        m.index = $root.proto.SyncdIndex.decode(r, r.size(), $undefined, q + 1, m.index);
                         m._index = "index";
                         continue;
                     }
                 case 2: {
                         if (u !== 2)
                             break;
-                        m.value = $root.proto.SyncdValue.decode(r, r.uint32(), $undefined, q + 1, m.value);
+                        m.value = $root.proto.SyncdValue.decode(r, r.size(), $undefined, q + 1, m.value);
                         m._value = "value";
                         continue;
                     }
@@ -146749,7 +149862,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.mutations && m.mutations.length))
                             m.mutations = [];
-                        m.mutations.push($root.proto.CoexStateSyncMutation.decode(r, r.uint32(), $undefined, q + 1));
+                        m.mutations.push($root.proto.CoexStateSyncMutation.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -146896,7 +150009,7 @@ export const proto = $root.proto = (() => {
                             break;
                         if (!(m.collectionMutations && m.collectionMutations.length))
                             m.collectionMutations = [];
-                        m.collectionMutations.push($root.proto.CoexStateSyncCollectionMutations.decode(r, r.uint32(), $undefined, q + 1));
+                        m.collectionMutations.push($root.proto.CoexStateSyncCollectionMutations.decode(r, r.size(), $undefined, q + 1));
                         continue;
                     }
                 }
@@ -146971,11 +150084,6 @@ export const proto = $root.proto = (() => {
 
         return CoexStateSync;
     })();
-
-    // Backward-compatible Elaina WAProto names. Anya's newer top-level
-    // CoexStateSyncMutation and CoexStateSyncCollectionMutations remain intact.
-    proto.CoexStateSync.Mutation = proto.CoexStateSyncMutation;
-    proto.CoexStateSync.CollectionMutations = proto.CoexStateSyncCollectionMutations;
 
     proto.HistoryShareMessageEntry = (function() {
 
@@ -148231,7 +151339,7 @@ export const proto = $root.proto = (() => {
                 case 1: {
                         if (u !== 2)
                             break;
-                        m.serverEvent = $root.proto.BizAIMetadataSync.ServerEvent.decode(r, r.uint32(), $undefined, q + 1, m.serverEvent);
+                        m.serverEvent = $root.proto.BizAIMetadataSync.ServerEvent.decode(r, r.size(), $undefined, q + 1, m.serverEvent);
                         m._serverEvent = "serverEvent";
                         continue;
                     }
@@ -148378,7 +151486,7 @@ export const proto = $root.proto = (() => {
                     case 2: {
                             if (u !== 2)
                                 break;
-                            m.agentOnboardingStarted = $root.proto.BizAIMetadataSync.ServerEvent.AgentOnboardingStarted.decode(r, r.uint32(), $undefined, q + 1, m.agentOnboardingStarted);
+                            m.agentOnboardingStarted = $root.proto.BizAIMetadataSync.ServerEvent.AgentOnboardingStarted.decode(r, r.size(), $undefined, q + 1, m.agentOnboardingStarted);
                             m._agentOnboardingStarted = "agentOnboardingStarted";
                             continue;
                         }
@@ -148807,8 +151915,1046 @@ export const proto = $root.proto = (() => {
         return ACP2Setting;
     })();
 
+    proto.RecoverableHistoryConversation = (function() {
+
+        const RecoverableHistoryConversation = function (p) {
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        RecoverableHistoryConversation.prototype.historyChatId = null;
+        RecoverableHistoryConversation.prototype.accountLid = null;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(RecoverableHistoryConversation.prototype, "_historyChatId", {
+            get: $util.oneOfGetter($oneOfFields = ["historyChatId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(RecoverableHistoryConversation.prototype, "_accountLid", {
+            get: $util.oneOfGetter($oneOfFields = ["accountLid"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        RecoverableHistoryConversation.create = function(properties) {
+            return new RecoverableHistoryConversation(properties);
+        };
+
+        RecoverableHistoryConversation.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.historyChatId != null && $Object.hasOwnProperty.call(m, "historyChatId"))
+                w.uint32(10).string(m.historyChatId);
+            if (m.accountLid != null && $Object.hasOwnProperty.call(m, "accountLid"))
+                w.uint32(18).string(m.accountLid);
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        RecoverableHistoryConversation.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.RecoverableHistoryConversation();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 2)
+                            break;
+                        m.historyChatId = r.stringVerify();
+                        m._historyChatId = "historyChatId";
+                        continue;
+                    }
+                case 2: {
+                        if (u !== 2)
+                            break;
+                        m.accountLid = r.stringVerify();
+                        m._accountLid = "accountLid";
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        RecoverableHistoryConversation.fromObject = function (d, q) {
+            if (d instanceof $root.proto.RecoverableHistoryConversation)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.RecoverableHistoryConversation: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.RecoverableHistoryConversation();
+            if (d.historyChatId != null) {
+                m.historyChatId = $String(d.historyChatId);
+            }
+            if (d.accountLid != null) {
+                m.accountLid = $String(d.accountLid);
+            }
+            return m;
+        };
+
+        RecoverableHistoryConversation.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (m.historyChatId != null && $Object.hasOwnProperty.call(m, "historyChatId")) {
+                d.historyChatId = m.historyChatId;
+            }
+            if (m.accountLid != null && $Object.hasOwnProperty.call(m, "accountLid")) {
+                d.accountLid = m.accountLid;
+            }
+            return d;
+        };
+
+        RecoverableHistoryConversation.prototype.toJSON = function() {
+            return RecoverableHistoryConversation.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        RecoverableHistoryConversation.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.RecoverableHistoryConversation";
+        };
+
+        return RecoverableHistoryConversation;
+    })();
+
+    proto.EventInviteAdditionalMetadata = (function() {
+
+        const EventInviteAdditionalMetadata = function (p) {
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        EventInviteAdditionalMetadata.prototype.isUpdated = null;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(EventInviteAdditionalMetadata.prototype, "_isUpdated", {
+            get: $util.oneOfGetter($oneOfFields = ["isUpdated"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        EventInviteAdditionalMetadata.create = function(properties) {
+            return new EventInviteAdditionalMetadata(properties);
+        };
+
+        EventInviteAdditionalMetadata.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.isUpdated != null && $Object.hasOwnProperty.call(m, "isUpdated"))
+                w.uint32(8).bool(m.isUpdated);
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        EventInviteAdditionalMetadata.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.EventInviteAdditionalMetadata();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 0)
+                            break;
+                        m.isUpdated = r.bool();
+                        m._isUpdated = "isUpdated";
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        EventInviteAdditionalMetadata.fromObject = function (d, q) {
+            if (d instanceof $root.proto.EventInviteAdditionalMetadata)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.EventInviteAdditionalMetadata: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.EventInviteAdditionalMetadata();
+            if (d.isUpdated != null) {
+                m.isUpdated = $Boolean(d.isUpdated);
+            }
+            return m;
+        };
+
+        EventInviteAdditionalMetadata.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (m.isUpdated != null && $Object.hasOwnProperty.call(m, "isUpdated")) {
+                d.isUpdated = m.isUpdated;
+            }
+            return d;
+        };
+
+        EventInviteAdditionalMetadata.prototype.toJSON = function() {
+            return EventInviteAdditionalMetadata.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        EventInviteAdditionalMetadata.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.EventInviteAdditionalMetadata";
+        };
+
+        return EventInviteAdditionalMetadata;
+    })();
+
+    proto.OmittedConversationMetadata = (function() {
+
+        const OmittedConversationMetadata = function (p) {
+            this.conversations = [];
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        OmittedConversationMetadata.prototype.snapshotId = null;
+        OmittedConversationMetadata.prototype.snapshotTimestampMs = null;
+        OmittedConversationMetadata.prototype.batchIndex = null;
+        OmittedConversationMetadata.prototype.batchCount = null;
+        OmittedConversationMetadata.prototype.complete = null;
+        OmittedConversationMetadata.prototype.conversations = $util.emptyArray;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(OmittedConversationMetadata.prototype, "_snapshotId", {
+            get: $util.oneOfGetter($oneOfFields = ["snapshotId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(OmittedConversationMetadata.prototype, "_snapshotTimestampMs", {
+            get: $util.oneOfGetter($oneOfFields = ["snapshotTimestampMs"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(OmittedConversationMetadata.prototype, "_batchIndex", {
+            get: $util.oneOfGetter($oneOfFields = ["batchIndex"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(OmittedConversationMetadata.prototype, "_batchCount", {
+            get: $util.oneOfGetter($oneOfFields = ["batchCount"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(OmittedConversationMetadata.prototype, "_complete", {
+            get: $util.oneOfGetter($oneOfFields = ["complete"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        OmittedConversationMetadata.create = function(properties) {
+            return new OmittedConversationMetadata(properties);
+        };
+
+        OmittedConversationMetadata.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.snapshotId != null && $Object.hasOwnProperty.call(m, "snapshotId"))
+                w.uint32(10).string(m.snapshotId);
+            if (m.snapshotTimestampMs != null && $Object.hasOwnProperty.call(m, "snapshotTimestampMs"))
+                w.uint32(16).uint64(m.snapshotTimestampMs);
+            if (m.batchIndex != null && $Object.hasOwnProperty.call(m, "batchIndex"))
+                w.uint32(24).uint32(m.batchIndex);
+            if (m.batchCount != null && $Object.hasOwnProperty.call(m, "batchCount"))
+                w.uint32(32).uint32(m.batchCount);
+            if (m.complete != null && $Object.hasOwnProperty.call(m, "complete"))
+                w.uint32(40).bool(m.complete);
+            if (m.conversations != null && m.conversations.length) {
+                for (var i = 0; i < m.conversations.length; ++i)
+                    $root.proto.Conversation.encode(m.conversations[i], w.uint32(50).fork(), q + 1).ldelim();
+            }
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        OmittedConversationMetadata.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.OmittedConversationMetadata();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 2)
+                            break;
+                        m.snapshotId = r.stringVerify();
+                        m._snapshotId = "snapshotId";
+                        continue;
+                    }
+                case 2: {
+                        if (u !== 0)
+                            break;
+                        m.snapshotTimestampMs = r.uint64();
+                        m._snapshotTimestampMs = "snapshotTimestampMs";
+                        continue;
+                    }
+                case 3: {
+                        if (u !== 0)
+                            break;
+                        m.batchIndex = r.uint32();
+                        m._batchIndex = "batchIndex";
+                        continue;
+                    }
+                case 4: {
+                        if (u !== 0)
+                            break;
+                        m.batchCount = r.uint32();
+                        m._batchCount = "batchCount";
+                        continue;
+                    }
+                case 5: {
+                        if (u !== 0)
+                            break;
+                        m.complete = r.bool();
+                        m._complete = "complete";
+                        continue;
+                    }
+                case 6: {
+                        if (u !== 2)
+                            break;
+                        if (!(m.conversations && m.conversations.length))
+                            m.conversations = [];
+                        m.conversations.push($root.proto.Conversation.decode(r, r.size(), $undefined, q + 1));
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        OmittedConversationMetadata.fromObject = function (d, q) {
+            if (d instanceof $root.proto.OmittedConversationMetadata)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.OmittedConversationMetadata: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.OmittedConversationMetadata();
+            if (d.snapshotId != null) {
+                m.snapshotId = $String(d.snapshotId);
+            }
+            if (d.snapshotTimestampMs != null) {
+                if ($util.Long)
+                    m.snapshotTimestampMs = $util.Long.fromValue(d.snapshotTimestampMs, true);
+                else if (typeof d.snapshotTimestampMs === "string")
+                    m.snapshotTimestampMs = $parseInt(d.snapshotTimestampMs, 10);
+                else if (typeof d.snapshotTimestampMs === "number")
+                    m.snapshotTimestampMs = d.snapshotTimestampMs;
+                else if (typeof d.snapshotTimestampMs === "object")
+                    m.snapshotTimestampMs = new $util.LongBits(d.snapshotTimestampMs.low >>> 0, d.snapshotTimestampMs.high >>> 0).toNumber(true);
+            }
+            if (d.batchIndex != null) {
+                m.batchIndex = d.batchIndex >>> 0;
+            }
+            if (d.batchCount != null) {
+                m.batchCount = d.batchCount >>> 0;
+            }
+            if (d.complete != null) {
+                m.complete = $Boolean(d.complete);
+            }
+            if (d.conversations) {
+                if (!$Array.isArray(d.conversations))
+                    throw $TypeError(".proto.OmittedConversationMetadata.conversations: array expected");
+                m.conversations = $Array(d.conversations.length);
+                for (var i = 0; i < d.conversations.length; ++i) {
+                    if (!$util.isObject(d.conversations[i]))
+                        throw $TypeError(".proto.OmittedConversationMetadata.conversations: object expected");
+                    m.conversations[i] = $root.proto.Conversation.fromObject(d.conversations[i], q + 1);
+                }
+            }
+            return m;
+        };
+
+        OmittedConversationMetadata.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (o.arrays || o.defaults) {
+                d.conversations = [];
+            }
+            if (m.snapshotId != null && $Object.hasOwnProperty.call(m, "snapshotId")) {
+                d.snapshotId = m.snapshotId;
+            }
+            if (m.snapshotTimestampMs != null && $Object.hasOwnProperty.call(m, "snapshotTimestampMs")) {
+                if (typeof $BigInt !== "undefined" && o.longs === $BigInt)
+                    d.snapshotTimestampMs = typeof m.snapshotTimestampMs === "number" ? $BigInt(m.snapshotTimestampMs) : $util.Long.fromBits(m.snapshotTimestampMs.low >>> 0, m.snapshotTimestampMs.high >>> 0, true).toBigInt();
+                else if (typeof m.snapshotTimestampMs === "number")
+                    d.snapshotTimestampMs = o.longs === $String ? $String(m.snapshotTimestampMs) : m.snapshotTimestampMs;
+                else
+                    d.snapshotTimestampMs = o.longs === String ? longToString(m.snapshotTimestampMs, true) : o.longs === Number ? longToNumber(m.snapshotTimestampMs, true) : m.snapshotTimestampMs;
+            }
+            if (m.batchIndex != null && $Object.hasOwnProperty.call(m, "batchIndex")) {
+                d.batchIndex = m.batchIndex;
+            }
+            if (m.batchCount != null && $Object.hasOwnProperty.call(m, "batchCount")) {
+                d.batchCount = m.batchCount;
+            }
+            if (m.complete != null && $Object.hasOwnProperty.call(m, "complete")) {
+                d.complete = m.complete;
+            }
+            if (m.conversations && m.conversations.length) {
+                d.conversations = $Array(m.conversations.length);
+                for (var j = 0; j < m.conversations.length; ++j) {
+                    d.conversations[j] = $root.proto.Conversation.toObject(m.conversations[j], o, q + 1);
+                }
+            }
+            return d;
+        };
+
+        OmittedConversationMetadata.prototype.toJSON = function() {
+            return OmittedConversationMetadata.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        OmittedConversationMetadata.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.OmittedConversationMetadata";
+        };
+
+        return OmittedConversationMetadata;
+    })();
+
     mergeMissingProtoTypes(proto);
 
+    proto.MembershipFormKeyFingerprintVerification = (function() {
+
+        const MembershipFormKeyFingerprintVerification = function (p) {
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        MembershipFormKeyFingerprintVerification.prototype.requestId = null;
+        MembershipFormKeyFingerprintVerification.prototype.keyId = null;
+        MembershipFormKeyFingerprintVerification.prototype.keyFingerprint = null;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(MembershipFormKeyFingerprintVerification.prototype, "_requestId", {
+            get: $util.oneOfGetter($oneOfFields = ["requestId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(MembershipFormKeyFingerprintVerification.prototype, "_keyId", {
+            get: $util.oneOfGetter($oneOfFields = ["keyId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(MembershipFormKeyFingerprintVerification.prototype, "_keyFingerprint", {
+            get: $util.oneOfGetter($oneOfFields = ["keyFingerprint"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        MembershipFormKeyFingerprintVerification.create = function(properties) {
+            return new MembershipFormKeyFingerprintVerification(properties);
+        };
+
+        MembershipFormKeyFingerprintVerification.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.requestId != null && $Object.hasOwnProperty.call(m, "requestId"))
+                w.uint32(10).string(m.requestId);
+            if (m.keyId != null && $Object.hasOwnProperty.call(m, "keyId"))
+                w.uint32(18).string(m.keyId);
+            if (m.keyFingerprint != null && $Object.hasOwnProperty.call(m, "keyFingerprint"))
+                w.uint32(26).bytes(m.keyFingerprint);
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        MembershipFormKeyFingerprintVerification.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m, v;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.MembershipFormKeyFingerprintVerification();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 2)
+                            break;
+                        m.requestId = r.string();
+                        m._requestId = "requestId";
+                        continue;
+                    }
+                case 2: {
+                        if (u !== 2)
+                            break;
+                        m.keyId = r.string();
+                        m._keyId = "keyId";
+                        continue;
+                    }
+                case 3: {
+                        if (u !== 2)
+                            break;
+                        m.keyFingerprint = r.bytes();
+                        m._keyFingerprint = "keyFingerprint";
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        MembershipFormKeyFingerprintVerification.fromObject = function (d, q) {
+            if (d instanceof $root.proto.MembershipFormKeyFingerprintVerification)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.MembershipFormKeyFingerprintVerification: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.MembershipFormKeyFingerprintVerification();
+            if (d.requestId != null) {
+                m.requestId = $String(d.requestId);
+            }
+            if (d.keyId != null) {
+                m.keyId = $String(d.keyId);
+            }
+            if (d.keyFingerprint != null) {
+                if (typeof d.keyFingerprint === "string")
+                    $util.base64.decode(d.keyFingerprint, m.keyFingerprint = $util.newBuffer($util.base64.length(d.keyFingerprint)), 0);
+                else if (d.keyFingerprint.length >= 0)
+                    m.keyFingerprint = d.keyFingerprint;
+            }
+            return m;
+        };
+
+        MembershipFormKeyFingerprintVerification.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (m.requestId != null && $Object.hasOwnProperty.call(m, "requestId")) {
+                d.requestId = m.requestId;
+            }
+            if (m.keyId != null && $Object.hasOwnProperty.call(m, "keyId")) {
+                d.keyId = m.keyId;
+            }
+            if (m.keyFingerprint != null && $Object.hasOwnProperty.call(m, "keyFingerprint")) {
+                d.keyFingerprint = o.bytes === $String ? $util.base64.encode(m.keyFingerprint, 0, m.keyFingerprint.length) : o.bytes === $Array ? $Array.prototype.slice.call(m.keyFingerprint) : m.keyFingerprint;
+            }
+            return d;
+        };
+
+        MembershipFormKeyFingerprintVerification.prototype.toJSON = function() {
+            return MembershipFormKeyFingerprintVerification.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        MembershipFormKeyFingerprintVerification.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.MembershipFormKeyFingerprintVerification";
+        };
+
+        return MembershipFormKeyFingerprintVerification;
+    })();
+    proto.GroupRootKeyRequest = (function() {
+
+        const GroupRootKeyRequest = function (p) {
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        GroupRootKeyRequest.prototype.keyId = null;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(GroupRootKeyRequest.prototype, "_keyId", {
+            get: $util.oneOfGetter($oneOfFields = ["keyId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        GroupRootKeyRequest.create = function(properties) {
+            return new GroupRootKeyRequest(properties);
+        };
+
+        GroupRootKeyRequest.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.keyId != null && $Object.hasOwnProperty.call(m, "keyId"))
+                w.uint32(10).string(m.keyId);
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        GroupRootKeyRequest.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m, v;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.GroupRootKeyRequest();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 2)
+                            break;
+                        m.keyId = r.string();
+                        m._keyId = "keyId";
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        GroupRootKeyRequest.fromObject = function (d, q) {
+            if (d instanceof $root.proto.GroupRootKeyRequest)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.GroupRootKeyRequest: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.GroupRootKeyRequest();
+            if (d.keyId != null) {
+                m.keyId = $String(d.keyId);
+            }
+            return m;
+        };
+
+        GroupRootKeyRequest.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (m.keyId != null && $Object.hasOwnProperty.call(m, "keyId")) {
+                d.keyId = m.keyId;
+            }
+            return d;
+        };
+
+        GroupRootKeyRequest.prototype.toJSON = function() {
+            return GroupRootKeyRequest.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        GroupRootKeyRequest.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.GroupRootKeyRequest";
+        };
+
+        return GroupRootKeyRequest;
+    })();
+    proto.GroupRootKey = (function() {
+
+        const GroupRootKey = function (p) {
+            if (p)
+                for (var ks = $Object.keys(p), i = 0; i < ks.length; ++i)
+                    if (p[ks[i]] != null && ks[i] !== "__proto__")
+                        this[ks[i]] = p[ks[i]];
+        };
+
+        GroupRootKey.prototype.keyId = null;
+        GroupRootKey.prototype.rootKey = null;
+        GroupRootKey.prototype.isCurrent = null;
+
+        let $oneOfFields;
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(GroupRootKey.prototype, "_keyId", {
+            get: $util.oneOfGetter($oneOfFields = ["keyId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(GroupRootKey.prototype, "_rootKey", {
+            get: $util.oneOfGetter($oneOfFields = ["rootKey"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        $Object.defineProperty(GroupRootKey.prototype, "_isCurrent", {
+            get: $util.oneOfGetter($oneOfFields = ["isCurrent"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        GroupRootKey.create = function(properties) {
+            return new GroupRootKey(properties);
+        };
+
+        GroupRootKey.encode = function (m, w, q) {
+            if (!w)
+                w = $Writer.create();
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            if (m.keyId != null && $Object.hasOwnProperty.call(m, "keyId"))
+                w.uint32(10).string(m.keyId);
+            if (m.rootKey != null && $Object.hasOwnProperty.call(m, "rootKey"))
+                w.uint32(18).bytes(m.rootKey);
+            if (m.isCurrent != null && $Object.hasOwnProperty.call(m, "isCurrent"))
+                w.uint32(24).bool(m.isCurrent);
+            if (m.$unknowns != null && $Object.hasOwnProperty.call(m, "$unknowns"))
+                for (var i = 0; i < m.$unknowns.length; ++i)
+                    w.raw(m.$unknowns[i]);
+            return w;
+        };
+
+        GroupRootKey.decode = function (r, l, z, q, g) {
+            if (!(r instanceof $Reader))
+                r = $Reader.create(r);
+            if (q === $undefined)
+                q = 0;
+            if (q > $Reader.recursionLimit)
+                throw $Error("max depth exceeded");
+            var c, m, v;
+            if (l === $undefined)
+                c = r.len;
+            else {
+                c = r.pos + l;
+                if (c > r.len)
+                    throw $RangeError("index out of range");
+                l = r.len;
+                r.len = c;
+            }
+            m = g || new $root.proto.GroupRootKey();
+            while (r.pos < c) {
+                var s = r.pos;
+                var t = r.tag();
+                if (t === z) {
+                    z = $undefined;
+                    break;
+                }
+                var u = t & 7;
+                switch (t >>>= 3) {
+                case 1: {
+                        if (u !== 2)
+                            break;
+                        m.keyId = r.string();
+                        m._keyId = "keyId";
+                        continue;
+                    }
+                case 2: {
+                        if (u !== 2)
+                            break;
+                        m.rootKey = r.bytes();
+                        m._rootKey = "rootKey";
+                        continue;
+                    }
+                case 3: {
+                        if (u !== 0)
+                            break;
+                        m.isCurrent = r.bool();
+                        m._isCurrent = "isCurrent";
+                        continue;
+                    }
+                }
+                r.skipType(u, q, t);
+                if (!r.discardUnknown) {
+                    $util.makeProp(m, "$unknowns", false);
+                    (m.$unknowns || (m.$unknowns = [])).push(r.raw(s, r.pos));
+                }
+            }
+            if (l !== $undefined) {
+                if (r.pos !== c)
+                    throw $RangeError("index out of range");
+                r.len = l;
+            }
+            if (z !== $undefined)
+                throw $Error("missing end group");
+            return m;
+        };
+
+        GroupRootKey.fromObject = function (d, q) {
+            if (d instanceof $root.proto.GroupRootKey)
+                return d;
+            if (!$util.isObject(d))
+                throw $TypeError(".proto.GroupRootKey: object expected");
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var m = new $root.proto.GroupRootKey();
+            if (d.keyId != null) {
+                m.keyId = $String(d.keyId);
+            }
+            if (d.rootKey != null) {
+                if (typeof d.rootKey === "string")
+                    $util.base64.decode(d.rootKey, m.rootKey = $util.newBuffer($util.base64.length(d.rootKey)), 0);
+                else if (d.rootKey.length >= 0)
+                    m.rootKey = d.rootKey;
+            }
+            if (d.isCurrent != null) {
+                m.isCurrent = $Boolean(d.isCurrent);
+            }
+            return m;
+        };
+
+        GroupRootKey.toObject = function (m, o, q) {
+            if (!o)
+                o = {};
+            if (q === $undefined)
+                q = 0;
+            if (q > $util.recursionLimit)
+                throw $Error("max depth exceeded");
+            var d = {};
+            if (m.keyId != null && $Object.hasOwnProperty.call(m, "keyId")) {
+                d.keyId = m.keyId;
+            }
+            if (m.rootKey != null && $Object.hasOwnProperty.call(m, "rootKey")) {
+                d.rootKey = o.bytes === $String ? $util.base64.encode(m.rootKey, 0, m.rootKey.length) : o.bytes === $Array ? $Array.prototype.slice.call(m.rootKey) : m.rootKey;
+            }
+            if (m.isCurrent != null && $Object.hasOwnProperty.call(m, "isCurrent")) {
+                d.isCurrent = m.isCurrent;
+            }
+            return d;
+        };
+
+        GroupRootKey.prototype.toJSON = function() {
+            return GroupRootKey.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        GroupRootKey.getTypeUrl = function(prefix) {
+            if (prefix === $undefined)
+                prefix = "type.googleapis.com";
+            return prefix + "/proto.GroupRootKey";
+        };
+
+        return GroupRootKey;
+    })();
     return proto;
 })();
 

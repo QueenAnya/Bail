@@ -1,17 +1,19 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/messages.js helpers
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/messages.js helpers
  * (trimEmptyValues, songThumbnail, prepareLinkThumbnail, prepareProductMessage, native flow
  * button constraint checks, FUTURE_PROOF_MESSAGE_KEYS). Copied as-is (type-checking disabled);
  * only imports were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 import { Boom } from '@hapi/boom'
+import { promises as fs } from 'fs'
 import { LIBRARY_NAME } from '../Defaults'
+import { unixTimestampSeconds } from '../Utils/generics'
 import { prepareWAMessageMedia } from '../Utils/messages'
 import { encryptedStream, extractImageThumb, getStream, toBuffer } from '../Utils/messages-media'
 import { getNativeFlowNameByButtonName, NATIVE_FLOW_BUTTON_LIMIT, WEB_SUPPORTED_INTERACTIVE_FLOWS } from './native-flow'
 
-export const trimEmptyValues = object => {
+export const trimEmptyValues = (object: Record<string, any>) => {
 	for (const key of Object.keys(object)) {
 		if (object[key] === undefined) {
 			delete object[key]
@@ -21,7 +23,7 @@ export const trimEmptyValues = object => {
 	return object
 }
 
-export const songThumbnail = async (artwork, width, logger) => {
+export const songThumbnail = async (artwork: any, width: number, logger?: any) => {
 	const source = Buffer.isBuffer(artwork)
 		? artwork
 		: await toBuffer(await getStream(artwork).then(({ stream }) => stream))
@@ -29,12 +31,16 @@ export const songThumbnail = async (artwork, width, logger) => {
 		const { buffer } = await extractImageThumb(source, width)
 		return buffer
 	} catch (error) {
-		logger?.warn?.({ trace: error?.message }, 'could not downscale the song artwork, sending it whole')
+		logger?.warn?.({ trace: (error as Error)?.message }, 'could not downscale the song artwork, sending it whole')
 		return source
 	}
 }
 
-export const prepareLinkThumbnail = async (image, options, { thumbnailWidth = 640, upload = true } = {}) => {
+export const prepareLinkThumbnail = async (
+	image: any,
+	options: any,
+	{ thumbnailWidth = 640, upload = true }: { thumbnailWidth?: number; upload?: boolean } = {}
+) => {
 	if (upload && typeof options?.upload !== 'function') {
 		throw new Boom('a large link thumbnail has to be uploaded, so this needs an upload function', { statusCode: 400 })
 	}
@@ -51,7 +57,7 @@ export const prepareLinkThumbnail = async (image, options, { thumbnailWidth = 64
 		full = width === thumbnailWidth ? probe.buffer : (await extractImageThumb(source, width)).buffer
 	} catch (error) {
 		options.logger?.warn?.(
-			{ trace: error?.message },
+			{ trace: (error as Error)?.message },
 			'no image library could measure the link thumbnail, so the card stays small'
 		)
 		return { jpegThumbnail: source }
@@ -97,7 +103,7 @@ export const prepareLinkThumbnail = async (image, options, { thumbnailWidth = 64
 	}
 }
 
-export const prepareProductMessage = async (message, options) => {
+export const prepareProductMessage = async (message: any, options: any) => {
 	if (!message.businessOwnerJid) {
 		throw new Boom('"businessOwnerJid" is missing from the content', { statusCode: 400 })
 	}
@@ -111,7 +117,7 @@ export const prepareProductMessage = async (message, options) => {
 	// The image is intentionally omitted from the outer content; it is embedded in productImage below.
 	void image
 	content.product = {
-		currencyCode: 'IDR',
+		currencyCode: 'INR',
 		priceAmount1000: 1000,
 		title: LIBRARY_NAME,
 		...message.product,
@@ -120,34 +126,34 @@ export const prepareProductMessage = async (message, options) => {
 	return content
 }
 
-export const buttonLimitFor = buttons =>
+export const buttonLimitFor = (buttons: any[] = []) =>
 	buttons[0]?.name === 'quick_reply' ? NATIVE_FLOW_BUTTON_LIMIT.quickReply : NATIVE_FLOW_BUTTON_LIMIT.other
 
-export const nativeFlowButtonsViolateConstraints = (buttons = []) => {
+export const nativeFlowButtonsViolateConstraints = (buttons: any[] = []) => {
 	if (!buttons.length) {
 		return false
 	}
 
-	const isQuickReply = button => button?.name === 'quick_reply'
+	const isQuickReply = (button: any) => button?.name === 'quick_reply'
 	const firstIsQuickReply = isQuickReply(buttons[0])
 	if (buttons.length > buttonLimitFor(buttons)) {
 		return true
 	}
 
-	return !buttons.slice(1).every(button => {
+	return !buttons.slice(1).every((button: any) => {
 		const mapped = getNativeFlowNameByButtonName(button?.name)
 		const nameAllowed = mapped === null || mapped === undefined || WEB_SUPPORTED_INTERACTIVE_FLOWS.includes(mapped)
 		return nameAllowed && firstIsQuickReply === isQuickReply(button)
 	})
 }
 
-export const warnOnNativeFlowConstraints = (buttons, logger) => {
+export const warnOnNativeFlowConstraints = (buttons: any[], logger?: any) => {
 	if (!logger?.warn || !nativeFlowButtonsViolateConstraints(buttons)) {
 		return
 	}
 
 	const limit = buttonLimitFor(buttons)
-	const kinds = [...new Set(buttons.map(button => button?.name))]
+	const kinds = [...new Set(buttons.map((button: any) => button?.name))]
 	logger.warn(
 		{ buttons: buttons.length, limit, kinds },
 		"these native flow buttons break the client's button constraints, " +
@@ -156,7 +162,15 @@ export const warnOnNativeFlowConstraints = (buttons, logger) => {
 	)
 }
 
-const FUTURE_PROOF_MESSAGE_KEYS = [
+/**
+ * The list under the spelling Elaina ships, where the constant carries a doubled `E`.
+ *
+ * Kept as a comment because it is the literal Elaina source: the array below is the same data, and the export under
+ * it is what actually runs. Re-exporting the canonical constant (rather than re-declaring the array) keeps one source
+ * of truth and avoids the circular import that a `const X = importedX` copy hits at module load.
+ */
+/*
+const FUTURE_PROOF_MESSAGEE_KEYS = [
 	'acp2SettingMessage',
 	'associatedChildMessage',
 	'audioStickerMessage',
@@ -190,5 +204,8 @@ const FUTURE_PROOF_MESSAGE_KEYS = [
 	'viewOnceMessageV2',
 	'viewOnceMessageV2Extension'
 ]
+*/
+
+export { FUTURE_PROOF_MESSAGE_KEYS as FUTURE_PROOF_MESSAGEE_KEYS } from '../Utils/messages'
 
 export { FUTURE_PROOF_MESSAGE_KEYS } from '../Utils/messages'

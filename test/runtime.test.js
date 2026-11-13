@@ -1,18 +1,19 @@
 import { test } from 'node:test';
+import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { proto } from '../WAProto/index.js';
-import { useMongoAuthState } from '../src/Utils/use-mongo-auth-state.js';
-import { useMySQLAuthState } from '../src/Utils/use-mysql-auth-state.js';
-import { usePostgresAuthState } from '../src/Utils/use-postgres-auth-state.js';
-import { useRedisAuthState } from '../src/Utils/use-redis-auth-state.js';
+import { useMongoAuthState2 as useMongoAuthState } from '../lib/Extras/use-mongo-auth-state2.js';
+import { useMySQLAuthState } from '../lib/Extras/use-mysql-auth-state.js';
+import { usePostgresAuthState } from '../lib/Extras/use-postgres-auth-state.js';
+import { useRedisAuthState } from '../lib/Extras/use-redis-auth-state.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { useSqliteAuthState } from '../src/Utils/use-sqlite-auth-state.js';
-import { commitSenderKeyDelivery, deliveredSenderKeyJids, pickSenderKeyRecipients, senderKeyResetSummary } from '../src/Utils/sender-key-memory.js';
-import { DEFAULT_MAX_EVENT_LISTENERS, makeEventBuffer } from '../src/Utils/event-buffer.js';
-import { DEFAULT_CONNECTION_CONFIG } from '../src/Defaults/index.js';
-import { generateWAMessageContent } from '../src/Utils/messages.js';
+import { useSqliteAuthState2 as useSqliteAuthState } from '../lib/Extras/use-sqlite-auth-state2.js';
+import { commitSenderKeyDelivery, deliveredSenderKeyJids, pickSenderKeyRecipients, senderKeyResetSummary } from '../lib/Extras/sender-key-memory.js';
+import { DEFAULT_MAX_EVENT_LISTENERS, makeEventBuffer } from '../lib/Utils/event-buffer.js';
+import { DEFAULT_CONNECTION_CONFIG } from '../lib/Defaults/index.js';
+import { generateWAMessageContent } from './ported-helpers.js';
 
 test('auth-state-db', async () => {
     const preKey = { public: Buffer.from([1, 2, 3]), private: Buffer.from([4, 5, 6]) };
@@ -141,12 +142,13 @@ test('auth-state-db', async () => {
             hmget: async (key, fields) => { log.push(['hmget', key, fields]); return fields.map(field => hash(key).get(field) ?? null); },
             hset: async (key, field, value) => { log.push(['hset', key, field]); hash(key).set(field, value); },
             hdel: async (key, field) => { log.push(['hdel', key, field]); hash(key).delete(field); },
+            hgetall: async key => { log.push(['hgetall', key]); return Object.fromEntries(hash(key)); },
             del: async keys => { log.push(['del', keys]); for (const key of [].concat(keys)) hashes.delete(key); },
             keys: async pattern => { log.push(['keys', pattern]); const head = pattern.slice(0, -1); return [...hashes.keys()].filter(key => key.startsWith(head)); }
         };
         const names = style === 'node-redis'
-            ? { hGet: 'hget', hmGet: 'hmget', hSet: 'hset', hDel: 'hdel', del: 'del', keys: 'keys' }
-            : { hget: 'hget', hmget: 'hmget', hset: 'hset', hdel: 'hdel', del: 'del', keys: 'keys' };
+            ? { hGet: 'hget', hmGet: 'hmget', hSet: 'hset', hDel: 'hdel', hGetAll: 'hgetall', del: 'del', keys: 'keys' }
+            : { hget: 'hget', hmget: 'hmget', hset: 'hset', hdel: 'hdel', hgetall: 'hgetall', del: 'del', keys: 'keys' };
         const client = {};
         for (const [exposed, target] of Object.entries(names)) {
             client[exposed] = (...args) => impl[target](...args);
@@ -188,9 +190,24 @@ test('auth-state-db', async () => {
         assert.equal(reopened.state.creds.registrationId, auth.state.creds.registrationId, `${label}: creds survive a reopen`);
         assert.ok(reopened.state.creds.noiseKey.private instanceof Uint8Array, `${label}: reopened creds keep their key bytes`);
 
+        // `registrationId` is a 14-bit random value, so two fresh creds collide once in 16384 runs — assert on a
+        // sentinel we wrote instead, which makes "cleared" deterministic
+        await auth.state.keys.set({ 'pre-key': { sentinel: preKey } });
+        auth.state.creds.platform = 'sentinel-platform'
+        await auth.saveCreds();
+
         await auth.clearAuth();
         const cleared = await reopen();
-        assert.notEqual(cleared.state.creds.registrationId, auth.state.creds.registrationId, `${label}: clearAuth leaves nothing behind`);
+        assert.deepEqual(await cleared.state.keys.get('pre-key', ['sentinel']), {}, `${label}: clearAuth leaves no keys behind`);
+        assert.notEqual(cleared.state.creds.platform, 'sentinel-platform', `${label}: clearAuth leaves no creds behind`);
+
+        // a live socket keeps calling saveCreds(), so the in-memory creds must have been reset too — otherwise the
+        // old account is written straight back into the store that was just emptied
+        await auth.saveCreds();
+        const afterSave = await reopen();
+        // `registrationId` is a 14-bit random value, so comparing two fresh creds can collide; the sentinel is the
+        // only assertion here that is actually deterministic
+        assert.notEqual(afterSave.state.creds.platform, 'sentinel-platform', `${label}: a save after clearAuth does not bring the old creds back`);
     };
 
     const postgres = fakePostgres();
@@ -219,7 +236,7 @@ test('auth-state-db', async () => {
     await roundTrip('mongo', mongoAuth, () => useMongoAuthState({ collection: mongo.collection }));
     assert.deepEqual(mongo.log[0], { op: 'createIndex', spec: { session: 1, type: 1, id: 1 }, options: { unique: true } });
     assert.ok(mongo.log.some(entry => entry.op === 'bulkWrite'), 'mongo batches a key write');
-    await assert.rejects(() => useMongoAuthState({}), /collection, a db, or a uri/);
+    await assert.rejects(() => useMongoAuthState({}), /collection, a db, a client, or a uri/);
 
     for (const style of ['ioredis', 'node-redis']) {
         const redis = fakeRedis(style);
@@ -229,7 +246,7 @@ test('auth-state-db', async () => {
         assert.ok(redis.log.some(entry => entry[1] === 'baileys_auth:default:pre-key'), `${style}: one hash per key type`);
     }
     await assert.rejects(() => useRedisAuthState({ client: {} }), /exposes none of/);
-    await assert.rejects(() => useRedisAuthState({}), /client or a uri/);
+    await assert.rejects(() => useRedisAuthState({}), /client, a uri or a url/);
 
     /** Two sessions in one database must not read each other's keys. */
     const shared = fakePostgres();
@@ -240,23 +257,35 @@ test('auth-state-db', async () => {
     assert.ok((await first.state.keys.get('pre-key', ['1']))['1']);
 });
 
-test('auth-state-sqlite', async () => {
-    /**
-     * better-sqlite3 is an optional peer dependency, so a machine without it must
-     * still get a green suite rather than a failure about a missing native module.
-     */
-    let available = true;
-    try {
-        await import('better-sqlite3');
-    }
-    catch {
-        available = false;
+/**
+ * better-sqlite3 has to be *usable*, not merely importable. v13 ships a prebuild that needs Node >= 22;
+ * on an older runtime `require('better-sqlite3')` succeeds and the first `new Database()` segfaults the
+ * whole process, which used to take every other subtest in this file down with it and report the file as
+ * one opaque failure. Probing in a child process turns that crash into a visible skip.
+ */
+const sqliteUnusableReason = (() => {
+    const probe = spawnSync(
+        process.execPath,
+        ['-e', "const D = require('better-sqlite3'); const db = new D(':memory:'); db.close();"],
+        { stdio: 'ignore', timeout: 20000 }
+    );
+    if (probe.error) {
+        return `better-sqlite3 probe failed: ${probe.error.message}`;
     }
 
-    if (!available) {
-        console.log('sqlite auth state tests skipped, better-sqlite3 is not installed');
+    if (probe.signal) {
+        return `better-sqlite3 segfaults on Node ${process.versions.node}; it needs Node >= 22`;
     }
-    else {
+
+    if (probe.status !== 0) {
+        return 'better-sqlite3 is not installed';
+    }
+
+    return false;
+})();
+
+test('auth-state-sqlite', { skip: sqliteUnusableReason }, async () => {
+    {
         const dir = mkdtempSync(join(tmpdir(), 'elaina-sqlite-auth-'));
         const dbPath = join(dir, 'session.db');
         try {

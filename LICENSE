@@ -1,6 +1,12 @@
 MIT License
 
 Copyright (c) 2026 Teamolduser
+Copyright (c) 2026 Rajeh Taher/WhiskeySockets
+Copyright (c) 2026 Elaina Baileys contributors
+
+This package is derived from @whiskeysockets/baileys (MIT) and from
+@rexxhayanasi/elaina-baileys (MIT). Their copyright notices are preserved above,
+as the MIT licence requires. Files that carry their own header keep it.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

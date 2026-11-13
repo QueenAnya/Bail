@@ -1,14 +1,14 @@
 /**
- * Ported from @rexxhayanasi/elaina-baileys 1.4.5 (MIT) - Utils/ttl-cache.js
- * Copied as-is (JS -> TS, type-checking disabled); only import paths were adapted for tb2.
+ * Ported from @rexxhayanasi/elaina-baileys 1.4.x (MIT) - Utils/ttl-cache.js
+ * Copied as-is (JS -> TS); only import paths and parameter types were adapted for tb2.
+ * Re-checked against elaina-baileys 1.4.7: the exported surface matches; see PORTED_FROM below.
  */
-// @ts-nocheck
 import { LRUCache } from 'lru-cache'
 import { DEFAULT_CACHE_MAX_KEYS } from '../Defaults'
 
-const asKey = key => (typeof key === 'string' ? key : String(key))
+const asKey = (key: string | number) => (typeof key === 'string' ? key : String(key))
 
-const toMilliseconds = seconds => {
+const toMilliseconds = (seconds?: number | string) => {
 	const value = Number(seconds)
 	return Number.isFinite(value) && value > 0 ? Math.round(value * 1000) : 0
 }
@@ -22,7 +22,12 @@ export class TTLCache {
 
 	#misses = 0
 
-	constructor({ stdTTL = 0, maxKeys, max, ttl } = {}) {
+	constructor({
+		stdTTL = 0,
+		maxKeys,
+		max,
+		ttl
+	}: { stdTTL?: number; maxKeys?: number; max?: number; ttl?: number } = {}) {
 		this.#ttl = ttl !== undefined ? Number(ttl) || 0 : toMilliseconds(stdTTL)
 		const limit = Number(max ?? maxKeys)
 		this.#store = new LRUCache({
@@ -31,7 +36,7 @@ export class TTLCache {
 		})
 	}
 
-	get(key) {
+	get(key: string | number) {
 		const value = this.#store.get(asKey(key))
 		if (value === undefined) {
 			this.#misses += 1
@@ -42,17 +47,17 @@ export class TTLCache {
 		return value
 	}
 
-	set(key, value, ttl) {
+	set(key: string | number, value: any, ttl?: number) {
 		const override = toMilliseconds(ttl)
 		this.#store.set(asKey(key), value, override ? { ttl: override } : undefined)
 		return true
 	}
 
-	has(key) {
+	has(key: string | number) {
 		return this.#store.has(asKey(key))
 	}
 
-	del(keys) {
+	del(keys: string | number | Array<string | number>) {
 		const list = Array.isArray(keys) ? keys : [keys]
 		let removed = 0
 		for (const key of list) {
@@ -64,14 +69,14 @@ export class TTLCache {
 		return removed
 	}
 
-	take(key) {
+	take(key: string | number) {
 		const value = this.get(key)
 		this.del(key)
 		return value
 	}
 
-	mget(keys) {
-		const found = {}
+	mget(keys: string | number | Array<string | number>) {
+		const found: Record<string, any> = {}
 		for (const key of Array.isArray(keys) ? keys : [keys]) {
 			const value = this.get(key)
 			if (value !== undefined) {
@@ -82,7 +87,7 @@ export class TTLCache {
 		return found
 	}
 
-	mset(list) {
+	mset(list?: Array<{ key: string | number; value?: any; val?: any; ttl?: number }>) {
 		for (const item of list ?? []) {
 			this.set(item.key, item.value ?? item.val, item.ttl)
 		}

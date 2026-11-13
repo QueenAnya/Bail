@@ -12,16 +12,52 @@ import { readFile, rename, stat, writeFile } from 'fs/promises'
 import { LRUCache } from 'lru-cache'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_CACHE_TTLS } from '../Defaults/index.js'
-import type { AuthenticationCreds, AuthenticationState, SignalDataTypeMap } from '../Types'
+import type { AuthenticationCreds, AuthenticationStateWithListing, SignalDataTypeMap } from '../Types'
+import { normalizeAuthArgs, pickAlias } from './auth-args'
 import { initAuthCreds } from './auth-utils'
 import { BufferJSON } from './generics'
+import { resetCredsInPlace } from '../Extras/auth-store'
 
 /** Debounce delay before flushing accumulated writes to disk (ms) */
 const FLUSH_TIMEOUT_MS = 3000
 
+export interface SingleFileAuthStateOptions {
+	/**
+	 * Namespace this session inside the file: keys are stored as `<session>:<key>`.
+	 *
+	 * Omit it (or pass `default`) and the file layout is exactly what it always was. Set it and several bots can share
+	 * one file without seeing each other's keys.
+	 */
+	session?: string
+}
+
 export const useSingleFileAuthState = async (
-	fileName: string
-): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void>; saveState: () => Promise<void> }> => {
+	/**
+	 * The file, or an options object. Accepted shapes:
+	 * `(file)`, `(file, { session })`, `({ filename })`, `({ filename, session })`.
+	 */
+	a: string | (SingleFileAuthStateOptions & { filename?: string; fileName?: string }),
+	b?: SingleFileAuthStateOptions
+): Promise<{
+	state: AuthenticationStateWithListing
+	saveCreds: () => Promise<void>
+	saveState: () => Promise<void>
+	clearAuth: () => Promise<void>
+	/** writes immediately instead of waiting for the 3s debounce */
+	flush: () => Promise<void>
+}> => {
+	const opts = normalizeAuthArgs<SingleFileAuthStateOptions & { filename?: string; fileName?: string }>(
+		[a, b],
+		['filename', 'session']
+	)
+	const fileName = pickAlias<string>(opts, ['filename', 'fileName', 'file'])
+	if (!fileName) {
+		throw new Error('useSingleFileAuthState needs a file name (or { filename })')
+	}
+
+	const session = opts.session && opts.session !== 'default' ? opts.session : undefined
+	/** every key passes through this, so a session is a prefix and nothing else changes */
+	const ns = (keyName: string) => (session ? `${session}:${keyName}` : keyName)
 	// ── LRU Cache (fast in-memory reads) ──────────────────────────────────────
 	const cache = new LRUCache<string, any>({
 		max: 20000,
@@ -62,28 +98,68 @@ export const useSingleFileAuthState = async (
 		if (flushTimeout) return // already pending, skip
 		flushTimeout = setTimeout(async () => {
 			flushTimeout = null
-			await mutex.runExclusive(async () => {
-				try {
-					const tempFile = fileName + '.temp'
-					await writeFile(tempFile, JSON.stringify(fileData, BufferJSON.replacer))
-					await rename(tempFile, fileName) // atomic on most OS
-				} catch {
-					// swallow write errors — next flush will retry
-				}
-			})
+			try {
+				await flushNow()
+			} catch {
+				// swallow write errors — next flush will retry
+			}
 		}, FLUSH_TIMEOUT_MS)
+	}
+
+	/** true when this adapter owns the key (session-less adapters own every key) */
+	const ownsKey = (key: string) => !session || key.startsWith(`${session}:`)
+
+	/**
+	 * Writes now and cancels a pending debounce.
+	 *
+	 * Several adapters may hold the same file (one per session), so the write merges: what is on disk is re-read, the
+	 * keys this adapter owns are replaced, everything else is preserved. Without that, one bot's flush would wipe
+	 * another bot's keys.
+	 */
+	const flushNow = async () => {
+		if (flushTimeout) {
+			clearTimeout(flushTimeout)
+			flushTimeout = null
+		}
+
+		await mutex.runExclusive(async () => {
+			let onDisk: Record<string, any> = {}
+			try {
+				onDisk = JSON.parse(await readFile(fileName, 'utf-8'), BufferJSON.reviver) || {}
+			} catch {
+				onDisk = {}
+			}
+
+			for (const key of Object.keys(onDisk)) {
+				if (ownsKey(key)) {
+					delete onDisk[key]
+				}
+			}
+
+			for (const [key, value] of Object.entries(fileData)) {
+				if (ownsKey(key)) {
+					onDisk[key] = value
+				}
+			}
+
+			const tempFile = fileName + '.temp'
+			await writeFile(tempFile, JSON.stringify(onDisk, BufferJSON.replacer))
+			await rename(tempFile, fileName)
+		})
 	}
 
 	// ── Write / remove helpers ─────────────────────────────────────────────────
 	const writeKey = (keyName: string, value: any) => {
-		cache.set(keyName, value)
-		fileData[keyName] = value
+		const key = ns(keyName)
+		cache.set(key, value)
+		fileData[key] = value
 		flushKey()
 	}
 
 	const removeKey = (keyName: string) => {
-		cache.delete(keyName)
-		delete fileData[keyName]
+		const key = ns(keyName)
+		cache.delete(key)
+		delete fileData[key]
 		flushKey()
 	}
 
@@ -99,7 +175,7 @@ export const useSingleFileAuthState = async (
 
 	await loadKey()
 
-	const creds: AuthenticationCreds = (fileData['creds'] as AuthenticationCreds) || initAuthCreds()
+	const creds: AuthenticationCreds = (fileData[ns('creds')] as AuthenticationCreds) || initAuthCreds()
 
 	return {
 		state: {
@@ -108,7 +184,7 @@ export const useSingleFileAuthState = async (
 				get: <T extends keyof SignalDataTypeMap>(type: T, ids: string[]) => {
 					const data: { [id: string]: SignalDataTypeMap[T] } = {}
 					for (const id of ids) {
-						const keyName = type + id
+						const keyName = ns(type + id)
 
 						// Try LRU first, fall back to fileData
 						let value = cache.get(keyName)
@@ -138,8 +214,28 @@ export const useSingleFileAuthState = async (
 							// value type is `SignalDataTypeMap[K] | null | undefined` — loose `!= null`
 							// correctly catches BOTH null and undefined; strict `!== null` would call
 							// writeKey(key, undefined) instead of removeKey when value is undefined.
-							// eslint-disable-next-line eqeqeq
+
 							value != null ? writeKey(keyName, value) : removeKey(keyName)
+						}
+					}
+				},
+				/**
+				 * Keys in the file are `<session>:<type><id>`, so the id is whatever follows the type — the same shape
+				 * `set` writes.
+				 */
+				list: async function* (type) {
+					const prefix = ns(type)
+					for (const [keyName, value] of Object.entries(fileData).sort(([a], [b]) => a.localeCompare(b))) {
+						if (keyName.startsWith(prefix) && keyName !== ns('creds')) {
+							yield [keyName.slice(prefix.length), value] as const
+						}
+					}
+				},
+				listIds: async function* (type) {
+					const prefix = ns(type)
+					for (const keyName of Object.keys(fileData).sort()) {
+						if (keyName.startsWith(prefix) && keyName !== ns('creds')) {
+							yield keyName.slice(prefix.length)
 						}
 					}
 				}
@@ -147,6 +243,20 @@ export const useSingleFileAuthState = async (
 		},
 		saveCreds: async () => writeKey('creds', creds),
 		// innovatorssoft name for saveCreds: `sock.ev.on('creds.update', saveState)`
-		saveState: async () => writeKey('creds', creds)
+		saveState: async () => writeKey('creds', creds),
+		flush: flushNow,
+		/** removes this session's keys (with no session set, every key in the file) */
+		clearAuth: async () => {
+			const prefix = session ? `${session}:` : undefined
+			for (const key of Object.keys(fileData)) {
+				if (!prefix || key.startsWith(prefix)) {
+					cache.delete(key)
+					delete fileData[key]
+				}
+			}
+
+			await flushNow()
+			resetCredsInPlace(creds)
+		}
 	}
 }

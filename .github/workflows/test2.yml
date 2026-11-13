@@ -1,0 +1,61 @@
+name: Run Tests (node --test)
+
+# The node --test suite in `test/` — the fast one that needs no jest transform and no protobuf ESM interop.
+# `Run Tests` (test.yml) runs the jest suite over src/__tests__ instead; this workflow is the other half.
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  run-tests2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: Enable Corepack and Set Yarn Version
+        run: |
+          corepack cache clean
+          corepack enable
+          corepack prepare yarn@4.x --activate
+
+      - name: Restore Yarn Cache
+        uses: actions/cache@v6
+        id: yarn-cache
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Dependencies
+        run: |
+          yarn cache clean
+          rm yarn.lock .yarn/cache -rf
+          yarn install
+          yarn install --mode=update-lockfile
+          yarn install --no-immutable
+
+      - name: Install ffmpeg (needed by Voip tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Build
+        # `test2` imports from lib/, so the build has to run first
+        run: yarn build
+
+      - name: Run tests
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: yarn test2

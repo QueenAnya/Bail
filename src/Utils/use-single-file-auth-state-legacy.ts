@@ -26,6 +26,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { proto } from '../../WAProto/index.js'
 import type { AuthenticationCreds, AuthenticationState, SignalDataTypeMap } from '../Types'
+import { normalizeAuthArgs, pickAlias } from './auth-args'
 import { initAuthCreds } from './auth-utils'
 import { BufferJSON } from './generics'
 import type { ILogger } from './logger'
@@ -51,9 +52,23 @@ const KEY_MAP: Partial<Record<keyof SignalDataTypeMap, string>> = {
  * DO NOT USE IN A PROD ENVIRONMENT, only meant to serve as an example
  * */
 export const useSingleFileAuthStateLegacy = (
-	filename: string,
-	logger?: ILogger
+	/**
+	 * Accepted shapes: `(filename)`, `(filename, logger)`, `({ filename, logger })`.
+	 */
+	a: string | { filename?: string; fileName?: string; logger?: ILogger },
+	b?: ILogger
 ): { state: AuthenticationState; saveState: () => void } => {
+	const opts = normalizeAuthArgs<{ filename?: string; fileName?: string; logger?: ILogger }>(
+		[a, b],
+		['filename', 'logger']
+	)
+	const filename = pickAlias<string>(opts, ['filename', 'fileName', 'file'])
+	if (!filename) {
+		throw new Error('useSingleFileAuthStateLegacy needs a file name (or { filename })')
+	}
+
+	const logger = opts.logger
+
 	let creds: AuthenticationCreds
 	let keys: { [_: string]: any } = {}
 

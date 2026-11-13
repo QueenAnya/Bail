@@ -14,6 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Check every required path is tracked
+        # a rule in .gitignore can keep docs/wiki or scripts/lib out of the repo, which breaks the docs and README
+        # tooling on CI while everything still looks fine locally
+        run: node scripts/check-tracked.mjs
+
       - name: Setup Node and Corepack
         uses: actions/setup-node@v7
         with:
@@ -24,7 +29,6 @@ jobs:
           corepack cache clean
           corepack enable
           corepack prepare yarn@4.x --activate
-
       - name: Restore Yarn Cache
         uses: actions/cache@v6
         id: yarn-cache
@@ -34,13 +38,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           yarn cache clean
           rm yarn.lock .yarn/cache -rf
           yarn install
           yarn install --mode=update-lockfile
           yarn install --no-immutable
-
       - name: Build project
         run: yarn build
