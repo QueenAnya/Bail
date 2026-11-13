@@ -1,6 +1,6 @@
 # Tarball
 
-Built from `d8c14a5bb11d5db3cc98c3ef2b958d12f25a3f64` by [Build Tarball](https://github.com/QueenAnya/Bail/actions/runs/43396596957).
+Built from `5280ae9b1ac15d808380a2a9b1b9f68d653bb4db` by [Build Tarball](https://github.com/QueenAnya/Bail/actions/runs/43398221848).
 
 | file | size |
 | --- | --- |
