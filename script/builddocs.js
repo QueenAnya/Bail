@@ -141,6 +141,7 @@ mkdirSync(join(out, 'assets'), { recursive: true })
 const api = JSON.parse(readFileSync(join(root, 'site-api.json'), 'utf8'))
 
 let written = 0
+const fallbacks = []
 for (const language of meta.languages) {
     mkdirSync(join(out, language), { recursive: true })
     for (const page of meta.pages) {
@@ -152,8 +153,23 @@ for (const language of meta.languages) {
             headings = rendered.headings
         }
         else {
-            const source = join(docs, language, `${page.id}.md`)
-            if (!existsSync(source)) throw new Error(`Missing docs page: ${language}/${page.id}.md`)
+            // A page may live in three places: the language folder (`docs/en`, `docs/id`), the shared wiki
+            // (`docs/wiki`, always English), or English as the last resort for a language that has not caught up.
+            // Throwing on the first missing file made the whole site unbuildable, which is worse than serving the
+            // English text with a warning.
+            const candidates = [join(docs, language, `${page.id}.md`)]
+            if (language !== 'en') candidates.push(join(docs, 'wiki', `${page.id}.md`), join(docs, 'en', `${page.id}.md`))
+            else candidates.push(join(docs, 'wiki', `${page.id}.md`))
+
+            const source = candidates.find(candidate => existsSync(candidate))
+            if (!source) {
+                throw new Error(`Missing docs page: ${page.id}.md — looked in ${candidates.map(c => c.slice(root.length + 1)).join(', ')}`)
+            }
+
+            if (source !== candidates[0]) {
+                fallbacks.push(`${language}/${page.id} -> ${source.slice(root.length + 1)}`)
+            }
+
             const rendered = render(readFileSync(source, 'utf8'))
             body = rendered.html
             headings = rendered.headings
@@ -191,3 +207,7 @@ location.replace('./' + preferred + '/index.html')
 if (meta.site.domain) writeFileSync(join(out, 'CNAME'), meta.site.domain + '\n')
 
 console.log(`Built ${written} pages into ${out}`)
+if (fallbacks.length) {
+    console.log(`${fallbacks.length} page(s) fell back to another folder:`)
+    for (const line of fallbacks) console.log(`  ${line}`)
+}

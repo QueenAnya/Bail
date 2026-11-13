@@ -1,0 +1,562 @@
+{
+  "site": {
+    "name": "Anya Baileys",
+    "repository": "https://github.com/Teamolduser/Baileys",
+    "npm": "https://www.npmjs.com/package/@teamolduser/baileys",
+    "domain": ""
+  },
+  "languages": [
+    "en",
+    "id"
+  ],
+  "strings": {
+    "en": {
+      "skip": "Skip to content",
+      "heroTag": "WhatsApp Multi-Device for Node.js",
+      "heroStart": "Get started",
+      "onThisPage": "On this page",
+      "footer": "Anya Baileys documentation. Source on {repo}.",
+      "apiIntro": "{total} socket members, generated from the type declarations of v{version} on {date}. Every entry below is read straight from the code, so it never drifts from what the library actually exposes.",
+      "apiSearch": "Filter methods…",
+      "returns": "Returns",
+      "type": "Type",
+      "optional": "optional",
+      "moduleExports": "Module exports",
+      "exportsIntro": "The exports most worth knowing, grouped by what they do. The package exports {total} names in total, including internals you will rarely reach for."
+    },
+    "id": {
+      "skip": "Lompat ke konten",
+      "heroTag": "WhatsApp Multi-Device untuk Node.js",
+      "heroStart": "Mulai",
+      "onThisPage": "Di halaman ini",
+      "footer": "Dokumentasi Anya Baileys. Sumbernya di {repo}.",
+      "apiIntro": "{total} anggota socket, dibangkitkan dari deklarasi tipe v{version} pada {date}. Semua entri di bawah dibaca langsung dari kode, jadi tidak pernah melenceng dari yang benar-benar disediakan library.",
+      "apiSearch": "Saring method…",
+      "returns": "Mengembalikan",
+      "type": "Tipe",
+      "optional": "opsional",
+      "moduleExports": "Ekspor modul",
+      "exportsIntro": "Ekspor yang paling perlu diketahui, dikelompokkan berdasarkan fungsinya. Paket ini mengekspor {total} nama secara keseluruhan, termasuk internal yang jarang kamu butuhkan."
+    }
+  },
+  "pages": [
+    {
+      "id": "index",
+      "title": {
+        "en": "Overview",
+        "id": "Ringkasan"
+      },
+      "description": {
+        "en": "A modern WhatsApp Multi-Device library for Node.js, with MessageBuilder and channel support built in.",
+        "id": "Library WhatsApp Multi-Device modern untuk Node.js, dengan MessageBuilder dan dukungan channel bawaan."
+      }
+    },
+    {
+      "id": "getting-started",
+      "title": {
+        "en": "Getting started",
+        "id": "Mulai cepat"
+      },
+      "description": {
+        "en": "Install the package, open a connection, and pair a device with a pairing code.",
+        "id": "Pasang paket, buka koneksi, dan pasangkan perangkat dengan pairing code."
+      }
+    },
+    {
+      "id": "sessions",
+      "title": {
+        "en": "Session storage",
+        "id": "Penyimpanan sesi"
+      },
+      "description": {
+        "en": "Keep credentials safe across restarts: multi-file, single-file, SQLite, SQL, Mongo, Redis, NekoDB and caching.",
+        "id": "Jaga kredensial tetap aman lintas restart: multi-berkas, satu berkas, SQLite, SQL, Mongo, Redis, NekoDB, dan caching."
+      }
+    },
+    {
+      "id": "pairing",
+      "title": {
+        "en": "Pairing code",
+        "id": "Kode pairing"
+      },
+      "description": {
+        "en": "Link a device without a QR: server-confirmed requests, one code at a time, and custom codes.",
+        "id": "Pasangkan perangkat tanpa QR: permintaan dikonfirmasi server, satu kode sekali waktu, dan kode kustom."
+      }
+    },
+    {
+      "id": "messages",
+      "title": {
+        "en": "Messages",
+        "id": "Pesan"
+      },
+      "description": {
+        "en": "Receive messages, read their text, address users correctly, and send every basic message type.",
+        "id": "Terima pesan, baca teksnya, alamati pengguna dengan benar, dan kirim semua tipe pesan dasar."
+      }
+    },
+    {
+      "id": "builder",
+      "title": {
+        "en": "MessageBuilder",
+        "id": "MessageBuilder"
+      },
+      "description": {
+        "en": "Interactive messages: buttons, lists, carousels and AIRich rich responses.",
+        "id": "Pesan interaktif: tombol, list, carousel, dan respons kaya AIRich."
+      }
+    },
+    {
+      "id": "newsletter",
+      "title": {
+        "en": "Newsletter",
+        "id": "Newsletter"
+      },
+      "description": {
+        "en": "Create and run WhatsApp channels: metadata, admins, polls, questions and insights.",
+        "id": "Buat dan kelola channel WhatsApp: metadata, admin, polling, pertanyaan, dan insight."
+      }
+    },
+    {
+      "id": "groups",
+      "title": {
+        "en": "Groups",
+        "id": "Grup"
+      },
+      "description": {
+        "en": "Group and community management, participants, and profile pictures.",
+        "id": "Pengelolaan grup dan komunitas, peserta, dan foto profil."
+      }
+    },
+    {
+      "id": "examples",
+      "title": {
+        "en": "Examples",
+        "id": "Contoh"
+      },
+      "description": {
+        "en": "Complete, runnable bots assembled from the pieces in this documentation.",
+        "id": "Bot lengkap yang bisa langsung dijalankan, dirakit dari potongan di dokumentasi ini."
+      }
+    },
+    {
+      "id": "api",
+      "generated": "api",
+      "title": {
+        "en": "API reference",
+        "id": "Referensi API"
+      },
+      "description": {
+        "en": "Every socket method and module export, generated from the type declarations on main.",
+        "id": "Semua method socket dan ekspor modul, dibangkitkan dari deklarasi tipe di branch main."
+      }
+    },
+    {
+      "id": "account-health",
+      "title": {
+        "en": "Account health signals",
+        "id": "Account health signals"
+      },
+      "description": {
+        "en": "Reachout timelock, new-chat caps and enforcement notices.",
+        "id": "Reachout timelock, new-chat caps and enforcement notices."
+      }
+    },
+    {
+      "id": "auth-state",
+      "title": {
+        "en": "Auth state adapters",
+        "id": "Auth state adapters"
+      },
+      "description": {
+        "en": "Every adapter, its options, session support, migrating between adapters, clearAuth and close.",
+        "id": "Every adapter, its options, session support, migrating between adapters, clearAuth and close."
+      }
+    },
+    {
+      "id": "auth-examples",
+      "title": {
+        "en": "Auth state examples",
+        "id": "Auth state examples"
+      },
+      "description": {
+        "en": "One call per adapter, in all four accepted argument shapes.",
+        "id": "One call per adapter, in all four accepted argument shapes."
+      }
+    },
+    {
+      "id": "calls",
+      "title": {
+        "en": "Calls and screen sharing",
+        "id": "Calls and screen sharing"
+      },
+      "description": {
+        "en": "Group calls, queues and screen sharing.",
+        "id": "Group calls, queues and screen sharing."
+      }
+    },
+    {
+      "id": "interactive-v2",
+      "title": {
+        "en": "V2 interactive names",
+        "id": "V2 interactive names"
+      },
+      "description": {
+        "en": "The 222 V2 aliases and where they come from.",
+        "id": "The 222 V2 aliases and where they come from."
+      }
+    },
+    {
+      "id": "message-content",
+      "title": {
+        "en": "Message content and types",
+        "id": "Message content and types"
+      },
+      "description": {
+        "en": "Every content key and every message type.",
+        "id": "Every content key and every message type."
+      }
+    },
+    {
+      "id": "messagebuilder",
+      "title": {
+        "en": "MessageBuilder and AIRich",
+        "id": "MessageBuilder and AIRich"
+      },
+      "description": {
+        "en": "Buttons, carousels, rich responses and bot signatures.",
+        "id": "Buttons, carousels, rich responses and bot signatures."
+      }
+    },
+    {
+      "id": "native-flow",
+      "title": {
+        "en": "Native flow payloads",
+        "id": "Native flow payloads"
+      },
+      "description": {
+        "en": "Raw native-flow examples without the builders.",
+        "id": "Raw native-flow examples without the builders."
+      }
+    },
+    {
+      "id": "socket-methods",
+      "title": {
+        "en": "Socket methods",
+        "id": "Socket methods"
+      },
+      "description": {
+        "en": "Account, chat and message helper methods on the socket.",
+        "id": "Account, chat and message helper methods on the socket."
+      }
+    },
+    {
+      "id": "store",
+      "title": {
+        "en": "Store APIs",
+        "id": "Store APIs"
+      },
+      "description": {
+        "en": "In-memory store, ordered dictionary, chat and message keys.",
+        "id": "In-memory store, ordered dictionary, chat and message keys."
+      }
+    },
+    {
+      "id": "voip",
+      "title": {
+        "en": "VoIP",
+        "id": "VoIP"
+      },
+      "description": {
+        "en": "Call signalling, diagnostics and call timelines.",
+        "id": "Call signalling, diagnostics and call timelines."
+      }
+    },
+    {
+      "id": "webview",
+      "title": {
+        "en": "In-app HTML webview",
+        "id": "In-app HTML webview"
+      },
+      "description": {
+        "en": "The webView payload and its options.",
+        "id": "The webView payload and its options."
+      }
+    },
+    {
+      "id": "anchor-guard",
+      "title": {
+        "en": "AnchorGuard",
+        "id": "AnchorGuard"
+      },
+      "description": {
+        "en": "Anti-force-close guard: crash payloads, spam-add and every option.",
+        "id": "Anti-force-close guard: crash payloads, spam-add dan setiap opsi."
+      }
+    },
+    {
+      "id": "ad-reply",
+      "title": {
+        "en": "External ad reply",
+        "id": "External ad reply"
+      },
+      "description": {
+        "en": "External ad reply.",
+        "id": "External ad reply."
+      }
+    },
+    {
+      "id": "link-previews",
+      "title": {
+        "en": "Rich link cards and status previews",
+        "id": "Rich link cards and status previews"
+      },
+      "description": {
+        "en": "Rich link cards and status previews.",
+        "id": "Rich link cards and status previews."
+      }
+    },
+    {
+      "id": "a2ui",
+      "title": {
+        "en": "A2UI cards",
+        "id": "A2UI cards"
+      },
+      "description": {
+        "en": "A2UI cards.",
+        "id": "A2UI cards."
+      }
+    },
+    {
+      "id": "message-types",
+      "title": {
+        "en": "Message types",
+        "id": "Message types"
+      },
+      "description": {
+        "en": "Message types.",
+        "id": "Message types."
+      }
+    },
+    {
+      "id": "content-keys",
+      "title": {
+        "en": "Message content keys",
+        "id": "Message content keys"
+      },
+      "description": {
+        "en": "Message content keys.",
+        "id": "Message content keys."
+      }
+    },
+    {
+      "id": "modern-messages",
+      "title": {
+        "en": "Modern message API",
+        "id": "Modern message API"
+      },
+      "description": {
+        "en": "Modern message API.",
+        "id": "Modern message API."
+      }
+    },
+    {
+      "id": "scheduled-messages",
+      "title": {
+        "en": "Scheduled messages",
+        "id": "Scheduled messages"
+      },
+      "description": {
+        "en": "Scheduled messages.",
+        "id": "Scheduled messages."
+      }
+    },
+    {
+      "id": "communities",
+      "title": {
+        "en": "Communities",
+        "id": "Communities"
+      },
+      "description": {
+        "en": "Communities.",
+        "id": "Communities."
+      }
+    },
+    {
+      "id": "chat-state",
+      "title": {
+        "en": "Chat state, labels and history",
+        "id": "Chat state, labels and history"
+      },
+      "description": {
+        "en": "Chat state, labels and history.",
+        "id": "Chat state, labels and history."
+      }
+    },
+    {
+      "id": "privacy",
+      "title": {
+        "en": "Privacy and disappearing messages",
+        "id": "Privacy and disappearing messages"
+      },
+      "description": {
+        "en": "Privacy and disappearing messages.",
+        "id": "Privacy and disappearing messages."
+      }
+    },
+    {
+      "id": "presence",
+      "title": {
+        "en": "Presence and read receipts",
+        "id": "Presence and read receipts"
+      },
+      "description": {
+        "en": "Presence and read receipts.",
+        "id": "Presence and read receipts."
+      }
+    },
+    {
+      "id": "profile-photos",
+      "title": {
+        "en": "Profile photos",
+        "id": "Profile photos"
+      },
+      "description": {
+        "en": "Profile photos.",
+        "id": "Profile photos."
+      }
+    },
+    {
+      "id": "business",
+      "title": {
+        "en": "Business, catalog and labels",
+        "id": "Business, catalog and labels"
+      },
+      "description": {
+        "en": "Business, catalog and labels.",
+        "id": "Business, catalog and labels."
+      }
+    },
+    {
+      "id": "channels",
+      "title": {
+        "en": "Channel administration",
+        "id": "Channel administration"
+      },
+      "description": {
+        "en": "Channel administration.",
+        "id": "Channel administration."
+      }
+    },
+    {
+      "id": "calls-deep",
+      "title": {
+        "en": "Calls in depth",
+        "id": "Calls in depth"
+      },
+      "description": {
+        "en": "Calls in depth.",
+        "id": "Calls in depth."
+      }
+    },
+    {
+      "id": "events",
+      "title": {
+        "en": "Event reference",
+        "id": "Event reference"
+      },
+      "description": {
+        "en": "Event reference.",
+        "id": "Event reference."
+      }
+    },
+    {
+      "id": "socket-config",
+      "title": {
+        "en": "Socket config reference",
+        "id": "Socket config reference"
+      },
+      "description": {
+        "en": "Socket config reference.",
+        "id": "Socket config reference."
+      }
+    },
+    {
+      "id": "framework",
+      "title": {
+        "en": "Framework",
+        "id": "Framework"
+      },
+      "description": {
+        "en": "Framework.",
+        "id": "Framework."
+      }
+    },
+    {
+      "id": "internals",
+      "title": {
+        "en": "Internals",
+        "id": "Internals"
+      },
+      "description": {
+        "en": "A map of the folders below the socket API.",
+        "id": "A map of the folders below the socket API."
+      }
+    },
+    {
+      "id": "useful-exports",
+      "title": {
+        "en": "Useful exports",
+        "id": "Useful exports"
+      },
+      "description": {
+        "en": "Useful exports.",
+        "id": "Useful exports."
+      }
+    },
+    {
+      "id": "updating-version",
+      "title": {
+        "en": "Updating the WhatsApp Web version",
+        "id": "Updating the WhatsApp Web version"
+      },
+      "description": {
+        "en": "Updating the WhatsApp Web version.",
+        "id": "Updating the WhatsApp Web version."
+      }
+    },
+    {
+      "id": "behaviour-changes",
+      "title": {
+        "en": "Notable behaviour changes",
+        "id": "Notable behaviour changes"
+      },
+      "description": {
+        "en": "Notable behaviour changes.",
+        "id": "Notable behaviour changes."
+      }
+    },
+    {
+      "id": "migration",
+      "title": {
+        "en": "Coming from upstream Baileys",
+        "id": "Coming from upstream Baileys"
+      },
+      "description": {
+        "en": "Coming from upstream Baileys.",
+        "id": "Coming from upstream Baileys."
+      }
+    },
+    {
+      "id": "troubleshooting",
+      "title": {
+        "en": "Troubleshooting",
+        "id": "Troubleshooting"
+      },
+      "description": {
+        "en": "Troubleshooting.",
+        "id": "Troubleshooting."
+      }
+    }
+  ]
+}
