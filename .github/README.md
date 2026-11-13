@@ -13,14 +13,14 @@
 <a href="https://nodejs.org"><img alt="node" src="https://img.shields.io/badge/node-%E2%89%A522-339933?style=for-the-badge&logo=node.js&labelColor=161b22" /></a>
 <a href="#"><img alt="esm" src="https://img.shields.io/badge/module-ESM-f7df1e?style=for-the-badge&logo=javascript&labelColor=161b22&logoColor=black" /></a>
 
-[Quick start](#-quick-start) · [Install](#-install) · [Usage](#-connecting-an-account) · [Reference](#-links) · [Docs site](https://teamolduser.github.io/Baileys/)
+[Quick start](#-quick-start) · [Install](#-install) · [Usage](#-connecting-an-account) · [Reference](#-links) · [Docs site](https://queenanya.github.io/Bail/)
 
 </div>
 
 ---
 
 > [!TIP]
-> **Documentation site** — <https://teamolduser.github.io/Baileys/>: the same pages as [`docs/wiki/`](../docs/wiki/),
+> **Documentation site** — <https://queenanya.github.io/Bail/>: the same pages as [`docs/wiki/`](../docs/wiki/),
 > rendered with search. It is rebuilt from `master` on every push that touches `docs/`, and the link here updates
 > itself from the deployment, so forks do not need to edit it.
 
@@ -916,7 +916,7 @@ The deep reference lives in [`docs/wiki/`](../docs/wiki/), one page per topic �
 | [Account health signals](../docs/wiki/account-health.md) | reachout timelock, new-chat caps, enforcement |
 | [Live testing](../docs/live-test.md) | checking the risky paths on a real account |
 
-- **Documentation site** — <https://teamolduser.github.io/Baileys/> (built from `docs/`, published to the `web` branch)
+- **Documentation site** — <https://queenanya.github.io/Bail/> (built from `docs/`, published to the `web` branch)
 - **Wiki source** — [`docs/wiki/`](../docs/wiki/README.md), the same content as plain markdown
 
 Other entry points:
