@@ -8,7 +8,7 @@ import logger from '../Utils/logger'
 export { PHONENUMBER_MCC } from './phonenumber-mcc'
 
 // client_revision from https://web.whatsapp.com/sw.js; kept in step with elaina-baileys 1.4.9
-const version = [2, 3000, 1053624037]
+const version = [2, 3000, 1056457874]
 
 export const UNAUTHORIZED_CODES = [401, 403, 419]
 
